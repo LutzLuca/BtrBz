@@ -1,0 +1,186 @@
+import { type, Type } from "arktype";
+import * as fs from "fs";
+
+const partialBazaarProduct = type({
+    product_id: "string",
+});
+
+const partialBazaarResponse = type({
+    success: "boolean",
+    lastUpdated: "number",
+    products: { "[string]": partialBazaarProduct },
+});
+
+const partialItem = type({
+    id: "string",
+    name: "string",
+});
+
+const partialItemsResponse = type({
+    success: "boolean",
+    lastUpdated: "number",
+    items: partialItem.array(),
+});
+
+// According to https://minecraft.wiki/w/Formatting_codes this regex should match all valid
+// Minecraft formatting codes, that are used in names like '§3Blue Goblin Egg'
+const FORMATTING_CODES = /§[0-9a-v]/g;
+
+// Some names from the Items API have placeholders like %%red%% or %%italic%%
+// see '%%red%%Volcanic Rock'
+const PLACEHOLDER = /%%\w+%%/g;
+
+const ENDS_WITH_INTEGER = /\d+$/;
+
+const ROMAN_NUMERALS: Record<number, string> = {
+    1: "I",
+    2: "II",
+    3: "III",
+    4: "IV",
+    5: "V",
+    6: "VI",
+    7: "VII",
+    8: "VIII",
+    9: "IX",
+    10: "X",
+    20: "XX",
+};
+
+const NAME_OVERRIDES: Record<string, string> = {
+    ENCHANTMENT_ULTIMATE_WISE_1: "Ultimate Wise I",
+    ENCHANTMENT_ULTIMATE_WISE_2: "Ultimate Wise II",
+    ENCHANTMENT_ULTIMATE_WISE_3: "Ultimate Wise III",
+    ENCHANTMENT_ULTIMATE_WISE_4: "Ultimate Wise IV",
+    ENCHANTMENT_ULTIMATE_WISE_5: "Ultimate Wise V",
+
+    ENCHANTMENT_ULTIMATE_JERRY_1: "Ultimate Jerry I",
+    ENCHANTMENT_ULTIMATE_JERRY_2: "Ultimate Jerry II",
+    ENCHANTMENT_ULTIMATE_JERRY_3: "Ultimate Jerry III",
+    ENCHANTMENT_ULTIMATE_JERRY_4: "Ultimate Jerry IV",
+    ENCHANTMENT_ULTIMATE_JERRY_5: "Ultimate Jerry V",
+};
+
+function screamingSnakeCaseToTitleCase(input: string): string {
+    return input
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+}
+
+function cleanName(name: string): string {
+    return name.replace(FORMATTING_CODES, "").replace(PLACEHOLDER, "").trim();
+}
+
+function idToName(id: string): string {
+    if (NAME_OVERRIDES[id]) {
+        return NAME_OVERRIDES[id];
+    }
+
+    // while currently no bz product id contains any formatting codes / placehorders might as well strip them here
+    const cleanedId = cleanName(id)
+        .replace(/^ENCHANTMENT_/, "")
+        .replace(/^ULTIMATE_/, "")
+        .trim();
+
+    let name = screamingSnakeCaseToTitleCase(cleanedId);
+    name = romanizeTrailingInteger(name);
+
+    if (name.startsWith("Shard ")) {
+        name = `${name.slice("Shard ".length)} Shard`;
+    }
+
+    return name.trim();
+}
+
+function romanizeTrailingInteger(name: string): string {
+    const match = ENDS_WITH_INTEGER.exec(name);
+    if (!match) {
+        return name;
+    }
+
+    const num = Number(match[0]);
+    const numeral = ROMAN_NUMERALS[num];
+
+    if (!numeral) {
+        console.warn(`No roman numeral mapping for ${num} in "${name}"`);
+        return name;
+    }
+    return name.replace(ENDS_WITH_INTEGER, numeral);
+}
+
+async function validatedFetch<T extends Type>(
+    url: string,
+    schema: T,
+    label: string,
+): Promise<T["infer"]> {
+    console.log(`Fetching ${label} from ${url}`);
+    const resp = await fetch(url);
+    const json = await resp.json();
+
+    const parsed = schema(json);
+    if (parsed instanceof type.errors) {
+        throw new Error(`Failed to deserialize ${label}: ${parsed.summary}`);
+    }
+    return parsed;
+}
+
+const fetchBazaarData = () =>
+    validatedFetch(
+        "https://api.hypixel.net/v2/skyblock/bazaar",
+        partialBazaarResponse,
+        "Bazaar Data",
+    );
+
+const fetchItemData = () =>
+    validatedFetch(
+        "https://api.hypixel.net/v2/resources/skyblock/items",
+        partialItemsResponse,
+        "Item Data",
+    );
+
+async function createMapping(outputFile = "conversions.json") {
+    console.log("Starting mapping creation...");
+
+    const [bazaarData, itemData] = await Promise.all([
+        fetchBazaarData(),
+        fetchItemData(),
+    ]);
+
+    console.log(
+        `Fetched ${Object.keys(bazaarData.products).length} bazaar products`,
+        `Fetched ${itemData.items.length} items from items API`,
+    );
+
+    const itemIdToName = Object.fromEntries(
+        itemData.items.map(({ id, name }) => [id, name]),
+    );
+
+    let usedFromItems = 0;
+    let constructedManually = 0;
+
+    const conversions = Object.fromEntries(
+        Object.keys(bazaarData.products)
+            .map((id) => {
+                const fromItems = id in itemIdToName;
+                fromItems ? usedFromItems++ : constructedManually++;
+
+                const name = fromItems
+                    ? cleanName(itemIdToName[id]!)
+                    : idToName(id);
+                return [id, name];
+            })
+            .sort(([idA], [idB]) => idA!.localeCompare(idB!)),
+    );
+
+    fs.writeFileSync(outputFile, JSON.stringify(conversions, null, 4));
+
+    console.log(
+        `Mapping written to ${outputFile} (items API: ${usedFromItems}, manually constructed: ${constructedManually})`,
+    );
+}
+
+createMapping().catch((err) => {
+    console.error("Error during mapping creation:", err);
+    process.exit(1);
+});
