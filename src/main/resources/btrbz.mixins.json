@@ -1,11 +1,11 @@
 {
-	"required": true,
-	"package": "com.github.lutzluca.btrbz.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"MinecraftClientMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
-	}
+    "required": true,
+    "package": "com.github.lutzluca.btrbz.mixin",
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "SkyBlockBazaarReplyAccessor"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
 }

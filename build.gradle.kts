@@ -15,6 +15,7 @@ base {
 repositories {
     mavenCentral()
     maven("https://maven.fabricmc.net/")
+    maven("https://repo.hypixel.net/repository/Hypixel/")
 }
 
 fabricApi {
@@ -28,6 +29,12 @@ dependencies {
     mappings("net.fabricmc:yarn:${getProp("yarn_mappings")}:v2")
     modImplementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
+
+    implementation("net.hypixel:hypixel-api-transport-apache:4.4")
+    implementation("net.hypixel:hypixel-api-core:4.4")
+
+    implementation("io.vavr:vavr:0.10.7")
+    implementation("com.google.code.gson:gson:2.8.9")
 }
 
 tasks {
