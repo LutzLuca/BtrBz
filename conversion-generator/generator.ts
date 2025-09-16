@@ -60,6 +60,55 @@ const NAME_OVERRIDES: Record<string, string> = {
     ENCHANTMENT_ULTIMATE_JERRY_5: "Ultimate Jerry V",
 };
 
+const GEM_SYMBOLS: Record<string, string> = {
+    AMBER: "⸕",
+    AMETHYST: "❈",
+    AQUAMARINE: "☂",
+    CITRINE: "☘",
+    JADE: "☘",
+    JASPER: "❁",
+    ONYX: "☠",
+    OPAL: "❂",
+    PERIDOT: "☘",
+    RUBY: "❤",
+    SAPPHIRE: "✎",
+    TOPAZ: "✧",
+};
+
+const GEM_RARITY: Record<string, string> = {
+    ROUGH: "Rough",
+    FLAWED: "Flawed",
+    FINE: "Fine",
+    FLAWLESS: "Flawless",
+    PERFECT: "Perfect",
+};
+
+function tryParseGemstoneId(id: string): string | undefined {
+    // Expect patterns like <RARITY>_<GEM>_GEM
+    const parts = id.split("_");
+    if (parts.length != 3) {
+        return undefined;
+    }
+
+    let [rarityPart, type, gem] = parts;
+    if (gem !== "GEM") {
+        return undefined;
+    }
+
+    const rarity = GEM_RARITY[rarityPart!];
+    if (!rarity) {
+        console.error(`Unknown gem rarity "${rarityPart}" in id "${id}"`);
+        return undefined;
+    }
+
+    const symbol = GEM_SYMBOLS[type!];
+    if (!symbol) {
+        console.error(`Unknown gem type "${type}" in id "${id}"`);
+        return undefined;
+    }
+    return `${symbol} ${rarityPart} ${type} Gemstone`;
+}
+
 function screamingSnakeCaseToTitleCase(input: string): string {
     return input
         .toLowerCase()
@@ -75,6 +124,10 @@ function cleanName(name: string): string {
 function idToName(id: string): string {
     if (NAME_OVERRIDES[id]) {
         return NAME_OVERRIDES[id];
+    }
+    const gemName = tryParseGemstoneId(id);
+    if (gemName) {
+        return gemName;
     }
 
     // while currently no bz product id contains any formatting codes / placehorders might as well strip them here
@@ -162,6 +215,12 @@ async function createMapping(outputFile = "conversions.json") {
     const conversions = Object.fromEntries(
         Object.keys(bazaarData.products)
             .map((id) => {
+                const gemName = tryParseGemstoneId(id);
+                if (gemName) {
+                    constructedManually++;
+                    return [id, gemName];
+                }
+
                 const fromItems = id in itemIdToName;
                 fromItems ? usedFromItems++ : constructedManually++;
 
