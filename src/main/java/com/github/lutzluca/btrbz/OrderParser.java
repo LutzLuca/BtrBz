@@ -8,49 +8,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.StreamSupport;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 
-public final class BazaarScreenHandler {
+public final class OrderParser {
 
-    private BazaarScreenHandler() {}
+    private OrderParser() { }
 
-    public static void handleScreen(MinecraftClient client, Screen screen, BzOrderManager manager) {
-        if (!(screen instanceof GenericContainerScreen genericContainerScreen)) {
-            return;
-        }
-        if (!screen.getTitle().getString().equals("Your Bazaar Orders")) {
-            return;
-        }
 
-        var handler = genericContainerScreen.getScreenHandler();
-
-        final var FILTER = Set.of(Items.BLACK_STAINED_GLASS_PANE, Items.ARROW, Items.HOPPER);
-
-        // have a more sophisticated way for "ui loaded"
-        client.execute(() -> {
-            var parsed = StreamSupport.stream(handler.getInventory().spliterator(), false).filter(
-                    itemStack -> !itemStack.isEmpty() && !FILTER.contains(itemStack.getItem()))
-                    .flatMap(itemStack -> parseOrder(itemStack).stream()).toList();
-
-            Notifier.logDebug("Parsed orders: {}", parsed);
-            manager.syncFromUi(parsed);
-        });
-    }
-
-    private static Optional<OrderInfo> parseOrder(ItemStack item) {
+    public static Optional<OrderInfo> parseOrder(ItemStack item) {
         var orderInfo = item.getName().getString().split(" ", 2);
         if (orderInfo.length != 2) {
             Notifier.logInfo(
-                    "Title line of item does not follow the pattern '<orderType> <productName>'");
+                "Title line of item does not follow the pattern '<orderType> <productName>'");
             return Optional.empty();
         }
 
@@ -65,13 +37,15 @@ public final class BazaarScreenHandler {
         var additionalInfoOpt = getAdditionalOrderInfo(lore);
         if (additionalInfoOpt.isEmpty()) {
             Notifier.logInfo(
-                    "Failed to parse out the additional Order info from the lore of the item");
+                "Failed to parse out the additional Order info from the lore of the item");
             return Optional.empty();
         }
 
         var info = additionalInfoOpt.get();
         return Optional.of(new OrderInfo(productName.trim(), orderTypeResult.get(), info.volume(),
-                info.pricePerUnit(), info.filled()));
+            info.pricePerUnit(),
+            info.filled()
+        ));
     }
 
     private static Optional<OrderDetails> getAdditionalOrderInfo(List<String> lore) {
@@ -87,17 +61,24 @@ public final class BazaarScreenHandler {
 
             if (pricePerUnit == null && line.startsWith("Price per unit:")) {
                 var parsed = parseNumber(
-                        line.replace("Price per unit:", "").replace("coins", "").trim());
+                    line.replace("Price per unit:", "")
+                        .replace("coins", "")
+                        .trim()
+                );
 
                 if (parsed.isFailure()) {
                     Notifier.logInfo("Failed to parse pricePerUnit", parsed.getCause());
                     return Optional.empty();
                 }
                 pricePerUnit = parsed.get().doubleValue();
-            } else if (volume == null
-                    && (line.startsWith("Order amount:") || line.startsWith("Offer amount:"))) {
-                var parsed = parseNumber(line.replace("Order amount:", "")
-                        .replace("Offer amount:", "").replaceAll("x.*", "").trim());
+            } else if (volume == null && (line.startsWith("Order amount:") || line.startsWith(
+                "Offer amount:"))) {
+                var parsed = parseNumber(
+                    line.replace("Order amount:", "")
+                        .replace("Offer amount:", "")
+                        .replaceAll("x.*", "")
+                        .trim()
+                );
 
                 if (parsed.isFailure()) {
                     Notifier.logInfo("Failed to parse volume", parsed.getCause());
@@ -125,11 +106,15 @@ public final class BazaarScreenHandler {
         return Try.of(() -> nf.parse(str.trim()));
     }
 
-    public static List<String> getLore(ItemStack item) {
-        return Optional.ofNullable(item.get(DataComponentTypes.LORE)).map(LoreComponent::lines)
-                .orElseGet(ArrayList::new).stream().map(Text::getString).toList();
+    private static List<String> getLore(ItemStack item) {
+        return Optional
+            .ofNullable(item.get(DataComponentTypes.LORE))
+            .map(LoreComponent::lines)
+            .orElseGet(ArrayList::new)
+            .stream()
+            .map(Text::getString)
+            .toList();
     }
 
-    record OrderDetails(double pricePerUnit, int volume, boolean filled) {
-    }
+    private record OrderDetails(double pricePerUnit, int volume, boolean filled) { }
 }

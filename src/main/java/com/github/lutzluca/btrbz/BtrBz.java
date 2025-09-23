@@ -1,11 +1,14 @@
 package com.github.lutzluca.btrbz;
 
+import com.github.lutzluca.btrbz.InventoryLoadWatcher.SlotSnapshot;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 
 public class BtrBz implements ClientModInitializer {
@@ -18,12 +21,32 @@ public class BtrBz implements ClientModInitializer {
 
         var conversions = ConversionLoader
             .initialize()
-            .onFailure(err -> Notifier.logError("Failed to initialize conversion mappings. Mod cannot proceed.", err))
-            .onSuccess(map -> Notifier.logDebug("Conversion mappings initialized ({} entries)", map.size()))
+            .onFailure(err -> Notifier.logError(
+                "Failed to initialize conversion mappings. Mod cannot proceed. {}", err))
+            .onSuccess(map -> Notifier.logDebug("Conversion mappings initialized ({} entries)",
+                map.size()
+            ))
             .get();
 
         var manager = new BzOrderManager(conversions);
         new BzPoller(manager::onBazaarUpdate);
+
+        // @formatter:off
+        new InventoryLoadWatcher(
+            (screen) -> screen.getTitle().getString().equals("Your Bazaar Orders"), (items) -> {
+            final var FILTER = Set.of(Items.BLACK_STAINED_GLASS_PANE, Items.ARROW, Items.HOPPER);
+
+            var orders = items
+                .stream()
+                .map(SlotSnapshot::stack)
+                .filter(itemStack -> !(itemStack.isEmpty() || FILTER.contains(itemStack.getItem())))
+                .map(OrderParser::parseOrder)
+                .flatMap(Optional::stream)
+                .toList();
+
+            manager.syncFromUi(orders);
+        });
+        // @formatter:on
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("reset").executes(context -> {
@@ -31,7 +54,9 @@ public class BtrBz implements ClientModInitializer {
                     manager.resetTrackedOrders();
                     var player = MinecraftClient.getInstance().player;
                     if (player != null) {
-                        player.sendMessage(Text.literal("Tracked Bazaar orders have been reset."), false);
+                        player.sendMessage(Text.literal("Tracked Bazaar orders have been reset."),
+                            false
+                        );
                     }
                 });
 
@@ -44,19 +69,16 @@ public class BtrBz implements ClientModInitializer {
                     var orders = manager.getTrackedOrders();
 
                     if (player != null) {
-                        player.sendMessage(
-                            Text.literal(orders.stream().map(TrackedOrder::toString).collect(Collectors.joining("\n"))),
-                            false
+                        player.sendMessage(Text.literal(orders
+                            .stream()
+                            .map(TrackedOrder::toString)
+                            .collect(Collectors.joining("\n"))), false
                         );
                     }
                 });
 
                 return 1;
             }));
-        });
-
-        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-            BazaarScreenHandler.handleScreen(client, screen, manager);
         });
     }
 }
