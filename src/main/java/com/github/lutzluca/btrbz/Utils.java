@@ -35,7 +35,9 @@ public final class Utils {
             Files.writeString(tmp.toPath(), content);
             tmp.deleteOnExit();
 
-            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            );
         });
     }
 

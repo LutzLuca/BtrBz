@@ -59,16 +59,19 @@ public final class ConversionLoader {
         }
 
         Notifier.logDebug("Found local conversion cache at {}. Attempting to load.", CACHE_FILE);
-        return Try.of(() -> Files.readString(CACHE_FILE, StandardCharsets.UTF_8))
-                  .flatMap(ConversionLoader::parseJsonToMap);
+        return Try
+            .of(() -> Files.readString(CACHE_FILE, StandardCharsets.UTF_8))
+            .flatMap(ConversionLoader::parseJsonToMap);
     }
 
     private static Try<Map<String, String>> loadFromBundledResource() {
-        return Optional.ofNullable(ConversionLoader.class.getResourceAsStream(RESOURCE_PATH))
-                       .map(Try::success)
-                       .orElseGet(() -> Try
-                           .failure(new IOException("Bundled resource not found: " + RESOURCE_PATH)))
-                       .flatMap(ConversionLoader::readStream).flatMap(ConversionLoader::parseJsonToMap);
+        return Optional
+            .ofNullable(ConversionLoader.class.getResourceAsStream(RESOURCE_PATH))
+            .map(Try::success)
+            .orElseGet(
+                () -> Try.failure(new IOException("Bundled resource not found: " + RESOURCE_PATH)))
+            .flatMap(ConversionLoader::readStream)
+            .flatMap(ConversionLoader::parseJsonToMap);
     }
 
     private static Try<String> readStream(InputStream stream) {
@@ -82,12 +85,14 @@ public final class ConversionLoader {
     private static void cacheLocally(Map<String, String> map) {
         String json = GSON.toJson(map);
 
-        Try.run(() -> Files.createDirectories(CACHE_DIR))
-           .andThenTry(() -> Files.writeString(CACHE_FILE, json, StandardCharsets.UTF_8))
-           .onSuccess(v -> Notifier.logDebug("Wrote conversion cache to {}.", CACHE_FILE))
-           .onFailure(err -> Notifier.logWarn("Failed to write conversion cache to {}: {}",
-               CACHE_FILE, err.getMessage()
-           ));
+        Try
+            .run(() -> Files.createDirectories(CACHE_DIR))
+            .andThenTry(() -> Files.writeString(CACHE_FILE, json, StandardCharsets.UTF_8))
+            .onSuccess(v -> Notifier.logDebug("Wrote conversion cache to {}.", CACHE_FILE))
+            .onFailure(
+                err -> Notifier.logWarn("Failed to write conversion cache to {}: {}", CACHE_FILE,
+                    err.getMessage()
+                ));
     }
 
     private static Try<Map<String, String>> parseJsonToMap(String json) {

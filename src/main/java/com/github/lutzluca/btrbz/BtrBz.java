@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz;
 
-import com.github.lutzluca.btrbz.InventoryLoadWatcher.SlotSnapshot;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,6 +14,12 @@ public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
 
+    private static BzOrderManager manager;
+
+    public static BzOrderManager getManager() {
+        return manager;
+    }
+
     @Override
     public void onInitializeClient() {
         Notifier.logInfo("[BtrBz] Initializing Mod...");
@@ -28,23 +33,24 @@ public class BtrBz implements ClientModInitializer {
             ))
             .get();
 
-        var manager = new BzOrderManager(conversions);
+        manager = new BzOrderManager(conversions);
+
         new BzPoller(manager::onBazaarUpdate);
 
         // @formatter:off
         new InventoryLoadWatcher(
-            (screen) -> screen.getTitle().getString().equals("Your Bazaar Orders"), (items) -> {
+            (screen) -> screen.getTitle().getString().equals("Your Bazaar Orders"), (slots) -> {
             final var FILTER = Set.of(Items.BLACK_STAINED_GLASS_PANE, Items.ARROW, Items.HOPPER);
 
-            var orders = items
+            var parsed = slots
                 .stream()
-                .map(SlotSnapshot::stack)
-                .filter(itemStack -> !(itemStack.isEmpty() || FILTER.contains(itemStack.getItem())))
-                .map(OrderParser::parseOrder)
+                .filter(s -> !(s.stack().isEmpty() || FILTER.contains(s.stack().getItem())))
+                .map(s -> OrderParser.parseOrder(s.stack(), s.idx()))
                 .flatMap(Optional::stream)
-                .toList();
+                .collect(Collectors.toList());
 
-            manager.syncFromUi(orders);
+            manager.syncFromUi(parsed);
+            HighlightManager.setStatuses(parsed);
         });
         // @formatter:on
 

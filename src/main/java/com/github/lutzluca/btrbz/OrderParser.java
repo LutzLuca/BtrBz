@@ -18,7 +18,7 @@ public final class OrderParser {
     private OrderParser() { }
 
 
-    public static Optional<OrderInfo> parseOrder(ItemStack item) {
+    public static Optional<OrderInfo> parseOrder(ItemStack item, int slotIdx) {
         var orderInfo = item.getName().getString().split(" ", 2);
         if (orderInfo.length != 2) {
             Notifier.logInfo(
@@ -29,7 +29,9 @@ public final class OrderParser {
         var orderTypeResult = OrderType.tryFrom(orderInfo[0]);
         var productName = orderInfo[1];
         if (orderTypeResult.isFailure()) {
-            Notifier.logInfo("Failed to parse Order type", orderTypeResult.getCause());
+            Notifier.logInfo("Failed to parse Order type: {}",
+                orderTypeResult.getCause().getMessage()
+            );
             return Optional.empty();
         }
 
@@ -41,11 +43,11 @@ public final class OrderParser {
             return Optional.empty();
         }
 
-        var info = additionalInfoOpt.get();
-        return Optional.of(new OrderInfo(productName.trim(), orderTypeResult.get(), info.volume(),
-            info.pricePerUnit(),
-            info.filled()
-        ));
+        var details = additionalInfoOpt.get();
+        return Optional.of(
+            new OrderInfo(productName.trim(), orderTypeResult.get(), details.volume(),
+                details.pricePerUnit(), details.filled(), slotIdx
+            ));
     }
 
     private static Optional<OrderDetails> getAdditionalOrderInfo(List<String> lore) {
@@ -61,27 +63,23 @@ public final class OrderParser {
 
             if (pricePerUnit == null && line.startsWith("Price per unit:")) {
                 var parsed = parseNumber(
-                    line.replace("Price per unit:", "")
-                        .replace("coins", "")
-                        .trim()
-                );
+                    line.replace("Price per unit:", "").replace("coins", "").trim());
 
                 if (parsed.isFailure()) {
-                    Notifier.logInfo("Failed to parse pricePerUnit", parsed.getCause());
+                    Notifier.logInfo("Failed to parse pricePerUnit: {}", parsed.getCause());
                     return Optional.empty();
                 }
                 pricePerUnit = parsed.get().doubleValue();
             } else if (volume == null && (line.startsWith("Order amount:") || line.startsWith(
                 "Offer amount:"))) {
-                var parsed = parseNumber(
-                    line.replace("Order amount:", "")
-                        .replace("Offer amount:", "")
-                        .replaceAll("x.*", "")
-                        .trim()
-                );
+                var parsed = parseNumber(line
+                    .replace("Order amount:", "")
+                    .replace("Offer amount:", "")
+                    .replaceAll("x.*", "")
+                    .trim());
 
                 if (parsed.isFailure()) {
-                    Notifier.logInfo("Failed to parse volume", parsed.getCause());
+                    Notifier.logInfo("Failed to parse volume: {}", parsed.getCause());
                     return Optional.empty();
                 }
                 volume = parsed.get().intValue();

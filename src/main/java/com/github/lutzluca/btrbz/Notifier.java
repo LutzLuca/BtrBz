@@ -47,10 +47,11 @@ public class Notifier {
     }
 
     public static void notifyChatCommand(String displayText, String cmd) {
-        MutableText msg = Text.literal(displayText)
-                              .styled(style -> style.withClickEvent(new ClickEvent.RunCommand("/" + cmd))
-                                                    .withHoverEvent(
-                                                        new HoverEvent.ShowText(Text.literal("Run /" + cmd))));
+        MutableText msg = Text
+            .literal(displayText)
+            .styled(style -> style
+                .withClickEvent(new ClickEvent.RunCommand("/" + cmd))
+                .withHoverEvent(new HoverEvent.ShowText(Text.literal("Run /" + cmd))));
         Notifier.prefix().append(msg);
     }
 
@@ -63,9 +64,8 @@ public class Notifier {
         var msg = switch (update.status()) {
             case OrderStatus.Top ignored -> Notifier.bestMsg(update.trackedOrder());
             case OrderStatus.Matched ignored -> Notifier.matchedMsg(update.trackedOrder());
-            case OrderStatus.Undercut undercut -> Notifier.undercutMsg(update.trackedOrder(),
-                undercut.amount
-            );
+            case OrderStatus.Undercut undercut ->
+                Notifier.undercutMsg(update.trackedOrder(), undercut.amount);
             default -> {
                 throw new Error("unreachable");
             }
@@ -77,7 +77,10 @@ public class Notifier {
         return Text.literal("[BtrBz] ").formatted(Formatting.GOLD);
     }
 
-    private static Text fillBaseMessage(OrderType type, int volume, String productName,
+    private static Text fillBaseMessage(
+        OrderType type,
+        int volume,
+        String productName,
         Text statusPart
     ) {
         var orderString = switch (type) {
@@ -85,34 +88,41 @@ public class Notifier {
             case Sell -> "Sell offer";
         };
 
-        return prefix().append(Text.literal("Your ").formatted(Formatting.WHITE))
-                       .append(Text.literal(orderString).formatted(Formatting.AQUA))
-                       .append(Text.literal(" for ").formatted(Formatting.WHITE))
-                       .append(Text.literal(String.valueOf(volume)).formatted(Formatting.LIGHT_PURPLE))
-                       .append(Text.literal("x ").formatted(Formatting.WHITE))
-                       .append(Text.literal(productName).formatted(Formatting.YELLOW))
-                       .append(Text.literal(" ").formatted(Formatting.WHITE)).append(statusPart);
+        return prefix()
+            .append(Text.literal("Your ").formatted(Formatting.WHITE))
+            .append(Text.literal(orderString).formatted(Formatting.AQUA))
+            .append(Text.literal(" for ").formatted(Formatting.WHITE))
+            .append(Text.literal(String.valueOf(volume)).formatted(Formatting.LIGHT_PURPLE))
+            .append(Text.literal("x ").formatted(Formatting.WHITE))
+            .append(Text.literal(productName).formatted(Formatting.YELLOW))
+            .append(Text.literal(" ").formatted(Formatting.WHITE))
+            .append(statusPart);
     }
 
     private static Text bestMsg(TrackedOrder order) {
-        var status = Text.empty().append(Text.literal("is the ").formatted(Formatting.WHITE))
-                         .append(Text.literal("BEST Order!").formatted(Formatting.GREEN));
+        var status = Text
+            .empty()
+            .append(Text.literal("is the ").formatted(Formatting.WHITE))
+            .append(Text.literal("BEST Order!").formatted(Formatting.GREEN));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
     private static Text matchedMsg(TrackedOrder order) {
-        var status = Text.empty().append(Text.literal("has been ").formatted(Formatting.WHITE))
-                         .append(Text.literal("MATCHED!").formatted(Formatting.BLUE));
+        var status = Text
+            .empty()
+            .append(Text.literal("has been ").formatted(Formatting.WHITE))
+            .append(Text.literal("MATCHED!").formatted(Formatting.BLUE));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
     private static Text undercutMsg(TrackedOrder order, double undercutAmount) {
-        var status = Text.empty().append(Text.literal("has been ").formatted(Formatting.WHITE))
-                         .append(Text.literal("UNDERCUT ").formatted(Formatting.RED))
-                         .append(Text.literal("by ").formatted(Formatting.WHITE))
-                         .append(Text.literal(Utils.formatDecimal(undercutAmount, 1))
-                                     .formatted(Formatting.GOLD))
-                         .append(Text.literal(" coins!").formatted(Formatting.WHITE));
+        var status = Text
+            .empty()
+            .append(Text.literal("has been ").formatted(Formatting.WHITE))
+            .append(Text.literal("UNDERCUT ").formatted(Formatting.RED))
+            .append(Text.literal("by ").formatted(Formatting.WHITE))
+            .append(Text.literal(Utils.formatDecimal(undercutAmount, 1)).formatted(Formatting.GOLD))
+            .append(Text.literal(" coins!").formatted(Formatting.WHITE));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 }
