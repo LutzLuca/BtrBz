@@ -15,7 +15,7 @@ import java.util.Locale;
 
 public final class Utils {
 
-    private Utils() { }
+    private Utils() {}
 
 
     public static String formatUtcTimestampMillis(long utcMillis) {
@@ -36,8 +36,7 @@ public final class Utils {
             tmp.deleteOnExit();
 
             return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-            );
+                    StandardCopyOption.REPLACE_EXISTING);
         });
     }
 

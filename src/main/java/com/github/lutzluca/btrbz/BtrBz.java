@@ -1,11 +1,13 @@
 package com.github.lutzluca.btrbz;
 
+import com.github.lutzluca.btrbz.SetOrderInfo.ChatOrder;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
@@ -44,8 +46,9 @@ public class BtrBz implements ClientModInitializer {
 
             var parsed = slots
                 .stream()
-                .filter(s -> !(s.stack().isEmpty() || FILTER.contains(s.stack().getItem())))
-                .map(s -> OrderParser.parseOrder(s.stack(), s.idx()))
+                .filter(slot -> !(slot.stack().isEmpty() || FILTER.contains(slot.stack().getItem())))
+                .map(slot -> OrderParser.parseOrder(slot.stack(), slot.idx()).toJavaOptional()
+                )
                 .flatMap(Optional::stream)
                 .collect(Collectors.toList());
 
@@ -53,6 +56,37 @@ public class BtrBz implements ClientModInitializer {
             HighlightManager.setStatuses(parsed);
         });
         // @formatter:on
+
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+            String msg = message.getString();
+            if (!msg.startsWith("[Bazaar]")) {
+                return;
+            }
+
+            var parsed = SetOrderInfo.parseSetupChat(msg);
+            if (parsed.isFailure()) {
+                System.out.println(
+                    "failed to parse out the setup chat order info: " + parsed.getCause());
+                return;
+            }
+            ChatOrder chatOrder = parsed.get();
+            System.out.println("parsed out chat order info: " + parsed.get());
+
+            Optional<TrackedOrder> matched = OutstandingOrders.matchAndRemove(chatOrder);
+            if (matched.isPresent()) {
+                BtrBz.getManager().addTrackedOrder(matched.get());
+                Notifier.logInfo("Matched Bazaar order for {} x{}", matched.get().productName,
+                    matched.get().volume
+                );
+                Notifier.notifyPlayer(Text.literal(
+                    "Matched Bazaar order for " + matched.get().productName + " x"
+                        + matched.get().volume));
+            } else {
+                Notifier.notifyChatCommand("No matching confirmation found. Resync orders",
+                    "managebazaarorders"
+                );
+            }
+        });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("reset").executes(context -> {

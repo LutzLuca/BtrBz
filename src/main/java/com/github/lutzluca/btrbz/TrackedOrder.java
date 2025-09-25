@@ -21,17 +21,24 @@ public class TrackedOrder {
         this.slot = slot;
     }
 
+    public TrackedOrder(SetOrderInfo info) {
+        this.productName = info.productName();
+        this.type = info.type();
+        this.volume = info.volume();
+        this.pricePerUnit = info.pricePerUnit();
+        this.slot = -1;
+    }
+
     public boolean match(OrderInfo info) {
         return this.productName.equals(info.productName) && this.type == info.type
-            && this.volume == info.volume
-            && Double.compare(this.pricePerUnit, info.pricePerUnit) == 0;
+                && this.volume == info.volume
+                && Double.compare(this.pricePerUnit, info.pricePerUnit) == 0;
     }
 
     @Override
     public String toString() {
         return String.format("(%s, name: %s, price: %.1f, volume: %d)", type, productName,
-            pricePerUnit, volume
-        );
+                pricePerUnit, volume);
     }
 
     public enum OrderType {
@@ -41,14 +48,14 @@ public class TrackedOrder {
             return switch (value) {
                 case "BUY" -> Try.success(OrderType.Buy);
                 case "SELL" -> Try.success(OrderType.Sell);
-                default ->
-                    Try.failure(new IllegalArgumentException("Unknown order type: " + value));
+                default -> Try
+                        .failure(new IllegalArgumentException("Unknown order type: " + value));
             };
         }
     }
 
     public sealed abstract static class OrderStatus permits OrderStatus.Unknown, OrderStatus.Top,
-        OrderStatus.Matched, OrderStatus.Undercut {
+            OrderStatus.Matched, OrderStatus.Undercut {
 
         @Override
         public final String toString() {
@@ -64,11 +71,14 @@ public class TrackedOrder {
             return other != null && this.getClass() == other.getClass();
         }
 
-        public static final class Unknown extends OrderStatus { }
+        public static final class Unknown extends OrderStatus {
+        }
 
-        public static final class Top extends OrderStatus { }
+        public static final class Top extends OrderStatus {
+        }
 
-        public static final class Matched extends OrderStatus { }
+        public static final class Matched extends OrderStatus {
+        }
 
         public static final class Undercut extends OrderStatus {
 
@@ -81,7 +91,7 @@ public class TrackedOrder {
     }
 
     public record OrderInfo(String productName, OrderType type, int volume, double pricePerUnit,
-                            boolean filled, int slotIdx) {
+            boolean filled, int slotIdx) {
 
         public boolean notFilled() {
             return !this.filled;
