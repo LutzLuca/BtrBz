@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz;
+package com.github.lutzluca.btrbz.utils;
 
 import io.vavr.control.Try;
 import java.io.File;
@@ -11,11 +11,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
-public final class Utils {
+public final class Util {
 
-    private Utils() {}
+    private Util() { }
 
 
     public static String formatUtcTimestampMillis(long utcMillis) {
@@ -35,18 +39,13 @@ public final class Utils {
             Files.writeString(tmp.toPath(), content);
             tmp.deleteOnExit();
 
-            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
+            return Files.move(
+                tmp.toPath(),
+                path,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            );
         });
-    }
-
-    public static String getCallingClassName() {
-        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-        if (stack.length > 3) {
-            String fqcn = stack[3].getClassName();
-            return fqcn.substring(fqcn.lastIndexOf('.') + 1);
-        }
-        return "UnknownClass";
     }
 
     public static String formatDecimal(double value, int places) {
@@ -59,5 +58,24 @@ public final class Utils {
         formatter.setGroupingUsed(true);
 
         return formatter.format(value);
+    }
+
+    public static Try<Number> parseUsFormattedNumber(String str) {
+        var nf = NumberFormat.getNumberInstance(Locale.US);
+        nf.setParseIntegerOnly(false);
+        return Try.of(() -> nf.parse(str.trim()));
+    }
+
+    public static <T> List<T> removeIfAndReturn(Collection<T> coll, Predicate<? super T> pred) {
+        List<T> removed = new ArrayList<>();
+        var it = coll.iterator();
+        while (it.hasNext()) {
+            var val = it.next();
+            if (pred.test(val)) {
+                removed.add(val);
+                it.remove();
+            }
+        }
+        return removed;
     }
 }

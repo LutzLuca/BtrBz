@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz;
+package com.github.lutzluca.btrbz.utils;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -49,7 +49,8 @@ public class InventoryLoadWatcher {
         Predicate<GenericContainerScreen> screenMatcher,
         Consumer<List<SlotSnapshot>> onLoaded
     ) {
-        this(screenMatcher, onLoaded, stack -> {
+        this(
+            screenMatcher, onLoaded, stack -> {
                 if (stack == null || stack.isEmpty()) {
                     return false;
                 }
@@ -114,10 +115,11 @@ public class InventoryLoadWatcher {
     public record SlotSnapshot(int idx, ItemStack stack) {
 
         @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof SlotSnapshot(int otherIdx, ItemStack otherStack))) {
+        public boolean equals(Object obj) {
+            if (!(obj instanceof SlotSnapshot(int otherIdx, ItemStack otherStack))) {
                 return false;
             }
+
             return idx == otherIdx && ItemStack.areEqual(stack, otherStack);
         }
     }

@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz;
+package com.github.lutzluca.btrbz.data;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -12,7 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 public final class ConversionLoader {
 
     private static final Path CACHE_DIR = Path.of(System.getProperty("user.home"), ".btrbz");
@@ -24,7 +27,7 @@ public final class ConversionLoader {
 
     public static Try<BiMap<String, String>> initialize() {
         return loadFromCache().recoverWith(err -> {
-            Notifier.logWarn(
+            log.warn(
                 "Failed to load local cache ({}). Trying to retrieve conversions from the bundled resources",
                 err.getMessage()
             );
@@ -38,9 +41,11 @@ public final class ConversionLoader {
             var conv = HashBiMap.<String, String>create();
             for (var entry : map.entrySet()) {
                 if (conv.containsValue(entry.getValue())) {
-                    Notifier.logWarn(
+                    log.warn(
                         "Duplicate conversion name detected: '{}' -> '{}'. Ignoring new value of '{}'.",
-                        entry.getKey(), conv.inverse().get(entry.getValue()), entry.getValue()
+                        entry.getKey(),
+                        conv.inverse().get(entry.getValue()),
+                        entry.getValue()
                     );
 
                     continue;
@@ -54,11 +59,11 @@ public final class ConversionLoader {
 
     private static Try<Map<String, String>> loadFromCache() {
         if (!Files.exists(CACHE_FILE)) {
-            Notifier.logInfo("No local cache found at {}", CACHE_FILE);
+            log.info("No local cache found at {}", CACHE_FILE);
             return Try.failure(new IOException("Cache file does not exist"));
         }
 
-        Notifier.logDebug("Found local conversion cache at {}. Attempting to load.", CACHE_FILE);
+        log.info("Found local conversion cache at {}. Attempting to load.", CACHE_FILE);
         return Try
             .of(() -> Files.readString(CACHE_FILE, StandardCharsets.UTF_8))
             .flatMap(ConversionLoader::parseJsonToMap);
@@ -88,21 +93,21 @@ public final class ConversionLoader {
         Try
             .run(() -> Files.createDirectories(CACHE_DIR))
             .andThenTry(() -> Files.writeString(CACHE_FILE, json, StandardCharsets.UTF_8))
-            .onSuccess(v -> Notifier.logDebug("Wrote conversion cache to {}.", CACHE_FILE))
-            .onFailure(
-                err -> Notifier.logWarn("Failed to write conversion cache to {}: {}", CACHE_FILE,
-                    err.getMessage()
-                ));
+            .onSuccess(v -> log.info("Wrote conversion cache to {}.", CACHE_FILE))
+            .onFailure(err -> log.warn(
+                "Failed to write conversion cache to {}: {}", CACHE_FILE,
+                err.getMessage()
+            ));
     }
 
     private static Try<Map<String, String>> parseJsonToMap(String json) {
         // @formatter:off
         return Try.of(() -> Optional.ofNullable(GSON.fromJson(json, new TypeToken<Map<String, String>>() { })))
-                  .flatMap(mappings ->
-                      mappings
-                          .map(Try::success)
-                          .orElseGet(() -> Try.failure(new IOException("Parsed conversion JSON as null")))
-                  );
+            .flatMap(mappings ->
+                mappings
+                    .map(Try::success)
+                    .orElseGet(() -> Try.failure(new IOException("Parsed conversion JSON as null")))
+            );
         // @formatter:on
     }
 }

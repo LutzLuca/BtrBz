@@ -1,9 +1,15 @@
-package com.github.lutzluca.btrbz;
+package com.github.lutzluca.btrbz.core;
 
-import com.github.lutzluca.btrbz.OrderParser.FilledOrderInfo;
-import com.github.lutzluca.btrbz.TrackedOrder.OrderInfo;
-import com.github.lutzluca.btrbz.TrackedOrder.OrderStatus;
-import com.github.lutzluca.btrbz.TrackedOrder.OrderType;
+import com.github.lutzluca.btrbz.data.OrderModels.ChatFilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.ChatOrderConfirmationInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.OutstandingOrderStore;
+import com.github.lutzluca.btrbz.utils.Notifier;
+import com.github.lutzluca.btrbz.utils.Util;
 import com.google.common.collect.BiMap;
 import io.vavr.control.Try;
 import java.util.ArrayList;
@@ -11,35 +17,45 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 
+@Slf4j
 public class BzOrderManager {
 
     private final BiMap<String, String> idToName;
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
+    private final OutstandingOrderStore outstandingOrderStore;
 
-    public BzOrderManager(BiMap<String, String> conversions) {
+    private final Consumer<StatusUpdate> onOrderStatusUpdate;
+
+    public BzOrderManager(
+        BiMap<String, String> conversions,
+        Consumer<StatusUpdate> onOrderStatusChange
+    ) {
         this.idToName = conversions;
+        this.outstandingOrderStore = new OutstandingOrderStore();
+        this.onOrderStatusUpdate = onOrderStatusChange;
     }
-
 
     public void syncFromUi(Collection<OrderInfo> parsedOrders) {
         var toRemove = new ArrayList<TrackedOrder>();
         var remaining = new ArrayList<>(parsedOrders);
 
         for (var tracked : this.trackedOrders) {
-            var match = remaining.stream().filter(tracked::match).findFirst();
+            var match = remaining.stream().filter(tracked::matches).findFirst();
 
-            match.ifPresentOrElse(info -> {
+            match.ifPresentOrElse(
+                info -> {
                     remaining.remove(info);
                     if (info.filled()) {
                         toRemove.add(tracked);
                         return;
                     }
-
                     tracked.slot = info.slotIdx();
                 }, () -> {
                     toRemove.add(tracked);
@@ -47,9 +63,9 @@ public class BzOrderManager {
             );
         }
 
-        Notifier.logDebug("Tracked orders: {}, toRemove: {}, toAdd: {}",
-            this.trackedOrders.toString(), toRemove.toString(),
-            remaining.stream().filter(OrderInfo::notFilled).toList().toString()
+        log.debug(
+            "Tracked orders: {}, toRemove: {}, toAdd: {}", this.trackedOrders.toString(),
+            toRemove.toString(), remaining.stream().filter(OrderInfo::notFilled).toList().toString()
         );
 
         this.trackedOrders.removeAll(toRemove);
@@ -65,7 +81,8 @@ public class BzOrderManager {
             .map(tracked -> {
                 var id = nameToId(tracked.productName);
                 if (id.isEmpty()) {
-                    Notifier.logWarn("No name -> id mapping found for product with name: '{}'",
+                    log.warn(
+                        "No name -> id mapping found for product with name: '{}'",
                         tracked.productName
                     );
                     return Optional.<StatusUpdate>empty();
@@ -73,7 +90,8 @@ public class BzOrderManager {
 
                 var product = Optional.ofNullable(products.get(id.get()));
                 if (product.isEmpty()) {
-                    Notifier.logWarn("No product found for item with name '{}' and mapped id '{}'",
+                    log.warn(
+                        "No product found for item with name '{}' and mapped id '{}'",
                         tracked.productName, id.get()
                     );
                     return Optional.<StatusUpdate>empty();
@@ -81,7 +99,8 @@ public class BzOrderManager {
 
                 var status = getStatus(tracked, product.get());
                 if (status.isEmpty()) {
-                    Notifier.logInfo("Unable to determine status for product '{}' with id '{}'",
+                    log.debug(
+                        "Unable to determine status for product '{}' with id '{}'",
                         tracked.productName, id.get()
                     );
                     return Optional.<StatusUpdate>empty();
@@ -94,17 +113,76 @@ public class BzOrderManager {
                 statusUpdate -> !statusUpdate.trackedOrder.status.sameVariant(statusUpdate.status))
             .forEach(statusUpdate -> {
                 statusUpdate.trackedOrder.status = statusUpdate.status;
-                HighlightManager.updateStatus(statusUpdate.trackedOrder.slot, statusUpdate.status);
+                this.onOrderStatusUpdate.accept(statusUpdate);
                 Notifier.notifyOrderStatus(statusUpdate);
             });
     }
 
-    public Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
+    public void resetTrackedOrders() {
+        var removed = this.trackedOrders.size();
+        this.trackedOrders.clear();
+        log.info("Reset tracked orders (removed {})", removed);
+    }
+
+    public List<TrackedOrder> getTrackedOrders() {
+        return List.copyOf(this.trackedOrders);
+    }
+
+    public void addTrackedOrder(TrackedOrder order) {
+        this.trackedOrders.add(order);
+    }
+
+    public void removeMatching(ChatFilledOrderInfo info) {
+        var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
+
+        this.trackedOrders
+            .stream()
+            .filter(order -> order.productName.equals(
+                info.productName()) && order.type == info.type() && order.volume == info.volume())
+            .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
+            .findFirst()
+            .ifPresentOrElse(
+                this.trackedOrders::remove, () -> {
+                    Notifier.notifyChatCommand(
+                        "No matching tracked order found for filled order message. Resync orders",
+                        "managebazaarorders"
+                    );
+                }
+            );
+    }
+
+    public void addOutstandingOrder(OutstandingOrderInfo info) {
+        this.outstandingOrderStore.add(info);
+    }
+
+    public void confirmOutstanding(ChatOrderConfirmationInfo info) {
+        this.outstandingOrderStore
+            .removeMatching(info)
+            .map(TrackedOrder::new)
+            .ifPresentOrElse(
+                this::addTrackedOrder, () -> {
+                    log.info("Failed to find a matching outstanding order for: {}", info);
+
+                    Notifier.notifyChatCommand(
+                        String.format(
+                            "Failed to find a matching outstanding order for: %s for %sx %s totalling %s | click to resync tracked orders",
+                            info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
+                            info.volume(),
+                            info.productName(),
+                            Util.formatDecimal(info.total(), 1)
+                        ), "managebazaarorders"
+                    );
+                }
+            );
+    }
+
+    private Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
         Function<List<Summary>, Optional<Summary>> getFirst = (list) -> Try
             .of(list::getFirst)
             .toJavaOptional();
 
-        // floating point inaccuracy in for player exposure is handled see `Utils.formatDecimal`
+        // floating point inaccuracy for player exposure is handled see
+        // `GeneralUtils.formatDecimal`
         return switch (order.type) {
             case Buy -> getFirst.apply(product.getSellSummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
@@ -134,39 +212,6 @@ public class BzOrderManager {
     private Optional<String> nameToId(String name) {
         return Optional.ofNullable(this.idToName.inverse().get(name));
     }
-
-    public void resetTrackedOrders() {
-        var removed = this.trackedOrders.size();
-        this.trackedOrders.clear();
-        Notifier.logInfo("Reset tracked orders (removed {})", removed);
-    }
-
-    public List<TrackedOrder> getTrackedOrders() {
-        return List.copyOf(this.trackedOrders);
-    }
-
-    public void addTrackedOrder(TrackedOrder order) {
-        this.trackedOrders.add(order);
-    }
-
-    public void removeMatching(FilledOrderInfo info) {
-        var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
-        this.trackedOrders
-            .stream()
-            .filter(
-                order -> order.productName.equals(info.productName()) && order.type == info.type()
-                    && order.volume == info.volume())
-            .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
-            .findFirst()
-            .ifPresentOrElse(this.trackedOrders::remove, () -> {
-                    Notifier.notifyChatCommand(
-                        "No matching tracked order found for filled order message. Resync orders",
-                        "managebazaarorders"
-                    );
-                }
-            );
-    }
-
 
     public record StatusUpdate(TrackedOrder trackedOrder, OrderStatus status) { }
 }

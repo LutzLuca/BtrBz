@@ -13,6 +13,10 @@ base {
     archivesName.set(getProp("mod_id"))
 }
 
+loom {
+    log4jConfigs.from(file("./log4j-dev.xml"))
+}
+
 repositories {
     mavenCentral()
     maven("https://maven.fabricmc.net/")
@@ -37,6 +41,9 @@ dependencies {
 
     implementation("io.vavr:vavr:0.10.7")
     implementation("com.google.code.gson:gson:2.8.9")
+
+    compileOnly("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 
     modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
 }
