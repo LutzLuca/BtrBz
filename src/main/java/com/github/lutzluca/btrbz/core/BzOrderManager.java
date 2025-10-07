@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.data.OutstandingOrderStore;
+import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Util;
 import com.google.common.collect.BiMap;
@@ -29,7 +29,7 @@ public class BzOrderManager {
     private final BiMap<String, String> idToName;
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
-    private final OutstandingOrderStore outstandingOrderStore;
+    private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
 
     private final Consumer<StatusUpdate> onOrderStatusUpdate;
 
@@ -38,7 +38,7 @@ public class BzOrderManager {
         Consumer<StatusUpdate> onOrderStatusChange
     ) {
         this.idToName = conversions;
-        this.outstandingOrderStore = new OutstandingOrderStore();
+        this.outstandingOrderStore = new TimedStore<>(15_000L);
         this.onOrderStatusUpdate = onOrderStatusChange;
     }
 
@@ -158,21 +158,24 @@ public class BzOrderManager {
     }
 
     public void confirmOutstanding(ChatOrderConfirmationInfo info) {
-        this.outstandingOrderStore.removeMatching(info).map(TrackedOrder::new).ifPresentOrElse(
-            this::addTrackedOrder, () -> {
-                log.info("Failed to find a matching outstanding order for: {}", info);
+        this.outstandingOrderStore
+            .removeIfMatching(curr -> curr.matches(info))
+            .map(TrackedOrder::new)
+            .ifPresentOrElse(
+                this::addTrackedOrder, () -> {
+                    log.info("Failed to find a matching outstanding order for: {}", info);
 
-                Notifier.notifyChatCommand(
-                    String.format(
-                        "Failed to find a matching outstanding order for: %s for %sx %s totalling %s | click to resync tracked orders",
-                        info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
-                        info.volume(),
-                        info.productName(),
-                        Util.formatDecimal(info.total(), 1)
-                    ), "managebazaarorders"
-                );
-            }
-        );
+                    Notifier.notifyChatCommand(
+                        String.format(
+                            "Failed to find a matching outstanding order for: %s for %sx %s totalling %s | click to resync tracked orders",
+                            info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
+                            info.volume(),
+                            info.productName(),
+                            Util.formatDecimal(info.total(), 1)
+                        ), "managebazaarorders"
+                    );
+                }
+            );
     }
 
     private Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
