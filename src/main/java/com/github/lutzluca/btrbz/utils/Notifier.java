@@ -33,7 +33,8 @@ public class Notifier {
             .styled(style -> style
                 .withClickEvent(new RunCommand("/" + cmd))
                 .withHoverEvent(new ShowText(Text.literal("Run /" + cmd))));
-        Notifier.prefix().append(msg);
+
+        notifyPlayer(Notifier.prefix().append(msg.formatted(Formatting.WHITE)));
     }
 
 
