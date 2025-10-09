@@ -14,8 +14,8 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.Util;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
@@ -23,7 +23,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.Items;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -69,16 +68,11 @@ public class BtrBz implements ClientModInitializer {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Orders),
             (info, slots) -> {
-                final var FILTER = Set.of(
-                    Items.BLACK_STAINED_GLASS_PANE,
-                    Items.ARROW,
-                    Items.HOPPER
-                );
 
                 var parsed = slots.stream()
                     .filter(slot -> {
                         var stack = slot.stack();
-                        return !stack.isEmpty() && !FILTER.contains(stack.getItem());
+                        return !stack.isEmpty() && !Util.orderScreenNonOrderItem.contains(stack.getItem());
                     })
                     .map(slot ->
                         OrderInfoParser

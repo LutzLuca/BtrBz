@@ -16,6 +16,9 @@ public class TimedStore<T> {
     private final long timeToLiveMs;
     private final List<Entry<T>> entries = new ArrayList<>();
 
+    // maybe use a shared `ScheduledExecutorService` for all TimedStore instances.
+    // each TimedStore would register itself for periodic cleanup
+    // avoiding unnecessary resource usage
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "btrbz-timedstore-cleanup");
         t.setDaemon(true);
@@ -38,7 +41,7 @@ public class TimedStore<T> {
         }
     }
 
-    public Optional<T> removeIfMatching(Predicate<T> predicate) {
+    public Optional<T> removeFirstMatch(Predicate<T> predicate) {
         synchronized (this.entries) {
             for (var it = this.entries.iterator(); it.hasNext(); ) {
                 var curr = it.next();

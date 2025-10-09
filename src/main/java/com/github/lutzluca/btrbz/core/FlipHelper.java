@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarData.TrackedProduct;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.ChatFlippedOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
@@ -19,7 +20,6 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
 import io.vavr.control.Try;
 import java.util.Optional;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.SignEditScreen;
@@ -32,231 +32,193 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 
-// TODO: clear up this mess: I currently don't care at the horrendous mess this is
 @Slf4j
 public class FlipHelper {
 
-    private static final int customHelperSlot = 16;
-    private static final int flipOrderIdx = 15;
+    private static final int flipOrderItemSlotIdx = 15;
+    private static final int customHelperItemSlotIdx = 16;
 
     private final TimedStore<FlipEntry> pendingFlips = new TimedStore<>(15_000L);
     private final BazaarData bazaarData;
-    private String clickedProductName = null;
-    private boolean pendingFlipClick = false;
+
+    private TrackedProduct potentialFlipProduct = null;
+    private boolean pendingFlip = false;
 
     public FlipHelper(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
+        this.registerPotentialFlipOrderSelectionListener();
+        this.registerFlipHelperItemOverride();
+        this.registerFlipExecutionTrigger();
+        this.registerFlipPriceScreenHandler();
+    }
 
+    private void registerPotentialFlipOrderSelectionListener() {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                if (slot == null || button != 1) {
-                    return false;
-                }
-
-                return info.inMenu(ScreenInfoHelper.BazaarMenuType.Orders);
+                return slot != null && button == 1 && info.inMenu(ScreenInfoHelper.BazaarMenuType.Orders);
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                // TODO: move the filter (same as the one used in BtrBz so a static field somewhere)
-                final var FILTER = Set.of(
-                    Items.BLACK_STAINED_GLASS_PANE,
-                    Items.ARROW,
-                    Items.HOPPER
-                );
-
-                record OrderTitleInfo(OrderType type, String productName) { }
-
                 var itemStack = slot.getStack();
-                var orderTitleInfo = Optional
-                    .ofNullable(itemStack)
-                    .filter(stack -> !stack.isEmpty() && !FILTER.contains(stack.getItem()))
-                    .map(stack -> stack.getName().getString())
-                    .flatMap(title -> {
-                        var parts = title.split(" ", 2);
-                        if (parts.length != 2) {
-                            log.warn(
-                                "Item title does not follow '<type> <productName>': '{}'",
-                                title
-                            );
-                            return Optional.empty();
-                        }
 
-                        return OrderType
-                            .tryFrom(parts[0].trim())
-                            .onFailure(err -> log.warn(
-                                "Failed to parse Order type from '{}'",
-                                parts[0],
-                                err
-                            ))
-                            .toJavaOptional()
-                            .map(type -> new OrderTitleInfo(type, parts[1].trim()));
-                    });
-
+                var orderTitleInfo = parseOrderTitle(itemStack);
                 if (orderTitleInfo.isEmpty() || orderTitleInfo.get().type != OrderType.Buy) {
-                    clickedProductName = null;
+                    clearPendingFlipState();
                     return false;
                 }
 
-                boolean isFilled = OrderInfoParser
-                    .getLore(itemStack)
-                    .stream()
-                    .filter(line -> line.trim().startsWith("Filled"))
-                    .findFirst()
-                    .map(filledStatusLine -> filledStatusLine.contains("100%"))
-                    .orElse(false);
-
-                if (!isFilled) {
-                    clickedProductName = null;
+                if (!isFilled(itemStack)) {
+                    clearPendingFlipState();
                     return false;
                 }
 
-                clickedProductName = orderTitleInfo.get().productName();
-                log.debug("Set pendingFlip for potential flip: {}", clickedProductName);
+                var name = orderTitleInfo.get().productName();
+                potentialFlipProduct = new TrackedProduct(bazaarData, name);
+                log.debug("Set pendingFlip for potential flip: '{}'", name);
                 return false;
             }
         });
+    }
 
+    private void registerFlipHelperItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
             if (!info.inMenu(ScreenInfoHelper.BazaarMenuType.OrderOptions)) {
                 return Optional.empty();
             }
 
-            if (slot == null || slot.getIndex() != customHelperSlot || clickedProductName == null) {
+            if (slot == null || slot.getIndex() != customHelperItemSlotIdx || this.potentialFlipProduct == null) {
                 return Optional.empty();
             }
+            return this.potentialFlipProduct.getSellOfferPrice().map(price -> {
+                var formatted = Util.formatDecimal(Math.max(price - 0.1, .1), 1, true);
 
-            var lowestPrice = this.bazaarData
-                .nameToId(clickedProductName)
-                .flatMap(this.bazaarData::lowestSellPrice);
-            if (lowestPrice.isEmpty()) {
-                return Optional.empty();
-            }
-
-            return lowestPrice.map(price -> {
-                var formatted = Util.formatDecimal(price - 0.1, 1, true);
-
-                ItemStack star = new ItemStack(Items.NETHER_STAR);
-                star.set(
+                var customHelperItem = new ItemStack(Items.NETHER_STAR);
+                customHelperItem.set(
                     DataComponentTypes.CUSTOM_NAME,
                     Text.literal(formatted).formatted(Formatting.DARK_PURPLE)
                 );
-                return star;
+                return customHelperItem;
             });
         });
+    }
 
+    private void registerFlipExecutionTrigger() {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getIndex() == customHelperSlot && info.inMenu(
+                return slot != null && slot.getIndex() == customHelperItemSlotIdx && info.inMenu(
                     BazaarMenuType.OrderOptions);
             }
 
-            // TODO: clicking the `customHelperSlot` regardless if its replaced results in
-            // a click on the flip item; need to check if the item has a non empty
-            // sell summary. Maybe have the BazaarData return a custom struct which registers
-            // itself against the on update and store this struct instead of the productName.
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-
                 var client = MinecraftClient.getInstance();
                 if (client == null) {
-                    return true;
+                    return false;
                 }
 
                 var gcsOpt = info.getGenericContainerScreen();
                 if (gcsOpt.isEmpty()) {
-                    return true;
+                    return false;
                 }
 
                 var handler = gcsOpt.get().getScreenHandler();
-                var syncId = handler.syncId;
-
                 var player = client.player;
                 var interactionManager = client.interactionManager;
 
                 if (player == null || interactionManager == null) {
-                    return true;
+                    return false;
+                }
+
+                if (potentialFlipProduct == null || potentialFlipProduct
+                    .getSellOfferPrice()
+                    .isEmpty()) {
+
+                    log.debug(
+                        "Ignoring flip execution click because it's price could not be resolved: '{}'",
+                        potentialFlipProduct == null ? "no product selected" : "price not avaiable"
+                    );
+                    return false;
                 }
 
                 Try
                     .run(() -> interactionManager.clickSlot(
-                        syncId,
-                        flipOrderIdx,
+                        handler.syncId,
+                        flipOrderItemSlotIdx,
                         button,
                         SlotActionType.PICKUP,
                         player
                     ))
                     .onFailure(err -> log.warn("Failed to 'click' flip order", err))
-                    .onSuccess(v -> {
-                        pendingFlipClick = true;
-                    });
+                    .onSuccess(v -> pendingFlip = true);
 
                 return false;
             }
         });
+    }
 
-        // does this introduce a race cond, as the SignEditScreen could not have been rendered?
+    private void registerFlipPriceScreenHandler() {
         ScreenInfoHelper.registerOnSwitch(curr -> {
             var prev = ScreenInfoHelper.get().getPrevInfo();
-            if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions) || !pendingFlipClick) {
+            if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions) || !this.pendingFlip) {
                 return;
             }
 
             if (!(curr.getScreen() instanceof SignEditScreen signEditScreen)) {
-                pendingFlipClick = false;
-                clickedProductName = null;
+                this.clearPendingFlipState();
                 log.trace(
-                    "Cleared pendingFlipClick due to screen transition from OrderOptions to a not SignEditScreen");
+                    "Cleared pendingFlipClick due to screen transition from OrderOptions to a non-SignEditScreen");
                 return;
             }
 
-            if (clickedProductName == null) {
-                log.warn("Expected clickedProductName to be non-null");
-                pendingFlipClick = false;
+            if (this.potentialFlipProduct == null) {
+                log.warn(
+                    "Expected clickedTrackedProduct to be non-null to proceed with entrying the flipPrice");
+                this.clearPendingFlipState();
                 return;
             }
 
-            var flipPrice = this.bazaarData
-                .nameToId(clickedProductName)
-                .flatMap(this.bazaarData::lowestSellPrice)
-                .map(lowest -> lowest - 0.1);
+            var flipPrice = this.potentialFlipProduct
+                .getSellOfferPrice()
+                .map(price -> Math.max(price - .1, 0.1));
 
             if (flipPrice.isEmpty()) {
-                log.warn("Could not resolve price for product {}", clickedProductName);
-                pendingFlipClick = false;
-                clickedProductName = null;
+                // maybe close the screen here?
+                log.warn(
+                    "Could not resolve price for product {}",
+                    this.potentialFlipProduct.getProductName()
+                );
+                this.clearPendingFlipState();
                 return;
             }
 
             var formatted = Util.formatDecimal(flipPrice.get(), 1, false);
-            var signEditScreenAccessor = (AbstractSignEditScreenAccessor) signEditScreen;
-            signEditScreenAccessor.setCurrentRow(0);
-            signEditScreenAccessor.invokeSetCurrentRowMessage(formatted);
+            var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
+            accessor.setCurrentRow(0);
+            accessor.invokeSetCurrentRowMessage(formatted);
 
             Try.run(() -> {
                 signEditScreen.close();
-                var client = MinecraftClient.getInstance();
-                if (client != null) {
-                    client.setScreen(null);
-                }
-                pendingFlips.add(new FlipEntry(clickedProductName, flipPrice.get()));
+                this.pendingFlips.add(new FlipEntry(
+                    potentialFlipProduct.getProductName(),
+                    flipPrice.get()
+                ));
             }).onFailure(err -> log.warn("Failed to finalize sign edit", err));
 
-            pendingFlipClick = false;
-            clickedProductName = null;
+            this.clearPendingFlipState();
         });
     }
 
     public void handleFlipped(ChatFlippedOrderInfo flipped) {
-        var match = this.pendingFlips.removeIfMatching(entry -> entry
+        var match = this.pendingFlips.removeFirstMatch(entry -> entry
             .productName()
             .equalsIgnoreCase(flipped.productName()));
 
+        // this may be unnecessary as after entering the price in the sign, it opens the orders
+        // menu, might as well leave it atm
         if (match.isEmpty()) {
-            // this may be not necessary as after entring the price in the sign, it opens the orders
-            // menu, might as well leave it atm.
             log.warn(
                 "No matching pending flip for flipped order {}x {}. Orders may be out of sync",
                 flipped.volume(),
@@ -291,5 +253,47 @@ public class FlipHelper {
         );
     }
 
+
+    // TODO: move this into the `OrderInfoParser` sometime
+    private Optional<TitleOrderInfo> parseOrderTitle(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || Util.orderScreenNonOrderItem.contains(stack.getItem())) {
+            return Optional.empty();
+        }
+
+        var title = stack.getName().getString();
+        var parts = title.split(" ", 2);
+        if (parts.length != 2) {
+            log.warn("Item title does not follow '<type> <productName>': '{}'", title);
+            return Optional.empty();
+        }
+
+        return OrderType
+            .tryFrom(parts[0].trim())
+            .onFailure(err -> log.warn("Failed to parse Order type from '{}'", parts[0], err))
+            .toJavaOptional()
+            .map(type -> new TitleOrderInfo(type, parts[1].trim()));
+    }
+
+    private boolean isFilled(ItemStack stack) {
+        return OrderInfoParser
+            .getLore(stack)
+            .stream()
+            .filter(line -> line.trim().startsWith("Filled"))
+            .findFirst()
+            .map(line -> line.contains("100%"))
+            .orElse(false);
+    }
+
+
+    private void clearPendingFlipState() {
+        if (this.potentialFlipProduct != null) {
+            this.potentialFlipProduct.destroy();
+        }
+        this.potentialFlipProduct = null;
+        this.pendingFlip = false;
+    }
+
     private record FlipEntry(String productName, double pricePerUnit) { }
+
+    private record TitleOrderInfo(OrderType type, String productName) { }
 }

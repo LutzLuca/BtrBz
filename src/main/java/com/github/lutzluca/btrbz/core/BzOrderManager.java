@@ -11,17 +11,14 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Util;
-import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 
 @Slf4j
 public class BzOrderManager {
@@ -80,8 +77,7 @@ public class BzOrderManager {
             .map(tracked -> {
                 var id = bazaarData.nameToId(tracked.productName);
                 if (id.isEmpty()) {
-                    log.warn(
-                        "No name -> id mapping found for product with name: '{}'",
+                    log.warn("No name -> id mapping found for product with name: '{}'",
                         tracked.productName
                     );
                     return Optional.<StatusUpdate>empty();
@@ -156,7 +152,7 @@ public class BzOrderManager {
 
     public void confirmOutstanding(ChatOrderConfirmationInfo info) {
         this.outstandingOrderStore
-            .removeIfMatching(curr -> curr.matches(info))
+            .removeFirstMatch(curr -> curr.matches(info))
             .map(TrackedOrder::new)
             .ifPresentOrElse(
                 this::addTrackedOrder, () -> {
@@ -176,14 +172,10 @@ public class BzOrderManager {
     }
 
     private Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
-        Function<List<Summary>, Optional<Summary>> getFirst = (list) -> Try
-            .of(list::getFirst)
-            .toJavaOptional();
-
         // floating point inaccuracy for player exposure is handled see
         // `GeneralUtils.formatDecimal`
         return switch (order.type) {
-            case Buy -> getFirst.apply(product.getSellSummary()).map(summary -> {
+            case Buy -> Util.getFirst(product.getSellSummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
                     return summary.getOrders() > 1 ? new OrderStatus.Matched()
@@ -194,7 +186,7 @@ public class BzOrderManager {
                 }
                 return new OrderStatus.Undercut(bestPrice - order.pricePerUnit);
             });
-            case Sell -> getFirst.apply(product.getBuySummary()).map(summary -> {
+            case Sell -> Util.getFirst(product.getBuySummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
                     return summary.getOrders() > 1 ? new OrderStatus.Matched()
