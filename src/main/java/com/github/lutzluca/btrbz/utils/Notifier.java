@@ -17,14 +17,15 @@ import net.minecraft.util.Formatting;
 @Slf4j
 public class Notifier {
 
-    public static void notifyPlayer(Text msg) {
+    public static boolean notifyPlayer(Text msg) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client != null && client.player != null) {
             client.player.sendMessage(msg, false);
-            return;
+            return true;
         }
 
-        log.info("Failed to send message `{}` to player, as it was null", msg.getString());
+        log.info("Failed to send message '{}' to player, as it was null", msg.getString());
+        return false;
     }
 
     public static void notifyChatCommand(String displayText, String cmd) {
@@ -81,7 +82,7 @@ public class Notifier {
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static MutableText prefix() {
+    public static MutableText prefix() {
         return Text.literal("[BtrBz] ").formatted(Formatting.GOLD);
     }
 
