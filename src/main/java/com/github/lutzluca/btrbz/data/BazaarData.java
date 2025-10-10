@@ -10,10 +10,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 
 // TODO: think about whether to use this as a global instead of passing it to the components
+@Slf4j
 public class BazaarData {
 
     private final List<Consumer<Map<String, Product>>> listeners = new ArrayList<>();
@@ -41,10 +43,19 @@ public class BazaarData {
 
     public void addListener(Consumer<Map<String, Product>> listener) {
         this.listeners.add(listener);
+        log.trace(
+            "Inserting listener for onBazaarUpdate currently, listeners registered: {}",
+            this.listeners.size()
+        );
     }
 
     public void removeListener(Consumer<Map<String, Product>> listener) {
-        this.listeners.remove(listener);
+        if (this.listeners.remove(listener)) {
+            log.trace(
+                "Removing listener for onBazaarUpdate currently, listeners registered: {}",
+                this.listeners.size()
+            );
+        }
     }
 
     public Map<String, Product> getProducts() {
