@@ -1,0 +1,83 @@
+name: Conversion Updater
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: conversion-updater
+  cancel-in-progress: true
+
+jobs:
+  generate-conversion:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    env:
+      OUTPUT_PATH: src/main/resources/conversions.json
+      SCRIPT_PATH: conversion-generator/generator.ts
+      WORKDIR: conversion-generator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKDIR }}
+        run: bun install --frozen-lockfile
+
+      - name: Run generator
+        run: bun run ./${{ env.SCRIPT_PATH }} ./${{ env.OUTPUT_PATH }}
+
+      - name: Validate output
+        run: |
+          if [ ! -s "./${{ env.OUTPUT_PATH }}" ]; then
+            echo "Output file missing or empty."
+            exit 1
+          fi
+
+      - name: Normalize line endings
+        run: sed -i 's/\r$//' "./${{ env.OUTPUT_PATH }}"
+
+      - name: Detect file changes
+        id: detect
+        run: |
+          if git diff --quiet -- "${{ env.OUTPUT_PATH }}"; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get current UTC date
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if no changes
+        if: steps.detect.outputs.changed == 'false'
+        run: echo "No updates needed."
+
+      - name: Create Pull Request
+        if: steps.detect.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: ${{ env.OUTPUT_PATH }}
+          commit-message: "chore: update conversions.json (${{ steps.date.outputs.date }})"
+          branch: "auto/update-conversions-json"
+          delete-branch: true
+          base: master
+          title: "Update conversions.json (${{ steps.date.outputs.date }})"
+          body: |
+            Automated update of conversions.json.
+
+            Generated: **${{ steps.date.outputs.date }} (UTC)**
+            No PR is opened if no changes are found.

@@ -253,7 +253,9 @@ async function createMapping(outputFile = "conversions.json") {
     );
 }
 
-createMapping().catch((err) => {
+const outputFile = process.argv[2] || "conversions.json";
+
+createMapping(outputFile).catch((err) => {
     console.error("Error during mapping creation:", err);
     process.exit(1);
 });
