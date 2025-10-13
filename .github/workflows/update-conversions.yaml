@@ -17,7 +17,7 @@ jobs:
       pull-requests: write
 
     env:
-      OUTPUT_PATH: src/main/resources/conversions.json
+      OUTPUT_PATH: src/main/resources/assets/btrbz/conversions.json
       SCRIPT_PATH: conversion-generator/generator.ts
       WORKDIR: conversion-generator
 

@@ -1,5 +1,9 @@
 package com.github.lutzluca.btrbz.data;
 
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.utils.MessageQueue;
+import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
+import com.github.lutzluca.btrbz.utils.Util;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.Gson;
@@ -7,76 +11,239 @@ import com.google.gson.reflect.TypeToken;
 import io.vavr.control.Try;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
-
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
 
 @Slf4j
 public final class ConversionLoader {
 
-    private static final Path CACHE_DIR = Path.of(System.getProperty("user.home"), ".btrbz");
-    private static final Path CACHE_FILE = CACHE_DIR.resolve("conversions.json");
-    private static final String RESOURCE_PATH = "/conversions.json";
-    private static final Gson GSON = new Gson();
+    private static final Gson gson = new Gson();
+    private static final HttpClient httpClient = HttpClient.newHttpClient();
+
+    private static final Path modConfigDir = FabricLoader
+        .getInstance()
+        .getConfigDir()
+        .resolve(BtrBz.modId);
+    private static final Path localConversionFilepath = modConfigDir.resolve("conversions.json");
+    private static final Identifier bundledConversionId = Identifier.of(
+        BtrBz.modId,
+        "conversions.json"
+    );
+
+    private static final String githubOwner = "LutzLuca";
+    private static final String githubRepo = "BtrBz";
+    private static final String githubPath = "src/main/resources/assets/btrbz/conversions.json";
+    private static final URI githubApiUrl = URI.create(String.format(
+        "https://api.github.com/repos/%s/%s/contents/%s",
+        githubOwner,
+        githubRepo,
+        githubPath
+    ));
 
     private ConversionLoader() { }
 
-    public static Try<BiMap<String, String>> initialize() {
-        return loadFromCache().recoverWith(err -> {
-            log.warn(
-                "Failed to load local cache ({}). Trying to retrieve conversions from the bundled resources",
-                err.getMessage()
+    public static void load() {
+        log.info("Loading bazaar conversions");
+
+        loadFromCache()
+            .peek(data -> log.debug(
+                "Loaded conversions ({} entries) from local cache",
+                data.conversions.size()
+            ))
+            .recoverWith(cacheErr -> {
+                log.warn(
+                    "Local cache unavailable: '{}', falling back to bundled resource",
+                    cacheErr.getMessage()
+                );
+                log.debug("Full error:", cacheErr);
+
+                return loadFromBundleResource().peek(data -> log.debug(
+                    "Loaded conversions ({} entries) from bundled resource",
+                    data.conversions.size()
+                ));
+            })
+            .onSuccess(data -> {
+                BtrBz.bazaarData().setConversions(data.conversions);
+                checkForUpdate(data);
+            })
+            .onFailure(bundleErr -> {
+                log.error("Failed to load conversions from cache and bundle", bundleErr);
+                MessageQueue.sendOrQueue(
+                    """
+                        Failed to load bazaar conversions that are needed for some features to work.
+                        Trying to fetch the latest version from GitHub to resolve this issue.
+                        """, Level.Warn
+                );
+
+                fetchFromGithubFallback();
+            });
+    }
+
+    private static Try<ConversionData> loadFromCache() {
+        return Try
+            .of(() -> Files.readString(localConversionFilepath, StandardCharsets.UTF_8))
+            .flatMap(ConversionData::parseFrom);
+    }
+
+    private static Try<ConversionData> loadFromBundleResource() {
+        return Try
+            .of(() -> MinecraftClient
+                .getInstance()
+                .getResourceManager()
+                .getResource(bundledConversionId)
+                .orElseThrow(() -> new IOException("Bundled conversion resource not found"))
+                .getInputStream())
+            .flatMap(ConversionLoader::readStream)
+            .flatMap(ConversionData::parseFrom)
+            .peek(data -> {
+                log.debug("Loaded conversions from bundle, caching locally");
+                Util.atomicDumpToFile(localConversionFilepath, data.content);
+            });
+    }
+
+    private static CompletableFuture<Try<ConversionData>> loadFromGithub() {
+        return fetchGithubFileInfo().thenApply(info -> info
+            .map(GithubFileInfo::download_url)
+            .flatMap(ConversionLoader::fetchUrl)
+            .flatMap(ConversionData::parseFrom));
+    }
+
+    private static void fetchFromGithubFallback() {
+        log.debug("Attempting to fetch conversions from GitHub");
+
+        loadFromGithub().thenAccept(res -> res.onSuccess(data -> {
+            log.debug("Successfully fetched conversions from GitHub");
+            BtrBz.bazaarData().setConversions(data.conversions);
+            Util.atomicDumpToFile(localConversionFilepath, data.content);
+
+            MessageQueue.sendOrQueue(
+                "Successfully loaded conversions from Github; everything should work as expected",
+                Level.Info
             );
-            return loadFromBundledResource().peek(ConversionLoader::cacheLocally);
-        }).map(map -> {
-            // apparently there are some duplicate names in the conversions
-            // disregarding them "for now"
-            // "ENCHANTED_CARROT_ON_A_STICK" -> "Enchanted Carrot on a Stick"
-            // "ENCHANTED_CARROT_STICK" -> "Enchanted Carrot on a Stick"
+        }).onFailure(err -> {
+            log.error("Failed to fetch conversions from GitHub", err);
 
-            var conv = HashBiMap.<String, String>create();
-            for (var entry : map.entrySet()) {
-                if (conv.containsValue(entry.getValue())) {
-                    log.warn(
-                        "Duplicate conversion name detected: '{}' -> '{}'. Ignoring new value of '{}'.",
-                        entry.getKey(),
-                        conv.inverse().get(entry.getValue()),
-                        entry.getValue()
-                    );
+            MessageQueue.sendOrQueue(
+                "Failed to load bazaar conversions; some features will not work as expected",
+                Level.Error
+            );
+        }));
+    }
 
-                    continue;
-                }
+    private static void checkForUpdate(ConversionData data) {
+        var localHash = computeGitBlobHash(data.content);
 
-                conv.put(entry.getKey(), entry.getValue());
+        fetchGithubFileInfo().thenAccept(fileInfo -> fileInfo.onSuccess(info -> {
+            if (localHash.equals(info.sha)) {
+                log.debug("Conversions are up to date");
+                return;
             }
-            return conv;
+
+            log.debug("Update available, fetching new conversions");
+            fetchUrl(info.download_url).flatMap(ConversionData::parseFrom).onSuccess(newData -> {
+                BtrBz.bazaarData().setConversions(newData.conversions);
+                Util.atomicDumpToFile(localConversionFilepath, newData.content);
+
+                MessageQueue.sendOrQueue("Updated bazaar conversions", Level.Info);
+            }).onFailure(err -> log.warn("Failed to fetch or parse updated conversions", err));
+        }).onFailure(err -> log.warn("Failed to check for updates", err)));
+    }
+
+    private static CompletableFuture<Try<GithubFileInfo>> fetchGithubFileInfo() {
+        return CompletableFuture.supplyAsync(() -> {
+            var req = HttpRequest
+                .newBuilder()
+                .uri(githubApiUrl)
+                .header("Accept", "application/vnd.github.v3+json")
+                // TODO remove the Github access token once the repo is public
+                .header("Authorization", "Bearer " + System.getenv("GITHUB_ACCESS_TOKEN"))
+                .GET()
+                .build();
+
+            return Try
+                .of(() -> httpClient.send(req, HttpResponse.BodyHandlers.ofString()))
+                .mapTry(resp -> {
+                    if (resp.statusCode() != 200) {
+                        throw new IOException("GitHub API returned status: " + resp.statusCode());
+                    }
+
+                    var info = gson.fromJson(resp.body(), GithubFileInfo.class);
+                    if (info == null || info.download_url == null || info.sha == null) {
+                        throw new IOException("Invalid GitHub API response: " + info);
+                    }
+                    return info;
+                });
         });
     }
 
-    private static Try<Map<String, String>> loadFromCache() {
-        if (!Files.exists(CACHE_FILE)) {
-            log.info("No local cache found at {}", CACHE_FILE);
-            return Try.failure(new IOException("Cache file does not exist"));
-        }
+    private static Try<BiMap<String, String>> parseAsConversionMap(String json) {
+        return Try.of(() -> {
+            Map<String, String> map = gson.fromJson(
+                json,
+                new TypeToken<Map<String, String>>() { }.getType()
+            );
 
-        log.info("Found local conversion cache at {}. Attempting to load.", CACHE_FILE);
-        return Try
-            .of(() -> Files.readString(CACHE_FILE, StandardCharsets.UTF_8))
-            .flatMap(ConversionLoader::parseJsonToMap);
+            if (map == null) {
+                throw new IOException("Parsed JSON returned null");
+            }
+
+            BiMap<String, String> conversions = HashBiMap.create(map.size());
+
+            map.forEach((id, name) -> {
+                if (conversions.containsValue(name)) {
+                    log.warn(
+                        "Duplicate id: '{}' and '{}' for name '{}' (keeping first)",
+                        conversions.inverse().get(name),
+                        id,
+                        name
+                    );
+                    return;
+                }
+
+                conversions.put(id, name);
+            });
+
+            return conversions;
+        });
     }
 
-    private static Try<Map<String, String>> loadFromBundledResource() {
-        return Optional
-            .ofNullable(ConversionLoader.class.getResourceAsStream(RESOURCE_PATH))
-            .map(Try::success)
-            .orElseGet(
-                () -> Try.failure(new IOException("Bundled resource not found: " + RESOURCE_PATH)))
-            .flatMap(ConversionLoader::readStream)
-            .flatMap(ConversionLoader::parseJsonToMap);
+    private static Try<String> fetchUrl(String url) {
+        return Try.of(() -> {
+            var req = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+
+            log.trace("Fetching URL: {}", url);
+            var resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+
+            if (resp.statusCode() != 200) {
+                throw new IOException("Failed to fetch URL, status: " + resp.statusCode() + " body: " + resp.body());
+            }
+
+            return resp.body();
+        });
+    }
+
+    private static String computeGitBlobHash(String content) {
+        return Try.of(() -> {
+            String header = "blob " + content.getBytes(StandardCharsets.UTF_8).length + "\0";
+            var digest = MessageDigest.getInstance("SHA-1");
+            digest.update(header.getBytes(StandardCharsets.UTF_8));
+            digest.update(content.getBytes(StandardCharsets.UTF_8));
+
+            return String.format("%040x", new BigInteger(1, digest.digest()));
+        }).get();
     }
 
     private static Try<String> readStream(InputStream stream) {
@@ -87,27 +254,15 @@ public final class ConversionLoader {
         });
     }
 
-    private static void cacheLocally(Map<String, String> map) {
-        String json = GSON.toJson(map);
+    private record GithubFileInfo(String download_url, String sha) { }
 
-        Try
-            .run(() -> Files.createDirectories(CACHE_DIR))
-            .andThenTry(() -> Files.writeString(CACHE_FILE, json, StandardCharsets.UTF_8))
-            .onSuccess(v -> log.info("Wrote conversion cache to {}.", CACHE_FILE))
-            .onFailure(err -> log.warn(
-                "Failed to write conversion cache to {}: {}", CACHE_FILE,
-                err.getMessage()
+    private record ConversionData(String content, BiMap<String, String> conversions) {
+
+        private static Try<ConversionData> parseFrom(String content) {
+            return parseAsConversionMap(content).map(conversions -> new ConversionData(
+                content,
+                conversions
             ));
-    }
-
-    private static Try<Map<String, String>> parseJsonToMap(String json) {
-        // @formatter:off
-        return Try.of(() -> Optional.ofNullable(GSON.fromJson(json, new TypeToken<Map<String, String>>() { })))
-            .flatMap(mappings ->
-                mappings
-                    .map(Try::success)
-                    .orElseGet(() -> Try.failure(new IOException("Parsed conversion JSON as null")))
-            );
-        // @formatter:on
+        }
     }
 }

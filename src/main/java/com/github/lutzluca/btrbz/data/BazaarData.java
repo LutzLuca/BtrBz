@@ -34,6 +34,10 @@ public class BazaarData {
         return Try.of(summaries::getFirst).map(Summary::getPricePerUnit).toJavaOptional();
     }
 
+    public void setConversions(BiMap<String, String> conversions) {
+        this.idToName = conversions;
+    }
+
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = products;
         for (var listener : this.listeners) {

@@ -42,8 +42,16 @@ public final class Util {
     }
 
     public static Try<Path> atomicDumpToFile(String filename, String content) {
+        return atomicDumpToFile(Path.of(filename), content);
+    }
+
+    public static Try<Path> atomicDumpToFile(Path path, String content) {
         return Try.of(() -> {
-            var path = Path.of(filename);
+            var parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+
             var tmp = File.createTempFile("btrbz-", ".tmp");
 
             Files.writeString(tmp.toPath(), content);

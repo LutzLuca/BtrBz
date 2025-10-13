@@ -9,19 +9,20 @@ import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.ChatOrderConfirmationInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
+import com.google.common.collect.HashBiMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.screen.slot.Slot;
@@ -31,7 +32,8 @@ import net.minecraft.util.Formatting;
 @Slf4j
 public class BtrBz implements ClientModInitializer {
 
-    public static final String MOD_ID = "btrbz";
+    public static final String modId = "btrbz";
+    private static final BazaarData bazaarData = new BazaarData(HashBiMap.create());
     private static BtrBz instance;
     private BzOrderManager orderManager;
     private HighlightManager highlightManager;
@@ -44,25 +46,23 @@ public class BtrBz implements ClientModInitializer {
         return instance.highlightManager;
     }
 
+    public static BazaarData bazaarData() {
+        return BtrBz.bazaarData;
+    }
+
     @Override
     public void onInitializeClient() {
         instance = this;
 
-        var conversions = ConversionLoader
-            .initialize()
-            .onSuccess(map -> log.info("Conversion mappings initialized ({} entries)", map.size()))
-            .getOrElseThrow(err -> new RuntimeException(
-                "Failed to initialize conversion mappings",
-                err
-            ));
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+            ConversionLoader.load();
+        });
 
-        BazaarData bazaarData = new BazaarData(conversions);
         this.highlightManager = new HighlightManager();
         this.orderManager = new BzOrderManager(bazaarData, this.highlightManager::updateStatus);
         bazaarData.addListener(this.orderManager::onBazaarUpdate);
 
         new BazaarPoller(bazaarData::onUpdate);
-
         var flipHelper = new FlipHelper(bazaarData);
 
         // @formatter:off
@@ -189,7 +189,5 @@ public class BtrBz implements ClientModInitializer {
                 return 1;
             }));
         });
-
-        MessageQueue.sendOrQueue("Mod successfully initialized");
     }
 }
