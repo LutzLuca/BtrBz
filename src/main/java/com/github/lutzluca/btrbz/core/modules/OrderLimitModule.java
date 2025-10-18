@@ -15,6 +15,17 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+// track last reset in config & amount used 
+// Limit reset at 12:00am GMT
+// on startup check the last resetted day; if mistmatch reset used to 0
+// have a sheduled task to reset at 12:00am GMT (idk about that one tho)
+// use total fron the bazaar transactions (Instal Sell/Buy, Buy/Sell Order, Flipped Order) (should be sufficent)
+// when insta selling use `coins * (1 - tax / 100)` to calculate limit usage
+
+// TODO make this nicer with multiple lines
+// Daily Limit:
+// {amount used} / {total limit}
+
 @Slf4j
 public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> {
 

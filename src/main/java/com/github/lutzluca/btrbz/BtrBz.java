@@ -8,10 +8,11 @@ import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.data.OrderModels.ChatOrderConfirmationInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
@@ -38,6 +39,7 @@ public class BtrBz implements ClientModInitializer {
 
     public static final String modId = "btrbz";
     private static final BazaarData bazaarData = new BazaarData(HashBiMap.create());
+    public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
     private static BtrBz instance;
     private BzOrderManager orderManager;
     private HighlightManager highlightManager;
@@ -60,11 +62,9 @@ public class BtrBz implements ClientModInitializer {
 
         Config.load();
         ModuleManager.getInstance().discoverBindings();
-        ModuleManager.getInstance().registerModule(OrderLimitModule.class);
+        var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
 
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            ConversionLoader.load();
-        });
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
         this.highlightManager = new HighlightManager();
         this.orderManager = new BzOrderManager(bazaarData, this.highlightManager::updateStatus);
@@ -72,6 +72,14 @@ public class BtrBz implements ClientModInitializer {
 
         new BazaarPoller(bazaarData::onUpdate);
         var flipHelper = new FlipHelper(bazaarData);
+
+        messageDispatcher.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
+        messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
+        messageDispatcher.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
+
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+            messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
+        });
 
         // @formatter:off
         ScreenInfoHelper.registerOnLoaded(
@@ -123,41 +131,6 @@ public class BtrBz implements ClientModInitializer {
 
                 return false;
             }
-        });
-
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            // TODO: make this better, use something to decide which info to parse prior to
-            // parsing.
-            var msg = Formatting.strip(message.getString());
-            if (!msg.startsWith("[Bazaar]")) {
-                return;
-            }
-            var flippedTry = OrderInfoParser.parseFlippedOrderInfo(msg);
-            if (flippedTry.isSuccess()) {
-                var flipped = flippedTry.get();
-                log.info("Parsed flipped order: {}x {}", flipped.volume(), flipped.productName());
-                flipHelper.handleFlipped(flipped);
-                return;
-            }
-
-            var filledOrderInfos = OrderInfoParser.parseFilledOrderInfo(msg);
-            if (filledOrderInfos.isSuccess()) {
-                this.orderManager.removeMatching(filledOrderInfos.get());
-                return;
-            }
-
-            var chatOrderTry = OrderInfoParser.parseSetupChat(msg);
-            if (chatOrderTry.isFailure()) {
-                log.trace(
-                    "Failed to parse out a `ChatOrderConfirmationInfo` from bazaar msg: `{}`",
-                    msg
-                );
-                return;
-            }
-            ChatOrderConfirmationInfo chatOrder = chatOrderTry.get();
-            log.trace("parsed out `ChatOrderConfirmationInfo`: {}", chatOrderTry.get());
-
-            this.orderManager.confirmOutstanding(chatOrder);
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {

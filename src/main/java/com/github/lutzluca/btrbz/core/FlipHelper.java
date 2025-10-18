@@ -3,8 +3,8 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.TrackedProduct;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.data.OrderModels.ChatFlippedOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -240,7 +240,7 @@ public class FlipHelper {
         });
     }
 
-    public void handleFlipped(ChatFlippedOrderInfo flipped) {
+    public void handleFlipped(BazaarMessage.OrderFlipped flipped) {
         var match = this.pendingFlips.removeFirstMatch(entry -> entry
             .productName()
             .equalsIgnoreCase(flipped.productName()));

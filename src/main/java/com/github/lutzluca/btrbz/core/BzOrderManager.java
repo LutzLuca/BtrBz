@@ -1,8 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.OrderModels.ChatFilledOrderInfo;
-import com.github.lutzluca.btrbz.data.OrderModels.ChatOrderConfirmationInfo;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -128,7 +127,7 @@ public class BzOrderManager {
         this.trackedOrders.add(order);
     }
 
-    public void removeMatching(ChatFilledOrderInfo info) {
+    public void removeMatching(BazaarMessage.OrderFilled info) {
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
         this.trackedOrders
@@ -150,7 +149,7 @@ public class BzOrderManager {
         this.outstandingOrderStore.add(info);
     }
 
-    public void confirmOutstanding(ChatOrderConfirmationInfo info) {
+    public void confirmOutstanding(BazaarMessage.OrderSetup info) {
         this.outstandingOrderStore
             .removeFirstMatch(curr -> curr.matches(info))
             .map(TrackedOrder::new)

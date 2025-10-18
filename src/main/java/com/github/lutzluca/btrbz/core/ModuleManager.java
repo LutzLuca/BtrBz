@@ -37,12 +37,13 @@ public class ModuleManager {
         return instance;
     }
 
-    public <T, M extends Module<T>> void registerModule(Class<M> moduleClass) {
+    public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
         try {
             M module = moduleClass.getDeclaredConstructor().newInstance();
             modules.put(moduleClass, module);
             applyConfigToModule(module);
             log.info("Registered module: {}", moduleClass.getName());
+            return module;
         } catch (Exception err) {
             throw new RuntimeException(
                 "Failed to instantiate module: " + moduleClass.getName(),

@@ -1,8 +1,11 @@
 package com.github.lutzluca.btrbz.data;
 
-import com.github.lutzluca.btrbz.data.OrderModels.ChatFilledOrderInfo;
-import com.github.lutzluca.btrbz.data.OrderModels.ChatFlippedOrderInfo;
-import com.github.lutzluca.btrbz.data.OrderModels.ChatOrderConfirmationInfo;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.InstaBuy;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.InstaSell;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFlipped;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
@@ -11,14 +14,172 @@ import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 
+@Slf4j
 public final class OrderInfoParser {
 
     private OrderInfoParser() { }
+
+    public static Try<BazaarMessage> parseBazaarMessage(String bazaarMsg) {
+        assert bazaarMsg.startsWith("[Bazaar]");
+        var msg = bazaarMsg.replace("[Bazaar]", "").trim();
+
+        if (msg.endsWith("was filled!")) {
+            return parseFilledOrderMessage(msg).onFailure(err -> logParseError(
+                "filled order",
+                msg,
+                err
+            ));
+        }
+
+        if (msg.contains("Setup!")) {
+            return parseSetupOrderMessage(msg).onFailure(err -> logParseError(
+                "setup order",
+                msg,
+                err
+            ));
+        }
+
+        if (msg.startsWith("Bought") || msg.startsWith("Sold")) {
+            return parseInstaOrderMessage(msg).onFailure(err -> logParseError(
+                "insta order",
+                msg,
+                err
+            ));
+        }
+
+        if (msg.startsWith("Order Flipped!")) {
+            return parseFlippedOrderMessage(msg).onFailure(err -> logParseError(
+                "flipped order",
+                msg,
+                err
+            ));
+        }
+
+        log.trace("Unhandled bazaar message format: '{}'", msg);
+        return Try.failure(new IllegalArgumentException("Unhandled bazaar message format: " + msg));
+    }
+
+    private static void logParseError(String ctx, String msg, Throwable err) {
+        log.warn("Failed to parse {}: '{}'", ctx, msg, err);
+    }
+
+    private static ParsedItem parseItemWithValue(String fragment, String ctx) {
+        // e.g. "12x Enchanted Diamond for 230,123 coins."
+        var parts = fragment.split(" for ", 2);
+        if (parts.length != 2) {
+            throw new IllegalArgumentException(ctx + ": missing 'for' in '" + fragment + "'");
+        }
+
+        var volumeAndName = parts[0].trim();
+        var pricePart = parts[1]
+            .trim()
+            .replace("coins.", "")
+            .replace("coins!", "")
+            .replace("coins of total expected profit.", "")
+            .trim();
+
+        var parsedVolume = parseVolume(volumeAndName, ctx);
+        var price = Util
+            .parseUsFormattedNumber(pricePart)
+            .getOrElseThrow(() -> new IllegalArgumentException(ctx + ": invalid price in '" + fragment + "'"));
+
+        return new ParsedItem(parsedVolume.volume, parsedVolume.productName, price.doubleValue());
+    }
+
+    private static ParsedVolume parseVolume(String fragment, String ctx) {
+        // "12x Enchanted Diamond"
+        var xSplit = fragment.split("x", 2);
+        if (xSplit.length != 2) {
+            throw new IllegalArgumentException(ctx + ": missing 'x' in '" + fragment + "'");
+        }
+
+        var volume = Util
+            .parseUsFormattedNumber(xSplit[0].trim())
+            .getOrElseThrow(() -> new IllegalArgumentException(ctx + ": invalid volume in '" + fragment + "'"));
+
+        var product = xSplit[1].trim();
+        return new ParsedVolume(volume.intValue(), product);
+    }
+
+    private static Try<BazaarMessage> parseSetupOrderMessage(String msg) {
+        // "Buy Order Setup! 12x Enchanted Diamond for 431,123 coins."
+        return Try.of(() -> {
+            var parts = msg.split("!", 2);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Setup message: missing '!' in '" + msg + "'");
+            }
+
+            var header = parts[0].trim(); // "Buy Order Setup" or "Sell Offer Setup"
+            var body = parts[1].trim();
+
+            var type = switch (header) {
+                case "Buy Order Setup" -> OrderType.Buy;
+                case "Sell Offer Setup" -> OrderType.Sell;
+                default ->
+                    throw new IllegalArgumentException("Setup message: unknown type '" + header + "'");
+            };
+
+            var parsed = parseItemWithValue(body, "Setup message");
+            return new OrderSetup(type, parsed.volume, parsed.productName, parsed.value);
+        });
+    }
+
+    private static Try<BazaarMessage> parseFilledOrderMessage(String msg) {
+        // "Your Buy Order for 12x Enchanted Diamond was filled!"
+        return Try.of(() -> {
+            var forSplit = msg.split(" for ", 2);
+            if (forSplit.length != 2) {
+                throw new IllegalArgumentException("Filled order: missing 'for' in '" + msg + "'");
+            }
+
+            var typePart = forSplit[0].trim();
+            var orderType = switch (typePart) {
+                case "Your Buy Order" -> OrderType.Buy;
+                case "Your Sell Offer" -> OrderType.Sell;
+                default ->
+                    throw new IllegalArgumentException("Filled order: unknown type '" + typePart + "'");
+            };
+
+            var fragment = forSplit[1].replace("was filled!", "").trim();
+            var parsed = parseVolume(fragment, "Filled order");
+
+            return new OrderFilled(orderType, parsed.volume, parsed.productName);
+        });
+    }
+
+    private static Try<BazaarMessage> parseInstaOrderMessage(String msg) {
+        // "Bought 12x Enchanted Diamond for 123,521 coins!"
+        return Try.of(() -> {
+            var isBuy = msg.startsWith("Bought");
+            var action = isBuy ? "Bought" : "Sold";
+            var fragment = msg.substring(action.length()).trim();
+
+            var parsed = parseItemWithValue(fragment, "Insta " + action);
+            return isBuy ? new InstaBuy(parsed.volume, parsed.productName, parsed.value)
+                : new InstaSell(parsed.volume, parsed.productName, parsed.value);
+        });
+    }
+
+    private static Try<BazaarMessage> parseFlippedOrderMessage(String msg) {
+        // "Order Flipped! 3x Enchanted Sugar for 123,521 coins of total expected profit."
+        return Try.of(() -> {
+            var parts = msg.split("!", 2);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Flipped order: missing '!' in '" + msg + "'");
+            }
+
+            var body = parts[1].trim();
+            var parsed = parseItemWithValue(body, "Flipped order");
+
+            return new OrderFlipped(parsed.volume, parsed.productName, parsed.value);
+        });
+    }
 
     public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx) {
         // name: {orderType} {productName}
@@ -201,134 +362,6 @@ public final class OrderInfoParser {
         });
     }
 
-    public static Try<ChatFilledOrderInfo> parseFilledOrderInfo(String bazaarMsg) {
-        // [Bazaar] Your Buy Order / Your Sell Offer for {volume}x {productName} was filled!
-        return Try.of(() -> {
-            var filledMsg = bazaarMsg.replace("[Bazaar]", "").trim();
-
-            var parts = filledMsg.replace("Your", "").trim().split(" for ");
-            if (parts.length != 2) {
-                throw new IllegalArgumentException(
-                    "Bazaar chat message does not follow the pattern: 'Your {order type} for <info>', msg" + bazaarMsg);
-
-            }
-
-            var type = switch (parts[0].trim()) {
-                case "Buy Order" -> OrderType.Buy;
-                case "Sell Offer" -> OrderType.Sell;
-                default ->
-                    throw new IllegalArgumentException("Unexpected order type: '" + parts[0] + "', expected 'Buy Order Setup' or 'Sell Offer Setup'");
-            };
-
-            var xIdx = parts[1].indexOf("x");
-            if (xIdx < 0) {
-                throw new IllegalArgumentException(
-                    "Failed to find an 'x' to denote the volume of the order");
-            }
-
-            var volume = Util
-                .parseUsFormattedNumber(parts[1].substring(0, xIdx).trim())
-                .get()
-                .intValue();
-            var productName = parts[1].substring(xIdx + 1).replace("was filled!", "").trim();
-
-            return new ChatFilledOrderInfo(productName, type, volume);
-        });
-    }
-
-    public static Try<ChatOrderConfirmationInfo> parseSetupChat(String bazaarChatMsg) {
-        return Try.of(() -> {
-            var confirmationMsg = bazaarChatMsg.replace("[Bazaar]", "").trim();
-            var parts = confirmationMsg.split("!", 2);
-            if (parts.length != 2) {
-                throw new IllegalArgumentException(
-                    "Bazaar chat message does not follow the pattern '<order type setup>! <...>'");
-            }
-
-            var typeStr = parts[0].trim();
-            var type = switch (typeStr) {
-                case "Buy Order Setup" -> OrderType.Buy;
-                case "Sell Offer Setup" -> OrderType.Sell;
-                default ->
-                    throw new IllegalArgumentException("Unexpected order type: '" + typeStr + "', expected 'Buy Order Setup' or 'Sell Offer Setup'");
-            };
-
-            var body = parts[1].trim();
-            var xIdx = body.indexOf('x');
-            if (xIdx < 0) {
-                throw new IllegalArgumentException("Missing 'x' in volume/product part: " + body);
-            }
-
-            var volumeStr = body.substring(0, xIdx).trim();
-            var nameTotal = body.substring(xIdx + 1).trim().split(" for ", 2);
-            if (nameTotal.length != 2) {
-                throw new IllegalArgumentException(
-                    "Expected '<productName> for <total>' pattern, got: " + body);
-            }
-
-            var volume = Util
-                .parseUsFormattedNumber(volumeStr)
-                .map(Number::intValue)
-                .getOrElseThrow(() -> new IllegalArgumentException("Invalid volume: " + volumeStr));
-
-            var productName = nameTotal[0].trim();
-
-            var totalStr = nameTotal[1].replace("coins.", "").trim();
-            var total = Util
-                .parseUsFormattedNumber(totalStr)
-                .map(Number::doubleValue)
-                .getOrElseThrow(() -> new IllegalArgumentException("Invalid total: " + totalStr));
-
-            return new ChatOrderConfirmationInfo(productName, type, volume, total);
-        });
-    }
-
-    public static Try<ChatFlippedOrderInfo> parseFlippedOrderInfo(
-        String bazaarMsg
-    ) {
-        // [Bazaar] Order Flipped! {volume}x {productName} for {rounded total} of total expected
-        // profit.
-        return Try.of(() -> {
-            var msg = bazaarMsg.replace("[Bazaar]", "").trim();
-
-            var prefix = "Order Flipped!";
-            if (!msg.startsWith(prefix)) {
-                throw new IllegalArgumentException("Not an Order Flipped message");
-            }
-
-            var rest = msg.substring(prefix.length()).trim();
-
-            var parts = rest.split(" for ", 2);
-            if (parts.length != 2) {
-                throw new IllegalArgumentException("Unexpected flipped message format: " + bazaarMsg);
-            }
-
-            var left = parts[0].trim();
-
-            var xIdx = left.indexOf('x');
-            if (xIdx < 0) {
-                throw new IllegalArgumentException("Missing 'x' in flipped message: " + bazaarMsg);
-            }
-
-            var volumeStr = left.substring(0, xIdx).trim();
-            var productName = left.substring(xIdx + 1).trim();
-
-            var volume = Util
-                .parseUsFormattedNumber(volumeStr)
-                .map(Number::intValue)
-                .getOrElseThrow(err -> new IllegalArgumentException(
-                    "Invalid volume in flipped message: " + volumeStr,
-                    err
-                ));
-
-            if (productName.isEmpty()) {
-                throw new IllegalArgumentException("Missing product name in flipped message: " + bazaarMsg);
-            }
-
-            return new ChatFlippedOrderInfo(productName, volume);
-        });
-    }
-
     public static List<String> getLore(ItemStack item) {
         return Optional
             .ofNullable(item.get(DataComponentTypes.LORE))
@@ -338,6 +371,10 @@ public final class OrderInfoParser {
             .map(Text::getString)
             .toList();
     }
+
+    private record ParsedItem(int volume, String productName, double value) { }
+
+    private record ParsedVolume(int volume, String productName) { }
 
     private record OrderDetails(double pricePerUnit, int volume, boolean filled) { }
 }

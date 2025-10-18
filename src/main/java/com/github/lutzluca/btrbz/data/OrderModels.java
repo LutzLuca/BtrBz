@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.data;
 
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Util;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
@@ -125,19 +126,11 @@ public final class OrderModels {
         String productName, OrderType type, int volume, double pricePerUnit, double total
     ) {
 
-        public boolean matches(ChatOrderConfirmationInfo chatOrder) {
-            return this.type == chatOrder.type && this.productName.equalsIgnoreCase(chatOrder.productName) && this.volume == chatOrder.volume && Double.compare(
-                this.total,
-                chatOrder.total
-            ) == 0;
+        public boolean matches(BazaarMessage.OrderSetup setupInfo) {
+            return this.productName.equals(setupInfo.productName())
+                && this.type == setupInfo.type()
+                && this.volume == setupInfo.volume()
+                && Double.compare(this.total, setupInfo.total()) == 0;
         }
     }
-
-    public record ChatOrderConfirmationInfo(
-        String productName, OrderType type, int volume, double total
-    ) { }
-
-    public record ChatFilledOrderInfo(String productName, OrderType type, int volume) { }
-
-    public record ChatFlippedOrderInfo(String productName, int volume) { }
 }
