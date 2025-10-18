@@ -3,6 +3,10 @@ package com.github.lutzluca.btrbz;
 import com.github.lutzluca.btrbz.core.BzOrderManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.HighlightManager;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
@@ -53,6 +57,10 @@ public class BtrBz implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
+
+        Config.load();
+        ModuleManager.getInstance().discoverBindings();
+        ModuleManager.getInstance().registerModule(OrderLimitModule.class);
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             ConversionLoader.load();
@@ -153,6 +161,12 @@ public class BtrBz implements ClientModInitializer {
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(ClientCommandManager.literal(BtrBz.modId).executes(context -> {
+                ConfigScreen.open();
+
+                return 1;
+            }));
+
             dispatcher.register(ClientCommandManager.literal("reset").executes(context -> {
                 MinecraftClient.getInstance().execute(() -> {
                     this.orderManager.resetTrackedOrders();

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
 import com.github.lutzluca.btrbz.utils.InventoryLoadWatcher.SlotSnapshot;
 import io.vavr.control.Try;
 import java.util.Arrays;
@@ -64,11 +65,7 @@ public final class ScreenInfoHelper {
         this.currInfo = info;
 
         // @formatter:off
-        this.switchListeners.forEach(listener ->
-            Try
-                .run(() -> listener.accept(info))
-                .onFailure(Throwable::printStackTrace)
-        );
+        this.switchListeners.forEach(listener -> listener.accept(info));
 
         info.getGenericContainerScreen().ifPresent(gcs -> {
             var matchingLoadListenerEntries = this.screenLoadListenerEntries
@@ -80,7 +77,7 @@ public final class ScreenInfoHelper {
                 return;
             }
 
-            var ignored = new InventoryLoadWatcher(
+            new InventoryLoadWatcher(
                 gcs,
                 slots -> matchingLoadListenerEntries.forEach(onLoadedInfo ->
                     onLoadedInfo.listener.accept(info, slots)
@@ -102,7 +99,7 @@ public final class ScreenInfoHelper {
                 case "Farming" -> Try.success(BazaarCategory.Farming);
                 case "Mining" -> Try.success(BazaarCategory.Mining);
                 case "Combat" -> Try.success(BazaarCategory.Combat);
-                case "Woods & Fished" -> Try.success(BazaarCategory.WoodsAndFishes);
+                case "Woods & Fishes" -> Try.success(BazaarCategory.WoodsAndFishes);
                 case "Oddities" -> Try.success(BazaarCategory.Oddities);
                 default -> Try.failure(new IllegalArgumentException("Unknown category: " + value));
             };
@@ -144,7 +141,7 @@ public final class ScreenInfoHelper {
                         yield false;
                     }
                     var category = title.substring("Bazaar ➜ ".length());
-                    yield BazaarCategory.tryFrom(category).isSuccess();
+                    yield BazaarCategory.tryFrom(category.trim()).isSuccess();
                 }
                 case Orders -> title.equals("Your Bazaar Orders");
                 case InstaBuy -> title.endsWith("➜ Instant Buy");
@@ -220,6 +217,20 @@ public final class ScreenInfoHelper {
             return Arrays.stream(menu).anyMatch((menuType) -> menuType.matches(this));
         }
 
+        public Optional<HandledScreenBounds> getHandledScreenBounds() {
+            if (!(this.screen instanceof HandledScreenAccessor accessor)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(new HandledScreenBounds(
+                accessor.getX(),
+                accessor.getY(),
+                accessor.getBackgroundWidth(),
+                accessor.getBackgroundHeight()
+            ));
+        }
+
+
         @Override
         public boolean equals(Object o) {
             if (this == o) {
@@ -237,4 +248,6 @@ public final class ScreenInfoHelper {
     private record ScreenLoadListenerEntry(
         Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, List<SlotSnapshot>> listener
     ) { }
+
+    public record HandledScreenBounds(int x, int y, int width, int height) { }
 }

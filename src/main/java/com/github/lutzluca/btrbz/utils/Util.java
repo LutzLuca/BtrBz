@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
+import org.apache.commons.lang3.tuple.Pair;
 
 public final class Util {
 
@@ -99,5 +100,20 @@ public final class Util {
 
     public static <T> Optional<T> getFirst(List<T> list) {
         return Try.of(list::getFirst).toJavaOptional();
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static <T, U> Optional<Pair<T, U>> zipOptionals(Optional<T> first, Optional<U> second) {
+        if (first.isEmpty() || second.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(Pair.of(first.get(), second.get()));
+    }
+
+    public static <T, U> Optional<Pair<T, U>> zipNullables(T first, U second) {
+        if (first == null || second == null) {
+            return Optional.empty();
+        }
+        return Optional.of(Pair.of(first, second));
     }
 }

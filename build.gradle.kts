@@ -22,6 +22,7 @@ repositories {
     maven("https://maven.fabricmc.net/")
     maven("https://repo.hypixel.net/repository/Hypixel/")
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
+    maven("https://maven.isxander.dev/releases")
 }
 
 fabricApi {
@@ -46,6 +47,8 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 
     modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
+
+    modImplementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
 }
 
 tasks {

@@ -56,6 +56,8 @@ public class FlipHelper {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
+                if (slot == null) { return false; }
+
                 var player = MinecraftClient.getInstance().player;
                 if (player != null && slot.inventory == player.getInventory()) {
                     return false;
@@ -100,6 +102,12 @@ public class FlipHelper {
             if (slot == null || slot.getIndex() != customHelperItemSlotIdx || this.potentialFlipProduct == null) {
                 return Optional.empty();
             }
+
+            var player = MinecraftClient.getInstance().player;
+            if (player != null && slot.inventory == player.getInventory()) {
+                return Optional.empty();
+            }
+
             return this.potentialFlipProduct.getSellOfferPrice().map(price -> {
                 var formatted = Util.formatDecimal(Math.max(price - 0.1, .1), 1, true);
 

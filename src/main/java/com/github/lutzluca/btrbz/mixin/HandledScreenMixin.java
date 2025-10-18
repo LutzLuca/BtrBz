@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,9 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
 
     @Inject(method = "init", at = @At("TAIL"))
     private void addCustomWidgets(CallbackInfo ci) {
-        // TODO use this
+        var widgets = ModuleManager.getInstance().getWidgets();
+        log.trace("Adding {} custom widgets", widgets.size());
+        widgets.forEach(this::addDrawableChild);
     }
 
     @Inject(method = "onMouseClick(Lnet/minecraft/screen/slot/Slot;IILnet/minecraft/screen/slot/SlotActionType;)V", at = @At("HEAD"), cancellable = true)
@@ -44,7 +47,9 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
             button
         );
 
-        if (cancelled) { ci.cancel(); }
+        if (cancelled) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "drawSlot", at = @At("TAIL"))
