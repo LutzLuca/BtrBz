@@ -76,7 +76,8 @@ public class BzOrderManager {
             .map(tracked -> {
                 var id = bazaarData.nameToId(tracked.productName);
                 if (id.isEmpty()) {
-                    log.warn("No name -> id mapping found for product with name: '{}'",
+                    log.warn(
+                        "No name -> id mapping found for product with name: '{}'",
                         tracked.productName
                     );
                     return Optional.<StatusUpdate>empty();
@@ -130,18 +131,17 @@ public class BzOrderManager {
     public void removeMatching(BazaarMessage.OrderFilled info) {
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
+        //noinspection SimplifyStreamApiCallChains
         this.trackedOrders
             .stream()
             .filter(order -> order.productName.equals(info.productName()) && order.type == info.type() && order.volume == info.volume())
             .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
             .findFirst()
             .ifPresentOrElse(
-                this.trackedOrders::remove, () -> {
-                    Notifier.notifyChatCommand(
-                        "No matching tracked order found for filled order message. Resync orders",
-                        "managebazaarorders"
-                    );
-                }
+                this.trackedOrders::remove, () -> Notifier.notifyChatCommand(
+                    "No matching tracked order found for filled order message. Resync orders",
+                    "managebazaarorders"
+                )
             );
     }
 

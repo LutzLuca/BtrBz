@@ -9,15 +9,15 @@ import net.minecraft.screen.slot.Slot;
 
 public class ItemOverrideManager {
 
-    private static final List<ItemOverrideRule> rules = new ArrayList<>();
+    private static final List<ItemOverrideRule> RULES = new ArrayList<>();
 
 
     public static void register(ItemOverrideRule rule) {
-        rules.add(rule);
+        RULES.add(rule);
     }
 
     public static ItemStack apply(ScreenInfo info, Slot slot, ItemStack original) {
-        for (ItemOverrideRule rule : rules) {
+        for (ItemOverrideRule rule : RULES) {
             var replacement = rule.replace(info, slot, original);
             if (replacement.isPresent()) {
                 return replacement.get();

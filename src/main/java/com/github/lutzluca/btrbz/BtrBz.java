@@ -37,8 +37,8 @@ import net.minecraft.util.Formatting;
 @Slf4j
 public class BtrBz implements ClientModInitializer {
 
-    public static final String modId = "btrbz";
-    private static final BazaarData bazaarData = new BazaarData(HashBiMap.create());
+    public static final String MOD_ID = "btrbz";
+    private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
     private static BtrBz instance;
     private BzOrderManager orderManager;
@@ -53,7 +53,7 @@ public class BtrBz implements ClientModInitializer {
     }
 
     public static BazaarData bazaarData() {
-        return BtrBz.bazaarData;
+        return BtrBz.BAZAAR_DATA;
     }
 
     @Override
@@ -67,11 +67,11 @@ public class BtrBz implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
         this.highlightManager = new HighlightManager();
-        this.orderManager = new BzOrderManager(bazaarData, this.highlightManager::updateStatus);
-        bazaarData.addListener(this.orderManager::onBazaarUpdate);
+        this.orderManager = new BzOrderManager(BAZAAR_DATA, this.highlightManager::updateStatus);
+        BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
-        new BazaarPoller(bazaarData::onUpdate);
-        var flipHelper = new FlipHelper(bazaarData);
+        new BazaarPoller(BAZAAR_DATA::onUpdate);
+        var flipHelper = new FlipHelper(BAZAAR_DATA);
 
         messageDispatcher.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
         messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
@@ -82,14 +82,12 @@ public class BtrBz implements ClientModInitializer {
             info -> orderLimitModule.onTransaction(info.total())
         );
         messageDispatcher.on(
-            BazaarMessage.InstaSell.class, info -> {
-                orderLimitModule.onTransaction(info.total() * (1 - Config.get().tax / 100));
-            }
+            BazaarMessage.InstaSell.class,
+            info -> orderLimitModule.onTransaction(info.total() * (1 - Config.get().tax / 100))
         );
         messageDispatcher.on(
-            BazaarMessage.OrderSetup.class, info -> {
-                orderLimitModule.onTransaction(info.total());
-            }
+            BazaarMessage.OrderSetup.class,
+            info -> orderLimitModule.onTransaction(info.total())
         );
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
@@ -104,7 +102,7 @@ public class BtrBz implements ClientModInitializer {
                 var parsed = slots.stream()
                     .filter(slot -> {
                         var stack = slot.stack();
-                        return !stack.isEmpty() && !Util.orderScreenNonOrderItem.contains(stack.getItem());
+                        return !stack.isEmpty() && !Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem());
                     })
                     .map(slot ->
                         OrderInfoParser
@@ -149,7 +147,7 @@ public class BtrBz implements ClientModInitializer {
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(ClientCommandManager.literal(BtrBz.modId).executes(context -> {
+            dispatcher.register(ClientCommandManager.literal(BtrBz.MOD_ID).executes(context -> {
                 ConfigScreen.open();
 
                 return 1;

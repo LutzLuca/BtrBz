@@ -12,29 +12,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.gui.widget.ClickableWidget;
 
 @Slf4j
 public class ModuleManager {
 
-    private static ModuleManager instance;
+    private static ModuleManager INSTANCE;
 
     private final Map<Class<? extends Module<?>>, Module<?>> modules = new HashMap<>();
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
 
-    public boolean isDirty = false;
+    @Setter
+    private boolean isDirty = false;
 
     private ModuleManager() {
         ClientTickDispatcher.register(client -> this.saveOnDirty());
     }
 
     public static ModuleManager getInstance() {
-        if (instance == null) {
-            instance = new ModuleManager();
+        if (INSTANCE == null) {
+            INSTANCE = new ModuleManager();
         }
 
-        return instance;
+        return INSTANCE;
     }
 
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {

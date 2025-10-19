@@ -26,6 +26,6 @@ public abstract class Module<T> {
 
     protected void updateConfig(Consumer<T> updater) {
         updater.accept(this.configState);
-        ModuleManager.getInstance().isDirty = true;
+        ModuleManager.getInstance().setDirty(true);
     }
 }

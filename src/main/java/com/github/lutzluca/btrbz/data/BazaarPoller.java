@@ -44,12 +44,11 @@ public class BazaarPoller {
 
     private final Consumer<Map<String, Product>> onReply;
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
-        r -> {
-            Thread thread = new Thread(r, "bazaar-poller");
-            thread.setDaemon(true);
-            return thread;
-        });
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "bazaar-poller");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private long lastKnownUpdateTime = -1;
     private int unchangedDataRetries = 0;
@@ -112,7 +111,8 @@ public class BazaarPoller {
             this.lastKnownUpdateTime = currentUpdateTime;
             log.trace(
                 "Bazaar data fetched successfully - Data {}, Last Updated: {}",
-                changed ? "changed" : "unchanged", Util.formatUtcTimestampMillis(currentUpdateTime)
+                changed ? "changed" : "unchanged",
+                Util.formatUtcTimestampMillis(currentUpdateTime)
             );
         }).onFailure(err -> {
             log.warn("Reply does not implement expected accessor.", err);
@@ -144,8 +144,10 @@ public class BazaarPoller {
 
         if (this.unchangedDataRetries <= MAX_UNCHANGED_RETRIES) {
             log.debug(
-                "Data unchanged (attempt {}/{}), retrying in {}ms", this.unchangedDataRetries,
-                MAX_UNCHANGED_RETRIES, UNCHANGED_DATA_BACKOFF_MS
+                "Data unchanged (attempt {}/{}), retrying in {}ms",
+                this.unchangedDataRetries,
+                MAX_UNCHANGED_RETRIES,
+                UNCHANGED_DATA_BACKOFF_MS
             );
 
             this.scheduleFetch(
@@ -167,7 +169,8 @@ public class BazaarPoller {
     private void handleFetchError(Throwable throwable) {
         log.warn(
             "Error occurred while fetching bazaar data. Retrying in {}ms. {}",
-            ERROR_BACKOFF_MS, throwable.getMessage()
+            ERROR_BACKOFF_MS,
+            throwable.getMessage()
         );
         this.scheduleFetch(ERROR_BACKOFF_MS, "Error recovery: API fetch error");
     }

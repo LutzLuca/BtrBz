@@ -35,8 +35,8 @@ import net.minecraft.util.Formatting;
 @Slf4j
 public class FlipHelper {
 
-    private static final int flipOrderItemSlotIdx = 15;
-    private static final int customHelperItemSlotIdx = 16;
+    private static final int FLIP_ORDER_ITEM_SLOT_IDX = 15;
+    private static final int CUSTOM_HELPER_ITEM_SLOT_IDX = 16;
 
     private final TimedStore<FlipEntry> pendingFlips = new TimedStore<>(15_000L);
     private final BazaarData bazaarData;
@@ -56,7 +56,9 @@ public class FlipHelper {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                if (slot == null) { return false; }
+                if (slot == null) {
+                    return false;
+                }
 
                 var player = MinecraftClient.getInstance().player;
                 if (player != null && slot.inventory == player.getInventory()) {
@@ -99,7 +101,7 @@ public class FlipHelper {
                 return Optional.empty();
             }
 
-            if (slot == null || slot.getIndex() != customHelperItemSlotIdx || this.potentialFlipProduct == null) {
+            if (slot == null || slot.getIndex() != CUSTOM_HELPER_ITEM_SLOT_IDX || this.potentialFlipProduct == null) {
                 return Optional.empty();
             }
 
@@ -125,7 +127,7 @@ public class FlipHelper {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getIndex() == customHelperItemSlotIdx && info.inMenu(
+                return slot != null && slot.getIndex() == CUSTOM_HELPER_ITEM_SLOT_IDX && info.inMenu(
                     BazaarMenuType.OrderOptions);
             }
 
@@ -163,7 +165,7 @@ public class FlipHelper {
                 Try
                     .run(() -> interactionManager.clickSlot(
                         handler.syncId,
-                        flipOrderItemSlotIdx,
+                        FLIP_ORDER_ITEM_SLOT_IDX,
                         button,
                         SlotActionType.PICKUP,
                         player
@@ -286,7 +288,7 @@ public class FlipHelper {
 
     // TODO: move this into the `OrderInfoParser` sometime
     private Optional<TitleOrderInfo> parseOrderTitle(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || Util.orderScreenNonOrderItem.contains(stack.getItem())) {
+        if (stack == null || stack.isEmpty() || Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
             return Optional.empty();
         }
 

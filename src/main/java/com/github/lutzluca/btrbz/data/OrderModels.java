@@ -127,10 +127,10 @@ public final class OrderModels {
     ) {
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {
-            return this.productName.equals(setupInfo.productName())
-                && this.type == setupInfo.type()
-                && this.volume == setupInfo.volume()
-                && Double.compare(this.total, setupInfo.total()) == 0;
+            return this.productName.equals(setupInfo.productName()) && this.type == setupInfo.type() && this.volume == setupInfo.volume() && Double.compare(
+                this.total,
+                setupInfo.total()
+            ) == 0;
         }
     }
 }

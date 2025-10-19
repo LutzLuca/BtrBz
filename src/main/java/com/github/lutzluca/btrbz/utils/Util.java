@@ -25,7 +25,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public final class Util {
 
-    public static final Set<Item> orderScreenNonOrderItem = Set.of(
+    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS = Set.of(
         Items.BLACK_STAINED_GLASS_PANE,
         Items.ARROW,
         Items.HOPPER
@@ -119,7 +119,9 @@ public final class Util {
     }
 
     public static String formatCompact(double value, int places) {
-        if (places < 0) { throw new IllegalArgumentException("places must be >= 0"); }
+        if (places < 0) {
+            throw new IllegalArgumentException("places must be >= 0");
+        }
 
         double abs = Math.abs(value);
         String suffix;

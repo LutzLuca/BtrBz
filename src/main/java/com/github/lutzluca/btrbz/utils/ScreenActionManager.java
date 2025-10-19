@@ -7,14 +7,14 @@ import net.minecraft.screen.slot.Slot;
 
 public class ScreenActionManager {
 
-    private static final List<ScreenClickRule> rules = new ArrayList<>();
+    private static final List<ScreenClickRule> RULES = new ArrayList<>();
 
     public static void register(ScreenClickRule rule) {
-        rules.add(rule);
+        RULES.add(rule);
     }
 
     public static boolean handleClick(ScreenInfo info, Slot slot, int button) {
-        for (ScreenClickRule rule : rules) {
+        for (ScreenClickRule rule : RULES) {
             if (rule.applies(info, slot, button)) {
                 return rule.onClick(info, slot, button);
             }

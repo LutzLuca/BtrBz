@@ -23,7 +23,7 @@ public class ConfigScreen {
     public static Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(
             Config.HANDLER, (defaults, cfg, builder) -> {
-                builder.title(Text.literal(BtrBz.modId));
+                builder.title(Text.literal(BtrBz.MOD_ID));
                 buildGeneralConfig(builder, config);
 
                 return builder;

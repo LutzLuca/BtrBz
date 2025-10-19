@@ -20,7 +20,7 @@ public class Config {
             .setPath(FabricLoader
                 .getInstance()
                 .getConfigDir()
-                .resolve(String.format("%s.json", BtrBz.modId)))
+                .resolve(String.format("%s.json", BtrBz.MOD_ID)))
             .build())
         .build();
 
