@@ -77,6 +77,21 @@ public class BtrBz implements ClientModInitializer {
         messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
         messageDispatcher.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
 
+        messageDispatcher.on(
+            BazaarMessage.InstaBuy.class,
+            info -> orderLimitModule.onTransaction(info.total())
+        );
+        messageDispatcher.on(
+            BazaarMessage.InstaSell.class, info -> {
+                orderLimitModule.onTransaction(info.total() * (1 - Config.get().tax / 100));
+            }
+        );
+        messageDispatcher.on(
+            BazaarMessage.OrderSetup.class, info -> {
+                orderLimitModule.onTransaction(info.total());
+            }
+        );
+
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
         });

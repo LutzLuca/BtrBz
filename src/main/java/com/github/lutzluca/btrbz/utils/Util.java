@@ -5,6 +5,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -115,5 +116,35 @@ public final class Util {
             return Optional.empty();
         }
         return Optional.of(Pair.of(first, second));
+    }
+
+    public static String formatCompact(double value, int places) {
+        if (places < 0) { throw new IllegalArgumentException("places must be >= 0"); }
+
+        double abs = Math.abs(value);
+        String suffix;
+        double scaled;
+
+        if (abs >= 1_000_000_000) {
+            scaled = value / 1_000_000_000d;
+            suffix = "B";
+        } else if (abs >= 1_000_000) {
+            scaled = value / 1_000_000d;
+            suffix = "M";
+        } else if (abs >= 1_000) {
+            scaled = value / 1_000d;
+            suffix = "k";
+        } else {
+            scaled = value;
+            suffix = "";
+        }
+
+        StringBuilder pattern = new StringBuilder("0");
+        if (places > 0) {
+            pattern.append(".");
+            pattern.append("0".repeat(places));
+        }
+
+        return new DecimalFormat(pattern.toString()).format(scaled) + suffix;
     }
 }

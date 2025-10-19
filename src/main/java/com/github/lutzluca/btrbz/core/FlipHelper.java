@@ -225,6 +225,7 @@ public class FlipHelper {
             accessor.setCurrentRow(0);
             accessor.invokeSetCurrentRowMessage(formatted);
 
+            // TODO figure out why the fuck this does not work anymore?
             Try
                 .run(() -> {
                     signEditScreen.close();

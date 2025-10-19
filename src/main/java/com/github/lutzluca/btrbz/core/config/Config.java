@@ -28,6 +28,13 @@ public class Config {
     @BindModule(OrderLimitModule.class)
     public OrderLimitConfig orderLimit = new OrderLimitConfig();
 
+    @SerialEntry
+    public double tax = 1.125;
+
+    public static Config get() {
+        return HANDLER.instance();
+    }
+
     public static void load() {
         var success = HANDLER.load();
         if (!success) {

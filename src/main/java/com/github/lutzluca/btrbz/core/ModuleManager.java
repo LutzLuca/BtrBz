@@ -42,6 +42,7 @@ public class ModuleManager {
             M module = moduleClass.getDeclaredConstructor().newInstance();
             modules.put(moduleClass, module);
             applyConfigToModule(module);
+            module.onLoad();
             log.info("Registered module: {}", moduleClass.getName());
             return module;
         } catch (Exception err) {

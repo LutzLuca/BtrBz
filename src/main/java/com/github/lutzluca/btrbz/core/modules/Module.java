@@ -1,17 +1,20 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import java.util.List;
-import java.util.function.Consumer;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import java.util.List;
+import java.util.function.Consumer;
 import net.minecraft.client.gui.widget.ClickableWidget;
 
 public abstract class Module<T> {
+
     protected T configState;
 
     public void applyConfigState(T state) {
         this.configState = state;
     }
+
+    public void onLoad() { }
 
     public T serializeConfigState() {
         return this.configState;

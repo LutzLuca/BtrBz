@@ -34,7 +34,8 @@ public class ConfigScreen {
     private static void buildGeneralConfig(Builder builder, Config config) {
         var generalBuilder = ConfigCategory.createBuilder().name(Text.literal("General"));
 
-        generalBuilder.option(config.orderLimit.createOption());
+        generalBuilder.option(config.orderLimit.createEnabledOption());
+        generalBuilder.option(config.orderLimit.createCompactOption());
 
         builder.category(generalBuilder.build());
     }
