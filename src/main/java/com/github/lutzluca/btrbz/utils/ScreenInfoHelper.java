@@ -65,8 +65,6 @@ public final class ScreenInfoHelper {
         this.currInfo = info;
 
         // @formatter:off
-        this.switchListeners.forEach(listener -> listener.accept(info));
-
         info.getGenericContainerScreen().ifPresent(gcs -> {
             var matchingLoadListenerEntries = this.screenLoadListenerEntries
                 .stream()
@@ -85,6 +83,10 @@ public final class ScreenInfoHelper {
             );
         });
         // @formatter:on
+    }
+
+    public void fireScreenSwitchCallbacks() {
+        this.switchListeners.forEach(listener -> listener.accept(this.currInfo));
     }
 
     private enum BazaarCategory {
