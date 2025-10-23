@@ -37,6 +37,9 @@ public class ConfigScreen {
         generalBuilder.option(config.orderLimit.createEnabledOption());
         generalBuilder.option(config.orderLimit.createCompactOption());
 
+        generalBuilder.option(config.bookmark.createEnabledOption());
+        generalBuilder.option(config.bookmark.createMaxVisibleOption());
+
         builder.category(generalBuilder.build());
     }
 

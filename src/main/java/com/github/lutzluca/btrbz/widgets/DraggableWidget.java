@@ -29,6 +29,7 @@ public class DraggableWidget extends ClickableWidget {
     private int widgetStartX;
     private int widgetStartY;
 
+    @Getter
     private int dragThreshold = 3;
 
     private boolean renderBackground = true;
@@ -94,7 +95,7 @@ public class DraggableWidget extends ClickableWidget {
 
             if (!wasDragging && this.isHovered() && this.onClickCallback != null) {
                 this.onClickCallback.accept(this);
-            } else if (wasDragging) {
+            } else if (wasDragging && this.onDragEndCallback != null) {
                 this.onDragEndCallback.accept(this, this.getPosition());
             }
 

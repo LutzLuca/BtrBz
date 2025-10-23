@@ -133,6 +133,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         return Util.formatCompact(amount, places);
     }
 
+    // TODO add more description
     public static class OrderLimitConfig {
 
         public Integer x, y;

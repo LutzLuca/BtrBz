@@ -19,19 +19,18 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import org.apache.commons.lang3.tuple.Pair;
 
 public final class Util {
 
-    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS = Set.of(
-        Items.BLACK_STAINED_GLASS_PANE,
-        Items.ARROW,
-        Items.HOPPER
-    );
+    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS =
+            Set.of(Items.BLACK_STAINED_GLASS_PANE, Items.ARROW, Items.HOPPER);
 
-    private Util() { }
+
+    private Util() {}
 
 
     public static String formatUtcTimestampMillis(long utcMillis) {
@@ -59,12 +58,8 @@ public final class Util {
             Files.writeString(tmp.toPath(), content);
             tmp.deleteOnExit();
 
-            return Files.move(
-                tmp.toPath(),
-                path,
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
         });
     }
 
@@ -148,5 +143,12 @@ public final class Util {
         }
 
         return new DecimalFormat(pattern.toString()).format(scaled) + suffix;
+    }
+
+    public static void runCommand(String command) {
+        var client = MinecraftClient.getInstance();
+        if (client.player != null) {
+            client.player.networkHandler.sendChatCommand(command);
+        }
     }
 }

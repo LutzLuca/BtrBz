@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.screen.ScreenHandler;
@@ -17,6 +18,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(HandledScreen.class)
 @Slf4j
@@ -31,6 +33,22 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
         var widgets = ModuleManager.getInstance().getWidgets();
         log.trace("Adding {} custom widgets", widgets.size());
         widgets.forEach(this::addDrawableChild);
+    }
+
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    private void onMouseScrolled(
+        double mouseX,
+        double mouseY,
+        double horizontalAmount,
+        double verticalAmount,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
+        for (Element child : this.children()) {
+            if (child.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
     }
 
     @Inject(method = "onMouseClick(Lnet/minecraft/screen/slot/Slot;IILnet/minecraft/screen/slot/SlotActionType;)V", at = @At("HEAD"), cancellable = true)

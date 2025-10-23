@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.HighlightManager;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
@@ -21,6 +22,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
 import com.google.common.collect.HashBiMap;
+import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +32,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.component.ComponentType;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -40,6 +46,7 @@ public class BtrBz implements ClientModInitializer {
     public static final String MOD_ID = "btrbz";
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
+    public static ComponentType<Boolean> BOOKMARKED;
     private static BtrBz instance;
     private BzOrderManager orderManager;
     private HighlightManager highlightManager;
@@ -59,10 +66,16 @@ public class BtrBz implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
+        BOOKMARKED = Registry.register(
+            Registries.DATA_COMPONENT_TYPE,
+            Identifier.of(BtrBz.MOD_ID, "bookmarked"),
+            ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
+        );
 
         Config.load();
         ModuleManager.getInstance().discoverBindings();
         var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
+        var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 

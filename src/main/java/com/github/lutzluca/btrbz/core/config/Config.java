@@ -2,6 +2,9 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookmarkedItem;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
@@ -17,6 +20,10 @@ public class Config {
         .createBuilder(Config.class)
         .serializer(config -> GsonConfigSerializerBuilder
             .create(config)
+            .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
+                BookmarkedItem.class,
+                new BookmarkedItem.BookmarkedItemSerializer()
+            ))
             .setPath(FabricLoader
                 .getInstance()
                 .getConfigDir()
@@ -27,6 +34,10 @@ public class Config {
     @SerialEntry
     @BindModule(OrderLimitModule.class)
     public OrderLimitConfig orderLimit = new OrderLimitConfig();
+
+    @SerialEntry
+    @BindModule(BookmarkModule.class)
+    public BookMarkConfig bookmark = new BookMarkConfig();
 
     @SerialEntry
     public double tax = 1.125;
