@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
-import com.github.lutzluca.btrbz.utils.InventoryLoadWatcher.SlotSnapshot;
+import com.github.lutzluca.btrbz.utils.InventoryWatcher.Inventory;
 import io.vavr.control.Try;
 import java.util.Arrays;
 import java.util.List;
@@ -24,15 +24,17 @@ import org.jetbrains.annotations.Nullable;
 public final class ScreenInfoHelper {
 
     private static final ScreenInfoHelper INSTANCE = new ScreenInfoHelper();
+    @Getter
+    final InventoryWatcher inventoryWatcher = new InventoryWatcher();
     private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
     private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
-
+    private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
     @Getter
     private volatile ScreenInfo currInfo = new ScreenInfo(null);
     @Getter
     private volatile ScreenInfo prevInfo = new ScreenInfo(null);
 
-    private ScreenInfoHelper() { }
+    private ScreenInfoHelper() { this.setupInventoryWatcher(); }
 
     public static ScreenInfoHelper get() {
         return INSTANCE;
@@ -42,47 +44,48 @@ public final class ScreenInfoHelper {
         return INSTANCE.currInfo.inMenu(menu);
     }
 
-    public static Runnable registerOnSwitch(Consumer<ScreenInfo> listener) {
+    public static void registerOnSwitch(Consumer<ScreenInfo> listener) {
         INSTANCE.switchListeners.add(listener);
-        return () -> INSTANCE.switchListeners.remove(listener);
     }
 
-    public static Runnable registerOnLoaded(
+    public static void registerOnLoaded(
         Predicate<ScreenInfo> matcher,
-        BiConsumer<ScreenInfo, List<SlotSnapshot>> listener
+        BiConsumer<ScreenInfo, Inventory> listener
     ) {
         var info = new ScreenLoadListenerEntry(matcher, listener);
         INSTANCE.screenLoadListenerEntries.add(info);
-        return () -> INSTANCE.screenLoadListenerEntries.remove(info);
+    }
+
+    public static void registerOnClose(
+        Predicate<ScreenInfo> matcher,
+        BiConsumer<ScreenInfo, Boolean> listener
+    ) {
+        var info = new ScreenCloseListenerEntry(matcher, listener);
+        INSTANCE.screenCloseListenerEntries.add(info);
+    }
+
+    private void setupInventoryWatcher() {
+        this.inventoryWatcher.setOnLoaded(inventory -> {
+            this.screenLoadListenerEntries
+                .stream()
+                .filter(entry -> entry.matcher.test(this.currInfo))
+                .forEach(entry -> entry.listener.accept(this.currInfo, inventory));
+        });
+
+        this.inventoryWatcher.setOnClose((title, reopenSameName) -> {
+            log.debug("Inventory closed: '{}' (reopen same: {})", title, reopenSameName);
+
+            this.screenCloseListenerEntries
+                .stream()
+                .filter(entry -> entry.matcher.test(this.currInfo))
+                .forEach(entry -> entry.listener.accept(this.currInfo, reopenSameName));
+        });
     }
 
     public void setScreen(Screen screen) {
         var info = new ScreenInfo(screen);
-        if (this.currInfo.equals(info)) {
-            return;
-        }
         this.prevInfo = this.currInfo;
         this.currInfo = info;
-
-        // @formatter:off
-        info.getGenericContainerScreen().ifPresent(gcs -> {
-            var matchingLoadListenerEntries = this.screenLoadListenerEntries
-                .stream()
-                .filter(listener -> listener.matcher.test(info))
-                .toList();
-
-            if (matchingLoadListenerEntries.isEmpty()) {
-                return;
-            }
-
-            new InventoryLoadWatcher(
-                gcs,
-                slots -> matchingLoadListenerEntries.forEach(onLoadedInfo ->
-                    onLoadedInfo.listener.accept(info, slots)
-                )
-            );
-        });
-        // @formatter:on
     }
 
     public void fireScreenSwitchCallbacks() {
@@ -248,7 +251,11 @@ public final class ScreenInfoHelper {
     }
 
     private record ScreenLoadListenerEntry(
-        Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, List<SlotSnapshot>> listener
+        Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, InventoryWatcher.Inventory> listener
+    ) { }
+
+    private record ScreenCloseListenerEntry(
+        Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, Boolean> listener
     ) { }
 
     public record HandledScreenBounds(int x, int y, int width, int height) { }

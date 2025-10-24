@@ -9,7 +9,8 @@
         "HandledScreenMixin",
         "MinecraftClientMixin",
         "SkyBlockBazaarReplyAccessor",
-        "SlotMixin"
+        "SlotMixin",
+        "ClientPlayNetworkHandlerMixin"
     ],
     "injectors": {
         "defaultRequire": 1

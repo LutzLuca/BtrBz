@@ -28,6 +28,11 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
         super(title);
     }
 
+    @Inject(method = "close", at = @At("HEAD"))
+    private void onClose(CallbackInfo ci) {
+        ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
+    }
+
     @Inject(method = "init", at = @At("TAIL"))
     private void addCustomWidgets(CallbackInfo ci) {
         var widgets = ModuleManager.getInstance().getWidgets();

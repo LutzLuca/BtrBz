@@ -59,9 +59,7 @@ public class BtrBz implements ClientModInitializer {
         return instance.highlightManager;
     }
 
-    public static BazaarData bazaarData() {
-        return BtrBz.BAZAAR_DATA;
-    }
+    public static BazaarData bazaarData() { return BtrBz.BAZAAR_DATA; }
 
     @Override
     public void onInitializeClient() {
@@ -107,21 +105,18 @@ public class BtrBz implements ClientModInitializer {
             messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
         });
 
-        // @formatter:off
         ScreenInfoHelper.registerOnLoaded(
-            info -> info.inMenu(BazaarMenuType.Orders),
-            (info, slots) -> {
-
-                var parsed = slots.stream()
-                    .filter(slot -> {
-                        var stack = slot.stack();
+            info -> info.inMenu(BazaarMenuType.Orders), (info, inv) -> {
+                var parsed = inv.items
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> {
+                        var stack = entry.getValue();
                         return !stack.isEmpty() && !Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem());
                     })
-                    .map(slot ->
-                        OrderInfoParser
-                            .parseOrderInfo(slot.stack(), slot.idx())
-                            .toJavaOptional()
-                    )
+                    .map(entry -> OrderInfoParser
+                        .parseOrderInfo(entry.getValue(), entry.getKey())
+                        .toJavaOptional())
                     .flatMap(Optional::stream)
                     .collect(Collectors.toList());
 
@@ -129,7 +124,6 @@ public class BtrBz implements ClientModInitializer {
                 this.highlightManager.setStatuses(parsed);
             }
         );
-        // @formatter:on
 
         ScreenActionManager.register(new ScreenClickRule() {
 
