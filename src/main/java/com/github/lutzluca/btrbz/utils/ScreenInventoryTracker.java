@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.utils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.ToString;
@@ -16,7 +15,7 @@ import net.minecraft.screen.ScreenHandlerType;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
-public class InventoryWatcher {
+public class ScreenInventoryTracker {
 
     private static final Map<ScreenHandlerType<?>, Integer> SLOT_COUNT_MAP = new HashMap<>();
 
@@ -51,26 +50,25 @@ public class InventoryWatcher {
     private @Nullable Inventory currInv = null;
     private boolean acceptItems = false;
 
-    private @Nullable Consumer<Inventory> onFullyLoadedCallback = null;
-    private @Nullable BiConsumer<String, Boolean> onCloseCallback = null;
+    private Consumer<Inventory> onFullyLoadedCallback = null;
+    private Consumer<String> onCloseCallback = null;
 
-    public void setOnLoaded(@Nullable Consumer<Inventory> callback) {
+    public void setOnLoaded(Consumer<Inventory> callback) {
         this.onFullyLoadedCallback = callback;
     }
 
-    public void setOnClose(@Nullable BiConsumer<String, Boolean> callback) {
+    public void setOnClose(Consumer<String> callback) {
         this.onCloseCallback = callback;
     }
 
-    public void onCloseScreen() { this.close(); }
-
-    public void close() {
-        this.close(ScreenInfoHelper.get().getCurrInfo().containerName().orElse(""), false);
+    public void onCloseScreen() {
+        this.close();
     }
 
-    public void close(String title, boolean reopenSameName) {
+    public void close() {
+        String title = this.currInv != null ? this.currInv.title : "";
         if (this.onCloseCallback != null) {
-            this.onCloseCallback.accept(title, reopenSameName);
+            this.onCloseCallback.accept(title);
         }
         this.currInv = null;
     }
@@ -98,8 +96,7 @@ public class InventoryWatcher {
             return;
         }
 
-        boolean reopeningSame = this.currInv != null && title.equals(this.currInv.title);
-        this.close(title, reopeningSame);
+        this.close();
 
         this.currInv = new Inventory(syncId, title, slotCount);
         this.acceptItems = true;
@@ -117,7 +114,7 @@ public class InventoryWatcher {
         int slot = packet.getSlot();
         if (slot >= this.currInv.slotCount) {
             if (this.acceptItems) {
-                this.markAsFullyLoaded();
+                this.loaded();
             }
             return;
         }
@@ -128,11 +125,11 @@ public class InventoryWatcher {
         }
 
         if (this.acceptItems && this.currInv.items.size() == this.currInv.slotCount) {
-            this.markAsFullyLoaded();
+            this.loaded();
         }
     }
 
-    private void markAsFullyLoaded() {
+    private void loaded() {
         assert this.currInv != null;
 
         this.currInv.fullyLoaded = true;
@@ -147,10 +144,10 @@ public class InventoryWatcher {
     @ToString
     public static class Inventory {
 
-        public final int syncId;
-        public final String title;
-        public final int slotCount;
         public final Map<Integer, ItemStack> items;
+        private final int syncId;
+        private final String title;
+        private final int slotCount;
         public boolean fullyLoaded;
 
         public Inventory(int syncId, String title, int slotCount) {

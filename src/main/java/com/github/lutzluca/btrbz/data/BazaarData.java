@@ -83,6 +83,7 @@ public class BazaarData {
         return Optional.ofNullable(this.idToName.inverse().get(name));
     }
 
+
     public static final class TrackedProduct {
 
         @Getter

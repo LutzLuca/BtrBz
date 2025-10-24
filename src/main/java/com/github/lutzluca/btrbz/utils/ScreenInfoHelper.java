@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
-import com.github.lutzluca.btrbz.utils.InventoryWatcher.Inventory;
+import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +25,7 @@ public final class ScreenInfoHelper {
 
     private static final ScreenInfoHelper INSTANCE = new ScreenInfoHelper();
     @Getter
-    final InventoryWatcher inventoryWatcher = new InventoryWatcher();
+    final ScreenInventoryTracker inventoryWatcher = new ScreenInventoryTracker();
     private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
     private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
     private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
@@ -34,7 +34,9 @@ public final class ScreenInfoHelper {
     @Getter
     private volatile ScreenInfo prevInfo = new ScreenInfo(null);
 
-    private ScreenInfoHelper() { this.setupInventoryWatcher(); }
+    private ScreenInfoHelper() {
+        this.setupInventoryWatcher();
+    }
 
     public static ScreenInfoHelper get() {
         return INSTANCE;
@@ -58,7 +60,7 @@ public final class ScreenInfoHelper {
 
     public static void registerOnClose(
         Predicate<ScreenInfo> matcher,
-        BiConsumer<ScreenInfo, Boolean> listener
+        Consumer<ScreenInfo> listener
     ) {
         var info = new ScreenCloseListenerEntry(matcher, listener);
         INSTANCE.screenCloseListenerEntries.add(info);
@@ -72,13 +74,13 @@ public final class ScreenInfoHelper {
                 .forEach(entry -> entry.listener.accept(this.currInfo, inventory));
         });
 
-        this.inventoryWatcher.setOnClose((title, reopenSameName) -> {
-            log.debug("Inventory closed: '{}' (reopen same: {})", title, reopenSameName);
+        this.inventoryWatcher.setOnClose(title -> {
+            log.debug("Inventory closed: '{}'", title);
 
             this.screenCloseListenerEntries
                 .stream()
-                .filter(entry -> entry.matcher.test(this.currInfo))
-                .forEach(entry -> entry.listener.accept(this.currInfo, reopenSameName));
+                .filter(entry -> entry.matcher.test(this.prevInfo))
+                .forEach(entry -> entry.listener.accept(this.prevInfo));
         });
     }
 
@@ -92,6 +94,7 @@ public final class ScreenInfoHelper {
         this.switchListeners.forEach(listener -> listener.accept(this.currInfo));
     }
 
+    // TODO this is not right
     private enum BazaarCategory {
         Farming, // Farming
         Mining, // Mining
@@ -251,11 +254,12 @@ public final class ScreenInfoHelper {
     }
 
     private record ScreenLoadListenerEntry(
-        Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, InventoryWatcher.Inventory> listener
+        Predicate<ScreenInfo> matcher,
+        BiConsumer<ScreenInfo, ScreenInventoryTracker.Inventory> listener
     ) { }
 
     private record ScreenCloseListenerEntry(
-        Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, Boolean> listener
+        Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
     ) { }
 
     public record HandledScreenBounds(int x, int y, int width, int height) { }

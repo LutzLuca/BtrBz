@@ -9,9 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-// TODO: there is still some flickering when claiming or canceling an order
-// the UI reorders the orders before parsing and reevaluating highlights,
-// which can cause desync due to using outdated highlights
 public class HighlightManager {
 
     private final Map<Integer, Integer> highlights = new HashMap<>();
