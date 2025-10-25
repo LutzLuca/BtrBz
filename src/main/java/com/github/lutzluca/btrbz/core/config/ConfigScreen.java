@@ -40,6 +40,12 @@ public class ConfigScreen {
         generalBuilder.option(config.bookmark.createEnabledOption());
         generalBuilder.option(config.bookmark.createMaxVisibleOption());
 
+        generalBuilder.option(config.productInfo.createEnabledOption());
+        generalBuilder.option(config.productInfo.createItemClickOption());
+        generalBuilder.option(config.productInfo.createCtrlShiftOption());
+        generalBuilder.option(config.productInfo.createShowOutsideBazaarOption());
+        generalBuilder.option(config.productInfo.createSiteOption());
+
         builder.category(generalBuilder.build());
     }
 

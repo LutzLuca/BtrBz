@@ -20,6 +20,7 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// TODO need to cache the menu of the curr / prev screen | Item & ItemGroup handling will be fun :(
 @Slf4j
 public final class ScreenInfoHelper {
 
@@ -44,6 +45,10 @@ public final class ScreenInfoHelper {
 
     public static boolean inMenu(BazaarMenuType... menu) {
         return INSTANCE.currInfo.inMenu(menu);
+    }
+
+    public static boolean inBazaar() {
+        return INSTANCE.currInfo.inBazaar();
     }
 
     public static void registerOnSwitch(Consumer<ScreenInfo> listener) {
@@ -75,7 +80,7 @@ public final class ScreenInfoHelper {
         });
 
         this.inventoryWatcher.setOnClose(title -> {
-            log.debug("Inventory closed: '{}'", title);
+            log.trace("Inventory closed: '{}'", title);
 
             this.screenCloseListenerEntries
                 .stream()
@@ -211,6 +216,10 @@ public final class ScreenInfoHelper {
         public ScreenInfo(@Nullable Screen screen) {
             this.screen = screen;
             this.containerScreen = (screen instanceof GenericContainerScreen gcs) ? gcs : null;
+        }
+
+        public boolean inBazaar() {
+            return this.inMenu(BazaarMenuType.values());
         }
 
         public Optional<GenericContainerScreen> getGenericContainerScreen() {

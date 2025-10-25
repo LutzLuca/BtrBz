@@ -17,19 +17,14 @@ import net.fabricmc.loader.api.FabricLoader;
 public class Config {
 
     public static final ConfigClassHandler<Config> HANDLER = ConfigClassHandler
-        .createBuilder(Config.class)
-        .serializer(config -> GsonConfigSerializerBuilder
-            .create(config)
-            .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
-                BookmarkedItem.class,
-                new BookmarkedItem.BookmarkedItemSerializer()
-            ))
-            .setPath(FabricLoader
-                .getInstance()
-                .getConfigDir()
-                .resolve(String.format("%s.json", BtrBz.MOD_ID)))
-            .build())
-        .build();
+            .createBuilder(Config.class)
+            .serializer(config -> GsonConfigSerializerBuilder.create(config)
+                    .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
+                            BookmarkedItem.class, new BookmarkedItem.BookmarkedItemSerializer()))
+                    .setPath(FabricLoader.getInstance().getConfigDir()
+                            .resolve(String.format("%s.json", BtrBz.MOD_ID)))
+                    .build())
+            .build();
 
     @SerialEntry
     @BindModule(OrderLimitModule.class)
@@ -38,6 +33,10 @@ public class Config {
     @SerialEntry
     @BindModule(BookmarkModule.class)
     public BookMarkConfig bookmark = new BookMarkConfig();
+
+    @SerialEntry
+    public com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig productInfo =
+            new com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig();
 
     @SerialEntry
     public double tax = 1.125;
