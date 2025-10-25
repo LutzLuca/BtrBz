@@ -180,9 +180,10 @@ public final class ProductInfoProvider {
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
                 var cfg = Config.get().productInfo;
                 var stack = slot.getStack();
-                var id = BtrBz.bazaarData().nameToId(stack.getName().getString());
+                var name = stack.getName().getString();
+                var id = resolveProductId(stack, name);
                 if (id.isEmpty()) {
-                    log.warn("No product id found for {}", stack.getName().getString());
+                    log.warn("No product id found for {}", name);
                     return false;
                 }
 
@@ -229,9 +230,8 @@ public final class ProductInfoProvider {
         }
 
         var productName = stack.getName().getString();
-        boolean isValidProduct = BtrBz.bazaarData().nameToId(productName).isPresent();
-        if (!isValidProduct) {
-            return this.isValid(stack, productName);
+        if (this.resolveProductId(stack, productName).isEmpty()) {
+            return false;
         }
 
         if (ScreenInfoHelper.inMenu(BazaarMenuType.Main, BazaarMenuType.Item)) {
@@ -273,22 +273,30 @@ public final class ProductInfoProvider {
         ));
     }
 
-    // this allows for the click on stacks in the collections menu, but I do not know if this is nice
-    private boolean isValid(ItemStack stack, String name) {
-        if (name.equals("Enchanted Book")) {
-            return OrderInfoParser
+    private Optional<String> resolveProductId(ItemStack stack, String name) {
+        var direct = BtrBz.bazaarData().nameToId(name);
+        if (direct.isPresent()) {
+            return direct;
+        }
+
+        if ("Enchanted Book".equals(name)) {
+            var ids = OrderInfoParser
                 .getLore(stack)
                 .stream()
-                .map(potentialProduct -> BtrBz.bazaarData().nameToId(potentialProduct).isPresent())
-                .filter(isValid -> isValid)
-                .count() == 1;
-        }
-        var delimiter = name.lastIndexOf(" ");
+                .map(potentialProduct -> BtrBz.bazaarData().nameToId(potentialProduct))
+                .flatMap(Optional::stream)
+                .distinct()
+                .toList();
 
-        if (delimiter == -1 || !Util.isValidRomanNumeral(name.substring(delimiter).trim())) {
-            return false;
+            return ids.size() == 1 ? Optional.of(ids.getFirst()) : Optional.empty();
         }
-        return BtrBz.bazaarData().nameToId(name.substring(0, delimiter).trim()).isPresent();
+
+        var delimiter = name.lastIndexOf(' ');
+        if (delimiter == -1 || !Util.isValidRomanNumeral(name.substring(delimiter).trim())) {
+            return Optional.empty();
+        }
+
+        return BtrBz.bazaarData().nameToId(name.substring(0, delimiter).trim());
     }
 
     public enum InfoProviderSite {
