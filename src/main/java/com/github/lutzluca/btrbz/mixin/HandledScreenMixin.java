@@ -35,9 +35,18 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
 
     @Inject(method = "init", at = @At("TAIL"))
     private void addCustomWidgets(CallbackInfo ci) {
-        var widgets = ModuleManager.getInstance().getWidgets();
+        var moduleManager = ModuleManager.getInstance();
+        var widgets = moduleManager.getWidgets();
         log.trace("Adding {} custom widgets", widgets.size());
         widgets.forEach(this::addDrawableChild);
+
+        moduleManager.onRevalidation((revalidatedWidgets) -> {
+            log.trace(
+                "Adding {} custom widgets after revalidation (inventory loaded)",
+                revalidatedWidgets.size()
+            );
+            revalidatedWidgets.forEach(this::addDrawableChild);
+        });
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)

@@ -25,6 +25,7 @@ import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ConfirmLinkScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
@@ -36,7 +37,9 @@ import net.minecraft.util.Formatting;
 @Slf4j
 public final class ProductInfoProvider {
 
-    private static final int CUSTOM_ITEM_SLOT_IDX = 22;
+    private static final int CUSTOM_ITEM_IDX = 22;
+    private static final int PRODUCT_IDX = 13;
+
     private static ProductInfoProvider instance;
 
     private String openedProductId;
@@ -55,6 +58,15 @@ public final class ProductInfoProvider {
         }
     }
 
+    private static Optional<String> extractProductName(GenericContainerScreen screen) {
+        var handler = screen.getScreenHandler();
+        var inv = handler.getInventory();
+        return Try
+            .of(() -> inv.getStack(PRODUCT_IDX))
+            .map(ItemStack::getName)
+            .map(Text::getString)
+            .toJavaOptional();
+    }
 
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
@@ -64,9 +76,8 @@ public final class ProductInfoProvider {
                     return;
                 }
 
-                final int productIdx = 13;
                 var productName = inv
-                    .getItem(productIdx)
+                    .getItem(PRODUCT_IDX)
                     .map(ItemStack::getName)
                     .map(Text::getString)
                     .orElse("<empty>");
@@ -91,8 +102,30 @@ public final class ProductInfoProvider {
                 }
             }
         );
-    }
 
+        ScreenInfoHelper.registerOnSwitch(info -> {
+            if (!info.inMenu(BazaarMenuType.Item)) {
+                return;
+            }
+
+            var productName = info
+                .getGenericContainerScreen()
+                .flatMap(ProductInfoProvider::extractProductName);
+
+            productName.flatMap(BtrBz.bazaarData()::nameToId).ifPresentOrElse(
+                id -> {
+                    this.openedProductId = id;
+                    log.debug("Switched to product: {}", id);
+                }, () -> {
+                    this.openedProductId = null;
+                    log.warn(
+                        "Failed to determine opened product id when switching to loaded Item menu product name: '{}'",
+                        productName
+                    );
+                }
+            );
+        });
+    }
 
     private void registerInfoProviderItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
@@ -100,7 +133,7 @@ public final class ProductInfoProvider {
             if (!cfg.enabled || !cfg.itemClickEnabled) {
                 return Optional.empty();
             }
-            if (this.openedProductId == null || slot.getIndex() != CUSTOM_ITEM_SLOT_IDX) {
+            if (this.openedProductId == null || slot.getIndex() != CUSTOM_ITEM_IDX) {
                 return Optional.empty();
             }
 
@@ -145,7 +178,7 @@ public final class ProductInfoProvider {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
                 var cfg = Config.get().productInfo;
-                if (!cfg.enabled || !cfg.itemClickEnabled || openedProductId == null) {
+                if (!cfg.enabled || !cfg.itemClickEnabled || openedProductId == null || slot == null) {
                     return false;
                 }
 
@@ -154,7 +187,7 @@ public final class ProductInfoProvider {
                     return false;
                 }
 
-                return slot.getIndex() == CUSTOM_ITEM_SLOT_IDX && info.inMenu(BazaarMenuType.Item);
+                return slot.getIndex() == CUSTOM_ITEM_IDX && info.inMenu(BazaarMenuType.Item);
             }
 
             @Override
@@ -268,7 +301,9 @@ public final class ProductInfoProvider {
                                 .literal(link)
                                 .formatted(Formatting.UNDERLINE, Formatting.BLUE))));
                 }
-                client.setScreen(null);
+
+                var prev = ScreenInfoHelper.get().getPrevInfo();
+                client.setScreen(prev.inMenu(BazaarMenuType.Item) ? prev.getScreen() : null);
             }, link, true
         ));
     }

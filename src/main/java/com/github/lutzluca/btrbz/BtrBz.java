@@ -67,9 +67,11 @@ public class BtrBz implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
-        BOOKMARKED = Registry.register(Registries.DATA_COMPONENT_TYPE,
-                Identifier.of(BtrBz.MOD_ID, "bookmarked"),
-                ComponentType.<Boolean>builder().codec(Codec.BOOL).build());
+        BOOKMARKED = Registry.register(
+            Registries.DATA_COMPONENT_TYPE,
+            Identifier.of(BtrBz.MOD_ID, "bookmarked"),
+            ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
+        );
 
         Config.load();
         ModuleManager.getInstance().discoverBindings();
@@ -90,30 +92,42 @@ public class BtrBz implements ClientModInitializer {
         messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
         messageDispatcher.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
 
-        messageDispatcher.on(BazaarMessage.InstaBuy.class,
-                info -> orderLimitModule.onTransaction(info.total()));
-        messageDispatcher.on(BazaarMessage.InstaSell.class, info -> orderLimitModule
-                .onTransaction(info.total() * (1 - Config.get().tax / 100)));
-        messageDispatcher.on(BazaarMessage.OrderSetup.class,
-                info -> orderLimitModule.onTransaction(info.total()));
+        messageDispatcher.on(
+            BazaarMessage.InstaBuy.class,
+            info -> orderLimitModule.onTransaction(info.total())
+        );
+        messageDispatcher.on(
+            BazaarMessage.InstaSell.class,
+            info -> orderLimitModule.onTransaction(info.total() * (1 - Config.get().tax / 100))
+        );
+        messageDispatcher.on(
+            BazaarMessage.OrderSetup.class,
+            info -> orderLimitModule.onTransaction(info.total())
+        );
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
         });
 
-        ScreenInfoHelper.registerOnLoaded(info -> info.inMenu(BazaarMenuType.Orders),
-                (info, inv) -> {
-                    var parsed = inv.items.entrySet().stream().filter(entry -> {
+        ScreenInfoHelper.registerOnLoaded(
+            info -> info.inMenu(BazaarMenuType.Orders), (info, inv) -> {
+                var parsed = inv.items
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> {
                         var stack = entry.getValue();
-                        return !stack.isEmpty()
-                                && !Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem());
-                    }).map(entry -> OrderInfoParser.parseOrderInfo(entry.getValue(), entry.getKey())
-                            .toJavaOptional()).flatMap(Optional::stream)
-                            .collect(Collectors.toList());
+                        return !stack.isEmpty() && !Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem());
+                    })
+                    .map(entry -> OrderInfoParser
+                        .parseOrderInfo(entry.getValue(), entry.getKey())
+                        .toJavaOptional())
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toList());
 
-                    this.orderManager.syncFromUi(parsed);
-                    this.highlightManager.setStatuses(parsed);
-                });
+                this.orderManager.syncFromUi(parsed);
+                this.highlightManager.setStatuses(parsed);
+            }
+        );
 
         ScreenActionManager.register(new ScreenClickRule() {
 
@@ -121,9 +135,10 @@ public class BtrBz implements ClientModInitializer {
             public boolean applies(ScreenInfo info, Slot slot, int button) {
                 final int orderItemIdx = 13;
 
-                return info.inMenu(BazaarMenuType.BuyOrderConfirmation,
-                        BazaarMenuType.SellOfferConfirmation) && slot != null
-                        && slot.getIndex() == orderItemIdx;
+                return info.inMenu(
+                    BazaarMenuType.BuyOrderConfirmation,
+                    BazaarMenuType.SellOfferConfirmation
+                ) && slot != null && slot.getIndex() == orderItemIdx;
             }
 
             @Override
@@ -131,8 +146,11 @@ public class BtrBz implements ClientModInitializer {
                 OrderInfoParser.parseSetOrderItem(slot.getStack()).onSuccess((setOrderInfo) -> {
                     BtrBz.orderManager().addOutstandingOrder(setOrderInfo);
 
-                    log.trace("Stored outstanding order for {}x {}", setOrderInfo.volume(),
-                            setOrderInfo.productName());
+                    log.trace(
+                        "Stored outstanding order for {}x {}",
+                        setOrderInfo.volume(),
+                        setOrderInfo.productName()
+                    );
                 }).onFailure((err) -> log.warn("Failed to parse confirm item", err));
 
                 return false;
@@ -151,8 +169,10 @@ public class BtrBz implements ClientModInitializer {
                     this.orderManager.resetTrackedOrders();
                     var player = MinecraftClient.getInstance().player;
                     if (player != null) {
-                        player.sendMessage(Text.literal("Tracked Bazaar orders have been reset."),
-                                false);
+                        player.sendMessage(
+                            Text.literal("Tracked Bazaar orders have been reset."),
+                            false
+                        );
                     }
                 });
 
@@ -165,11 +185,15 @@ public class BtrBz implements ClientModInitializer {
                     var orders = this.orderManager.getTrackedOrders();
 
                     if (player != null) {
-                        var trackedOrdersStr = orders.stream().map(TrackedOrder::toString)
-                                .collect(Collectors.joining("\n"));
+                        var trackedOrdersStr = orders
+                            .stream()
+                            .map(TrackedOrder::toString)
+                            .collect(Collectors.joining("\n"));
 
-                        player.sendMessage(Text.literal("Your orders:\n" + trackedOrdersStr),
-                                false);
+                        player.sendMessage(
+                            Text.literal("Your orders:\n" + trackedOrdersStr),
+                            false
+                        );
                     }
                 });
 

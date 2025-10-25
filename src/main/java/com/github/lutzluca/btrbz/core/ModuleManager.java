@@ -5,9 +5,11 @@ import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +21,7 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 @Slf4j
 public class ModuleManager {
 
-    private static ModuleManager INSTANCE;
+    private static ModuleManager instance;
 
     private final Map<Class<? extends Module<?>>, Module<?>> modules = new HashMap<>();
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
@@ -27,16 +29,49 @@ public class ModuleManager {
     @Setter
     private boolean isDirty = false;
 
+    private Consumer<List<ClickableWidget>> revalidationCallback;
+
     private ModuleManager() {
         ClientTickDispatcher.register(client -> this.saveOnDirty());
     }
 
     public static ModuleManager getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new ModuleManager();
+        if (instance == null) {
+            instance = new ModuleManager();
+            ScreenInfoHelper.registerOnSwitch(ignored -> {
+                instance.revalidationCallback = null;
+                instance.resetDisplayState();
+            });
+
+            ScreenInfoHelper.registerOnLoaded(
+                info -> true, (info, ignored) -> {
+                    if (instance.revalidationCallback != null) {
+                        instance.revalidationCallback.accept(instance.revalidate(info));
+                    }
+                }
+            );
+
         }
 
-        return INSTANCE;
+        return instance;
+    }
+
+    public void onRevalidation(Consumer<List<ClickableWidget>> consumer) {
+        this.revalidationCallback = consumer;
+    }
+
+    private List<ClickableWidget> revalidate(ScreenInfo info) {
+        List<ClickableWidget> list = new ArrayList<>();
+        for (Module<?> module : this.modules.values()) {
+            if (!module.isDisplayed() && module.shouldDisplay(info)) {
+                list.addAll(module.createWidgets(info));
+            }
+        }
+        return list;
+    }
+
+    private void resetDisplayState() {
+        this.modules.values().forEach(module -> module.setDisplayed(false));
     }
 
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
@@ -57,10 +92,12 @@ public class ModuleManager {
 
     public List<ClickableWidget> getWidgets() {
         var info = ScreenInfoHelper.get().getCurrInfo();
+
         return this.modules
             .values()
             .stream()
             .filter(module -> module.shouldDisplay(info))
+            .peek(module -> module.setDisplayed(true))
             .flatMap(module -> module.createWidgets(info).stream())
             .toList();
     }
@@ -98,7 +135,7 @@ public class ModuleManager {
                     moduleClass.getName()
                 );
 
-                validateBinding(field, moduleClass);
+                this.validateBinding(field, moduleClass);
                 moduleBindings.put(moduleClass, field);
             }
         }

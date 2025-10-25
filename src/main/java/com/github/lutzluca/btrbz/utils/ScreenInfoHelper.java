@@ -1,11 +1,11 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
@@ -20,7 +20,6 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// TODO need to cache the menu of the curr / prev screen | Item & ItemGroup handling will be fun :(
 @Slf4j
 public final class ScreenInfoHelper {
 
@@ -73,6 +72,8 @@ public final class ScreenInfoHelper {
 
     private void setupInventoryWatcher() {
         this.inventoryWatcher.setOnLoaded(inventory -> {
+            this.currInfo.markInventoryLoaded();
+
             this.screenLoadListenerEntries
                 .stream()
                 .filter(entry -> entry.matcher.test(this.currInfo))
@@ -90,22 +91,19 @@ public final class ScreenInfoHelper {
     }
 
     public void setScreen(Screen screen) {
-        var info = new ScreenInfo(screen);
+        var next = this.prevInfo;
+        next.setScreen(screen);
+
         this.prevInfo = this.currInfo;
-        this.currInfo = info;
+        this.currInfo = next;
     }
 
     public void fireScreenSwitchCallbacks() {
         this.switchListeners.forEach(listener -> listener.accept(this.currInfo));
     }
 
-    // TODO this is not right
     private enum BazaarCategory {
-        Farming, // Farming
-        Mining, // Mining
-        Combat, // Combat
-        WoodsAndFishes, // Woods & Fishes
-        Oddities; // Oddities
+        Farming, Mining, Combat, WoodsAndFishes, Oddities;
 
         private static Try<BazaarCategory> tryFrom(String value) {
             return switch (value) {
@@ -120,20 +118,23 @@ public final class ScreenInfoHelper {
     }
 
     public enum BazaarMenuType {
-        Main, // Bazaar ➜ <category>
+        Main, // Bazaar ➜ <category> / "<search>"
         Orders, // Your Bazaar Orders
         InstaBuy, // <product name> ➜ Instant Buy
         BuyOrderSetup, // How much do you want to pay?
         BuyOrderConfirmation, // Confirm Buy Order
         SellOfferSetup, // At what price are you selling?
         SellOfferConfirmation, // Confirm Sell Offer
-        Item, // <group> ➜ <product name> | use chest idx 34 -> "View Graphs" (paper)
+        Item, // <group> ➜ <product name> | product name from title & fallback to inventory idx 34
+        // -> "View Graphs" (paper)
         ItemGroup, // 'Optional: (page / max page)' <category / subcategory> ➜ <group>
         InstaSellIgnoreList, // Instasell Ignore List
         InventorySellConfirmation, // Are you sure?
         OrderOptions, // Order options
         Graphs, // <product name> ➜ Graphs
         Settings; // Bazaar ➜ Settings
+
+        public static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
 
         // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
@@ -142,19 +143,21 @@ public final class ScreenInfoHelper {
         // MinecraftClient (-> ScreenInfoHelper.onSwitch), they will return false even if
         // you're technically on the correct screen.
         public boolean matches(@NotNull ScreenInfo info) {
-            if (info.getScreen() == null || info.containerName().isEmpty()) {
+            var titleOpt = info.containerName();
+            if (titleOpt.isEmpty()) {
                 return false;
             }
 
-            var title = info.containerName().get();
-
+            var title = titleOpt.get();
             return switch (this) {
                 case Main -> {
                     if (!title.startsWith("Bazaar ➜ ")) {
                         yield false;
                     }
-                    var category = title.substring("Bazaar ➜ ".length());
-                    yield BazaarCategory.tryFrom(category.trim()).isSuccess();
+                    var str = title.substring("Bazaar ➜ ".length()).trim();
+                    yield BazaarCategory
+                        .tryFrom(str.trim())
+                        .isSuccess() || (str.startsWith("\"") && str.endsWith("\""));
                 }
                 case Orders -> title.equals("Your Bazaar Orders");
                 case InstaBuy -> title.endsWith("➜ Instant Buy");
@@ -162,23 +165,33 @@ public final class ScreenInfoHelper {
                 case BuyOrderConfirmation -> title.equals("Confirm Buy Order");
                 case SellOfferSetup -> title.equals("At what price are you selling?");
                 case SellOfferConfirmation -> title.equals("Confirm Sell Offer");
-                case Item -> info.getGenericContainerScreen().map((gcs) -> {
-                    final int GRAPH_PAPER_IDX = 33;
-                    var handler = gcs.getScreenHandler();
-                    var inventory = handler.getInventory();
-
-                    if (inventory.size() < GRAPH_PAPER_IDX) {
-                        return false;
+                case Item -> {
+                    var parts = title.split("➜", 2);
+                    if (parts.length != 2) {
+                        yield false;
                     }
 
-                    var slot = inventory.getStack(GRAPH_PAPER_IDX);
-                    return slot.getItem().equals(Items.PAPER) && slot
-                        .getName()
-                        .getString()
-                        .equals("View Graphs");
-                }).orElse(false);
+                    yield BtrBz.bazaarData().nameToId(parts[1].trim()).isPresent() || info
+                        .getGenericContainerScreen()
+                        .map((gcs) -> {
+                            final int GRAPH_PAPER_IDX = 33;
+                            var handler = gcs.getScreenHandler();
+                            var inventory = handler.getInventory();
+
+                            if (inventory.size() < GRAPH_PAPER_IDX) {
+                                return false;
+                            }
+
+                            var slot = inventory.getStack(GRAPH_PAPER_IDX);
+                            return slot.getItem().equals(Items.PAPER) && slot
+                                .getName()
+                                .getString()
+                                .equals("View Graphs");
+                        })
+                        .orElse(false);
+                }
                 case ItemGroup -> {
-                    if (!title.contains("➜")) {
+                    if (!title.contains("➜") && !title.endsWith("Graphs")) {
                         yield false;
                     }
 
@@ -188,12 +201,8 @@ public final class ScreenInfoHelper {
                         var slot = inventory.size() - 3;
 
                         return Try
-                            .of(() -> inventory.getStack(slot))
-                            .map((itemStack) -> itemStack
-                                .getItem()
-                                .equals(Items.CAULDRON) || itemStack
-                                .getItem()
-                                .equals(Items.BLACK_STAINED_GLASS_PANE))
+                            .of(() -> inventory.getStack(slot).getItem())
+                            .map((item) -> item.equals(Items.CAULDRON) || item.equals(Items.BLACK_STAINED_GLASS_PANE))
                             .getOrElse(false);
                     }).orElse(false);
                 }
@@ -208,18 +217,31 @@ public final class ScreenInfoHelper {
 
     public static class ScreenInfo {
 
+        private final MenuState state = new MenuState();
         @Getter
-        private final @Nullable Screen screen;
-
-        private final @Nullable GenericContainerScreen containerScreen;
+        private @Nullable Screen screen;
+        private @Nullable GenericContainerScreen containerScreen;
 
         public ScreenInfo(@Nullable Screen screen) {
+            this.setScreen(screen);
+        }
+
+        public void setScreen(Screen screen) {
+            if (this.screen == screen) {
+                return;
+            }
+
+            this.resetMenuMatchState();
             this.screen = screen;
             this.containerScreen = (screen instanceof GenericContainerScreen gcs) ? gcs : null;
         }
 
         public boolean inBazaar() {
-            return this.inMenu(BazaarMenuType.values());
+            return this.inMenu(BazaarMenuType.VALUES);
+        }
+
+        public boolean inMenu(BazaarMenuType... menu) {
+            return Arrays.stream(menu).anyMatch((menuType) -> this.state.matches(this, menuType));
         }
 
         public Optional<GenericContainerScreen> getGenericContainerScreen() {
@@ -228,10 +250,6 @@ public final class ScreenInfoHelper {
 
         public Optional<String> containerName() {
             return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Text::getString);
-        }
-
-        public boolean inMenu(BazaarMenuType... menu) {
-            return Arrays.stream(menu).anyMatch((menuType) -> menuType.matches(this));
         }
 
         public Optional<HandledScreenBounds> getHandledScreenBounds() {
@@ -247,18 +265,12 @@ public final class ScreenInfoHelper {
             ));
         }
 
+        private void markInventoryLoaded() {
+            this.state.inventoryLoaded = true;
+        }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-
-            if (!(o instanceof ScreenInfo other)) {
-                return false;
-            }
-
-            return Objects.equals(this.screen, other.screen);
+        private void resetMenuMatchState() {
+            this.state.reset();
         }
     }
 
@@ -272,4 +284,45 @@ public final class ScreenInfoHelper {
     ) { }
 
     public record HandledScreenBounds(int x, int y, int width, int height) { }
+
+    private static final class MenuState {
+
+        private int verifiedMenu = 0;
+        private int verifiedNotMenu = 0;
+        private boolean inventoryLoaded = false;
+
+        public void reset() {
+            this.verifiedMenu = 0;
+            this.verifiedNotMenu = 0;
+            this.inventoryLoaded = false;
+        }
+
+        public boolean matches(ScreenInfo info, BazaarMenuType type) {
+            int typeBit = 1 << type.ordinal();
+            if ((this.verifiedMenu & typeBit) != 0) {
+                return true;
+            }
+
+            if (this.verifiedMenu != 0) {
+                return false;
+            }
+
+            if ((this.verifiedNotMenu & typeBit) != 0) {
+                return false;
+            }
+
+            if ((type == BazaarMenuType.Item || type == BazaarMenuType.ItemGroup) && !this.inventoryLoaded) {
+                return false;
+            }
+
+            boolean matches = type.matches(info);
+            if (matches) {
+                this.verifiedMenu |= typeBit;
+                log.debug("Matched menu: {}", type);
+            } else {
+                this.verifiedNotMenu |= typeBit;
+            }
+            return matches;
+        }
+    }
 }

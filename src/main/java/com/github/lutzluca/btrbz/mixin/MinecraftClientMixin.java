@@ -29,7 +29,6 @@ public abstract class MinecraftClientMixin {
      * This is kinda wierd and sucks
      */
     // @formatter:on
-
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
     private void onSetScreenHead(@Nullable Screen screen, CallbackInfo ci) {
         ScreenInfoHelper.get().setScreen(screen);
