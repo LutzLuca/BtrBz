@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.utils;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
@@ -171,27 +170,25 @@ public final class ScreenInfoHelper {
                         yield false;
                     }
 
-                    yield BtrBz.bazaarData().nameToId(parts[1].trim()).isPresent() || info
-                        .getGenericContainerScreen()
-                        .map((gcs) -> {
-                            final int GRAPH_PAPER_IDX = 33;
-                            var handler = gcs.getScreenHandler();
-                            var inventory = handler.getInventory();
+                    yield info.getGenericContainerScreen().map((gcs) -> {
+                        final int GRAPH_PAPER_IDX = 33;
+                        var handler = gcs.getScreenHandler();
+                        var inventory = handler.getInventory();
 
-                            if (inventory.size() < GRAPH_PAPER_IDX) {
-                                return false;
-                            }
+                        if (inventory.size() < GRAPH_PAPER_IDX) {
+                            return false;
+                        }
 
-                            var slot = inventory.getStack(GRAPH_PAPER_IDX);
-                            return slot.getItem().equals(Items.PAPER) && slot
-                                .getName()
-                                .getString()
-                                .equals("View Graphs");
-                        })
-                        .orElse(false);
+                        var slot = inventory.getStack(GRAPH_PAPER_IDX);
+                        return slot.getItem().equals(Items.PAPER) && slot
+                            .getName()
+                            .getString()
+                            .equals("View Graphs");
+                    }).orElse(false);
                 }
                 case ItemGroup -> {
-                    if (!title.contains("➜") || title.endsWith("Graphs")) {
+                    if (!title.contains("➜") || title.endsWith("Graphs") || title.endsWith(
+                        "Settings")) {
                         yield false;
                     }
 

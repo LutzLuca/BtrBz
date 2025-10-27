@@ -51,6 +51,8 @@ import net.minecraft.util.Identifier;
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
 
+    private ScrollableListWidget<BookmarkedItemWidget> list;
+
     @Override
     public void onLoad() {
         ItemOverrideManager.register((info, slot, original) -> {
@@ -92,24 +94,60 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     private void toggleBookmark(String productName, ItemStack itemStack) {
+        final class Bookmarked {
+
+            boolean bookmarked;
+        }
+
+        var bookmarked = new Bookmarked();
         this.updateConfig(cfg -> {
             var it = cfg.bookmarkedItems.listIterator();
             while (it.hasNext()) {
                 var item = it.next();
                 if (item.productName.equals(productName)) {
                     it.remove();
+                    bookmarked.bookmarked = false;
                     return;
                 }
             }
 
             it.add(new BookmarkedItem(productName, itemStack));
+            bookmarked.bookmarked = true;
         });
+
+        if (this.list == null) {
+            return;
+        }
+
+        if (bookmarked.bookmarked) {
+            this.list.addChild(this.createBookmarkedItemWidget(
+                new BookmarkedItem(
+                    productName,
+                    itemStack
+                ), this.list.getParentScreen()
+            ));
+            return;
+        }
+
+        this.list
+            .getChildren()
+            .stream()
+            .filter(widget -> widget.getProductName().equals(productName))
+            .findFirst()
+            .ifPresentOrElse(
+                widget -> this.list.removeChild(widget),
+                () -> log.warn(
+                    "Tried to remove bookmark widget for {}, but it was not found",
+                    productName
+                )
+            );
     }
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
         return this.configState.enabled && info.inMenu(
             BazaarMenuType.Main,
+            BazaarMenuType.Orders,
             BazaarMenuType.Item,
             BazaarMenuType.ItemGroup
         );
@@ -117,9 +155,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     @Override
     public List<ClickableWidget> createWidgets(ScreenInfo info) {
+        if (this.list != null) {
+            return List.of(this.list);
+        }
+
         var position = this.getConfigPosition().orElse(new Position(10, 10));
 
-        ScrollableListWidget<BookmarkedItemWidget> list = new ScrollableListWidget<>(
+        ScrollableListWidget<BookmarkedItemWidget> widget = this.list = new ScrollableListWidget<>(
             position.x(),
             position.y(),
             220,
@@ -128,30 +170,26 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             info.getScreen()
         );
 
-        list
+        widget
             .setMaxVisibleChildren(this.configState.maxVisibleChildren)
             .setChildHeight(24)
             .setChildSpacing(2)
             .onChildClick((child, index) -> {
                 Util.runCommand(String.format("bz %s", child.productName));
             })
-            .onChildReordered(() -> syncBookmarksFromList(list))
-            .onChildRemoved((widget) -> syncBookmarksFromList(list))
+            .onChildReordered(() -> syncBookmarksFromList(widget))
+            .onChildRemoved((child) -> syncBookmarksFromList(widget))
             .onDragEnd((self, pos) -> savePosition(pos));
 
         for (BookmarkedItem item : this.configState.bookmarkedItems) {
-            list.addChild(new BookmarkedItemWidget(
-                0,
-                0,
-                220,
-                24,
-                item.productName,
-                item.itemStack,
-                info.getScreen()
-            ));
+            widget.addChild(this.createBookmarkedItemWidget(item, info.getScreen()));
         }
 
-        return List.of(list);
+        return List.of(widget);
+    }
+
+    private BookmarkedItemWidget createBookmarkedItemWidget(BookmarkedItem item, Screen parent) {
+        return new BookmarkedItemWidget(0, 0, 220, 24, item.productName, item.itemStack, parent);
     }
 
     public boolean isBookmarked(String productName) {
@@ -168,7 +206,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .getChildren()
                 .stream()
                 .map(widget -> new BookmarkedItem(widget.getProductName(), widget.getItemStack()))
-                .collect(Collectors.toCollection(ArrayList::new));
+                .collect(Collectors.toList());
         });
     }
 
