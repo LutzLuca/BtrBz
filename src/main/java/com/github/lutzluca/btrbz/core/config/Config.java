@@ -9,6 +9,8 @@ import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookmarkedItem;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
+import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
+import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
@@ -40,6 +42,10 @@ public class Config {
     @SerialEntry
     @BindModule(BookmarkModule.class)
     public BookMarkConfig bookmark = new BookMarkConfig();
+
+    @SerialEntry
+    @BindModule(PriceDiffModule.class)
+    public PriceDiffConfig priceDiff = new PriceDiffConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();

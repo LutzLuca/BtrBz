@@ -54,7 +54,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
                 int widgetHeight = textHeight + 2 * TextDisplayWidget.PADDING_Y;
 
                 int x = bounds.x() + (bounds.width() - widgetWidth) / 2;
-                int y = bounds.y() - widgetHeight - 12;
+                int y = bounds.y() - widgetHeight - 25;
                 return new Position(x, y);
             }));
 

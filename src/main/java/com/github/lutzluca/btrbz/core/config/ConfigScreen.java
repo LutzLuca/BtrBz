@@ -14,21 +14,17 @@ public class ConfigScreen {
 
     public static void open() {
         var client = MinecraftClient.getInstance();
-        client.send(() -> client.setScreen(ConfigScreen.create(
-            client.currentScreen,
-            Config.HANDLER.instance()
-        )));
+        client.send(() -> client
+                .setScreen(ConfigScreen.create(client.currentScreen, Config.HANDLER.instance())));
     }
 
     public static Screen create(Screen parent, Config config) {
-        return YetAnotherConfigLib.create(
-            Config.HANDLER, (defaults, cfg, builder) -> {
-                builder.title(Text.literal(BtrBz.MOD_ID));
-                buildGeneralConfig(builder, config);
+        return YetAnotherConfigLib.create(Config.HANDLER, (defaults, cfg, builder) -> {
+            builder.title(Text.literal(BtrBz.MOD_ID));
+            buildGeneralConfig(builder, config);
 
-                return builder;
-            }
-        ).generateScreen(parent);
+            return builder;
+        }).generateScreen(parent);
     }
 
     private static void buildGeneralConfig(Builder builder, Config config) {
@@ -39,6 +35,8 @@ public class ConfigScreen {
 
         generalBuilder.option(config.bookmark.createEnabledOption());
         generalBuilder.option(config.bookmark.createMaxVisibleOption());
+
+        generalBuilder.option(config.priceDiff.createEnabledOption());
 
         generalBuilder.option(config.productInfo.createEnabledOption());
         generalBuilder.option(config.productInfo.createItemClickOption());

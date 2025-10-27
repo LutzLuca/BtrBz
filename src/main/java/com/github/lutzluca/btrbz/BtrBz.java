@@ -10,6 +10,7 @@ import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
+import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -78,6 +79,7 @@ public class BtrBz implements ClientModInitializer {
         ModuleManager.getInstance().discoverBindings();
         var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
         var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
+        var priceDiffModule = ModuleManager.getInstance().registerModule(PriceDiffModule.class);
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
