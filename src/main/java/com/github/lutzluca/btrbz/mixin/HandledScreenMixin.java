@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -24,29 +23,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Slf4j
 public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen {
 
-    protected HandledScreenMixin(Text title) {
-        super(title);
-    }
+    protected HandledScreenMixin(Text title) { super(title); }
 
     @Inject(method = "close", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
         ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
-    }
-
-    @Inject(method = "init", at = @At("TAIL"))
-    private void addCustomWidgets(CallbackInfo ci) {
-        var moduleManager = ModuleManager.getInstance();
-        var widgets = moduleManager.getWidgets();
-        log.trace("Adding {} custom widgets", widgets.size());
-        widgets.forEach(this::addDrawableChild);
-
-        moduleManager.onRevalidation((revalidatedWidgets) -> {
-            log.trace(
-                "Adding {} custom widgets after revalidation (inventory loaded)",
-                revalidatedWidgets.size()
-            );
-            revalidatedWidgets.forEach(this::addDrawableChild);
-        });
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
@@ -64,6 +45,7 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
             }
         }
     }
+
 
     @Inject(method = "onMouseClick(Lnet/minecraft/screen/slot/Slot;IILnet/minecraft/screen/slot/SlotActionType;)V", at = @At("HEAD"), cancellable = true)
     private void onHandledMouseClick(

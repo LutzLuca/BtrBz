@@ -3,20 +3,18 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
+import com.github.lutzluca.btrbz.mixin.ScreenAccessor;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.gui.widget.ClickableWidget;
 
 @Slf4j
 public class ModuleManager {
@@ -29,8 +27,6 @@ public class ModuleManager {
     @Setter
     private boolean isDirty = false;
 
-    private Consumer<List<ClickableWidget>> revalidationCallback;
-
     private ModuleManager() {
         ClientTickDispatcher.register(client -> this.saveOnDirty());
     }
@@ -38,40 +34,62 @@ public class ModuleManager {
     public static ModuleManager getInstance() {
         if (instance == null) {
             instance = new ModuleManager();
-            ScreenInfoHelper.registerOnSwitch(ignored -> {
-                instance.revalidationCallback = null;
-                instance.resetDisplayState();
-            });
+            ScreenInfoHelper.registerOnSwitch(instance::renderModules);
 
             ScreenInfoHelper.registerOnLoaded(
-                info -> true, (info, ignored) -> {
-                    if (instance.revalidationCallback != null) {
-                        instance.revalidationCallback.accept(instance.revalidate(info));
-                    }
-                }
+                info -> true,
+                (info, ignored) -> instance.revalidateModules(info)
             );
-
         }
 
         return instance;
     }
 
-    public void onRevalidation(Consumer<List<ClickableWidget>> consumer) {
-        this.revalidationCallback = consumer;
-    }
 
-    private List<ClickableWidget> revalidate(ScreenInfo info) {
-        List<ClickableWidget> list = new ArrayList<>();
-        for (Module<?> module : this.modules.values()) {
-            if (!module.isDisplayed() && module.shouldDisplay(info)) {
-                list.addAll(module.createWidgets(info));
-            }
+    private void renderModules(ScreenInfo info) {
+        var screen = info.getScreen();
+        if (!(screen instanceof ScreenAccessor accessor)) {
+            return;
         }
-        return list;
+
+        this.modules.values().forEach(module -> module.setDisplayed(false));
+
+        var widgets = this.modules
+            .values()
+            .stream()
+            .filter(module -> module.shouldDisplay(info))
+            .peek(module -> module.setDisplayed(true))
+            .flatMap(module -> module.createWidgets(info).stream())
+            .toList();
+
+        log.debug("Adding {} widgets for initial render", widgets.size());
+        widgets.forEach(accessor::invokeAddDrawableChild);
     }
 
-    private void resetDisplayState() {
-        this.modules.values().forEach(module -> module.setDisplayed(false));
+    private void revalidateModules(ScreenInfo info) {
+        var screen = info.getScreen();
+        if (!(screen instanceof ScreenAccessor accessor)) {
+            return;
+        }
+
+        var newWidgets = this.modules
+            .values()
+            .stream()
+            .filter(module -> !module.isDisplayed() && module.shouldDisplay(info))
+            .peek(module -> {
+                log.debug(
+                    "Module {} now displays after inventory load",
+                    module.getClass().getSimpleName()
+                );
+                module.setDisplayed(true);
+            })
+            .flatMap(module -> module.createWidgets(info).stream())
+            .toList();
+
+        if (!newWidgets.isEmpty()) {
+            log.debug("Adding {} widgets after revalidation", newWidgets.size());
+            newWidgets.forEach(accessor::invokeAddDrawableChild);
+        }
     }
 
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
@@ -88,18 +106,6 @@ public class ModuleManager {
                 err
             );
         }
-    }
-
-    public List<ClickableWidget> getWidgets() {
-        var info = ScreenInfoHelper.get().getCurrInfo();
-
-        return this.modules
-            .values()
-            .stream()
-            .filter(module -> module.shouldDisplay(info))
-            .peek(module -> module.setDisplayed(true))
-            .flatMap(module -> module.createWidgets(info).stream())
-            .toList();
     }
 
     private void applyConfigToModule(Module<?> module) {

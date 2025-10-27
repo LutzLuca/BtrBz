@@ -191,7 +191,7 @@ public final class ScreenInfoHelper {
                         .orElse(false);
                 }
                 case ItemGroup -> {
-                    if (!title.contains("➜") && !title.endsWith("Graphs")) {
+                    if (!title.contains("➜") || title.endsWith("Graphs")) {
                         yield false;
                     }
 

@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.OrderCancelRouter.OrderCancelConfig;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
@@ -17,14 +19,19 @@ import net.fabricmc.loader.api.FabricLoader;
 public class Config {
 
     public static final ConfigClassHandler<Config> HANDLER = ConfigClassHandler
-            .createBuilder(Config.class)
-            .serializer(config -> GsonConfigSerializerBuilder.create(config)
-                    .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
-                            BookmarkedItem.class, new BookmarkedItem.BookmarkedItemSerializer()))
-                    .setPath(FabricLoader.getInstance().getConfigDir()
-                            .resolve(String.format("%s.json", BtrBz.MOD_ID)))
-                    .build())
-            .build();
+        .createBuilder(Config.class)
+        .serializer(config -> GsonConfigSerializerBuilder
+            .create(config)
+            .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
+                BookmarkedItem.class,
+                new BookmarkedItem.BookmarkedItemSerializer()
+            ))
+            .setPath(FabricLoader
+                .getInstance()
+                .getConfigDir()
+                .resolve(String.format("%s.json", BtrBz.MOD_ID)))
+            .build())
+        .build();
 
     @SerialEntry
     @BindModule(OrderLimitModule.class)
@@ -35,8 +42,10 @@ public class Config {
     public BookMarkConfig bookmark = new BookMarkConfig();
 
     @SerialEntry
-    public com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig productInfo =
-            new com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig();
+    public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
+
+    @SerialEntry
+    public OrderCancelConfig orderCancel = new OrderCancelConfig();
 
     @SerialEntry
     public double tax = 1.125;

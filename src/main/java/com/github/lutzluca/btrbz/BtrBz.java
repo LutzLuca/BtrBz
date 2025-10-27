@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.BzOrderManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.HighlightManager;
 import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.OrderCancelRouter;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -86,6 +87,7 @@ public class BtrBz implements ClientModInitializer {
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
+        OrderCancelRouter.init();
         ProductInfoProvider.init();
 
         messageDispatcher.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);

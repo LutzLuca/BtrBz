@@ -46,6 +46,8 @@ public class ConfigScreen {
         generalBuilder.option(config.productInfo.createShowOutsideBazaarOption());
         generalBuilder.option(config.productInfo.createSiteOption());
 
+        generalBuilder.option(config.orderCancel.createEnabledOption());
+
         builder.category(generalBuilder.build());
     }
 
