@@ -287,7 +287,7 @@ public class FlipHelper {
 
     // TODO: move this into the `OrderInfoParser` sometime
     private Optional<TitleOrderInfo> parseOrderTitle(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
+        if (stack == null || stack.isEmpty() || BtrBz.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
             return Optional.empty();
         }
 

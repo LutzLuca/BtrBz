@@ -17,24 +17,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
 import org.apache.commons.lang3.tuple.Pair;
 
 public final class Util {
 
-    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS = Set.of(
-        Items.BLACK_STAINED_GLASS_PANE,
-        Items.ARROW,
-        Items.HOPPER
-    );
-
-
-    private Util() { }
-
+    private Util() {}
 
     public static String formatUtcTimestampMillis(long utcMillis) {
         Instant instant = Instant.ofEpochMilli(utcMillis);
@@ -61,12 +50,8 @@ public final class Util {
             Files.writeString(tmp.toPath(), content);
             tmp.deleteOnExit();
 
-            return Files.move(
-                tmp.toPath(),
-                path,
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
         });
     }
 
@@ -160,8 +145,32 @@ public final class Util {
     }
 
     public static boolean isValidRomanNumeral(String roman) {
-        return roman
-            .toUpperCase()
-            .matches("^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$");
+        return roman.toUpperCase()
+                .matches("^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$");
+    }
+
+    public static String intToRoman(int num) {
+        if (num <= 0 || num > 3999) {
+            throw new IllegalArgumentException("Input out of bounds valid range of [1; 3999]");
+        }
+
+        final int[] vals = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+        final String[] symbols =
+                {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+
+        var ret = new StringBuilder();
+
+        for (int i = 0; i < vals.length; i++) {
+            while (num >= vals[i]) {
+                num -= vals[i];
+                ret.append(symbols[i]);
+            }
+
+            if (num == 0) {
+                break;
+            }
+        }
+
+        return ret.toString();
     }
 }

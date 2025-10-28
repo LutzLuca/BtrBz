@@ -36,6 +36,11 @@ dependencies {
     mappings("net.fabricmc:yarn:${getProp("yarn_mappings")}:v2")
     modImplementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
+    testImplementation("net.fabricmc:fabric-loader-junit:${getProp("loader_version")}")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.0")
 
     implementation("net.hypixel:hypixel-api-transport-apache:4.4")
     implementation("net.hypixel:hypixel-api-core:4.4")
@@ -59,6 +64,10 @@ tasks {
             expand(getProperties())
             expand(mutableMapOf("version" to project.version))
         }
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }
 
