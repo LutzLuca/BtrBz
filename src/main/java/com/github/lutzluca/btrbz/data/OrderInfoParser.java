@@ -182,7 +182,7 @@ public final class OrderInfoParser {
     }
 
     public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx) {
-        // name: {orderType} {productName}
+        // name: {type} {productName}
         // lore lines:
         // Worth {roundedFormattedTotal} coins
         // Blank
@@ -195,7 +195,7 @@ public final class OrderInfoParser {
             var orderInfo = item.getName().getString().split(" ", 2);
             if (orderInfo.length != 2) {
                 throw new IllegalArgumentException(
-                    "Title line of item does not follow the pattern '<orderType> <productName>'");
+                    "Title line of item does not follow the pattern '<type> <productName>'");
             }
 
             var orderTypeResult = OrderType.tryFrom(orderInfo[0]);

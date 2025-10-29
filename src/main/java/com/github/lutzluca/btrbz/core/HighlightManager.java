@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.BzOrderManager.StatusUpdate;
+import com.github.lutzluca.btrbz.core.OrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import java.util.HashMap;

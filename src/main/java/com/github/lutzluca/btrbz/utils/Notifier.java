@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
-import com.github.lutzluca.btrbz.core.BzOrderManager.StatusUpdate;
+import com.github.lutzluca.btrbz.core.OrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;

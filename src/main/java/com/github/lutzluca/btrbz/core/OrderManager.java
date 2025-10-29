@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 
 @Slf4j
-public class BzOrderManager {
+public class OrderManager {
 
     private final BazaarData bazaarData;
 
@@ -29,7 +29,7 @@ public class BzOrderManager {
 
     private final Consumer<StatusUpdate> onOrderStatusUpdate;
 
-    public BzOrderManager(BazaarData bazaarData, Consumer<StatusUpdate> onOrderStatusChange) {
+    public OrderManager(BazaarData bazaarData, Consumer<StatusUpdate> onOrderStatusChange) {
         this.bazaarData = bazaarData;
         this.outstandingOrderStore = new TimedStore<>(15_000L);
         this.onOrderStatusUpdate = onOrderStatusChange;
