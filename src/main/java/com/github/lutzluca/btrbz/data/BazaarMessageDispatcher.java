@@ -36,23 +36,26 @@ public final class BazaarMessageDispatcher {
     }
 
     public sealed interface BazaarMessage permits BazaarMessage.OrderSetup,
-        BazaarMessage.OrderFilled, BazaarMessage.InstaSell, BazaarMessage.InstaBuy,
-        BazaarMessage.OrderFlipped {
+        BazaarMessage.OrderFilled,
+        BazaarMessage.InstaSell,
+        BazaarMessage.InstaBuy,
+        BazaarMessage.OrderFlipped
+    {
 
         // `total` is the rounded total price once the price reaches a certain limit
         // suppose the real price was 1,123,456.6 coins, total would be 1,123,457 coins
 
-        record OrderSetup(OrderType type, int volume, String productName, double total) implements
-            BazaarMessage { }
+        record OrderSetup(OrderType type, int volume, String productName, double total)
+            implements BazaarMessage { }
 
-        record OrderFilled(OrderType type, int volume, String productName) implements
-            BazaarMessage { }
+        record OrderFilled(OrderType type, int volume, String productName)
+            implements BazaarMessage { }
 
         record InstaSell(int volume, String productName, double total) implements BazaarMessage { }
 
         record InstaBuy(int volume, String productName, double total) implements BazaarMessage { }
 
-        record OrderFlipped(int volume, String productName, double profit) implements
-            BazaarMessage { }
+        record OrderFlipped(int volume, String productName, double profit)
+            implements BazaarMessage { }
     }
 }

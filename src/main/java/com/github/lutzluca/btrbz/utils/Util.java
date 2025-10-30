@@ -23,7 +23,10 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public final class Util {
 
-    private Util() {}
+    public static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
+    public static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
+
+    private Util() { }
 
     public static String formatUtcTimestampMillis(long utcMillis) {
         Instant instant = Instant.ofEpochMilli(utcMillis);
@@ -50,8 +53,12 @@ public final class Util {
             Files.writeString(tmp.toPath(), content);
             tmp.deleteOnExit();
 
-            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
+            return Files.move(
+                tmp.toPath(),
+                path,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            );
         });
     }
 
@@ -145,8 +152,9 @@ public final class Util {
     }
 
     public static boolean isValidRomanNumeral(String roman) {
-        return roman.toUpperCase()
-                .matches("^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$");
+        return roman
+            .toUpperCase()
+            .matches("^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$");
     }
 
     public static String intToRoman(int num) {
@@ -154,9 +162,10 @@ public final class Util {
             throw new IllegalArgumentException("Input out of bounds valid range of [1; 3999]");
         }
 
-        final int[] vals = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
-        final String[] symbols =
-                {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+        final int[] vals = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
+        final String[] symbols = {
+            "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"
+        };
 
         var ret = new StringBuilder();
 

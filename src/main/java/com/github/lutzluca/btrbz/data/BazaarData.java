@@ -26,7 +26,7 @@ public class BazaarData {
         this.idToName = conversions;
     }
 
-    private static Optional<Double> firstSummaryPrice(List<Summary> summaries) {
+    public static Optional<Double> firstSummaryPrice(List<Summary> summaries) {
         if (summaries == null || summaries.isEmpty()) {
             return Optional.empty();
         }
@@ -100,12 +100,10 @@ public class BazaarData {
             this.productName = productName;
             this.product = Optional.empty();
 
-            this.updater = products -> {
-                this.data
-                    .nameToId(productName)
-                    .flatMap(id -> Optional.ofNullable(products.get(id)))
-                    .ifPresent(updated -> this.product = Optional.of(updated));
-            };
+            this.updater = products -> this.data
+                .nameToId(productName)
+                .flatMap(id -> Optional.ofNullable(products.get(id)))
+                .ifPresent(updated -> this.product = Optional.of(updated));
         }
 
         private void ensureInitialized() {

@@ -2,16 +2,16 @@ package com.github.lutzluca.btrbz.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.github.lutzluca.btrbz.commands.alert.AlertCommandParser;
-import com.github.lutzluca.btrbz.commands.alert.AlertCommandParser.AlertCommand;
-import com.github.lutzluca.btrbz.commands.alert.AlertCommandParser.ParseException;
-import com.github.lutzluca.btrbz.commands.alert.PriceExpression;
-import com.github.lutzluca.btrbz.commands.alert.PriceExpression.AlertType;
-import com.github.lutzluca.btrbz.commands.alert.PriceExpression.Binary;
-import com.github.lutzluca.btrbz.commands.alert.PriceExpression.BinaryOperator;
-import com.github.lutzluca.btrbz.commands.alert.PriceExpression.Identifier;
-import com.github.lutzluca.btrbz.commands.alert.PriceExpression.Literal;
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression;
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.AlertCommand;
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ParseException;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Binary;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.BinaryOperator;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.google.common.collect.HashBiMap;
 import io.vavr.control.Try;
@@ -34,7 +34,7 @@ class AlertCommandParserTest {
 
             assertEquals("Smoldering V", cmd.productName());
             assertEquals(AlertType.BuyOrder, cmd.type());
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
@@ -43,15 +43,15 @@ class AlertCommandParserTest {
 
             PriceExpression expected = new Binary(
                 new Binary(
-                    new Identifier("order"), BinaryOperator.Add,
+                    new Reference(ReferenceType.Order),
+                    BinaryOperator.Add,
                     new Literal(2_000_000.0)
-                ),
-                BinaryOperator.Subtract, new Literal(10_000.0)
+                ), BinaryOperator.Subtract, new Literal(10_000.0)
             );
 
             assertEquals("Eye Of The Ender", cmd.productName());
             assertEquals(AlertType.SellOffer, cmd.type());
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
@@ -59,13 +59,14 @@ class AlertCommandParserTest {
             AlertCommand cmd = parser.parse("dragon bone ib insta - 1.5m");
 
             PriceExpression expected = new Binary(
-                new Identifier("insta"), BinaryOperator.Subtract,
+                new Reference(ReferenceType.Insta),
+                BinaryOperator.Subtract,
                 new Literal(1_500_000.0)
             );
 
             assertEquals("Dragon Bone", cmd.productName());
             assertEquals(AlertType.InstaBuy, cmd.type());
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
@@ -91,10 +92,13 @@ class AlertCommandParserTest {
         void complexExpression() throws ParseException {
             AlertCommand cmd = parser.parse("item buy 120_000_000 / 2");
 
-            PriceExpression expected =
-                new Binary(new Literal(120_000_000.0), BinaryOperator.Divide, new Literal(2.0));
+            PriceExpression expected = new Binary(
+                new Literal(120_000_000.0),
+                BinaryOperator.Divide,
+                new Literal(2.0)
+            );
 
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
@@ -103,37 +107,29 @@ class AlertCommandParserTest {
 
             PriceExpression expected = new Binary(
                 new Binary(new Literal(2_000_000.0), BinaryOperator.Add, new Literal(10_000.0)),
-                BinaryOperator.Multiply, new Literal(2.0)
+                BinaryOperator.Multiply,
+                new Literal(2.0)
             );
 
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
         void numberFormattingVariations() throws ParseException {
-            assertEquals(
-                new Literal(120_123_123.3),
-                parser.parse("item buy 120,123,123.3").priceExpression()
-            );
-            assertEquals(
-                new Literal(120_123_123.3),
-                parser.parse("item buy 120_123_123.3").priceExpression()
-            );
-            assertEquals(
-                new Literal(15_300_000_000.0),
-                parser.parse("item buy 15.3b").priceExpression()
-            );
-            assertEquals(new Literal(12_000_000.0), parser.parse("item buy 12m").priceExpression());
-            assertEquals(new Literal(10_000.0), parser.parse("item buy 10k").priceExpression());
+            assertEquals(new Literal(120_123_123.3), parser.parse("item buy 120,123,123.3").expr());
+            assertEquals(new Literal(120_123_123.3), parser.parse("item buy 120_123_123.3").expr());
+            assertEquals(new Literal(15_300_000_000.0), parser.parse("item buy 15.3b").expr());
+            assertEquals(new Literal(12_000_000.0), parser.parse("item buy 12m").expr());
+            assertEquals(new Literal(10_000.0), parser.parse("item buy 10k").expr());
         }
 
         @Test
         void numberRounding() throws ParseException {
             assertEquals(
                 new Literal(120_123_123.4),
-                parser.parse("item buy 120_123_123.3791").priceExpression()
+                parser.parse("item buy 120_123_123.3791").expr()
             );
-            assertEquals(new Literal(100.5), parser.parse("item buy 100.45").priceExpression());
+            assertEquals(new Literal(100.5), parser.parse("item buy 100.45").expr());
         }
 
         @Test
@@ -152,31 +148,34 @@ class AlertCommandParserTest {
 
             PriceExpression expected = new Binary(
                 new Binary(
-                    new Identifier("order"), BinaryOperator.Add,
+                    new Reference(ReferenceType.Order),
+                    BinaryOperator.Add,
                     new Literal(2_000_000.0)
-                ),
-                BinaryOperator.Subtract, new Literal(10_000.0)
+                ), BinaryOperator.Subtract, new Literal(10_000.0)
             );
 
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
         void instaIdentifier() throws ParseException {
             AlertCommand cmd = parser.parse("item buy insta / 2");
 
-            PriceExpression expected =
-                new Binary(new Identifier("insta"), BinaryOperator.Divide, new Literal(2.0));
+            PriceExpression expected = new Binary(
+                new Reference(ReferenceType.Insta),
+                BinaryOperator.Divide,
+                new Literal(2.0)
+            );
 
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
         void expressionStartingWithIdentifier() throws ParseException {
             AlertCommand cmd = parser.parse("item buy order");
 
-            PriceExpression expected = new Identifier("order");
-            assertEquals(expected, cmd.priceExpression());
+            PriceExpression expected = new Reference(ReferenceType.Order);
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
@@ -184,7 +183,7 @@ class AlertCommandParserTest {
             AlertCommand cmd = parser.parse("item buy .5m");
 
             PriceExpression expected = new Literal(500_000.0);
-            assertEquals(expected, cmd.priceExpression());
+            assertEquals(expected, cmd.expr());
         }
 
         @Test
@@ -238,7 +237,8 @@ class AlertCommandParserTest {
         @Test
         void complexResolution() {
             Binary expr = new Binary(
-                new Literal(100.0), BinaryOperator.Add,
+                new Literal(100.0),
+                BinaryOperator.Add,
                 new Binary(new Literal(50.0), BinaryOperator.Multiply, new Literal(2.0))
             );
             Try<Double> result = expr.resolve("", AlertType.BuyOrder, mockData);

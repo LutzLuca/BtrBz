@@ -1,12 +1,13 @@
 package com.github.lutzluca.btrbz;
 
-import com.github.lutzluca.btrbz.commands.alert.AlertCommandParser;
+import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.HighlightManager;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderCancelRouter;
 import com.github.lutzluca.btrbz.core.OrderManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser;
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
@@ -38,6 +39,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.hypixel.api.HypixelAPI;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
 import net.minecraft.item.Item;
@@ -64,6 +66,7 @@ public class BtrBz implements ClientModInitializer {
     private static BtrBz instance;
     private OrderManager orderManager;
     private HighlightManager highlightManager;
+    private AlertManager alertManager;
 
     public static OrderManager orderManager() {
         return instance.orderManager;
@@ -77,6 +80,10 @@ public class BtrBz implements ClientModInitializer {
         return BtrBz.BAZAAR_DATA;
     }
 
+    public static AlertManager alertManager() {
+        return instance.alertManager;
+    }
+
     @Override
     public void onInitializeClient() {
         instance = this;
@@ -85,6 +92,8 @@ public class BtrBz implements ClientModInitializer {
             Identifier.of(BtrBz.MOD_ID, "bookmarked"),
             ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
         );
+
+        
 
         Config.load();
         ModuleManager.getInstance().discoverBindings();
@@ -96,6 +105,8 @@ public class BtrBz implements ClientModInitializer {
 
         this.highlightManager = new HighlightManager();
         this.orderManager = new OrderManager(BAZAAR_DATA, this.highlightManager::updateStatus);
+        this.alertManager = new AlertManager();
+        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
@@ -188,29 +199,26 @@ public class BtrBz implements ClientModInitializer {
                         .argument("args", StringArgumentType.greedyString())
                         .executes(context -> {
                             var args = StringArgumentType.getString(context, "args");
-                            Try.of(() -> new AlertCommandParser().parse(args)).onFailure(err -> {
-                                log.debug("Failed to parse alert command", err);
+                            var parser = new AlertCommandParser();
 
-                                Notifier.notifyPlayer(Text.literal("Failed to parse alert command: " + err.getMessage()));
-                            }).onSuccess(cmd -> {
-                                cmd
-                                    .priceExpression()
-                                    .resolve(cmd.productName(), cmd.type(), BtrBz.bazaarData())
-                                    .onFailure(err -> {
-                                        log.debug("Failed to resolve price expression", err);
+                            Try
+                                .of(() -> parser.parse(args))
+                                .flatMap(alertCmd -> alertCmd.resolve(BtrBz.bazaarData()))
+                                .onSuccess(resolved -> {
+                                    Notifier.notifyAlertRegistered(resolved);
+                                })
+                                .onFailure(err -> {
+                                    var message = Notifier
+                                        .prefix()
+                                        .append(Text
+                                            .literal("Alert setup failed: ")
+                                            .formatted(Formatting.RED))
+                                        .append(Text
+                                            .literal(err.getMessage())
+                                            .formatted(Formatting.GRAY));
 
-                                        Notifier.notifyPlayer(Text.literal(
-                                            "Failed to resolve price expression: " + err.getMessage()));
-                                    })
-                                    .onSuccess(resolvedPrice -> {
-                                        log.debug(
-                                            "Resolved alert command: {} - {} at {}",
-                                            cmd.productName(),
-                                            cmd.type(),
-                                            resolvedPrice
-                                        );
-                                    });
-                            });
+                                    Notifier.notifyPlayer(message);
+                                });
 
                             return 1;
                         }))));
