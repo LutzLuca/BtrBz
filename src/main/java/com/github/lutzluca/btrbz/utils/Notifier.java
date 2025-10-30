@@ -34,35 +34,62 @@ public class Notifier {
     public static void notifyAlertRegistered(ResolvedAlertArgs cmd) {
         var msg = prefix()
             .append(Text.literal("Alert registered. ").formatted(Formatting.GREEN))
-            .append(Text.literal("You will be informed once the "))
+            .append(Text.literal("You will be informed once the ").formatted(Formatting.GRAY))
             .append(Text.literal(cmd.type().format()).formatted(Formatting.AQUA))
-            .append(Text.literal(" price of "))
+            .append(Text.literal(" price of ").formatted(Formatting.GRAY))
             .append(Text.literal(cmd.productName()).formatted(Formatting.GOLD))
-            .append(Text.literal(" reaches "))
+            .append(Text.literal(" reaches ").formatted(Formatting.GRAY))
             .append(Text
-                .literal(String.format("%.1f coins", cmd.price()))
-                .formatted(Formatting.YELLOW))
-            .append(Text.literal("."));
+                .literal(Util.formatDecimal(cmd.price(), 1, true) + " coins")
+                .formatted(Formatting.YELLOW));
+
         notifyPlayer(msg);
     }
 
     public static void notifyPriceReached(Alert alert, Optional<Double> price) {
         String priceText = price
-            .map(p -> String.format("now at %.1f", p))
-            .orElse("currently has no listed price");
+            .map(p -> Util.formatDecimal(p, 1, true) + " coins. ")
+            .orElse("currently has no listed price. ");
 
         Text msg = prefix()
             .append(Text.literal("Your alert for ").formatted(Formatting.GRAY))
             .append(Text.literal(alert.productName).formatted(Formatting.GOLD))
             .append(Text.literal(" at ").formatted(Formatting.GRAY))
-            .append(Text.literal(String.format("%.1f", alert.price)).formatted(Formatting.YELLOW))
-            .append(Text.literal(" (" + alert.type.format() + ") ").formatted(Formatting.DARK_GRAY))
             .append(Text
-                .literal("has been reached and is " + priceText)
-                .formatted(Formatting.GREEN));
+                .literal(Util.formatDecimal(alert.price, 1, true) + "coins")
+                .formatted(Formatting.YELLOW))
+            .append(Text.literal(" (" + alert.type.format() + ") ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal("has been reached").formatted(Formatting.GREEN))
+            .append(Text.literal(" and is ").formatted(Formatting.GRAY))
+            .append(Text.literal(priceText).formatted(Formatting.GOLD))
+            .append(Text
+                .literal("[Click to view]")
+                .styled(style -> style
+                    .withClickEvent(new RunCommand("/bz " + alert.productName))
+                    .withHoverEvent(new ShowText(Text.literal("Click to go to " + alert.productName + " in the bazaar"))))
+                .formatted(Formatting.RED));
 
         notifyPlayer(msg);
     }
+
+    public static void notifyAlertAlreadyPresent(ResolvedAlertArgs args) {
+        Text msg = prefix()
+            .append(Text.literal("You already have an alert for ").formatted(Formatting.GRAY))
+            .append(Text.literal(args.productName()).formatted(Formatting.GOLD))
+            .append(Text.literal(" at ").formatted(Formatting.GRAY))
+            .append(Text
+                .literal(Util.formatDecimal(args.price(), 1, true))
+                .formatted(Formatting.YELLOW))
+            .append(Text
+                .literal(" (" + args.type().name().toLowerCase() + ")")
+                .formatted(Formatting.DARK_GRAY))
+            .append(Text.literal(". Use ").formatted(Formatting.GRAY))
+            .append(Text.literal("/btrbz alert list").formatted(Formatting.AQUA))
+            .append(Text.literal(" to view them").formatted(Formatting.GRAY));
+
+        notifyPlayer(msg);
+    }
+
 
     public static void notifyInvalidProduct(Alert alert) {
         Text msg = prefix()
@@ -86,7 +113,7 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    private static Text clickToRemoveAlert(UUID id, String hoverText) {
+    public static Text clickToRemoveAlert(UUID id, String hoverText) {
         return Text
             .literal("[Click to remove]")
             .styled(style -> style

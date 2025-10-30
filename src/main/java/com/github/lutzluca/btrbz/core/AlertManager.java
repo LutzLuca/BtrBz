@@ -14,6 +14,9 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 @Slf4j
 public class AlertManager {
@@ -21,7 +24,12 @@ public class AlertManager {
     public AlertManager() { }
 
     public void onBazaarUpdate(Map<String, Product> products) {
-        var it = Config.get().alert.alerts.iterator();
+        var cfg = Config.get().alert;
+        if (!cfg.enabled) {
+            return;
+        }
+
+        var it = cfg.alerts.iterator();
         while (it.hasNext()) {
             var curr = it.next();
             var priceResult = curr.getAssociatedPrice(products);
@@ -30,8 +38,12 @@ public class AlertManager {
                 continue;
             }
 
+            // NOTE: its this even right?
             var price = priceResult.get();
-            var reached = price.map(marketPrice -> curr.price <= marketPrice).orElse(true);
+            var reached = price.map(marketPrice -> switch (curr.type) {
+                case SellOffer, InstaSell -> marketPrice >= curr.price;
+                case BuyOrder, InstaBuy -> marketPrice <= curr.price;
+            }).orElse(true);
 
             if (reached) {
                 it.remove();
@@ -44,15 +56,29 @@ public class AlertManager {
 
             if (duration > Util.WEEK_DURATION_MS && curr.remindedAfter < Util.WEEK_DURATION_MS) {
                 Notifier.notifyOutdatedAlert(curr, "over a week");
-                curr.remindedAfter = Util.WEEK_DURATION_MS;
+                curr.remindedAfter = duration;
                 continue;
             }
 
             if (duration > Util.MONTH_DURATION_MS && curr.remindedAfter < Util.MONTH_DURATION_MS) {
                 Notifier.notifyOutdatedAlert(curr, "over a month");
-                curr.remindedAfter = Util.MONTH_DURATION_MS;
+                curr.remindedAfter = duration;
             }
         }
+
+        Config.HANDLER.save();
+    }
+
+    public boolean addAlert(ResolvedAlertArgs args) {
+        var alerts = Config.get().alert.alerts;
+        var exist = alerts.stream().anyMatch(alert -> alert.matches(args));
+
+        if (!exist) {
+            alerts.add(new Alert(args));
+            Config.HANDLER.save();
+        }
+
+        return !exist;
     }
 
     public void removeAlert(UUID id) {
@@ -63,13 +89,20 @@ public class AlertManager {
         if (removed.isEmpty()) {
             Notifier.notifyPlayer(Notifier
                 .prefix()
-                .append("Failed to find an alert associated with " + id + " — it may have already been removed"));
+                .append(Text
+                    .literal("Failed to find an alert associated with " + id + " - it may have already been removed")
+                    .formatted(Formatting.GRAY)));
             return;
         }
         if (removed.size() > 1) {
-            log.error("Multiple alerts found with identical UUIDs.");
+            log.error("Multiple alerts found with identical UUID");
         }
-        Notifier.notifyPlayer(Notifier.prefix().append("Alert removed successfully!"));
+
+        Notifier.notifyPlayer(Notifier
+            .prefix()
+            .append(Text.literal("Alert removed successfully!").formatted(Formatting.GRAY)));
+
+        Config.HANDLER.save();
     }
 
     public static class Alert {
@@ -104,8 +137,29 @@ public class AlertManager {
             };
             return Try.success(price);
         }
+
+        public MutableText format() {
+            return Text
+                .empty()
+                .append(Text.literal(productName).formatted(Formatting.GOLD))
+                .append(Text.literal(" @ ").formatted(Formatting.GRAY))
+                .append(Text
+                    .literal(Util.formatDecimal(this.price, 1, true) + "coins")
+                    .formatted(Formatting.YELLOW))
+                .append(Text.literal(" (" + type.format() + ")").formatted(Formatting.DARK_GRAY));
+        }
+
+        public boolean matches(ResolvedAlertArgs args) {
+            // @formatter:off
+            return this.productName.equals(args.productName())
+                && this.productId.equals(args.productId())
+                && this.type == args.type()
+                && Double.compare(this.price, args.price()) == 0;
+            // @formatter:on
+        }
     }
 
+    // TODO options
     public static class AlertConfig {
 
         public boolean enabled = true;

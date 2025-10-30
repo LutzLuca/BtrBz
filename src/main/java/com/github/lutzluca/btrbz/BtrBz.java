@@ -7,9 +7,8 @@ import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderCancelRouter;
 import com.github.lutzluca.btrbz.core.OrderManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
-import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser;
+import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.Config;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
@@ -20,16 +19,13 @@ import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.google.common.collect.HashBiMap;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.serialization.Codec;
-import io.vavr.control.Try;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,7 +35,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.hypixel.api.HypixelAPI;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
 import net.minecraft.item.Item;
@@ -92,8 +87,6 @@ public class BtrBz implements ClientModInitializer {
             Identifier.of(BtrBz.MOD_ID, "bookmarked"),
             ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
         );
-
-        
 
         Config.load();
         ModuleManager.getInstance().discoverBindings();
@@ -184,45 +177,9 @@ public class BtrBz implements ClientModInitializer {
             }
         });
 
+        // TODO move every command to `Commands`
+        Commands.registerAll();
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(ClientCommandManager.literal(BtrBz.MOD_ID).executes(context -> {
-                ConfigScreen.open();
-
-                return 1;
-            }));
-
-            dispatcher.register(ClientCommandManager
-                .literal(BtrBz.MOD_ID)
-                .then(ClientCommandManager
-                    .literal("alert")
-                    .then(ClientCommandManager
-                        .argument("args", StringArgumentType.greedyString())
-                        .executes(context -> {
-                            var args = StringArgumentType.getString(context, "args");
-                            var parser = new AlertCommandParser();
-
-                            Try
-                                .of(() -> parser.parse(args))
-                                .flatMap(alertCmd -> alertCmd.resolve(BtrBz.bazaarData()))
-                                .onSuccess(resolved -> {
-                                    Notifier.notifyAlertRegistered(resolved);
-                                })
-                                .onFailure(err -> {
-                                    var message = Notifier
-                                        .prefix()
-                                        .append(Text
-                                            .literal("Alert setup failed: ")
-                                            .formatted(Formatting.RED))
-                                        .append(Text
-                                            .literal(err.getMessage())
-                                            .formatted(Formatting.GRAY));
-
-                                    Notifier.notifyPlayer(message);
-                                });
-
-                            return 1;
-                        }))));
-
             dispatcher.register(ClientCommandManager.literal("reset").executes(context -> {
                 MinecraftClient.getInstance().execute(() -> {
                     this.orderManager.resetTrackedOrders();
