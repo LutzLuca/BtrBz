@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.mixin.ScreenAccessor;
@@ -111,7 +112,7 @@ public class ModuleManager {
     private void applyConfigToModule(Module<?> module) {
         var field = this.moduleBindings.get(module.getClass());
         try {
-            Object value = field.get(Config.HANDLER.instance());
+            Object value = field.get(ConfigManager.get());
             if (value == null) {
                 throw new IllegalStateException("Config field '" + field.getName() + "' is null. " + "Ensure the field is initialized in the Config class");
             }
@@ -189,29 +190,29 @@ public class ModuleManager {
         if (!this.isDirty) {
             return;
         }
-        var config = Config.HANDLER.instance();
 
-        this.modules.forEach((moduleClass, module) -> {
-            var field = moduleBindings.get(moduleClass);
-            if (field == null) {
-                log.warn("No binding found for module: {}", moduleClass.getName());
-                return;
-            }
+        ConfigManager.withConfig(cfg -> {
+            this.modules.forEach((moduleClass, module) -> {
+                var field = moduleBindings.get(moduleClass);
+                if (field == null) {
+                    log.warn("No binding found for module: {}", moduleClass.getName());
+                    return;
+                }
 
-            try {
-                var newState = castModule(module).serializeConfigState();
-                field.set(config, newState);
-            } catch (Exception err) {
-                log.error(
-                    "Failed to update config field '{}' for module: {}",
-                    field.getName(),
-                    moduleClass.getName(),
-                    err
-                );
-            }
+                try {
+                    var newState = castModule(module).serializeConfigState();
+                    field.set(cfg, newState);
+                } catch (Exception err) {
+                    log.error(
+                        "Failed to update config field '{}' for module: {}",
+                        field.getName(),
+                        moduleClass.getName(),
+                        err
+                    );
+                }
+            });
         });
 
-        Config.HANDLER.save();
         this.isDirty = false;
     }
 

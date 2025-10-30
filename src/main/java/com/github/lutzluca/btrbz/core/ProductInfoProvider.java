@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
@@ -71,7 +71,7 @@ public final class ProductInfoProvider {
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Item), (info, inv) -> {
-                var cfg = Config.get().productInfo;
+                var cfg = ConfigManager.get().productInfo;
                 if (!cfg.enabled) {
                     return;
                 }
@@ -129,7 +129,7 @@ public final class ProductInfoProvider {
 
     private void registerInfoProviderItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
-            var cfg = Config.get().productInfo;
+            var cfg = ConfigManager.get().productInfo;
             if (!cfg.enabled || !cfg.itemClickEnabled) {
                 return Optional.empty();
             }
@@ -177,7 +177,7 @@ public final class ProductInfoProvider {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = Config.get().productInfo;
+                var cfg = ConfigManager.get().productInfo;
                 if (!cfg.enabled || !cfg.itemClickEnabled || openedProductId == null || slot == null) {
                     return false;
                 }
@@ -192,7 +192,7 @@ public final class ProductInfoProvider {
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var cfg = Config.get().productInfo;
+                var cfg = ConfigManager.get().productInfo;
                 confirmAndOpen(cfg.site.format(openedProductId));
                 return true;
             }
@@ -200,7 +200,7 @@ public final class ProductInfoProvider {
 
         ScreenActionManager.register(new ScreenClickRule() {
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = Config.get().productInfo;
+                var cfg = ConfigManager.get().productInfo;
                 if (!cfg.enabled || !cfg.ctrlShiftEnabled || slot == null) {
                     return false;
                 }
@@ -211,7 +211,7 @@ public final class ProductInfoProvider {
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var cfg = Config.get().productInfo;
+                var cfg = ConfigManager.get().productInfo;
                 var stack = slot.getStack();
                 var name = stack.getName().getString();
                 var id = resolveProductId(stack, name);
@@ -228,7 +228,7 @@ public final class ProductInfoProvider {
 
     private void registerTooltipDisplay() {
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
-            var cfg = Config.get().productInfo;
+            var cfg = ConfigManager.get().productInfo;
             if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
                 return;
             }
@@ -257,7 +257,7 @@ public final class ProductInfoProvider {
 
 
     private boolean shouldApplyCtrlShiftClick(ItemStack stack) {
-        var cfg = Config.get().productInfo;
+        var cfg = ConfigManager.get().productInfo;
         if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
             return false;
         }

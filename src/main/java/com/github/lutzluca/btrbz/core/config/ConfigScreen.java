@@ -15,16 +15,18 @@ public class ConfigScreen {
     public static void open() {
         var client = MinecraftClient.getInstance();
         client.send(() -> client
-                .setScreen(ConfigScreen.create(client.currentScreen, Config.HANDLER.instance())));
+            .setScreen(ConfigScreen.create(client.currentScreen, ConfigManager.get())));
     }
 
     public static Screen create(Screen parent, Config config) {
-        return YetAnotherConfigLib.create(Config.HANDLER, (defaults, cfg, builder) -> {
-            builder.title(Text.literal(BtrBz.MOD_ID));
-            buildGeneralConfig(builder, config);
+        return YetAnotherConfigLib.create(
+            ConfigManager.HANDLER, (defaults, cfg, builder) -> {
+                builder.title(Text.literal(BtrBz.MOD_ID));
+                buildGeneralConfig(builder, config);
 
-            return builder;
-        }).generateScreen(parent);
+                return builder;
+            }
+        ).generateScreen(parent);
     }
 
     private static void buildGeneralConfig(Builder builder, Config config) {

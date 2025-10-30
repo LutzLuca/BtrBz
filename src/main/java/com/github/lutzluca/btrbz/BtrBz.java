@@ -8,7 +8,7 @@ import com.github.lutzluca.btrbz.core.OrderCancelRouter;
 import com.github.lutzluca.btrbz.core.OrderManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.commands.Commands;
-import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
@@ -88,7 +88,7 @@ public class BtrBz implements ClientModInitializer {
             ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
         );
 
-        Config.load();
+        ConfigManager.load();
         ModuleManager.getInstance().discoverBindings();
         var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
         var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
@@ -117,7 +117,7 @@ public class BtrBz implements ClientModInitializer {
         );
         messageDispatcher.on(
             BazaarMessage.InstaSell.class,
-            info -> orderLimitModule.onTransaction(info.total() * (1 - Config.get().tax / 100))
+            info -> orderLimitModule.onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
         );
         messageDispatcher.on(
             BazaarMessage.OrderSetup.class,

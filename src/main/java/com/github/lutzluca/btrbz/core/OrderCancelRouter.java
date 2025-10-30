@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core;
 
-import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
@@ -20,7 +20,7 @@ public class OrderCancelRouter {
 
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                if (!Config.get().orderCancel.enabled) {
+                if (!ConfigManager.get().orderCancel.enabled) {
                     return false;
                 }
 
@@ -46,11 +46,8 @@ public class OrderCancelRouter {
     }
 
     private static boolean isCancelOrderSlot(Slot slot) {
-        return (slot.getIndex() == 11 || slot.getIndex() == 13) && slot
-            .getStack()
-            .getName()
-            .getString()
-            .equals("Cancel Order");
+        return (slot.getIndex() == 11 || slot.getIndex() == 13)
+            && slot.getStack().getName().getString().equals("Cancel Order");
     }
 
     public static class OrderCancelConfig {
@@ -58,14 +55,11 @@ public class OrderCancelRouter {
         public boolean enabled = true;
 
         public Option<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
-                .name(Text.literal("Order Cancel Router"))
-                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Text.literal(
-                    "Automatically return to the Orders screen after cancelling an order")))
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+            return Option.<Boolean>createBuilder().name(Text.literal("Order Cancel Router"))
+                         .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                         .description(OptionDescription.of(Text.literal(
+                             "Automatically return to the Orders screen after cancelling an order")))
+                         .controller(ConfigScreen::createBooleanController).build();
         }
     }
 }

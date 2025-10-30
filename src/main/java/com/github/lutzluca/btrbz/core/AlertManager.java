@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
-import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Util;
@@ -24,68 +24,70 @@ public class AlertManager {
     public AlertManager() { }
 
     public void onBazaarUpdate(Map<String, Product> products) {
-        var cfg = Config.get().alert;
-        if (!cfg.enabled) {
+        if (!ConfigManager.get().alert.enabled) {
             return;
         }
 
-        var it = cfg.alerts.iterator();
-        while (it.hasNext()) {
-            var curr = it.next();
-            var priceResult = curr.getAssociatedPrice(products);
-            if (priceResult.isFailure()) {
-                Notifier.notifyInvalidProduct(curr);
-                continue;
+        ConfigManager.withConfig(cfg -> {
+            var it = cfg.alert.alerts.iterator();
+
+            while (it.hasNext()) {
+                var curr = it.next();
+                var priceResult = curr.getAssociatedPrice(products);
+                if (priceResult.isFailure()) {
+                    Notifier.notifyInvalidProduct(curr);
+                    continue;
+                }
+
+                // NOTE: its this even right?
+                var price = priceResult.get();
+                var reached = price.map(marketPrice -> switch (curr.type) {
+                    case SellOffer, InstaSell -> marketPrice >= curr.price;
+                    case BuyOrder, InstaBuy -> marketPrice <= curr.price;
+                }).orElse(true);
+
+                if (reached) {
+                    it.remove();
+                    Notifier.notifyPriceReached(curr, price);
+                    continue;
+                }
+
+                var now = System.currentTimeMillis();
+                var duration = now - curr.createdAt;
+
+                if (duration > Util.WEEK_DURATION_MS && curr.remindedAfter < Util.WEEK_DURATION_MS) {
+                    Notifier.notifyOutdatedAlert(curr, "over a week");
+                    curr.remindedAfter = duration;
+                    continue;
+                }
+
+                if (duration > Util.MONTH_DURATION_MS && curr.remindedAfter < Util.MONTH_DURATION_MS) {
+                    Notifier.notifyOutdatedAlert(curr, "over a month");
+                    curr.remindedAfter = duration;
+                }
             }
-
-            // NOTE: its this even right?
-            var price = priceResult.get();
-            var reached = price.map(marketPrice -> switch (curr.type) {
-                case SellOffer, InstaSell -> marketPrice >= curr.price;
-                case BuyOrder, InstaBuy -> marketPrice <= curr.price;
-            }).orElse(true);
-
-            if (reached) {
-                it.remove();
-                Notifier.notifyPriceReached(curr, price);
-                continue;
-            }
-
-            var now = System.currentTimeMillis();
-            var duration = now - curr.createdAt;
-
-            if (duration > Util.WEEK_DURATION_MS && curr.remindedAfter < Util.WEEK_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, "over a week");
-                curr.remindedAfter = duration;
-                continue;
-            }
-
-            if (duration > Util.MONTH_DURATION_MS && curr.remindedAfter < Util.MONTH_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, "over a month");
-                curr.remindedAfter = duration;
-            }
-        }
-
-        Config.HANDLER.save();
+        });
     }
 
     public boolean addAlert(ResolvedAlertArgs args) {
-        var alerts = Config.get().alert.alerts;
+        var alerts = ConfigManager.get().alert.alerts;
         var exist = alerts.stream().anyMatch(alert -> alert.matches(args));
 
         if (!exist) {
-            alerts.add(new Alert(args));
-            Config.HANDLER.save();
+            ConfigManager.withConfig(cfg -> {
+                cfg.alert.alerts.add(new Alert(args));
+            });
         }
 
         return !exist;
     }
 
     public void removeAlert(UUID id) {
-        var removed = Util.removeIfAndReturn(
-            Config.get().alert.alerts,
+        var removed = ConfigManager.compute(cfg -> Util.removeIfAndReturn(
+            cfg.alert.alerts,
             alert -> alert.id.equals(id)
-        );
+        ));
+
         if (removed.isEmpty()) {
             Notifier.notifyPlayer(Notifier
                 .prefix()
@@ -102,7 +104,6 @@ public class AlertManager {
             .prefix()
             .append(Text.literal("Alert removed successfully!").formatted(Formatting.GRAY)));
 
-        Config.HANDLER.save();
     }
 
     public static class Alert {
@@ -164,7 +165,6 @@ public class AlertManager {
 
         public boolean enabled = true;
         public List<Alert> alerts = new ArrayList<>();
-
 
     }
 }

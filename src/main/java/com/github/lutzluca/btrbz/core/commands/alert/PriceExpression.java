@@ -129,5 +129,3 @@ public sealed interface PriceExpression permits Literal,
         }
     }
 }
-
-

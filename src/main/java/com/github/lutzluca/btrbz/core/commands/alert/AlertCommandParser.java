@@ -62,15 +62,17 @@ public class AlertCommandParser {
     }
 
     private String normalizeProductName(String[] tokens) throws ParseException {
-        var titleCaseTokens = Arrays.stream(tokens).map(
-                word -> Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
-                .collect(Collectors.toList());
+        var titleCaseTokens = Arrays
+            .stream(tokens)
+            .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
+            .collect(Collectors.toList());
 
         var lastToken = titleCaseTokens.getLast();
         var number = Try.of(() -> Integer.parseInt(lastToken));
         if (number.isSuccess()) {
-            var roman = number.map(Util::intToRoman).getOrElseThrow(err -> new ParseException(
-                    "Invalid product name number format: " + '"' + lastToken + '"'));
+            var roman = number
+                .map(Util::intToRoman)
+                .getOrElseThrow(err -> new ParseException("Invalid product name number format: " + '"' + lastToken + '"'));
 
             titleCaseTokens.set(titleCaseTokens.size() - 1, roman);
         }
@@ -151,48 +153,59 @@ public class AlertCommandParser {
             return expr;
         }
 
-        return ReferenceType.fromIdentifier(token).<PriceExpression>map(Reference::new)
-                .orElse(() -> this.parseNumber(token).map(Literal::new))
-                .getOrElseThrow(err -> new ParseException(err.getMessage()));
+        return ReferenceType
+            .fromIdentifier(token)
+            .<PriceExpression>map(Reference::new)
+            .orElse(() -> this.parseNumber(token).map(Literal::new))
+            .getOrElseThrow(err -> new ParseException(err.getMessage()));
     }
 
     private Try<Double> parseNumber(String token) {
-        return Try.of(() -> {
-            String cleaned = token.replace(",", "").replace("_", "");
-            var lastChar = cleaned.charAt(cleaned.length() - 1);
+        return Try
+            .of(() -> {
+                String cleaned = token.replace(",", "").replace("_", "");
+                var lastChar = cleaned.charAt(cleaned.length() - 1);
 
-            return switch (lastChar) {
-                case 'k' -> {
-                    cleaned = cleaned.substring(0, cleaned.length() - 1);
-                    yield Double.parseDouble(cleaned) * 1_000.0;
-                }
-                case 'm' -> {
-                    cleaned = cleaned.substring(0, cleaned.length() - 1);
-                    yield Double.parseDouble(cleaned) * 1_000_000.0;
-                }
-                case 'b' -> {
-                    cleaned = cleaned.substring(0, cleaned.length() - 1);
-                    yield Double.parseDouble(cleaned) * 1_000_000_000.0;
-                }
-                default -> Double.parseDouble(cleaned);
-            };
-        }).map(val -> Math.round(val * 10.0) / 10.0).recoverWith(
-                err -> Try.failure(new ParseException("Malformed number format: " + token)));
+                return switch (lastChar) {
+                    case 'k' -> {
+                        cleaned = cleaned.substring(0, cleaned.length() - 1);
+                        yield Double.parseDouble(cleaned) * 1_000.0;
+                    }
+                    case 'm' -> {
+                        cleaned = cleaned.substring(0, cleaned.length() - 1);
+                        yield Double.parseDouble(cleaned) * 1_000_000.0;
+                    }
+                    case 'b' -> {
+                        cleaned = cleaned.substring(0, cleaned.length() - 1);
+                        yield Double.parseDouble(cleaned) * 1_000_000_000.0;
+                    }
+                    default -> Double.parseDouble(cleaned);
+                };
+            })
+            .map(val -> Math.round(val * 10.0) / 10.0)
+            .recoverWith(err -> Try.failure(new ParseException("Malformed number format: " + token)));
     }
 
-    public record AlertCommand(long timestamp, String productName, AlertType type,
-            PriceExpression expr) {
+    public record AlertCommand(
+        long timestamp, String productName, AlertType type, PriceExpression expr
+    ) {
 
         public Try<ResolvedAlertArgs> resolve(BazaarData data) {
-            return this.expr.resolve(this.productName, this.type, data)
-                    .map(price -> new ResolvedAlertArgs(this.timestamp, this.productName,
-                            data.nameToId(this.productName).get(), this.type, price));
+            return this.expr
+                .resolve(this.productName, this.type, data)
+                .map(price -> new ResolvedAlertArgs(
+                    this.timestamp,
+                    this.productName,
+                    data.nameToId(this.productName).get(),
+                    this.type,
+                    price
+                ));
         }
     }
 
-    public record ResolvedAlertArgs(long timestamp, String productName, String productId,
-            AlertType type, double price) {
-    }
+    public record ResolvedAlertArgs(
+        long timestamp, String productName, String productId, AlertType type, double price
+    ) { }
 
     public static class ParseException extends Exception {
 

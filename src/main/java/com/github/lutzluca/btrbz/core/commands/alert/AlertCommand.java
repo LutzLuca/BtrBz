@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.commands.alert;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.commands.Commands;
-import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -42,7 +42,7 @@ public class AlertCommand {
                     })))
 
             .then(ClientCommandManager.literal("list").executes(ctx -> {
-                var alerts = Config.get().alert.alerts;
+                var alerts = ConfigManager.get().alert.alerts;
                 if (alerts.isEmpty()) {
                     Notifier.notifyPlayer(Notifier
                         .prefix()
