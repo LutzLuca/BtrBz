@@ -205,7 +205,21 @@ public class AlertCommandParser {
 
     public record ResolvedAlertArgs(
         long timestamp, String productName, String productId, AlertType type, double price
-    ) { }
+    ) {
+
+        public Try<ResolvedAlertArgs> validate() {
+            if (this.price <= 0.0) {
+                return Try.failure(new IllegalArgumentException(
+                    "Price Expression evaluates to an invalid price of " + '"' + Util.formatDecimal(
+                        this.price,
+                        1,
+                        true
+                    ) + '"' + ". Expected a positive price"));
+            }
+
+            return Try.success(this);
+        }
+    }
 
     public static class ParseException extends Exception {
 

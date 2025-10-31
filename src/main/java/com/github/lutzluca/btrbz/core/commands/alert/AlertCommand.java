@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.commands.alert;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.commands.Commands;
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -82,6 +83,7 @@ public class AlertCommand {
                     var result = Try
                         .of(() -> PARSER.parse(args))
                         .flatMap(alertCmd -> alertCmd.resolve(BtrBz.bazaarData()))
+                        .flatMap(ResolvedAlertArgs::validate)
                         .onSuccess(resolved -> {
                             var registered = BtrBz.alertManager().addAlert(resolved);
                             if (registered) {

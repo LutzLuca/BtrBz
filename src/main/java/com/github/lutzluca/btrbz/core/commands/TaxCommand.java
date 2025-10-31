@@ -59,6 +59,7 @@ public class TaxCommand {
                         .append(Text.literal(+rate + "%").formatted(Formatting.AQUA)));
                     return 1;
                 }))
+                
             .then(ClientCommandManager.literal("show").executes(ctx -> {
                 Notifier.notifyPlayer(Notifier
                     .prefix()

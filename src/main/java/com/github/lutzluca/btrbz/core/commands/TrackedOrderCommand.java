@@ -37,6 +37,7 @@ public class TrackedOrderCommand {
 
                 return 1;
             }))
+            
             .then(ClientCommandManager.literal("reset").executes(ctx -> {
                 MinecraftClient.getInstance().execute(() -> {
                     BtrBz.orderManager().resetTrackedOrders();
