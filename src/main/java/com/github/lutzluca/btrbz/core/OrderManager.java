@@ -20,6 +20,7 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
+import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -232,18 +233,23 @@ public class OrderManager {
         public boolean notifyMatched = true;
         public boolean notifyUndercut = true;
 
+        public Action gotoOnMatched = Action.Item;
+        public Action gotoOnUndercut = Action.Item;
+
         public OptionGroup createGroup() {
-            var notifyOptions = List.of(
+            var options = List.of(
                 this.createNotifyBestOption().build(),
                 this.createNotifyMatchedOption().build(),
-                this.createNotifyUndercutOption().build()
+                this.createNotifyUndercutOption().build(),
+                this.createGotoMatchedOption().build(),
+                this.createGotoUndercutOption().build()
             );
 
-            var enabledBuilder = this.createEnabledOption();
-            enabledBuilder.addListener((option, event) -> {
+            var enabledOption = this.createEnabledOption();
+            enabledOption.addListener((option, event) -> {
                 if (event == Event.STATE_CHANGE) {
                     boolean val = option.pendingValue();
-                    notifyOptions.forEach(opt -> opt.setAvailable(val));
+                    options.forEach(opt -> opt.setAvailable(val));
                 }
             });
 
@@ -251,10 +257,40 @@ public class OrderManager {
                 .createBuilder()
                 .name(Text.literal("Order Notification"))
                 .description(OptionDescription.of(Text.literal("Tracked order notification settings")))
-                .option(enabledBuilder.build())
-                .options(notifyOptions)
+                .option(enabledOption.build())
+                .options(options)
                 .collapsed(false)
                 .build();
+        }
+
+        private Option.Builder<Action> createGotoMatchedOption() {
+            return Option
+                .<Action>createBuilder()
+                .name(Text.literal("Go To - Matched"))
+                .description(OptionDescription.of(Text.literal(
+                    "Where to jump shortcut to when one of your tracked orders becomes matched")))
+                .binding(
+                    this.gotoOnMatched,
+                    () -> this.gotoOnMatched,
+                    action -> this.gotoOnMatched = action
+                )
+                .controller(Action::controller)
+                .available(this.enabled);
+        }
+
+        private Option.Builder<Action> createGotoUndercutOption() {
+            return Option
+                .<Action>createBuilder()
+                .name(Text.literal("Go To - Undercut"))
+                .description(OptionDescription.of(Text.literal(
+                    "Where to jump shortcut to when one of your tracked orders is undercut")))
+                .binding(
+                    this.gotoOnUndercut,
+                    () -> this.gotoOnUndercut,
+                    action -> this.gotoOnUndercut = action
+                )
+                .controller(Action::controller)
+                .available(this.enabled);
         }
 
         private Option.Builder<Boolean> createNotifyBestOption() {
@@ -298,6 +334,25 @@ public class OrderManager {
                 .description(OptionDescription.of(Text.literal(
                     "Enable or disable the notifications when the status of an order changes")))
                 .controller(ConfigScreen::createBooleanController);
+        }
+
+        public enum Action {
+            None,
+            Item,
+            Order;
+
+            public static EnumControllerBuilder<Action> controller(
+                Option<Action> option
+            ) {
+                return EnumControllerBuilder
+                    .create(option)
+                    .enumClass(Action.class)
+                    .formatValue(action -> switch (action) {
+                        case None -> Text.literal("No action");
+                        case Item -> Text.literal("Go to Item in Bazaar");
+                        case Order -> Text.literal("Open Manage Bazaar Orders");
+                    });
+            }
         }
     }
 }

@@ -1,8 +1,10 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.OrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.OrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
@@ -132,16 +134,52 @@ public class Notifier {
     }
 
     public static void notifyOrderStatus(StatusUpdate update) {
-        var msg = switch (update.status()) {
-            case Top ignored -> bestMsg(update.trackedOrder());
-            case Matched ignored -> matchedMsg(update.trackedOrder());
-            case Undercut undercut -> undercutMsg(update.trackedOrder(), undercut.amount);
-            default -> throw new IllegalArgumentException("unreachable status: " + update.status());
+        var order = update.trackedOrder();
+        var status = update.status();
+
+        var msg = switch (status) {
+            case Top ignored -> bestMsg(order);
+            case Matched ignored -> matchedMsg(order);
+            case Undercut undercut -> undercutMsg(order, undercut.amount);
+            default -> throw new IllegalArgumentException("Unreachable status: " + status);
         };
+
+        var cfg = ConfigManager.get().trackedOrders;
+        if (status instanceof Matched && cfg.gotoOnMatched != Action.None) {
+            msg
+                .append(Text.literal(". ").formatted(Formatting.WHITE))
+                .append(makeGotoAction(cfg.gotoOnMatched, order));
+        }
+
+        if (status instanceof Undercut && cfg.gotoOnUndercut != Action.None) {
+            msg
+                .append(Text.literal(". ").formatted(Formatting.WHITE))
+                .append(makeGotoAction(cfg.gotoOnUndercut, order));
+        }
+
         notifyPlayer(msg);
     }
 
-    private static Text bestMsg(TrackedOrder order) {
+    private static MutableText makeGotoAction(Action action, TrackedOrder order) {
+        var base = (action == Action.Item) ? Text
+            .literal("[Go To Item]")
+            .styled(style -> style
+                .withClickEvent(new RunCommand("/bz " + order.productName))
+                .withHoverEvent(new ShowText(Text
+                    .literal("Open ")
+                    .formatted(Formatting.GRAY)
+                    .append(Text.literal(order.productName).formatted(Formatting.AQUA))
+                    .append(Text.literal(" in the Bazaar").formatted(Formatting.GRAY))))) : Text
+            .literal("[Go To Orders]")
+            .styled(style -> style
+                .withClickEvent(new RunCommand("/managebazaarorders"))
+                .withHoverEvent(new ShowText(Text.literal("Open Manage Bazaar Orders"))));
+
+        return base.formatted(Formatting.DARK_AQUA);
+    }
+
+
+    private static MutableText bestMsg(TrackedOrder order) {
         var status = Text
             .empty()
             .append(Text.literal("is the ").formatted(Formatting.WHITE))
@@ -149,7 +187,7 @@ public class Notifier {
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static Text matchedMsg(TrackedOrder order) {
+    private static MutableText matchedMsg(TrackedOrder order) {
         var status = Text
             .empty()
             .append(Text.literal("has been ").formatted(Formatting.WHITE))
@@ -157,7 +195,7 @@ public class Notifier {
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static Text undercutMsg(TrackedOrder order, double undercutAmount) {
+    private static MutableText undercutMsg(TrackedOrder order, double undercutAmount) {
         var status = Text
             .empty()
             .append(Text.literal("has been ").formatted(Formatting.WHITE))
@@ -174,7 +212,7 @@ public class Notifier {
         return Text.literal("[BtrBz] ").formatted(Formatting.GOLD);
     }
 
-    private static Text fillBaseMessage(
+    private static MutableText fillBaseMessage(
         OrderType type,
         int volume,
         String productName,
