@@ -129,8 +129,14 @@ public class FlipHelper {
                 var customHelperItem = new ItemStack(Items.NETHER_STAR);
                 customHelperItem.set(
                     DataComponentTypes.CUSTOM_NAME,
-                    Text.literal(formatted).formatted(Formatting.DARK_PURPLE)
+                    Text
+                        .literal("Flip for ")
+                        .formatted(Formatting.GRAY)
+                        .append(Text.literal(formatted).formatted(Formatting.GOLD))
+                        .append(Text.literal("coins each").formatted(Formatting.GRAY))
+                        .styled(style -> style.withItalic(false))
                 );
+
                 return customHelperItem;
             });
         });

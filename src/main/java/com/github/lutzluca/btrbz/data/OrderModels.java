@@ -1,16 +1,22 @@
 package com.github.lutzluca.btrbz.data;
 
+import com.github.lutzluca.btrbz.core.HighlightManager;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Util;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public final class OrderModels {
 
     private OrderModels() { }
 
     public enum OrderType {
-        Sell, Buy;
+        Sell,
+        Buy;
 
         public static Try<OrderType> tryFrom(String value) {
             return switch (value) {
@@ -22,8 +28,10 @@ public final class OrderModels {
         }
     }
 
-    public sealed abstract static class OrderStatus permits OrderStatus.Unknown, OrderStatus.Top,
-        OrderStatus.Matched, OrderStatus.Undercut {
+    public sealed abstract static class OrderStatus permits OrderStatus.Unknown,
+        OrderStatus.Top,
+        OrderStatus.Matched,
+        OrderStatus.Undercut {
 
         @Override
         public final String toString() {
@@ -105,6 +113,27 @@ public final class OrderModels {
                 productName,
                 Util.formatDecimal(pricePerUnit, 1, true)
             );
+        }
+
+        public MutableText format() {
+            var typeStr = switch (type) {
+                case Buy -> "Buy Order";
+                case Sell -> "Sell Offer";
+            };
+
+            return Text
+                .empty()
+                .append(Text
+                    .literal("[" + this.status.toString() + "] ")
+                    .styled(style -> Style.EMPTY.withColor(HighlightManager.colorForStatus(this.status))))
+                .append(Text.literal(typeStr).formatted(Formatting.AQUA))
+                .append(Text.literal(" for ").formatted(Formatting.GRAY))
+                .append(Text.literal(this.volume + "x ").formatted(Formatting.LIGHT_PURPLE))
+                .append(Text.literal(this.productName).formatted(Formatting.GOLD))
+                .append(Text.literal(" at ").formatted(Formatting.GRAY))
+                .append(Text
+                    .literal(Util.formatDecimal(this.pricePerUnit, 1, true) + "coins")
+                    .formatted(Formatting.YELLOW));
         }
     }
 

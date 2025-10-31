@@ -18,7 +18,6 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
@@ -31,18 +30,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
@@ -89,6 +84,8 @@ public class BtrBz implements ClientModInitializer {
         );
 
         ConfigManager.load();
+        Commands.registerAll();
+
         ModuleManager.getInstance().discoverBindings();
         var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
         var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
@@ -175,46 +172,6 @@ public class BtrBz implements ClientModInitializer {
 
                 return false;
             }
-        });
-
-        // TODO move every command to `Commands`
-        Commands.registerAll();
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(ClientCommandManager.literal("reset").executes(context -> {
-                MinecraftClient.getInstance().execute(() -> {
-                    this.orderManager.resetTrackedOrders();
-                    var player = MinecraftClient.getInstance().player;
-                    if (player != null) {
-                        player.sendMessage(
-                            Text.literal("Tracked Bazaar orders have been reset."),
-                            false
-                        );
-                    }
-                });
-
-                return 1;
-            }));
-
-            dispatcher.register(ClientCommandManager.literal("show").executes(context -> {
-                MinecraftClient.getInstance().execute(() -> {
-                    var player = MinecraftClient.getInstance().player;
-                    var orders = this.orderManager.getTrackedOrders();
-
-                    if (player != null) {
-                        var trackedOrdersStr = orders
-                            .stream()
-                            .map(TrackedOrder::toString)
-                            .collect(Collectors.joining("\n"));
-
-                        player.sendMessage(
-                            Text.literal("Your orders:\n" + trackedOrdersStr),
-                            false
-                        );
-                    }
-                });
-
-                return 1;
-            }));
         });
     }
 }

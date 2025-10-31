@@ -49,28 +49,29 @@ public class AlertCommand {
                         .append(Text.literal("No active alerts.").formatted(Formatting.GRAY)));
                     return 1;
                 }
-                var header = Notifier
+
+                final var newline = Text.literal("\n");
+                var builder = Notifier
                     .prefix()
                     .append(Text
                         .literal("Active Alerts (" + alerts.size() + "):")
-                        .formatted(Formatting.GOLD));
+                        .formatted(Formatting.GOLD))
+                    .append(newline);
 
-                final var newline = Text.literal("\n");
-                var msg = header.append(newline);
+                var first = true;
+                for (var alert : alerts) {
+                    if (!first) {
+                        builder.append(newline);
+                    }
 
-                for (int i = 0; i < alerts.size(); i++) {
-                    var alert = alerts.get(i);
-                    var formatted = alert
+                    builder.append(alert
                         .format()
                         .append(Text.literal(" "))
-                        .append(Notifier.clickToRemoveAlert(alert.id, "Remove this alert"));
-                    if (i != alerts.size() - 1) {
-                        formatted.append(newline);
-                    }
-                    msg.append(formatted);
+                        .append(Notifier.clickToRemoveAlert(alert.id, "Remove this alert")));
+                    first = false;
                 }
 
-                Notifier.notifyPlayer(msg);
+                Notifier.notifyPlayer(builder);
                 return 1;
             }))
 

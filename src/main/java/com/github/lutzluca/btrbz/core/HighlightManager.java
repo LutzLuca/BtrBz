@@ -19,7 +19,7 @@ public class HighlightManager {
 
     private final Map<Integer, Integer> highlights = new HashMap<>();
 
-    private static int colorForStatus(OrderStatus status) {
+    public static int colorForStatus(OrderStatus status) {
         return switch (status) {
             case OrderStatus.Top ignored -> 0xFF55FF55;
             case OrderStatus.Matched ignored -> 0xFF5555FF;

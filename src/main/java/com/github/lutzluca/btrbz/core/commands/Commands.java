@@ -20,6 +20,8 @@ public class Commands {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(rootCommand);
             dispatcher.register(AlertCommand.get());
+            dispatcher.register(TrackedOrderCommand.get());
+            dispatcher.register(TaxCommand.get());
         });
     }
 }
