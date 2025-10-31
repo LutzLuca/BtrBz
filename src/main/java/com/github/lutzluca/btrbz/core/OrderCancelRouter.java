@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
@@ -46,20 +47,38 @@ public class OrderCancelRouter {
     }
 
     private static boolean isCancelOrderSlot(Slot slot) {
-        return (slot.getIndex() == 11 || slot.getIndex() == 13)
-            && slot.getStack().getName().getString().equals("Cancel Order");
+        return (slot.getIndex() == 11 || slot.getIndex() == 13) && slot
+            .getStack()
+            .getName()
+            .getString()
+            .equals("Cancel Order");
     }
 
     public static class OrderCancelConfig {
 
         public boolean enabled = true;
 
-        public Option<Boolean> createEnabledOption() {
-            return Option.<Boolean>createBuilder().name(Text.literal("Order Cancel Router"))
-                         .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                         .description(OptionDescription.of(Text.literal(
-                             "Automatically return to the Orders screen after cancelling an order")))
-                         .controller(ConfigScreen::createBooleanController).build();
+        public Option.Builder<Boolean> createEnabledOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Order Cancel Router"))
+                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .description(OptionDescription.of(Text.literal(
+                    "Automatically return to the Orders screen after cancelling an order")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Order Cancel Router"))
+                .description(OptionDescription.of(Text.literal(
+                    "Automatically return to the Orders screen after cancelling an order")))
+                .option(enabledBuilder.build())
+                .collapsed(false)
+                .build();
         }
     }
 }

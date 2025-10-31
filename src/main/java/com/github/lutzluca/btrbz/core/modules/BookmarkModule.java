@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -22,8 +23,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Dynamic;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionEventListener.Event;
+import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
-import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import io.vavr.control.Try;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -348,15 +350,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public boolean enabled = true;
         public int maxVisibleChildren = 5;
 
-        public Option<Boolean> createEnabledOption() {
+        public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Bookmarked Items Module"))
                 .description(OptionDescription.of(Text.literal(
                     "Display a list of bookmarked bazaar items for quick access")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .controller(TickBoxControllerBuilder::create)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option<Integer> createMaxVisibleOption() {
@@ -367,6 +368,28 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     "Maximum number of bookmarks visible at once before scrolling")))
                 .binding(5, () -> this.maxVisibleChildren, val -> this.maxVisibleChildren = val)
                 .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 10).step(1))
+                .build();
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+            var maxVisible = this.createMaxVisibleOption();
+
+            enabledBuilder.addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    boolean val = option.pendingValue();
+                    maxVisible.setAvailable(val);
+                }
+            });
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Bookmarked Items"))
+                .description(OptionDescription.of(Text.literal(
+                    "Settings for the bookmarked items quick-access list")))
+                .option(enabledBuilder.build())
+                .option(maxVisible)
+                .collapsed(false)
                 .build();
         }
     }

@@ -14,9 +14,12 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionEventListener.Event;
+import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import io.vavr.control.Try;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -379,15 +382,14 @@ public final class ProductInfoProvider {
         public boolean showOutsideBazaar = false;
         public InfoProviderSite site = InfoProviderSite.SkyblockBz;
 
-        public Option<Boolean> createEnabledOption() {
+        public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Enable Product Info System"))
                 .description(OptionDescription.of(Text.literal(
                     "Master switch that enables or disables the entire product information feature.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option<Boolean> createItemClickOption() {
@@ -431,6 +433,34 @@ public final class ProductInfoProvider {
                     "Select which external website to open for product information.")))
                 .binding(this.site, () -> this.site, site -> this.site = site)
                 .controller(InfoProviderSite::controller)
+                .build();
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+
+            var options = List.of(
+                this.createItemClickOption(),
+                this.createCtrlShiftOption(),
+                this.createShowOutsideBazaarOption(),
+                this.createSiteOption()
+            );
+
+            enabledBuilder.addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    boolean val = option.pendingValue();
+                    options.forEach(o -> o.setAvailable(val));
+                }
+            });
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Product Info"))
+                .description(OptionDescription.of(Text.literal(
+                    "Settings for the product information helper (tooltips, click-to-open, site selection)")))
+                .option(enabledBuilder.build())
+                .options(options)
+                .collapsed(false)
                 .build();
         }
     }

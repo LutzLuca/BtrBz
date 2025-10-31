@@ -1,11 +1,11 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
-import com.github.lutzluca.btrbz.core.OrderCancelRouter.OrderCancelConfig;
-import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
-import com.github.lutzluca.btrbz.core.OrderManager.OrderManagerConfig;
-import com.github.lutzluca.btrbz.core.HighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
+import com.github.lutzluca.btrbz.core.HighlightManager.HighlightConfig;
+import com.github.lutzluca.btrbz.core.OrderCancelRouter.OrderCancelConfig;
+import com.github.lutzluca.btrbz.core.OrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;

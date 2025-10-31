@@ -45,7 +45,7 @@ public final class ConfigManager {
 
     public static void withConfig(Consumer<Config> consumer) {
         consumer.accept(HANDLER.instance());
-        HANDLER.save();
+        save();
     }
 
     public static <R> R compute(Function<Config, R> function) {

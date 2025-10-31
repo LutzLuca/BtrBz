@@ -36,29 +36,17 @@ public class ConfigScreen {
             .createBuilder()
             .name(Text.literal("General"))
             .group(config.trackedOrders.createGroup())
+            .group(config.alert.createGroup())
+            .group(config.orderLimit.createGroup())
+            .group(config.bookmark.createGroup())
+            .group(config.priceDiff.createGroup())
+            .group(config.productInfo.createGroup())
+            .group(config.orderCancel.createGroup())
+            .group(config.orderHighlight.createGroup())
+            .group(config.flipHelper.createGroup())
             .build();
 
         builder.category(general);
-
-        //        generalBuilder.option(config.orderLimit.createEnabledOption());
-        //        generalBuilder.option(config.orderLimit.createCompactOption());
-        //
-        //        generalBuilder.option(config.bookmark.createEnabledOption());
-        //        generalBuilder.option(config.bookmark.createMaxVisibleOption());
-        //
-        //        generalBuilder.option(config.priceDiff.createEnabledOption());
-        //
-        //        generalBuilder.option(config.productInfo.createEnabledOption());
-        //        generalBuilder.option(config.productInfo.createItemClickOption());
-        //        generalBuilder.option(config.productInfo.createCtrlShiftOption());
-        //        generalBuilder.option(config.productInfo.createShowOutsideBazaarOption());
-        //        generalBuilder.option(config.productInfo.createSiteOption());
-        //
-        //        generalBuilder.option(config.orderCancel.createEnabledOption());
-        //
-        //        generalBuilder.option(config.orderHighlight.createEnabledOption());
-        //
-        //        generalBuilder.option(config.flipHelper.createEnabledOption());
     }
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {

@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,14 +66,26 @@ public class HighlightManager {
 
         public boolean enabled = true;
 
-        public Option<Boolean> createEnabledOption() {
+        public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(OptionDescription.of(Text.literal(
                     "Enable or disable order highlights in the Order screen")))
-                .controller(ConfigScreen::createBooleanController)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Order Highlighting"))
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable order highlights in the Order screen")))
+                .option(enabledBuilder.build())
+                .collapsed(false)
                 .build();
         }
     }

@@ -7,6 +7,9 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
 import com.github.lutzluca.btrbz.widgets.TextDisplayWidget;
 import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionEventListener.Event;
+import dev.isxander.yacl3.api.OptionGroup;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -118,7 +121,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     }
 
     public String formatAmount(double amount) {
-        if (!configState.useCompact) { return String.format("%.0f", amount); }
+        if (!configState.useCompact) {
+            return String.format("%.0f", amount);
+        }
 
         int places;
         double abs = Math.abs(amount);
@@ -128,7 +133,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             places = 1;
         } else if (abs >= 1_000) {
             places = 0;
-        } else { places = 0; }
+        } else {
+            places = 0;
+        }
 
         return Util.formatCompact(amount, places);
     }
@@ -146,13 +153,12 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
         public boolean useCompact = true;
 
-        public Option<Boolean> createEnabledOption() {
+        public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Order Limit Module"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option<Boolean> createCompactOption() {
@@ -161,6 +167,28 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
                 .name(Text.literal("Use Compact Display"))
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController)
+                .build();
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+            var compact = this.createCompactOption();
+
+            enabledBuilder.addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    boolean val = option.pendingValue();
+                    compact.setAvailable(val);
+                }
+            });
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Order Limit"))
+                .description(OptionDescription.of(Text.literal(
+                    "Display and behaviour settings for the Order Limit module")))
+                .option(enabledBuilder.build())
+                .option(compact)
+                .collapsed(false)
                 .build();
         }
     }

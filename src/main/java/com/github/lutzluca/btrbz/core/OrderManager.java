@@ -233,64 +233,71 @@ public class OrderManager {
         public boolean notifyUndercut = true;
 
         public OptionGroup createGroup() {
+            var notifyOptions = List.of(
+                this.createNotifyBestOption().build(),
+                this.createNotifyMatchedOption().build(),
+                this.createNotifyUndercutOption().build()
+            );
 
-            var notifyBestOption = Option
+            var enabledBuilder = this.createEnabledOption();
+            enabledBuilder.addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    boolean val = option.pendingValue();
+                    notifyOptions.forEach(opt -> opt.setAvailable(val));
+                }
+            });
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Order Notification"))
+                .description(OptionDescription.of(Text.literal("Tracked order notification settings")))
+                .option(enabledBuilder.build())
+                .options(notifyOptions)
+                .collapsed(false)
+                .build();
+        }
+
+        private Option.Builder<Boolean> createNotifyBestOption() {
+            return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Notify - Best"))
                 .binding(true, () -> this.notifyBest, val -> this.notifyBest = val)
                 .description(OptionDescription.of(Text.literal(
                     "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
                 .controller(ConfigScreen::createBooleanController)
-                .available(this.enabled)
-                .build();
+                .available(this.enabled);
+        }
 
-            var notifyMatchedOption = Option
+        private Option.Builder<Boolean> createNotifyMatchedOption() {
+            return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Notify - Matched"))
                 .binding(true, () -> this.notifyMatched, val -> this.notifyMatched = val)
                 .description(OptionDescription.of(Text.literal(
                     "Send a notification when a tracked order is matched (multiple orders at the same best price)")))
                 .controller(ConfigScreen::createBooleanController)
-                .available(this.enabled)
-                .build();
+                .available(this.enabled);
+        }
 
-            var notifyUndercutOption = Option
+        private Option.Builder<Boolean> createNotifyUndercutOption() {
+            return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Notify - Undercut"))
                 .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
                 .description(OptionDescription.of(Text.literal(
                     "Send a notification when a tracked order is undercut / outbid by another order")))
                 .controller(ConfigScreen::createBooleanController)
-                .available(this.enabled)
-                .build();
+                .available(this.enabled);
+        }
 
-            var enabledOption = Option
+        private Option.Builder<Boolean> createEnabledOption() {
+            return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Tracked Orders"))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .description(OptionDescription.of(Text.literal(
                     "Enable or disable the notifications when the status of an order changes")))
-                .controller(ConfigScreen::createBooleanController)
-                .addListener((option, event) -> {
-                    if (event == Event.STATE_CHANGE) {
-                        boolean val = option.pendingValue();
-                        notifyBestOption.setAvailable(val);
-                        notifyMatchedOption.setAvailable(val);
-                        notifyUndercutOption.setAvailable(val);
-                    }
-                })
-                .build();
-
-            return OptionGroup
-                .createBuilder()
-                .name(Text.literal("Order Notification"))
-                .description(OptionDescription.of(Text.literal("Tracked order notification settings")))
-                .option(enabledOption)
-                .option(notifyBestOption)
-                .option(notifyMatchedOption)
-                .option(notifyUndercutOption)
-                .collapsed(false)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
     }
 }

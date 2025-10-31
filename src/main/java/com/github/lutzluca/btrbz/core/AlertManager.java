@@ -3,9 +3,13 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Util;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
 import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.List;
@@ -160,11 +164,32 @@ public class AlertManager {
         }
     }
 
-    // TODO options
     public static class AlertConfig {
 
         public boolean enabled = true;
         public List<Alert> alerts = new ArrayList<>();
 
+        public Option.Builder<Boolean> createEnabledOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Price Alerts"))
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable price alerts. When disabled alerts will not be fired; when re-enabled any alerts whose price is already reached will fire immediately.")))
+                .binding(true, () -> this.enabled, val -> this.enabled = val)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Price Alerts"))
+                .description(OptionDescription.of(Text.literal(
+                    "Configure price alerting behavior and manage active alerts")))
+                .option(enabledBuilder.build())
+                .collapsed(false)
+                .build();
+        }
     }
 }
