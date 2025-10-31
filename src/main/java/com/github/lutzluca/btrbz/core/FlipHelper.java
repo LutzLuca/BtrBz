@@ -30,6 +30,10 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 
 
 @Slf4j
@@ -56,6 +60,10 @@ public class FlipHelper {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
+                if (!ConfigManager.get().flipHelper.enabled) {
+                    return false;
+                }
+
                 if (slot == null) {
                     return false;
                 }
@@ -97,11 +105,16 @@ public class FlipHelper {
 
     private void registerFlipHelperItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
+            if (!ConfigManager.get().flipHelper.enabled) {
+                return Optional.empty();
+            }
+
             if (!info.inMenu(ScreenInfoHelper.BazaarMenuType.OrderOptions)) {
                 return Optional.empty();
             }
 
-            if (slot == null || slot.getIndex() != CUSTOM_HELPER_ITEM_SLOT_IDX || this.potentialFlipProduct == null) {
+            if (slot == null || slot.getIndex() != CUSTOM_HELPER_ITEM_SLOT_IDX
+                    || this.potentialFlipProduct == null) {
                 return Optional.empty();
             }
 
@@ -114,10 +127,8 @@ public class FlipHelper {
                 var formatted = Util.formatDecimal(Math.max(price - 0.1, .1), 1, true);
 
                 var customHelperItem = new ItemStack(Items.NETHER_STAR);
-                customHelperItem.set(
-                    DataComponentTypes.CUSTOM_NAME,
-                    Text.literal(formatted).formatted(Formatting.DARK_PURPLE)
-                );
+                customHelperItem.set(DataComponentTypes.CUSTOM_NAME,
+                        Text.literal(formatted).formatted(Formatting.DARK_PURPLE));
                 return customHelperItem;
             });
         });
@@ -127,8 +138,12 @@ public class FlipHelper {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getIndex() == CUSTOM_HELPER_ITEM_SLOT_IDX && info.inMenu(
-                    BazaarMenuType.OrderOptions);
+                if (!ConfigManager.get().flipHelper.enabled) {
+                    return false;
+                }
+
+                return slot != null && slot.getIndex() == CUSTOM_HELPER_ITEM_SLOT_IDX
+                        && info.inMenu(BazaarMenuType.OrderOptions);
             }
 
             @Override
@@ -151,27 +166,20 @@ public class FlipHelper {
                     return false;
                 }
 
-                if (potentialFlipProduct == null || potentialFlipProduct
-                    .getSellOfferPrice()
-                    .isEmpty()) {
+                if (potentialFlipProduct == null
+                        || potentialFlipProduct.getSellOfferPrice().isEmpty()) {
 
                     log.debug(
-                        "Ignoring flip execution click because it's price could not be resolved: '{}'",
-                        potentialFlipProduct == null ? "no product selected" : "price not available"
-                    );
+                            "Ignoring flip execution click because it's price could not be resolved: '{}'",
+                            potentialFlipProduct == null ? "no product selected"
+                                    : "price not available");
                     return false;
                 }
 
-                Try
-                    .run(() -> interactionManager.clickSlot(
-                        handler.syncId,
-                        FLIP_ORDER_ITEM_SLOT_IDX,
-                        button,
-                        SlotActionType.PICKUP,
-                        player
-                    ))
-                    .onFailure(err -> log.warn("Failed to 'click' flip order", err))
-                    .onSuccess(v -> pendingFlip = true);
+                Try.run(() -> interactionManager.clickSlot(handler.syncId, FLIP_ORDER_ITEM_SLOT_IDX,
+                        button, SlotActionType.PICKUP, player))
+                        .onFailure(err -> log.warn("Failed to 'click' flip order", err))
+                        .onSuccess(v -> pendingFlip = true);
 
                 return false;
             }
@@ -180,6 +188,9 @@ public class FlipHelper {
 
     private void registerFlipPriceScreenHandler() {
         ScreenInfoHelper.registerOnSwitch(curr -> {
+            if (!ConfigManager.get().flipHelper.enabled) {
+                return;
+            }
             var prev = ScreenInfoHelper.get().getPrevInfo();
             if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
                 pendingFlip = false;
@@ -188,36 +199,34 @@ public class FlipHelper {
 
             if (!this.pendingFlip) {
                 log.debug(
-                    "Screen transition from OrderOption without a pendingFlip -> resetting flip state");
+                        "Screen transition from OrderOption without a pendingFlip -> resetting flip state");
                 this.clearPendingFlipState();
                 return;
             }
 
             if (!(curr.getScreen() instanceof SignEditScreen signEditScreen)) {
-                log.warn("""
-                        Expected screen transition from OrderOptions to a SignEditScreen while pendingFlip is set,
-                        but switched to a non-SignEditScreen; resetting flip state
-                    """);
+                log.warn(
+                        """
+                                    Expected screen transition from OrderOptions to a SignEditScreen while pendingFlip is set,
+                                    but switched to a non-SignEditScreen; resetting flip state
+                                """);
                 this.clearPendingFlipState();
                 return;
             }
 
             if (this.potentialFlipProduct == null) {
                 log.warn(
-                    "Expected `potentialFlipProduct` to be non-null to proceed with entering the flipPrice");
+                        "Expected `potentialFlipProduct` to be non-null to proceed with entering the flipPrice");
                 this.clearPendingFlipState();
                 return;
             }
 
-            var flipPrice = this.potentialFlipProduct
-                .getSellOfferPrice()
-                .map(price -> Math.max(price - .1, 0.1));
+            var flipPrice = this.potentialFlipProduct.getSellOfferPrice()
+                    .map(price -> Math.max(price - .1, 0.1));
 
             if (flipPrice.isEmpty()) {
-                log.warn(
-                    "Could not resolve price for product '{}'",
-                    this.potentialFlipProduct.getProductName()
-                );
+                log.warn("Could not resolve price for product '{}'",
+                        this.potentialFlipProduct.getProductName());
                 this.clearPendingFlipState();
                 return;
             }
@@ -227,67 +236,49 @@ public class FlipHelper {
             accessor.setCurrentRow(0);
             accessor.invokeSetCurrentRowMessage(formatted);
 
-            Try
-                .run(() -> {
-                    signEditScreen.close();
-                    this.pendingFlips.add(new FlipEntry(
-                        potentialFlipProduct.getProductName(),
-                        flipPrice.get()
-                    ));
-                })
-                .onFailure(err -> log.warn("Failed to finalize sign edit", err))
-                .onSuccess(v -> log.debug("Successfully edited price sign to flip item"));
+            Try.run(() -> {
+                signEditScreen.close();
+                this.pendingFlips
+                        .add(new FlipEntry(potentialFlipProduct.getProductName(), flipPrice.get()));
+            }).onFailure(err -> log.warn("Failed to finalize sign edit", err))
+                    .onSuccess(v -> log.debug("Successfully edited price sign to flip item"));
 
             this.clearPendingFlipState();
         });
     }
 
     public void handleFlipped(BazaarMessage.OrderFlipped flipped) {
-        var match = this.pendingFlips.removeFirstMatch(entry -> entry
-            .productName()
-            .equalsIgnoreCase(flipped.productName()));
+        var match = this.pendingFlips.removeFirstMatch(
+                entry -> entry.productName().equalsIgnoreCase(flipped.productName()));
 
         // this may be unnecessary as after entering the price in the sign, it opens the orders
         // menu, might as well leave it atm
         if (match.isEmpty()) {
-            log.warn(
-                "No matching pending flip for flipped order {}x {}. Orders may be out of sync",
-                flipped.volume(),
-                flipped.productName()
-            );
+            log.warn("No matching pending flip for flipped order {}x {}. Orders may be out of sync",
+                    flipped.volume(), flipped.productName());
             Notifier.notifyChatCommand(
-                "No matching pending flip found for flipped order. Click to resync tracked orders",
-                "managebazaarorders"
-            );
+                    "No matching pending flip found for flipped order. Click to resync tracked orders",
+                    "managebazaarorders");
             return;
         }
 
         var entry = match.get();
         double pricePerUnit = entry.pricePerUnit();
 
-        var orderInfo = new OrderInfo(
-            flipped.productName(),
-            OrderType.Sell,
-            flipped.volume(),
-            pricePerUnit,
-            false,
-            -1
-        );
+        var orderInfo = new OrderInfo(flipped.productName(), OrderType.Sell, flipped.volume(),
+                pricePerUnit, false, -1);
 
         BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, -1));
 
-        log.debug(
-            "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
-            flipped.volume(),
-            flipped.productName(),
-            Util.formatDecimal(pricePerUnit, 1, true)
-        );
+        log.debug("Added tracked Sell order from flipped chat: {}x {} at {} per unit",
+                flipped.volume(), flipped.productName(), Util.formatDecimal(pricePerUnit, 1, true));
     }
 
 
     // TODO: move this into the `OrderInfoParser` sometime
     private Optional<TitleOrderInfo> parseOrderTitle(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || BtrBz.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
+        if (stack == null || stack.isEmpty()
+                || BtrBz.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
             return Optional.empty();
         }
 
@@ -298,37 +289,44 @@ public class FlipHelper {
             return Optional.empty();
         }
 
-        return OrderType
-            .tryFrom(parts[0].trim())
-            .onFailure(err -> log.warn("Failed to parse Order type from '{}'", parts[0], err))
-            .toJavaOptional()
-            .map(type -> new TitleOrderInfo(type, parts[1].trim()));
+        return OrderType.tryFrom(parts[0].trim())
+                .onFailure(err -> log.warn("Failed to parse Order type from '{}'", parts[0], err))
+                .toJavaOptional().map(type -> new TitleOrderInfo(type, parts[1].trim()));
     }
 
     private boolean isFilled(ItemStack stack) {
-        return OrderInfoParser
-            .getLore(stack)
-            .stream()
-            .filter(line -> line.trim().startsWith("Filled"))
-            .findFirst()
-            .map(line -> line.contains("100%"))
-            .orElse(false);
+        return OrderInfoParser.getLore(stack).stream()
+                .filter(line -> line.trim().startsWith("Filled")).findFirst()
+                .map(line -> line.contains("100%")).orElse(false);
     }
 
 
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
-            log.debug(
-                "Destroying `potentialFlipProduct` '{}'",
-                this.potentialFlipProduct.getProductName()
-            );
+            log.debug("Destroying `potentialFlipProduct` '{}'",
+                    this.potentialFlipProduct.getProductName());
             this.potentialFlipProduct.destroy();
         }
         this.potentialFlipProduct = null;
         this.pendingFlip = false;
     }
 
-    private record FlipEntry(String productName, double pricePerUnit) { }
+    private record FlipEntry(String productName, double pricePerUnit) {
+    }
 
-    private record TitleOrderInfo(OrderType type, String productName) { }
+    private record TitleOrderInfo(OrderType type, String productName) {
+    }
+
+    public static class FlipHelperConfig {
+
+        public boolean enabled = true;
+
+        public Option<Boolean> createEnabledOption() {
+            return Option.<Boolean>createBuilder().name(Text.literal("Flip Helper"))
+                    .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                    .description(OptionDescription.of(Text.literal(
+                            "Enable or disable the flip helper features (quick flip UI interactions)")))
+                    .controller(ConfigScreen::createBooleanController).build();
+        }
+    }
 }

@@ -30,9 +30,10 @@ public final class ConfigManager {
     private ConfigManager() { }
 
     public static void load() {
-        boolean success = HANDLER.load();
-        if (!success) {
+        if (!HANDLER.load()) {
             log.warn("Failed to load config");
+        } else {
+            log.info("Successfully loaded config");
         }
 
         Runtime.getRuntime().addShutdownHook(new Thread(HANDLER::save));

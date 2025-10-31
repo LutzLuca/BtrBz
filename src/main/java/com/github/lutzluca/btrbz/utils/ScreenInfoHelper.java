@@ -102,7 +102,11 @@ public final class ScreenInfoHelper {
     }
 
     private enum BazaarCategory {
-        Farming, Mining, Combat, WoodsAndFishes, Oddities;
+        Farming,
+        Mining,
+        Combat,
+        WoodsAndFishes,
+        Oddities;
 
         private static Try<BazaarCategory> tryFrom(String value) {
             return switch (value) {
@@ -154,9 +158,7 @@ public final class ScreenInfoHelper {
                         yield false;
                     }
                     var str = title.substring("Bazaar ➜ ".length()).trim();
-                    yield BazaarCategory
-                        .tryFrom(str.trim())
-                        .isSuccess() || (str.startsWith("\"") && str.endsWith("\""));
+                    yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
                 }
                 case Orders -> title.equals("Your Bazaar Orders");
                 case InstaBuy -> title.endsWith("➜ Instant Buy");

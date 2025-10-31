@@ -14,8 +14,10 @@ public class ConfigScreen {
 
     public static void open() {
         var client = MinecraftClient.getInstance();
-        client.send(() -> client
-            .setScreen(ConfigScreen.create(client.currentScreen, ConfigManager.get())));
+        client.send(() -> client.setScreen(ConfigScreen.create(
+            client.currentScreen,
+            ConfigManager.get()
+        )));
     }
 
     public static Screen create(Screen parent, Config config) {
@@ -30,25 +32,33 @@ public class ConfigScreen {
     }
 
     private static void buildGeneralConfig(Builder builder, Config config) {
-        var generalBuilder = ConfigCategory.createBuilder().name(Text.literal("General"));
+        var general = ConfigCategory
+            .createBuilder()
+            .name(Text.literal("General"))
+            .group(config.trackedOrders.createGroup())
+            .build();
 
-        generalBuilder.option(config.orderLimit.createEnabledOption());
-        generalBuilder.option(config.orderLimit.createCompactOption());
+        builder.category(general);
 
-        generalBuilder.option(config.bookmark.createEnabledOption());
-        generalBuilder.option(config.bookmark.createMaxVisibleOption());
-
-        generalBuilder.option(config.priceDiff.createEnabledOption());
-
-        generalBuilder.option(config.productInfo.createEnabledOption());
-        generalBuilder.option(config.productInfo.createItemClickOption());
-        generalBuilder.option(config.productInfo.createCtrlShiftOption());
-        generalBuilder.option(config.productInfo.createShowOutsideBazaarOption());
-        generalBuilder.option(config.productInfo.createSiteOption());
-
-        generalBuilder.option(config.orderCancel.createEnabledOption());
-
-        builder.category(generalBuilder.build());
+        //        generalBuilder.option(config.orderLimit.createEnabledOption());
+        //        generalBuilder.option(config.orderLimit.createCompactOption());
+        //
+        //        generalBuilder.option(config.bookmark.createEnabledOption());
+        //        generalBuilder.option(config.bookmark.createMaxVisibleOption());
+        //
+        //        generalBuilder.option(config.priceDiff.createEnabledOption());
+        //
+        //        generalBuilder.option(config.productInfo.createEnabledOption());
+        //        generalBuilder.option(config.productInfo.createItemClickOption());
+        //        generalBuilder.option(config.productInfo.createCtrlShiftOption());
+        //        generalBuilder.option(config.productInfo.createShowOutsideBazaarOption());
+        //        generalBuilder.option(config.productInfo.createSiteOption());
+        //
+        //        generalBuilder.option(config.orderCancel.createEnabledOption());
+        //
+        //        generalBuilder.option(config.orderHighlight.createEnabledOption());
+        //
+        //        generalBuilder.option(config.flipHelper.createEnabledOption());
     }
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {

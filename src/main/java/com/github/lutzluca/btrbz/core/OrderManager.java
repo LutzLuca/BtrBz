@@ -1,15 +1,25 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Util;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionEventListener.Event;
+import dev.isxander.yacl3.api.OptionGroup;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -18,6 +28,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
+import net.minecraft.text.Text;
 
 @Slf4j
 public class OrderManager {
@@ -110,8 +121,22 @@ public class OrderManager {
             .forEach(statusUpdate -> {
                 statusUpdate.trackedOrder.status = statusUpdate.status;
                 this.onOrderStatusUpdate.accept(statusUpdate);
-                Notifier.notifyOrderStatus(statusUpdate);
+
+                if (this.shouldNotify(statusUpdate)) {
+                    Notifier.notifyOrderStatus(statusUpdate);
+                }
             });
+    }
+
+    private boolean shouldNotify(StatusUpdate statusUpdate) {
+        var cfg = ConfigManager.get().trackedOrders;
+
+        return cfg.enabled && switch (statusUpdate.status) {
+            case Top ignored -> cfg.notifyBest;
+            case Matched ignored -> cfg.notifyMatched;
+            case Undercut ignored -> cfg.notifyUndercut;
+            default -> false;
+        };
     }
 
     public void resetTrackedOrders() {
@@ -128,10 +153,10 @@ public class OrderManager {
         this.trackedOrders.add(order);
     }
 
-    public void removeMatching(BazaarMessage.OrderFilled info) {
+    public void removeMatching(OrderFilled info) {
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
-        //noinspection SimplifyStreamApiCallChains
+        // noinspection SimplifyStreamApiCallChains
         this.trackedOrders
             .stream()
             .filter(order -> order.productName.equals(info.productName()) && order.type == info.type() && order.volume == info.volume())
@@ -149,7 +174,7 @@ public class OrderManager {
         this.outstandingOrderStore.add(info);
     }
 
-    public void confirmOutstanding(BazaarMessage.OrderSetup info) {
+    public void confirmOutstanding(OrderSetup info) {
         this.outstandingOrderStore
             .removeFirstMatch(curr -> curr.matches(info))
             .map(TrackedOrder::new)
@@ -177,27 +202,95 @@ public class OrderManager {
             case Buy -> Util.getFirst(product.getSellSummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1 ? new OrderStatus.Matched()
-                        : new OrderStatus.Top();
+                    return summary.getOrders() > 1 ? new Matched() : new Top();
                 }
                 if (order.pricePerUnit > bestPrice) {
-                    return new OrderStatus.Top();
+                    return new Top();
                 }
-                return new OrderStatus.Undercut(bestPrice - order.pricePerUnit);
+                return new Undercut(bestPrice - order.pricePerUnit);
             });
             case Sell -> Util.getFirst(product.getBuySummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1 ? new OrderStatus.Matched()
-                        : new OrderStatus.Top();
+                    return summary.getOrders() > 1 ? new Matched() : new Top();
                 }
                 if (order.pricePerUnit < bestPrice) {
-                    return new OrderStatus.Top();
+                    return new Top();
                 }
-                return new OrderStatus.Undercut(order.pricePerUnit - bestPrice);
+                return new Undercut(order.pricePerUnit - bestPrice);
             });
         };
     }
 
     public record StatusUpdate(TrackedOrder trackedOrder, OrderStatus status) { }
+
+    public static class OrderManagerConfig {
+
+        public boolean enabled = true;
+
+        public boolean notifyBest = true;
+        public boolean notifyMatched = true;
+        public boolean notifyUndercut = true;
+
+        public OptionGroup createGroup() {
+
+            var notifyBestOption = Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Notify - Best"))
+                .binding(true, () -> this.notifyBest, val -> this.notifyBest = val)
+                .description(OptionDescription.of(Text.literal(
+                    "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
+                .controller(ConfigScreen::createBooleanController)
+                .available(this.enabled)
+                .build();
+
+            var notifyMatchedOption = Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Notify - Matched"))
+                .binding(true, () -> this.notifyMatched, val -> this.notifyMatched = val)
+                .description(OptionDescription.of(Text.literal(
+                    "Send a notification when a tracked order is matched (multiple orders at the same best price)")))
+                .controller(ConfigScreen::createBooleanController)
+                .available(this.enabled)
+                .build();
+
+            var notifyUndercutOption = Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Notify - Undercut"))
+                .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
+                .description(OptionDescription.of(Text.literal(
+                    "Send a notification when a tracked order is undercut / outbid by another order")))
+                .controller(ConfigScreen::createBooleanController)
+                .available(this.enabled)
+                .build();
+
+            var enabledOption = Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Tracked Orders"))
+                .binding(true, () -> this.enabled, val -> this.enabled = val)
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable the notifications when the status of an order changes")))
+                .controller(ConfigScreen::createBooleanController)
+                .addListener((option, event) -> {
+                    if (event == Event.STATE_CHANGE) {
+                        boolean val = option.pendingValue();
+                        notifyBestOption.setAvailable(val);
+                        notifyMatchedOption.setAvailable(val);
+                        notifyUndercutOption.setAvailable(val);
+                    }
+                })
+                .build();
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Order Notification"))
+                .description(OptionDescription.of(Text.literal("Tracked order notification settings")))
+                .option(enabledOption)
+                .option(notifyBestOption)
+                .option(notifyMatchedOption)
+                .option(notifyUndercutOption)
+                .collapsed(false)
+                .build();
+        }
+    }
 }

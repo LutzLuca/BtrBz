@@ -2,12 +2,17 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.OrderManager.StatusUpdate;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.text.Text;
 
 public class HighlightManager {
 
@@ -23,6 +28,10 @@ public class HighlightManager {
     }
 
     public Optional<Integer> getHighlight(int idx) {
+        if (!ConfigManager.get().orderHighlight.enabled) {
+            return Optional.empty();
+        }
+
         return Optional.ofNullable(highlights.get(idx));
     }
 
@@ -50,5 +59,21 @@ public class HighlightManager {
         }
 
         this.highlights.put(slotIdx, colorForStatus(update.status()));
+    }
+
+    public static class HighlightConfig {
+
+        public boolean enabled = true;
+
+        public Option<Boolean> createEnabledOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Order Highlighting"))
+                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable order highlights in the Order screen")))
+                .controller(ConfigScreen::createBooleanController)
+                .build();
+        }
     }
 }

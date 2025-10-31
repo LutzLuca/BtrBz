@@ -3,6 +3,9 @@ package com.github.lutzluca.btrbz.core.config;
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
 import com.github.lutzluca.btrbz.core.OrderCancelRouter.OrderCancelConfig;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
+import com.github.lutzluca.btrbz.core.OrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.HighlightManager.HighlightConfig;
+import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
@@ -33,6 +36,15 @@ public class Config {
 
     @SerialEntry
     public OrderCancelConfig orderCancel = new OrderCancelConfig();
+
+    @SerialEntry
+    public OrderManagerConfig trackedOrders = new OrderManagerConfig();
+
+    @SerialEntry
+    public HighlightConfig orderHighlight = new HighlightConfig();
+
+    @SerialEntry
+    public FlipHelperConfig flipHelper = new FlipHelperConfig();
 
     @SerialEntry
     public double tax = 1.125;
