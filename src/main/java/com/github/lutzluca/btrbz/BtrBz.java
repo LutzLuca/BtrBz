@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
+import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
@@ -27,7 +28,6 @@ import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -90,6 +90,7 @@ public class BtrBz implements ClientModInitializer {
         var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
         var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
         var priceDiffModule = ModuleManager.getInstance().registerModule(PriceDiffModule.class);
+        var orderValueModule = ModuleManager.getInstance().registerModule(OrderValueModule.class);
 
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
@@ -139,10 +140,11 @@ public class BtrBz implements ClientModInitializer {
                         .parseOrderInfo(entry.getValue(), entry.getKey())
                         .toJavaOptional())
                     .flatMap(Optional::stream)
-                    .collect(Collectors.toList());
+                    .toList();
 
                 this.orderManager.syncFromUi(parsed);
                 this.highlightManager.setStatuses(parsed);
+                orderValueModule.update(parsed);
             }
         );
 

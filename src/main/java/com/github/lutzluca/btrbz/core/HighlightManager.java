@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,16 +39,17 @@ public class HighlightManager {
 
     public void setStatuses(List<OrderInfo> parsedOrders) {
         this.highlights.clear();
+        var orders = new ArrayList<>(parsedOrders);
 
         var trackedCopy = BtrBz.orderManager().getTrackedOrders();
         for (var tracked : trackedCopy) {
-            parsedOrders.stream().filter(tracked::matches).findFirst().ifPresent(info -> {
-                parsedOrders.remove(info);
+            orders.stream().filter(tracked::matches).findFirst().ifPresent(info -> {
+                orders.remove(info);
                 this.highlights.put(info.slotIdx(), colorForStatus(tracked.status));
             });
         }
 
-        for (var info : parsedOrders) {
+        for (var info : orders) {
             var color = info.filled() ? 0xFFEFBF04 : 0xFFAA55FF;
             this.highlights.put(info.slotIdx(), color);
         }

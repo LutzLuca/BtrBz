@@ -137,10 +137,13 @@ public final class OrderModels {
         }
     }
 
+    // Note: `unclaimed` when type == OrderType.Buy in items; when type == OrderType.Sell in coins
     public record OrderInfo(
         String productName,
         OrderType type,
         int volume,
+        int filledAmount,
+        int unclaimed,
         double pricePerUnit,
         boolean filled,
         int slotIdx
@@ -156,10 +159,12 @@ public final class OrderModels {
     ) {
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {
-            return this.productName.equals(setupInfo.productName()) && this.type == setupInfo.type() && this.volume == setupInfo.volume() && Double.compare(
-                this.total,
-                setupInfo.total()
-            ) == 0;
+            // @formatter:off
+            return this.productName.equals(setupInfo.productName()) 
+                && this.type == setupInfo.type() 
+                && this.volume == setupInfo.volume() 
+                && Double.compare(this.total,setupInfo.total()) == 0;
+            // @formatter:on
         }
     }
 }

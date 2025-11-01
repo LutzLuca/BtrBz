@@ -220,6 +220,8 @@ public final class OrderInfoParser {
                 productName.trim(),
                 orderTypeResult.get(),
                 details.volume(),
+                details.filledAmount(),
+                details.unclaimed(),
                 details.pricePerUnit(),
                 details.filled(),
                 slotIdx
@@ -232,6 +234,8 @@ public final class OrderInfoParser {
             Double pricePerUnit = null;
             Integer volume = null;
             Boolean filled = null;
+            int filledAmount = 0;
+            int unclaimed = 0;
 
             for (String rawLine : lore) {
                 String line = rawLine.trim();
@@ -260,10 +264,23 @@ public final class OrderInfoParser {
                         .intValue();
                 } else if (filled == null && line.startsWith("Filled") && line.contains("%")) {
                     filled = line.contains("100%");
-                }
+                    var first = line.indexOf(' ');
+                    var last = line.lastIndexOf(' ');
 
-                if (pricePerUnit != null && volume != null && filled != null) {
-                    break;
+                    var parts = line.substring(first, last).trim().split("/", 2);
+                    filledAmount = Util
+                        .parseUsFormattedNumber(parts[0])
+                        .getOrElseThrow(() -> new IllegalArgumentException(
+                            "Failed to parse filledAmound"))
+                        .intValue();
+                } else if (line.startsWith("You have")) {
+                    var trimmed = line.replaceFirst("You have", "").trim();
+                    var spaceIdx = trimmed.indexOf(' ');
+                    unclaimed = Util
+                        .parseUsFormattedNumber(trimmed.substring(0, spaceIdx).trim())
+                        .getOrElseThrow(() -> new IllegalArgumentException(
+                            "Failed to parse unclaimed amount"))
+                        .intValue();
                 }
             }
 
@@ -272,7 +289,13 @@ public final class OrderInfoParser {
                     "Missing required fields (pricePerUnit or volume) in lore");
             }
 
-            return new OrderDetails(pricePerUnit, volume, filled != null && filled);
+            return new OrderDetails(
+                pricePerUnit,
+                volume,
+                filledAmount,
+                unclaimed,
+                filled != null && filled
+            );
         });
     }
 
@@ -376,5 +399,7 @@ public final class OrderInfoParser {
 
     private record ParsedVolume(int volume, String productName) { }
 
-    private record OrderDetails(double pricePerUnit, int volume, boolean filled) { }
+    private record OrderDetails(
+        double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled
+    ) { }
 }

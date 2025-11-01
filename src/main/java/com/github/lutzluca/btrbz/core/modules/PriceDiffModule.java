@@ -96,6 +96,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     private Optional<Double> computePriceDiff(String productName) {
+        // TODO maybe respect "filling orders" when one would sell it instantly
         return BtrBz
             .bazaarData()
             .nameToId(productName)

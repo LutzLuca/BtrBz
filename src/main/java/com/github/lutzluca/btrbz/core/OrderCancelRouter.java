@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.Util;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -40,7 +41,7 @@ public class OrderCancelRouter {
                     return false;
                 }
 
-                ClientTickDispatcher.submit(client -> client.setScreen(prev.getScreen()), 5);
+                ClientTickDispatcher.submit(client -> Util.runCommand("managebazaarorders"), 5);
                 return false;
             }
         });

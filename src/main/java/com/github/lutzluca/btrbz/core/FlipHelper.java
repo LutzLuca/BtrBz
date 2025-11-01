@@ -295,6 +295,8 @@ public class FlipHelper {
             flipped.productName(),
             OrderType.Sell,
             flipped.volume(),
+            0,
+            0,
             pricePerUnit,
             false,
             -1

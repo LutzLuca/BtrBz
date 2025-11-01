@@ -146,15 +146,11 @@ public class Notifier {
 
         var cfg = ConfigManager.get().trackedOrders;
         if (status instanceof Matched && cfg.gotoOnMatched != Action.None) {
-            msg
-                .append(Text.literal(". ").formatted(Formatting.WHITE))
-                .append(makeGotoAction(cfg.gotoOnMatched, order));
+            msg.append(makeGotoAction(cfg.gotoOnMatched, order));
         }
 
         if (status instanceof Undercut && cfg.gotoOnUndercut != Action.None) {
-            msg
-                .append(Text.literal(". ").formatted(Formatting.WHITE))
-                .append(makeGotoAction(cfg.gotoOnUndercut, order));
+            msg.append(makeGotoAction(cfg.gotoOnUndercut, order));
         }
 
         notifyPlayer(msg);

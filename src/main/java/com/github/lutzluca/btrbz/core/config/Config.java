@@ -11,6 +11,8 @@ import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
+import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
+import com.github.lutzluca.btrbz.core.modules.OrderValueModule.OrderValueOverlayConfig;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
@@ -30,6 +32,10 @@ public class Config {
     @SerialEntry
     @BindModule(PriceDiffModule.class)
     public PriceDiffConfig priceDiff = new PriceDiffConfig();
+
+    @SerialEntry
+    @BindModule(OrderValueModule.class)
+    public OrderValueOverlayConfig orderValueOverlay = new OrderValueOverlayConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
