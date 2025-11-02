@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Util;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -99,6 +100,7 @@ public final class OrderModels {
         }
     }
 
+    @ToString
     public static class TrackedOrder {
 
         public final String productName;

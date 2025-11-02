@@ -124,7 +124,8 @@ public final class ScreenInfoHelper {
         Main, // Bazaar ➜ <category> / "<search>"
         Orders, // Your Bazaar Orders
         InstaBuy, // <product name> ➜ Instant Buy
-        BuyOrderSetup, // How much do you want to pay?
+        BuyOrderSetupPrice,  // How much do you want to pay?
+        BuyOrderSetupAmount, // How many do you want?
         BuyOrderConfirmation, // Confirm Buy Order
         SellOfferSetup, // At what price are you selling?
         SellOfferConfirmation, // Confirm Sell Offer
@@ -162,7 +163,8 @@ public final class ScreenInfoHelper {
                 }
                 case Orders -> title.equals("Your Bazaar Orders");
                 case InstaBuy -> title.endsWith("➜ Instant Buy");
-                case BuyOrderSetup -> title.equals("How much do you want to pay?");
+                case BuyOrderSetupAmount -> title.equals("How many do you want?");
+                case BuyOrderSetupPrice -> title.equals("How much do you want to pay?");
                 case BuyOrderConfirmation -> title.equals("Confirm Buy Order");
                 case SellOfferSetup -> title.equals("At what price are you selling?");
                 case SellOfferConfirmation -> title.equals("Confirm Sell Offer");

@@ -69,6 +69,7 @@ public class TrackedOrderManager {
     }
 
     public void syncOrders(List<OrderInfo> parsedOrders) {
+        log.debug("Syning orders with parsed order from the UI: {}", parsedOrders);
         var toRemove = new ArrayList<TrackedOrder>();
         var remaining = new ArrayList<>(parsedOrders);
 
@@ -81,12 +82,14 @@ public class TrackedOrderManager {
             }
         }
 
+        var unfilledCopy = new ArrayList<>(unfilledOrders);
+
         for (var tracked : this.trackedOrders) {
-            var match = unfilledOrders.stream().filter(tracked::matches).findFirst();
+            var match = unfilledCopy.stream().filter(tracked::matches).findFirst();
 
             match.ifPresentOrElse(
                 info -> {
-                    unfilledOrders.remove(info);
+                    unfilledCopy.remove(info);
                     tracked.slot = info.slotIdx();
                 }, () -> toRemove.add(tracked)
             );
@@ -100,7 +103,7 @@ public class TrackedOrderManager {
         );
 
         toRemove.forEach(this::removeTrackedOrder);
-        unfilledOrders.stream().map(TrackedOrder::new).forEach(this::addTrackedOrder);
+        unfilledCopy.stream().map(TrackedOrder::new).forEach(this::addTrackedOrder);
 
         this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
     }

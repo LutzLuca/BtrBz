@@ -45,6 +45,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         List<OrderInfo.UnfilledOrderInfo> unfilledOrders,
         List<OrderInfo.FilledOrderInfo> filledOrders
     ) {
+        log.debug("Syncing values with updated order information");
         this.unfilledOrders = unfilledOrders;
         this.filledOrders = filledOrders;
 
@@ -76,6 +77,11 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     private List<Text> getLines() {
+        log.debug(
+            "Getting lines with unfilled lines: {} - filled lines: {}",
+            this.unfilledOrders,
+            this.filledOrders
+        );
         double lockedInBuyOrders = 0.0;
         double itemsFromBuyOrders = 0.0;
         double coinsFromSellOffers = 0.0;
