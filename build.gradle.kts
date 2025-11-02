@@ -42,10 +42,15 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.0")
 
-    implementation("net.hypixel:hypixel-api-transport-apache:4.4")
     implementation("net.hypixel:hypixel-api-core:4.4")
+    include("net.hypixel:hypixel-api-core:4.4")
+
+    implementation("net.hypixel:hypixel-api-transport-apache:4.4")
+    include("net.hypixel:hypixel-api-transport-apache:4.4")
 
     implementation("io.vavr:vavr:0.10.7")
+    include("io.vavr:vavr:0.10.7")
+
     implementation("com.google.code.gson:gson:2.8.9")
 
     compileOnly("org.projectlombok:lombok:1.18.42")
