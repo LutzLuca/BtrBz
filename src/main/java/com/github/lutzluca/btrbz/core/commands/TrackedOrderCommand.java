@@ -24,10 +24,18 @@ public class TrackedOrderCommand {
                     return 1;
                 }
 
+                var newline = Text.literal("\n");
+
+                builder = builder
+                    .append(Text
+                        .literal("Active Alerts (" + orders.size() + "):")
+                        .formatted(Formatting.GOLD))
+                    .append(newline);
+
                 var first = true;
                 for (var order : orders) {
                     if (!first) {
-                        builder.append(Text.literal("\n"));
+                        builder.append(newline);
                     }
                     first = false;
                     builder.append(order.format());
@@ -37,7 +45,7 @@ public class TrackedOrderCommand {
 
                 return 1;
             }))
-            
+
             .then(ClientCommandManager.literal("reset").executes(ctx -> {
                 MinecraftClient.getInstance().execute(() -> {
                     BtrBz.orderManager().resetTrackedOrders();

@@ -15,6 +15,8 @@ import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule.OrderValueOverlayConfig;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,6 +38,10 @@ public class Config {
     @SerialEntry
     @BindModule(OrderValueModule.class)
     public OrderValueOverlayConfig orderValueOverlay = new OrderValueOverlayConfig();
+
+    @SerialEntry
+    @BindModule(TrackedOrdersListModule.class)
+    public OrderListConfig orderList = new OrderListConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();

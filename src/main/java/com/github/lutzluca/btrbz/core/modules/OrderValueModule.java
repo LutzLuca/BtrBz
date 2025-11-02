@@ -27,10 +27,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
 
     @Override
     public void onLoad() {
-        ScreenInfoHelper.registerOnSwitch(info -> {
-            log.info("Resetting order state");
-            this.orders = null;
-        });
+        ScreenInfoHelper.registerOnSwitch(info -> this.orders = null);
     }
 
     @Override

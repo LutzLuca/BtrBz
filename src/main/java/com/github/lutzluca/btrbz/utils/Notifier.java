@@ -158,7 +158,7 @@ public class Notifier {
 
     private static MutableText makeGotoAction(Action action, TrackedOrder order) {
         var base = (action == Action.Item) ? Text
-            .literal("[Go To Item]")
+            .literal(" [Go To Item]")
             .styled(style -> style
                 .withClickEvent(new RunCommand("/bz " + order.productName))
                 .withHoverEvent(new ShowText(Text
@@ -166,7 +166,7 @@ public class Notifier {
                     .formatted(Formatting.GRAY)
                     .append(Text.literal(order.productName).formatted(Formatting.AQUA))
                     .append(Text.literal(" in the Bazaar").formatted(Formatting.GRAY))))) : Text
-            .literal("[Go To Orders]")
+            .literal(" [Go To Orders]")
             .styled(style -> style
                 .withClickEvent(new RunCommand("/managebazaarorders"))
                 .withHoverEvent(new ShowText(Text.literal("Open Manage Bazaar Orders"))));

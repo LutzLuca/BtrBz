@@ -19,6 +19,8 @@ import net.minecraft.text.Text;
 public class HighlightManager {
 
     private final Map<Integer, Integer> highlights = new HashMap<>();
+    private Integer overrideSlotIdx = null;
+    private Integer overrideColor = null;
 
     public static int colorForStatus(OrderStatus status) {
         return switch (status) {
@@ -30,6 +32,10 @@ public class HighlightManager {
     }
 
     public Optional<Integer> getHighlight(int idx) {
+        if (this.overrideSlotIdx != null && idx == this.overrideSlotIdx) {
+            return Optional.of(this.overrideColor);
+        }
+
         if (!ConfigManager.get().orderHighlight.enabled) {
             return Optional.empty();
         }
@@ -62,6 +68,17 @@ public class HighlightManager {
         }
 
         this.highlights.put(slotIdx, colorForStatus(update.status()));
+    }
+
+    public void setHighlightOverride(int slotIdx, int color) {
+        this.overrideSlotIdx = slotIdx;
+        this.overrideColor = color;
+    }
+
+
+    public void clearHighlightOverride() {
+        this.overrideSlotIdx = null;
+        this.overrideColor = null;
     }
 
     public static class HighlightConfig {

@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
@@ -40,11 +41,22 @@ public class OrderManager {
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
 
     private final Consumer<StatusUpdate> onOrderStatusUpdate;
+    private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
+    private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
+
 
     public OrderManager(BazaarData bazaarData, Consumer<StatusUpdate> onOrderStatusChange) {
         this.bazaarData = bazaarData;
         this.outstandingOrderStore = new TimedStore<>(15_000L);
         this.onOrderStatusUpdate = onOrderStatusChange;
+    }
+
+    public void addOnOrderAddedListener(Consumer<TrackedOrder> listener) {
+        this.onOrderAddedListeners.add(listener);
+    }
+
+    public void addOnOrderRemovedListener(Consumer<TrackedOrder> listener) {
+        this.onOrderRemovedListeners.add(listener);
     }
 
     public void syncFromUi(Collection<OrderInfo> parsedOrders) {
@@ -62,9 +74,7 @@ public class OrderManager {
                         return;
                     }
                     tracked.slot = info.slotIdx();
-                }, () -> {
-                    toRemove.add(tracked);
-                }
+                }, () -> toRemove.add(tracked)
             );
         }
 
@@ -75,11 +85,17 @@ public class OrderManager {
             remaining.stream().filter(OrderInfo::notFilled).toList()
         );
 
-        this.trackedOrders.removeAll(toRemove);
-        this.trackedOrders.addAll(remaining.stream().filter(OrderInfo::notFilled).map(info -> {
+        toRemove.forEach(this::removeTrackedOrder);
+        remaining.stream().filter(OrderInfo::notFilled).map(info -> {
             var slot = info.slotIdx();
             return new TrackedOrder(info, slot);
-        }).toList());
+        }).forEach(this::addTrackedOrder);
+    }
+
+    private void removeTrackedOrder(TrackedOrder order) {
+        if (this.trackedOrders.remove(order)) {
+            this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
+        }
     }
 
     public void onBazaarUpdate(Map<String, Product> products) {
@@ -144,6 +160,7 @@ public class OrderManager {
         var removed = this.trackedOrders.size();
         this.trackedOrders.clear();
         log.info("Reset tracked orders (removed {})", removed);
+        ModuleManager.getInstance().getModule(TrackedOrdersListModule.class).clearList();
     }
 
     public List<TrackedOrder> getTrackedOrders() {
@@ -152,6 +169,7 @@ public class OrderManager {
 
     public void addTrackedOrder(TrackedOrder order) {
         this.trackedOrders.add(order);
+        this.onOrderAddedListeners.forEach(listener -> listener.accept(order));
     }
 
     public void removeMatching(OrderFilled info) {
@@ -164,7 +182,7 @@ public class OrderManager {
             .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
             .findFirst()
             .ifPresentOrElse(
-                this.trackedOrders::remove, () -> Notifier.notifyChatCommand(
+                this::removeTrackedOrder, () -> Notifier.notifyChatCommand(
                     "No matching tracked order found for filled order message. Resync orders",
                     "managebazaarorders"
                 )

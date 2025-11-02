@@ -45,6 +45,7 @@ public class ConfigScreen {
             .group(config.orderHighlight.createGroup())
             .group(config.flipHelper.createGroup())
             .group(config.orderValueOverlay.createGroup())
+            .group(config.orderList.getGroup())
             .build();
 
         builder.category(general);

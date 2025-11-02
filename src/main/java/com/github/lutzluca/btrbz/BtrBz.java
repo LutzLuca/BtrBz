@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -85,23 +86,28 @@ public class BtrBz implements ClientModInitializer {
 
         ConfigManager.load();
         Commands.registerAll();
-
-        ModuleManager.getInstance().discoverBindings();
-        var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
-        var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
-        var priceDiffModule = ModuleManager.getInstance().registerModule(PriceDiffModule.class);
-        var orderValueModule = ModuleManager.getInstance().registerModule(OrderValueModule.class);
-
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
         this.highlightManager = new HighlightManager();
-        this.orderManager = new OrderManager(BAZAAR_DATA, this.highlightManager::updateStatus);
+        this.orderManager = new OrderManager(
+            BAZAAR_DATA,
+            statusUpdate -> this.highlightManager.updateStatus(statusUpdate)
+        );
         this.alertManager = new AlertManager();
         BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
+
+        var moduleManager = ModuleManager.getInstance();
+        moduleManager.discoverBindings();
+        var orderLimitModule = moduleManager.registerModule(OrderLimitModule.class);
+        var bookmarkModule = moduleManager.registerModule(BookmarkModule.class);
+        var priceDiffModule = moduleManager.registerModule(PriceDiffModule.class);
+        var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
+        var orderListModule = moduleManager.registerModule(TrackedOrdersListModule.class);
+
         OrderCancelRouter.init();
         ProductInfoProvider.init();
 
