@@ -169,7 +169,7 @@ public class Notifier {
             .literal(" [Go To Orders]")
             .styled(style -> style
                 .withClickEvent(new RunCommand("/managebazaarorders"))
-                .withHoverEvent(new ShowText(Text.literal("Open Manage Bazaar Orders"))));
+                .withHoverEvent(new ShowText(Text.literal("Opens the Bazaar order screen"))));
 
         return base.formatted(Formatting.DARK_AQUA);
     }

@@ -31,7 +31,7 @@ public final class OrderInfoParser {
         assert bazaarMsg.startsWith("[Bazaar]");
         var msg = bazaarMsg.replace("[Bazaar]", "").trim();
 
-        if (msg.endsWith("was filled!")) {
+        if (msg.endsWith("was filled!") || msg.endsWith("was filled! [Go To Orders]")) {
             return parseFilledOrderMessage(msg).onFailure(err -> logParseError(
                 "filled order",
                 msg,
@@ -148,7 +148,7 @@ public final class OrderInfoParser {
                     throw new IllegalArgumentException("Filled order: unknown type '" + typePart + "'");
             };
 
-            var fragment = forSplit[1].replace("was filled!", "").trim();
+            var fragment = forSplit[1].replaceFirst("was filled!.*", "").trim();
             var parsed = parseVolume(fragment, "Filled order");
 
             return new OrderFilled(orderType, parsed.volume, parsed.productName);

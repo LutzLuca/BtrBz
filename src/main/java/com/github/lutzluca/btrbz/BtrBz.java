@@ -39,6 +39,9 @@ import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.text.ClickEvent.RunCommand;
+import net.minecraft.text.HoverEvent.ShowText;
+import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
@@ -136,6 +139,24 @@ public class BtrBz implements ClientModInitializer {
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
+        });
+
+        ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
+            var rawMsg = Formatting.strip(message.getString());
+            if (overlay || !rawMsg.startsWith("[Bazaar]") || !rawMsg.endsWith("was filled!")) {
+                return message;
+            }
+
+            return message
+                .copy()
+                .append(Text
+                    .literal(" [Go To Orders]")
+                    .styled(style -> style
+                        .withClickEvent(new RunCommand("/managebazaarorders"))
+                        .withHoverEvent(new ShowText(Text.literal("Opens the Bazaar order screen")))
+                        .withColor(Formatting.DARK_AQUA)
+                    )
+                );
         });
 
         ScreenInfoHelper.registerOnLoaded(
