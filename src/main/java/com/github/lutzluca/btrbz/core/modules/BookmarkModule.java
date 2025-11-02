@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
@@ -93,6 +95,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return true;
             }
         });
+    }
+
+    public void updateChildrenCount() {
+        if (this.list == null) {
+            return;
+        }
+
+        this.list.setMaxVisibleChildren(ConfigManager.get().bookmark.maxVisibleChildren);
     }
 
     private void toggleBookmark(String productName, ItemStack itemStack) {
@@ -366,7 +376,15 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .name(Text.literal("Max Visible Items"))
                 .description(OptionDescription.of(Text.literal(
                     "Maximum number of bookmarks visible at once before scrolling")))
-                .binding(5, () -> this.maxVisibleChildren, val -> this.maxVisibleChildren = val)
+                .binding(
+                    5, () -> this.maxVisibleChildren, val -> {
+                        this.maxVisibleChildren = val;
+                        ModuleManager
+                            .getInstance()
+                            .getModule(BookmarkModule.class)
+                            .updateChildrenCount();
+                    }
+                )
                 .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 10).step(1))
                 .build();
         }
