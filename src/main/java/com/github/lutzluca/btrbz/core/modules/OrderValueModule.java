@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -23,11 +25,15 @@ import net.minecraft.util.Formatting;
 public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayConfig> {
 
     private TextDisplayWidget widget;
-    private List<OrderInfo> orders = null;
+    private List<UnfilledOrderInfo> unfilledOrders;
+    private List<FilledOrderInfo> filledOrders;
 
     @Override
     public void onLoad() {
-        ScreenInfoHelper.registerOnSwitch(info -> this.orders = null);
+        ScreenInfoHelper.registerOnSwitch(info -> {
+            this.unfilledOrders = null;
+            this.filledOrders = null;
+        });
     }
 
     @Override
@@ -35,13 +41,12 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         return this.configState.enabled && info.inMenu(BazaarMenuType.Orders);
     }
 
-    // Note: when the inv did not load properly and new ordes where
-    // placed the current interface would fallback to the previously known
-    // orders. Could you enhanced by listening on places / filled orders
-    // but partially filled orders would not be disregarded in that case, so
-    // it seems unnecessary to do so, as there is no way around the desync.
-    public void update(List<OrderInfo> orders) {
-        this.orders = orders;
+    public void sync(
+        List<OrderInfo.UnfilledOrderInfo> unfilledOrders,
+        List<OrderInfo.FilledOrderInfo> filledOrders
+    ) {
+        this.unfilledOrders = unfilledOrders;
+        this.filledOrders = filledOrders;
 
         if (this.widget == null) {
             return;
@@ -71,35 +76,67 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     private List<Text> getLines() {
-        double pending = 0.0;
-        double filled = 0.0;
-        double invested = 0.0;
+        double lockedInBuyOrders = 0.0;
+        double itemsFromBuyOrders = 0.0;
+        double coinsFromSellOffers = 0.0;
+        double pendingSellOffers = 0.0;
 
-        if (this.orders != null) {
-            for (var order : this.orders) {
-                pending += (order.volume() - order.filledAmount()) * order.pricePerUnit();
+        if (this.unfilledOrders != null) {
+            for (var order : this.unfilledOrders) {
+                int unfilledVolume = order.volume() - order.filledAmount();
+
                 switch (order.type()) {
-                    case Sell -> filled += order.unclaimed();
-                    case Buy -> invested += order.unclaimed() * order.pricePerUnit();
+                    case Buy -> {
+                        lockedInBuyOrders += unfilledVolume * order.pricePerUnit();
+                        itemsFromBuyOrders += order.unclaimed() * order.pricePerUnit();
+                    }
+                    case Sell -> {
+                        pendingSellOffers += unfilledVolume * order.pricePerUnit();
+                        coinsFromSellOffers += order.unclaimed();
+                    }
                 }
             }
         }
-        var total = pending + filled + invested;
+
+        if (this.filledOrders != null) {
+            for (var order : this.filledOrders) {
+                switch (order.type()) {
+                    case Buy -> itemsFromBuyOrders += order.unclaimed() * order.pricePerUnit();
+                    case Sell -> coinsFromSellOffers += order.unclaimed();
+                }
+            }
+        }
+        var total = lockedInBuyOrders + itemsFromBuyOrders + coinsFromSellOffers + pendingSellOffers;
 
         return List.of(
-            Text.literal("Order Value Overview").formatted(Formatting.GOLD, Formatting.BOLD),
+            Text.literal("Bazaar Overview").formatted(Formatting.GOLD, Formatting.BOLD),
             Text
-                .literal("Pending: " + Util.formatCompact(pending, 1) + " coins")
+                .literal("Buy Orders (Locked): " + Util.formatCompact(
+                    lockedInBuyOrders,
+                    1
+                ) + " coins")
                 .formatted(Formatting.YELLOW),
             Text
-                .literal("Filled: " + Util.formatCompact(filled, 1) + " coins")
+                .literal("Buy Orders (Items): " + Util.formatCompact(
+                    itemsFromBuyOrders,
+                    1
+                ) + " coins")
+                .formatted(Formatting.AQUA),
+            Text
+                .literal("Sell Offers (Claimable): " + Util.formatCompact(
+                    coinsFromSellOffers,
+                    1
+                ) + " coins")
                 .formatted(Formatting.GREEN),
             Text
-                .literal("Invested: " + Util.formatCompact(invested, 1) + " coins")
-                .formatted(Formatting.GREEN),
+                .literal("Sell Offers (Pending): " + Util.formatCompact(
+                    pendingSellOffers,
+                    1
+                ) + " coins")
+                .formatted(Formatting.YELLOW),
             Text
-                .literal("Total: " + Util.formatCompact(total, 1) + " coins")
-                .formatted(Formatting.AQUA)
+                .literal("Total Worth: " + Util.formatCompact(total, 1) + " coins")
+                .formatted(Formatting.GOLD, Formatting.BOLD)
         );
     }
 

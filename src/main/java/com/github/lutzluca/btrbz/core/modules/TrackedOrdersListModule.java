@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.HighlightManager;
+import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
@@ -38,7 +38,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         orderManager.addOnOrderAddedListener(this::onOrderAdded);
         orderManager.addOnOrderRemovedListener(this::onOrderRemoved);
-
     }
 
     private void onOrderAdded(TrackedOrder order) {
@@ -105,20 +104,20 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
     private OrderEntryWidget createEntryWidget(TrackedOrder order) {
         return new OrderEntryWidget(
-                0,
-                0,
-                200,
-                14,
-                order,
-                this.list.getParentScreen(),
-                widget -> this.onWidgetHoverEnter(widget.getSlotIdx()),
-                widget -> this.onWidgetHoverExit(widget.getSlotIdx()));
+            0,
+            0,
+            200,
+            14,
+            order,
+            this.list.getParentScreen(),
+            widget -> this.onWidgetHoverEnter(widget.getSlotIdx()),
+            widget -> this.onWidgetHoverExit(widget.getSlotIdx())
+        );
     }
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return this.configState.enabled
-                && (info.inMenu(BazaarMenuType.Orders) || this.configState.showInBazaar && info.inBazaar());
+        return this.configState.enabled && (info.inMenu(BazaarMenuType.Orders) || this.configState.showInBazaar && info.inBazaar());
     }
 
     @Override
@@ -133,18 +132,19 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         this.list = new ScrollableListWidget<OrderEntryWidget>(
-                position.get().x(),
-                position.get().y(),
-                200,
-                250,
-                Text.literal("Tracked Orders"),
-                info.getScreen())
-                .setMaxVisibleChildren(8)
-                .setChildHeight(14)
-                .setChildSpacing(1)
-                .setTitleBarHeight(18)
-                .setTopMargin(2)
-                .setBottomPadding(2);
+            position.get().x(),
+            position.get().y(),
+            200,
+            250,
+            Text.literal("Tracked Orders"),
+            info.getScreen()
+        )
+            .setMaxVisibleChildren(8)
+            .setChildHeight(14)
+            .setChildSpacing(1)
+            .setTitleBarHeight(18)
+            .setTopMargin(2)
+            .setBottomPadding(2);
 
         this.initializeList();
 
@@ -174,22 +174,22 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         public Option.Builder<Boolean> createInBazaarOption() {
             return Option
-                    .<Boolean>createBuilder()
-                    .name(Text.literal("In Bazaar"))
-                    .description(OptionDescription.of(Text.literal(
-                            "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
-                    .binding(false, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
-                    .controller(ConfigScreen::createBooleanController);
+                .<Boolean>createBuilder()
+                .name(Text.literal("In Bazaar"))
+                .description(OptionDescription.of(Text.literal(
+                    "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
+                .binding(false, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
-                    .<Boolean>createBuilder()
-                    .name(Text.literal("Order List Module"))
-                    .description(OptionDescription.of(Text.literal(
-                            "Compact list of tracked orders. Hover an entry to highlight its slot.")))
-                    .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                    .controller(ConfigScreen::createBooleanController);
+                .<Boolean>createBuilder()
+                .name(Text.literal("Order List Module"))
+                .description(OptionDescription.of(Text.literal(
+                    "Compact list of tracked orders. Hover an entry to highlight its slot.")))
+                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup getGroup() {
@@ -203,14 +203,14 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             });
 
             return OptionGroup
-                    .createBuilder()
-                    .name(Text.literal("Order List"))
-                    .description(OptionDescription.of(Text.literal(
-                            "Shows your tracked bazaar orders in a compact, hover-highlightable list.")))
-                    .option(enabled.build())
-                    .option(inBazaarOption)
-                    .collapsed(false)
-                    .build();
+                .createBuilder()
+                .name(Text.literal("Order List"))
+                .description(OptionDescription.of(Text.literal(
+                    "Shows your tracked bazaar orders in a compact, hover-highlightable list.")))
+                .option(enabled.build())
+                .option(inBazaarOption)
+                .collapsed(false)
+                .build();
         }
     }
 
@@ -223,14 +223,15 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         private boolean wasHovered;
 
         public OrderEntryWidget(
-                int x,
-                int y,
-                int width,
-                int height,
-                TrackedOrder order,
-                Screen parentScreen,
-                Consumer<OrderEntryWidget> onHoverEnter,
-                Consumer<OrderEntryWidget> onHoverExit) {
+            int x,
+            int y,
+            int width,
+            int height,
+            TrackedOrder order,
+            Screen parentScreen,
+            Consumer<OrderEntryWidget> onHoverEnter,
+            Consumer<OrderEntryWidget> onHoverExit
+        ) {
             super(x, y, width, height, Text.literal(order.productName), parentScreen);
             this.order = order;
             this.onHoverEnter = onHoverEnter;
@@ -267,14 +268,13 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 context.fill(x, y, x + w, y + h, 0x30FFFFFF);
             }
 
-            int statusColor = HighlightManager.colorForStatus(status);
+            int statusColor = OrderHighlightManager.colorForStatus(status);
             int dotSize = 4;
             int dotX = x + 3;
             int dotY = y + (h - dotSize) / 2;
             context.fill(dotX, dotY, dotX + dotSize, dotY + dotSize, statusColor);
 
-            int typeColor = type == OrderType.Sell ? 0xFF5DADE2
-                    : 0xFFFF8C69;
+            int typeColor = type == OrderType.Sell ? 0xFF5DADE2 : 0xFFFF8C69;
             int volumeColor = 0xFFFFA500;
             int nameColor = 0xFFE0E0E0;
             int separatorColor = 0xFF808080;

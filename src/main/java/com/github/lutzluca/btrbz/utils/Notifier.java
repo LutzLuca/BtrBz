@@ -1,8 +1,8 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.OrderManager.OrderManagerConfig.Action;
-import com.github.lutzluca.btrbz.core.OrderManager.StatusUpdate;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;

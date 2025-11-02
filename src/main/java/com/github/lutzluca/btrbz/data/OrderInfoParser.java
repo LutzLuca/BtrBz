@@ -7,6 +7,8 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.Orde
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFlipped;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.Util;
@@ -191,6 +193,8 @@ public final class OrderInfoParser {
         // Blank
         // Price per unit: {pricePerUnit} coins
         // ...
+        // You have {unclaimed} of ... to claim
+        // ...
         return Try.of(() -> {
             var orderInfo = item.getName().getString().split(" ", 2);
             if (orderInfo.length != 2) {
@@ -216,14 +220,25 @@ public final class OrderInfoParser {
             }
 
             var details = additionalInfo.get();
-            return new OrderInfo(
+            if (details.filled) {
+                return new FilledOrderInfo(
+                    productName.trim(),
+                    orderTypeResult.get(),
+                    details.volume,
+                    details.pricePerUnit,
+                    details.filledAmount,
+                    details.unclaimed,
+                    slotIdx
+                );
+            }
+
+            return new UnfilledOrderInfo(
                 productName.trim(),
                 orderTypeResult.get(),
-                details.volume(),
-                details.filledAmount(),
-                details.unclaimed(),
-                details.pricePerUnit(),
-                details.filled(),
+                details.volume,
+                details.pricePerUnit,
+                details.filledAmount,
+                details.unclaimed,
                 slotIdx
             );
         });

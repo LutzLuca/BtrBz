@@ -291,18 +291,16 @@ public class FlipHelper {
         var entry = match.get();
         double pricePerUnit = entry.pricePerUnit();
 
-        var orderInfo = new OrderInfo(
+        var orderInfo = new OrderInfo.UnfilledOrderInfo(
             flipped.productName(),
             OrderType.Sell,
             flipped.volume(),
-            0,
-            0,
             pricePerUnit,
-            false,
+            0,
+            0,
             -1
         );
-
-        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, -1));
+        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",

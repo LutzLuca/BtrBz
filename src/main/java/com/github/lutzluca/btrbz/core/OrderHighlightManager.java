@@ -1,24 +1,25 @@
 package com.github.lutzluca.btrbz.core;
 
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.OrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import net.minecraft.text.Text;
 
-public class HighlightManager {
+@Slf4j
+public class OrderHighlightManager {
 
-    private final Map<Integer, Integer> highlights = new HashMap<>();
+    private final Map<Integer, TrackedOrder> slotToTrackedOrder = new HashMap<>();
+    private final Map<Integer, Integer> filledOrderSlots = new HashMap<>();
     private Integer overrideSlotIdx = null;
     private Integer overrideColor = null;
 
@@ -31,6 +32,22 @@ public class HighlightManager {
         };
     }
 
+    public void sync(
+        List<TrackedOrder> trackedOrders,
+        List<OrderInfo.FilledOrderInfo> filledOrders
+    ) {
+        log.debug("Synchronizing highlights from ui orders");
+        this.slotToTrackedOrder.clear();
+        this.filledOrderSlots.clear();
+
+        trackedOrders
+            .stream()
+            .filter(order -> order.slot != -1)
+            .forEach(order -> this.slotToTrackedOrder.put(order.slot, order));
+
+        filledOrders.forEach(order -> this.filledOrderSlots.put(order.slotIdx(), 0xFFEFBF04));
+    }
+
     public Optional<Integer> getHighlight(int idx) {
         if (this.overrideSlotIdx != null && idx == this.overrideSlotIdx) {
             return Optional.of(this.overrideColor);
@@ -40,41 +57,18 @@ public class HighlightManager {
             return Optional.empty();
         }
 
-        return Optional.ofNullable(highlights.get(idx));
-    }
-
-    public void setStatuses(List<OrderInfo> parsedOrders) {
-        this.highlights.clear();
-        var orders = new ArrayList<>(parsedOrders);
-
-        var trackedCopy = BtrBz.orderManager().getTrackedOrders();
-        for (var tracked : trackedCopy) {
-            orders.stream().filter(tracked::matches).findFirst().ifPresent(info -> {
-                orders.remove(info);
-                this.highlights.put(info.slotIdx(), colorForStatus(tracked.status));
-            });
+        var tracked = this.slotToTrackedOrder.get(idx);
+        if (tracked != null) {
+            return Optional.of(colorForStatus(tracked.status));
         }
 
-        for (var info : orders) {
-            var color = info.filled() ? 0xFFEFBF04 : 0xFFAA55FF;
-            this.highlights.put(info.slotIdx(), color);
-        }
-    }
-
-    public void updateStatus(StatusUpdate update) {
-        int slotIdx = update.trackedOrder().slot;
-        if (slotIdx < 0) {
-            return;
-        }
-
-        this.highlights.put(slotIdx, colorForStatus(update.status()));
+        return Optional.ofNullable(this.filledOrderSlots.get(idx));
     }
 
     public void setHighlightOverride(int slotIdx, int color) {
         this.overrideSlotIdx = slotIdx;
         this.overrideColor = color;
     }
-
 
     public void clearHighlightOverride() {
         this.overrideSlotIdx = null;

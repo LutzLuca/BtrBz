@@ -7,6 +7,8 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
@@ -23,32 +25,31 @@ import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.minecraft.text.Text;
 
 @Slf4j
-public class OrderManager {
+public class TrackedOrderManager {
 
     private final BazaarData bazaarData;
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
 
-    private final Consumer<StatusUpdate> onOrderStatusUpdate;
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
+    private final List<Consumer<StatusUpdate>> onOrderStatusUpdate = new ArrayList<>();
+    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = null;
 
-
-    public OrderManager(BazaarData bazaarData, Consumer<StatusUpdate> onOrderStatusChange) {
+    public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
         this.outstandingOrderStore = new TimedStore<>(15_000L);
-        this.onOrderStatusUpdate = onOrderStatusChange;
     }
 
     public void addOnOrderAddedListener(Consumer<TrackedOrder> listener) {
@@ -59,20 +60,33 @@ public class OrderManager {
         this.onOrderRemovedListeners.add(listener);
     }
 
-    public void syncFromUi(Collection<OrderInfo> parsedOrders) {
+    public void afterOrderSync(BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> cb) {
+        this.onSyncCompletedCallback = cb;
+    }
+
+    public void addOnOrderStatusUpdate(Consumer<StatusUpdate> listener) {
+        this.onOrderStatusUpdate.add(listener);
+    }
+
+    public void syncOrders(List<OrderInfo> parsedOrders) {
         var toRemove = new ArrayList<TrackedOrder>();
         var remaining = new ArrayList<>(parsedOrders);
 
+        var filledOrders = new ArrayList<OrderInfo.FilledOrderInfo>();
+        var unfilledOrders = new ArrayList<OrderInfo.UnfilledOrderInfo>();
+        for (var order : remaining) {
+            switch (order) {
+                case OrderInfo.FilledOrderInfo filled -> filledOrders.add(filled);
+                case OrderInfo.UnfilledOrderInfo unfilled -> unfilledOrders.add(unfilled);
+            }
+        }
+
         for (var tracked : this.trackedOrders) {
-            var match = remaining.stream().filter(tracked::matches).findFirst();
+            var match = unfilledOrders.stream().filter(tracked::matches).findFirst();
 
             match.ifPresentOrElse(
                 info -> {
-                    remaining.remove(info);
-                    if (info.filled()) {
-                        toRemove.add(tracked);
-                        return;
-                    }
+                    unfilledOrders.remove(info);
                     tracked.slot = info.slotIdx();
                 }, () -> toRemove.add(tracked)
             );
@@ -82,14 +96,13 @@ public class OrderManager {
             "Tracked orders: {}, toRemove: {}, toAdd: {}",
             this.trackedOrders,
             toRemove,
-            remaining.stream().filter(OrderInfo::notFilled).toList()
+            unfilledOrders
         );
 
         toRemove.forEach(this::removeTrackedOrder);
-        remaining.stream().filter(OrderInfo::notFilled).map(info -> {
-            var slot = info.slotIdx();
-            return new TrackedOrder(info, slot);
-        }).forEach(this::addTrackedOrder);
+        unfilledOrders.stream().map(TrackedOrder::new).forEach(this::addTrackedOrder);
+
+        this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
     }
 
     private void removeTrackedOrder(TrackedOrder order) {
@@ -137,7 +150,7 @@ public class OrderManager {
             .filter(statusUpdate -> !statusUpdate.trackedOrder.status.sameVariant(statusUpdate.status))
             .forEach(statusUpdate -> {
                 statusUpdate.trackedOrder.status = statusUpdate.status;
-                this.onOrderStatusUpdate.accept(statusUpdate);
+                this.onOrderStatusUpdate.forEach(listener -> listener.accept(statusUpdate));
 
                 if (this.shouldNotify(statusUpdate)) {
                     Notifier.notifyOrderStatus(statusUpdate);

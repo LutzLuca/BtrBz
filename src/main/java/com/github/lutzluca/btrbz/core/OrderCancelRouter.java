@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -16,6 +15,8 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 
 public class OrderCancelRouter {
+
+    private static boolean returnToOrderScreen = false;
 
     public static void init() {
         ScreenActionManager.register(new ScreenActionManager.ScreenClickRule() {
@@ -41,10 +42,18 @@ public class OrderCancelRouter {
                     return false;
                 }
 
-                ClientTickDispatcher.submit(client -> Util.runCommand("managebazaarorders"), 5);
+                returnToOrderScreen = true;
                 return false;
             }
         });
+
+        ScreenInfoHelper.registerOnClose(
+            info -> info.inMenu(BazaarMenuType.OrderOptions), info -> {
+                if (returnToOrderScreen) {
+                    Util.runCommand("managebazaarorders");
+                }
+            }
+        );
     }
 
     private static boolean isCancelOrderSlot(Slot slot) {

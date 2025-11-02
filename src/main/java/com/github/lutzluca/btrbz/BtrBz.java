@@ -2,11 +2,11 @@ package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
-import com.github.lutzluca.btrbz.core.HighlightManager;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderCancelRouter;
-import com.github.lutzluca.btrbz.core.OrderManager;
+import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
@@ -51,19 +51,21 @@ public class BtrBz implements ClientModInitializer {
         Items.ARROW,
         Items.HOPPER
     );
+
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
     public static ComponentType<Boolean> BOOKMARKED;
     private static BtrBz instance;
-    private OrderManager orderManager;
-    private HighlightManager highlightManager;
+
+    private TrackedOrderManager orderManager;
+    private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
 
-    public static OrderManager orderManager() {
+    public static TrackedOrderManager orderManager() {
         return instance.orderManager;
     }
 
-    public static HighlightManager highlightManager() {
+    public static OrderHighlightManager highlightManager() {
         return instance.highlightManager;
     }
 
@@ -88,17 +90,9 @@ public class BtrBz implements ClientModInitializer {
         Commands.registerAll();
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
-        this.highlightManager = new HighlightManager();
-        this.orderManager = new OrderManager(
-            BAZAAR_DATA,
-            statusUpdate -> this.highlightManager.updateStatus(statusUpdate)
-        );
+        this.highlightManager = new OrderHighlightManager();
+        this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.alertManager = new AlertManager();
-        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
-        BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
-
-        new BazaarPoller(BAZAAR_DATA::onUpdate);
-        var flipHelper = new FlipHelper(BAZAAR_DATA);
 
         var moduleManager = ModuleManager.getInstance();
         moduleManager.discoverBindings();
@@ -107,6 +101,18 @@ public class BtrBz implements ClientModInitializer {
         var priceDiffModule = moduleManager.registerModule(PriceDiffModule.class);
         var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
         var orderListModule = moduleManager.registerModule(TrackedOrdersListModule.class);
+
+        this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
+            var trackedOrders = this.orderManager.getTrackedOrders();
+            this.highlightManager.sync(trackedOrders, filledOrder);
+            orderValueModule.sync(unfilledOrders, filledOrder);
+        });
+
+        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
+        BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
+
+        new BazaarPoller(BAZAAR_DATA::onUpdate);
+        var flipHelper = new FlipHelper(BAZAAR_DATA);
 
         OrderCancelRouter.init();
         ProductInfoProvider.init();
@@ -148,9 +154,7 @@ public class BtrBz implements ClientModInitializer {
                     .flatMap(Optional::stream)
                     .toList();
 
-                this.orderManager.syncFromUi(parsed);
-                this.highlightManager.setStatuses(parsed);
-                orderValueModule.update(parsed);
+                this.orderManager.syncOrders(parsed);
             }
         );
 

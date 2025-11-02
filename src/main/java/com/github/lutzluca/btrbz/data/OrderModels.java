@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.data;
 
-import com.github.lutzluca.btrbz.core.HighlightManager;
+import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Util;
 import io.vavr.control.Try;
@@ -26,6 +26,45 @@ public final class OrderModels {
                     Try.failure(new IllegalArgumentException("Unknown order type: " + value));
             };
         }
+    }
+
+    // Note: `unclaimed` when type == OrderType.Buy in items; when type == OrderType.Sell in coins
+    public sealed interface OrderInfo permits OrderInfo.UnfilledOrderInfo,
+        OrderInfo.FilledOrderInfo {
+
+        String productName();
+
+        OrderType type();
+
+        int volume();
+
+        double pricePerUnit();
+
+        int slotIdx();
+
+        int filledAmount();
+
+        int unclaimed();
+
+        record UnfilledOrderInfo(
+            String productName,
+            OrderType type,
+            int volume,
+            double pricePerUnit,
+            int filledAmount,
+            int unclaimed,
+            int slotIdx
+        ) implements OrderInfo { }
+
+        record FilledOrderInfo(
+            String productName,
+            OrderType type,
+            int volume,
+            double pricePerUnit,
+            int filledAmount,
+            int unclaimed,
+            int slotIdx
+        ) implements OrderInfo { }
     }
 
     public sealed abstract static class OrderStatus permits OrderStatus.Unknown,
@@ -71,12 +110,12 @@ public final class OrderModels {
         public int slot;
 
 
-        public TrackedOrder(OrderInfo info, int slot) {
+        public TrackedOrder(OrderInfo.UnfilledOrderInfo info) {
             this.productName = info.productName;
             this.type = info.type;
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
-            this.slot = slot;
+            this.slot = info.slotIdx;
         }
 
         public TrackedOrder(OutstandingOrderInfo info) {
@@ -90,29 +129,12 @@ public final class OrderModels {
         public boolean matches(OrderInfo info) {
             // @formatter:off
             return (
-                this.productName.equals(info.productName)
-                && this.type == info.type
-                && this.volume == info.volume
-                && Double.compare(this.pricePerUnit, info.pricePerUnit) == 0
+                this.productName.equals(info.productName())
+                && this.type == info.type()
+                && this.volume == info.volume()
+                && Double.compare(this.pricePerUnit, info.pricePerUnit()) == 0
             );
             // @formatter:on
-        }
-
-        @Override
-        public String toString() {
-            var typeStr = switch (type) {
-                case Buy -> "Buy Order";
-                case Sell -> "Sell Offer";
-            };
-
-            return String.format(
-                "[%s] %s for %dx %s at %scoins per",
-                status.toString(),
-                typeStr,
-                volume,
-                productName,
-                Util.formatDecimal(pricePerUnit, 1, true)
-            );
         }
 
         public MutableText format() {
@@ -125,7 +147,7 @@ public final class OrderModels {
                 .empty()
                 .append(Text
                     .literal("[" + this.status.toString() + "] ")
-                    .styled(style -> Style.EMPTY.withColor(HighlightManager.colorForStatus(this.status))))
+                    .styled(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status))))
                 .append(Text.literal(typeStr).formatted(Formatting.AQUA))
                 .append(Text.literal(" for ").formatted(Formatting.GRAY))
                 .append(Text.literal(this.volume + "x ").formatted(Formatting.LIGHT_PURPLE))
@@ -134,23 +156,6 @@ public final class OrderModels {
                 .append(Text
                     .literal(Util.formatDecimal(this.pricePerUnit, 1, true) + "coins")
                     .formatted(Formatting.YELLOW));
-        }
-    }
-
-    // Note: `unclaimed` when type == OrderType.Buy in items; when type == OrderType.Sell in coins
-    public record OrderInfo(
-        String productName,
-        OrderType type,
-        int volume,
-        int filledAmount,
-        int unclaimed,
-        double pricePerUnit,
-        boolean filled,
-        int slotIdx
-    ) {
-
-        public boolean notFilled() {
-            return !this.filled;
         }
     }
 
