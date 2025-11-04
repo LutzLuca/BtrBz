@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
 import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -21,6 +22,7 @@ import io.vavr.control.Try;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.WeakHashMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,7 @@ import net.minecraft.item.Items;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public final class ProductInfoProvider {
@@ -44,10 +47,11 @@ public final class ProductInfoProvider {
     private static final int PRODUCT_IDX = 13;
 
     private static ProductInfoProvider instance;
-
+    private final PriceCache priceCache;
     private String openedProductId;
 
     private ProductInfoProvider() {
+        this.priceCache = new PriceCache();
         this.registerProductInfoListener();
         this.registerInfoProviderItemOverride();
         this.registerInfoProviderClick();
@@ -70,6 +74,33 @@ public final class ProductInfoProvider {
             .map(Text::getString)
             .toJavaOptional();
     }
+
+    private static Text createPriceText(
+        String label,
+        @Nullable Double price,
+        int stackCount,
+        boolean isShiftHeld
+    ) {
+        var priceText = Text.literal(label).formatted(Formatting.AQUA);
+
+        if (price != null) {
+            var displayPrice = isShiftHeld && stackCount > 1 ? price * stackCount : price;
+            priceText.append(Text
+                .literal(Util.formatDecimal(displayPrice, 1, true) + " coins")
+                .formatted(Formatting.GOLD, Formatting.BOLD));
+
+            if (isShiftHeld && stackCount > 1) {
+                priceText.append(Text
+                    .literal(" (" + stackCount + "x)")
+                    .formatted(Formatting.DARK_GRAY));
+            }
+        } else {
+            priceText.append(Text.literal("Not Available").formatted(Formatting.GRAY));
+        }
+
+        return priceText;
+    }
+
 
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
@@ -101,8 +132,8 @@ public final class ProductInfoProvider {
             ignored -> true, ignored -> {
                 if (this.openedProductId != null) {
                     log.debug("Closing product: {}", this.openedProductId);
-                    this.openedProductId = null;
                 }
+                this.openedProductId = null;
             }
         );
 
@@ -174,7 +205,6 @@ public final class ProductInfoProvider {
             return Optional.of(item);
         });
     }
-
 
     private void registerInfoProviderClick() {
         ScreenActionManager.register(new ScreenClickRule() {
@@ -256,8 +286,45 @@ public final class ProductInfoProvider {
                     .formatted(Formatting.AQUA, Formatting.BOLD)));
 
         });
-    }
 
+        ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            var cfg = ConfigManager.get().productInfo;
+            if (!cfg.enabled || !cfg.priceTooltipEnabled) {
+                return;
+            }
+
+            var priceInfo = this.priceCache.get(stack);
+            if (priceInfo.isEmpty()) {
+                return;
+            }
+
+            var cached = priceInfo.get();
+            var count = stack.getCount();
+            var isShiftHeld = Screen.hasShiftDown();
+
+            lines.add(Text.empty());
+
+            if (count > 1 && !isShiftHeld) {
+                lines.add(Text
+                    .literal("Hold ")
+                    .formatted(Formatting.DARK_GRAY)
+                    .append(Text.literal("SHIFT").formatted(Formatting.AQUA, Formatting.BOLD))
+                    .append(Text.literal(" to show for (").formatted(Formatting.DARK_GRAY))
+                    .append(Text.literal(count + "x").formatted(Formatting.YELLOW))
+                    .append(Text.literal(")").formatted(Formatting.DARK_GRAY)));
+            }
+
+            if (count > 1 && isShiftHeld) {
+                lines.add(Text
+                    .literal("Showing price for ")
+                    .formatted(Formatting.GRAY)
+                    .append(Text.literal(count + "x").formatted(Formatting.YELLOW)));
+            }
+
+            lines.add(createPriceText("Buy Order: ", cached.buyOrderPrice, count, isShiftHeld));
+            lines.add(createPriceText("Sell Offer: ", cached.sellOfferPrice, count, isShiftHeld));
+        });
+    }
 
     private boolean shouldApplyCtrlShiftClick(ItemStack stack) {
         var cfg = ConfigManager.get().productInfo;
@@ -283,6 +350,7 @@ public final class ProductInfoProvider {
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
         // NOTE: reference equality is intentional here
+        //noinspection DataFlowIssue
         return Try
             .of(() -> StreamSupport
                 .stream(MinecraftClient.getInstance().player.getInventory().spliterator(), false)
@@ -338,9 +406,9 @@ public final class ProductInfoProvider {
     }
 
     public enum InfoProviderSite {
+        Coflnet("https://sky.coflnet.com/item/%s?range=day"),
         SkyblockBz("https://skyblock.bz/product/%s"),
-        SkyblockFinance("https://skyblock.finance/items/%s"),
-        Coflnet("https://sky.coflnet.com/item/%s?range=day");
+        SkyblockFinance("https://skyblock.finance/items/%s");
 
         private final String urlFormat;
 
@@ -374,15 +442,18 @@ public final class ProductInfoProvider {
         }
     }
 
+    private record CachedPrice(@Nullable Double sellOfferPrice, @Nullable Double buyOrderPrice) { }
+
     public static class ProductInfoProviderConfig {
 
         public boolean enabled = true;
         public boolean itemClickEnabled = true;
         public boolean ctrlShiftEnabled = true;
         public boolean showOutsideBazaar = false;
+        public boolean priceTooltipEnabled = true;
         public InfoProviderSite site = InfoProviderSite.SkyblockBz;
 
-        public Option.Builder<Boolean> createEnabledOption() {
+        public Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Enable Product Info System"))
@@ -425,6 +496,21 @@ public final class ProductInfoProvider {
                 .build();
         }
 
+        public Option<Boolean> createPriceTooltipOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Show Price Tooltips"))
+                .description(OptionDescription.of(Text.literal(
+                    "Display current Buy Order and Sell Offer prices in item tooltips for Bazaar items.")))
+                .binding(
+                    true,
+                    () -> this.priceTooltipEnabled,
+                    val -> this.priceTooltipEnabled = val
+                )
+                .controller(ConfigScreen::createBooleanController)
+                .build();
+        }
+
         public Option<InfoProviderSite> createSiteOption() {
             return Option
                 .<InfoProviderSite>createBuilder()
@@ -443,6 +529,7 @@ public final class ProductInfoProvider {
                 this.createItemClickOption(),
                 this.createCtrlShiftOption(),
                 this.createShowOutsideBazaarOption(),
+                this.createPriceTooltipOption(),
                 this.createSiteOption()
             );
 
@@ -462,6 +549,53 @@ public final class ProductInfoProvider {
                 .options(options)
                 .collapsed(false)
                 .build();
+        }
+    }
+
+    private class PriceCache {
+
+        private final WeakHashMap<ItemStack, @Nullable CachedPrice> cache = new WeakHashMap<>();
+
+        PriceCache() {
+            BtrBz.bazaarData().addListener(products -> {
+                log.trace(
+                    "Bazaar data updated, clearing price cache with {} mappings",
+                    this.cache.size()
+                );
+
+                cache.clear();
+            });
+        }
+
+        Optional<CachedPrice> get(ItemStack stack) {
+            if (cache.containsKey(stack)) {
+                return Optional.ofNullable(cache.get(stack));
+            }
+            var name = stack.getName().getString();
+            var productId = resolveProductId(stack, name);
+
+            if (productId.isEmpty()) {
+                cache.put(stack, null);
+                return Optional.empty();
+            }
+
+            var data = BtrBz.bazaarData();
+
+            var sellOfferPrice = data.lowestSellPrice(productId.get()).orElse(null);
+            var buyOrderPrice = data.highestBuyPrice(productId.get()).orElse(null);
+
+            var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
+            cache.put(stack, cached);
+
+            log.trace(
+                "Cached price for '{}' (id: {}): buy={}, sell={}",
+                name,
+                productId.get(),
+                buyOrderPrice,
+                sellOfferPrice
+            );
+
+            return Optional.of(cached);
         }
     }
 }

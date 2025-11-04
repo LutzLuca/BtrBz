@@ -78,6 +78,9 @@ public class OrderCancelActions {
         );
     }
 
+    // this could also be done inside the `OrderOptions` screen
+    // parsing the `Cancel Order` item's lore "You will be refunded {rounded total} coins from
+    // {remaining}x missing items."
     public static void onOrderClick(OrderInfo info) {
         if (info.unclaimed() != 0 || info.type() != OrderType.Buy) {
             return;

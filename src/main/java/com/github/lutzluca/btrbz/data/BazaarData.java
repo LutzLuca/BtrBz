@@ -20,7 +20,7 @@ public class BazaarData {
 
     private final List<Consumer<Map<String, Product>>> listeners = new ArrayList<>();
     private Map<String, Product> lastProducts = Collections.emptyMap();
-    private BiMap<String, String> idToName = null;
+    private BiMap<String, String> idToName;
 
     public BazaarData(BiMap<String, String> conversions) {
         this.idToName = conversions;
