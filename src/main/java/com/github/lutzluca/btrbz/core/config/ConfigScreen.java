@@ -14,39 +14,28 @@ public class ConfigScreen {
 
     public static void open() {
         var client = MinecraftClient.getInstance();
-        client.send(() -> client.setScreen(ConfigScreen.create(
-            client.currentScreen,
-            ConfigManager.get()
-        )));
+        client.send(() -> client
+                .setScreen(ConfigScreen.create(client.currentScreen, ConfigManager.get())));
     }
 
     public static Screen create(Screen parent, Config config) {
-        return YetAnotherConfigLib.create(
-            ConfigManager.HANDLER, (defaults, cfg, builder) -> {
-                builder.title(Text.literal(BtrBz.MOD_ID));
-                buildGeneralConfig(builder, config);
+        return YetAnotherConfigLib.create(ConfigManager.HANDLER, (defaults, cfg, builder) -> {
+            builder.title(Text.literal(BtrBz.MOD_ID));
+            buildGeneralConfig(builder, config);
 
-                return builder;
-            }
-        ).generateScreen(parent);
+            return builder;
+        }).generateScreen(parent);
     }
 
     private static void buildGeneralConfig(Builder builder, Config config) {
-        var general = ConfigCategory
-            .createBuilder()
-            .name(Text.literal("General"))
-            .group(config.trackedOrders.createGroup())
-            .group(config.alert.createGroup())
-            .group(config.orderLimit.createGroup())
-            .group(config.bookmark.createGroup())
-            .group(config.priceDiff.createGroup())
-            .group(config.productInfo.createGroup())
-            .group(config.orderCancel.createGroup())
-            .group(config.orderHighlight.createGroup())
-            .group(config.flipHelper.createGroup())
-            .group(config.orderValueOverlay.createGroup())
-            .group(config.orderList.getGroup())
-            .build();
+        var general = ConfigCategory.createBuilder().name(Text.literal("General"))
+                .group(config.trackedOrders.createGroup()).group(config.alert.createGroup())
+                .group(config.orderLimit.createGroup()).group(config.bookmark.createGroup())
+                .group(config.priceDiff.createGroup()).group(config.productInfo.createGroup())
+                .group(config.orderCancelActions.createGroup())
+                .group(config.orderHighlight.createGroup()).group(config.flipHelper.createGroup())
+                .group(config.orderValueOverlay.createGroup()).group(config.orderList.getGroup())
+                .build();
 
         builder.category(general);
     }

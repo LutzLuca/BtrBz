@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.TrackedProduct;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -51,57 +50,28 @@ public class FlipHelper {
 
     public FlipHelper(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.registerPotentialFlipOrderSelectionListener();
         this.registerFlipHelperItemOverride();
         this.registerFlipExecutionTrigger();
         this.registerFlipPriceScreenHandler();
     }
 
-    private void registerPotentialFlipOrderSelectionListener() {
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                if (!ConfigManager.get().flipHelper.enabled) {
-                    return false;
-                }
+    public void onOrderClick(OrderInfo info) {
+        if (info.type() != OrderType.Buy) {
+            this.clearPendingFlipState();
+            return;
+        }
 
-                if (slot == null) {
-                    return false;
-                }
+        if (info instanceof OrderInfo.UnfilledOrderInfo) {
+            this.clearPendingFlipState();
+            return;
+        }
 
-                var player = MinecraftClient.getInstance().player;
-                if (player != null && slot.inventory == player.getInventory()) {
-                    return false;
-                }
+        if (this.potentialFlipProduct != null) {
+            this.potentialFlipProduct.destroy();
+        }
 
-                return button == 1 && info.inMenu(ScreenInfoHelper.BazaarMenuType.Orders);
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var itemStack = slot.getStack();
-
-                var orderTitleInfo = parseOrderTitle(itemStack);
-                if (orderTitleInfo.isEmpty() || orderTitleInfo.get().type != OrderType.Buy) {
-                    clearPendingFlipState();
-                    return false;
-                }
-
-                if (!isFilled(itemStack)) {
-                    clearPendingFlipState();
-                    return false;
-                }
-
-                if (potentialFlipProduct != null) {
-                    potentialFlipProduct.destroy();
-                }
-
-                var name = orderTitleInfo.get().productName();
-                potentialFlipProduct = new TrackedProduct(bazaarData, name);
-                log.debug("Set `potentialFlipProduct` for product: '{}'", name);
-                return false;
-            }
-        });
+        this.potentialFlipProduct = new TrackedProduct(this.bazaarData, info.productName());
+        log.debug("Set `potentialFlipProduct` for product: '{}'", info.productName());
     }
 
     private void registerFlipHelperItemOverride() {
@@ -310,38 +280,6 @@ public class FlipHelper {
         );
     }
 
-
-    // TODO: move this into the `OrderInfoParser` sometime
-    private Optional<TitleOrderInfo> parseOrderTitle(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || BtrBz.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
-            return Optional.empty();
-        }
-
-        var title = stack.getName().getString();
-        var parts = title.split(" ", 2);
-        if (parts.length != 2) {
-            log.warn("Item title does not follow '<type> <productName>': '{}'", title);
-            return Optional.empty();
-        }
-
-        return OrderType
-            .tryFrom(parts[0].trim())
-            .onFailure(err -> log.warn("Failed to parse Order type from '{}'", parts[0], err))
-            .toJavaOptional()
-            .map(type -> new TitleOrderInfo(type, parts[1].trim()));
-    }
-
-    private boolean isFilled(ItemStack stack) {
-        return OrderInfoParser
-            .getLore(stack)
-            .stream()
-            .filter(line -> line.trim().startsWith("Filled"))
-            .findFirst()
-            .map(line -> line.contains("100%"))
-            .orElse(false);
-    }
-
-
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
             log.debug(
@@ -355,8 +293,6 @@ public class FlipHelper {
     }
 
     private record FlipEntry(String productName, double pricePerUnit) { }
-
-    private record TitleOrderInfo(OrderType type, String productName) { }
 
     public static class FlipHelperConfig {
 

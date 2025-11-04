@@ -182,4 +182,11 @@ public final class Util {
 
         return ret.toString();
     }
+
+    public static <T> void copyIntToClipboard(T value) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client != null) {
+            client.keyboard.setClipboard(String.valueOf(value));
+        }
+    }
 }

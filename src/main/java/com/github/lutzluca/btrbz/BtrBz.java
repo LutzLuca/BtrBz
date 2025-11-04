@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.OrderCancelRouter;
+import com.github.lutzluca.btrbz.core.OrderCancelActions;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager;
@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
@@ -117,8 +118,40 @@ public class BtrBz implements ClientModInitializer {
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
-        OrderCancelRouter.init();
+        OrderCancelActions.init();
         ProductInfoProvider.init();
+
+        ScreenActionManager.register(new ScreenClickRule() {
+            @Override
+            public boolean applies(ScreenInfo info, Slot slot, int button) {
+                var cfg = ConfigManager.get();
+                if (!cfg.flipHelper.enabled && !cfg.orderCancelActions.enabled) {
+                    return false;
+                }
+
+                if (slot == null) {
+                    return false;
+                }
+
+                var player = MinecraftClient.getInstance().player;
+                if (player != null && slot.inventory == player.getInventory()) {
+                    return false;
+                }
+
+                return info.inMenu(BazaarMenuType.Orders);
+            }
+
+            @Override
+            public boolean onClick(ScreenInfo info, Slot slot, int button) {
+                var orderInfo = OrderInfoParser.parseOrderInfo(slot.getStack(), slot.getIndex());
+                if (orderInfo.isSuccess()) {
+                    flipHelper.onOrderClick(orderInfo.get());
+                    OrderCancelActions.onOrderClick(orderInfo.get());
+                }
+
+                return false;
+            }
+        });
 
         messageDispatcher.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
         messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
@@ -154,9 +187,7 @@ public class BtrBz implements ClientModInitializer {
                     .styled(style -> style
                         .withClickEvent(new RunCommand("/managebazaarorders"))
                         .withHoverEvent(new ShowText(Text.literal("Opens the Bazaar order screen")))
-                        .withColor(Formatting.DARK_AQUA)
-                    )
-                );
+                        .withColor(Formatting.DARK_AQUA)));
         });
 
         ScreenInfoHelper.registerOnLoaded(
