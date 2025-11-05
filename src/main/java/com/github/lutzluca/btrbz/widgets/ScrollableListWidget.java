@@ -32,6 +32,10 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     private int mouseDragStartY = 0;
     private boolean isDraggingChild = false;
 
+    private T tooltipPendingChild = null;
+    private int tooltipMouseX = 0;
+    private int tooltipMouseY = 0;
+
     public ScrollableListWidget(int x, int y, int width, int height, Text message, Screen parent) {
         super(x, y, width, height, message, parent);
         this.setRenderBackground(false);
@@ -346,6 +350,16 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         if (this.needsScrollbar()) {
             this.renderScrollbar(ctx);
         }
+
+        if (this.tooltipPendingChild != null && this.draggedChild == null) {
+            var tooltip = this.tooltipPendingChild.getTooltipLines();
+            ctx.drawTooltip(
+                MinecraftClient.getInstance().textRenderer,
+                tooltip,
+                this.tooltipMouseX,
+                this.tooltipMouseY
+            );
+        }
     }
 
     private void renderTitleBar(DrawContext ctx, boolean isDraggingWidget, boolean isHovered) {
@@ -380,6 +394,8 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             contentEndY
         );
 
+        this.tooltipPendingChild = null;
+
         int startIndex = this.scrollOffset;
         int endIndex = Math.min(this.scrollOffset + this.maxVisibleChildren, this.children.size());
 
@@ -405,6 +421,12 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             }
 
             child.render(context, mouseX, mouseY, delta);
+
+            if (child.shouldShowTooltip()) {
+                this.tooltipPendingChild = child;
+                this.tooltipMouseX = mouseX;
+                this.tooltipMouseY = mouseY;
+            }
         }
 
         context.disableScissor();

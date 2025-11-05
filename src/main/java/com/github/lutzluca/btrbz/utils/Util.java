@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
 import org.apache.commons.lang3.tuple.Pair;
 
 public final class Util {
@@ -188,5 +189,16 @@ public final class Util {
         if (client != null) {
             client.keyboard.setClipboard(String.valueOf(value));
         }
+    }
+
+    public static Text join(List<Text> lines) {
+        var res = Text.empty();
+        for (int i = 0; i < lines.size(); i++) {
+            res.append(lines.get(i));
+            if (i < lines.size() - 1) {
+                res.append("\n");
+            }
+        }
+        return res;
     }
 }

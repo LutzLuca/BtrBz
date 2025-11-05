@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -17,18 +18,28 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
+    private final TooltipCache tooltipCache = new TooltipCache();
     private ScrollableListWidget<OrderEntryWidget> list;
     private Integer currentHoverSlot = null;
 
@@ -111,7 +122,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             order,
             this.list.getParentScreen(),
             widget -> this.onWidgetHoverEnter(widget.getSlotIdx()),
-            widget -> this.onWidgetHoverExit(widget.getSlotIdx())
+            widget -> this.onWidgetHoverExit(widget.getSlotIdx()),
+            this.tooltipCache
         );
     }
 
@@ -214,12 +226,40 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
     }
 
+    @Slf4j
+    private static class TooltipCache {
+
+        private final Map<@NotNull TrackedOrder, @Nullable List<Text>> cache = new HashMap<>();
+
+        TooltipCache() {
+            log.debug("Initializing TooltipCache");
+            BtrBz.bazaarData().addListener(products -> {
+                log.trace(
+                    "Bazaar data updated, clearing tooltip cache with {} entries",
+                    this.cache.size()
+                );
+                this.cache.clear();
+            });
+        }
+
+        List<Text> getOrCompute(@NotNull TrackedOrder order, Supplier<List<Text>> supplier) {
+            return this.cache.computeIfAbsent(
+                order, key -> {
+                    log.trace("Computing tooltip cache for {}", key);
+                    return supplier.get();
+                }
+            );
+        }
+    }
+
+    @Slf4j
     private static class OrderEntryWidget extends DraggableWidget {
 
         @Getter
         private final TrackedOrder order;
         private final Consumer<OrderEntryWidget> onHoverEnter;
         private final Consumer<OrderEntryWidget> onHoverExit;
+        private final TooltipCache tooltipCache;
         private boolean wasHovered;
 
         public OrderEntryWidget(
@@ -230,14 +270,134 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             TrackedOrder order,
             Screen parentScreen,
             Consumer<OrderEntryWidget> onHoverEnter,
-            Consumer<OrderEntryWidget> onHoverExit
+            Consumer<OrderEntryWidget> onHoverExit,
+            TooltipCache tooltipCache
         ) {
             super(x, y, width, height, Text.literal(order.productName), parentScreen);
+            this.tooltipCache = tooltipCache;
             this.order = order;
             this.onHoverEnter = onHoverEnter;
             this.onHoverExit = onHoverExit;
             this.setRenderBorder(false);
             this.setRenderBackground(false);
+
+            this.setTooltipSupplier(this::getTooltipLines);
+            this.setTooltipDelay(Duration.ofMillis(300));
+        }
+
+        private List<Text> priceLines(BazaarData data, String productId) {
+            var priceInfo = data.getOrderPrices(productId);
+
+            var header = Text.literal("Current Prices").formatted(Formatting.GOLD, Formatting.BOLD);
+
+            var buyOrderLine = Text
+                .literal("Buy Orders: ")
+                .formatted(Formatting.YELLOW)
+                .append(priceInfo
+                    .buyOrderPrice()
+                    .map(price -> Text
+                        .literal(Util.formatDecimal(price, 1, true))
+                        .formatted(Formatting.WHITE))
+                    .orElse(Text.literal("N/A").formatted(Formatting.DARK_GRAY)));
+
+            var sellOfferLine = Text
+                .literal("Sell Offers: ")
+                .formatted(Formatting.YELLOW)
+                .append(priceInfo
+                    .sellOfferPrice()
+                    .map(price -> Text
+                        .literal(Util.formatDecimal(price, 1, true))
+                        .formatted(Formatting.WHITE))
+                    .orElse(Text.literal("N/A").formatted(Formatting.DARK_GRAY)));
+
+            return List.of(header, buyOrderLine, sellOfferLine);
+        }
+
+        private List<Text> currOrderLines(BazaarData data) {
+            var header = Text.literal("Your Order").formatted(Formatting.GOLD, Formatting.BOLD);
+
+            var priceLine = Text
+                .literal("Price: ")
+                .formatted(Formatting.GRAY)
+                .append(Text
+                    .literal(Util.formatDecimal(this.order.pricePerUnit, 1, true))
+                    .formatted(Formatting.WHITE));
+
+            var volumeLine = Text
+                .literal("Volume: ")
+                .formatted(Formatting.GRAY)
+                .append(Text.literal(String.valueOf(order.volume)).formatted(Formatting.WHITE));
+
+            return List.of(header, priceLine, volumeLine);
+        }
+
+        private List<Text> statusLines(BazaarData data) {
+            List<Text> lines = new ArrayList<>();
+            switch (order.status) {
+                case OrderStatus.Top ignored -> {
+                    lines.add(Text
+                        .literal("Best Price!")
+                        .formatted(Formatting.GREEN, Formatting.BOLD));
+                }
+                case OrderStatus.Matched ignored -> {
+                    lines.add(Text.literal("Matched!").formatted(Formatting.AQUA, Formatting.BOLD));
+                }
+                case OrderStatus.Undercut ignored -> {
+                    lines.add(Text.literal("Undercut!").formatted(Formatting.RED, Formatting.BOLD));
+
+                    var queueInfo = data.calculateQueuePosition(
+                        order.productName,
+                        order.type,
+                        order.pricePerUnit
+                    );
+
+                    if (queueInfo.isPresent()) {
+                        lines.add(Text
+                            .literal("Orders ahead: ")
+                            .formatted(Formatting.GRAY)
+                            .append(Text
+                                .literal(String.valueOf(queueInfo.get().ordersAhead))
+                                .formatted(Formatting.RED)));
+
+                        lines.add(Text
+                            .literal("Items ahead: ")
+                            .formatted(Formatting.GRAY)
+                            .append(Text
+                                .literal(Util.formatDecimal(queueInfo.get().itemsAhead, 0, true))
+                                .formatted(Formatting.RED)));
+                    }
+                }
+                case OrderStatus.Unknown ignored -> {
+                    lines.add(Text.literal("Status Unknown").formatted(Formatting.GRAY));
+                }
+            }
+
+            return lines;
+        }
+
+        private List<Text> buildTooltipLines() {
+            log.debug("Building TooltipLines");
+
+            var data = BtrBz.bazaarData();
+            var productId = data.nameToId(this.order.productName);
+
+            if (productId.isEmpty()) {
+                return List.of(Text.literal("Unknown Product").formatted(Formatting.RED));
+            }
+
+            var lines = new ArrayList<>(this.priceLines(data, productId.get()));
+            lines.add(Text.empty());
+
+            lines.addAll(this.currOrderLines(data));
+            lines.add(Text.empty());
+
+            lines.addAll(this.statusLines(data));
+
+            return lines;
+        }
+
+        public List<Text> getTooltipLines() {
+            return this.tooltipCache.getOrCompute(this.order, this::buildTooltipLines);
         }
 
         @Override
@@ -308,5 +468,4 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return this.order.slot;
         }
     }
-
 }

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.data;
 
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.utils.Util;
 import com.google.common.collect.BiMap;
 import io.vavr.control.Try;
@@ -9,10 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
+import org.jetbrains.annotations.Nullable;
 
 // TODO: think about whether to use this as a global instead of passing it to the components
 @Slf4j
@@ -83,6 +87,63 @@ public class BazaarData {
         return Optional.ofNullable(this.idToName.inverse().get(name));
     }
 
+    public OrderPriceInfo getOrderPrices(String productId) {
+        var buyOrderPrice = this.highestBuyPrice(productId);
+        var sellOfferPrice = this.lowestSellPrice(productId);
+
+        return new OrderPriceInfo(buyOrderPrice, sellOfferPrice);
+    }
+
+    public Optional<OrderQueueInfo> calculateQueuePosition(
+        String productName,
+        OrderType orderType,
+        double pricePerUnit
+    ) {
+        var productId = this.nameToId(productName);
+
+        if (productId.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var product = this.lastProducts.get(productId.get());
+
+        if (product == null) {
+            return Optional.empty();
+        }
+
+        var summaries =
+            orderType == OrderType.Sell ? product.getBuySummary() : product.getSellSummary();
+
+        if (summaries == null || summaries.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var queueInfo = new OrderQueueInfo(0, 0);
+        for (var summary : summaries) {
+            if (switch (orderType) {
+                case Sell -> summary.getPricePerUnit() >= pricePerUnit;
+                case Buy -> summary.getPricePerUnit() <= pricePerUnit;
+            }) {
+                break;
+            }
+            queueInfo.ordersAhead += (int) summary.getOrders();
+            queueInfo.itemsAhead += (int) summary.getAmount();
+        }
+
+        return queueInfo.ordersAhead > 0 ? Optional.of(queueInfo) : Optional.empty();
+    }
+
+    @ToString
+    @AllArgsConstructor
+    public static final class OrderQueueInfo {
+
+        public int ordersAhead;
+        public int itemsAhead;
+    }
+
+    public record OrderPriceInfo(
+        Optional<@Nullable Double> buyOrderPrice, Optional<@Nullable Double> sellOfferPrice
+    ) { }
 
     public static final class TrackedProduct {
 

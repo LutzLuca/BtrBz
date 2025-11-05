@@ -1,8 +1,11 @@
 package com.github.lutzluca.btrbz.widgets;
 
 import com.github.lutzluca.btrbz.utils.Position;
+import java.time.Duration;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -12,7 +15,8 @@ import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
-
+// NOTE: the tooltip stuff is obnoxious; kinda needed to roll my own, for the integration
+// with the `ScrollableListWidget` using scissor so it would not be cut.
 public class DraggableWidget extends ClickableWidget {
 
     @Getter
@@ -34,6 +38,14 @@ public class DraggableWidget extends ClickableWidget {
 
     private boolean renderBackground = true;
     private boolean renderBorder = true;
+
+    @Getter
+    private Supplier<List<Text>> tooltipSupplier = null;
+    @Getter
+    private Duration tooltipDelay = Duration.ofMillis(500);
+
+    private long hoverStartTime = 0;
+    private boolean wasHoveredLastFrame = false;
 
     private Consumer<DraggableWidget> onClickCallback;
     private BiConsumer<DraggableWidget, Position> onDragEndCallback;
@@ -65,6 +77,16 @@ public class DraggableWidget extends ClickableWidget {
 
     public DraggableWidget setDragThreshold(int threshold) {
         this.dragThreshold = threshold;
+        return this;
+    }
+
+    public DraggableWidget setTooltipSupplier(Supplier<List<Text>> supplier) {
+        this.tooltipSupplier = supplier;
+        return this;
+    }
+
+    public DraggableWidget setTooltipShowDelay(Duration delay) {
+        this.tooltipDelay = delay;
         return this;
     }
 
@@ -160,8 +182,42 @@ public class DraggableWidget extends ClickableWidget {
         return new Position(x, y);
     }
 
+    public List<Text> getTooltipLines() {
+        System.out.println("getTooltipLines");
+        if (this.tooltipSupplier == null) {
+            return null;
+        }
+        return this.tooltipSupplier.get();
+    }
+
+    public DraggableWidget setTooltipLines(List<Text> lines) {
+        this.tooltipSupplier = () -> lines;
+        return this;
+    }
+
+    public boolean shouldShowTooltip() {
+        if (this.tooltipSupplier == null || !this.isHovered()) {
+            return false;
+        }
+
+        long now = System.currentTimeMillis();
+
+        if (!this.wasHoveredLastFrame) {
+            this.hoverStartTime = now;
+            this.wasHoveredLastFrame = true;
+            return false;
+        }
+
+        long hoverDuration = now - this.hoverStartTime;
+        return hoverDuration >= this.tooltipDelay.toMillis();
+    }
+
     @Override
     protected void renderWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        if (!this.isHovered()) {
+            this.wasHoveredLastFrame = false;
+        }
+
         if (this.renderBackground) {
             renderBackground(ctx, mouseX, mouseY, delta);
         }

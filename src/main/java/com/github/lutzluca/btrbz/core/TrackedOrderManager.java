@@ -69,7 +69,7 @@ public class TrackedOrderManager {
     }
 
     public void syncOrders(List<OrderInfo> parsedOrders) {
-        log.debug("Syning orders with parsed order from the UI: {}", parsedOrders);
+        log.debug("Syncing orders with parsed order from the UI: {}", parsedOrders);
         var toRemove = new ArrayList<TrackedOrder>();
         var remaining = new ArrayList<>(parsedOrders);
 
@@ -137,7 +137,7 @@ public class TrackedOrderManager {
                     return Optional.<StatusUpdate>empty();
                 }
 
-                var status = getStatus(tracked, product.get());
+                var status = this.getStatus(tracked, product.get());
                 if (status.isEmpty()) {
                     log.debug(
                         "Unable to determine status for product '{}' with id '{}'",

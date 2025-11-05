@@ -559,6 +559,7 @@ public final class ProductInfoProvider {
         private final WeakHashMap<ItemStack, @Nullable CachedPrice> cache = new WeakHashMap<>();
 
         PriceCache() {
+            log.debug("Initializing Price Cache");
             BtrBz.bazaarData().addListener(products -> {
                 log.trace(
                     "Bazaar data updated, clearing price cache with {} mappings",
