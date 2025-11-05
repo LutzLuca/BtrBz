@@ -70,7 +70,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         this.currentHoverSlot = slotIdx;
-        BtrBz.highlightManager().setHighlightOverride(slotIdx, 0xAAFFFFFF);
+        BtrBz.highlightManager().setHighlightOverride(slotIdx, 0xCC00FFFF /* 0xAAFFFFFF */);
     }
 
     private void onWidgetHoverExit(int slotIdx) {

@@ -310,7 +310,8 @@ public final class ProductInfoProvider {
                     .formatted(Formatting.DARK_GRAY)
                     .append(Text.literal("SHIFT").formatted(Formatting.AQUA, Formatting.BOLD))
                     .append(Text.literal(" to show for (").formatted(Formatting.DARK_GRAY))
-                    .append(Text.literal(count + "x").formatted(Formatting.YELLOW))
+                    .append(Text.literal(String.valueOf(count)).formatted(Formatting.LIGHT_PURPLE))
+                    .append(Text.literal("x").formatted(Formatting.DARK_GRAY))
                     .append(Text.literal(")").formatted(Formatting.DARK_GRAY)));
             }
 
@@ -318,7 +319,8 @@ public final class ProductInfoProvider {
                 lines.add(Text
                     .literal("Showing price for ")
                     .formatted(Formatting.GRAY)
-                    .append(Text.literal(count + "x").formatted(Formatting.YELLOW)));
+                    .append(Text.literal(String.valueOf(count)).formatted(Formatting.LIGHT_PURPLE))
+                    .append(Text.literal("x").formatted(Formatting.GRAY)));
             }
 
             lines.add(createPriceText("Buy Order: ", cached.buyOrderPrice, count, isShiftHeld));
