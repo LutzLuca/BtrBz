@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -183,6 +184,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         public boolean enabled = true;
         public boolean showInBazaar = false;
+        public boolean showTooltips = true;
 
         public Option.Builder<Boolean> createInBazaarOption() {
             return Option
@@ -191,6 +193,16 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .description(OptionDescription.of(Text.literal(
                     "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
                 .binding(false, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Option.Builder<Boolean> createTooltipsOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Show Tooltips"))
+                .description(OptionDescription.of(Text.literal(
+                    "Whether to show detailed tooltips when hovering over order entries")))
+                .binding(true, () -> this.showTooltips, enabled -> this.showTooltips = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -206,11 +218,14 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         public OptionGroup getGroup() {
             var inBazaarOption = this.createInBazaarOption().build();
+            var tooltipsOption = this.createTooltipsOption().build();
             var enabled = this.createEnabledOption();
 
             enabled.addListener((option, event) -> {
                 if (event == Event.STATE_CHANGE) {
-                    inBazaarOption.setAvailable(option.pendingValue());
+                    boolean enabledValue = option.pendingValue();
+                    inBazaarOption.setAvailable(enabledValue);
+                    tooltipsOption.setAvailable(enabledValue);
                 }
             });
 
@@ -221,6 +236,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                     "Shows your tracked bazaar orders in a compact, hover-highlightable list.")))
                 .option(enabled.build())
                 .option(inBazaarOption)
+                .option(tooltipsOption)
                 .collapsed(false)
                 .build();
         }
@@ -397,6 +413,10 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         public List<Text> getTooltipLines() {
+             if (!ConfigManager.get().orderList.showTooltips) {
+                return List.of();
+            }
+            
             return this.tooltipCache.getOrCompute(this.order, this::buildTooltipLines);
         }
 
