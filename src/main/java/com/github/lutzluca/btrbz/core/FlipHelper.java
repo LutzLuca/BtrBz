@@ -1,10 +1,11 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.TrackedProduct;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -18,6 +19,9 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Util;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
 import io.vavr.control.Try;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -46,57 +50,36 @@ public class FlipHelper {
 
     public FlipHelper(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.registerPotentialFlipOrderSelectionListener();
         this.registerFlipHelperItemOverride();
         this.registerFlipExecutionTrigger();
         this.registerFlipPriceScreenHandler();
     }
 
-    private void registerPotentialFlipOrderSelectionListener() {
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                if (slot == null) {
-                    return false;
-                }
+    public void onOrderClick(OrderInfo info) {
+        if (info.type() != OrderType.Buy) {
+            this.clearPendingFlipState();
+            return;
+        }
 
-                var player = MinecraftClient.getInstance().player;
-                if (player != null && slot.inventory == player.getInventory()) {
-                    return false;
-                }
+        if (info instanceof OrderInfo.UnfilledOrderInfo) {
+            this.clearPendingFlipState();
+            return;
+        }
 
-                return button == 1 && info.inMenu(ScreenInfoHelper.BazaarMenuType.Orders);
-            }
+        if (this.potentialFlipProduct != null) {
+            this.potentialFlipProduct.destroy();
+        }
 
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var itemStack = slot.getStack();
-
-                var orderTitleInfo = parseOrderTitle(itemStack);
-                if (orderTitleInfo.isEmpty() || orderTitleInfo.get().type != OrderType.Buy) {
-                    clearPendingFlipState();
-                    return false;
-                }
-
-                if (!isFilled(itemStack)) {
-                    clearPendingFlipState();
-                    return false;
-                }
-
-                if (potentialFlipProduct != null) {
-                    potentialFlipProduct.destroy();
-                }
-
-                var name = orderTitleInfo.get().productName();
-                potentialFlipProduct = new TrackedProduct(bazaarData, name);
-                log.debug("Set `potentialFlipProduct` for product: '{}'", name);
-                return false;
-            }
-        });
+        this.potentialFlipProduct = new TrackedProduct(this.bazaarData, info.productName());
+        log.debug("Set `potentialFlipProduct` for product: '{}'", info.productName());
     }
 
     private void registerFlipHelperItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
+            if (!ConfigManager.get().flipHelper.enabled) {
+                return Optional.empty();
+            }
+
             if (!info.inMenu(ScreenInfoHelper.BazaarMenuType.OrderOptions)) {
                 return Optional.empty();
             }
@@ -116,8 +99,14 @@ public class FlipHelper {
                 var customHelperItem = new ItemStack(Items.NETHER_STAR);
                 customHelperItem.set(
                     DataComponentTypes.CUSTOM_NAME,
-                    Text.literal(formatted).formatted(Formatting.DARK_PURPLE)
+                    Text
+                        .literal("Flip for ")
+                        .formatted(Formatting.GRAY)
+                        .append(Text.literal(formatted).formatted(Formatting.GOLD))
+                        .append(Text.literal("coins each").formatted(Formatting.GRAY))
+                        .styled(style -> style.withItalic(false))
                 );
+
                 return customHelperItem;
             });
         });
@@ -127,6 +116,10 @@ public class FlipHelper {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
+                if (!ConfigManager.get().flipHelper.enabled) {
+                    return false;
+                }
+
                 return slot != null && slot.getIndex() == CUSTOM_HELPER_ITEM_SLOT_IDX && info.inMenu(
                     BazaarMenuType.OrderOptions);
             }
@@ -180,6 +173,9 @@ public class FlipHelper {
 
     private void registerFlipPriceScreenHandler() {
         ScreenInfoHelper.registerOnSwitch(curr -> {
+            if (!ConfigManager.get().flipHelper.enabled) {
+                return;
+            }
             var prev = ScreenInfoHelper.get().getPrevInfo();
             if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
                 pendingFlip = false;
@@ -227,7 +223,6 @@ public class FlipHelper {
             accessor.setCurrentRow(0);
             accessor.invokeSetCurrentRowMessage(formatted);
 
-            // TODO figure out why the fuck this does not work anymore?
             Try
                 .run(() -> {
                     signEditScreen.close();
@@ -266,16 +261,16 @@ public class FlipHelper {
         var entry = match.get();
         double pricePerUnit = entry.pricePerUnit();
 
-        var orderInfo = new OrderInfo(
+        var orderInfo = new OrderInfo.UnfilledOrderInfo(
             flipped.productName(),
             OrderType.Sell,
             flipped.volume(),
             pricePerUnit,
-            false,
+            0,
+            0,
             -1
         );
-
-        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, -1));
+        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
@@ -284,38 +279,6 @@ public class FlipHelper {
             Util.formatDecimal(pricePerUnit, 1, true)
         );
     }
-
-
-    // TODO: move this into the `OrderInfoParser` sometime
-    private Optional<TitleOrderInfo> parseOrderTitle(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem())) {
-            return Optional.empty();
-        }
-
-        var title = stack.getName().getString();
-        var parts = title.split(" ", 2);
-        if (parts.length != 2) {
-            log.warn("Item title does not follow '<type> <productName>': '{}'", title);
-            return Optional.empty();
-        }
-
-        return OrderType
-            .tryFrom(parts[0].trim())
-            .onFailure(err -> log.warn("Failed to parse Order type from '{}'", parts[0], err))
-            .toJavaOptional()
-            .map(type -> new TitleOrderInfo(type, parts[1].trim()));
-    }
-
-    private boolean isFilled(ItemStack stack) {
-        return OrderInfoParser
-            .getLore(stack)
-            .stream()
-            .filter(line -> line.trim().startsWith("Filled"))
-            .findFirst()
-            .map(line -> line.contains("100%"))
-            .orElse(false);
-    }
-
 
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
@@ -331,5 +294,31 @@ public class FlipHelper {
 
     private record FlipEntry(String productName, double pricePerUnit) { }
 
-    private record TitleOrderInfo(OrderType type, String productName) { }
+    public static class FlipHelperConfig {
+
+        public boolean enabled = true;
+
+        public Option.Builder<Boolean> createEnabledOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Flip Helper"))
+                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Flip Helper"))
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .option(enabledBuilder.build())
+                .collapsed(false)
+                .build();
+        }
+    }
 }

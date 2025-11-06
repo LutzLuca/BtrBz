@@ -4,10 +4,12 @@
     "compatibilityLevel": "JAVA_21",
     "client": [
         "AbstractSignEditScreenAccessor",
+        "ClientPlayNetworkHandlerMixin",
         "DrawContextMixin",
         "HandledScreenAccessor",
         "HandledScreenMixin",
         "MinecraftClientMixin",
+        "ScreenAccessor",
         "SkyBlockBazaarReplyAccessor",
         "SlotMixin"
     ],

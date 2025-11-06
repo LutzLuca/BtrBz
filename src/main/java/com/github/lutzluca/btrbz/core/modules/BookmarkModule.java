@@ -1,6 +1,9 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -22,8 +25,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Dynamic;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionEventListener.Event;
+import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
-import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import io.vavr.control.Try;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -47,9 +51,10 @@ import net.minecraft.util.Identifier;
 
 // TODO have a little more configuration for size; this will involve changes to ScrollableListWidget
 // TODO make it a little prettier
-// TODO have nice tooltips; buy offer / buy order prices
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
+
+    private ScrollableListWidget<BookmarkedItemWidget> list;
 
     @Override
     public void onLoad() {
@@ -91,25 +96,69 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         });
     }
 
+    public void updateChildrenCount() {
+        if (this.list == null) {
+            return;
+        }
+
+        this.list.setMaxVisibleChildren(ConfigManager.get().bookmark.maxVisibleChildren);
+    }
+
     private void toggleBookmark(String productName, ItemStack itemStack) {
+        final class Bookmarked {
+
+            boolean bookmarked;
+        }
+
+        var bookmarked = new Bookmarked();
         this.updateConfig(cfg -> {
             var it = cfg.bookmarkedItems.listIterator();
             while (it.hasNext()) {
                 var item = it.next();
                 if (item.productName.equals(productName)) {
                     it.remove();
+                    bookmarked.bookmarked = false;
                     return;
                 }
             }
 
             it.add(new BookmarkedItem(productName, itemStack));
+            bookmarked.bookmarked = true;
         });
+
+        if (this.list == null) {
+            return;
+        }
+
+        if (bookmarked.bookmarked) {
+            this.list.addChild(this.createBookmarkedItemWidget(
+                new BookmarkedItem(
+                    productName,
+                    itemStack
+                ), this.list.getParentScreen()
+            ));
+            return;
+        }
+
+        this.list
+            .getChildren()
+            .stream()
+            .filter(widget -> widget.getProductName().equals(productName))
+            .findFirst()
+            .ifPresentOrElse(
+                widget -> this.list.removeChild(widget),
+                () -> log.warn(
+                    "Tried to remove bookmark widget for {}, but it was not found",
+                    productName
+                )
+            );
     }
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
         return this.configState.enabled && info.inMenu(
             BazaarMenuType.Main,
+            BazaarMenuType.Orders,
             BazaarMenuType.Item,
             BazaarMenuType.ItemGroup
         );
@@ -117,9 +166,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     @Override
     public List<ClickableWidget> createWidgets(ScreenInfo info) {
+        if (this.list != null) {
+            return List.of(this.list);
+        }
+
         var position = this.getConfigPosition().orElse(new Position(10, 10));
 
-        ScrollableListWidget<BookmarkedItemWidget> list = new ScrollableListWidget<>(
+        ScrollableListWidget<BookmarkedItemWidget> widget = this.list = new ScrollableListWidget<>(
             position.x(),
             position.y(),
             220,
@@ -128,30 +181,26 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             info.getScreen()
         );
 
-        list
+        widget
             .setMaxVisibleChildren(this.configState.maxVisibleChildren)
             .setChildHeight(24)
             .setChildSpacing(2)
             .onChildClick((child, index) -> {
                 Util.runCommand(String.format("bz %s", child.productName));
             })
-            .onChildReordered(() -> syncBookmarksFromList(list))
-            .onChildRemoved((widget) -> syncBookmarksFromList(list))
+            .onChildReordered(() -> syncBookmarksFromList(widget))
+            .onChildRemoved((child) -> syncBookmarksFromList(widget))
             .onDragEnd((self, pos) -> savePosition(pos));
 
         for (BookmarkedItem item : this.configState.bookmarkedItems) {
-            list.addChild(new BookmarkedItemWidget(
-                0,
-                0,
-                220,
-                24,
-                item.productName,
-                item.itemStack,
-                info.getScreen()
-            ));
+            widget.addChild(this.createBookmarkedItemWidget(item, info.getScreen()));
         }
 
-        return List.of(list);
+        return List.of(widget);
+    }
+
+    private BookmarkedItemWidget createBookmarkedItemWidget(BookmarkedItem item, Screen parent) {
+        return new BookmarkedItemWidget(0, 0, 220, 24, item.productName, item.itemStack, parent);
     }
 
     public boolean isBookmarked(String productName) {
@@ -168,7 +217,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .getChildren()
                 .stream()
                 .map(widget -> new BookmarkedItem(widget.getProductName(), widget.getItemStack()))
-                .collect(Collectors.toCollection(ArrayList::new));
+                .collect(Collectors.toList());
         });
     }
 
@@ -207,7 +256,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             super(x, y, width, height, Text.literal(productName), parent);
             this.productName = productName;
             this.itemStack = itemStack;
-            this.color = Try
+            this.color = (0xFF << 24) | Try
                 .of(() -> itemStack
                     .getName()
                     .getSiblings()
@@ -215,7 +264,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     .getStyle()
                     .getColor()
                     .getRgb())
-                .getOrElse(0xFFFFFFFF);
+                .getOrElse(0xD3D3D3);
             this.setRenderBackground(true);
             this.setRenderBorder(true);
         }
@@ -230,7 +279,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
             int textX = iconX + 20;
             int textY = this.getY() + (this.height - textRenderer.fontHeight) / 2;
-            ctx.drawTextWithShadow(textRenderer, productName, textX, textY, this.color);
+            ctx.drawTextWithShadow(textRenderer, this.productName, textX, textY, this.color);
         }
     }
 
@@ -310,15 +359,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public boolean enabled = true;
         public int maxVisibleChildren = 5;
 
-        public Option<Boolean> createEnabledOption() {
+        public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Bookmarked Items Module"))
                 .description(OptionDescription.of(Text.literal(
                     "Display a list of bookmarked bazaar items for quick access")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .controller(TickBoxControllerBuilder::create)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option<Integer> createMaxVisibleOption() {
@@ -327,8 +375,38 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .name(Text.literal("Max Visible Items"))
                 .description(OptionDescription.of(Text.literal(
                     "Maximum number of bookmarks visible at once before scrolling")))
-                .binding(5, () -> this.maxVisibleChildren, val -> this.maxVisibleChildren = val)
+                .binding(
+                    5, () -> this.maxVisibleChildren, val -> {
+                        this.maxVisibleChildren = val;
+                        ModuleManager
+                            .getInstance()
+                            .getModule(BookmarkModule.class)
+                            .updateChildrenCount();
+                    }
+                )
                 .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 10).step(1))
+                .build();
+        }
+
+        public OptionGroup createGroup() {
+            var enabledBuilder = this.createEnabledOption();
+            var maxVisible = this.createMaxVisibleOption();
+
+            enabledBuilder.addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    boolean val = option.pendingValue();
+                    maxVisible.setAvailable(val);
+                }
+            });
+
+            return OptionGroup
+                .createBuilder()
+                .name(Text.literal("Bookmarked Items"))
+                .description(OptionDescription.of(Text.literal(
+                    "Settings for the bookmarked items quick-access list")))
+                .option(enabledBuilder.build())
+                .option(maxVisible)
+                .collapsed(false)
                 .build();
         }
     }

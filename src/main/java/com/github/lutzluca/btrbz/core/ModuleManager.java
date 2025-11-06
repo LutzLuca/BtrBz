@@ -1,25 +1,26 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.Config;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
+import com.github.lutzluca.btrbz.mixin.ScreenAccessor;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.gui.widget.ClickableWidget;
 
 @Slf4j
 public class ModuleManager {
 
-    private static ModuleManager INSTANCE;
+    private static ModuleManager instance;
 
     private final Map<Class<? extends Module<?>>, Module<?>> modules = new HashMap<>();
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
@@ -32,11 +33,64 @@ public class ModuleManager {
     }
 
     public static ModuleManager getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new ModuleManager();
+        if (instance == null) {
+            instance = new ModuleManager();
+            ScreenInfoHelper.registerOnSwitch(instance::renderModules);
+
+            ScreenInfoHelper.registerOnLoaded(
+                info -> true,
+                (info, ignored) -> instance.revalidateModules(info)
+            );
         }
 
-        return INSTANCE;
+        return instance;
+    }
+
+
+    private void renderModules(ScreenInfo info) {
+        var screen = info.getScreen();
+        if (!(screen instanceof ScreenAccessor accessor)) {
+            return;
+        }
+
+        this.modules.values().forEach(module -> module.setDisplayed(false));
+
+        var widgets = this.modules
+            .values()
+            .stream()
+            .filter(module -> module.shouldDisplay(info))
+            .peek(module -> module.setDisplayed(true))
+            .flatMap(module -> module.createWidgets(info).stream())
+            .toList();
+
+        log.debug("Adding {} widgets for initial render", widgets.size());
+        widgets.forEach(accessor::invokeAddDrawableChild);
+    }
+
+    private void revalidateModules(ScreenInfo info) {
+        var screen = info.getScreen();
+        if (!(screen instanceof ScreenAccessor accessor)) {
+            return;
+        }
+
+        var newWidgets = this.modules
+            .values()
+            .stream()
+            .filter(module -> !module.isDisplayed() && module.shouldDisplay(info))
+            .peek(module -> {
+                log.debug(
+                    "Module {} now displays after inventory load",
+                    module.getClass().getSimpleName()
+                );
+                module.setDisplayed(true);
+            })
+            .flatMap(module -> module.createWidgets(info).stream())
+            .toList();
+
+        if (!newWidgets.isEmpty()) {
+            log.debug("Adding {} widgets after revalidation", newWidgets.size());
+            newWidgets.forEach(accessor::invokeAddDrawableChild);
+        }
     }
 
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
@@ -55,20 +109,10 @@ public class ModuleManager {
         }
     }
 
-    public List<ClickableWidget> getWidgets() {
-        var info = ScreenInfoHelper.get().getCurrInfo();
-        return this.modules
-            .values()
-            .stream()
-            .filter(module -> module.shouldDisplay(info))
-            .flatMap(module -> module.createWidgets(info).stream())
-            .toList();
-    }
-
     private void applyConfigToModule(Module<?> module) {
         var field = this.moduleBindings.get(module.getClass());
         try {
-            Object value = field.get(Config.HANDLER.instance());
+            Object value = field.get(ConfigManager.get());
             if (value == null) {
                 throw new IllegalStateException("Config field '" + field.getName() + "' is null. " + "Ensure the field is initialized in the Config class");
             }
@@ -98,7 +142,7 @@ public class ModuleManager {
                     moduleClass.getName()
                 );
 
-                validateBinding(field, moduleClass);
+                this.validateBinding(field, moduleClass);
                 moduleBindings.put(moduleClass, field);
             }
         }
@@ -146,29 +190,29 @@ public class ModuleManager {
         if (!this.isDirty) {
             return;
         }
-        var config = Config.HANDLER.instance();
 
-        this.modules.forEach((moduleClass, module) -> {
-            var field = moduleBindings.get(moduleClass);
-            if (field == null) {
-                log.warn("No binding found for module: {}", moduleClass.getName());
-                return;
-            }
+        ConfigManager.withConfig(cfg -> {
+            this.modules.forEach((moduleClass, module) -> {
+                var field = moduleBindings.get(moduleClass);
+                if (field == null) {
+                    log.warn("No binding found for module: {}", moduleClass.getName());
+                    return;
+                }
 
-            try {
-                var newState = castModule(module).serializeConfigState();
-                field.set(config, newState);
-            } catch (Exception err) {
-                log.error(
-                    "Failed to update config field '{}' for module: {}",
-                    field.getName(),
-                    moduleClass.getName(),
-                    err
-                );
-            }
+                try {
+                    var newState = castModule(module).serializeConfigState();
+                    field.set(cfg, newState);
+                } catch (Exception err) {
+                    log.error(
+                        "Failed to update config field '{}' for module: {}",
+                        field.getName(),
+                        moduleClass.getName(),
+                        err
+                    );
+                }
+            });
         });
 
-        Config.HANDLER.save();
         this.isDirty = false;
     }
 

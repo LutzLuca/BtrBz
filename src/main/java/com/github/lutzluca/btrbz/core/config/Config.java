@@ -1,35 +1,27 @@
 package com.github.lutzluca.btrbz.core.config;
 
-import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
+import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
+import com.github.lutzluca.btrbz.core.OrderCancelActions.OrderCancelConfig;
+import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookmarkedItem;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
-import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
+import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
+import com.github.lutzluca.btrbz.core.modules.OrderValueModule.OrderValueOverlayConfig;
+import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
+import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
-import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import lombok.extern.slf4j.Slf4j;
-import net.fabricmc.loader.api.FabricLoader;
 
 @Slf4j
 public class Config {
-
-    public static final ConfigClassHandler<Config> HANDLER = ConfigClassHandler
-        .createBuilder(Config.class)
-        .serializer(config -> GsonConfigSerializerBuilder
-            .create(config)
-            .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
-                BookmarkedItem.class,
-                new BookmarkedItem.BookmarkedItemSerializer()
-            ))
-            .setPath(FabricLoader
-                .getInstance()
-                .getConfigDir()
-                .resolve(String.format("%s.json", BtrBz.MOD_ID)))
-            .build())
-        .build();
 
     @SerialEntry
     @BindModule(OrderLimitModule.class)
@@ -40,20 +32,35 @@ public class Config {
     public BookMarkConfig bookmark = new BookMarkConfig();
 
     @SerialEntry
+    @BindModule(PriceDiffModule.class)
+    public PriceDiffConfig priceDiff = new PriceDiffConfig();
+
+    @SerialEntry
+    @BindModule(OrderValueModule.class)
+    public OrderValueOverlayConfig orderValueOverlay = new OrderValueOverlayConfig();
+
+    @SerialEntry
+    @BindModule(TrackedOrdersListModule.class)
+    public OrderListConfig orderList = new OrderListConfig();
+
+    @SerialEntry
+    public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
+
+    @SerialEntry
+    public OrderCancelConfig orderCancelActions = new OrderCancelConfig();
+
+    @SerialEntry
+    public OrderManagerConfig trackedOrders = new OrderManagerConfig();
+
+    @SerialEntry
+    public HighlightConfig orderHighlight = new HighlightConfig();
+
+    @SerialEntry
+    public FlipHelperConfig flipHelper = new FlipHelperConfig();
+
+    @SerialEntry
     public double tax = 1.125;
 
-    public static Config get() {
-        return HANDLER.instance();
-    }
-
-    public static void load() {
-        var success = HANDLER.load();
-        if (!success) {
-            log.warn("Failed to load config");
-            return;
-        }
-
-        log.info("Successfully loaded config");
-        Runtime.getRuntime().addShutdownHook(new Thread(HANDLER::save));
-    }
+    @SerialEntry
+    public AlertConfig alert = new AlertConfig();
 }

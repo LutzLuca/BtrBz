@@ -1,11 +1,10 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
-import com.github.lutzluca.btrbz.utils.InventoryLoadWatcher.SlotSnapshot;
+import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
@@ -24,15 +23,19 @@ import org.jetbrains.annotations.Nullable;
 public final class ScreenInfoHelper {
 
     private static final ScreenInfoHelper INSTANCE = new ScreenInfoHelper();
+    @Getter
+    final ScreenInventoryTracker inventoryWatcher = new ScreenInventoryTracker();
     private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
     private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
-
+    private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
     @Getter
     private volatile ScreenInfo currInfo = new ScreenInfo(null);
     @Getter
     private volatile ScreenInfo prevInfo = new ScreenInfo(null);
 
-    private ScreenInfoHelper() { }
+    private ScreenInfoHelper() {
+        this.setupInventoryWatcher();
+    }
 
     public static ScreenInfoHelper get() {
         return INSTANCE;
@@ -42,47 +45,56 @@ public final class ScreenInfoHelper {
         return INSTANCE.currInfo.inMenu(menu);
     }
 
-    public static Runnable registerOnSwitch(Consumer<ScreenInfo> listener) {
-        INSTANCE.switchListeners.add(listener);
-        return () -> INSTANCE.switchListeners.remove(listener);
+    public static boolean inBazaar() {
+        return INSTANCE.currInfo.inBazaar();
     }
 
-    public static Runnable registerOnLoaded(
+    public static void registerOnSwitch(Consumer<ScreenInfo> listener) {
+        INSTANCE.switchListeners.add(listener);
+    }
+
+    public static void registerOnLoaded(
         Predicate<ScreenInfo> matcher,
-        BiConsumer<ScreenInfo, List<SlotSnapshot>> listener
+        BiConsumer<ScreenInfo, Inventory> listener
     ) {
         var info = new ScreenLoadListenerEntry(matcher, listener);
         INSTANCE.screenLoadListenerEntries.add(info);
-        return () -> INSTANCE.screenLoadListenerEntries.remove(info);
+    }
+
+    public static void registerOnClose(
+        Predicate<ScreenInfo> matcher,
+        Consumer<ScreenInfo> listener
+    ) {
+        var info = new ScreenCloseListenerEntry(matcher, listener);
+        INSTANCE.screenCloseListenerEntries.add(info);
+    }
+
+    private void setupInventoryWatcher() {
+        this.inventoryWatcher.setOnLoaded(inventory -> {
+            this.currInfo.markInventoryLoaded();
+
+            this.screenLoadListenerEntries
+                .stream()
+                .filter(entry -> entry.matcher.test(this.currInfo))
+                .forEach(entry -> entry.listener.accept(this.currInfo, inventory));
+        });
+
+        this.inventoryWatcher.setOnClose(title -> {
+            log.trace("Inventory closed: '{}'", title);
+
+            this.screenCloseListenerEntries
+                .stream()
+                .filter(entry -> entry.matcher.test(this.prevInfo))
+                .forEach(entry -> entry.listener.accept(this.prevInfo));
+        });
     }
 
     public void setScreen(Screen screen) {
-        var info = new ScreenInfo(screen);
-        if (this.currInfo.equals(info)) {
-            return;
-        }
+        var next = this.prevInfo;
+        next.setScreen(screen);
+
         this.prevInfo = this.currInfo;
-        this.currInfo = info;
-
-        // @formatter:off
-        info.getGenericContainerScreen().ifPresent(gcs -> {
-            var matchingLoadListenerEntries = this.screenLoadListenerEntries
-                .stream()
-                .filter(listener -> listener.matcher.test(info))
-                .toList();
-
-            if (matchingLoadListenerEntries.isEmpty()) {
-                return;
-            }
-
-            new InventoryLoadWatcher(
-                gcs,
-                slots -> matchingLoadListenerEntries.forEach(onLoadedInfo ->
-                    onLoadedInfo.listener.accept(info, slots)
-                )
-            );
-        });
-        // @formatter:on
+        this.currInfo = next;
     }
 
     public void fireScreenSwitchCallbacks() {
@@ -90,11 +102,11 @@ public final class ScreenInfoHelper {
     }
 
     private enum BazaarCategory {
-        Farming, // Farming
-        Mining, // Mining
-        Combat, // Combat
-        WoodsAndFishes, // Woods & Fishes
-        Oddities; // Oddities
+        Farming,
+        Mining,
+        Combat,
+        WoodsAndFishes,
+        Oddities;
 
         private static Try<BazaarCategory> tryFrom(String value) {
             return switch (value) {
@@ -109,20 +121,24 @@ public final class ScreenInfoHelper {
     }
 
     public enum BazaarMenuType {
-        Main, // Bazaar ➜ <category>
+        Main, // Bazaar ➜ <category> / "<search>"
         Orders, // Your Bazaar Orders
         InstaBuy, // <product name> ➜ Instant Buy
-        BuyOrderSetup, // How much do you want to pay?
+        BuyOrderSetupPrice,  // How much do you want to pay?
+        BuyOrderSetupAmount, // How many do you want?
         BuyOrderConfirmation, // Confirm Buy Order
         SellOfferSetup, // At what price are you selling?
         SellOfferConfirmation, // Confirm Sell Offer
-        Item, // <group> ➜ <product name> | use chest idx 34 -> "View Graphs" (paper)
+        Item, // <group> ➜ <product name> | product name from title & fallback to inventory idx 34
+        // -> "View Graphs" (paper)
         ItemGroup, // 'Optional: (page / max page)' <category / subcategory> ➜ <group>
         InstaSellIgnoreList, // Instasell Ignore List
         InventorySellConfirmation, // Are you sure?
         OrderOptions, // Order options
         Graphs, // <product name> ➜ Graphs
         Settings; // Bazaar ➜ Settings
+
+        public static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
 
         // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
@@ -131,43 +147,52 @@ public final class ScreenInfoHelper {
         // MinecraftClient (-> ScreenInfoHelper.onSwitch), they will return false even if
         // you're technically on the correct screen.
         public boolean matches(@NotNull ScreenInfo info) {
-            if (info.getScreen() == null || info.containerName().isEmpty()) {
+            var titleOpt = info.containerName();
+            if (titleOpt.isEmpty()) {
                 return false;
             }
 
-            var title = info.containerName().get();
-
+            var title = titleOpt.get();
             return switch (this) {
                 case Main -> {
                     if (!title.startsWith("Bazaar ➜ ")) {
                         yield false;
                     }
-                    var category = title.substring("Bazaar ➜ ".length());
-                    yield BazaarCategory.tryFrom(category.trim()).isSuccess();
+                    var str = title.substring("Bazaar ➜ ".length()).trim();
+                    yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
                 }
                 case Orders -> title.equals("Your Bazaar Orders");
                 case InstaBuy -> title.endsWith("➜ Instant Buy");
-                case BuyOrderSetup -> title.equals("How much do you want to pay?");
+                case BuyOrderSetupAmount -> title.equals("How many do you want?");
+                case BuyOrderSetupPrice -> title.equals("How much do you want to pay?");
                 case BuyOrderConfirmation -> title.equals("Confirm Buy Order");
                 case SellOfferSetup -> title.equals("At what price are you selling?");
                 case SellOfferConfirmation -> title.equals("Confirm Sell Offer");
-                case Item -> info.getGenericContainerScreen().map((gcs) -> {
-                    final int GRAPH_PAPER_IDX = 33;
-                    var handler = gcs.getScreenHandler();
-                    var inventory = handler.getInventory();
-
-                    if (inventory.size() < GRAPH_PAPER_IDX) {
-                        return false;
+                case Item -> {
+                    var parts = title.split("➜", 2);
+                    if (parts.length != 2) {
+                        yield false;
                     }
 
-                    var slot = inventory.getStack(GRAPH_PAPER_IDX);
-                    return slot.getItem().equals(Items.PAPER) && slot
-                        .getName()
-                        .getString()
-                        .equals("View Graphs");
-                }).orElse(false);
+                    yield info.getGenericContainerScreen().map((gcs) -> {
+                        final int GRAPH_PAPER_IDX = 33;
+                        var handler = gcs.getScreenHandler();
+                        var inventory = handler.getInventory();
+
+                        if (inventory.size() < GRAPH_PAPER_IDX) {
+                            return false;
+                        }
+
+                        var slot = inventory.getStack(GRAPH_PAPER_IDX);
+                        return slot.getItem().equals(Items.PAPER) && slot
+                            .getName()
+                            .getString()
+                            .equals("View Graphs");
+                    }).orElse(false);
+                }
                 case ItemGroup -> {
-                    if (!title.contains("➜")) {
+                    if (!title.contains("➜") || title.endsWith("Graphs") || title.endsWith(
+                        "Settings")) {
                         yield false;
                     }
 
@@ -177,12 +202,8 @@ public final class ScreenInfoHelper {
                         var slot = inventory.size() - 3;
 
                         return Try
-                            .of(() -> inventory.getStack(slot))
-                            .map((itemStack) -> itemStack
-                                .getItem()
-                                .equals(Items.CAULDRON) || itemStack
-                                .getItem()
-                                .equals(Items.BLACK_STAINED_GLASS_PANE))
+                            .of(() -> inventory.getStack(slot).getItem())
+                            .map((item) -> item.equals(Items.CAULDRON) || item.equals(Items.BLACK_STAINED_GLASS_PANE))
                             .getOrElse(false);
                     }).orElse(false);
                 }
@@ -197,14 +218,31 @@ public final class ScreenInfoHelper {
 
     public static class ScreenInfo {
 
+        private final MenuState state = new MenuState();
         @Getter
-        private final @Nullable Screen screen;
-
-        private final @Nullable GenericContainerScreen containerScreen;
+        private @Nullable Screen screen;
+        private @Nullable GenericContainerScreen containerScreen;
 
         public ScreenInfo(@Nullable Screen screen) {
+            this.setScreen(screen);
+        }
+
+        public void setScreen(Screen screen) {
+            if (this.screen == screen) {
+                return;
+            }
+
+            this.resetMenuMatchState();
             this.screen = screen;
             this.containerScreen = (screen instanceof GenericContainerScreen gcs) ? gcs : null;
+        }
+
+        public boolean inBazaar() {
+            return this.inMenu(BazaarMenuType.VALUES);
+        }
+
+        public boolean inMenu(BazaarMenuType... menu) {
+            return Arrays.stream(menu).anyMatch((menuType) -> this.state.matches(this, menuType));
         }
 
         public Optional<GenericContainerScreen> getGenericContainerScreen() {
@@ -213,10 +251,6 @@ public final class ScreenInfoHelper {
 
         public Optional<String> containerName() {
             return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Text::getString);
-        }
-
-        public boolean inMenu(BazaarMenuType... menu) {
-            return Arrays.stream(menu).anyMatch((menuType) -> menuType.matches(this));
         }
 
         public Optional<HandledScreenBounds> getHandledScreenBounds() {
@@ -232,24 +266,64 @@ public final class ScreenInfoHelper {
             ));
         }
 
+        private void markInventoryLoaded() {
+            this.state.inventoryLoaded = true;
+        }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-
-            if (!(o instanceof ScreenInfo other)) {
-                return false;
-            }
-
-            return Objects.equals(this.screen, other.screen);
+        private void resetMenuMatchState() {
+            this.state.reset();
         }
     }
 
     private record ScreenLoadListenerEntry(
-        Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, List<SlotSnapshot>> listener
+        Predicate<ScreenInfo> matcher,
+        BiConsumer<ScreenInfo, ScreenInventoryTracker.Inventory> listener
+    ) { }
+
+    private record ScreenCloseListenerEntry(
+        Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
     ) { }
 
     public record HandledScreenBounds(int x, int y, int width, int height) { }
+
+    private static final class MenuState {
+
+        private int verifiedMenu = 0;
+        private int verifiedNotMenu = 0;
+        private boolean inventoryLoaded = false;
+
+        public void reset() {
+            this.verifiedMenu = 0;
+            this.verifiedNotMenu = 0;
+            this.inventoryLoaded = false;
+        }
+
+        public boolean matches(ScreenInfo info, BazaarMenuType type) {
+            int typeBit = 1 << type.ordinal();
+            if ((this.verifiedMenu & typeBit) != 0) {
+                return true;
+            }
+
+            if (this.verifiedMenu != 0) {
+                return false;
+            }
+
+            if ((this.verifiedNotMenu & typeBit) != 0) {
+                return false;
+            }
+
+            if ((type == BazaarMenuType.Item || type == BazaarMenuType.ItemGroup) && !this.inventoryLoaded) {
+                return false;
+            }
+
+            boolean matches = type.matches(info);
+            if (matches) {
+                this.verifiedMenu |= typeBit;
+                log.debug("Matched menu: {}", type);
+            } else {
+                this.verifiedNotMenu |= typeBit;
+            }
+            return matches;
+        }
+    }
 }

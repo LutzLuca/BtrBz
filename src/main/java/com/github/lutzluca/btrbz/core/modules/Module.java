@@ -4,11 +4,17 @@ import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.util.List;
 import java.util.function.Consumer;
+import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.client.gui.widget.ClickableWidget;
 
 public abstract class Module<T> {
 
     protected T configState;
+
+    @Getter
+    @Setter
+    private boolean displayed = false;
 
     public void applyConfigState(T state) {
         this.configState = state;

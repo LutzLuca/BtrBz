@@ -1,41 +1,47 @@
 package com.github.lutzluca.btrbz;
 
-import com.github.lutzluca.btrbz.core.BzOrderManager;
+import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
-import com.github.lutzluca.btrbz.core.HighlightManager;
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.config.Config;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.OrderCancelActions;
+import com.github.lutzluca.btrbz.core.OrderHighlightManager;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.commands.Commands;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
+import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
+import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
+import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
 import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.text.ClickEvent.RunCommand;
+import net.minecraft.text.HoverEvent.ShowText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -44,23 +50,35 @@ import net.minecraft.util.Identifier;
 public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
+    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS = Set.of(
+        Items.BLACK_STAINED_GLASS_PANE,
+        Items.ARROW,
+        Items.HOPPER
+    );
+
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
     public static ComponentType<Boolean> BOOKMARKED;
     private static BtrBz instance;
-    private BzOrderManager orderManager;
-    private HighlightManager highlightManager;
 
-    public static BzOrderManager orderManager() {
+    private TrackedOrderManager orderManager;
+    private OrderHighlightManager highlightManager;
+    private AlertManager alertManager;
+
+    public static TrackedOrderManager orderManager() {
         return instance.orderManager;
     }
 
-    public static HighlightManager highlightManager() {
+    public static OrderHighlightManager highlightManager() {
         return instance.highlightManager;
     }
 
     public static BazaarData bazaarData() {
         return BtrBz.BAZAAR_DATA;
+    }
+
+    public static AlertManager alertManager() {
+        return instance.alertManager;
     }
 
     @Override
@@ -72,19 +90,68 @@ public class BtrBz implements ClientModInitializer {
             ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
         );
 
-        Config.load();
-        ModuleManager.getInstance().discoverBindings();
-        var orderLimitModule = ModuleManager.getInstance().registerModule(OrderLimitModule.class);
-        var bookmarkModule = ModuleManager.getInstance().registerModule(BookmarkModule.class);
-
+        ConfigManager.load();
+        Commands.registerAll();
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
-        this.highlightManager = new HighlightManager();
-        this.orderManager = new BzOrderManager(BAZAAR_DATA, this.highlightManager::updateStatus);
+        this.highlightManager = new OrderHighlightManager();
+        this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
+        this.alertManager = new AlertManager();
+
+        var moduleManager = ModuleManager.getInstance();
+        moduleManager.discoverBindings();
+        var orderLimitModule = moduleManager.registerModule(OrderLimitModule.class);
+        var bookmarkModule = moduleManager.registerModule(BookmarkModule.class);
+        var priceDiffModule = moduleManager.registerModule(PriceDiffModule.class);
+        var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
+        var orderListModule = moduleManager.registerModule(TrackedOrdersListModule.class);
+
+        this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
+            var trackedOrders = this.orderManager.getTrackedOrders();
+            this.highlightManager.sync(trackedOrders, filledOrder);
+            orderValueModule.sync(unfilledOrders, filledOrder);
+        });
+
+        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
+
+        OrderCancelActions.init();
+        ProductInfoProvider.init();
+
+        ScreenActionManager.register(new ScreenClickRule() {
+            @Override
+            public boolean applies(ScreenInfo info, Slot slot, int button) {
+                var cfg = ConfigManager.get();
+                if (!cfg.flipHelper.enabled && !cfg.orderCancelActions.enabled) {
+                    return false;
+                }
+
+                if (slot == null) {
+                    return false;
+                }
+
+                var player = MinecraftClient.getInstance().player;
+                if (player != null && slot.inventory == player.getInventory()) {
+                    return false;
+                }
+
+                return info.inMenu(BazaarMenuType.Orders);
+            }
+
+            @Override
+            public boolean onClick(ScreenInfo info, Slot slot, int button) {
+                var orderInfo = OrderInfoParser.parseOrderInfo(slot.getStack(), slot.getIndex());
+                if (orderInfo.isSuccess()) {
+                    flipHelper.onOrderClick(orderInfo.get());
+                    OrderCancelActions.onOrderClick(orderInfo.get());
+                }
+
+                return false;
+            }
+        });
 
         messageDispatcher.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
         messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
@@ -96,7 +163,7 @@ public class BtrBz implements ClientModInitializer {
         );
         messageDispatcher.on(
             BazaarMessage.InstaSell.class,
-            info -> orderLimitModule.onTransaction(info.total() * (1 - Config.get().tax / 100))
+            info -> orderLimitModule.onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
         );
         messageDispatcher.on(
             BazaarMessage.OrderSetup.class,
@@ -107,29 +174,41 @@ public class BtrBz implements ClientModInitializer {
             messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
         });
 
-        // @formatter:off
+        ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
+            var rawMsg = Formatting.strip(message.getString());
+            if (overlay || !rawMsg.startsWith("[Bazaar]") || !rawMsg.endsWith("was filled!")) {
+                return message;
+            }
+
+            return message
+                .copy()
+                .append(Text
+                    .literal(" [Go To Orders]")
+                    .styled(style -> style
+                        .withClickEvent(new RunCommand("/managebazaarorders"))
+                        .withHoverEvent(new ShowText(Text.literal("Opens the Bazaar order screen")))
+                        .withColor(Formatting.DARK_AQUA)));
+        });
+
         ScreenInfoHelper.registerOnLoaded(
-            info -> info.inMenu(BazaarMenuType.Orders),
-            (info, slots) -> {
-
-                var parsed = slots.stream()
-                    .filter(slot -> {
-                        var stack = slot.stack();
-                        return !stack.isEmpty() && !Util.ORDER_SCREEN_NON_ORDER_ITEMS.contains(stack.getItem());
+            info -> info.inMenu(BazaarMenuType.Orders), (info, inv) -> {
+                var parsed = inv.items
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> {
+                        var stack = entry.getValue();
+                        return !stack.isEmpty() && !BtrBz.ORDER_SCREEN_NON_ORDER_ITEMS.contains(
+                            stack.getItem());
                     })
-                    .map(slot ->
-                        OrderInfoParser
-                            .parseOrderInfo(slot.stack(), slot.idx())
-                            .toJavaOptional()
-                    )
+                    .map(entry -> OrderInfoParser
+                        .parseOrderInfo(entry.getValue(), entry.getKey())
+                        .toJavaOptional())
                     .flatMap(Optional::stream)
-                    .collect(Collectors.toList());
+                    .toList();
 
-                this.orderManager.syncFromUi(parsed);
-                this.highlightManager.setStatuses(parsed);
+                this.orderManager.syncOrders(parsed);
             }
         );
-        // @formatter:on
 
         ScreenActionManager.register(new ScreenClickRule() {
 
@@ -157,50 +236,6 @@ public class BtrBz implements ClientModInitializer {
 
                 return false;
             }
-        });
-
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            dispatcher.register(ClientCommandManager.literal(BtrBz.MOD_ID).executes(context -> {
-                ConfigScreen.open();
-
-                return 1;
-            }));
-
-            dispatcher.register(ClientCommandManager.literal("reset").executes(context -> {
-                MinecraftClient.getInstance().execute(() -> {
-                    this.orderManager.resetTrackedOrders();
-                    var player = MinecraftClient.getInstance().player;
-                    if (player != null) {
-                        player.sendMessage(
-                            Text.literal("Tracked Bazaar orders have been reset."),
-                            false
-                        );
-                    }
-                });
-
-                return 1;
-            }));
-
-            dispatcher.register(ClientCommandManager.literal("show").executes(context -> {
-                MinecraftClient.getInstance().execute(() -> {
-                    var player = MinecraftClient.getInstance().player;
-                    var orders = this.orderManager.getTrackedOrders();
-
-                    if (player != null) {
-                        var trackedOrdersStr = orders
-                            .stream()
-                            .map(TrackedOrder::toString)
-                            .collect(Collectors.joining("\n"));
-
-                        player.sendMessage(
-                            Text.literal("Your orders:\n" + trackedOrdersStr),
-                            false
-                        );
-                    }
-                });
-
-                return 1;
-            }));
         });
     }
 }

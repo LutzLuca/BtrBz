@@ -7,6 +7,8 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.Orde
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFlipped;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.Util;
@@ -29,7 +31,7 @@ public final class OrderInfoParser {
         assert bazaarMsg.startsWith("[Bazaar]");
         var msg = bazaarMsg.replace("[Bazaar]", "").trim();
 
-        if (msg.endsWith("was filled!")) {
+        if (msg.endsWith("was filled!") || msg.endsWith("was filled! [Go To Orders]")) {
             return parseFilledOrderMessage(msg).onFailure(err -> logParseError(
                 "filled order",
                 msg,
@@ -146,7 +148,7 @@ public final class OrderInfoParser {
                     throw new IllegalArgumentException("Filled order: unknown type '" + typePart + "'");
             };
 
-            var fragment = forSplit[1].replace("was filled!", "").trim();
+            var fragment = forSplit[1].replaceFirst("was filled!.*", "").trim();
             var parsed = parseVolume(fragment, "Filled order");
 
             return new OrderFilled(orderType, parsed.volume, parsed.productName);
@@ -182,7 +184,7 @@ public final class OrderInfoParser {
     }
 
     public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx) {
-        // name: {orderType} {productName}
+        // name: {type} {productName}
         // lore lines:
         // Worth {roundedFormattedTotal} coins
         // Blank
@@ -191,11 +193,13 @@ public final class OrderInfoParser {
         // Blank
         // Price per unit: {pricePerUnit} coins
         // ...
+        // You have {unclaimed} of ... to claim
+        // ...
         return Try.of(() -> {
             var orderInfo = item.getName().getString().split(" ", 2);
             if (orderInfo.length != 2) {
                 throw new IllegalArgumentException(
-                    "Title line of item does not follow the pattern '<orderType> <productName>'");
+                    "Title line of item does not follow the pattern '<type> <productName>'");
             }
 
             var orderTypeResult = OrderType.tryFrom(orderInfo[0]);
@@ -216,12 +220,25 @@ public final class OrderInfoParser {
             }
 
             var details = additionalInfo.get();
-            return new OrderInfo(
+            if (details.filled) {
+                return new FilledOrderInfo(
+                    productName.trim(),
+                    orderTypeResult.get(),
+                    details.volume,
+                    details.pricePerUnit,
+                    details.filledAmount,
+                    details.unclaimed,
+                    slotIdx
+                );
+            }
+
+            return new UnfilledOrderInfo(
                 productName.trim(),
                 orderTypeResult.get(),
-                details.volume(),
-                details.pricePerUnit(),
-                details.filled(),
+                details.volume,
+                details.pricePerUnit,
+                details.filledAmount,
+                details.unclaimed,
                 slotIdx
             );
         });
@@ -232,6 +249,8 @@ public final class OrderInfoParser {
             Double pricePerUnit = null;
             Integer volume = null;
             Boolean filled = null;
+            int filledAmount = 0;
+            int unclaimed = 0;
 
             for (String rawLine : lore) {
                 String line = rawLine.trim();
@@ -260,10 +279,23 @@ public final class OrderInfoParser {
                         .intValue();
                 } else if (filled == null && line.startsWith("Filled") && line.contains("%")) {
                     filled = line.contains("100%");
-                }
+                    var first = line.indexOf(' ');
+                    var last = line.lastIndexOf(' ');
 
-                if (pricePerUnit != null && volume != null && filled != null) {
-                    break;
+                    var parts = line.substring(first, last).trim().split("/", 2);
+                    filledAmount = Util
+                        .parseUsFormattedNumber(parts[0])
+                        .getOrElseThrow(() -> new IllegalArgumentException(
+                            "Failed to parse filledAmound"))
+                        .intValue();
+                } else if (line.startsWith("You have")) {
+                    var trimmed = line.replaceFirst("You have", "").trim();
+                    var spaceIdx = trimmed.indexOf(' ');
+                    unclaimed = Util
+                        .parseUsFormattedNumber(trimmed.substring(0, spaceIdx).trim())
+                        .getOrElseThrow(() -> new IllegalArgumentException(
+                            "Failed to parse unclaimed amount"))
+                        .intValue();
                 }
             }
 
@@ -272,7 +304,13 @@ public final class OrderInfoParser {
                     "Missing required fields (pricePerUnit or volume) in lore");
             }
 
-            return new OrderDetails(pricePerUnit, volume, filled != null && filled);
+            return new OrderDetails(
+                pricePerUnit,
+                volume,
+                filledAmount,
+                unclaimed,
+                filled != null && filled
+            );
         });
     }
 
@@ -376,5 +414,7 @@ public final class OrderInfoParser {
 
     private record ParsedVolume(int volume, String productName) { }
 
-    private record OrderDetails(double pricePerUnit, int volume, boolean filled) { }
+    private record OrderDetails(
+        double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled
+    ) { }
 }
