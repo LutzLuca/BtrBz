@@ -11,6 +11,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//? if >=1.21.6 {
+/*import net.minecraft.client.gl.RenderPipelines;
+ *///?} else {
+import net.minecraft.client.render.RenderLayer;
+//?}
+
 @Mixin(DrawContext.class)
 public class DrawContextMixin {
 
@@ -36,6 +42,20 @@ public class DrawContextMixin {
         int iconSize = 8;
         var texture = isBookmarked ? BOOKMARK_STAR : BOOKMARK_ICON;
 
+        //? if >=1.21.6 {
+        /*context.drawTexture(
+            RenderPipelines.GUI_TEXTURED,
+            texture,
+            x,
+            y,
+            0,
+            0,
+            iconSize,
+            iconSize,
+            iconSize,
+            iconSize
+        );
+        *///?} else {
         context.drawTexture(
             RenderLayer::getGuiTexturedOverlay,
             texture,
@@ -48,5 +68,6 @@ public class DrawContextMixin {
             iconSize,
             iconSize
         );
+        //?}
     }
 }

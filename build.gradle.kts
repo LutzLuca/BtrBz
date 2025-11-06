@@ -7,7 +7,7 @@ fun getProp(name: String): String =
     findProperty(name) as? String ?: error("Missing Gradle property: $name")
 
 group = getProp("maven_group")
-version = getProp("mod_version")
+version = getProp("mod_version") + "+" + getProp("mc_version")
 
 base {
     archivesName.set(getProp("mod_id"))
@@ -15,6 +15,11 @@ base {
 
 loom {
     log4jConfigs.from(file("./log4j-dev.xml"))
+
+    runConfigs.all {
+        ideConfigGenerated(true)
+        runDir = "../../run"
+    }
 }
 
 repositories {
@@ -32,7 +37,7 @@ fabricApi {
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:${getProp("mc_version")}")
+    minecraft("com.mojang:minecraft:${stonecutter.current.project}")
     mappings("net.fabricmc:yarn:${getProp("yarn_mappings")}:v2")
     modImplementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
@@ -64,6 +69,7 @@ dependencies {
 tasks {
     processResources {
         inputs.property("version", project.version)
+        inputs.property("mc_version", stonecutter.current.version)
 
         filesMatching("fabric.mod.json") {
             expand(getProperties())

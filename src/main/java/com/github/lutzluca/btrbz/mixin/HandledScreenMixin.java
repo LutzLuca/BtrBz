@@ -25,9 +25,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Slf4j
 public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen {
 
-    @Shadow
-    @Final
-    protected T handler;
+    //@Shadow
+    //@Final
+    //protected T handler;
 
     protected HandledScreenMixin(Text title) { super(title); }
 
@@ -72,57 +72,57 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
         }
     }
 
-    //    @Inject(method = "drawSlot", at = @At("TAIL"))
-    //    private void afterDrawSlot(DrawContext context, Slot slot, CallbackInfo ci) {
-    //        if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
-    //            return;
-    //        }
-    //        if (slot.getStack().isEmpty()) {
-    //            return;
-    //        }
-    //
-    //        var player = MinecraftClient.getInstance().player;
-    //        if (player == null || slot.inventory == player.getInventory()) {
-    //            return;
-    //        }
-    //
-    //        var x = slot.x;
-    //        var y = slot.y;
-    //        var idx = slot.getIndex();
-    //
-    //        BtrBz
-    //            .highlightManager()
-    //            .getHighlight(idx)
-    //            .ifPresent(color -> context.fill(x, y, x + 16, y + 16, color));
-    //    }
-
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ingame/HandledScreen;drawSlots(Lnet/minecraft/client/gui/DrawContext;)V", shift = At.Shift.AFTER))
-    private void afterDrawSlots(
-        DrawContext context,
-        int mouseX,
-        int mouseY,
-        float deltaTicks,
-        CallbackInfo ci
-    ) {
+    @Inject(method = "drawSlot", at = @At("HEAD"))
+    private void afterDrawSlot(DrawContext context, Slot slot, CallbackInfo ci) {
         if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
+            return;
+        }
+        if (slot.getStack().isEmpty()) {
             return;
         }
 
         var player = MinecraftClient.getInstance().player;
-        if (player == null) {
+        if (player == null || slot.inventory == player.getInventory()) {
             return;
         }
 
-        var manager = BtrBz.highlightManager();
+        var x = slot.x;
+        var y = slot.y;
+        var idx = slot.getIndex();
 
-        for (Slot slot : this.handler.slots) {
-            if (slot.getStack().isEmpty() || slot.inventory == player.getInventory()) {
-                continue;
-            }
-
-            manager
-                .getHighlight(slot.getIndex())
-                .ifPresent(color -> context.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, color));
-        }
+        BtrBz
+            .highlightManager()
+            .getHighlight(idx)
+            .ifPresent(color -> context.fill(x, y, x + 16, y + 16, color));
     }
+
+    //@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ingame/HandledScreen;drawSlots(Lnet/minecraft/client/gui/DrawContext;)V", shift = At.Shift.AFTER))
+    //private void afterDrawSlots(
+    //    DrawContext context,
+    //    int mouseX,
+    //    int mouseY,
+    //    float deltaTicks,
+    //    CallbackInfo ci
+    //) {
+    //    if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
+    //        return;
+    //    }
+    //
+    //    var player = MinecraftClient.getInstance().player;
+    //    if (player == null) {
+    //        return;
+    //    }
+    //
+    //    var manager = BtrBz.highlightManager();
+    //
+    //    for (Slot slot : this.handler.slots) {
+    //        if (slot.getStack().isEmpty() || slot.inventory == player.getInventory()) {
+    //            continue;
+    //        }
+    //
+    //        manager
+    //            .getHighlight(slot.getIndex())
+    //            .ifPresent(color -> context.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, color));
+    //    }
+    //}
 }
