@@ -20,6 +20,7 @@
         "fabricloader": ">=0.16.14",
         "minecraft": "${mc_version}",
         "java": ">=21",
-        "fabric-api": "*"
+        "fabric-api": "*",
+        "yet_another_config_lib_v3": "*"
     }
 }

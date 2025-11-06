@@ -51,7 +51,6 @@ import net.minecraft.util.Identifier;
 
 // TODO have a little more configuration for size; this will involve changes to ScrollableListWidget
 // TODO make it a little prettier
-// TODO have nice tooltips; buy offer / buy order prices
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
 
@@ -257,7 +256,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             super(x, y, width, height, Text.literal(productName), parent);
             this.productName = productName;
             this.itemStack = itemStack;
-            this.color = Try
+            this.color = (0xFF << 24) | Try
                 .of(() -> itemStack
                     .getName()
                     .getSiblings()
@@ -265,7 +264,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     .getStyle()
                     .getColor()
                     .getRgb())
-                .getOrElse(0xFFFFFFFF);
+                .getOrElse(0xD3D3D3);
             this.setRenderBackground(true);
             this.setRenderBorder(true);
         }
@@ -280,7 +279,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
             int textX = iconX + 20;
             int textY = this.getY() + (this.height - textRenderer.fontHeight) / 2;
-            ctx.drawTextWithShadow(textRenderer, productName, textX, textY, this.color);
+            ctx.drawTextWithShadow(textRenderer, this.productName, textX, textY, this.color);
         }
     }
 

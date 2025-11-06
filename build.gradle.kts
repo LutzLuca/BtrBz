@@ -22,6 +22,7 @@ loom {
     }
 }
 
+
 repositories {
     mavenCentral()
     maven("https://maven.fabricmc.net/")
@@ -85,4 +86,3 @@ tasks {
 java {
     withSourcesJar()
 }
-
