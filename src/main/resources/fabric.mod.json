@@ -11,6 +11,9 @@
     "entrypoints": {
         "client": [
             "com.github.lutzluca.btrbz.BtrBz"
+        ],
+        "modmenu": [
+            "com.github.lutzluca.btrbz.core.config.BtrBzModMenu"
         ]
     },
     "mixins": [
@@ -22,5 +25,12 @@
         "java": ">=21",
         "fabric-api": "*",
         "yet_another_config_lib_v3": "*"
+    },
+    "custom": {
+        "modmenu": {
+            "links": {
+                "Source Code on Github": "https://github.com/LutzLuca/BtrBz"
+            }
+        }
     }
 }

@@ -29,6 +29,7 @@ repositories {
     maven("https://repo.hypixel.net/repository/Hypixel/")
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
     maven("https://maven.isxander.dev/releases")
+    maven("https://maven.terraformersmc.com/")
 }
 
 fabricApi {
@@ -65,6 +66,8 @@ dependencies {
     modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
 
     modImplementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
+
+    modImplementation("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
 }
 
 tasks {
