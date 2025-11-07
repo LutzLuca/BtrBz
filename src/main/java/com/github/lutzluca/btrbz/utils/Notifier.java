@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Act
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
@@ -135,13 +136,18 @@ public class Notifier {
 
     public static void notifyOrderStatus(StatusUpdate update) {
         var order = update.trackedOrder();
-        var status = update.status();
+        var status = update.curr();
 
         var msg = switch (status) {
-            case Top ignored -> bestMsg(order);
+            case Top ignored -> {
+                if (update.prev() instanceof OrderStatus.Unknown) {
+                    yield bestMsg(order);
+                }
+                yield reclaimBestMsg(order);
+            }
             case Matched ignored -> matchedMsg(order);
             case Undercut undercut -> undercutMsg(order, undercut.amount);
-            default -> throw new IllegalArgumentException("Unreachable status: " + status);
+            default -> throw new IllegalArgumentException("Unreachable curr: " + status);
         };
 
         var cfg = ConfigManager.get().trackedOrders;
@@ -180,6 +186,14 @@ public class Notifier {
             .empty()
             .append(Text.literal("is the ").formatted(Formatting.WHITE))
             .append(Text.literal("BEST Order!").formatted(Formatting.GREEN));
+        return fillBaseMessage(order.type, order.volume, order.productName, status);
+    }
+
+    private static MutableText reclaimBestMsg(TrackedOrder order) {
+        var status = Text
+            .empty()
+            .append(Text.literal("has ").formatted(Formatting.WHITE))
+            .append(Text.literal("REGAINED BEST Order!").formatted(Formatting.GREEN));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 

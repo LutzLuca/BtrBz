@@ -124,7 +124,7 @@ public class TrackedOrderManager {
                         "No name -> id mapping found for product with name: '{}'",
                         tracked.productName
                     );
-                    return Optional.<StatusUpdate>empty();
+                    return Optional.<TrackedStatus>empty();
                 }
 
                 var product = Optional.ofNullable(products.get(id.get()));
@@ -134,25 +134,32 @@ public class TrackedOrderManager {
                         tracked.productName,
                         id.get()
                     );
-                    return Optional.<StatusUpdate>empty();
+                    return Optional.<TrackedStatus>empty();
                 }
 
                 var status = this.getStatus(tracked, product.get());
                 if (status.isEmpty()) {
                     log.debug(
-                        "Unable to determine status for product '{}' with id '{}'",
+                        "Unable to determine curr for product '{}' with id '{}'",
                         tracked.productName,
                         id.get()
                     );
-                    return Optional.<StatusUpdate>empty();
+                    return Optional.<TrackedStatus>empty();
                 }
 
-                return Optional.of(new StatusUpdate(tracked, status.get()));
+                return Optional.of(new TrackedStatus(tracked, status.get()));
             })
             .flatMap(Optional::stream)
-            .filter(statusUpdate -> !statusUpdate.trackedOrder.status.sameVariant(statusUpdate.status))
-            .forEach(statusUpdate -> {
-                statusUpdate.trackedOrder.status = statusUpdate.status;
+            .filter(trackedStatus -> !trackedStatus.trackedOrder().status.sameVariant(trackedStatus.status()))
+            .forEach(trackedStatus -> {
+                var statusUpdate = new StatusUpdate(
+                    trackedStatus.trackedOrder(),
+                    trackedStatus.status(),
+                    trackedStatus.trackedOrder().status
+                );
+
+                trackedStatus.trackedOrder().status = statusUpdate.curr;
+
                 this.onOrderStatusUpdate.forEach(listener -> listener.accept(statusUpdate));
 
                 if (this.shouldNotify(statusUpdate)) {
@@ -161,11 +168,21 @@ public class TrackedOrderManager {
             });
     }
 
-    private boolean shouldNotify(StatusUpdate statusUpdate) {
+    private boolean shouldNotify(StatusUpdate update) {
         var cfg = ConfigManager.get().trackedOrders;
 
-        return cfg.enabled && switch (statusUpdate.status) {
-            case Top ignored -> cfg.notifyBest;
+        return cfg.enabled && switch (update.curr) {
+            case Top ignored -> {
+                if (!cfg.notifyBest) {
+                    yield false;
+                }
+
+                if (cfg.onlyOnPriorityRegain) {
+                    yield !(update.prev instanceof OrderStatus.Unknown);
+                }
+
+                yield true;
+            }
             case Matched ignored -> cfg.notifyMatched;
             case Undercut ignored -> cfg.notifyUndercut;
             default -> false;
@@ -257,13 +274,18 @@ public class TrackedOrderManager {
         };
     }
 
-    public record StatusUpdate(TrackedOrder trackedOrder, OrderStatus status) { }
+    private record TrackedStatus(TrackedOrder trackedOrder, OrderStatus status) { }
+
+    public record StatusUpdate(
+        TrackedOrder trackedOrder, OrderStatus curr, OrderStatus prev
+    ) { }
 
     public static class OrderManagerConfig {
 
         public boolean enabled = true;
 
         public boolean notifyBest = true;
+        public boolean onlyOnPriorityRegain = true;
         public boolean notifyMatched = true;
         public boolean notifyUndercut = true;
 
@@ -271,8 +293,16 @@ public class TrackedOrderManager {
         public Action gotoOnUndercut = Action.Item;
 
         public OptionGroup createGroup() {
+            var notifyBestPriorityRegain = this.createNotifyBestOnPriorityRegain().build();
+            var notifyBest = this.createNotifyBestOption().addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    notifyBestPriorityRegain.setAvailable(option.pendingValue());
+                }
+            });
+
             var options = List.of(
-                this.createNotifyBestOption().build(),
+                notifyBest.build(),
+                notifyBestPriorityRegain,
                 this.createNotifyMatchedOption().build(),
                 this.createNotifyUndercutOption().build(),
                 this.createGotoMatchedOption().build(),
@@ -327,6 +357,7 @@ public class TrackedOrderManager {
                 .available(this.enabled);
         }
 
+
         private Option.Builder<Boolean> createNotifyBestOption() {
             return Option
                 .<Boolean>createBuilder()
@@ -336,6 +367,20 @@ public class TrackedOrderManager {
                     "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
                 .controller(ConfigScreen::createBooleanController)
                 .available(this.enabled);
+        }
+
+        private Option.Builder<Boolean> createNotifyBestOnPriorityRegain() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.of("Only On Priority Regain"))
+                .binding(
+                    true,
+                    () -> this.onlyOnPriorityRegain,
+                    val -> this.onlyOnPriorityRegain = val
+                )
+                .description(OptionDescription.of(Text.of(
+                    "Only sends a notification when a tracked order regains it best/top curr")))
+                .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyMatchedOption() {
@@ -366,7 +411,7 @@ public class TrackedOrderManager {
                 .name(Text.literal("Tracked Orders"))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .description(OptionDescription.of(Text.literal(
-                    "Enable or disable the notifications when the status of an order changes")))
+                    "Enable or disable the notifications when the curr of an order changes")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -375,9 +420,7 @@ public class TrackedOrderManager {
             Item,
             Order;
 
-            public static EnumControllerBuilder<Action> controller(
-                Option<Action> option
-            ) {
+            public static EnumControllerBuilder<Action> controller(Option<Action> option) {
                 return EnumControllerBuilder
                     .create(option)
                     .enumClass(Action.class)
