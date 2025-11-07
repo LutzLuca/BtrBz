@@ -168,8 +168,6 @@ public final class ConversionLoader {
                 .newBuilder()
                 .uri(GITHUB_API_URI)
                 .header("Accept", "application/vnd.github.v3+json")
-                // TODO remove the Github access token once the repo is public
-                .header("Authorization", "Bearer " + System.getenv("GITHUB_ACCESS_TOKEN"))
                 .GET()
                 .build();
 
