@@ -72,6 +72,7 @@ public final class ScreenInfoHelper {
     private void setupInventoryWatcher() {
         this.inventoryWatcher.setOnLoaded(inventory -> {
             this.currInfo.markInventoryLoaded();
+            log.trace("Inventory loaded: '{}'", inventory.title);
 
             this.screenLoadListenerEntries
                 .stream()
@@ -89,12 +90,17 @@ public final class ScreenInfoHelper {
         });
     }
 
-    public void setScreen(Screen screen) {
-        var next = this.prevInfo;
-        next.setScreen(screen);
+    public void setScreen(@Nullable Screen screen) {
+        if (this.currInfo.getScreen() == screen) {
+            log.trace("Already on this screen; skipping swap");
+            return;
+        }
 
+        var next = this.prevInfo;
         this.prevInfo = this.currInfo;
         this.currInfo = next;
+
+        this.currInfo.setScreen(screen);
     }
 
     public void fireScreenSwitchCallbacks() {

@@ -145,8 +145,8 @@ public class ScreenInventoryTracker {
     public static class Inventory {
 
         public final Map<Integer, ItemStack> items;
+        public final String title;
         private final int syncId;
-        private final String title;
         private final int slotCount;
         public boolean fullyLoaded;
 
