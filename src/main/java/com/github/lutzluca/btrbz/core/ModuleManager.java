@@ -63,7 +63,7 @@ public class ModuleManager {
             .flatMap(module -> module.createWidgets(info).stream())
             .toList();
 
-        log.debug("Adding {} widgets for initial render", widgets.size());
+        log.trace("Adding {} widgets for initial render", widgets.size());
         widgets.forEach(accessor::invokeAddDrawableChild);
     }
 
@@ -78,7 +78,7 @@ public class ModuleManager {
             .stream()
             .filter(module -> !module.isDisplayed() && module.shouldDisplay(info))
             .peek(module -> {
-                log.debug(
+                log.trace(
                     "Module {} now displays after inventory load",
                     module.getClass().getSimpleName()
                 );
