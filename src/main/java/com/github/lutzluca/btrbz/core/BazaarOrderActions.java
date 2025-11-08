@@ -20,9 +20,10 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 
 @Slf4j
-public class OrderCancelActions {
+public class BazaarOrderActions {
 
-    private static boolean returnToOrderScreen = false;
+    private static boolean shouldReopenOrders = false;
+    private static boolean shouldReopenBazaar = false;
     private static Integer remainingOrderAmount = null;
 
     public static void init() {
@@ -30,12 +31,12 @@ public class OrderCancelActions {
 
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().orderCancelActions;
+                var cfg = ConfigManager.get().orderActions;
                 if (!cfg.enabled) {
                     return false;
                 }
 
-                if (!cfg.goToOrderScreen && !cfg.copyRemaining) {
+                if (!cfg.reopenOrders && !cfg.copyRemaining) {
                     return false;
                 }
 
@@ -54,13 +55,13 @@ public class OrderCancelActions {
                     return false;
                 }
 
-                var cfg = ConfigManager.get().orderCancelActions;
+                var cfg = ConfigManager.get().orderActions;
                 if (cfg.copyRemaining && remainingOrderAmount != null) {
                     Util.copyIntToClipboard(remainingOrderAmount);
                     remainingOrderAmount = null;
                 }
-                if (cfg.goToOrderScreen) {
-                    returnToOrderScreen = true;
+                if (cfg.reopenOrders) {
+                    shouldReopenOrders = true;
                 }
 
                 return false;
@@ -68,17 +69,31 @@ public class OrderCancelActions {
         });
 
         ScreenInfoHelper.registerOnClose(
+            info -> info.inMenu(
+                BazaarMenuType.SellOfferConfirmation,
+                BazaarMenuType.BuyOrderConfirmation
+            ),
+            info -> {
+                if (ConfigManager.get().orderActions.reopenBazaar && shouldReopenBazaar) {
+                    Util.runCommand("bz");
+                }
+                shouldReopenBazaar = false;
+            }
+        );
+
+        ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.OrderOptions), info -> {
-                if (returnToOrderScreen) {
+                if (shouldReopenOrders) {
                     Util.runCommand("managebazaarorders");
                 }
-                returnToOrderScreen = false;
+
+                shouldReopenOrders = false;
                 remainingOrderAmount = null;
             }
         );
     }
 
-    // this could also be done inside the `OrderOptions` screen
+    // NOTE: this could (and probably should) also be done inside the `OrderOptions` screen
     // parsing the `Cancel Order` item's lore "You will be refunded {rounded total} coins from
     // {remaining}x missing items."
     public static void onOrderClick(OrderInfo info) {
@@ -94,6 +109,10 @@ public class OrderCancelActions {
         );
     }
 
+    public static void setReopenBazaar() {
+        shouldReopenBazaar = true;
+    }
+
     private static boolean isCancelOrderSlot(Slot slot) {
         return (slot.getIndex() == 11 || slot.getIndex() == 13) && slot
             .getStack()
@@ -102,11 +121,30 @@ public class OrderCancelActions {
             .equals("Cancel Order");
     }
 
-    public static class OrderCancelConfig {
+    public static class OrderActionsConfig {
 
         public boolean enabled = true;
+        public boolean reopenOrders = true;
         public boolean copyRemaining = true;
-        public boolean goToOrderScreen = true;
+        public boolean reopenBazaar = false;
+
+        public Option.Builder<Boolean> createReopenBazaarOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Return to Bazaar After Order Setup"))
+                .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
+                .description(OptionDescription.of(Util.join(
+                    List.of(
+                        Text.literal(
+                            "Automatically reopens the main Bazaar menu after placing a buy/sell order."),
+                        Text.literal(
+                            "\nNote: This executes '/bz' which requires a server round-trip."),
+                        Text.literal(
+                            "You may experience brief mouse unlock during the transition, which may feel a bit clunky.")
+                    ), " "
+                )))
+                .controller(ConfigScreen::createBooleanController);
+        }
 
         public Option.Builder<Boolean> createCopyRemainingOption() {
             return Option
@@ -118,15 +156,11 @@ public class OrderCancelActions {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createGoToOrderScreenOption() {
+        public Option.Builder<Boolean> createReopenOrdersOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Go back to Order Screen"))
-                .binding(
-                    true,
-                    () -> this.goToOrderScreen,
-                    enabled -> this.goToOrderScreen = enabled
-                )
+                .binding(true, () -> this.reopenOrders, enabled -> this.reopenOrders = enabled)
                 .description(OptionDescription.of(Text.literal(
                     "Automatically opens the Bazaar order screen after cancelling an order")))
                 .controller(ConfigScreen::createBooleanController);
@@ -145,8 +179,9 @@ public class OrderCancelActions {
 
         public OptionGroup createGroup() {
             var options = List.of(
-                this.createGoToOrderScreenOption().build(),
-                this.createCopyRemainingOption().build()
+                this.createReopenOrdersOption().build(),
+                this.createCopyRemainingOption().build(),
+                this.createReopenBazaarOption().build()
             );
             var enabledBuilder = this.createEnabledOption();
 

@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.OrderCancelActions;
+import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager;
@@ -118,14 +118,14 @@ public class BtrBz implements ClientModInitializer {
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
-        OrderCancelActions.init();
+        BazaarOrderActions.init();
         ProductInfoProvider.init();
 
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
                 var cfg = ConfigManager.get();
-                if (!cfg.flipHelper.enabled && !cfg.orderCancelActions.enabled) {
+                if (!cfg.flipHelper.enabled && !cfg.orderActions.enabled) {
                     return false;
                 }
 
@@ -146,7 +146,7 @@ public class BtrBz implements ClientModInitializer {
                 var orderInfo = OrderInfoParser.parseOrderInfo(slot.getStack(), slot.getIndex());
                 if (orderInfo.isSuccess()) {
                     flipHelper.onOrderClick(orderInfo.get());
-                    OrderCancelActions.onOrderClick(orderInfo.get());
+                    BazaarOrderActions.onOrderClick(orderInfo.get());
                 }
 
                 return false;
@@ -233,6 +233,7 @@ public class BtrBz implements ClientModInitializer {
                         setOrderInfo.productName()
                     );
                 }).onFailure((err) -> log.warn("Failed to parse confirm item", err));
+                BazaarOrderActions.setReopenBazaar();
 
                 return false;
             }

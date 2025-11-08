@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
 import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
-import com.github.lutzluca.btrbz.core.OrderCancelActions.OrderCancelConfig;
+import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
@@ -47,7 +47,7 @@ public class Config {
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
 
     @SerialEntry
-    public OrderCancelConfig orderCancelActions = new OrderCancelConfig();
+    public OrderActionsConfig orderActions = new OrderActionsConfig();
 
     @SerialEntry
     public OrderManagerConfig trackedOrders = new OrderManagerConfig();

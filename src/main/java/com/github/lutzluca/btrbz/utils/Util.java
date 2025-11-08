@@ -191,12 +191,12 @@ public final class Util {
         }
     }
 
-    public static Text join(List<Text> lines) {
+    public static Text join(List<Text> lines, String sequence) {
         var res = Text.empty();
         for (int i = 0; i < lines.size(); i++) {
             res.append(lines.get(i));
             if (i < lines.size() - 1) {
-                res.append("\n");
+                res.append(sequence);
             }
         }
         return res;
