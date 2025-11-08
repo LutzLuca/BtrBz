@@ -14,7 +14,7 @@ base {
 }
 
 loom {
-    log4jConfigs.from(file("./log4j-dev.xml"))
+    log4jConfigs.from(file("log4j-dev.xml"))
 
     runConfigs.all {
         ideConfigGenerated(true)
