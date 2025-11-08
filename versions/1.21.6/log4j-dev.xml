@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration name="BtrBz">
   <Loggers>
-    <Logger name="com.github.lutzluca.btrbz" level="${sys:btrbz.log.level:-info}"
-      additivity="false">
-      <AppenderRef ref="DebugFile" level="${sys:fabric.log.debug.level:-debug}"/>
+
+    <Logger additivity="false" level="${sys:btrbz.log.level:-debug}"
+      name="com.github.lutzluca.btrbz">
       <AppenderRef ref="SysOut"/>
-      <AppenderRef ref="LatestFile" level="${sys:fabric.log.level:-info}"/>
     </Logger>
+
+    <Logger additivity="false" level="warn" name="YetAnotherConfigLib">
+      <AppenderRef ref="SysOut"/>
+    </Logger>
+
+    <Logger additivity="false" level="warn" name="net.minecraft">
+      <AppenderRef ref="SysOut"/>
+    </Logger>
+
+    <Logger additivity="false" level="warn" name="com.mojang">
+      <AppenderRef ref="SysOut"/>
+    </Logger>
+
+    <Root level="info">
+      <AppenderRef ref="SysOut"/>
+    </Root>
+
   </Loggers>
 </Configuration>
