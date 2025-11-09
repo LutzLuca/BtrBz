@@ -77,35 +77,39 @@ public class AlertCommand {
             }))
 
             .then(ClientCommandManager
-                .argument("args", StringArgumentType.greedyString())
-                .executes(ctx -> {
-                    var args = StringArgumentType.getString(ctx, "args");
-                    var result = Try
-                        .of(() -> PARSER.parse(args))
-                        .flatMap(alertCmd -> alertCmd.resolve(BtrBz.bazaarData()))
-                        .flatMap(ResolvedAlertArgs::validate)
-                        .onSuccess(resolved -> {
-                            var registered = BtrBz.alertManager().addAlert(resolved);
-                            if (registered) {
-                                Notifier.notifyAlertRegistered(resolved);
-                                return;
-                            }
+                .literal("add")
+                .then(ClientCommandManager
+                    .argument("args", StringArgumentType.greedyString())
+                    .executes(ctx -> {
+                        var args = StringArgumentType.getString(ctx, "args");
+                        var result = Try
+                            .of(() -> PARSER.parse(args))
+                            .flatMap(alertCmd -> alertCmd.resolve(BtrBz.bazaarData()))
+                            .flatMap(ResolvedAlertArgs::validate)
+                            .onSuccess(resolved -> {
+                                var registered = BtrBz.alertManager().addAlert(resolved);
+                                if (registered) {
+                                    Notifier.notifyAlertRegistered(resolved);
+                                    return;
+                                }
 
-                            Notifier.notifyAlertAlreadyPresent(resolved);
-                        })
-                        .onFailure(err -> {
-                            var msg = Notifier
-                                .prefix()
-                                .append(Text
-                                    .literal("Alert setup failed: ")
-                                    .formatted(Formatting.RED))
-                                .append(Text.literal(err.getMessage()).formatted(Formatting.GRAY));
+                                Notifier.notifyAlertAlreadyPresent(resolved);
+                            })
+                            .onFailure(err -> {
+                                var msg = Notifier
+                                    .prefix()
+                                    .append(Text
+                                        .literal("Alert setup failed: ")
+                                        .formatted(Formatting.RED))
+                                    .append(Text
+                                        .literal(err.getMessage())
+                                        .formatted(Formatting.GRAY));
 
-                            Notifier.notifyPlayer(msg);
-                        });
+                                Notifier.notifyPlayer(msg);
+                            });
 
-                    return result.isSuccess() ? 1 : -1;
-                })));
+                        return result.isSuccess() ? 1 : -1;
+                    }))));
 
     }
 }
