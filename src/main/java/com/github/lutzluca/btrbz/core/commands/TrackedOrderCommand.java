@@ -28,7 +28,7 @@ public class TrackedOrderCommand {
 
                 builder = builder
                     .append(Text
-                        .literal("Active Alerts (" + orders.size() + "):")
+                        .literal("Tracked Orders (" + orders.size() + "):")
                         .formatted(Formatting.GOLD))
                     .append(newline);
 
