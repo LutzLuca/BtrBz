@@ -21,6 +21,8 @@ public final class GameUtils {
         Items.HOPPER
     );
 
+    public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
+
     private GameUtils() { }
 
     public static List<String> getScoreboardLines() {

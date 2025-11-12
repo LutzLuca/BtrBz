@@ -35,10 +35,9 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
-    private static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
 
     private StaticListWidget<OrderPresetEntry> list;
-    private int currMaxVolume = GLOBAL_MAX_ORDER_VOLUME;
+    private int currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
 
     // TODO: combine `openedProductId` with ProductInfoProvider's state for `openedProductId`
     // expose the `openedProductId` of the ProductInfoProver and keep state across order
@@ -68,7 +67,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 this.currMaxVolume = curr
                     .getItemStack(16)
                     .flatMap(this::getMaxVolume)
-                    .orElse(GLOBAL_MAX_ORDER_VOLUME);
+                    .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
 
                 this.inTransaction = true;
                 log.debug(
@@ -158,7 +157,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         this.pendingVolume = -1;
         this.pendingPreset = false;
 
-        this.currMaxVolume = GLOBAL_MAX_ORDER_VOLUME;
+        this.currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
         this.currProductId = null;
     }
 
