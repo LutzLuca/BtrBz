@@ -96,7 +96,7 @@ public class SimpleTextWidget extends ClickableWidget {
 
     @Override
     public boolean isHovered() {
-        return !this.disabled && super.isHovered();
+        return super.isHovered();
     }
 
     @Override
