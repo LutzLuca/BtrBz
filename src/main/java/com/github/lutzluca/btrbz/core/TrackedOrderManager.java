@@ -18,7 +18,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
@@ -240,7 +240,7 @@ public class TrackedOrderManager {
                             info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
                             info.volume(),
                             info.productName(),
-                            Util.formatDecimal(info.total(), 1, true)
+                            Utils.formatDecimal(info.total(), 1, true)
                         ), "managebazaarorders"
                     );
                 }
@@ -251,7 +251,7 @@ public class TrackedOrderManager {
         // floating point inaccuracy for player exposure is handled see
         // `GeneralUtils.formatDecimal`
         return switch (order.type) {
-            case Buy -> Util.getFirst(product.getSellSummary()).map(summary -> {
+            case Buy -> Utils.getFirst(product.getSellSummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
                     return summary.getOrders() > 1 ? new Matched() : new Top();
@@ -261,7 +261,7 @@ public class TrackedOrderManager {
                 }
                 return new Undercut(bestPrice - order.pricePerUnit);
             });
-            case Sell -> Util.getFirst(product.getBuySummary()).map(summary -> {
+            case Sell -> Utils.getFirst(product.getBuySummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
                     return summary.getOrders() > 1 ? new Matched() : new Top();

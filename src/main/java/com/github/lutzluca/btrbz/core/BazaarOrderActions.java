@@ -4,11 +4,12 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
@@ -57,7 +58,7 @@ public class BazaarOrderActions {
 
                 var cfg = ConfigManager.get().orderActions;
                 if (cfg.copyRemaining && remainingOrderAmount != null) {
-                    Util.copyIntToClipboard(remainingOrderAmount);
+                    GameUtils.copyIntToClipboard(remainingOrderAmount);
                     remainingOrderAmount = null;
                 }
                 if (cfg.reopenOrders) {
@@ -75,7 +76,7 @@ public class BazaarOrderActions {
             ),
             info -> {
                 if (ConfigManager.get().orderActions.reopenBazaar && shouldReopenBazaar) {
-                    Util.runCommand("bz");
+                    GameUtils.runCommand("bz");
                 }
                 shouldReopenBazaar = false;
             }
@@ -84,7 +85,7 @@ public class BazaarOrderActions {
         ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.OrderOptions), info -> {
                 if (shouldReopenOrders) {
-                    Util.runCommand("managebazaarorders");
+                    GameUtils.runCommand("managebazaarorders");
                 }
 
                 shouldReopenOrders = false;
@@ -133,7 +134,7 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Text.literal("Return to Bazaar After Order Setup"))
                 .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
-                .description(OptionDescription.of(Util.join(
+                .description(OptionDescription.of(GameUtils.join(
                     List.of(
                         Text.literal(
                             "Automatically reopens the main Bazaar menu after placing a buy/sell order."),

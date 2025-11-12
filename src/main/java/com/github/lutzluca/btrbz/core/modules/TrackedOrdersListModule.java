@@ -12,7 +12,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.ScrollableListWidget;
 import dev.isxander.yacl3.api.Option;
@@ -175,7 +175,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     private Optional<Position> getConfigPosition() {
-        return Util.zipNullables(this.configState.x, this.configState.y).map(Position::from);
+        return Utils.zipNullables(this.configState.x, this.configState.y).map(Position::from);
     }
 
     public static class OrderListConfig {
@@ -312,7 +312,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .append(priceInfo
                     .buyOrderPrice()
                     .map(price -> Text
-                        .literal(Util.formatDecimal(price, 1, true))
+                        .literal(Utils.formatDecimal(price, 1, true))
                         .formatted(Formatting.WHITE))
                     .orElse(Text.literal("N/A").formatted(Formatting.DARK_GRAY)));
 
@@ -322,7 +322,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .append(priceInfo
                     .sellOfferPrice()
                     .map(price -> Text
-                        .literal(Util.formatDecimal(price, 1, true))
+                        .literal(Utils.formatDecimal(price, 1, true))
                         .formatted(Formatting.WHITE))
                     .orElse(Text.literal("N/A").formatted(Formatting.DARK_GRAY)));
 
@@ -336,7 +336,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .literal("Price: ")
                 .formatted(Formatting.GRAY)
                 .append(Text
-                    .literal(Util.formatDecimal(this.order.pricePerUnit, 1, true))
+                    .literal(Utils.formatDecimal(this.order.pricePerUnit, 1, true))
                     .formatted(Formatting.WHITE));
 
             var volumeLine = Text
@@ -379,7 +379,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                             .literal("Items ahead: ")
                             .formatted(Formatting.GRAY)
                             .append(Text
-                                .literal(Util.formatDecimal(queueInfo.get().itemsAhead, 0, true))
+                                .literal(Utils.formatDecimal(queueInfo.get().itemsAhead, 0, true))
                                 .formatted(Formatting.RED)));
                     }
                 }
@@ -413,10 +413,10 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         public List<Text> getTooltipLines() {
-             if (!ConfigManager.get().orderList.showTooltips) {
+            if (!ConfigManager.get().orderList.showTooltips) {
                 return List.of();
             }
-            
+
             return this.tooltipCache.getOrCompute(this.order, this::buildTooltipLines);
         }
 

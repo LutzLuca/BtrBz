@@ -22,6 +22,7 @@ public class Commands {
             dispatcher.register(AlertCommand.get());
             dispatcher.register(TrackedOrderCommand.get());
             dispatcher.register(TaxCommand.get());
+            dispatcher.register(PresetCommand.get());
         });
     }
 }

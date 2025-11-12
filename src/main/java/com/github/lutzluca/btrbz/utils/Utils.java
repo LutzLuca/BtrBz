@@ -18,16 +18,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
 import org.apache.commons.lang3.tuple.Pair;
 
-public final class Util {
+public final class Utils {
 
     public static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
     public static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
 
-    private Util() { }
+    private Utils() { }
 
     public static String formatUtcTimestampMillis(long utcMillis) {
         Instant instant = Instant.ofEpochMilli(utcMillis);
@@ -145,12 +143,6 @@ public final class Util {
         return new DecimalFormat(pattern.toString()).format(scaled) + suffix;
     }
 
-    public static void runCommand(String command) {
-        var client = MinecraftClient.getInstance();
-        if (client.player != null) {
-            client.player.networkHandler.sendChatCommand(command);
-        }
-    }
 
     public static boolean isValidRomanNumeral(String roman) {
         return roman
@@ -182,23 +174,5 @@ public final class Util {
         }
 
         return ret.toString();
-    }
-
-    public static <T> void copyIntToClipboard(T value) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client != null) {
-            client.keyboard.setClipboard(String.valueOf(value));
-        }
-    }
-
-    public static Text join(List<Text> lines, String sequence) {
-        var res = Text.empty();
-        for (int i = 0; i < lines.size(); i++) {
-            res.append(lines.get(i));
-            if (i < lines.size() - 1) {
-                res.append(sequence);
-            }
-        }
-        return res;
     }
 }

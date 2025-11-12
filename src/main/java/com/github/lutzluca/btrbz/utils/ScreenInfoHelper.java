@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
@@ -131,7 +132,7 @@ public final class ScreenInfoHelper {
         Orders, // Your Bazaar Orders
         InstaBuy, // <product name> ➜ Instant Buy
         BuyOrderSetupPrice,  // How much do you want to pay?
-        BuyOrderSetupAmount, // How many do you want?
+        BuyOrderSetupVolume, // How many do you want?
         BuyOrderConfirmation, // Confirm Buy Order
         SellOfferSetup, // At what price are you selling?
         SellOfferConfirmation, // Confirm Sell Offer
@@ -169,7 +170,7 @@ public final class ScreenInfoHelper {
                 }
                 case Orders -> title.equals("Your Bazaar Orders");
                 case InstaBuy -> title.endsWith("➜ Instant Buy");
-                case BuyOrderSetupAmount -> title.equals("How many do you want?");
+                case BuyOrderSetupVolume -> title.equals("How many do you want?");
                 case BuyOrderSetupPrice -> title.equals("How much do you want to pay?");
                 case BuyOrderConfirmation -> title.equals("Confirm Buy Order");
                 case SellOfferSetup -> title.equals("At what price are you selling?");
@@ -251,6 +252,19 @@ public final class ScreenInfoHelper {
             return Arrays.stream(menu).anyMatch((menuType) -> this.state.matches(this, menuType));
         }
 
+        public Optional<BazaarMenuType> getMenuType() {
+            return this.state.getMenu(this);
+        }
+
+        public Optional<ItemStack> getItemStack(int idx) {
+            return this.getGenericContainerScreen().flatMap(gcs -> {
+                var handler = gcs.getScreenHandler();
+                var inventory = handler.getInventory();
+                var slot = inventory.getStack(idx);
+                return slot == ItemStack.EMPTY ? Optional.empty() : Optional.of(slot);
+            });
+        }
+
         public Optional<GenericContainerScreen> getGenericContainerScreen() {
             return Optional.ofNullable(this.containerScreen);
         }
@@ -302,6 +316,29 @@ public final class ScreenInfoHelper {
             this.verifiedMenu = 0;
             this.verifiedNotMenu = 0;
             this.inventoryLoaded = false;
+        }
+
+        public Optional<BazaarMenuType> getMenu(ScreenInfo info) {
+            var menus = BazaarMenuType.values();
+            if (this.verifiedMenu != 0) {
+                for (var type : menus) {
+                    if (verifiedMenu == (1 << type.ordinal())) {
+                        return Optional.of(type);
+                    }
+                }
+
+                throw new RuntimeException("unreachable");
+            }
+
+            for (var menu : menus) {
+                if (((this.verifiedNotMenu >> menu.ordinal()) & 1) == 1) {
+                    continue;
+                }
+                if (this.matches(info, menu)) {
+                    return Optional.of(menu);
+                }
+            }
+            return Optional.empty();
         }
 
         public boolean matches(ScreenInfo info, BazaarMenuType type) {

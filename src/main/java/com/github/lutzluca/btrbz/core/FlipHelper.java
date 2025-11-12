@@ -18,11 +18,10 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
-import io.vavr.control.Try;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.MinecraftClient;
@@ -94,7 +93,7 @@ public class FlipHelper {
             }
 
             return this.potentialFlipProduct.getSellOfferPrice().map(price -> {
-                var formatted = Util.formatDecimal(Math.max(price - 0.1, .1), 1, true);
+                var formatted = Utils.formatDecimal(Math.max(price - 0.1, .1), 1, true);
 
                 var customHelperItem = new ItemStack(Items.NETHER_STAR);
                 customHelperItem.set(
@@ -155,16 +154,14 @@ public class FlipHelper {
                     return false;
                 }
 
-                Try
-                    .run(() -> interactionManager.clickSlot(
-                        handler.syncId,
-                        FLIP_ORDER_ITEM_SLOT_IDX,
-                        button,
-                        SlotActionType.PICKUP,
-                        player
-                    ))
-                    .onFailure(err -> log.warn("Failed to 'click' flip order", err))
-                    .onSuccess(v -> pendingFlip = true);
+                interactionManager.clickSlot(
+                    handler.syncId,
+                    FLIP_ORDER_ITEM_SLOT_IDX,
+                    button,
+                    SlotActionType.PICKUP,
+                    player
+                );
+                pendingFlip = true;
 
                 return false;
             }
@@ -218,21 +215,16 @@ public class FlipHelper {
                 return;
             }
 
-            var formatted = Util.formatDecimal(flipPrice.get(), 1, false);
+            var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
             var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
             accessor.setCurrentRow(0);
             accessor.invokeSetCurrentRowMessage(formatted);
 
-            Try
-                .run(() -> {
-                    signEditScreen.close();
-                    this.pendingFlips.add(new FlipEntry(
-                        potentialFlipProduct.getProductName(),
-                        flipPrice.get()
-                    ));
-                })
-                .onFailure(err -> log.warn("Failed to finalize sign edit", err))
-                .onSuccess(v -> log.debug("Successfully edited price sign to flip item"));
+            signEditScreen.close();
+            this.pendingFlips.add(new FlipEntry(
+                potentialFlipProduct.getProductName(),
+                flipPrice.get()
+            ));
 
             this.clearPendingFlipState();
         });
@@ -276,7 +268,7 @@ public class FlipHelper {
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
             flipped.volume(),
             flipped.productName(),
-            Util.formatDecimal(pricePerUnit, 1, true)
+            Utils.formatDecimal(pricePerUnit, 1, true)
         );
     }
 

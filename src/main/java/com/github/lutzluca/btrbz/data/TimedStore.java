@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.data;
 
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -75,7 +75,7 @@ public class TimedStore<T> {
     private void cleanupExpired() {
         long now = System.currentTimeMillis();
         synchronized (this.entries) {
-            var expired = Util.removeIfAndReturn(this.entries, entry -> entry.expiresAt < now);
+            var expired = Utils.removeIfAndReturn(this.entries, entry -> entry.expiresAt < now);
             log.trace(
                 "removed {} expired timedstore entry: {}",
                 expired.size(),

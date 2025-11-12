@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager;
@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
+import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
@@ -20,6 +21,7 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
@@ -28,15 +30,12 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
@@ -50,11 +49,7 @@ import net.minecraft.util.Identifier;
 public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
-    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS = Set.of(
-        Items.BLACK_STAINED_GLASS_PANE,
-        Items.ARROW,
-        Items.HOPPER
-    );
+
 
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
@@ -105,6 +100,7 @@ public class BtrBz implements ClientModInitializer {
         var priceDiffModule = moduleManager.registerModule(PriceDiffModule.class);
         var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
         var orderListModule = moduleManager.registerModule(TrackedOrdersListModule.class);
+        var orderPresetModule = moduleManager.registerModule(OrderPresetsModule.class);
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();
@@ -197,7 +193,7 @@ public class BtrBz implements ClientModInitializer {
                     .stream()
                     .filter(entry -> {
                         var stack = entry.getValue();
-                        return !stack.isEmpty() && !BtrBz.ORDER_SCREEN_NON_ORDER_ITEMS.contains(
+                        return !stack.isEmpty() && !GameUtils.ORDER_SCREEN_NON_ORDER_ITEMS.contains(
                             stack.getItem());
                     })
                     .map(entry -> OrderInfoParser

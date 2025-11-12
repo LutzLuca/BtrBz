@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.mixin.SkyBlockBazaarReplyAccessor;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.Map;
 import java.util.Objects;
@@ -112,7 +112,7 @@ public class BazaarPoller {
             log.trace(
                 "Bazaar data fetched successfully - Data {}, Last Updated: {}",
                 changed ? "changed" : "unchanged",
-                Util.formatUtcTimestampMillis(currentUpdateTime)
+                Utils.formatUtcTimestampMillis(currentUpdateTime)
             );
         }).onFailure(err -> {
             log.warn("Reply does not implement expected accessor.", err);

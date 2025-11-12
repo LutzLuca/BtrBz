@@ -6,7 +6,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -59,13 +59,13 @@ public class AlertManager {
                 var now = System.currentTimeMillis();
                 var duration = now - curr.createdAt;
 
-                if (duration > Util.WEEK_DURATION_MS && curr.remindedAfter < Util.WEEK_DURATION_MS) {
+                if (duration > Utils.WEEK_DURATION_MS && curr.remindedAfter < Utils.WEEK_DURATION_MS) {
                     Notifier.notifyOutdatedAlert(curr, "over a week");
                     curr.remindedAfter = duration;
                     continue;
                 }
 
-                if (duration > Util.MONTH_DURATION_MS && curr.remindedAfter < Util.MONTH_DURATION_MS) {
+                if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
                     Notifier.notifyOutdatedAlert(curr, "over a month");
                     curr.remindedAfter = duration;
                 }
@@ -87,7 +87,7 @@ public class AlertManager {
     }
 
     public void removeAlert(UUID id) {
-        var removed = ConfigManager.compute(cfg -> Util.removeIfAndReturn(
+        var removed = ConfigManager.compute(cfg -> Utils.removeIfAndReturn(
             cfg.alert.alerts,
             alert -> alert.id.equals(id)
         ));
@@ -149,7 +149,7 @@ public class AlertManager {
                 .append(Text.literal(productName).formatted(Formatting.GOLD))
                 .append(Text.literal(" @ ").formatted(Formatting.GRAY))
                 .append(Text
-                    .literal(Util.formatDecimal(this.price, 1, true) + "coins")
+                    .literal(Utils.formatDecimal(this.price, 1, true) + "coins")
                     .formatted(Formatting.YELLOW))
                 .append(Text.literal(" (" + type.format() + ")").formatted(Formatting.DARK_GRAY));
         }

@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.common.collect.BiMap;
 import io.vavr.control.Try;
 import java.util.ArrayList;
@@ -186,7 +186,7 @@ public class BazaarData {
         public Optional<Double> getSellOfferPrice() {
             this.ensureInitialized();
 
-            return this.product.flatMap(prod -> Util
+            return this.product.flatMap(prod -> Utils
                 .getFirst(prod.getBuySummary())
                 .map(Summary::getPricePerUnit));
         }
@@ -194,7 +194,7 @@ public class BazaarData {
         public Optional<Double> getBuyOrderPrice() {
             this.ensureInitialized();
 
-            return this.product.flatMap(prod -> Util
+            return this.product.flatMap(prod -> Utils
                 .getFirst(prod.getSellSummary())
                 .map(Summary::getPricePerUnit));
         }

@@ -5,13 +5,14 @@ import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.ScrollableListWidget;
 import com.google.gson.JsonDeserializationContext;
@@ -186,7 +187,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .setChildHeight(24)
             .setChildSpacing(2)
             .onChildClick((child, index) -> {
-                Util.runCommand(String.format("bz %s", child.productName));
+                GameUtils.runCommand(String.format("bz %s", child.productName));
             })
             .onChildReordered(() -> syncBookmarksFromList(widget))
             .onChildRemoved((child) -> syncBookmarksFromList(widget))
@@ -222,7 +223,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     private Optional<Position> getConfigPosition() {
-        return Util
+        return Utils
             .zipNullables(this.configState.x, this.configState.y)
             .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }

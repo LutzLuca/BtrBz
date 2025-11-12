@@ -43,7 +43,7 @@ public class Notifier {
             .append(Text.literal(cmd.productName()).formatted(Formatting.GOLD))
             .append(Text.literal(" reaches ").formatted(Formatting.GRAY))
             .append(Text
-                .literal(Util.formatDecimal(cmd.price(), 1, true) + " coins")
+                .literal(Utils.formatDecimal(cmd.price(), 1, true) + " coins")
                 .formatted(Formatting.YELLOW));
 
         notifyPlayer(msg);
@@ -51,7 +51,7 @@ public class Notifier {
 
     public static void notifyPriceReached(Alert alert, Optional<Double> price) {
         String priceText = price
-            .map(p -> Util.formatDecimal(p, 1, true) + " coins. ")
+            .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
             .orElse("currently has no listed price. ");
 
         Text msg = prefix()
@@ -59,7 +59,7 @@ public class Notifier {
             .append(Text.literal(alert.productName).formatted(Formatting.GOLD))
             .append(Text.literal(" at ").formatted(Formatting.GRAY))
             .append(Text
-                .literal(Util.formatDecimal(alert.price, 1, true) + "coins")
+                .literal(Utils.formatDecimal(alert.price, 1, true) + "coins")
                 .formatted(Formatting.YELLOW))
             .append(Text.literal(" (" + alert.type.format() + ") ").formatted(Formatting.DARK_GRAY))
             .append(Text.literal("has been reached").formatted(Formatting.GREEN))
@@ -81,7 +81,7 @@ public class Notifier {
             .append(Text.literal(args.productName()).formatted(Formatting.GOLD))
             .append(Text.literal(" at ").formatted(Formatting.GRAY))
             .append(Text
-                .literal(Util.formatDecimal(args.price(), 1, true))
+                .literal(Utils.formatDecimal(args.price(), 1, true))
                 .formatted(Formatting.YELLOW))
             .append(Text
                 .literal(" (" + args.type().name().toLowerCase() + ")")
@@ -212,7 +212,7 @@ public class Notifier {
             .append(Text.literal("UNDERCUT ").formatted(Formatting.RED))
             .append(Text.literal("by ").formatted(Formatting.WHITE))
             .append(Text
-                .literal(Util.formatDecimal(undercutAmount, 1, true))
+                .literal(Utils.formatDecimal(undercutAmount, 1, true))
                 .formatted(Formatting.GOLD))
             .append(Text.literal(" coins!").formatted(Formatting.WHITE));
         return fillBaseMessage(order.type, order.volume, order.productName, status);

@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.TextDisplayWidget;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -61,10 +61,10 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         List<Text> lines = List.of(
             Text.literal(productName).formatted(Formatting.AQUA),
             Text
-                .literal("Per-item diff: " + Util.formatCompact(perItemDiff, 1) + " coins")
+                .literal("Per-item diff: " + Utils.formatCompact(perItemDiff, 1) + " coins")
                 .formatted(Formatting.GOLD),
             Text
-                .literal("Total diff: " + Util.formatCompact(totalDiff, 1) + " coins")
+                .literal("Total diff: " + Utils.formatCompact(totalDiff, 1) + " coins")
                 .formatted(Formatting.YELLOW)
         );
 
@@ -89,7 +89,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             .stream()
             .filter(line -> line.startsWith("Inventory"))
             .findFirst()
-            .flatMap(line -> Util
+            .flatMap(line -> Utils
                 .parseUsFormattedNumber(line.replace("Inventory:", "").replace("items", "").trim())
                 .toJavaOptional())
             .map(Number::intValue);
@@ -100,7 +100,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         return BtrBz
             .bazaarData()
             .nameToId(productName)
-            .flatMap(id -> Util.zipOptionals(
+            .flatMap(id -> Utils.zipOptionals(
                 BtrBz.bazaarData().lowestSellPrice(id),
                 BtrBz.bazaarData().highestBuyPrice(id)
             ))
@@ -123,7 +123,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     private Optional<Position> getConfigPosition() {
-        return Util
+        return Utils
             .zipNullables(this.configState.x, this.configState.y)
             .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }

@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
@@ -156,7 +156,7 @@ public final class OrderModels {
                 .append(Text.literal(this.productName).formatted(Formatting.GOLD))
                 .append(Text.literal(" at ").formatted(Formatting.GRAY))
                 .append(Text
-                    .literal(Util.formatDecimal(this.pricePerUnit, 1, true) + "coins")
+                    .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
                     .formatted(Formatting.YELLOW));
         }
     }

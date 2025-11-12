@@ -11,7 +11,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,7 +87,7 @@ public final class OrderInfoParser {
             .trim();
 
         var parsedVolume = parseVolume(volumeAndName, ctx);
-        var price = Util
+        var price = Utils
             .parseUsFormattedNumber(pricePart)
             .getOrElseThrow(() -> new IllegalArgumentException(ctx + ": invalid price in '" + fragment + "'"));
 
@@ -101,7 +101,7 @@ public final class OrderInfoParser {
             throw new IllegalArgumentException(ctx + ": missing 'x' in '" + fragment + "'");
         }
 
-        var volume = Util
+        var volume = Utils
             .parseUsFormattedNumber(xSplit[0].trim())
             .getOrElseThrow(() -> new IllegalArgumentException(ctx + ": invalid volume in '" + fragment + "'"));
 
@@ -259,7 +259,7 @@ public final class OrderInfoParser {
                 }
 
                 if (pricePerUnit == null && line.startsWith("Price per unit:")) {
-                    var parsed = Util.parseUsFormattedNumber(line
+                    var parsed = Utils.parseUsFormattedNumber(line
                         .replace("Price per unit:", "")
                         .replace("coins", "")
                         .trim());
@@ -269,7 +269,7 @@ public final class OrderInfoParser {
                         .doubleValue();
                 } else if (volume == null && (line.startsWith("Order amount:") || line.startsWith(
                     "Offer amount:"))) {
-                    var parsed = Util.parseUsFormattedNumber(line
+                    var parsed = Utils.parseUsFormattedNumber(line
                         .replace("Order amount:", "")
                         .replace("Offer amount:", "")
                         .replaceAll("x.*", "")
@@ -283,7 +283,7 @@ public final class OrderInfoParser {
                     var last = line.lastIndexOf(' ');
 
                     var parts = line.substring(first, last).trim().split("/", 2);
-                    filledAmount = Util
+                    filledAmount = Utils
                         .parseUsFormattedNumber(parts[0])
                         .getOrElseThrow(() -> new IllegalArgumentException(
                             "Failed to parse filledAmound"))
@@ -291,7 +291,7 @@ public final class OrderInfoParser {
                 } else if (line.startsWith("You have")) {
                     var trimmed = line.replaceFirst("You have", "").trim();
                     var spaceIdx = trimmed.indexOf(' ');
-                    unclaimed = Util
+                    unclaimed = Utils
                         .parseUsFormattedNumber(trimmed.substring(0, spaceIdx).trim())
                         .getOrElseThrow(() -> new IllegalArgumentException(
                             "Failed to parse unclaimed amount"))
@@ -349,7 +349,7 @@ public final class OrderInfoParser {
                 }
 
                 if (pricePerUnit == null && line.startsWith("Price per unit:")) {
-                    var parsed = Util.parseUsFormattedNumber(line
+                    var parsed = Utils.parseUsFormattedNumber(line
                         .replace("Price per unit:", "")
                         .replace("coins", "")
                         .trim());
@@ -367,7 +367,7 @@ public final class OrderInfoParser {
                         throw new IllegalArgumentException("Invalid volume line: " + line);
                     }
                     var volStr = part.substring(0, xIdx).trim();
-                    var parsed = Util.parseUsFormattedNumber(volStr);
+                    var parsed = Utils.parseUsFormattedNumber(volStr);
                     if (parsed.isFailure()) {
                         throw new IllegalArgumentException("Failed to parse volume: " + parsed
                             .getCause()
@@ -377,7 +377,7 @@ public final class OrderInfoParser {
                     productName = part.substring(xIdx + 1).trim();
                 } else if (total == null && (line.startsWith("Total price:") || line.startsWith(
                     "You earn:"))) {
-                    var parsed = Util.parseUsFormattedNumber(line
+                    var parsed = Utils.parseUsFormattedNumber(line
                         .replace("Total price:", "")
                         .replace("You earn:", "")
                         .replace("coins", "")
