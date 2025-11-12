@@ -11,7 +11,7 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -86,7 +86,7 @@ public final class ProductInfoProvider {
         if (price != null) {
             var displayPrice = isShiftHeld && stackCount > 1 ? price * stackCount : price;
             priceText.append(Text
-                .literal(Util.formatDecimal(displayPrice, 1, true) + " coins")
+                .literal(Utils.formatDecimal(displayPrice, 1, true) + " coins")
                 .formatted(Formatting.GOLD, Formatting.BOLD));
 
             if (isShiftHeld && stackCount > 1) {
@@ -400,7 +400,7 @@ public final class ProductInfoProvider {
         }
 
         var delimiter = name.lastIndexOf(' ');
-        if (delimiter == -1 || !Util.isValidRomanNumeral(name.substring(delimiter).trim())) {
+        if (delimiter == -1 || !Utils.isValidRomanNumeral(name.substring(delimiter).trim())) {
             return Optional.empty();
         }
 

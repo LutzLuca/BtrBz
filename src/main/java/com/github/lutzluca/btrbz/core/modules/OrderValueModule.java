@@ -8,7 +8,7 @@ import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.TextDisplayWidget;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -117,31 +117,31 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         return List.of(
             Text.literal("Bazaar Overview").formatted(Formatting.GOLD, Formatting.BOLD),
             Text
-                .literal("Buy Orders (Locked): " + Util.formatCompact(
+                .literal("Buy Orders (Locked): " + Utils.formatCompact(
                     lockedInBuyOrders,
                     1
                 ) + " coins")
                 .formatted(Formatting.YELLOW),
             Text
-                .literal("Buy Orders (Items): " + Util.formatCompact(
+                .literal("Buy Orders (Items): " + Utils.formatCompact(
                     itemsFromBuyOrders,
                     1
                 ) + " coins")
                 .formatted(Formatting.AQUA),
             Text
-                .literal("Sell Offers (Claimable): " + Util.formatCompact(
+                .literal("Sell Offers (Claimable): " + Utils.formatCompact(
                     coinsFromSellOffers,
                     1
                 ) + " coins")
                 .formatted(Formatting.GREEN),
             Text
-                .literal("Sell Offers (Pending): " + Util.formatCompact(
+                .literal("Sell Offers (Pending): " + Utils.formatCompact(
                     pendingSellOffers,
                     1
                 ) + " coins")
                 .formatted(Formatting.YELLOW),
             Text
-                .literal("Total Worth: " + Util.formatCompact(total, 1) + " coins")
+                .literal("Total Worth: " + Utils.formatCompact(total, 1) + " coins")
                 .formatted(Formatting.GOLD, Formatting.BOLD)
         );
     }
@@ -169,7 +169,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     private Optional<Position> getConfigPosition() {
-        return Util
+        return Utils
             .zipNullables(this.configState.x, this.configState.y)
             .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }

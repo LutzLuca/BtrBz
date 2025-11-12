@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +71,7 @@ public class AlertCommandParser {
         var number = Try.of(() -> Integer.parseInt(lastToken));
         if (number.isSuccess()) {
             var roman = number
-                .map(Util::intToRoman)
+                .map(Utils::intToRoman)
                 .getOrElseThrow(err -> new ParseException("Invalid product name number format: " + '"' + lastToken + '"'));
 
             titleCaseTokens.set(titleCaseTokens.size() - 1, roman);
@@ -210,7 +210,7 @@ public class AlertCommandParser {
         public Try<ResolvedAlertArgs> validate() {
             if (this.price <= 0.0) {
                 return Try.failure(new IllegalArgumentException(
-                    "Price Expression evaluates to an invalid price of " + '"' + Util.formatDecimal(
+                    "Price Expression evaluates to an invalid price of " + '"' + Utils.formatDecimal(
                         this.price,
                         1,
                         true

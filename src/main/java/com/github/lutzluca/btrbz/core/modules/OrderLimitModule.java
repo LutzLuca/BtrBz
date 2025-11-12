@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.TextDisplayWidget;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -38,7 +38,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         List<Text> lines = List.of(
             Text.literal("Daily Limit:").formatted(Formatting.GOLD),
             Text
-                .literal(this.formatAmount(this.configState.usedToday) + " / " + Util.formatCompact(
+                .literal(this.formatAmount(this.configState.usedToday) + " / " + Utils.formatCompact(
                     this.configState.dailyLimit,
                     0
                 ))
@@ -89,7 +89,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     }
 
     private Optional<Position> getConfigPosition() {
-        return Util
+        return Utils
             .zipNullables(this.configState.x, this.configState.y)
             .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }
@@ -137,7 +137,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             places = 0;
         }
 
-        return Util.formatCompact(amount, places);
+        return Utils.formatCompact(amount, places);
     }
 
     // TODO add more description

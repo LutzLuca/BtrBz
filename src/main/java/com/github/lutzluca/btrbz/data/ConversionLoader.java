@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.data;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
-import com.github.lutzluca.btrbz.utils.Util;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.gson.Gson;
@@ -110,7 +110,7 @@ public final class ConversionLoader {
             .flatMap(ConversionData::parseFrom)
             .peek(data -> {
                 log.debug("Loaded conversions from bundle, caching locally");
-                Util.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
+                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
             });
     }
 
@@ -127,7 +127,7 @@ public final class ConversionLoader {
         loadFromGithub().thenAccept(res -> res.onSuccess(data -> {
             log.debug("Successfully fetched conversions from GitHub");
             BtrBz.bazaarData().setConversions(data.conversions);
-            Util.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
+            Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
 
             MessageQueue.sendOrQueue(
                 "Successfully loaded conversions from Github; everything should work as expected",
@@ -155,7 +155,7 @@ public final class ConversionLoader {
             log.debug("Update available, fetching new conversions");
             fetchUrl(info.download_url).flatMap(ConversionData::parseFrom).onSuccess(newData -> {
                 BtrBz.bazaarData().setConversions(newData.conversions);
-                Util.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content);
+                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content);
 
                 MessageQueue.sendOrQueue("Updated bazaar conversions", Level.Info);
             }).onFailure(err -> log.warn("Failed to fetch or parse updated conversions", err));
