@@ -14,8 +14,10 @@ public class ConfigScreen {
 
     public static void open() {
         var client = MinecraftClient.getInstance();
-        client.send(() -> client
-            .setScreen(ConfigScreen.create(client.currentScreen, ConfigManager.get())));
+        client.send(() -> client.setScreen(ConfigScreen.create(
+            client.currentScreen,
+            ConfigManager.get()
+        )));
     }
 
     public static Screen create(Screen parent, Config config) {

@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager;
@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
+import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
@@ -99,6 +100,7 @@ public class BtrBz implements ClientModInitializer {
         var priceDiffModule = moduleManager.registerModule(PriceDiffModule.class);
         var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
         var orderListModule = moduleManager.registerModule(TrackedOrdersListModule.class);
+        var orderPresetModule = moduleManager.registerModule(OrderPresetsModule.class);
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();

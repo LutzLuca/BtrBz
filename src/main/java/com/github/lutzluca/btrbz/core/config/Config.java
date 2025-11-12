@@ -1,8 +1,8 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
-import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
+import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
@@ -11,6 +11,8 @@ import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
+import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule;
+import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule.OrderPresetsConfig;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule.OrderValueOverlayConfig;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
@@ -42,6 +44,10 @@ public class Config {
     @SerialEntry
     @BindModule(TrackedOrdersListModule.class)
     public OrderListConfig orderList = new OrderListConfig();
+
+    @SerialEntry
+    @BindModule(OrderPresetsModule.class)
+    public OrderPresetsConfig orderPresets = new OrderPresetsConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
