@@ -26,10 +26,16 @@
         "fabric-api": "*",
         "yet_another_config_lib_v3": "*"
     },
+    "contact": {
+        "homepage": "https://modrinth.com/project/btrbz",
+        "issues": "https://github.com/LutzLuca/BtrBz/issues"
+    },
     "custom": {
         "modmenu": {
             "links": {
-                "Source Code on Github": "https://github.com/LutzLuca/BtrBz"
+                "Discord": "https://discord.gg/HVaZA7PfUU",
+                "Modrinth Page": "https://modrinth.com/project/btrbz",
+                "Source Code": "https://github.com/LutzLuca/BtrBz"
             }
         }
     }
