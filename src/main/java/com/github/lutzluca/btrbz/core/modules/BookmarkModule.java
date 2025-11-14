@@ -176,7 +176,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         ScrollableListWidget<BookmarkedItemWidget> widget = this.list = new ScrollableListWidget<>(
             position.x(),
             position.y(),
-            220,
+            180,
             200,
             Text.literal("Bookmarked Items"),
             info.getScreen()
@@ -184,8 +184,10 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         widget
             .setMaxVisibleChildren(this.configState.maxVisibleChildren)
-            .setChildHeight(24)
-            .setChildSpacing(2)
+            .setChildHeight(16)
+            .setBottomPadding(2)
+            .setTopMargin(2)
+            .setChildSpacing(1)
             .onChildClick((child, index) -> {
                 GameUtils.runCommand(String.format("bz %s", child.productName));
             })
@@ -201,7 +203,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     private BookmarkedItemWidget createBookmarkedItemWidget(BookmarkedItem item, Screen parent) {
-        return new BookmarkedItemWidget(0, 0, 220, 24, item.productName, item.itemStack, parent);
+        return new BookmarkedItemWidget(0, 0, 180, 16, item.productName, item.itemStack, parent);
     }
 
     public boolean isBookmarked(String productName) {
@@ -257,6 +259,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             super(x, y, width, height, Text.literal(productName), parent);
             this.productName = productName;
             this.itemStack = itemStack;
+            //noinspection DataFlowIssue
             this.color = (0xFF << 24) | Try
                 .of(() -> itemStack
                     .getName()
@@ -266,19 +269,36 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     .getColor()
                     .getRgb())
                 .getOrElse(0xD3D3D3);
-            this.setRenderBackground(true);
-            this.setRenderBorder(true);
+            this.setRenderBackground(false);
+            this.setRenderBorder(false);
         }
 
         @Override
         protected void renderContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
             var textRenderer = MinecraftClient.getInstance().textRenderer;
+            var matrices = ctx.getMatrices();
 
             int iconX = this.getX() + 4;
-            int iconY = this.getY() + (this.height - 16) / 2;
-            ctx.drawItem(this.itemStack, iconX, iconY);
+            int iconY = this.getY() + (this.height - 14) / 2;
 
-            int textX = iconX + 20;
+            matrices.push();
+            float scale = 14f / 16f;
+            matrices.translate(iconX, iconY, 0);
+            matrices.scale(scale, scale, 1.0f);
+            ctx.drawItem(this.itemStack, 0, 0);
+            matrices.pop();
+
+            if (this.hovered) {
+                ctx.fill(
+                    this.getX(),
+                    this.getY(),
+                    this.getX() + this.getWidth(),
+                    this.getY() + this.getHeight(),
+                    0x30FFFFFF
+                );
+            }
+
+            int textX = iconX + 18;
             int textY = this.getY() + (this.height - textRenderer.fontHeight) / 2;
             ctx.drawTextWithShadow(textRenderer, this.productName, textX, textY, this.color);
         }
