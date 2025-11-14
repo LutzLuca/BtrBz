@@ -95,28 +95,37 @@ java {
 }
 
 publishMods {
-    file.set(tasks.remapJar.get().archiveFile)
-    changelog.set(
-        rootProject.file("CHANGELOG.md").takeIf { it.exists() }?.readText()
-            ?: "No changelog provided"
-    )
-    dryRun.set(true)
+    dryRun.set(false)
 
-    type.set(
-        when (releaseType) {
-            "alpha" -> ALPHA
-            "beta" -> BETA
-            else -> STABLE
-        }
-    )
+    file = tasks.remapJar.get().archiveFile
+    changelog = rootProject.file("CHANGELOG.md").takeIf { it.exists() }?.readText()
+        ?: "No changelog provided"
+
+    type = when (releaseType) {
+        "alpha" -> ALPHA
+        "beta" -> BETA
+        else -> STABLE
+    }
     modLoaders.add("fabric")
 
-    displayName.set("BtrBz v${getProp("mod_version")}$versionSuffix for ${stonecutter.current.version}")
-    version.set("${getProp("mod_version")}$versionSuffix+${stonecutter.current.version}")
+    displayName =
+        "BtrBz v${getProp("mod_version")}$versionSuffix for ${stonecutter.current.version}"
+    version = "${getProp("mod_version")}$versionSuffix+${stonecutter.current.version}"
 
     github {
-        accessToken.set(System.getenv("GITHUB_TOKEN"))
-        repository.set(getProp("github_repo"))
-        commitish.set("master")
+        accessToken = providers.environmentVariable("GITHUB_TOKEN")
+        repository = getProp("github_repo")
+        commitish = "master"
+    }
+
+    modrinth {
+        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+        projectId = "IzWPcaNg"
+        minecraftVersions.add(stonecutter.current.version)
+
+        projectDescription = rootProject.file("README.md").readText()
+
+        requires("fabric-api", "yacl")
+        optional("modmenu")
     }
 }
