@@ -388,7 +388,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public List<BookmarkedItem> bookmarkedItems = new ArrayList<>();
         public Integer x, y;
         public boolean enabled = true;
-        public int maxVisibleChildren = 5;
+        public int maxVisibleChildren = 6;
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
@@ -407,7 +407,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .description(OptionDescription.of(Text.literal(
                     "Maximum number of bookmarks visible at once before scrolling")))
                 .binding(
-                    5, () -> this.maxVisibleChildren, val -> {
+                    6, () -> this.maxVisibleChildren, val -> {
                         this.maxVisibleChildren = val;
                         ModuleManager
                             .getInstance()
@@ -415,7 +415,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                             .updateChildrenCount();
                     }
                 )
-                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 10).step(1))
+                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 14).step(1))
                 .build();
         }
 

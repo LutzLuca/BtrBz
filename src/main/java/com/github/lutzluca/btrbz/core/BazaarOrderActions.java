@@ -126,7 +126,7 @@ public class BazaarOrderActions {
 
         public boolean enabled = true;
         public boolean reopenOrders = true;
-        public boolean copyRemaining = true;
+        public boolean copyRemaining = false;
         public boolean reopenBazaar = false;
 
         public Option.Builder<Boolean> createReopenBazaarOption() {

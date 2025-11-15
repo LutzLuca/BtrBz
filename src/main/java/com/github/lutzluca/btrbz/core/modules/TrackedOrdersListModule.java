@@ -194,7 +194,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public Integer x, y;
 
         public boolean enabled = true;
-        public boolean showInBazaar = false;
+        public boolean showInBazaar = true;
         public boolean showTooltips = true;
 
         public Option.Builder<Boolean> createInBazaarOption() {
