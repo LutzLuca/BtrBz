@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
+import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
@@ -63,6 +64,9 @@ public class Config {
 
     @SerialEntry
     public FlipHelperConfig flipHelper = new FlipHelperConfig();
+
+    @SerialEntry
+    public OrderProtectionConfig orderProtection = new OrderProtectionConfig();
 
     @SerialEntry
     public double tax = 1.125;
