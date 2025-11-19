@@ -47,7 +47,7 @@ public class OrderProtectionManager {
             )) {
                 return Optional.empty();
             }
-            if (slot == null || slot.getIndex() != 13 || slot.getStack().isEmpty()) {
+            if (slot == null || slot.getIndex() != 13 || original == ItemStack.EMPTY) {
                 return Optional.empty();
             }
 
@@ -97,25 +97,12 @@ public class OrderProtectionManager {
                 }
 
                 var validation = pendingOrder.validationResult();
-                boolean strgHeld = Screen.hasControlDown();
+                boolean ctrlHeld = Screen.hasControlDown();
 
-                if (validation.protect() && !strgHeld) {
+                if (validation.protect() && !ctrlHeld) {
                     if (ConfigManager.get().orderProtection.showChatMessage) {
-                        var builder = Text.literal("Order blocked: ").formatted(Formatting.RED);
-                        if (validation.reason() != null) {
-                            builder.append(Text
-                                .literal(validation.reason())
-                                .formatted(Formatting.YELLOW));
-                        } else {
-                            log.warn("Order blocked without a reason in validation result");
-                        }
-
-                        builder.append(Text
-                            .literal("\nHold STRG to override")
-                            .formatted(Formatting.GRAY));
-                        Notifier.notifyPlayer(builder);
+                        sendBlockedOrderMessage(validation, pendingOrder.orderInfo());
                     }
-
                     return true;
                 }
 
@@ -136,19 +123,101 @@ public class OrderProtectionManager {
             }
 
             var validation = pendingOrder.validationResult();
+            boolean ctrlHeld = Screen.hasControlDown();
 
             lines.add(Text.empty());
 
             if (!validation.protect()) {
-                lines.add(Text.literal("✓ Order validated").formatted(Formatting.GREEN));
-            } else {
-                lines.add(Text.literal("✗ Order blocked").formatted(Formatting.RED));
-                lines.add(Text.literal("  " + validation.reason()).formatted(Formatting.GRAY));
                 lines.add(Text
-                    .literal("Hold STRG to override")
-                    .formatted(Formatting.DARK_GRAY, Formatting.ITALIC));
+                    .literal("✓ ")
+                    .formatted(Formatting.GREEN)
+                    .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
+                    .append(Text.literal("Safe").formatted(Formatting.GREEN)));
+            } else {
+                if (ctrlHeld) {
+                    lines.add(Text
+                        .literal("⚠ ")
+                        .formatted(Formatting.GOLD)
+                        .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
+                        .append(Text.literal("Overridden").formatted(Formatting.GOLD)));
+                    lines.add(Text
+                        .literal("  Protection bypassed by Ctrl key")
+                        .formatted(Formatting.YELLOW, Formatting.ITALIC));
+                } else {
+                    lines.add(Text
+                        .literal("✗ ")
+                        .formatted(Formatting.RED)
+                        .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
+                        .append(Text.literal("Blocked").formatted(Formatting.RED)));
+
+                    if (validation.reason() != null) {
+                        String reason = validation.reason();
+                        lines.add(Text
+                            .literal("  Reason: ")
+                            .formatted(Formatting.GRAY)
+                            .append(Text.literal(reason).formatted(Formatting.YELLOW)));
+                    }
+
+                    lines.add(Text
+                        .literal("  Hold ")
+                        .formatted(Formatting.DARK_GRAY)
+                        .append(Text.literal("Ctrl").formatted(Formatting.WHITE))
+                        .append(Text.literal(" to override").formatted(Formatting.DARK_GRAY)));
+                }
             }
         });
+    }
+
+    private static void sendBlockedOrderMessage(
+        ValidationResult validation,
+        OutstandingOrderInfo orderInfo
+    ) {
+        var message = Text
+            .literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+            .formatted(Formatting.DARK_GRAY)
+            .append(Text
+                .literal("⚠ Order Protection Triggered\n")
+                .formatted(Formatting.RED, Formatting.BOLD))
+            .append(Text
+                .literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+                .formatted(Formatting.DARK_GRAY));
+
+        message = message
+            .append(Text.literal("Product: ").formatted(Formatting.GRAY))
+            .append(Text.literal(orderInfo.productName()).formatted(Formatting.YELLOW))
+            .append(Text.literal("\n"));
+
+        message = message
+            .append(Text.literal("Type: ").formatted(Formatting.GRAY))
+            .append(Text.literal(orderInfo.type().toString()).formatted(Formatting.AQUA))
+            .append(Text.literal("\n"));
+
+        message = message
+            .append(Text.literal("Price: ").formatted(Formatting.GRAY))
+            .append(Text
+                .literal(String.format("%.1f coins", orderInfo.pricePerUnit()))
+                .formatted(Formatting.GOLD))
+            .append(Text.literal("\n\n"));
+
+        // Reason
+        if (validation.reason() != null) {
+            message = message
+                .append(Text.literal("⚠ ").formatted(Formatting.GOLD))
+                .append(Text.literal(validation.reason()).formatted(Formatting.YELLOW))
+                .append(Text.literal("\n\n"));
+        }
+
+        message = message
+            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
+            .append(Text.literal("Hold ").formatted(Formatting.GRAY))
+            .append(Text.literal("Ctrl").formatted(Formatting.WHITE, Formatting.BOLD))
+            .append(Text.literal(" and click to override").formatted(Formatting.GRAY))
+            .append(Text.literal("\n"))
+            .append(Text
+                .literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                .formatted(Formatting.DARK_GRAY));
+
+        Notifier.notifyPlayer(message);
     }
 
     public static OrderProtectionManager getInstance() {
@@ -164,6 +233,21 @@ public class OrderProtectionManager {
 
     public @Nullable PendingOrderData getValidationState(ItemStack stack) {
         return this.validationCache.get(stack);
+    }
+
+    public boolean isOrderVisuallyAllowed(ItemStack stack) {
+        var pendingOrder = validationCache.get(stack);
+        if (pendingOrder == null) {
+            return true; // No validation data = allow
+        }
+
+        var validation = pendingOrder.validationResult();
+        if (!validation.protect()) {
+            return true; // Not protected = allow
+        }
+
+        // Protected but Ctrl held = show as allowed (override state)
+        return Screen.hasControlDown();
     }
 
     public record PendingOrderData(
@@ -205,6 +289,7 @@ public class OrderProtectionManager {
             };
         }
 
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
         private static ValidationResult validateSellOffer(
             OutstandingOrderInfo info,
             Optional<Double> bestSell,
@@ -221,7 +306,6 @@ public class OrderProtectionManager {
 
             if (bestSell.isPresent() && cfg.blockUndercutPercentage) {
                 double undercut = (bestSell.get() - info.pricePerUnit()) / bestSell.get() * 100;
-
                 if (undercut >= cfg.maxSellOfferUndercut) {
                     return ValidationResult.blocked(String.format(
                         "Undercuts by %.1f%% (max %.1f%%)",
@@ -234,6 +318,7 @@ public class OrderProtectionManager {
             return ValidationResult.allowed();
         }
 
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
         private static ValidationResult validateBuyOrder(
             OutstandingOrderInfo info,
             Optional<Double> bestSell,
@@ -250,7 +335,6 @@ public class OrderProtectionManager {
 
             if (bestBuy.isPresent() && cfg.blockUndercutPercentage) {
                 double undercut = (info.pricePerUnit() - bestBuy.get()) / bestBuy.get() * 100;
-                log.debug("Undercut {} for {}", undercut, info.productName());
 
                 if (undercut >= cfg.maxBuyOrderUndercut) {
                     return ValidationResult.blocked(String.format(

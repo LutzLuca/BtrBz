@@ -82,16 +82,21 @@ public class DrawContextMixin {
             //?}
         }
 
-        var pendingOrderData = OrderProtectionManager.getInstance().getValidationState(stack);
+        var manager = OrderProtectionManager.getInstance();
+
+        boolean isAllowed = manager.isOrderVisuallyAllowed(stack);
+        var pendingOrderData = manager.getValidationState(stack);
         if (pendingOrderData != null) {
-            var validation = pendingOrderData.validationResult();
-            var texture = validation.protect() ? RED_CROSS : GREEN_CHECK;
+            var texture = isAllowed ? GREEN_CHECK : RED_CROSS;
+            int iconX = x + 16 - iconSize;
+            int iconY = y;
+
             //? if >=1.21.6 {
             /*context.drawTexture(
                 RenderPipelines.GUI_TEXTURED,
                 texture,
-                x,
-                y,
+                iconX,
+                iconY,
                 0,
                 0,
                 iconSize,
@@ -103,8 +108,8 @@ public class DrawContextMixin {
             context.drawTexture(
                 RenderLayer::getGuiTexturedOverlay,
                 texture,
-                x,
-                y,
+                iconX,
+                iconY,
                 0,
                 0,
                 iconSize,
