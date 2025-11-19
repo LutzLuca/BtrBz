@@ -43,12 +43,16 @@ public class OrderProtectionManager {
 
     private OrderProtectionManager() {
         ItemOverrideManager.register((info, slot, original) -> {
+            if (!ConfigManager.get().orderProtection.enabled) {
+                return Optional.empty();
+            }
             if (!info.inMenu(
                 BazaarMenuType.BuyOrderConfirmation,
                 BazaarMenuType.SellOfferConfirmation
             )) {
                 return Optional.empty();
             }
+
             if (slot == null || slot.getIndex() != 13 || original == ItemStack.EMPTY) {
                 return Optional.empty();
             }
@@ -84,41 +88,42 @@ public class OrderProtectionManager {
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var pendingOrder = validationCache.get(slot.getStack());
+                var stack = slot.getStack();
+                var cfg = ConfigManager.get().orderProtection;
+                var pending = validationCache.get(stack);
 
-                if (pendingOrder == null) {
+                if (pending == null) {
                     log.warn("No cached validation for confirmation item");
-
-                    if (OrderProtectionManager.this.setOrderCallback != null) {
-                        OrderProtectionManager.this.setOrderCallback.accept(
-                            slot.getStack(),
-                            Optional.empty()
-                        );
-                    }
+                    OrderProtectionManager.this.dispatchSetOrder(stack, Optional.empty());
                     return false;
                 }
 
-                var validation = pendingOrder.validationResult();
-                boolean ctrlHeld = Screen.hasControlDown();
+                if (!cfg.enabled) {
+                    OrderProtectionManager.this.dispatchSetOrder(stack, Optional.of(pending));
+                    return false;
+                }
 
-                if (validation.protect() && !ctrlHeld) {
-                    if (ConfigManager.get().orderProtection.showChatMessage) {
+                var validation = pending.validationResult();
+                boolean isBlocked = validation.protect();
+                boolean overrideActive = Screen.hasControlDown();
+
+                if (isBlocked && !overrideActive) {
+                    if (cfg.showChatMessage) {
                         sendBlockedOrderMessage(validation);
                     }
                     return true;
                 }
 
-                if (OrderProtectionManager.this.setOrderCallback != null) {
-                    OrderProtectionManager.this.setOrderCallback.accept(
-                        slot.getStack(),
-                        Optional.of(pendingOrder)
-                    );
-                }
+                OrderProtectionManager.this.dispatchSetOrder(stack, Optional.of(pending));
                 return false;
             }
         });
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            if (!ConfigManager.get().orderProtection.enabled) {
+                return;
+            }
+
             var pending = validationCache.get(stack);
             if (pending == null) { return; }
 
@@ -170,7 +175,6 @@ public class OrderProtectionManager {
 
             lines.add(Text.literal("Hold Ctrl to override").formatted(Formatting.DARK_GRAY));
         });
-
     }
 
     private static void sendBlockedOrderMessage(
@@ -187,12 +191,17 @@ public class OrderProtectionManager {
         Notifier.notifyPlayer(msg);
     }
 
-
     public static OrderProtectionManager getInstance() {
         if (instance == null) {
             instance = new OrderProtectionManager();
         }
         return instance;
+    }
+
+    private void dispatchSetOrder(ItemStack stack, Optional<PendingOrderData> data) {
+        if (this.setOrderCallback != null) {
+            this.setOrderCallback.accept(stack, data);
+        }
     }
 
     public void onSetOrder(BiConsumer<ItemStack, Optional<PendingOrderData>> cb) {
@@ -201,6 +210,10 @@ public class OrderProtectionManager {
 
 
     public Optional<Pair<PendingOrderData, Boolean>> getVisualOrderInfo(ItemStack stack) {
+        if (!ConfigManager.get().orderProtection.enabled) {
+            return Optional.empty();
+        }
+
         return Optional
             .ofNullable(validationCache.get(stack))
             .map(data -> Pair.of(data, Screen.hasControlDown()));
