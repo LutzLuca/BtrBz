@@ -12,6 +12,11 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+//? if >=1.21.6 {
+/*import net.minecraft.client.gl.RenderPipelines;
+ *///?} else {
+import net.minecraft.client.render.RenderLayer;
 //?}
 
 @Mixin(DrawContext.class)
