@@ -12,11 +12,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-//? if >=1.21.6 {
-/*import net.minecraft.client.gl.RenderPipelines;
- *///?} else {
-import net.minecraft.client.render.RenderLayer;
 //?}
 
 @Mixin(DrawContext.class)
@@ -82,12 +77,13 @@ public class DrawContextMixin {
             //?}
         }
 
-        var manager = OrderProtectionManager.getInstance();
+        var info = OrderProtectionManager.getInstance().getVisualOrderInfo(stack);
+        if (info.isPresent()) {
+            var pending = info.get();
+            var overridden = pending.getRight();
+            var blocked = pending.getLeft().validationResult().protect();
 
-        boolean isAllowed = manager.isOrderVisuallyAllowed(stack);
-        var pendingOrderData = manager.getValidationState(stack);
-        if (pendingOrderData != null) {
-            var texture = isAllowed ? GREEN_CHECK : RED_CROSS;
+            var texture = !blocked || overridden ? GREEN_CHECK : RED_CROSS;
             int iconX = x + 16 - iconSize;
             int iconY = y;
 

@@ -12,6 +12,7 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
@@ -28,6 +29,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -101,7 +103,7 @@ public class OrderProtectionManager {
 
                 if (validation.protect() && !ctrlHeld) {
                     if (ConfigManager.get().orderProtection.showChatMessage) {
-                        sendBlockedOrderMessage(validation, pendingOrder.orderInfo());
+                        sendBlockedOrderMessage(validation);
                     }
                     return true;
                 }
@@ -116,109 +118,75 @@ public class OrderProtectionManager {
             }
         });
 
-        ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipType, lines) -> {
-            var pendingOrder = validationCache.get(stack);
-            if (pendingOrder == null) {
-                return;
-            }
+        ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            var pending = validationCache.get(stack);
+            if (pending == null) { return; }
 
-            var validation = pendingOrder.validationResult();
+            var validation = pending.validationResult();
+            boolean blocked = validation.protect();
             boolean ctrlHeld = Screen.hasControlDown();
 
             lines.add(Text.empty());
 
-            if (!validation.protect()) {
+            if (!blocked) {
                 lines.add(Text
                     .literal("✓ ")
                     .formatted(Formatting.GREEN)
                     .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
                     .append(Text.literal("Safe").formatted(Formatting.GREEN)));
-            } else {
-                if (ctrlHeld) {
-                    lines.add(Text
-                        .literal("⚠ ")
-                        .formatted(Formatting.GOLD)
-                        .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
-                        .append(Text.literal("Overridden").formatted(Formatting.GOLD)));
-                    lines.add(Text
-                        .literal("  Protection bypassed by Ctrl key")
-                        .formatted(Formatting.YELLOW, Formatting.ITALIC));
-                } else {
-                    lines.add(Text
-                        .literal("✗ ")
-                        .formatted(Formatting.RED)
-                        .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
-                        .append(Text.literal("Blocked").formatted(Formatting.RED)));
-
-                    if (validation.reason() != null) {
-                        String reason = validation.reason();
-                        lines.add(Text
-                            .literal("  Reason: ")
-                            .formatted(Formatting.GRAY)
-                            .append(Text.literal(reason).formatted(Formatting.YELLOW)));
-                    }
-
-                    lines.add(Text
-                        .literal("  Hold ")
-                        .formatted(Formatting.DARK_GRAY)
-                        .append(Text.literal("Ctrl").formatted(Formatting.WHITE))
-                        .append(Text.literal(" to override").formatted(Formatting.DARK_GRAY)));
-                }
+                return;
             }
+
+            if (ctrlHeld) {
+                lines.add(Text
+                    .literal("⚠ ")
+                    .formatted(Formatting.GOLD)
+                    .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
+                    .append(Text.literal("Overridden").formatted(Formatting.GOLD)));
+
+                if (validation.reason() != null) {
+                    lines.add(Text.literal("Reason:").formatted(Formatting.GRAY));
+                    lines.add(Text
+                        .literal("  " + validation.reason())
+                        .formatted(Formatting.YELLOW));
+                }
+
+                lines.add(Text
+                    .literal("Release Ctrl to cancel override")
+                    .formatted(Formatting.DARK_GRAY, Formatting.ITALIC));
+                return;
+            }
+
+            lines.add(Text
+                .literal("✗ ")
+                .formatted(Formatting.RED)
+                .append(Text.literal("Order Protection: ").formatted(Formatting.GRAY))
+                .append(Text.literal("Blocked").formatted(Formatting.RED)));
+
+            if (validation.reason() != null) {
+                lines.add(Text.literal("Reason:").formatted(Formatting.GRAY));
+                lines.add(Text.literal("  " + validation.reason()).formatted(Formatting.YELLOW));
+            }
+
+            lines.add(Text.literal("Hold Ctrl to override").formatted(Formatting.DARK_GRAY));
         });
+
     }
 
     private static void sendBlockedOrderMessage(
-        ValidationResult validation,
-        OutstandingOrderInfo orderInfo
+        ValidationResult validation
     ) {
-        var message = Text
-            .literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-            .formatted(Formatting.DARK_GRAY)
-            .append(Text
-                .literal("⚠ Order Protection Triggered\n")
-                .formatted(Formatting.RED, Formatting.BOLD))
-            .append(Text
-                .literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-                .formatted(Formatting.DARK_GRAY));
+        var reason = validation.reason() == null ? "Order blocked."
+            : "Order blocked: " + validation.reason();
 
-        message = message
-            .append(Text.literal("Product: ").formatted(Formatting.GRAY))
-            .append(Text.literal(orderInfo.productName()).formatted(Formatting.YELLOW))
-            .append(Text.literal("\n"));
+        var msg = Text
+            .literal(reason)
+            .formatted(Formatting.RED)
+            .append(Text.literal(" Hold Ctrl to override.").formatted(Formatting.GRAY));
 
-        message = message
-            .append(Text.literal("Type: ").formatted(Formatting.GRAY))
-            .append(Text.literal(orderInfo.type().toString()).formatted(Formatting.AQUA))
-            .append(Text.literal("\n"));
-
-        message = message
-            .append(Text.literal("Price: ").formatted(Formatting.GRAY))
-            .append(Text
-                .literal(String.format("%.1f coins", orderInfo.pricePerUnit()))
-                .formatted(Formatting.GOLD))
-            .append(Text.literal("\n\n"));
-
-        // Reason
-        if (validation.reason() != null) {
-            message = message
-                .append(Text.literal("⚠ ").formatted(Formatting.GOLD))
-                .append(Text.literal(validation.reason()).formatted(Formatting.YELLOW))
-                .append(Text.literal("\n\n"));
-        }
-
-        message = message
-            .append(Text.literal("» ").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal("Hold ").formatted(Formatting.GRAY))
-            .append(Text.literal("Ctrl").formatted(Formatting.WHITE, Formatting.BOLD))
-            .append(Text.literal(" and click to override").formatted(Formatting.GRAY))
-            .append(Text.literal("\n"))
-            .append(Text
-                .literal("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                .formatted(Formatting.DARK_GRAY));
-
-        Notifier.notifyPlayer(message);
+        Notifier.notifyPlayer(msg);
     }
+
 
     public static OrderProtectionManager getInstance() {
         if (instance == null) {
@@ -231,23 +199,11 @@ public class OrderProtectionManager {
         this.setOrderCallback = cb;
     }
 
-    public @Nullable PendingOrderData getValidationState(ItemStack stack) {
-        return this.validationCache.get(stack);
-    }
 
-    public boolean isOrderVisuallyAllowed(ItemStack stack) {
-        var pendingOrder = validationCache.get(stack);
-        if (pendingOrder == null) {
-            return true; // No validation data = allow
-        }
-
-        var validation = pendingOrder.validationResult();
-        if (!validation.protect()) {
-            return true; // Not protected = allow
-        }
-
-        // Protected but Ctrl held = show as allowed (override state)
-        return Screen.hasControlDown();
+    public Optional<Pair<PendingOrderData, Boolean>> getVisualOrderInfo(ItemStack stack) {
+        return Optional
+            .ofNullable(validationCache.get(stack))
+            .map(data -> Pair.of(data, Screen.hasControlDown()));
     }
 
     public record PendingOrderData(
@@ -298,9 +254,9 @@ public class OrderProtectionManager {
         ) {
             if (bestBuy.isPresent() && info.pricePerUnit() <= bestBuy.get() && cfg.blockUndercutOfOpposing) {
                 return ValidationResult.blocked(String.format(
-                    "Your sell offer at %.1f undercuts the current buy order of %.1f (use insta-sell)",
-                    info.pricePerUnit(),
-                    bestBuy.get()
+                    "Your Sell Offer price of (%s) is below insta buy price of (%s)",
+                    Utils.formatDecimal(info.pricePerUnit(), 1, true),
+                    Utils.formatDecimal(bestSell.get(), 1, true)
                 ));
             }
 
@@ -308,9 +264,9 @@ public class OrderProtectionManager {
                 double undercut = (bestSell.get() - info.pricePerUnit()) / bestSell.get() * 100;
                 if (undercut >= cfg.maxSellOfferUndercut) {
                     return ValidationResult.blocked(String.format(
-                        "Undercuts by %.1f%% (max %.1f%%)",
-                        undercut,
-                        cfg.maxSellOfferUndercut
+                        "Undercuts by %s%% (max %s%%)",
+                        Utils.formatDecimal(undercut, 1, true),
+                        Utils.formatDecimal(cfg.maxSellOfferUndercut, 1, true)
                     ));
                 }
             }
@@ -327,9 +283,9 @@ public class OrderProtectionManager {
         ) {
             if (bestSell.isPresent() && info.pricePerUnit() >= bestSell.get() && cfg.blockUndercutOfOpposing) {
                 return ValidationResult.blocked(String.format(
-                    "Your buy order at %.1f meets/exceeds the sell offer of %.1f (use insta-buy)",
-                    info.pricePerUnit(),
-                    bestSell.get()
+                    "Your Buy Order price of (%s) is above the insta buy price of (%s)",
+                    Utils.formatDecimal(info.pricePerUnit(), 1, true),
+                    Utils.formatDecimal(bestBuy.get(), 1, true)
                 ));
             }
 
@@ -338,9 +294,9 @@ public class OrderProtectionManager {
 
                 if (undercut >= cfg.maxBuyOrderUndercut) {
                     return ValidationResult.blocked(String.format(
-                        "Undercuts by %.1f%% (max %.1f%%)",
-                        undercut,
-                        cfg.maxBuyOrderUndercut
+                        "Undercuts by %s%% (max %s%%)",
+                        Utils.formatDecimal(undercut, 1, true),
+                        Utils.formatDecimal(cfg.maxBuyOrderUndercut, 1, true)
                     ));
                 }
             }
@@ -381,18 +337,17 @@ public class OrderProtectionManager {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createShowChatMessageOption() {
+        public Option.Builder<Boolean> createShowChatMessageOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Show Chat Messages"))
                 .description(OptionDescription.of(Text.literal(
                     "Show system chat messages when protections are triggered.")))
                 .binding(true, () -> this.showChatMessage, val -> this.showChatMessage = val)
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createBlockUndercutPercentageOption() {
+        public Option.Builder<Boolean> createBlockUndercutPercentageOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Block Percentage Undercut"))
@@ -403,11 +358,10 @@ public class OrderProtectionManager {
                     () -> this.blockUndercutPercentage,
                     val -> this.blockUndercutPercentage = val
                 )
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Double> createMaxBuyOrderUndercutOption() {
+        public Option.Builder<Double> createMaxBuyOrderUndercutOption() {
             return Option
                 .<Double>createBuilder()
                 .name(Text.literal("Max Buy Order Undercut (%)"))
@@ -421,11 +375,10 @@ public class OrderProtectionManager {
                 .controller(opt -> DoubleSliderControllerBuilder
                     .create(opt)
                     .range(0.0, 100.0)
-                    .step(0.5))
-                .build();
+                    .step(0.5));
         }
 
-        public Option<Double> createMaxSellOfferUndercutOption() {
+        public Option.Builder<Double> createMaxSellOfferUndercutOption() {
             return Option
                 .<Double>createBuilder()
                 .name(Text.literal("Max Sell Offer Undercut (%)"))
@@ -439,11 +392,10 @@ public class OrderProtectionManager {
                 .controller(opt -> DoubleSliderControllerBuilder
                     .create(opt)
                     .range(0.0, 100.0)
-                    .step(0.5))
-                .build();
+                    .step(0.5));
         }
 
-        public Option<Boolean> createBlockUndercutOfOpposingOption() {
+        public Option.Builder<Boolean> createBlockUndercutOfOpposingOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Block Opposing Order Undercuts"))
@@ -454,19 +406,30 @@ public class OrderProtectionManager {
                     () -> this.blockUndercutOfOpposing,
                     val -> this.blockUndercutOfOpposing = val
                 )
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
             var enabledBuilder = this.createEnabledOption();
 
+            var undercutPercentage = this.createBlockUndercutPercentageOption();
+            var sellOfferUndercut = this.createMaxSellOfferUndercutOption().build();
+            var buyOrderUndercut = this.createMaxBuyOrderUndercutOption().build();
+
+            undercutPercentage.addListener((option, event) -> {
+                if (event == Event.STATE_CHANGE) {
+                    boolean val = option.pendingValue();
+                    sellOfferUndercut.setAvailable(val);
+                    buyOrderUndercut.setAvailable(val);
+                }
+            });
+
             var options = List.of(
-                this.createShowChatMessageOption(),
-                this.createBlockUndercutPercentageOption(),
-                this.createMaxBuyOrderUndercutOption(),
-                this.createMaxSellOfferUndercutOption(),
-                this.createBlockUndercutOfOpposingOption()
+                this.createShowChatMessageOption().build(),
+                this.createBlockUndercutOfOpposingOption().build(),
+                undercutPercentage.build(),
+                sellOfferUndercut,
+                buyOrderUndercut
             );
 
             enabledBuilder.addListener((option, event) -> {
@@ -487,5 +450,4 @@ public class OrderProtectionManager {
                 .build();
         }
     }
-
 }
