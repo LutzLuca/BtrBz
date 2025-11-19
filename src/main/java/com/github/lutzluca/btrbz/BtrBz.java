@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
+import com.github.lutzluca.btrbz.core.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.commands.Commands;
@@ -21,6 +22,7 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
@@ -30,12 +32,14 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.ComponentType;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
@@ -49,8 +53,6 @@ import net.minecraft.util.Identifier;
 public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
-
-
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
     public static ComponentType<Boolean> BOOKMARKED;
@@ -92,6 +94,7 @@ public class BtrBz implements ClientModInitializer {
         this.highlightManager = new OrderHighlightManager();
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.alertManager = new AlertManager();
+        var orderProtectionManager = OrderProtectionManager.getInstance();
 
         var moduleManager = ModuleManager.getInstance();
         moduleManager.discoverBindings();
@@ -106,6 +109,26 @@ public class BtrBz implements ClientModInitializer {
             var trackedOrders = this.orderManager.getTrackedOrders();
             this.highlightManager.sync(trackedOrders, filledOrder);
             orderValueModule.sync(unfilledOrders, filledOrder);
+        });
+
+        Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {
+            this.orderManager.addOutstandingOrder(setOrderInfo);
+            log.trace(
+                "Stored outstanding order for {}x {}",
+                setOrderInfo.volume(),
+                setOrderInfo.productName()
+            );
+        };
+
+        orderProtectionManager.onSetOrder((stack, pendingOrderData) -> {
+            pendingOrderData.ifPresentOrElse(
+                data -> addOutstanding.accept(data.orderInfo()),
+                () -> OrderInfoParser
+                    .parseSetOrderItem(stack)
+                    .onSuccess(addOutstanding)
+                    .onFailure((err) -> log.warn("Failed to parse confirm item", err))
+            );
+            BazaarOrderActions.setReopenBazaar();
         });
 
         BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
@@ -204,34 +227,5 @@ public class BtrBz implements ClientModInitializer {
                 this.orderManager.syncOrders(parsed);
             }
         );
-
-        ScreenActionManager.register(new ScreenClickRule() {
-
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                final int orderItemIdx = 13;
-
-                return info.inMenu(
-                    BazaarMenuType.BuyOrderConfirmation,
-                    BazaarMenuType.SellOfferConfirmation
-                ) && slot != null && slot.getIndex() == orderItemIdx;
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                OrderInfoParser.parseSetOrderItem(slot.getStack()).onSuccess((setOrderInfo) -> {
-                    BtrBz.orderManager().addOutstandingOrder(setOrderInfo);
-
-                    log.trace(
-                        "Stored outstanding order for {}x {}",
-                        setOrderInfo.volume(),
-                        setOrderInfo.productName()
-                    );
-                }).onFailure((err) -> log.warn("Failed to parse confirm item", err));
-                BazaarOrderActions.setReopenBazaar();
-
-                return false;
-            }
-        });
     }
 }

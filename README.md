@@ -10,6 +10,8 @@ See the Feature Overview / Core Features for a detailed feature list and usage
 - **Tracked Orders** - Real-time monitoring of order status changes
 - **Price Alerts** - Automated notifications when prices reach your targets
 - **Order Cancel Actions** - Streamlined navigation after order cancellations
+- **Order Protection** - Prevent accidental orders (blocks extreme undercuts and opposing order
+  mistakes)
 - **Order Highlighting** - Color-coded order status indicators
 - **Product Information Provider** - Quick access to external price data
 - **Flip Helper** - Automated sell price calculation for quick flips
@@ -184,6 +186,39 @@ Automatically handle navigation and data management after cancelling Bazaar orde
 - Master switch to enable/disable all cancel actions
 - Individual toggles for each action type
 - Note: "Reopen Bazaar" executes `/bz` command which requires server round-trip
+
+</details>
+
+<details>
+<summary><strong>Order Protection</strong></summary>
+
+Guard against accidentally creating incorrectly priced Buy Orders or Sell Offers. Order Protection
+validates an order when you open the buy/sell confirmation and can automatically block the order if
+it looks like a mistake.
+
+**Features:**
+
+- Blocks orders that undercut existing orders by more than a configurable percentage (per-side
+  sliders for Buy / Sell).
+- Prevents creating Sell Offers that are below the current insta-buy price and Buy Orders that are
+  above the current insta-sell price when enabled.
+- Tooltip integration shows validation state and human-readable reason for blocked orders:
+    - ✓ Safe: order passes validation
+    - ✗ Blocked: setting order is prevented
+    - ⚠ Overridden: validation blocked but Ctrl is held to override
+- Hold Ctrl to override a blocked order and allow it to be placed.
+- If the product / price could not be resolved it defaults to Safe
+- Optional chat messages when a protection blocks an order.
+
+**Configuration:**
+
+- Enable/Disable Order Protection.
+- Show Chat Messages — toggle system notifications when protections are triggered.
+- Block Percentage Undercut — enable/disable percentage-based blocks.
+- Max Buy Order Undercut (%) and Max Sell Offer Undercut (%) — slider values for percentage
+  thresholds.
+- Block Opposing Order Undercuts — prevents creating Sell Offers below the current buy (insta) price
+  and Buy Orders above current sell (insta) price.
 
 </details>
 
@@ -540,4 +575,8 @@ This project uses icons from [Flaticon](https://www.flaticon.com/):
 - <a href="https://www.flaticon.com/free-icons/bookmark" title="bookmark icons">Bookmark icons
   created by Ian Anandara - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/instagram-tools" title="instagram-tools icons">
-    Instagram-tools icons created by Dewi Sari - Flaticon</a>
+  Instagram-tools icons created by Dewi Sari - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/red" title="red icons">Red icons created by
+  hqrloveq - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/yes" title="yes icons">Yes icons created by
+  hqrloveq - Flaticon</a>
