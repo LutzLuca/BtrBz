@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
@@ -16,12 +17,10 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import io.vavr.control.Try;
 import java.net.URI;
-import java.util.List;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.stream.Stream;
@@ -351,7 +350,7 @@ public final class ProductInfoProvider {
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
         // NOTE: reference equality is intentional here
-        //noinspection DataFlowIssue
+        // noinspection DataFlowIssue
         return Try
             .of(() -> StreamSupport
                 .stream(MinecraftClient.getInstance().player.getInventory().spliterator(), false)
@@ -464,40 +463,37 @@ public final class ProductInfoProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createItemClickOption() {
+        public Option.Builder<Boolean> createItemClickOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Enable Product Info Click"))
                 .description(OptionDescription.of(Text.literal(
                     "Allows clicking the 'Product Info' paper item in the Bazaar Item menu to open the product page.")))
                 .binding(true, () -> this.itemClickEnabled, val -> this.itemClickEnabled = val)
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createCtrlShiftOption() {
+        public Option.Builder<Boolean> createCtrlShiftOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Enable CTRL+SHIFT Click Shortcut"))
                 .description(OptionDescription.of(Text.literal(
                     "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking the item.\n" + "Disabled in the Bazaar Item menu to avoid conflicts with bookmarks.")))
                 .binding(true, () -> this.ctrlShiftEnabled, val -> this.ctrlShiftEnabled = val)
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createShowOutsideBazaarOption() {
+        public Option.Builder<Boolean> createShowOutsideBazaarOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Show Product Info Outside of the Bazaar"))
                 .description(OptionDescription.of(Text.literal(
                     "Allows the CTRL+SHIFT Click shortcut to work outside the Bazaar (e.g., in chests or player inventory).")))
                 .binding(true, () -> this.showOutsideBazaar, val -> this.showOutsideBazaar = val)
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createPriceTooltipOption() {
+        public Option.Builder<Boolean> createPriceTooltipOption() {
             return Option
                 .<Boolean>createBuilder()
                 .name(Text.literal("Show Price Tooltips"))
@@ -508,25 +504,23 @@ public final class ProductInfoProvider {
                     () -> this.priceTooltipEnabled,
                     val -> this.priceTooltipEnabled = val
                 )
-                .controller(ConfigScreen::createBooleanController)
-                .build();
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<InfoProviderSite> createSiteOption() {
+        public Option.Builder<InfoProviderSite> createSiteOption() {
             return Option
                 .<InfoProviderSite>createBuilder()
                 .name(Text.literal("Preferred Product Info Site"))
                 .description(OptionDescription.of(Text.literal(
                     "Select which external website to open for product information.")))
                 .binding(this.site, () -> this.site, site -> this.site = site)
-                .controller(InfoProviderSite::controller)
-                .build();
+                .controller(InfoProviderSite::controller);
         }
 
         public OptionGroup createGroup() {
             var enabledBuilder = this.createEnabledOption();
 
-            var options = List.of(
+            var rootGroup = new OptionGrouping(enabledBuilder).addOptions(
                 this.createItemClickOption(),
                 this.createCtrlShiftOption(),
                 this.createShowOutsideBazaarOption(),
@@ -534,20 +528,12 @@ public final class ProductInfoProvider {
                 this.createSiteOption()
             );
 
-            enabledBuilder.addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    boolean val = option.pendingValue();
-                    options.forEach(o -> o.setAvailable(val));
-                }
-            });
-
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Product Info"))
                 .description(OptionDescription.of(Text.literal(
                     "Settings for the product information helper (tooltips, click-to-open, site selection)")))
-                .option(enabledBuilder.build())
-                .options(options)
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

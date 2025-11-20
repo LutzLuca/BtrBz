@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -151,14 +152,14 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         }
 
         public OptionGroup createGroup() {
-            var enabledBuilder = this.createEnabledOption();
+            var rootGroup = new OptionGrouping(this.createEnabledOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Price Diff"))
                 .description(OptionDescription.of(Text.literal(
                     "Show per-item and total price difference for selected item")))
-                .option(enabledBuilder.build())
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

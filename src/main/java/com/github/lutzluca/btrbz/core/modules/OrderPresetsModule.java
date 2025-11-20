@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule.OrderPresetsConfig;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor;
@@ -56,8 +57,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             }
             var prev = ScreenInfoHelper.get().getPrevInfo();
 
-            if (curr.inMenu(BazaarMenuType.BuyOrderSetupVolume)
-                && prev.inMenu(BazaarMenuType.Item)) {
+            if (curr.inMenu(BazaarMenuType.BuyOrderSetupVolume) && prev.inMenu(BazaarMenuType.Item)) {
                 this.currProductId = prev
                     .getItemStack(13)
                     .map(ItemStack::getName)
@@ -65,27 +65,30 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     .flatMap(BtrBz.bazaarData()::nameToId)
                     .orElse(null);
 
-                this.currMaxVolume = curr.getItemStack(16).flatMap(this::getMaxVolume)
-                                         .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
+                this.currMaxVolume = curr
+                    .getItemStack(16)
+                    .flatMap(this::getMaxVolume)
+                    .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
 
                 this.inTransaction = true;
                 log.debug(
                     "Starting transaction for resolved product '{}' with maxVolume '{}'",
-                    this.currProductId, this.currMaxVolume
+                    this.currProductId,
+                    this.currMaxVolume
                 );
 
                 this.rebuildList();
                 return;
             }
 
-            if (this.inTransaction && prev.getScreen() instanceof SignEditScreen
-                && curr.getScreen() == null) {
+            if (this.inTransaction && prev.getScreen() instanceof SignEditScreen && curr.getScreen() == null) {
                 return;
             }
 
             var isOrderFlowMenu = curr.inMenu(
                 BazaarMenuType.BuyOrderSetupVolume,
-                BazaarMenuType.BuyOrderSetupPrice, BazaarMenuType.BuyOrderConfirmation
+                BazaarMenuType.BuyOrderSetupPrice,
+                BazaarMenuType.BuyOrderConfirmation
             );
 
             var isOrderFlowSignScreen = this.isOrderFlowSignScreen(curr, prev);
@@ -93,7 +96,9 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             if (this.inTransaction && (!isOrderFlowMenu && !isOrderFlowSignScreen)) {
                 log.debug(
                     "Canceling transaction for resolved product '{}': prev={}, curr={}",
-                    this.currProductId, prev.getMenuType(), curr.getMenuType()
+                    this.currProductId,
+                    prev.getMenuType(),
+                    curr.getMenuType()
                 );
 
                 this.cancelTransaction();
@@ -106,8 +111,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             }
 
             var prev = ScreenInfoHelper.get().getPrevInfo();
-            if (!prev.inMenu(BazaarMenuType.BuyOrderSetupVolume)
-                || !(info.getScreen() instanceof SignEditScreen signEditScreen)) {
+            if (!prev.inMenu(BazaarMenuType.BuyOrderSetupVolume) || !(info.getScreen() instanceof SignEditScreen signEditScreen)) {
                 return;
             }
             if (!this.pendingPreset || this.pendingVolume <= 0) {
@@ -125,14 +129,15 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         });
 
         ScreenInfoHelper.registerOnLoaded(
-            info -> info.inMenu(BazaarMenuType.BuyOrderSetupVolume),
-            (info, inventory) -> {
+            info -> info.inMenu(BazaarMenuType.BuyOrderSetupVolume), (info, inventory) -> {
                 if (!this.configState.enabled) {
                     return;
                 }
 
-                if (ScreenInfoHelper.get().getPrevInfo()
-                                    .inMenu(BazaarMenuType.BuyOrderSetupPrice)) {
+                if (ScreenInfoHelper
+                    .get()
+                    .getPrevInfo()
+                    .inMenu(BazaarMenuType.BuyOrderSetupPrice)) {
                     return;
                 }
 
@@ -158,8 +163,10 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private boolean isOrderFlowSignScreen(ScreenInfo curr, ScreenInfo prev) {
-        return curr.getScreen() instanceof SignEditScreen && prev
-            .inMenu(BazaarMenuType.BuyOrderSetupVolume, BazaarMenuType.BuyOrderSetupPrice);
+        return curr.getScreen() instanceof SignEditScreen && prev.inMenu(
+            BazaarMenuType.BuyOrderSetupVolume,
+            BazaarMenuType.BuyOrderSetupPrice
+        );
     }
 
     public void rebuildList() {
@@ -177,12 +184,17 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         log.debug(
             "Rebuilding Order Preset list: maxVolume={}, pricePerUnit={}, purse={}",
-            this.currMaxVolume, pricePerUnit, purse
+            this.currMaxVolume,
+            pricePerUnit,
+            purse
         );
 
-        List<OrderPreset> presets =
-            configState.presets.stream().filter(presetVolume -> presetVolume <= currMaxVolume)
-                               .sorted().map(OrderPreset.Volume::new).collect(Collectors.toList());
+        List<OrderPreset> presets = configState.presets
+            .stream()
+            .filter(presetVolume -> presetVolume <= currMaxVolume)
+            .sorted()
+            .map(OrderPreset.Volume::new)
+            .collect(Collectors.toList());
 
         presets.add(new OrderPreset.Max());
 
@@ -193,8 +205,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
             switch (preset) {
                 case OrderPreset.Volume volume -> {
-                    boolean canAfford = !priceAvailable || (purse.isPresent()
-                        && (volume.amount * pricePerUnit.get() <= purse.get()));
+                    boolean canAfford = !priceAvailable || (purse.isPresent() && (volume.amount * pricePerUnit.get() <= purse.get()));
                     if (!canAfford) {
                         entry.setDisabled(true);
                         entry.setTooltipLines(List.of(Text.literal("Insufficient coins")));
@@ -203,8 +214,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 case OrderPreset.Max ignored -> {
                     if (!priceAvailable) {
                         entry.setDisabled(true);
-                        entry.setTooltipLines(
-                            List.of(Text.literal("Unable to determine price information")));
+                        entry.setTooltipLines(List.of(Text.literal(
+                            "Unable to determine price information")));
                     }
                 }
             }
@@ -222,8 +233,10 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             .filter(line -> line.startsWith("Buy up to"))
             .findFirst()
             .map(line -> line.replaceFirst("Buy up to", "").replaceAll("x*", ""))
-            .flatMap(volume -> Utils.parseUsFormattedNumber(volume).toJavaOptional()
-                                    .map(Number::intValue));
+            .flatMap(volume -> Utils
+                .parseUsFormattedNumber(volume)
+                .toJavaOptional()
+                .map(Number::intValue));
     }
 
     @Override
@@ -239,8 +252,12 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         // TODO get a better default position
         var position = this.getConfigPosition().orElse(new Position(10, 10));
         this.list = new StaticListWidget<>(
-            position.x(), position.y(), 60, 100,
-            Text.literal("Presets"), info.getScreen()
+            position.x(),
+            position.y(),
+            60,
+            100,
+            Text.literal("Presets"),
+            info.getScreen()
         );
 
         this.list.setMaxVisibleChildren(5);
@@ -267,8 +284,9 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private Optional<Position> getConfigPosition() {
-        return Utils.zipNullables(this.configState.x, this.configState.y)
-                    .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+        return Utils
+            .zipNullables(this.configState.x, this.configState.y)
+            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }
 
     private void handlePresetClick(OrderPreset preset) {
@@ -282,17 +300,20 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     yield 0;
                 }
 
-                var price = BtrBz.bazaarData().highestBuyPrice(this.currProductId)
-                                 .map(currPrice -> currPrice + 0.1);
+                var price = BtrBz
+                    .bazaarData()
+                    .highestBuyPrice(this.currProductId)
+                    .map(currPrice -> currPrice + 0.1);
 
                 if (price.isEmpty()) {
                     log.debug("Cannot calculate MAX: price unavailable");
                     yield 0;
                 }
 
-                yield this.getPurse()
-                          .map(purse -> Math.min((int) (purse / price.get()), this.currMaxVolume))
-                          .orElse(0);
+                yield this
+                    .getPurse()
+                    .map(purse -> Math.min((int) (purse / price.get()), this.currMaxVolume))
+                    .orElse(0);
             }
         };
 
@@ -315,9 +336,12 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         // noinspection OptionalGetWithoutIsPresent
         interactionManager.clickSlot(
-            ScreenInfoHelper.get().getCurrInfo()
-                            .getGenericContainerScreen().get().getScreenHandler().syncId, 16, 1,
-            SlotActionType.PICKUP, player
+            ScreenInfoHelper
+                .get()
+                .getCurrInfo()
+                .getGenericContainerScreen()
+                .get()
+                .getScreenHandler().syncId, 16, 1, SlotActionType.PICKUP, player
         );
     }
 
@@ -334,7 +358,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 return Utils
                     .parseUsFormattedNumber(
                         spaceIdx == -1 ? remainder : remainder.substring(0, spaceIdx))
-                    .map(Number::doubleValue).toJavaOptional();
+                    .map(Number::doubleValue)
+                    .toJavaOptional();
             });
     }
 
@@ -380,21 +405,26 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         public List<Integer> presets = List.of();
 
         public Builder<Boolean> createEnableOption() {
-            return Option.<Boolean>createBuilder().name(Text.of("Order Presets"))
-                         .description(OptionDescription.of(Text.literal(
-                             "Enable or disable the Order Presets module for quick access to predefined order volumes")))
-                         .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                         .controller(ConfigScreen::createBooleanController);
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.of("Order Presets"))
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable the Order Presets module for quick access to predefined order volumes")))
+                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
-            var enabledOption = this.createEnableOption();
+            var rootGroup = new OptionGrouping(this.createEnableOption());
 
-            return OptionGroup.createBuilder().name(Text.of("Order Presets"))
-                              .description(OptionDescription.of(
-                                  Text.literal(
-                                      "Lets you have predefined order volume for quick access")))
-                              .option(enabledOption.build()).collapsed(false).build();
+            return OptionGroup
+                .createBuilder()
+                .name(Text.of("Order Presets"))
+                .description(OptionDescription.of(Text.literal(
+                    "Lets you have predefined order volume for quick access")))
+                .options(rootGroup.build())
+                .collapsed(false)
+                .build();
         }
     }
 }

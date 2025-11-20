@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
@@ -17,7 +18,6 @@ import com.github.lutzluca.btrbz.widgets.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.ScrollableListWidget;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -228,26 +228,17 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         public OptionGroup getGroup() {
-            var inBazaarOption = this.createInBazaarOption().build();
-            var tooltipsOption = this.createTooltipsOption().build();
-            var enabled = this.createEnabledOption();
-
-            enabled.addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    boolean enabledValue = option.pendingValue();
-                    inBazaarOption.setAvailable(enabledValue);
-                    tooltipsOption.setAvailable(enabledValue);
-                }
-            });
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
+                this.createInBazaarOption(),
+                this.createTooltipsOption()
+            );
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Order List"))
                 .description(OptionDescription.of(Text.literal(
                     "Shows your tracked bazaar orders in a compact, hover-highlightable list.")))
-                .option(enabled.build())
-                .option(inBazaarOption)
-                .option(tooltipsOption)
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

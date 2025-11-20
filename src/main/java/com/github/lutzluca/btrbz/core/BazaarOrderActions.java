@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -9,14 +10,11 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 
@@ -178,26 +176,18 @@ public class BazaarOrderActions {
         }
 
         public OptionGroup createGroup() {
-            var options = List.of(
-                this.createReopenOrdersOption().build(),
-                this.createCopyRemainingOption().build(),
-                this.createReopenBazaarOption().build()
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
+                this.createReopenOrdersOption(),
+                this.createCopyRemainingOption(),
+                this.createReopenBazaarOption()
             );
-            var enabledBuilder = this.createEnabledOption();
-
-            enabledBuilder.addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    options.forEach(opt -> opt.setAvailable(option.pendingValue()));
-                }
-            });
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Order Cancel Actions"))
                 .description(OptionDescription.of(Text.literal(
                     "Automatically return to the Orders screen after cancelling an order")))
-                .option(enabledBuilder.build())
-                .options(options)
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

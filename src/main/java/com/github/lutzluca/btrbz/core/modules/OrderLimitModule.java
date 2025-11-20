@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
@@ -8,7 +9,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.TextDisplayWidget;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -37,19 +37,21 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     public List<ClickableWidget> createWidgets(ScreenInfo info) {
         List<Text> lines = List.of(
             Text.literal("Daily Limit:").formatted(Formatting.GOLD),
-            Text.literal(this.formatAmount(this.configState.usedToday) + " / "
-                    + Utils.formatCompact(this.configState.dailyLimit, 0))
+            Text
+                .literal(this.formatAmount(this.configState.usedToday) + " / " + Utils.formatCompact(
+                    this.configState.dailyLimit,
+                    0
+                ))
                 .formatted(Formatting.GREEN)
         );
 
-        var position =
-            this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
+        var position = this
+            .getConfigPosition()
+            .or(() -> info.getHandledScreenBounds().map(bounds -> {
                 var textRenderer = MinecraftClient.getInstance().textRenderer;
 
-                int lineWidth =
-                    lines.stream().mapToInt(textRenderer::getWidth).max().getAsInt();
-                int textHeight = lines.size() * textRenderer.fontHeight
-                    + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
+                int lineWidth = lines.stream().mapToInt(textRenderer::getWidth).max().getAsInt();
+                int textHeight = lines.size() * textRenderer.fontHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
 
                 int widgetWidth = lineWidth + 2 * TextDisplayWidget.PADDING_X;
                 int widgetHeight = textHeight + 2 * TextDisplayWidget.PADDING_Y;
@@ -65,7 +67,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         }
 
         var widget = new TextDisplayWidget(
-            position.get().x(), position.get().y(), lines,
+            position.get().x(),
+            position.get().y(),
+            lines,
             info.getScreen()
         ).onDragEnd((self, pos) -> this.savePosition(pos));
 
@@ -78,14 +82,16 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         // TODO have a option to cap at limit
         this.updateConfig(cfg -> cfg.usedToday += transactionAmount);
         log.debug(
-            "Added {} coins to daily limit usage (now {})", transactionAmount,
+            "Added {} coins to daily limit usage (now {})",
+            transactionAmount,
             this.configState.usedToday
         );
     }
 
     private Optional<Position> getConfigPosition() {
-        return Utils.zipNullables(this.configState.x, this.configState.y)
-                    .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+        return Utils
+            .zipNullables(this.configState.x, this.configState.y)
+            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }
 
     private void savePosition(int newX, int newY) {
@@ -147,39 +153,34 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public boolean useCompact = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option.<Boolean>createBuilder().name(Text.literal("Order Limit Module"))
-                         .description(OptionDescription.of(Text.literal(
-                             "Enable or disable the Order Limit module that tracks your daily coin spending limit")))
-                         .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                         .controller(ConfigScreen::createBooleanController);
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Order Limit Module"))
+                .description(OptionDescription.of(Text.literal(
+                    "Enable or disable the Order Limit module that tracks your daily coin spending limit")))
+                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Boolean> createCompactOption() {
-            return Option.<Boolean>createBuilder().name(Text.literal("Use Compact Display"))
-                         .description(OptionDescription.of(Text.literal(
-                             "Display the order limit in a compact format that takes up less screen space")))
-                         .binding(true, () -> this.useCompact, val -> this.useCompact = val)
-                         .controller(ConfigScreen::createBooleanController).build();
+        public Option.Builder<Boolean> createCompactOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Text.literal("Use Compact Display"))
+                .description(OptionDescription.of(Text.literal(
+                    "Display the order limit in a compact format that takes up less screen space")))
+                .binding(true, () -> this.useCompact, val -> this.useCompact = val)
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
-            var enabledBuilder = this.createEnabledOption();
-            var compact = this.createCompactOption();
-
-            enabledBuilder.addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    boolean val = option.pendingValue();
-                    compact.setAvailable(val);
-                }
-            });
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createCompactOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Order Limit"))
-                .description(OptionDescription.of(Text
-                    .literal("Display and behaviour settings for the Order Limit module")))
-                .option(enabledBuilder.build())
-                .option(compact)
+                .description(OptionDescription.of(Text.literal(
+                    "Display and behaviour settings for the Order Limit module")))
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

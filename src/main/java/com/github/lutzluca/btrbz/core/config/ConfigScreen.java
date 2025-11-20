@@ -90,7 +90,9 @@ public class ConfigScreen {
         }
 
         public List<Option<?>> build() {
-            assert this.controllerOption != null : "OptionGrouping already built";
+            if (this.controllerOption != null) {
+                throw new IllegalStateException("OptionGrouping already built");
+            }
 
             var opts = this.children
                 .stream()
@@ -111,7 +113,9 @@ public class ConfigScreen {
         }
 
         void setAvailable(boolean available) {
-            assert this.controllerOption != null : "Must call `build` before `setAvailable`";
+            if (this.controllerOption == null) {
+                throw new IllegalStateException("Must call `build` before `setAvailable`");
+            }
             this.controllerOption.setAvailable(available);
         }
 

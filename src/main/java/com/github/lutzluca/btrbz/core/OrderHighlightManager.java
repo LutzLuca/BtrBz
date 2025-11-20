@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -90,14 +91,14 @@ public class OrderHighlightManager {
         }
 
         public OptionGroup createGroup() {
-            var enabledBuilder = this.createEnabledOption();
+            var rootGroup = new OptionGrouping(this.createEnabledOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Order Highlighting"))
                 .description(OptionDescription.of(Text.literal(
                     "Enable or disable order highlights in the Order screen")))
-                .option(enabledBuilder.build())
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

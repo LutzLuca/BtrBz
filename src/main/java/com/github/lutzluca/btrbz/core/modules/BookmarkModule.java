@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
@@ -26,7 +27,6 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Dynamic;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import io.vavr.control.Try;
@@ -63,7 +63,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             if (slot.getIndex() != 13 || !info.inMenu(BazaarMenuType.Item)) {
                 return Optional.empty();
             }
-            
+
             if (GameUtils.isPlayerInventorySlot(slot)) {
                 return Optional.empty();
             }
@@ -404,7 +404,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option<Integer> createMaxVisibleOption() {
+        public Option.Builder<Integer> createMaxVisibleOption() {
             return Option
                 .<Integer>createBuilder()
                 .name(Text.literal("Max Visible Items"))
@@ -419,28 +419,18 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                             .updateChildrenCount();
                     }
                 )
-                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 14).step(1))
-                .build();
+                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 14).step(1));
         }
 
         public OptionGroup createGroup() {
-            var enabledBuilder = this.createEnabledOption();
-            var maxVisible = this.createMaxVisibleOption();
-
-            enabledBuilder.addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    boolean val = option.pendingValue();
-                    maxVisible.setAvailable(val);
-                }
-            });
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createMaxVisibleOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Bookmarked Items"))
                 .description(OptionDescription.of(Text.literal(
                     "Settings for the bookmarked items quick-access list")))
-                .option(enabledBuilder.build())
-                .option(maxVisible)
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

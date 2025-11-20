@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
@@ -21,7 +22,6 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
@@ -276,9 +276,7 @@ public class TrackedOrderManager {
 
     private record TrackedStatus(TrackedOrder trackedOrder, OrderStatus status) { }
 
-    public record StatusUpdate(
-        TrackedOrder trackedOrder, OrderStatus curr, OrderStatus prev
-    ) { }
+    public record StatusUpdate(TrackedOrder trackedOrder, OrderStatus curr, OrderStatus prev) { }
 
     public static class OrderManagerConfig {
 
@@ -293,36 +291,20 @@ public class TrackedOrderManager {
         public Action gotoOnUndercut = Action.Item;
 
         public OptionGroup createGroup() {
-            var notifyBestPriorityRegain = this.createNotifyBestOnPriorityRegain().build();
-            var notifyBest = this.createNotifyBestOption().addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    notifyBestPriorityRegain.setAvailable(option.pendingValue());
-                }
-            });
+            var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption()).addOptions(this.createNotifyBestOnPriorityRegain());
 
-            var options = List.of(
-                notifyBest.build(),
-                notifyBestPriorityRegain,
-                this.createNotifyMatchedOption().build(),
-                this.createNotifyUndercutOption().build(),
-                this.createGotoMatchedOption().build(),
-                this.createGotoUndercutOption().build()
-            );
-
-            var enabledOption = this.createEnabledOption();
-            enabledOption.addListener((option, event) -> {
-                if (event == Event.STATE_CHANGE) {
-                    boolean val = option.pendingValue();
-                    options.forEach(opt -> opt.setAvailable(val));
-                }
-            });
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
+                this.createNotifyMatchedOption(),
+                this.createNotifyUndercutOption(),
+                this.createGotoMatchedOption(),
+                this.createGotoUndercutOption()
+            ).addSubgroups(notifyBestGroup);
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Order Notification"))
                 .description(OptionDescription.of(Text.literal("Tracked order notification settings")))
-                .option(enabledOption.build())
-                .options(options)
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }
@@ -338,8 +320,7 @@ public class TrackedOrderManager {
                     () -> this.gotoOnMatched,
                     action -> this.gotoOnMatched = action
                 )
-                .controller(Action::controller)
-                .available(this.enabled);
+                .controller(Action::controller);
         }
 
         private Option.Builder<Action> createGotoUndercutOption() {
@@ -353,10 +334,8 @@ public class TrackedOrderManager {
                     () -> this.gotoOnUndercut,
                     action -> this.gotoOnUndercut = action
                 )
-                .controller(Action::controller)
-                .available(this.enabled);
+                .controller(Action::controller);
         }
-
 
         private Option.Builder<Boolean> createNotifyBestOption() {
             return Option
@@ -365,8 +344,7 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.notifyBest, val -> this.notifyBest = val)
                 .description(OptionDescription.of(Text.literal(
                     "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
-                .controller(ConfigScreen::createBooleanController)
-                .available(this.enabled);
+                .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyBestOnPriorityRegain() {
@@ -390,8 +368,7 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.notifyMatched, val -> this.notifyMatched = val)
                 .description(OptionDescription.of(Text.literal(
                     "Send a notification when a tracked order is matched (multiple orders at the same best price)")))
-                .controller(ConfigScreen::createBooleanController)
-                .available(this.enabled);
+                .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyUndercutOption() {
@@ -401,8 +378,7 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
                 .description(OptionDescription.of(Text.literal(
                     "Send a notification when a tracked order is undercut / outbid by another order")))
-                .controller(ConfigScreen::createBooleanController)
-                .available(this.enabled);
+                .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createEnabledOption() {

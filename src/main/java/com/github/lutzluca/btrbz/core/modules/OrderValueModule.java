@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
@@ -191,12 +192,12 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         }
 
         public OptionGroup createGroup() {
-            var enabled = this.createEnabledOption();
+            var rootGroup = new OptionGrouping(this.createEnabledOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Order Value Overlay"))
-                .option(enabled.build())
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }

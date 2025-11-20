@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.Resolved
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -180,14 +181,14 @@ public class AlertManager {
         }
 
         public OptionGroup createGroup() {
-            var enabledBuilder = this.createEnabledOption();
+            var rootGroup = new OptionGrouping(this.createEnabledOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Text.literal("Price Alerts"))
                 .description(OptionDescription.of(Text.literal(
                     "Configure price alerting behavior and manage active alerts")))
-                .option(enabledBuilder.build())
+                .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }
