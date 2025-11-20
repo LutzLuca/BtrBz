@@ -18,6 +18,7 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.DoubleSliderControllerBuilder;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
@@ -150,9 +151,10 @@ public class OrderProtectionManager {
 
                 if (validation.reason() != null) {
                     lines.add(Text.literal("Reason:").formatted(Formatting.GRAY));
-                    lines.add(Text
-                        .literal("  " + validation.reason())
-                        .formatted(Formatting.YELLOW));
+                    Arrays
+                        .stream(validation.reason().split("\n"))
+                        .map(line -> Text.literal("  " + line).formatted(Formatting.YELLOW))
+                        .forEach(lines::add);
                 }
 
                 lines.add(Text
@@ -266,9 +268,9 @@ public class OrderProtectionManager {
         ) {
             if (bestBuy.isPresent() && info.pricePerUnit() <= bestBuy.get() && cfg.blockUndercutOfOpposing) {
                 return ValidationResult.blocked(String.format(
-                    "Your Sell Offer price of (%s) is below insta buy price of (%s)",
+                    "Your Sell Offer price of (%s) is \nbelow the insta sell price of (%s)",
                     Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestSell.get(), 1, true)
+                    Utils.formatDecimal(bestBuy.get(), 1, true)
                 ));
             }
 
@@ -295,9 +297,9 @@ public class OrderProtectionManager {
         ) {
             if (bestSell.isPresent() && info.pricePerUnit() >= bestSell.get() && cfg.blockUndercutOfOpposing) {
                 return ValidationResult.blocked(String.format(
-                    "Your Buy Order price of (%s) is above the insta buy price of (%s)",
+                    "Your Buy Order price of (%s) is \nabove the insta buy price of (%s)",
                     Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestBuy.get(), 1, true)
+                    Utils.formatDecimal(bestSell.get(), 1, true)
                 ));
             }
 
