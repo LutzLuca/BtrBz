@@ -64,10 +64,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return Optional.empty();
             }
 
-            if (GameUtils.isPlayerInventorySlot(slot)) {
+            if (GameUtils.isPlayerInventorySlot(slot) || original == ItemStack.EMPTY) {
                 return Optional.empty();
             }
 
+            if (original.get(BtrBz.BOOKMARKED) != null) {
+                return Optional.of(original);
+            }
+            
             String productName = original.getName().getString();
             if (BtrBz.bazaarData().nameToId(productName).isEmpty()) {
                 return Optional.empty();
@@ -95,7 +99,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 String productName = slot.getStack().getName().getString();
 
-                toggleBookmark(productName, slot.getStack().copy());
+                var isBookmarked = toggleBookmark(productName, slot.getStack().copy());
+                slot.getStack().set(BtrBz.BOOKMARKED, isBookmarked);
                 return true;
             }
         });
@@ -109,7 +114,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.list.setMaxVisibleChildren(ConfigManager.get().bookmark.maxVisibleChildren);
     }
 
-    private void toggleBookmark(String productName, ItemStack itemStack) {
+    private boolean toggleBookmark(String productName, ItemStack itemStack) {
         final class Bookmarked {
 
             boolean bookmarked;
@@ -132,7 +137,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         });
 
         if (this.list == null) {
-            return;
+            return bookmarked.bookmarked;
         }
 
         if (bookmarked.bookmarked) {
@@ -142,7 +147,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     itemStack
                 ), this.list.getParentScreen()
             ));
-            return;
+            return bookmarked.bookmarked;
         }
 
         this.list
@@ -157,6 +162,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     productName
                 )
             );
+
+        return bookmarked.bookmarked;
     }
 
     @Override
