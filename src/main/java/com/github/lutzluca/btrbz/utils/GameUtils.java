@@ -1,15 +1,12 @@
 package com.github.lutzluca.btrbz.utils;
 
-import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionEventListener.Event;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.ScoreboardDisplaySlot;
@@ -18,21 +15,26 @@ import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public final class GameUtils {
 
-    public static final Set<Item> ORDER_SCREEN_NON_ORDER_ITEMS = Set.of(
-        Items.BLACK_STAINED_GLASS_PANE,
-        Items.ARROW,
-        Items.HOPPER
-    );
-
     public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
 
     private GameUtils() { }
+
+    public static boolean orderScreenNonOrderItemsFilter(@Nullable ItemStack stack) {
+        if (stack == null || stack.isEmpty()) { return true; }
+
+        return switch (stack.getItem()) {
+            case Item item when item == Items.ARROW ->
+                !stack.getName().getString().equals("Go Back");
+            case Item item when item == Items.HOPPER ->
+                !stack.getName().getString().equals("Claim All Coins");
+            default -> true;
+        };
+    }
 
     public static List<String> getScoreboardLines() {
         var client = MinecraftClient.getInstance();

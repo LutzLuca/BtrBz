@@ -38,8 +38,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.component.ComponentType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.screen.slot.Slot;
@@ -213,11 +211,7 @@ public class BtrBz implements ClientModInitializer {
                 var parsed = inv.items
                     .entrySet()
                     .stream()
-                    .filter(entry -> {
-                        var stack = entry.getValue();
-                        return !stack.isEmpty() && !GameUtils.ORDER_SCREEN_NON_ORDER_ITEMS.contains(
-                            stack.getItem());
-                    })
+                    .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
                     .map(entry -> OrderInfoParser
                         .parseOrderInfo(entry.getValue(), entry.getKey())
                         .toJavaOptional())
