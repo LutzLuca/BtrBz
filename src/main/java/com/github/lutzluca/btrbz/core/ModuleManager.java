@@ -97,7 +97,7 @@ public class ModuleManager {
         try {
             M module = moduleClass.getDeclaredConstructor().newInstance();
             modules.put(moduleClass, module);
-            applyConfigToModule(module);
+            this.applyConfigToModule(module);
             module.onLoad();
             log.info("Registered module: {}", moduleClass.getName());
             return module;
@@ -117,7 +117,7 @@ public class ModuleManager {
                 throw new IllegalStateException("Config field '" + field.getName() + "' is null. " + "Ensure the field is initialized in the Config class");
             }
 
-            castModule(module).applyConfigState(value);
+            this.castModule(module).applyConfigState(value);
             log.debug(
                 "Applied config value '{}' to module: {}",
                 value,
@@ -149,7 +149,7 @@ public class ModuleManager {
     }
 
     private void validateBinding(Field field, Class<? extends Module<?>> moduleClass) {
-        Type moduleStateType = extractModuleStateType(moduleClass);
+        Type moduleStateType = this.extractModuleStateType(moduleClass);
         if (moduleStateType == null) {
             throw new IllegalStateException("Cannot determine state type for module: " + moduleClass.getName());
         }
@@ -191,28 +191,7 @@ public class ModuleManager {
             return;
         }
 
-        ConfigManager.withConfig(cfg -> {
-            this.modules.forEach((moduleClass, module) -> {
-                var field = moduleBindings.get(moduleClass);
-                if (field == null) {
-                    log.warn("No binding found for module: {}", moduleClass.getName());
-                    return;
-                }
-
-                try {
-                    var newState = castModule(module).serializeConfigState();
-                    field.set(cfg, newState);
-                } catch (Exception err) {
-                    log.error(
-                        "Failed to update config field '{}' for module: {}",
-                        field.getName(),
-                        moduleClass.getName(),
-                        err
-                    );
-                }
-            });
-        });
-
+        ConfigManager.save();
         this.isDirty = false;
     }
 

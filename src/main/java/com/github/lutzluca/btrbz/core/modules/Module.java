@@ -22,10 +22,6 @@ public abstract class Module<T> {
 
     public void onLoad() { }
 
-    public T serializeConfigState() {
-        return this.configState;
-    }
-
     public abstract boolean shouldDisplay(ScreenInfo info);
 
     public abstract List<ClickableWidget> createWidgets(ScreenInfo info);
