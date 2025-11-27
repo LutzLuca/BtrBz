@@ -39,8 +39,7 @@ public final class BazaarMessageDispatcher {
         BazaarMessage.OrderFilled,
         BazaarMessage.InstaSell,
         BazaarMessage.InstaBuy,
-        BazaarMessage.OrderFlipped
-    {
+        BazaarMessage.OrderFlipped {
 
         // `total` is the rounded total price once the price reaches a certain limit
         // suppose the real price was 1,123,456.6 coins, total would be 1,123,457 coins

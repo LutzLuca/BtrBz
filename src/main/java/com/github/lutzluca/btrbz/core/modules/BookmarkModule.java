@@ -71,7 +71,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             if (original.get(BtrBz.BOOKMARKED) != null) {
                 return Optional.of(original);
             }
-            
+
             String productName = original.getName().getString();
             if (BtrBz.bazaarData().nameToId(productName).isEmpty()) {
                 return Optional.empty();

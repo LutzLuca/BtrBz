@@ -94,9 +94,14 @@ public class BazaarData {
         return new OrderPriceInfo(buyOrderPrice, sellOfferPrice);
     }
 
+    public OrderLists getOrderLists(String productId) {
+        return Optional.ofNullable(this.getProducts().get(productId))
+                       .map(prod -> new OrderLists(prod.getSellSummary(), prod.getBuySummary()))
+                       .orElse(new OrderLists(List.of(), List.of()));
+    }
+
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        String productName,
-        OrderType orderType,
+        String productName, OrderType orderType,
         double pricePerUnit
     ) {
         var productId = this.nameToId(productName);
@@ -142,8 +147,13 @@ public class BazaarData {
     }
 
     public record OrderPriceInfo(
-        Optional<@Nullable Double> buyOrderPrice, Optional<@Nullable Double> sellOfferPrice
-    ) { }
+        Optional<@Nullable Double> buyOrderPrice,
+        Optional<@Nullable Double> sellOfferPrice
+    ) {
+    }
+
+    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) {
+    }
 
     public static final class TrackedProduct {
 
@@ -161,10 +171,10 @@ public class BazaarData {
             this.productName = productName;
             this.product = Optional.empty();
 
-            this.updater = products -> this.data
-                .nameToId(productName)
-                .flatMap(id -> Optional.ofNullable(products.get(id)))
-                .ifPresent(updated -> this.product = Optional.of(updated));
+            this.updater = products -> this.data.nameToId(productName)
+                                                .flatMap(id -> Optional.ofNullable(products.get(id)))
+                                                .ifPresent(updated -> this.product = Optional.of(
+                                                    updated));
         }
 
         private void ensureInitialized() {
@@ -172,31 +182,28 @@ public class BazaarData {
                 return;
             }
 
-            this.data
-                .nameToId(productName)
-                .flatMap(id -> Optional.ofNullable(data.getProducts().get(id)))
-                .ifPresent(prod -> {
-                    this.product = Optional.of(prod);
+            this.data.nameToId(productName)
+                     .flatMap(id -> Optional.ofNullable(data.getProducts().get(id)))
+                     .ifPresent(prod -> {
+                         this.product = Optional.of(prod);
 
-                    this.data.addListener(this.updater);
-                    this.listenerRegistered = true;
-                });
+                         this.data.addListener(this.updater);
+                         this.listenerRegistered = true;
+                     });
         }
 
         public Optional<Double> getSellOfferPrice() {
             this.ensureInitialized();
 
-            return this.product.flatMap(prod -> Utils
-                .getFirst(prod.getBuySummary())
-                .map(Summary::getPricePerUnit));
+            return this.product.flatMap(
+                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit));
         }
 
         public Optional<Double> getBuyOrderPrice() {
             this.ensureInitialized();
 
-            return this.product.flatMap(prod -> Utils
-                .getFirst(prod.getSellSummary())
-                .map(Summary::getPricePerUnit));
+            return this.product.flatMap(
+                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit));
         }
 
         public void destroy() {

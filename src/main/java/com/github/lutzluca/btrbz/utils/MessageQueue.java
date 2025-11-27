@@ -62,7 +62,9 @@ public class MessageQueue {
 
     @AllArgsConstructor
     public enum Level {
-        Info(Formatting.WHITE), Warn(Formatting.YELLOW), Error(Formatting.RED);
+        Info(Formatting.WHITE),
+        Warn(Formatting.YELLOW),
+        Error(Formatting.RED);
 
         public final Formatting color;
     }

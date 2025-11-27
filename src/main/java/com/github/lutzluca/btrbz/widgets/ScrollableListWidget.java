@@ -479,7 +479,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             Text.literal("Empty"),
             this.getX() + this.width / 2,
             contentStartY + contentHeight / 2 - 4,
-            0x808080
+            0xFF808080
         );
     }
 }

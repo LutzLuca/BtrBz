@@ -55,6 +55,7 @@ public class ConfigScreen {
             .group(config.orderValueOverlay.createGroup())
             .group(config.orderList.getGroup())
             .group(config.orderProtection.createGroup())
+            .group(config.orderBook.createGroup())
             .build();
 
         builder.category(general);

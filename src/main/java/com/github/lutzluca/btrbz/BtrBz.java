@@ -16,6 +16,7 @@ import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
+import com.github.lutzluca.btrbz.core.order_book.OrderBookScreenController;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -112,8 +113,7 @@ public class BtrBz implements ClientModInitializer {
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {
             this.orderManager.addOutstandingOrder(setOrderInfo);
             log.trace(
-                "Stored outstanding order for {}x {}",
-                setOrderInfo.volume(),
+                "Stored outstanding order for {}x {}", setOrderInfo.volume(),
                 setOrderInfo.productName()
             );
         };
@@ -121,10 +121,11 @@ public class BtrBz implements ClientModInitializer {
         orderProtectionManager.onSetOrder((stack, pendingOrderData) -> {
             pendingOrderData.ifPresentOrElse(
                 data -> addOutstanding.accept(data.orderInfo()),
-                () -> OrderInfoParser
-                    .parseSetOrderItem(stack)
-                    .onSuccess(addOutstanding)
-                    .onFailure((err) -> log.warn("Failed to parse confirm item", err))
+                () -> OrderInfoParser.parseSetOrderItem(stack).onSuccess(addOutstanding)
+                                     .onFailure((err) -> log.warn(
+                                         "Failed to parse confirm item",
+                                         err
+                                     ))
             );
             BazaarOrderActions.setReopenBazaar();
         });
@@ -136,7 +137,8 @@ public class BtrBz implements ClientModInitializer {
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
         BazaarOrderActions.init();
-        ProductInfoProvider.init();
+        ProductInfoProvider.get();
+        OrderBookScreenController.get();
 
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
@@ -178,8 +180,8 @@ public class BtrBz implements ClientModInitializer {
             info -> orderLimitModule.onTransaction(info.total())
         );
         messageDispatcher.on(
-            BazaarMessage.InstaSell.class,
-            info -> orderLimitModule.onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
+            BazaarMessage.InstaSell.class, info -> orderLimitModule
+                .onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
         );
         messageDispatcher.on(
             BazaarMessage.OrderSetup.class,
@@ -196,27 +198,26 @@ public class BtrBz implements ClientModInitializer {
                 return message;
             }
 
-            return message
-                .copy()
-                .append(Text
-                    .literal(" [Go To Orders]")
-                    .styled(style -> style
-                        .withClickEvent(new RunCommand("/managebazaarorders"))
-                        .withHoverEvent(new ShowText(Text.literal("Opens the Bazaar order screen")))
-                        .withColor(Formatting.DARK_AQUA)));
+            return message.copy().append(Text.literal(" [Go To Orders]")
+                                             .styled(style -> style
+                                                 .withClickEvent(new RunCommand(
+                                                     "/managebazaarorders"))
+                                                 .withHoverEvent(
+                                                     new ShowText(Text.literal(
+                                                         "Opens the Bazaar order screen")))
+                                                 .withColor(Formatting.DARK_AQUA)));
         });
 
         ScreenInfoHelper.registerOnLoaded(
-            info -> info.inMenu(BazaarMenuType.Orders), (info, inv) -> {
-                var parsed = inv.items
-                    .entrySet()
-                    .stream()
-                    .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
-                    .map(entry -> OrderInfoParser
-                        .parseOrderInfo(entry.getValue(), entry.getKey())
-                        .toJavaOptional())
-                    .flatMap(Optional::stream)
-                    .toList();
+            info -> info.inMenu(BazaarMenuType.Orders),
+            (info, inv) -> {
+                var parsed = inv.items.entrySet().stream()
+                                      .filter(entry -> GameUtils
+                                          .orderScreenNonOrderItemsFilter(entry.getValue()))
+                                      .map(entry -> OrderInfoParser
+                                          .parseOrderInfo(entry.getValue(), entry.getKey())
+                                          .toJavaOptional())
+                                      .flatMap(Optional::stream).toList();
 
                 this.orderManager.syncOrders(parsed);
             }

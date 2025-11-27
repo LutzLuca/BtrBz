@@ -20,6 +20,7 @@ import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
+import com.github.lutzluca.btrbz.core.order_book.OrderBookScreenController.OrderBookConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;
 
@@ -73,4 +74,7 @@ public class Config {
 
     @SerialEntry
     public AlertConfig alert = new AlertConfig();
+
+    @SerialEntry
+    public OrderBookConfig orderBook = new OrderBookConfig();
 }

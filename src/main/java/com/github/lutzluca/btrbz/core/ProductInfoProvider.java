@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.client.MinecraftClient;
@@ -38,6 +39,7 @@ import net.minecraft.item.Items;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -48,7 +50,8 @@ public final class ProductInfoProvider {
 
     private static ProductInfoProvider instance;
     private final PriceCache priceCache;
-    private String openedProductId;
+    @Getter
+    private @Nullable ProductNameInfo openedProductNameInfo;
 
     private ProductInfoProvider() {
         this.priceCache = new PriceCache();
@@ -58,11 +61,12 @@ public final class ProductInfoProvider {
         this.registerTooltipDisplay();
     }
 
-    public static void init() {
+    public static ProductInfoProvider get() {
         if (instance == null) {
             instance = new ProductInfoProvider();
             log.info("Initialized ProductInfoProvider");
         }
+        return instance;
     }
 
     private static Optional<String> extractProductName(GenericContainerScreen screen) {
@@ -101,7 +105,6 @@ public final class ProductInfoProvider {
         return priceText;
     }
 
-
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Item), (info, inv) -> {
@@ -117,11 +120,11 @@ public final class ProductInfoProvider {
                     .orElse("<empty>");
 
                 BtrBz.bazaarData().nameToId(productName).ifPresentOrElse(
-                    id -> {
-                        this.openedProductId = id;
-                        log.debug("Opened product: {}", id);
+                    productId -> {
+                        this.openedProductNameInfo = new ProductNameInfo(productId, productName);
+                        log.debug("Opened product: {} ({})", productName, productId);
                     }, () -> {
-                        this.openedProductId = null;
+                        this.openedProductNameInfo = null;
                         log.warn("No product id found for {}", productName);
                     }
                 );
@@ -130,35 +133,16 @@ public final class ProductInfoProvider {
 
         ScreenInfoHelper.registerOnClose(
             ignored -> true, ignored -> {
-                if (this.openedProductId != null) {
-                    log.debug("Closing product: {}", this.openedProductId);
-                }
-                this.openedProductId = null;
-            }
-        );
-
-        ScreenInfoHelper.registerOnSwitch(info -> {
-            if (!info.inMenu(BazaarMenuType.Item)) {
-                return;
-            }
-
-            var productName = info
-                .getGenericContainerScreen()
-                .flatMap(ProductInfoProvider::extractProductName);
-
-            productName.flatMap(BtrBz.bazaarData()::nameToId).ifPresentOrElse(
-                id -> {
-                    this.openedProductId = id;
-                    log.debug("Switched to product: {}", id);
-                }, () -> {
-                    this.openedProductId = null;
-                    log.warn(
-                        "Failed to determine opened product id when switching to loaded Item menu product name: '{}'",
-                        productName
+                if (this.openedProductNameInfo != null) {
+                    log.debug(
+                        "Closing product: {} ({})",
+                        this.openedProductNameInfo.productName,
+                        this.openedProductNameInfo.productId
                     );
                 }
-            );
-        });
+                this.openedProductNameInfo = null;
+            }
+        );
     }
 
     private void registerInfoProviderItemOverride() {
@@ -167,7 +151,7 @@ public final class ProductInfoProvider {
             if (!cfg.enabled || !cfg.itemClickEnabled) {
                 return Optional.empty();
             }
-            if (this.openedProductId == null || slot.getIndex() != CUSTOM_ITEM_IDX) {
+            if (this.openedProductNameInfo == null || slot.getIndex() != CUSTOM_ITEM_IDX) {
                 return Optional.empty();
             }
 
@@ -210,7 +194,7 @@ public final class ProductInfoProvider {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
                 var cfg = ConfigManager.get().productInfo;
-                if (!cfg.enabled || !cfg.itemClickEnabled || openedProductId == null || slot == null) {
+                if (!cfg.enabled || !cfg.itemClickEnabled || ProductInfoProvider.this.openedProductNameInfo == null || slot == null) {
                     return false;
                 }
 
@@ -224,7 +208,7 @@ public final class ProductInfoProvider {
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
                 var cfg = ConfigManager.get().productInfo;
-                confirmAndOpen(cfg.site.format(openedProductId));
+                ProductInfoProvider.this.confirmAndOpen(cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId));
                 return true;
             }
         });
@@ -251,7 +235,7 @@ public final class ProductInfoProvider {
                     return false;
                 }
 
-                confirmAndOpen(cfg.site.format(id.get()));
+                ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
                 return true;
             }
         });
@@ -441,6 +425,8 @@ public final class ProductInfoProvider {
             };
         }
     }
+
+    public record ProductNameInfo(@NotNull String productId, @NotNull String productName) { }
 
     private record CachedPrice(@Nullable Double sellOfferPrice, @Nullable Double buyOrderPrice) { }
 
