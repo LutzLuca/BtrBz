@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.components.AbstractWidget;
 
 public abstract class Module<T> {
 
@@ -24,7 +24,7 @@ public abstract class Module<T> {
 
     public abstract boolean shouldDisplay(ScreenInfo info);
 
-    public abstract List<ClickableWidget> createWidgets(ScreenInfo info);
+    public abstract List<AbstractWidget> createWidgets(ScreenInfo info);
 
     protected void updateConfig(Consumer<T> updater) {
         updater.accept(this.configState);

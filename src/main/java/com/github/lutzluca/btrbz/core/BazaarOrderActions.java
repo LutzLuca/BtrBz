@@ -15,8 +15,8 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
 
 @Slf4j
 public class BazaarOrderActions {
@@ -112,9 +112,9 @@ public class BazaarOrderActions {
     }
 
     private static boolean isCancelOrderSlot(Slot slot) {
-        return (slot.getIndex() == 11 || slot.getIndex() == 13) && slot
-            .getStack()
-            .getName()
+        return (slot.getContainerSlot() == 11 || slot.getContainerSlot() == 13) && slot
+            .getItem()
+            .getHoverName()
             .getString()
             .equals("Cancel Order");
     }
@@ -129,15 +129,15 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createReopenBazaarOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Return to Bazaar After Order Setup"))
+                .name(Component.literal("Return to Bazaar After Order Setup"))
                 .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
                 .description(OptionDescription.of(GameUtils.join(
                     List.of(
-                        Text.literal(
+                        Component.literal(
                             "Automatically reopens the main Bazaar menu after placing a buy/sell order."),
-                        Text.literal(
+                        Component.literal(
                             "\nNote: This executes '/bz' which requires a server round-trip."),
-                        Text.literal(
+                        Component.literal(
                             "You may experience brief mouse unlock during the transition, which may feel a bit clunky.")
                     ), " "
                 )))
@@ -147,9 +147,9 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createCopyRemainingOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Copy Remaining "))
+                .name(Component.literal("Copy Remaining "))
                 .binding(true, () -> this.copyRemaining, enabled -> this.copyRemaining = enabled)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Automatically copies the remaining amount of items from a cancelled order")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -157,9 +157,9 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createReopenOrdersOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Go back to Order Screen"))
+                .name(Component.literal("Go back to Order Screen"))
                 .binding(true, () -> this.reopenOrders, enabled -> this.reopenOrders = enabled)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Automatically opens the Bazaar order screen after cancelling an order")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -168,9 +168,9 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Order Cancel Router"))
+                .name(Component.literal("Order Cancel Router"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Master switch for actions on order cancel")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -184,8 +184,8 @@ public class BazaarOrderActions {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Order Cancel Actions"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Order Cancel Actions"))
+                .description(OptionDescription.of(Component.literal(
                     "Automatically return to the Orders screen after cancelling an order")))
                 .options(rootGroup.build())
                 .collapsed(false)

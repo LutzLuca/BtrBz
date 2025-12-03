@@ -7,43 +7,43 @@ import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
-import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
-import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
-import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class ScreenInventoryTracker {
 
-    private static final Map<ScreenHandlerType<?>, Integer> SLOT_COUNT_MAP = new HashMap<>();
+    private static final Map<MenuType<?>, Integer> SLOT_COUNT_MAP = new HashMap<>();
 
     static {
-        SLOT_COUNT_MAP.put(ScreenHandlerType.ANVIL, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.BEACON, 1);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.BLAST_FURNACE, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.BREWING_STAND, 5);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.CARTOGRAPHY_TABLE, 2);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.CRAFTING, 9);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.ENCHANTMENT, 2);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.FURNACE, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_3X3, 9);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_9X1, 9);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_9X2, 18);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_9X3, 27);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_9X4, 36);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_9X5, 45);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GENERIC_9X6, 54);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.GRINDSTONE, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.HOPPER, 5);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.LECTERN, 1);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.LOOM, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.MERCHANT, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.SHULKER_BOX, 27);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.SMITHING, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.SMOKER, 3);
-        SLOT_COUNT_MAP.put(ScreenHandlerType.STONECUTTER, 1);
+        SLOT_COUNT_MAP.put(MenuType.ANVIL, 3);
+        SLOT_COUNT_MAP.put(MenuType.BEACON, 1);
+        SLOT_COUNT_MAP.put(MenuType.BLAST_FURNACE, 3);
+        SLOT_COUNT_MAP.put(MenuType.BREWING_STAND, 5);
+        SLOT_COUNT_MAP.put(MenuType.CARTOGRAPHY_TABLE, 2);
+        SLOT_COUNT_MAP.put(MenuType.CRAFTING, 9);
+        SLOT_COUNT_MAP.put(MenuType.ENCHANTMENT, 2);
+        SLOT_COUNT_MAP.put(MenuType.FURNACE, 3);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_3x3, 9);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x1, 9);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x2, 18);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x3, 27);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x4, 36);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x5, 45);
+        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x6, 54);
+        SLOT_COUNT_MAP.put(MenuType.GRINDSTONE, 3);
+        SLOT_COUNT_MAP.put(MenuType.HOPPER, 5);
+        SLOT_COUNT_MAP.put(MenuType.LECTERN, 1);
+        SLOT_COUNT_MAP.put(MenuType.LOOM, 3);
+        SLOT_COUNT_MAP.put(MenuType.MERCHANT, 3);
+        SLOT_COUNT_MAP.put(MenuType.SHULKER_BOX, 27);
+        SLOT_COUNT_MAP.put(MenuType.SMITHING, 3);
+        SLOT_COUNT_MAP.put(MenuType.SMOKER, 3);
+        SLOT_COUNT_MAP.put(MenuType.STONECUTTER, 1);
     }
 
     @Getter
@@ -75,17 +75,17 @@ public class ScreenInventoryTracker {
 
     public void onPacketReceived(Object packet) {
         switch (packet) {
-            case OpenScreenS2CPacket openPacket -> this.handleOpenScreen(openPacket);
-            case ScreenHandlerSlotUpdateS2CPacket slotPacket -> this.handleSlotUpdate(slotPacket);
-            case CloseScreenS2CPacket ignored -> this.close();
+            case ClientboundOpenScreenPacket openPacket -> this.handleOpenScreen(openPacket);
+            case ClientboundContainerSetSlotPacket slotPacket -> this.handleSlotUpdate(slotPacket);
+            case ClientboundContainerClosePacket ignored -> this.close();
             default -> { }
         }
     }
 
-    private void handleOpenScreen(OpenScreenS2CPacket packet) {
-        var title = packet.getName().getString();
-        int syncId = packet.getSyncId();
-        var handlerType = packet.getScreenHandlerType();
+    private void handleOpenScreen(ClientboundOpenScreenPacket packet) {
+        var title = packet.getTitle().getString();
+        int syncId = packet.getContainerId();
+        var handlerType = packet.getType();
 
         var slotCount = SLOT_COUNT_MAP.get(handlerType);
         if (slotCount == null) {
@@ -102,12 +102,12 @@ public class ScreenInventoryTracker {
         this.acceptItems = true;
     }
 
-    private void handleSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet) {
+    private void handleSlotUpdate(ClientboundContainerSetSlotPacket packet) {
         if (this.currInv == null) {
             return;
         }
 
-        if (this.currInv.syncId != packet.getSyncId()) {
+        if (this.currInv.syncId != packet.getContainerId()) {
             return;
         }
 
@@ -119,7 +119,7 @@ public class ScreenInventoryTracker {
             return;
         }
 
-        var itemStack = packet.getStack();
+        var itemStack = packet.getItem();
         if (!itemStack.isEmpty()) {
             this.currInv.items.put(slot, itemStack);
         }

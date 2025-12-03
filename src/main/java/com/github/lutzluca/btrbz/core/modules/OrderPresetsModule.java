@@ -24,12 +24,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.SignEditScreen;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,8 +60,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             if (curr.inMenu(BazaarMenuType.BuyOrderSetupVolume) && prev.inMenu(BazaarMenuType.Item)) {
                 this.currProductId = prev
                     .getItemStack(13)
-                    .map(ItemStack::getName)
-                    .map(Text::getString)
+                    .map(ItemStack::getHoverName)
+                    .map(Component::getString)
                     .flatMap(BtrBz.bazaarData()::nameToId)
                     .orElse(null);
 
@@ -119,10 +119,10 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             }
 
             var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
-            accessor.setCurrentRow(0);
-            accessor.invokeSetCurrentRowMessage(String.valueOf(this.pendingVolume));
+            accessor.setLine(0);
+            accessor.invokeSetMessage(String.valueOf(this.pendingVolume));
 
-            signEditScreen.close();
+            signEditScreen.onClose();
 
             this.pendingVolume = -1;
             this.pendingPreset = false;
@@ -208,13 +208,13 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     boolean canAfford = !priceAvailable || (purse.isPresent() && (volume.amount * pricePerUnit.get() <= purse.get()));
                     if (!canAfford) {
                         entry.setDisabled(true);
-                        entry.setTooltipLines(List.of(Text.literal("Insufficient coins")));
+                        entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
                     }
                 }
                 case OrderPreset.Max ignored -> {
                     if (!priceAvailable) {
                         entry.setDisabled(true);
-                        entry.setTooltipLines(List.of(Text.literal(
+                        entry.setTooltipLines(List.of(Component.literal(
                             "Unable to determine price information")));
                     }
                 }
@@ -245,7 +245,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     @Override
-    public List<ClickableWidget> createWidgets(ScreenInfo info) {
+    public List<AbstractWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
@@ -256,7 +256,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             position.y(),
             60,
             100,
-            Text.literal("Presets"),
+            Component.literal("Presets"),
             info.getScreen()
         );
 
@@ -322,9 +322,9 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             return;
         }
 
-        var client = MinecraftClient.getInstance();
+        var client = Minecraft.getInstance();
         var player = client.player;
-        var interactionManager = client.interactionManager;
+        var interactionManager = client.gameMode;
         if (player == null || interactionManager == null) {
             return;
         }
@@ -334,14 +334,16 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         log.debug("Preset click processed: volume={}", volume);
 
+
+
         // noinspection OptionalGetWithoutIsPresent
-        interactionManager.clickSlot(
+        interactionManager.handleInventoryMouseClick(
             ScreenInfoHelper
                 .get()
                 .getCurrInfo()
                 .getGenericContainerScreen()
                 .get()
-                .getScreenHandler().syncId, 16, 1, SlotActionType.PICKUP, player
+                .getMenu().containerId, 16, 1, ClickType.PICKUP, player
         );
     }
 
@@ -389,7 +391,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         private final OrderPreset preset;
 
         public OrderPresetEntry(OrderPreset preset) {
-            super(0, 0, 60, 14, Text.literal(preset.toString()));
+            super(0, 0, 60, 14, Component.literal(preset.toString()));
             this.preset = preset;
 
             if (preset instanceof OrderPreset.Max) {
@@ -407,8 +409,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         public Builder<Boolean> createEnableOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.of("Order Presets"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.nullToEmpty("Order Presets"))
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable the Order Presets module for quick access to predefined order volumes")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -419,8 +421,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.of("Order Presets"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.nullToEmpty("Order Presets"))
+                .description(OptionDescription.of(Component.literal(
                     "Lets you have predefined order volume for quick access")))
                 .options(rootGroup.build())
                 .collapsed(false)

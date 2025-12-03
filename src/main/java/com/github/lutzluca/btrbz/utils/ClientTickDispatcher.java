@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 @Slf4j
 public final class ClientTickDispatcher {
@@ -22,7 +22,7 @@ public final class ClientTickDispatcher {
     }
 
 
-    private static void onEndTick(MinecraftClient client) {
+    private static void onEndTick(Minecraft client) {
         LISTENERS.forEach(listener -> Try
             .run(() -> listener.onEndTick(client))
             .onFailure(err -> log.warn("Exception in client end tick listener", err)));
@@ -47,11 +47,11 @@ public final class ClientTickDispatcher {
         LISTENERS.remove(listener);
     }
 
-    public static void submit(Consumer<MinecraftClient> task) {
+    public static void submit(Consumer<Minecraft> task) {
         TASKS.add(new ScheduledTask(0, task));
     }
 
-    public static void submit(Consumer<MinecraftClient> task, int ticks) {
+    public static void submit(Consumer<Minecraft> task, int ticks) {
         TASKS.add(new ScheduledTask(ticks, task));
     }
 
@@ -60,6 +60,6 @@ public final class ClientTickDispatcher {
     private static class ScheduledTask {
 
         int ticks;
-        Consumer<MinecraftClient> callback;
+        Consumer<Minecraft> callback;
     }
 }

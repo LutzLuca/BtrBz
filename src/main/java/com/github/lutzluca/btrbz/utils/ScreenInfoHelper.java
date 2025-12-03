@@ -12,11 +12,11 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -183,16 +183,16 @@ public final class ScreenInfoHelper {
 
                     yield info.getGenericContainerScreen().map((gcs) -> {
                         final int GRAPH_PAPER_IDX = 33;
-                        var handler = gcs.getScreenHandler();
-                        var inventory = handler.getInventory();
+                        var handler = gcs.getMenu();
+                        var inventory = handler.getContainer();
 
-                        if (inventory.size() < GRAPH_PAPER_IDX) {
+                        if (inventory.getContainerSize() < GRAPH_PAPER_IDX) {
                             return false;
                         }
 
-                        var slot = inventory.getStack(GRAPH_PAPER_IDX);
+                        var slot = inventory.getItem(GRAPH_PAPER_IDX);
                         return slot.getItem().equals(Items.PAPER) && slot
-                            .getName()
+                            .getHoverName()
                             .getString()
                             .equals("View Graphs");
                     }).orElse(false);
@@ -204,12 +204,12 @@ public final class ScreenInfoHelper {
                     }
 
                     yield info.getGenericContainerScreen().map(gcs -> {
-                        var handler = gcs.getScreenHandler();
-                        var inventory = handler.getInventory();
-                        var slot = inventory.size() - 3;
+                        var handler = gcs.getMenu();
+                        var inventory = handler.getContainer();
+                        var slot = inventory.getContainerSize() - 3;
 
                         return Try
-                            .of(() -> inventory.getStack(slot).getItem())
+                            .of(() -> inventory.getItem(slot).getItem())
                             .map((item) -> item.equals(Items.CAULDRON) || item.equals(Items.BLACK_STAINED_GLASS_PANE))
                             .getOrElse(false);
                     }).orElse(false);
@@ -228,7 +228,7 @@ public final class ScreenInfoHelper {
         private final MenuState state = new MenuState();
         @Getter
         private @Nullable Screen screen;
-        private @Nullable GenericContainerScreen containerScreen;
+        private @Nullable ContainerScreen containerScreen;
 
         public ScreenInfo(@Nullable Screen screen) {
             this.setScreen(screen);
@@ -241,7 +241,7 @@ public final class ScreenInfoHelper {
 
             this.resetMenuMatchState();
             this.screen = screen;
-            this.containerScreen = (screen instanceof GenericContainerScreen gcs) ? gcs : null;
+            this.containerScreen = (screen instanceof ContainerScreen gcs) ? gcs : null;
         }
 
         public boolean inBazaar() {
@@ -258,19 +258,19 @@ public final class ScreenInfoHelper {
 
         public Optional<ItemStack> getItemStack(int idx) {
             return this.getGenericContainerScreen().flatMap(gcs -> {
-                var handler = gcs.getScreenHandler();
-                var inventory = handler.getInventory();
-                var slot = inventory.getStack(idx);
+                var handler = gcs.getMenu();
+                var inventory = handler.getContainer();
+                var slot = inventory.getItem(idx);
                 return slot == ItemStack.EMPTY ? Optional.empty() : Optional.of(slot);
             });
         }
 
-        public Optional<GenericContainerScreen> getGenericContainerScreen() {
+        public Optional<ContainerScreen> getGenericContainerScreen() {
             return Optional.ofNullable(this.containerScreen);
         }
 
         public Optional<String> containerName() {
-            return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Text::getString);
+            return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Component::getString);
         }
 
         public Optional<HandledScreenBounds> getHandledScreenBounds() {
@@ -279,10 +279,10 @@ public final class ScreenInfoHelper {
             }
 
             return Optional.of(new HandledScreenBounds(
-                accessor.getX(),
-                accessor.getY(),
-                accessor.getBackgroundWidth(),
-                accessor.getBackgroundHeight()
+                accessor.getLeftPos(),
+                accessor.getTopPos(),
+                accessor.getImageWidth(),
+                accessor.getImageHeight()
             ));
         }
 
@@ -297,7 +297,7 @@ public final class ScreenInfoHelper {
 
     private record ScreenLoadListenerEntry(
         Predicate<ScreenInfo> matcher,
-        BiConsumer<ScreenInfo, ScreenInventoryTracker.Inventory> listener
+        BiConsumer<ScreenInfo, Inventory> listener
     ) { }
 
     private record ScreenCloseListenerEntry(

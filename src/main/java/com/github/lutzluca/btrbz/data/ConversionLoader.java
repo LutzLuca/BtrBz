@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 
 @Slf4j
 public final class ConversionLoader {
@@ -38,7 +38,7 @@ public final class ConversionLoader {
         .getConfigDir()
         .resolve(BtrBz.MOD_ID);
     private static final Path LOCAL_CONVERSION_FILEPATH = MOD_CONFIG_DIR.resolve("conversions.json");
-    private static final Identifier BUNDLED_CONVERSION_ID = Identifier.of(
+    private static final ResourceLocation BUNDLED_CONVERSION_ID = ResourceLocation.fromNamespaceAndPath(
         BtrBz.MOD_ID,
         "conversions.json"
     );
@@ -100,12 +100,12 @@ public final class ConversionLoader {
 
     private static Try<ConversionData> loadFromBundleResource() {
         return Try
-            .of(() -> MinecraftClient
+            .of(() -> Minecraft
                 .getInstance()
                 .getResourceManager()
                 .getResource(BUNDLED_CONVERSION_ID)
                 .orElseThrow(() -> new IOException("Bundled conversion resource not found"))
-                .getInputStream())
+                .open())
             .flatMap(ConversionLoader::readStream)
             .flatMap(ConversionData::parseFrom)
             .peek(data -> {

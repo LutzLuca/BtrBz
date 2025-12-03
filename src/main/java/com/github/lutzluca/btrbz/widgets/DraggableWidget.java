@@ -7,17 +7,17 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import lombok.Getter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 // NOTE: the tooltip stuff is obnoxious; kinda needed to roll my own, for the integration
 // with the `ScrollableListWidget` using scissor so it would not be cut.
-public class DraggableWidget extends ClickableWidget {
+public class DraggableWidget extends AbstractWidget {
 
     @Getter
     private final Screen parentScreen;
@@ -40,7 +40,7 @@ public class DraggableWidget extends ClickableWidget {
     private boolean renderBorder = true;
 
     @Getter
-    private Supplier<List<Text>> tooltipSupplier = null;
+    private Supplier<List<Component>> tooltipSupplier = null;
     @Getter
     private Duration tooltipDelay = Duration.ofMillis(500);
 
@@ -50,7 +50,7 @@ public class DraggableWidget extends ClickableWidget {
     private Consumer<DraggableWidget> onClickCallback;
     private BiConsumer<DraggableWidget, Position> onDragEndCallback;
 
-    public DraggableWidget(int x, int y, int width, int height, Text message, Screen parentScreen) {
+    public DraggableWidget(int x, int y, int width, int height, Component message, Screen parentScreen) {
         super(x, y, width, height, message);
         this.parentScreen = parentScreen;
     }
@@ -80,7 +80,7 @@ public class DraggableWidget extends ClickableWidget {
         return this;
     }
 
-    public DraggableWidget setTooltipSupplier(Supplier<List<Text>> supplier) {
+    public DraggableWidget setTooltipSupplier(Supplier<List<Component>> supplier) {
         this.tooltipSupplier = supplier;
         return this;
     }
@@ -94,7 +94,7 @@ public class DraggableWidget extends ClickableWidget {
         return new Position(this.getX(), this.getY());
     }
 
-    @Override
+//    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && this.isHovered()) {
             this.mousePressed = true;
@@ -108,7 +108,7 @@ public class DraggableWidget extends ClickableWidget {
         return false;
     }
 
-    @Override
+//    @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0 && this.mousePressed) {
             boolean wasDragging = this.dragging;
@@ -127,7 +127,7 @@ public class DraggableWidget extends ClickableWidget {
         return false;
     }
 
-    @Override
+//    @Override
     public boolean mouseDragged(
         double mouseX,
         double mouseY,
@@ -158,14 +158,15 @@ public class DraggableWidget extends ClickableWidget {
         return true;
     }
 
-    @Override
+//    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.mousePressed) {
             this.cancelDrag();
             return true;
         }
 
-        return super.keyPressed(keyCode, scanCode, modifiers);
+//        return super.keyPressed(keyCode, scanCode, modifiers);
+        return  false;
     }
 
     private void cancelDrag() {
@@ -182,7 +183,7 @@ public class DraggableWidget extends ClickableWidget {
         return new Position(x, y);
     }
 
-    public List<Text> getTooltipLines() {
+    public List<Component> getTooltipLines() {
         System.out.println("getTooltipLines");
         if (this.tooltipSupplier == null) {
             return null;
@@ -190,7 +191,7 @@ public class DraggableWidget extends ClickableWidget {
         return this.tooltipSupplier.get();
     }
 
-    public DraggableWidget setTooltipLines(List<Text> lines) {
+    public DraggableWidget setTooltipLines(List<Component> lines) {
         this.tooltipSupplier = () -> lines;
         return this;
     }
@@ -213,7 +214,7 @@ public class DraggableWidget extends ClickableWidget {
     }
 
     @Override
-    protected void renderWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void renderWidget(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         if (!this.isHovered()) {
             this.wasHoveredLastFrame = false;
         }
@@ -227,7 +228,7 @@ public class DraggableWidget extends ClickableWidget {
         renderContent(ctx, mouseX, mouseY, delta);
     }
 
-    protected void renderBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void renderBackground(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         int color = this.dragging ? 0x80FF6B6B : (this.isHovered() ? 0x80A0A0A0 : 0x80404040);
 
         ctx.fill(
@@ -239,25 +240,25 @@ public class DraggableWidget extends ClickableWidget {
         );
     }
 
-    protected void renderBorder(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void renderBorder(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         var borderColor = this.dragging ? 0xFFFF0000 : 0xFFFFFFFF;
-        ctx.drawBorder(this.getX(), this.getY(), this.width, this.height, borderColor);
+//        ctx.drawBorder(this.getX(), this.getY(), this.width, this.height, borderColor);
     }
 
-    protected void renderContent(DrawContext context, int mouseX, int mouseY, float delta) {
-        var textRenderer = MinecraftClient.getInstance().textRenderer;
+    protected void renderContent(GuiGraphics context, int mouseX, int mouseY, float delta) {
+        var textRenderer = Minecraft.getInstance().font;
 
-        context.drawCenteredTextWithShadow(
+        context.drawCenteredString(
             textRenderer,
             this.getMessage(),
             this.getX() + this.width / 2,
-            this.getY() + (this.height - textRenderer.fontHeight) / 2,
+            this.getY() + (this.height - textRenderer.lineHeight) / 2,
             0xFFFFFFFF
         );
     }
 
     @Override
-    protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-        this.appendDefaultNarrations(builder);
+    protected void updateWidgetNarration(NarrationElementOutput builder) {
+        this.defaultButtonNarrationText(builder);
     }
 }

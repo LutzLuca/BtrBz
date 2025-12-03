@@ -5,9 +5,9 @@ import java.util.Deque;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 @Slf4j
 public class MessageQueue {
@@ -23,7 +23,7 @@ public class MessageQueue {
     public static void sendOrQueue(String message) { sendOrQueue(message, Level.Info); }
 
     public static void sendOrQueue(String message, Level level) {
-        var msg = Notifier.prefix().append(Text.literal(message).formatted(level.color));
+        var msg = Notifier.prefix().append(Component.literal(message).withStyle(level.color));
 
         if (Notifier.notifyPlayer(msg)) {
             return;
@@ -35,7 +35,7 @@ public class MessageQueue {
         log.debug("Queued message: '{}'", message);
     }
 
-    public static void flush(MinecraftClient client) {
+    public static void flush(Minecraft client) {
         log.info("Flushing queued messages");
 
         if (client.player == null) {
@@ -50,9 +50,9 @@ public class MessageQueue {
             MESSAGES.forEach(entry -> {
                 var msg = Notifier
                     .prefix()
-                    .append(Text.literal(entry.msg).formatted(entry.level.color));
+                    .append(Component.literal(entry.msg).withStyle(entry.level.color));
 
-                client.player.sendMessage(msg, false);
+                client.player.displayClientMessage(msg, false);
             });
 
             log.info("Flushed {} queued messages to player", MESSAGES.size());
@@ -62,11 +62,11 @@ public class MessageQueue {
 
     @AllArgsConstructor
     public enum Level {
-        Info(Formatting.WHITE),
-        Warn(Formatting.YELLOW),
-        Error(Formatting.RED);
+        Info(ChatFormatting.WHITE),
+        Warn(ChatFormatting.YELLOW),
+        Error(ChatFormatting.RED);
 
-        public final Formatting color;
+        public final ChatFormatting color;
     }
 
     private record Entry(String msg, Level level) { }

@@ -28,17 +28,16 @@ import java.util.stream.StreamSupport;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ConfirmLinkScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemLore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,37 +68,37 @@ public final class ProductInfoProvider {
         return instance;
     }
 
-    private static Optional<String> extractProductName(GenericContainerScreen screen) {
-        var handler = screen.getScreenHandler();
-        var inv = handler.getInventory();
+    private static Optional<String> extractProductName(ContainerScreen screen) {
+        var handler = screen.getMenu();
+        var inv = handler.getContainer();
         return Try
-            .of(() -> inv.getStack(PRODUCT_IDX))
-            .map(ItemStack::getName)
-            .map(Text::getString)
+            .of(() -> inv.getItem(PRODUCT_IDX))
+            .map(ItemStack::getHoverName)
+            .map(Component::getString)
             .toJavaOptional();
     }
 
-    private static Text createPriceText(
+    private static Component createPriceText(
         String label,
         @Nullable Double price,
         int stackCount,
         boolean isShiftHeld
     ) {
-        var priceText = Text.literal(label).formatted(Formatting.AQUA);
+        var priceText = Component.literal(label).withStyle(ChatFormatting.AQUA);
 
         if (price != null) {
             var displayPrice = isShiftHeld && stackCount > 1 ? price * stackCount : price;
-            priceText.append(Text
+            priceText.append(Component
                 .literal(Utils.formatDecimal(displayPrice, 1, true) + " coins")
-                .formatted(Formatting.GOLD, Formatting.BOLD));
+                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 
             if (isShiftHeld && stackCount > 1) {
-                priceText.append(Text
+                priceText.append(Component
                     .literal(" (" + stackCount + "x)")
-                    .formatted(Formatting.DARK_GRAY));
+                    .withStyle(ChatFormatting.DARK_GRAY));
             }
         } else {
-            priceText.append(Text.literal("Not Available").formatted(Formatting.GRAY));
+            priceText.append(Component.literal("Not Available").withStyle(ChatFormatting.GRAY));
         }
 
         return priceText;
@@ -115,8 +114,8 @@ public final class ProductInfoProvider {
 
                 var productName = inv
                     .getItem(PRODUCT_IDX)
-                    .map(ItemStack::getName)
-                    .map(Text::getString)
+                    .map(ItemStack::getHoverName)
+                    .map(Component::getString)
                     .orElse("<empty>");
 
                 BtrBz.bazaarData().nameToId(productName).ifPresentOrElse(
@@ -151,7 +150,7 @@ public final class ProductInfoProvider {
             if (!cfg.enabled || !cfg.itemClickEnabled) {
                 return Optional.empty();
             }
-            if (this.openedProductNameInfo == null || slot.getIndex() != CUSTOM_ITEM_IDX) {
+            if (this.openedProductNameInfo == null || slot.getContainerSlot() != CUSTOM_ITEM_IDX) {
                 return Optional.empty();
             }
 
@@ -161,30 +160,30 @@ public final class ProductInfoProvider {
 
             var item = new ItemStack(Items.PAPER);
             item.set(
-                DataComponentTypes.CUSTOM_NAME,
-                Text
+                DataComponents.CUSTOM_NAME,
+                Component
                     .literal("Product Info")
-                    .formatted(Formatting.AQUA, Formatting.BOLD)
-                    .styled(style -> style.withItalic(false))
+                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                    .withStyle(style -> style.withItalic(false))
             );
 
             var loreLines = Stream.of(
-                Text.literal("View detailed Bazaar statistics").formatted(Formatting.GRAY),
+                Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
 
-                Text.literal("and live market data for this item.").formatted(Formatting.GRAY),
+                Component.literal("and live market data for this item.").withStyle(ChatFormatting.GRAY),
 
-                Text.empty(),
+                Component.empty(),
 
-                Text
+                Component
                     .literal("➤ Click to open ")
-                    .formatted(Formatting.DARK_GRAY)
-                    .styled(style -> style.withItalic(false))
-                    .append(Text
+                    .withStyle(ChatFormatting.DARK_GRAY)
+                    .withStyle(style -> style.withItalic(false))
+                    .append(Component
                         .literal(cfg.site.displayName())
-                        .formatted(Formatting.AQUA, Formatting.BOLD))
-            ).<Text>map(line -> line.styled(style -> style.withItalic(false))).toList();
+                        .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+            ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
-            item.set(DataComponentTypes.LORE, new LoreComponent(loreLines));
+            item.set(DataComponents.LORE, new ItemLore(loreLines));
             return Optional.of(item);
         });
     }
@@ -202,7 +201,7 @@ public final class ProductInfoProvider {
                     return false;
                 }
 
-                return slot.getIndex() == CUSTOM_ITEM_IDX && info.inMenu(BazaarMenuType.Item);
+                return slot.getContainerSlot() == CUSTOM_ITEM_IDX && info.inMenu(BazaarMenuType.Item);
             }
 
             @Override
@@ -220,15 +219,16 @@ public final class ProductInfoProvider {
                     return false;
                 }
 
-                var stack = slot.getStack();
-                return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && Screen.hasControlDown() && Screen.hasShiftDown();
+                var stack = slot.getItem();
+//                return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && Screen.hasControlDown() && Screen.hasShiftDown();
+                return false;
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
                 var cfg = ConfigManager.get().productInfo;
-                var stack = slot.getStack();
-                var name = stack.getName().getString();
+                var stack = slot.getItem();
+                var name = stack.getHoverName().getString();
                 var id = resolveProductId(stack, name);
                 if (id.isEmpty()) {
                     log.warn("No product id found for {}", name);
@@ -252,20 +252,20 @@ public final class ProductInfoProvider {
                 return;
             }
 
-            lines.add(Text.empty());
-            lines.add(Text
+            lines.add(Component.empty());
+            lines.add(Component
                 .literal("CTRL")
-                .formatted(Formatting.AQUA, Formatting.BOLD)
-                .append(Text.literal("+").formatted(Formatting.DARK_GRAY))
-                .append(Text.literal("SHIFT").formatted(Formatting.AQUA, Formatting.BOLD))
-                .append(Text.literal(" Click ").formatted(Formatting.GRAY))
-                .append(Text
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .append(Component.literal("+").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                .append(Component.literal(" Click ").withStyle(ChatFormatting.GRAY))
+                .append(Component
                     .literal("to view on ")
-                    .formatted(Formatting.DARK_GRAY)
-                    .styled(style -> style.withBold(false)))
-                .append(Text
+                    .withStyle(ChatFormatting.DARK_GRAY)
+                    .withStyle(style -> style.withBold(false)))
+                .append(Component
                     .literal(cfg.site.displayName())
-                    .formatted(Formatting.AQUA, Formatting.BOLD)));
+                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
 
         });
 
@@ -282,27 +282,27 @@ public final class ProductInfoProvider {
 
             var cached = priceInfo.get();
             var count = stack.getCount();
-            var isShiftHeld = Screen.hasShiftDown();
+            var isShiftHeld = false;
 
-            lines.add(Text.empty());
+            lines.add(Component.empty());
 
             if (count > 1 && !isShiftHeld) {
-                lines.add(Text
+                lines.add(Component
                     .literal("Hold ")
-                    .formatted(Formatting.DARK_GRAY)
-                    .append(Text.literal("SHIFT").formatted(Formatting.AQUA, Formatting.BOLD))
-                    .append(Text.literal(" to show for (").formatted(Formatting.DARK_GRAY))
-                    .append(Text.literal(String.valueOf(count)).formatted(Formatting.LIGHT_PURPLE))
-                    .append(Text.literal("x").formatted(Formatting.DARK_GRAY))
-                    .append(Text.literal(")").formatted(Formatting.DARK_GRAY)));
+                    .withStyle(ChatFormatting.DARK_GRAY)
+                    .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                    .append(Component.literal(" to show for (").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
+                    .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Component.literal(")").withStyle(ChatFormatting.DARK_GRAY)));
             }
 
             if (count > 1 && isShiftHeld) {
-                lines.add(Text
+                lines.add(Component
                     .literal("Showing price for ")
-                    .formatted(Formatting.GRAY)
-                    .append(Text.literal(String.valueOf(count)).formatted(Formatting.LIGHT_PURPLE))
-                    .append(Text.literal("x").formatted(Formatting.GRAY)));
+                    .withStyle(ChatFormatting.GRAY)
+                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
+                    .append(Component.literal("x").withStyle(ChatFormatting.GRAY)));
             }
 
             lines.add(createPriceText("Buy Order: ", cached.buyOrderPrice, count, isShiftHeld));
@@ -316,7 +316,7 @@ public final class ProductInfoProvider {
             return false;
         }
 
-        var productName = stack.getName().getString();
+        var productName = stack.getHoverName().getString();
         if (this.resolveProductId(stack, productName).isEmpty()) {
             return false;
         }
@@ -337,24 +337,24 @@ public final class ProductInfoProvider {
         // noinspection DataFlowIssue
         return Try
             .of(() -> StreamSupport
-                .stream(MinecraftClient.getInstance().player.getInventory().spliterator(), false)
+                .stream(Minecraft.getInstance().player.getInventory().spliterator(), false)
                 .anyMatch(playerStack -> playerStack == stack))
             .getOrElse(false);
     }
 
     private void confirmAndOpen(String link) {
-        var client = MinecraftClient.getInstance();
+        var client = Minecraft.getInstance();
         client.setScreen(new ConfirmLinkScreen(
             confirmed -> {
                 if (confirmed) {
                     Try
-                        .run(() -> net.minecraft.util.Util.getOperatingSystem().open(new URI(link)))
-                        .onFailure(err -> Notifier.notifyPlayer(Text
+                        .run(() -> net.minecraft.Util.getPlatform().openUri(new URI(link)))
+                        .onFailure(err -> Notifier.notifyPlayer(Component
                             .literal("Failed to open link: ")
-                            .formatted(Formatting.RED)
-                            .append(Text
+                            .withStyle(ChatFormatting.RED)
+                            .append(Component
                                 .literal(link)
-                                .formatted(Formatting.UNDERLINE, Formatting.BLUE))));
+                                .withStyle(ChatFormatting.UNDERLINE, ChatFormatting.BLUE))));
                 }
 
                 var prev = ScreenInfoHelper.get().getPrevInfo();
@@ -406,11 +406,11 @@ public final class ProductInfoProvider {
             return EnumControllerBuilder
                 .create(option)
                 .enumClass(InfoProviderSite.class)
-                .formatValue(site -> Text
+                .formatValue(site -> Component
                     .literal("Use site: ")
-                    .append(Text
+                    .append(Component
                         .literal(site.displayName())
-                        .formatted(Formatting.AQUA, Formatting.BOLD)));
+                        .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
         }
 
         public String format(String productId) {
@@ -442,48 +442,48 @@ public final class ProductInfoProvider {
         public Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Enable Product Info System"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Enable Product Info System"))
+                .description(OptionDescription.of(Component.literal(
                     "Master switch that enables or disables the entire product information feature.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createItemClickOption() {
+        public Builder<Boolean> createItemClickOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Enable Product Info Click"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Enable Product Info Click"))
+                .description(OptionDescription.of(Component.literal(
                     "Allows clicking the 'Product Info' paper item in the Bazaar Item menu to open the product page.")))
                 .binding(true, () -> this.itemClickEnabled, val -> this.itemClickEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createCtrlShiftOption() {
+        public Builder<Boolean> createCtrlShiftOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Enable CTRL+SHIFT Click Shortcut"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Enable CTRL+SHIFT Click Shortcut"))
+                .description(OptionDescription.of(Component.literal(
                     "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking the item.\n" + "Disabled in the Bazaar Item menu to avoid conflicts with bookmarks.")))
                 .binding(true, () -> this.ctrlShiftEnabled, val -> this.ctrlShiftEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createShowOutsideBazaarOption() {
+        public Builder<Boolean> createShowOutsideBazaarOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Show Product Info Outside of the Bazaar"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Show Product Info Outside of the Bazaar"))
+                .description(OptionDescription.of(Component.literal(
                     "Allows the CTRL+SHIFT Click shortcut to work outside the Bazaar (e.g., in chests or player inventory).")))
                 .binding(true, () -> this.showOutsideBazaar, val -> this.showOutsideBazaar = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createPriceTooltipOption() {
+        public Builder<Boolean> createPriceTooltipOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Show Price Tooltips"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Show Price Tooltips"))
+                .description(OptionDescription.of(Component.literal(
                     "Display current Buy Order and Sell Offer prices in item tooltips for Bazaar items.")))
                 .binding(
                     true,
@@ -493,11 +493,11 @@ public final class ProductInfoProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<InfoProviderSite> createSiteOption() {
+        public Builder<InfoProviderSite> createSiteOption() {
             return Option
                 .<InfoProviderSite>createBuilder()
-                .name(Text.literal("Preferred Product Info Site"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Preferred Product Info Site"))
+                .description(OptionDescription.of(Component.literal(
                     "Select which external website to open for product information.")))
                 .binding(this.site, () -> this.site, site -> this.site = site)
                 .controller(InfoProviderSite::controller);
@@ -516,8 +516,8 @@ public final class ProductInfoProvider {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Product Info"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Product Info"))
+                .description(OptionDescription.of(Component.literal(
                     "Settings for the product information helper (tooltips, click-to-open, site selection)")))
                 .options(rootGroup.build())
                 .collapsed(false)
@@ -545,7 +545,7 @@ public final class ProductInfoProvider {
             if (cache.containsKey(stack)) {
                 return Optional.ofNullable(cache.get(stack));
             }
-            var name = stack.getName().getString();
+            var name = stack.getHoverName().getString();
             var productId = resolveProductId(stack, name);
 
             if (productId.isEmpty()) {

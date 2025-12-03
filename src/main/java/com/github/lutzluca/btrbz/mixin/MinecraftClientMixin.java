@@ -1,15 +1,15 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MinecraftClient.class)
+@Mixin(Minecraft.class)
 public abstract class MinecraftClientMixin {
     // @formatter:off
     /**
@@ -29,12 +29,12 @@ public abstract class MinecraftClientMixin {
      * This is kinda wierd and sucks
      */
     // @formatter:on
-    @Inject(method = "setScreen(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
+    @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"))
     private void onSetScreenHead(@Nullable Screen screen, CallbackInfo ci) {
         ScreenInfoHelper.get().setScreen(screen);
     }
 
-    @Inject(method = "setScreen(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("TAIL"))
+    @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("TAIL"))
     private void onSetScreenTail(@Nullable Screen screen, CallbackInfo ci) {
         ScreenInfoHelper.get().fireScreenSwitchCallbacks();
     }

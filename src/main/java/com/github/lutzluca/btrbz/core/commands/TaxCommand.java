@@ -8,8 +8,8 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.List;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 public class TaxCommand {
 
@@ -37,18 +37,18 @@ public class TaxCommand {
                         if (!List.of(1.25F, 1.125F, 1.0F).contains(rate)) {
                             var msg = Notifier
                                 .prefix()
-                                .append(Text.literal("Invalid rate").formatted(Formatting.RED))
-                                .append(Text
+                                .append(Component.literal("Invalid rate").withStyle(ChatFormatting.RED))
+                                .append(Component
                                     .literal(" (" + rate + ")")
-                                    .formatted(Formatting.DARK_GRAY))
-                                .append(Text.literal(": must be ").formatted(Formatting.GRAY))
-                                .append(Text.literal("1, 1.125").formatted(Formatting.AQUA))
-                                .append(Text.literal(", or ").formatted(Formatting.GRAY))
-                                .append(Text.literal("1.25").formatted(Formatting.AQUA))
-                                .append(Text
+                                    .withStyle(ChatFormatting.DARK_GRAY))
+                                .append(Component.literal(": must be ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal("1, 1.125").withStyle(ChatFormatting.AQUA))
+                                .append(Component.literal(", or ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal("1.25").withStyle(ChatFormatting.AQUA))
+                                .append(Component
                                     .literal(
                                         " depending on your Bazaar Flipper level in the Community Shop")
-                                    .formatted(Formatting.GRAY));
+                                    .withStyle(ChatFormatting.GRAY));
 
                             Notifier.notifyPlayer(msg);
                             return 1;
@@ -57,20 +57,20 @@ public class TaxCommand {
                         ConfigManager.withConfig(cfg -> cfg.tax = rate);
                         Notifier.notifyPlayer(Notifier
                             .prefix()
-                            .append(Text
+                            .append(Component
                                 .literal("Successfully set tax rate to ")
-                                .formatted(Formatting.GRAY))
-                            .append(Text.literal(+rate + "%").formatted(Formatting.AQUA)));
+                                .withStyle(ChatFormatting.GRAY))
+                            .append(Component.literal(+rate + "%").withStyle(ChatFormatting.AQUA)));
                         return 1;
                     })))
 
             .then(ClientCommandManager.literal("show").executes(ctx -> {
                 Notifier.notifyPlayer(Notifier
                     .prefix()
-                    .append(Text.literal("Your tax rate is ").formatted(Formatting.GRAY))
-                    .append(Text
+                    .append(Component.literal("Your tax rate is ").withStyle(ChatFormatting.GRAY))
+                    .append(Component
                         .literal(ConfigManager.get().tax + "%")
-                        .formatted(Formatting.AQUA)));
+                        .withStyle(ChatFormatting.AQUA)));
                 return 1;
             })));
     }

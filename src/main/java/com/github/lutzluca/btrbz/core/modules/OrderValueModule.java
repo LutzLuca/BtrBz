@@ -17,10 +17,10 @@ import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
 
 @Slf4j
 public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayConfig> {
@@ -43,8 +43,8 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     public void sync(
-        List<OrderInfo.UnfilledOrderInfo> unfilledOrders,
-        List<OrderInfo.FilledOrderInfo> filledOrders
+        List<UnfilledOrderInfo> unfilledOrders,
+        List<FilledOrderInfo> filledOrders
     ) {
         log.debug("Syncing values with updated order information");
         this.unfilledOrders = unfilledOrders;
@@ -59,7 +59,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     @Override
-    public List<ClickableWidget> createWidgets(ScreenInfo info) {
+    public List<AbstractWidget> createWidgets(ScreenInfo info) {
         var lines = this.getLines();
 
         var position = this.getWidgetPosition(info, lines);
@@ -77,7 +77,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         return List.of(this.widget);
     }
 
-    private List<Text> getLines() {
+    private List<Component> getLines() {
         log.debug(
             "Getting lines with unfilled lines: {} - filled lines: {}",
             this.unfilledOrders,
@@ -116,34 +116,34 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         var total = lockedInBuyOrders + itemsFromBuyOrders + coinsFromSellOffers + pendingSellOffers;
 
         return List.of(
-            Text.literal("Bazaar Overview").formatted(Formatting.GOLD, Formatting.BOLD),
-            Text
+            Component.literal("Bazaar Overview").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+            Component
                 .literal("Buy Orders (Locked): " + Utils.formatCompact(
                     lockedInBuyOrders,
                     1
                 ) + " coins")
-                .formatted(Formatting.YELLOW),
-            Text
+                .withStyle(ChatFormatting.YELLOW),
+            Component
                 .literal("Buy Orders (Items): " + Utils.formatCompact(
                     itemsFromBuyOrders,
                     1
                 ) + " coins")
-                .formatted(Formatting.AQUA),
-            Text
+                .withStyle(ChatFormatting.AQUA),
+            Component
                 .literal("Sell Offers (Claimable): " + Utils.formatCompact(
                     coinsFromSellOffers,
                     1
                 ) + " coins")
-                .formatted(Formatting.GREEN),
-            Text
+                .withStyle(ChatFormatting.GREEN),
+            Component
                 .literal("Sell Offers (Pending): " + Utils.formatCompact(
                     pendingSellOffers,
                     1
                 ) + " coins")
-                .formatted(Formatting.YELLOW),
-            Text
+                .withStyle(ChatFormatting.YELLOW),
+            Component
                 .literal("Total Worth: " + Utils.formatCompact(total, 1) + " coins")
-                .formatted(Formatting.GOLD, Formatting.BOLD)
+                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
         );
     }
 
@@ -154,11 +154,11 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         });
     }
 
-    private Optional<Position> getWidgetPosition(ScreenInfo info, List<Text> lines) {
+    private Optional<Position> getWidgetPosition(ScreenInfo info, List<Component> lines) {
         return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
-            var textRenderer = MinecraftClient.getInstance().textRenderer;
-            int maxWidth = lines.stream().mapToInt(textRenderer::getWidth).max().orElse(0);
-            int textHeight = lines.size() * textRenderer.fontHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
+            var textRenderer = Minecraft.getInstance().font;
+            int maxWidth = lines.stream().mapToInt(textRenderer::width).max().orElse(0);
+            int textHeight = lines.size() * textRenderer.lineHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
 
             int widgetWidth = maxWidth + 2 * TextDisplayWidget.PADDING_X;
             int widgetHeight = textHeight + 2 * TextDisplayWidget.PADDING_Y;
@@ -184,9 +184,9 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Order Value Overlay"))
+                .name(Component.literal("Order Value Overlay"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable the overlay that displays how much money your orders in the bazaar are worth")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -196,7 +196,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Order Value Overlay"))
+                .name(Component.literal("Order Value Overlay"))
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

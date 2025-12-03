@@ -1,5 +1,5 @@
 plugins {
-    id("fabric-loom") version "1.11-SNAPSHOT"
+    id("fabric-loom") version "1.13-SNAPSHOT"
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
     java
 }
@@ -44,7 +44,7 @@ fabricApi {
 
 dependencies {
     minecraft("com.mojang:minecraft:${stonecutter.current.project}")
-    mappings("net.fabricmc:yarn:${getProp("yarn_mappings")}:v2")
+    mappings(loom.officialMojangMappings())
     modImplementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
     testImplementation("net.fabricmc:fabric-loader-junit:${getProp("loader_version")}")

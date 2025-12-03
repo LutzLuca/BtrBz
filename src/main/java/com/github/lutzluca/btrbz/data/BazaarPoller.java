@@ -17,7 +17,7 @@ import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.apache.ApacheHttpClient;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -132,7 +132,7 @@ public class BazaarPoller {
         }
 
         Optional
-            .ofNullable(MinecraftClient.getInstance())
+            .ofNullable(Minecraft.getInstance())
             .ifPresent(client -> client.execute(() -> onReply.accept(products)));
 
         long jitter = ThreadLocalRandom.current().nextLong(200, 400);

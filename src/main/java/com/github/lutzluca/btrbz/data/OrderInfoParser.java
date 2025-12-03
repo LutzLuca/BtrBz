@@ -17,10 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 
 @Slf4j
 public final class OrderInfoParser {
@@ -196,7 +196,7 @@ public final class OrderInfoParser {
         // You have {unclaimed} of ... to claim
         // ...
         return Try.of(() -> {
-            var orderInfo = item.getName().getString().split(" ", 2);
+            var orderInfo = item.getHoverName().getString().split(" ", 2);
             if (orderInfo.length != 2) {
                 throw new IllegalArgumentException(
                     "Title line of item does not follow the pattern '<type> <productName>'");
@@ -329,7 +329,7 @@ public final class OrderInfoParser {
                 throw new IllegalArgumentException("Empty item");
             }
 
-            String title = item.getName().getString();
+            String title = item.getHoverName().getString();
             var type = switch (title) {
                 case "Sell Offer" -> OrderType.Sell;
                 case "Buy Order" -> OrderType.Buy;
@@ -402,11 +402,11 @@ public final class OrderInfoParser {
 
     public static List<String> getLore(ItemStack item) {
         return Optional
-            .ofNullable(item.get(DataComponentTypes.LORE))
-            .map(LoreComponent::lines)
+            .ofNullable(item.get(DataComponents.LORE))
+            .map(ItemLore::lines)
             .orElseGet(ArrayList::new)
             .stream()
-            .map(Text::getString)
+            .map(Component::getString)
             .toList();
     }
 

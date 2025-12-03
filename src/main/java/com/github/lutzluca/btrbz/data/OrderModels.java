@@ -6,10 +6,10 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 
 public final class OrderModels {
 
@@ -139,25 +139,25 @@ public final class OrderModels {
             // @formatter:on
         }
 
-        public MutableText format() {
+        public MutableComponent format() {
             var typeStr = switch (type) {
                 case Buy -> "Buy Order";
                 case Sell -> "Sell Offer";
             };
 
-            return Text
+            return Component
                 .empty()
-                .append(Text
+                .append(Component
                     .literal("[" + this.status.toString() + "] ")
-                    .styled(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status))))
-                .append(Text.literal(typeStr).formatted(Formatting.AQUA))
-                .append(Text.literal(" for ").formatted(Formatting.GRAY))
-                .append(Text.literal(this.volume + "x ").formatted(Formatting.LIGHT_PURPLE))
-                .append(Text.literal(this.productName).formatted(Formatting.GOLD))
-                .append(Text.literal(" at ").formatted(Formatting.GRAY))
-                .append(Text
+                    .withStyle(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status))))
+                .append(Component.literal(typeStr).withStyle(ChatFormatting.AQUA))
+                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(this.volume + "x ").withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal(this.productName).withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+                .append(Component
                     .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
-                    .formatted(Formatting.YELLOW));
+                    .withStyle(ChatFormatting.YELLOW));
         }
     }
 

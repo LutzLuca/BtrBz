@@ -26,15 +26,15 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.SignEditScreen;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 
 @Slf4j
@@ -81,11 +81,11 @@ public class FlipHelper {
                 return Optional.empty();
             }
 
-            if (!info.inMenu(ScreenInfoHelper.BazaarMenuType.OrderOptions)) {
+            if (!info.inMenu(BazaarMenuType.OrderOptions)) {
                 return Optional.empty();
             }
 
-            if (slot == null || slot.getIndex() != CUSTOM_HELPER_ITEM_SLOT_IDX || this.potentialFlipProduct == null) {
+            if (slot == null || slot.getContainerSlot() != CUSTOM_HELPER_ITEM_SLOT_IDX || this.potentialFlipProduct == null) {
                 return Optional.empty();
             }
 
@@ -98,13 +98,13 @@ public class FlipHelper {
 
                 var customHelperItem = new ItemStack(Items.NETHER_STAR);
                 customHelperItem.set(
-                    DataComponentTypes.CUSTOM_NAME,
-                    Text
+                    DataComponents.CUSTOM_NAME,
+                    Component
                         .literal("Flip for ")
-                        .formatted(Formatting.GRAY)
-                        .append(Text.literal(formatted).formatted(Formatting.GOLD))
-                        .append(Text.literal("coins each").formatted(Formatting.GRAY))
-                        .styled(style -> style.withItalic(false))
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
+                        .append(Component.literal("coins each").withStyle(ChatFormatting.GRAY))
+                        .withStyle(style -> style.withItalic(false))
                 );
 
                 return customHelperItem;
@@ -120,13 +120,13 @@ public class FlipHelper {
                     return false;
                 }
 
-                return slot != null && slot.getIndex() == CUSTOM_HELPER_ITEM_SLOT_IDX && info.inMenu(
+                return slot != null && slot.getContainerSlot() == CUSTOM_HELPER_ITEM_SLOT_IDX && info.inMenu(
                     BazaarMenuType.OrderOptions);
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var client = MinecraftClient.getInstance();
+                var client = Minecraft.getInstance();
                 if (client == null) {
                     return false;
                 }
@@ -136,9 +136,9 @@ public class FlipHelper {
                     return false;
                 }
 
-                var handler = gcsOpt.get().getScreenHandler();
+                var handler = gcsOpt.get().getMenu();
                 var player = client.player;
-                var interactionManager = client.interactionManager;
+                var interactionManager = client.gameMode;
 
                 if (player == null || interactionManager == null) {
                     return false;
@@ -155,11 +155,11 @@ public class FlipHelper {
                     return false;
                 }
 
-                interactionManager.clickSlot(
-                    handler.syncId,
+                interactionManager.handleInventoryMouseClick(
+                    handler.containerId,
                     FLIP_ORDER_ITEM_SLOT_IDX,
                     button,
-                    SlotActionType.PICKUP,
+                    ClickType.PICKUP,
                     player
                 );
                 pendingFlip = true;
@@ -218,10 +218,10 @@ public class FlipHelper {
 
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
             var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
-            accessor.setCurrentRow(0);
-            accessor.invokeSetCurrentRowMessage(formatted);
+            accessor.setLine(0);
+            accessor.invokeSetMessage(formatted);
 
-            signEditScreen.close();
+            signEditScreen.onClose();
             this.pendingFlips.add(new FlipEntry(
                 potentialFlipProduct.getProductName(),
                 flipPrice.get()
@@ -294,9 +294,9 @@ public class FlipHelper {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Flip Helper"))
+                .name(Component.literal("Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable the flip helper features (quick flip UI interactions)")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -306,8 +306,8 @@ public class FlipHelper {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Flip Helper"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Flip Helper"))
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable the flip helper features (quick flip UI interactions)")))
                 .options(rootGroup.build())
                 .collapsed(false)

@@ -16,11 +16,11 @@ import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 @Slf4j
 public class PriceDiffModule extends Module<PriceDiffConfig> {
@@ -34,19 +34,19 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     @Override
-    public List<ClickableWidget> createWidgets(ScreenInfo info) {
+    public List<AbstractWidget> createWidgets(ScreenInfo info) {
         var screenOpt = info.getGenericContainerScreen();
         if (screenOpt.isEmpty()) {
             return List.of();
         }
 
         var screen = screenOpt.get();
-        var handler = screen.getScreenHandler();
-        var inv = handler.getInventory();
+        var handler = screen.getMenu();
+        var inv = handler.getContainer();
 
-        String productName = inv.getStack(PRODUCT_SLOT).getName().getString();
+        String productName = inv.getItem(PRODUCT_SLOT).getHoverName().getString();
 
-        int listedCount = this.parseListedCount(inv.getStack(SELL_INSTANTLY_SLOT)).orElse(0);
+        int listedCount = this.parseListedCount(inv.getItem(SELL_INSTANTLY_SLOT)).orElse(0);
         if (listedCount <= 0) {
             return List.of();
         }
@@ -59,14 +59,14 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         double perItemDiff = priceDiffOpt.get();
         double totalDiff = perItemDiff * listedCount;
 
-        List<Text> lines = List.of(
-            Text.literal(productName).formatted(Formatting.AQUA),
-            Text
+        List<Component> lines = List.of(
+            Component.literal(productName).withStyle(ChatFormatting.AQUA),
+            Component
                 .literal("Per-item diff: " + Utils.formatCompact(perItemDiff, 1) + " coins")
-                .formatted(Formatting.GOLD),
-            Text
+                .withStyle(ChatFormatting.GOLD),
+            Component
                 .literal("Total diff: " + Utils.formatCompact(totalDiff, 1) + " coins")
-                .formatted(Formatting.YELLOW)
+                .withStyle(ChatFormatting.YELLOW)
         );
 
         var position = this.getWidgetPosition(info, lines);
@@ -108,11 +108,11 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             .map(pair -> pair.getLeft() - pair.getRight());
     }
 
-    private Optional<Position> getWidgetPosition(ScreenInfo info, List<Text> lines) {
+    private Optional<Position> getWidgetPosition(ScreenInfo info, List<Component> lines) {
         return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
-            var textRenderer = MinecraftClient.getInstance().textRenderer;
-            int maxWidth = lines.stream().mapToInt(textRenderer::getWidth).max().orElse(0);
-            int textHeight = lines.size() * textRenderer.fontHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
+            var textRenderer = Minecraft.getInstance().font;
+            int maxWidth = lines.stream().mapToInt(textRenderer::width).max().orElse(0);
+            int textHeight = lines.size() * textRenderer.lineHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
 
             int widgetWidth = maxWidth + 2 * TextDisplayWidget.PADDING_X;
             int widgetHeight = textHeight + 2 * TextDisplayWidget.PADDING_Y;
@@ -144,8 +144,8 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Price Diff Module"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Price Diff Module"))
+                .description(OptionDescription.of(Component.literal(
                     "Show per-item and total price difference for the currently selected bazaar item")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -156,8 +156,8 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Price Diff"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Price Diff"))
+                .description(OptionDescription.of(Component.literal(
                     "Show per-item and total price difference for selected item")))
                 .options(rootGroup.build())
                 .collapsed(false)

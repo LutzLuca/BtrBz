@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 @Slf4j
 public class OrderHighlightManager {
@@ -83,9 +83,9 @@ public class OrderHighlightManager {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Order Highlighting"))
+                .name(Component.literal("Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable order highlights in the Order screen")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -95,8 +95,8 @@ public class OrderHighlightManager {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Order Highlighting"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Order Highlighting"))
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable order highlights in the Order screen")))
                 .options(rootGroup.build())
                 .collapsed(false)

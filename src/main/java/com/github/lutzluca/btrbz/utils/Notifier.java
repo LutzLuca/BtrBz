@@ -14,20 +14,20 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.ClickEvent.RunCommand;
-import net.minecraft.text.HoverEvent.ShowText;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.ClickEvent.RunCommand;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent.ShowText;
+import net.minecraft.network.chat.MutableComponent;
 
 @Slf4j
 public class Notifier {
 
-    public static boolean notifyPlayer(Text msg) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    public static boolean notifyPlayer(Component msg) {
+        Minecraft client = Minecraft.getInstance();
         if (client != null && client.player != null) {
-            client.player.sendMessage(msg, false);
+            client.player.displayClientMessage(msg, false);
             return true;
         }
         log.info("Failed to send message '{}' to player (client or player null)", msg.getString());
@@ -36,15 +36,15 @@ public class Notifier {
 
     public static void notifyAlertRegistered(ResolvedAlertArgs cmd) {
         var msg = prefix()
-            .append(Text.literal("Alert registered. ").formatted(Formatting.GREEN))
-            .append(Text.literal("You will be informed once the ").formatted(Formatting.GRAY))
-            .append(Text.literal(cmd.type().format()).formatted(Formatting.AQUA))
-            .append(Text.literal(" price of ").formatted(Formatting.GRAY))
-            .append(Text.literal(cmd.productName()).formatted(Formatting.GOLD))
-            .append(Text.literal(" reaches ").formatted(Formatting.GRAY))
-            .append(Text
+            .append(Component.literal("Alert registered. ").withStyle(ChatFormatting.GREEN))
+            .append(Component.literal("You will be informed once the ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(cmd.type().format()).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" price of ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(cmd.productName()).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" reaches ").withStyle(ChatFormatting.GRAY))
+            .append(Component
                 .literal(Utils.formatDecimal(cmd.price(), 1, true) + " coins")
-                .formatted(Formatting.YELLOW));
+                .withStyle(ChatFormatting.YELLOW));
 
         notifyPlayer(msg);
     }
@@ -54,84 +54,84 @@ public class Notifier {
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
             .orElse("currently has no listed price. ");
 
-        Text msg = prefix()
-            .append(Text.literal("Your alert for ").formatted(Formatting.GRAY))
-            .append(Text.literal(alert.productName).formatted(Formatting.GOLD))
-            .append(Text.literal(" at ").formatted(Formatting.GRAY))
-            .append(Text
+        Component msg = prefix()
+            .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+            .append(Component
                 .literal(Utils.formatDecimal(alert.price, 1, true) + "coins")
-                .formatted(Formatting.YELLOW))
-            .append(Text.literal(" (" + alert.type.format() + ") ").formatted(Formatting.DARK_GRAY))
-            .append(Text.literal("has been reached").formatted(Formatting.GREEN))
-            .append(Text.literal(" and is ").formatted(Formatting.GRAY))
-            .append(Text.literal(priceText).formatted(Formatting.GOLD))
-            .append(Text
+                .withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(" (" + alert.type.format() + ") ").withStyle(ChatFormatting.DARK_GRAY))
+            .append(Component.literal("has been reached").withStyle(ChatFormatting.GREEN))
+            .append(Component.literal(" and is ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(priceText).withStyle(ChatFormatting.GOLD))
+            .append(Component
                 .literal("[Click to view]")
-                .styled(style -> style
+                .withStyle(style -> style
                     .withClickEvent(new RunCommand("/bz " + alert.productName))
-                    .withHoverEvent(new ShowText(Text.literal("Click to go to " + alert.productName + " in the bazaar"))))
-                .formatted(Formatting.RED));
+                    .withHoverEvent(new ShowText(Component.literal("Click to go to " + alert.productName + " in the bazaar"))))
+                .withStyle(ChatFormatting.RED));
 
         notifyPlayer(msg);
     }
 
     public static void notifyAlertAlreadyPresent(ResolvedAlertArgs args) {
-        Text msg = prefix()
-            .append(Text.literal("You already have an alert for ").formatted(Formatting.GRAY))
-            .append(Text.literal(args.productName()).formatted(Formatting.GOLD))
-            .append(Text.literal(" at ").formatted(Formatting.GRAY))
-            .append(Text
+        Component msg = prefix()
+            .append(Component.literal("You already have an alert for ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(args.productName()).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+            .append(Component
                 .literal(Utils.formatDecimal(args.price(), 1, true))
-                .formatted(Formatting.YELLOW))
-            .append(Text
+                .withStyle(ChatFormatting.YELLOW))
+            .append(Component
                 .literal(" (" + args.type().name().toLowerCase() + ")")
-                .formatted(Formatting.DARK_GRAY))
-            .append(Text.literal(". Use ").formatted(Formatting.GRAY))
-            .append(Text.literal("/btrbz alert list").formatted(Formatting.AQUA))
-            .append(Text.literal(" to view them").formatted(Formatting.GRAY));
+                .withStyle(ChatFormatting.DARK_GRAY))
+            .append(Component.literal(". Use ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("/btrbz alert list").withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" to view them").withStyle(ChatFormatting.GRAY));
 
         notifyPlayer(msg);
     }
 
 
     public static void notifyInvalidProduct(Alert alert) {
-        Text msg = prefix()
-            .append(Text.literal("The price of ").formatted(Formatting.GRAY))
-            .append(Text.literal(alert.productName).formatted(Formatting.AQUA))
-            .append(Text.literal(" could not be determined. ").formatted(Formatting.GRAY))
+        Component msg = prefix()
+            .append(Component.literal("The price of ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(alert.productName).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" could not be determined. ").withStyle(ChatFormatting.GRAY))
             .append(clickToRemoveAlert(alert.id, "Click to remove this alert"));
         notifyPlayer(msg);
     }
 
     public static void notifyOutdatedAlert(Alert alert, String durationText) {
-        Text msg = prefix()
-            .append(Text.literal("Your alert for ").formatted(Formatting.GRAY))
-            .append(Text.literal(alert.productName).formatted(Formatting.GOLD))
-            .append(Text.literal(" at ").formatted(Formatting.GRAY))
-            .append(Text.literal(String.format("%.1f", alert.price)).formatted(Formatting.YELLOW))
-            .append(Text
+        Component msg = prefix()
+            .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(String.format("%.1f", alert.price)).withStyle(ChatFormatting.YELLOW))
+            .append(Component
                 .literal(" has not been reached for " + durationText + ". ")
-                .formatted(Formatting.GRAY))
+                .withStyle(ChatFormatting.GRAY))
             .append(clickToRemoveAlert(alert.id, "Click to remove alert"));
         notifyPlayer(msg);
     }
 
-    public static Text clickToRemoveAlert(UUID id, String hoverText) {
-        return Text
+    public static Component clickToRemoveAlert(UUID id, String hoverText) {
+        return Component
             .literal("[Click to remove]")
-            .styled(style -> style
+            .withStyle(style -> style
                 .withClickEvent(new RunCommand("/btrbz alert remove " + id))
-                .withHoverEvent(new ShowText(Text.literal(hoverText))))
-            .formatted(Formatting.RED);
+                .withHoverEvent(new ShowText(Component.literal(hoverText))))
+            .withStyle(ChatFormatting.RED);
     }
 
     public static void notifyChatCommand(String displayText, String cmd) {
-        MutableText msg = Text
+        MutableComponent msg = Component
             .literal(displayText)
-            .styled(style -> style
+            .withStyle(style -> style
                 .withClickEvent(new RunCommand("/" + cmd))
-                .withHoverEvent(new ShowText(Text.literal("Run /" + cmd))));
-        notifyPlayer(prefix().append(msg.formatted(Formatting.WHITE)));
+                .withHoverEvent(new ShowText(Component.literal("Run /" + cmd))));
+        notifyPlayer(prefix().append(msg.withStyle(ChatFormatting.WHITE)));
     }
 
     public static void notifyOrderStatus(StatusUpdate update) {
@@ -162,84 +162,84 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    private static MutableText makeGotoAction(Action action, TrackedOrder order) {
-        var base = (action == Action.Item) ? Text
+    private static MutableComponent makeGotoAction(Action action, TrackedOrder order) {
+        var base = (action == Action.Item) ? Component
             .literal(" [Go To Item]")
-            .styled(style -> style
+            .withStyle(style -> style
                 .withClickEvent(new RunCommand("/bz " + order.productName))
-                .withHoverEvent(new ShowText(Text
+                .withHoverEvent(new ShowText(Component
                     .literal("Open ")
-                    .formatted(Formatting.GRAY)
-                    .append(Text.literal(order.productName).formatted(Formatting.AQUA))
-                    .append(Text.literal(" in the Bazaar").formatted(Formatting.GRAY))))) : Text
+                    .withStyle(ChatFormatting.GRAY)
+                    .append(Component.literal(order.productName).withStyle(ChatFormatting.AQUA))
+                    .append(Component.literal(" in the Bazaar").withStyle(ChatFormatting.GRAY))))) : Component
             .literal(" [Go To Orders]")
-            .styled(style -> style
+            .withStyle(style -> style
                 .withClickEvent(new RunCommand("/managebazaarorders"))
-                .withHoverEvent(new ShowText(Text.literal("Opens the Bazaar order screen"))));
+                .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))));
 
-        return base.formatted(Formatting.DARK_AQUA);
+        return base.withStyle(ChatFormatting.DARK_AQUA);
     }
 
 
-    private static MutableText bestMsg(TrackedOrder order) {
-        var status = Text
+    private static MutableComponent bestMsg(TrackedOrder order) {
+        var status = Component
             .empty()
-            .append(Text.literal("is the ").formatted(Formatting.WHITE))
-            .append(Text.literal("BEST Order!").formatted(Formatting.GREEN));
+            .append(Component.literal("is the ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("BEST Order!").withStyle(ChatFormatting.GREEN));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static MutableText reclaimBestMsg(TrackedOrder order) {
-        var status = Text
+    private static MutableComponent reclaimBestMsg(TrackedOrder order) {
+        var status = Component
             .empty()
-            .append(Text.literal("has ").formatted(Formatting.WHITE))
-            .append(Text.literal("REGAINED BEST Order!").formatted(Formatting.GREEN));
+            .append(Component.literal("has ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("REGAINED BEST Order!").withStyle(ChatFormatting.GREEN));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static MutableText matchedMsg(TrackedOrder order) {
-        var status = Text
+    private static MutableComponent matchedMsg(TrackedOrder order) {
+        var status = Component
             .empty()
-            .append(Text.literal("has been ").formatted(Formatting.WHITE))
-            .append(Text.literal("MATCHED!").formatted(Formatting.BLUE));
+            .append(Component.literal("has been ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static MutableText undercutMsg(TrackedOrder order, double undercutAmount) {
-        var status = Text
+    private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount) {
+        var status = Component
             .empty()
-            .append(Text.literal("has been ").formatted(Formatting.WHITE))
-            .append(Text.literal("UNDERCUT ").formatted(Formatting.RED))
-            .append(Text.literal("by ").formatted(Formatting.WHITE))
-            .append(Text
+            .append(Component.literal("has been ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
+            .append(Component.literal("by ").withStyle(ChatFormatting.WHITE))
+            .append(Component
                 .literal(Utils.formatDecimal(undercutAmount, 1, true))
-                .formatted(Formatting.GOLD))
-            .append(Text.literal(" coins!").formatted(Formatting.WHITE));
+                .withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" coins!").withStyle(ChatFormatting.WHITE));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    public static MutableText prefix() {
-        return Text.literal("[BtrBz] ").formatted(Formatting.GOLD);
+    public static MutableComponent prefix() {
+        return Component.literal("[BtrBz] ").withStyle(ChatFormatting.GOLD);
     }
 
-    private static MutableText fillBaseMessage(
+    private static MutableComponent fillBaseMessage(
         OrderType type,
         int volume,
         String productName,
-        Text statusPart
+        Component statusPart
     ) {
         var orderString = switch (type) {
             case Buy -> "Buy order";
             case Sell -> "Sell offer";
         };
         return prefix()
-            .append(Text.literal("Your ").formatted(Formatting.WHITE))
-            .append(Text.literal(orderString).formatted(Formatting.AQUA))
-            .append(Text.literal(" for ").formatted(Formatting.WHITE))
-            .append(Text.literal(String.valueOf(volume)).formatted(Formatting.LIGHT_PURPLE))
-            .append(Text.literal("x ").formatted(Formatting.WHITE))
-            .append(Text.literal(productName).formatted(Formatting.YELLOW))
-            .append(Text.literal(" ").formatted(Formatting.WHITE))
+            .append(Component.literal("Your ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" for ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(String.valueOf(volume)).withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(Component.literal("x ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(productName).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(" ").withStyle(ChatFormatting.WHITE))
             .append(statusPart);
     }
 }

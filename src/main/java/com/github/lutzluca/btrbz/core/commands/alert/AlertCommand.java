@@ -11,8 +11,8 @@ import io.vavr.control.Try;
 import java.util.UUID;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 public class AlertCommand {
 
@@ -33,11 +33,11 @@ public class AlertCommand {
                             .onSuccess(BtrBz.alertManager()::removeAlert)
                             .onFailure(err -> Notifier.notifyPlayer(Notifier
                                 .prefix()
-                                .append(Text.literal("Invalid input ").formatted(Formatting.GRAY))
-                                .append(Text.literal(id).formatted(Formatting.RED))
-                                .append(Text
+                                .append(Component.literal("Invalid input ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal(id).withStyle(ChatFormatting.RED))
+                                .append(Component
                                     .literal(" is not a valid UUID")
-                                    .formatted(Formatting.GRAY))));
+                                    .withStyle(ChatFormatting.GRAY))));
 
                         return 1;
                     })))
@@ -47,16 +47,16 @@ public class AlertCommand {
                 if (alerts.isEmpty()) {
                     Notifier.notifyPlayer(Notifier
                         .prefix()
-                        .append(Text.literal("No active alerts.").formatted(Formatting.GRAY)));
+                        .append(Component.literal("No active alerts.").withStyle(ChatFormatting.GRAY)));
                     return 1;
                 }
 
-                final var newline = Text.literal("\n");
+                final var newline = Component.literal("\n");
                 var builder = Notifier
                     .prefix()
-                    .append(Text
+                    .append(Component
                         .literal("Active Alerts (" + alerts.size() + "):")
-                        .formatted(Formatting.GOLD))
+                        .withStyle(ChatFormatting.GOLD))
                     .append(newline);
 
                 var first = true;
@@ -67,7 +67,7 @@ public class AlertCommand {
 
                     builder.append(alert
                         .format()
-                        .append(Text.literal(" "))
+                        .append(Component.literal(" "))
                         .append(Notifier.clickToRemoveAlert(alert.id, "Remove this alert")));
                     first = false;
                 }
@@ -98,12 +98,12 @@ public class AlertCommand {
                             .onFailure(err -> {
                                 var msg = Notifier
                                     .prefix()
-                                    .append(Text
+                                    .append(Component
                                         .literal("Alert setup failed: ")
-                                        .formatted(Formatting.RED))
-                                    .append(Text
+                                        .withStyle(ChatFormatting.RED))
+                                    .append(Component
                                         .literal(err.getMessage())
-                                        .formatted(Formatting.GRAY));
+                                        .withStyle(ChatFormatting.GRAY));
 
                                 Notifier.notifyPlayer(msg);
                             });

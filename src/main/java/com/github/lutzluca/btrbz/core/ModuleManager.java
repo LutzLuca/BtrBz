@@ -64,7 +64,7 @@ public class ModuleManager {
             .toList();
 
         log.trace("Adding {} widgets for initial render", widgets.size());
-        widgets.forEach(accessor::invokeAddDrawableChild);
+        widgets.forEach(accessor::invokeAddRenderableWidget);
     }
 
     private void revalidateModules(ScreenInfo info) {
@@ -89,7 +89,7 @@ public class ModuleManager {
 
         if (!newWidgets.isEmpty()) {
             log.debug("Adding {} widgets after revalidation", newWidgets.size());
-            newWidgets.forEach(accessor::invokeAddDrawableChild);
+            newWidgets.forEach(accessor::invokeAddRenderableWidget);
         }
     }
 

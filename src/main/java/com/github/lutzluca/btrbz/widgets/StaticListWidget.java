@@ -3,13 +3,13 @@ package com.github.lutzluca.btrbz.widgets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
-public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget {
+public class StaticListWidget<T extends AbstractWidget> extends DraggableWidget {
 
     private static final int CHILD_HEIGHT = 14;
     private static final int CHILD_SPACING = 1;
@@ -22,7 +22,7 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
     private BiConsumer<T, Integer> onChildClickCallback;
     private T clickedChild = null;
 
-    public StaticListWidget(int x, int y, int width, int height, Text message, Screen parent) {
+    public StaticListWidget(int x, int y, int width, int height, Component message, Screen parent) {
         super(x, y, width, height, message, parent);
         this.setRenderBackground(false);
         this.setRenderBorder(false);
@@ -174,11 +174,11 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
     }
 
     @Override
-    protected void renderWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void renderWidget(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         this.renderCompleteWidget(ctx, mouseX, mouseY, delta);
     }
 
-    private void renderCompleteWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    private void renderCompleteWidget(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         boolean isHovered = this.isMouseOver(mouseX, mouseY);
         boolean isDraggingWidget = this.isDragging();
 
@@ -192,7 +192,7 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
         );
 
         int borderColor = isDraggingWidget ? 0xFFFF6B6B : (isHovered ? 0xFF606060 : 0xFF404040);
-        ctx.drawBorder(this.getX(), this.getY(), width, height, borderColor);
+       ctx.drawBorder(this.getX(), this.getY(), width, height, borderColor);
 
         this.renderTitleBar(ctx, isDraggingWidget, isHovered);
 
@@ -207,7 +207,7 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
         }
     }
 
-    private void renderTitleBar(DrawContext ctx, boolean isDraggingWidget, boolean isHovered) {
+    private void renderTitleBar(GuiGraphics ctx, boolean isDraggingWidget, boolean isHovered) {
         int separatorY = this.getY() + TITLE_BAR_HEIGHT;
         ctx.fill(
             this.getX() + 1,
@@ -217,18 +217,18 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
             0x40FFFFFF
         );
 
-        var textRenderer = MinecraftClient.getInstance().textRenderer;
+        var textRenderer = Minecraft.getInstance().font;
         int textColor = isDraggingWidget ? 0xFFFFAAAA : 0xFFFFFFFF;
-        ctx.drawCenteredTextWithShadow(
+        ctx.drawCenteredString(
             textRenderer,
             this.getMessage(),
             this.getX() + this.width / 2,
-            this.getY() + (TITLE_BAR_HEIGHT - textRenderer.fontHeight) / 2,
+            this.getY() + (TITLE_BAR_HEIGHT - textRenderer.lineHeight) / 2,
             textColor
         );
     }
 
-    private void renderChildren(DrawContext context, int mouseX, int mouseY, float delta) {
+    private void renderChildren(GuiGraphics context, int mouseX, int mouseY, float delta) {
         int contentStartY = this.getY() + TITLE_BAR_HEIGHT + TOP_MARGIN;
         int contentEndY = this.getY() + this.height - BOTTOM_PADDING;
 
@@ -269,8 +269,8 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
         if (tooltipPendingChild instanceof SimpleTextWidget stw) {
             var tooltip = stw.getTooltipLines();
             if (tooltip != null) {
-                context.drawTooltip(
-                    MinecraftClient.getInstance().textRenderer,
+                context.setComponentTooltipForNextFrame(
+                    Minecraft.getInstance().font,
                     tooltip,
                     tooltipMouseX,
                     tooltipMouseY
@@ -283,7 +283,7 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
         return this.children.size() > this.maxVisibleChildren;
     }
 
-    private void renderScrollbar(DrawContext ctx) {
+    private void renderScrollbar(GuiGraphics ctx) {
         int contentStartY = this.getY() + TITLE_BAR_HEIGHT + TOP_MARGIN;
         int contentHeight = this.height - TITLE_BAR_HEIGHT - TOP_MARGIN - BOTTOM_PADDING;
 
@@ -317,13 +317,13 @@ public class StaticListWidget<T extends ClickableWidget> extends DraggableWidget
         );
     }
 
-    private void renderEmptyMessage(DrawContext context) {
+    private void renderEmptyMessage(GuiGraphics context) {
         int contentStartY = this.getY() + TITLE_BAR_HEIGHT + TOP_MARGIN;
         int contentHeight = this.height - TITLE_BAR_HEIGHT - TOP_MARGIN - BOTTOM_PADDING;
 
-        context.drawCenteredTextWithShadow(
-            MinecraftClient.getInstance().textRenderer,
-            Text.literal("Empty"),
+        context.drawCenteredString(
+            Minecraft.getInstance().font,
+            Component.literal("Empty"),
             this.getX() + this.width / 2,
             contentStartY + contentHeight / 2 - 4,
             0x808080

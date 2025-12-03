@@ -37,18 +37,18 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.StringNbtReader;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.nbt.TagParser;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 
 // TODO have a little more configuration for size; this will involve changes to ScrollableListWidget
 // TODO make it a little prettier
@@ -60,7 +60,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     @Override
     public void onLoad() {
         ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getIndex() != 13 || !info.inMenu(BazaarMenuType.Item)) {
+            if (slot.getContainerSlot() != 13 || !info.inMenu(BazaarMenuType.Item)) {
                 return Optional.empty();
             }
 
@@ -72,7 +72,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return Optional.of(original);
             }
 
-            String productName = original.getName().getString();
+            String productName = original.getHoverName().getString();
             if (BtrBz.bazaarData().nameToId(productName).isEmpty()) {
                 return Optional.empty();
             }
@@ -87,20 +87,20 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getIndex() == 13 && info.inMenu(BazaarMenuType.Item);
+                return slot != null && slot.getContainerSlot() == 13 && info.inMenu(BazaarMenuType.Item);
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var bookmarked = slot.getStack().get(BtrBz.BOOKMARKED);
+                var bookmarked = slot.getItem().get(BtrBz.BOOKMARKED);
                 if (bookmarked == null) {
                     return false;
                 }
 
-                String productName = slot.getStack().getName().getString();
+                String productName = slot.getItem().getHoverName().getString();
 
-                var isBookmarked = toggleBookmark(productName, slot.getStack().copy());
-                slot.getStack().set(BtrBz.BOOKMARKED, isBookmarked);
+                var isBookmarked = toggleBookmark(productName, slot.getItem().copy());
+                slot.getItem().set(BtrBz.BOOKMARKED, isBookmarked);
                 return true;
             }
         });
@@ -177,7 +177,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     @Override
-    public List<ClickableWidget> createWidgets(ScreenInfo info) {
+    public List<AbstractWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
@@ -189,7 +189,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             position.y(),
             180,
             200,
-            Text.literal("Bookmarked Items"),
+            Component.literal("Bookmarked Items"),
             info.getScreen()
         );
 
@@ -267,49 +267,42 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             ItemStack itemStack,
             Screen parent
         ) {
-            super(x, y, width, height, Text.literal(productName), parent);
+            super(x, y, width, height, Component.literal(productName), parent);
             this.productName = productName;
             this.itemStack = itemStack;
             //noinspection DataFlowIssue
             this.color = (0xFF << 24) | Try
                 .of(() -> itemStack
-                    .getName()
+                    .getHoverName()
                     .getSiblings()
                     .getFirst()
                     .getStyle()
                     .getColor()
-                    .getRgb())
+                    .getValue())
                 .getOrElse(0xD3D3D3);
             this.setRenderBackground(false);
             this.setRenderBorder(false);
         }
 
         @Override
-        protected void renderContent(DrawContext ctx, int mouseX, int mouseY, float delta) {
-            var textRenderer = MinecraftClient.getInstance().textRenderer;
+        protected void renderContent(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
+            var textRenderer = Minecraft.getInstance().font;
 
             int iconX = this.getX() + 4;
             int iconY = this.getY() + (this.height - 14) / 2;
             float scale = 14f / 16f;
 
-            //? if >=1.21.6 {
-            /*var matrices = ctx.getMatrices();
+
+            var matrices = ctx.pose();
             matrices.pushMatrix();
             matrices.translate(iconX, iconY);
             matrices.scale(scale, scale);
-            ctx.drawItem(this.itemStack, 0, 0);
+            ctx.renderItem(this.itemStack, 0, 0);
             matrices.popMatrix();
-            *///?} else {
 
-            var matrices = ctx.getMatrices();
-            matrices.push();
-            matrices.translate(iconX, iconY, 0);
-            matrices.scale(scale, scale, 1.0f);
-            ctx.drawItem(this.itemStack, 0, 0);
-            matrices.pop();
-            //?}
 
-            if (this.hovered) {
+
+            if (this.isHovered) {
                 ctx.fill(
                     this.getX(),
                     this.getY(),
@@ -320,8 +313,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             }
 
             int textX = iconX + 18;
-            int textY = this.getY() + (this.height - textRenderer.fontHeight) / 2;
-            ctx.drawTextWithShadow(textRenderer, this.productName, textX, textY, this.color);
+            int textY = this.getY() + (this.height - textRenderer.lineHeight) / 2;
+            ctx.drawString(textRenderer, this.productName, textX, textY, this.color);
         }
     }
 
@@ -342,12 +335,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 var itemData = new JsonObject();
                 var stack = src.itemStack;
 
-                var itemId = Registries.ITEM.getId(stack.getItem());
+                var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 itemData.addProperty("id", itemId.toString());
 
-                var components = stack.getComponentChanges();
+                var components = stack.getComponentsPatch();
                 if (!components.isEmpty()) {
-                    var nbt = ComponentChanges.CODEC
+                    var nbt = DataComponentPatch.CODEC
                         .encodeStart(NbtOps.INSTANCE, components)
                         .getOrThrow();
 
@@ -368,19 +361,19 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 var productName = obj.get("productName").getAsString();
                 var itemData = obj.getAsJsonObject("itemStack");
 
-                var itemId = Identifier.of(itemData.get("id").getAsString());
-                var item = Registries.ITEM.get(itemId);
+                var itemId = ResourceLocation.parse(itemData.get("id").getAsString());
+                var item = BuiltInRegistries.ITEM.getValue(itemId);
                 var stack = new ItemStack(item);
 
                 if (itemData.has("components")) {
                     String componentString = itemData.get("components").getAsString();
                     try {
-                        var componentNbt = StringNbtReader.readCompound(componentString);
-                        var components = ComponentChanges.CODEC
+                        var componentNbt = TagParser.parseCompoundFully(componentString);
+                        var components = DataComponentPatch.CODEC
                             .parse(new Dynamic<>(NbtOps.INSTANCE, componentNbt))
                             .getOrThrow();
 
-                        stack.applyChanges(components);
+                        stack.applyComponentsAndValidate(components);
                     } catch (CommandSyntaxException err) {
                         err.printStackTrace();
                     }
@@ -404,8 +397,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Bookmarked Items Module"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Bookmarked Items Module"))
+                .description(OptionDescription.of(Component.literal(
                     "Display a list of bookmarked bazaar items for quick access")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -414,8 +407,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Option.Builder<Integer> createMaxVisibleOption() {
             return Option
                 .<Integer>createBuilder()
-                .name(Text.literal("Max Visible Items"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Max Visible Items"))
+                .description(OptionDescription.of(Component.literal(
                     "Maximum number of bookmarks visible at once before scrolling")))
                 .binding(
                     6, () -> this.maxVisibleChildren, val -> {
@@ -434,8 +427,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Bookmarked Items"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Bookmarked Items"))
+                .description(OptionDescription.of(Component.literal(
                     "Settings for the bookmarked items quick-access list")))
                 .options(rootGroup.build())
                 .collapsed(false)

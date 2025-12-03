@@ -29,12 +29,12 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -135,7 +135,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     @Override
-    public List<ClickableWidget> createWidgets(ScreenInfo info) {
+    public List<AbstractWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
@@ -150,7 +150,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             position.get().y(),
             200,
             250,
-            Text.literal("Tracked Orders"),
+            Component.literal("Tracked Orders"),
             info.getScreen()
         )
             .setMaxVisibleChildren(8)
@@ -200,8 +200,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public Option.Builder<Boolean> createInBazaarOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("In Bazaar"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("In Bazaar"))
+                .description(OptionDescription.of(Component.literal(
                     "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
                 .binding(false, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -210,8 +210,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public Option.Builder<Boolean> createTooltipsOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Show Tooltips"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Show Tooltips"))
+                .description(OptionDescription.of(Component.literal(
                     "Whether to show detailed tooltips when hovering over order entries")))
                 .binding(true, () -> this.showTooltips, enabled -> this.showTooltips = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -220,8 +220,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Order List Module"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Order List Module"))
+                .description(OptionDescription.of(Component.literal(
                     "Compact list of tracked orders. Hover an entry to highlight its slot.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -235,8 +235,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Order List"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Order List"))
+                .description(OptionDescription.of(Component.literal(
                     "Shows your tracked bazaar orders in a compact, hover-highlightable list.")))
                 .options(rootGroup.build())
                 .collapsed(false)
@@ -247,7 +247,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     @Slf4j
     private static class TooltipCache {
 
-        private final Map<@NotNull TrackedOrder, @Nullable List<Text>> cache = new HashMap<>();
+        private final Map<@NotNull TrackedOrder, @Nullable List<Component>> cache = new HashMap<>();
 
         TooltipCache() {
             log.debug("Initializing TooltipCache");
@@ -260,7 +260,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             });
         }
 
-        List<Text> getOrCompute(@NotNull TrackedOrder order, Supplier<List<Text>> supplier) {
+        List<Component> getOrCompute(@NotNull TrackedOrder order, Supplier<List<Component>> supplier) {
             return this.cache.computeIfAbsent(
                 order, key -> {
                     log.trace("Computing tooltip cache for {}", key);
@@ -291,7 +291,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             Consumer<OrderEntryWidget> onHoverExit,
             TooltipCache tooltipCache
         ) {
-            super(x, y, width, height, Text.literal(order.productName), parentScreen);
+            super(x, y, width, height, Component.literal(order.productName), parentScreen);
             this.tooltipCache = tooltipCache;
             this.order = order;
             this.onHoverEnter = onHoverEnter;
@@ -303,65 +303,65 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             this.setTooltipDelay(Duration.ofMillis(300));
         }
 
-        private List<Text> priceLines(BazaarData data, String productId) {
+        private List<Component> priceLines(BazaarData data, String productId) {
             var priceInfo = data.getOrderPrices(productId);
 
-            var header = Text.literal("Current Prices").formatted(Formatting.GOLD, Formatting.BOLD);
+            var header = Component.literal("Current Prices").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 
-            var buyOrderLine = Text
+            var buyOrderLine = Component
                 .literal("Buy Orders: ")
-                .formatted(Formatting.YELLOW)
+                .withStyle(ChatFormatting.YELLOW)
                 .append(priceInfo
                     .buyOrderPrice()
-                    .map(price -> Text
+                    .map(price -> Component
                         .literal(Utils.formatDecimal(price, 1, true))
-                        .formatted(Formatting.WHITE))
-                    .orElse(Text.literal("N/A").formatted(Formatting.DARK_GRAY)));
+                        .withStyle(ChatFormatting.WHITE))
+                    .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
 
-            var sellOfferLine = Text
+            var sellOfferLine = Component
                 .literal("Sell Offers: ")
-                .formatted(Formatting.YELLOW)
+                .withStyle(ChatFormatting.YELLOW)
                 .append(priceInfo
                     .sellOfferPrice()
-                    .map(price -> Text
+                    .map(price -> Component
                         .literal(Utils.formatDecimal(price, 1, true))
-                        .formatted(Formatting.WHITE))
-                    .orElse(Text.literal("N/A").formatted(Formatting.DARK_GRAY)));
+                        .withStyle(ChatFormatting.WHITE))
+                    .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
 
             return List.of(header, buyOrderLine, sellOfferLine);
         }
 
-        private List<Text> currOrderLines(BazaarData data) {
-            var header = Text.literal("Your Order").formatted(Formatting.GOLD, Formatting.BOLD);
+        private List<Component> currOrderLines(BazaarData data) {
+            var header = Component.literal("Your Order").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 
-            var priceLine = Text
+            var priceLine = Component
                 .literal("Price: ")
-                .formatted(Formatting.GRAY)
-                .append(Text
+                .withStyle(ChatFormatting.GRAY)
+                .append(Component
                     .literal(Utils.formatDecimal(this.order.pricePerUnit, 1, true))
-                    .formatted(Formatting.WHITE));
+                    .withStyle(ChatFormatting.WHITE));
 
-            var volumeLine = Text
+            var volumeLine = Component
                 .literal("Volume: ")
-                .formatted(Formatting.GRAY)
-                .append(Text.literal(String.valueOf(order.volume)).formatted(Formatting.WHITE));
+                .withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(String.valueOf(order.volume)).withStyle(ChatFormatting.WHITE));
 
             return List.of(header, priceLine, volumeLine);
         }
 
-        private List<Text> statusLines(BazaarData data) {
-            List<Text> lines = new ArrayList<>();
+        private List<Component> statusLines(BazaarData data) {
+            List<Component> lines = new ArrayList<>();
             switch (order.status) {
                 case OrderStatus.Top ignored -> {
-                    lines.add(Text
+                    lines.add(Component
                         .literal("Best Price!")
-                        .formatted(Formatting.GREEN, Formatting.BOLD));
+                        .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
                 }
                 case OrderStatus.Matched ignored -> {
-                    lines.add(Text.literal("Matched!").formatted(Formatting.AQUA, Formatting.BOLD));
+                    lines.add(Component.literal("Matched!").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
                 }
                 case OrderStatus.Undercut ignored -> {
-                    lines.add(Text.literal("Undercut!").formatted(Formatting.RED, Formatting.BOLD));
+                    lines.add(Component.literal("Undercut!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
 
                     var queueInfo = data.calculateQueuePosition(
                         order.productName,
@@ -370,51 +370,51 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                     );
 
                     if (queueInfo.isPresent()) {
-                        lines.add(Text
+                        lines.add(Component
                             .literal("Orders ahead: ")
-                            .formatted(Formatting.GRAY)
-                            .append(Text
+                            .withStyle(ChatFormatting.GRAY)
+                            .append(Component
                                 .literal(String.valueOf(queueInfo.get().ordersAhead))
-                                .formatted(Formatting.RED)));
+                                .withStyle(ChatFormatting.RED)));
 
-                        lines.add(Text
+                        lines.add(Component
                             .literal("Items ahead: ")
-                            .formatted(Formatting.GRAY)
-                            .append(Text
+                            .withStyle(ChatFormatting.GRAY)
+                            .append(Component
                                 .literal(Utils.formatDecimal(queueInfo.get().itemsAhead, 0, true))
-                                .formatted(Formatting.RED)));
+                                .withStyle(ChatFormatting.RED)));
                     }
                 }
                 case OrderStatus.Unknown ignored -> {
-                    lines.add(Text.literal("Status Unknown").formatted(Formatting.GRAY));
+                    lines.add(Component.literal("Status Unknown").withStyle(ChatFormatting.GRAY));
                 }
             }
 
             return lines;
         }
 
-        private List<Text> buildTooltipLines() {
+        private List<Component> buildTooltipLines() {
             log.debug("Building TooltipLines");
 
             var data = BtrBz.bazaarData();
             var productId = data.nameToId(this.order.productName);
 
             if (productId.isEmpty()) {
-                return List.of(Text.literal("Unknown Product").formatted(Formatting.RED));
+                return List.of(Component.literal("Unknown Product").withStyle(ChatFormatting.RED));
             }
 
             var lines = new ArrayList<>(this.priceLines(data, productId.get()));
-            lines.add(Text.empty());
+            lines.add(Component.empty());
 
             lines.addAll(this.currOrderLines(data));
-            lines.add(Text.empty());
+            lines.add(Component.empty());
 
             lines.addAll(this.statusLines(data));
 
             return lines;
         }
 
-        public List<Text> getTooltipLines() {
+        public List<Component> getTooltipLines() {
             if (!ConfigManager.get().orderList.showTooltips) {
                 return List.of();
             }
@@ -423,7 +423,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         @Override
-        protected void renderContent(DrawContext context, int mouseX, int mouseY, float delta) {
+        protected void renderContent(GuiGraphics context, int mouseX, int mouseY, float delta) {
             boolean hovered = this.isHovered();
             if (hovered && !this.wasHovered) {
                 this.onHoverEnter.accept(this);
@@ -432,7 +432,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             }
             this.wasHovered = hovered;
 
-            var textRenderer = MinecraftClient.getInstance().textRenderer;
+            var textRenderer = Minecraft.getInstance().font;
 
             int x = this.getX();
             int y = this.getY();
@@ -464,26 +464,26 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             int textX = dotX + dotSize + 5;
             int textY = y + (h - 8) / 2;
 
-            context.drawText(textRenderer, typeText, textX, textY, typeColor, false);
-            textX += textRenderer.getWidth(typeText) + 2;
+            context.drawString(textRenderer, typeText, textX, textY, typeColor, false);
+            textX += textRenderer.width(typeText) + 2;
 
-            context.drawText(textRenderer, "-", textX, textY, separatorColor, false);
-            textX += textRenderer.getWidth("-") + 2;
+            context.drawString(textRenderer, "-", textX, textY, separatorColor, false);
+            textX += textRenderer.width("-") + 2;
 
-            context.drawText(textRenderer, volumeText, textX, textY, volumeColor, false);
-            textX += textRenderer.getWidth(volumeText) + 2;
+            context.drawString(textRenderer, volumeText, textX, textY, volumeColor, false);
+            textX += textRenderer.width(volumeText) + 2;
 
             int remainingWidth = (x + w - 4) - textX;
             String displayName = nameText;
 
-            if (textRenderer.getWidth(nameText) > remainingWidth) {
-                while (textRenderer.getWidth(displayName + "...") > remainingWidth && !displayName.isEmpty()) {
+            if (textRenderer.width(nameText) > remainingWidth) {
+                while (textRenderer.width(displayName + "...") > remainingWidth && !displayName.isEmpty()) {
                     displayName = displayName.substring(0, displayName.length() - 1);
                 }
                 displayName = displayName + "...";
             }
 
-            context.drawText(textRenderer, displayName, textX, textY, nameColor, false);
+            context.drawString(textRenderer, displayName, textX, textY, nameColor, false);
         }
 
         public int getSlotIdx() {

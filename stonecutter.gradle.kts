@@ -2,7 +2,7 @@ plugins {
     id("dev.kikugie.stonecutter")
 }
 
-stonecutter active "1.21.5"
+stonecutter active "1.21.10"
 
 tasks.register("releaseMod") {
     group = "publishing"

@@ -9,12 +9,12 @@ import com.github.lutzluca.btrbz.widgets.StaticListWidget;
 import java.util.Objects;
 import lombok.Getter;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class OrderBookScreen extends Screen {
 
@@ -26,7 +26,7 @@ public class OrderBookScreen extends Screen {
 
 
     public OrderBookScreen(Screen parent, String productName, OrderLists orders) {
-        super(Text.literal(productName + " Order Book"));
+        super(Component.literal(productName + " Order Book"));
         this.parent = parent;
         this.orders = orders;
     }
@@ -52,7 +52,7 @@ public class OrderBookScreen extends Screen {
             listY,
             listWidth,
             listHeight,
-            Text.literal("Buy Orders"),
+            Component.literal("Buy Orders"),
             this
         )
             .setMaxVisibleChildren(Math.min(15, this.orders.buyOrders().size()))
@@ -66,7 +66,7 @@ public class OrderBookScreen extends Screen {
             listY,
             listWidth,
             listHeight,
-            Text.literal("Sell Offers"),
+            Component.literal("Sell Offers"),
             this
         )
             .setMaxVisibleChildren(Math.min(15, this.orders.sellOffers().size()))
@@ -75,8 +75,8 @@ public class OrderBookScreen extends Screen {
 
         this.rebuildLists();
 
-        this.addDrawableChild(buyOrderList);
-        this.addDrawableChild(sellOfferList);
+        this.addRenderableWidget(buyOrderList);
+        this.addRenderableWidget(sellOfferList);
     }
 
     private void rebuildLists() {
@@ -96,29 +96,29 @@ public class OrderBookScreen extends Screen {
 
     private void onBuyOrderClick(OrderEntryWidget widget, Integer index) {
         copyPriceToClipboard(widget.getSummary().getPricePerUnit());
-        this.close();
+        this.onClose();
     }
 
     private void onSellOfferClick(OrderEntryWidget widget, Integer index) {
         copyPriceToClipboard(widget.getSummary().getPricePerUnit());
-        this.close();
+        this.onClose();
     }
 
     private void copyPriceToClipboard(double price) {
-        MinecraftClient.getInstance().keyboard.setClipboard(String.format("%.1f", price));
+        Minecraft.getInstance().keyboardHandler.setClipboard(String.format("%.1f", price));
     }
 
     @Override
-    public void close() {
-        Objects.requireNonNull(this.client).setScreen(parent);
+    public void onClose() {
+        Objects.requireNonNull(this.minecraft).setScreen(parent);
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, this.width, this.height, 0x80000000);
 
-        context.drawCenteredTextWithShadow(
-            this.textRenderer,
+        context.drawCenteredString(
+            this.font,
             this.title,
             this.width / 2,
             (this.buyOrderList.getY() - 30),
@@ -129,11 +129,11 @@ public class OrderBookScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 
-    public class OrderEntryWidget extends ClickableWidget {
+    public class OrderEntryWidget extends AbstractWidget {
 
         @Getter
         private final Summary summary;
@@ -147,14 +147,14 @@ public class OrderBookScreen extends Screen {
             int width,
             int height
         ) {
-            super(x, y, width, height, Text.empty());
+            super(x, y, width, height, Component.empty());
             this.summary = summary;
             this.type = type;
         }
 
         @Override
-        protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-            var textRenderer = MinecraftClient.getInstance().textRenderer;
+        protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+            var textRenderer = Minecraft.getInstance().font;
 
             if (this.isHovered()) {
                 context.fill(
@@ -171,12 +171,12 @@ public class OrderBookScreen extends Screen {
             String ordersInfo = "(" + this.summary.getOrders() + " orders)";
 
             int textColor = type == OrderType.Buy ? 0xFF55FF55 : 0xFFFF5555;
-            int yPos = this.getY() + (this.height - textRenderer.fontHeight) / 2;
+            int yPos = this.getY() + (this.height - textRenderer.lineHeight) / 2;
 
-            context.drawTextWithShadow(textRenderer, price, this.getX() + 5, yPos, textColor);
+            context.drawString(textRenderer, price, this.getX() + 5, yPos, textColor);
 
-            int ordersWidth = textRenderer.getWidth(ordersInfo);
-            context.drawTextWithShadow(
+            int ordersWidth = textRenderer.width(ordersInfo);
+            context.drawString(
                 textRenderer,
                 ordersInfo,
                 this.getX() + this.width - ordersWidth - 5,
@@ -184,8 +184,8 @@ public class OrderBookScreen extends Screen {
                 0xFF888888
             );
 
-            int amountWidth = textRenderer.getWidth(amount);
-            context.drawTextWithShadow(
+            int amountWidth = textRenderer.width(amount);
+            context.drawString(
                 textRenderer,
                 amount,
                 this.getX() + this.width - ordersWidth - amountWidth - 12,
@@ -195,8 +195,8 @@ public class OrderBookScreen extends Screen {
         }
 
         @Override
-        protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-            this.appendDefaultNarrations(builder);
+        protected void updateWidgetNarration(NarrationElementOutput builder) {
+            this.defaultButtonNarrationText(builder);
         }
     }
 }

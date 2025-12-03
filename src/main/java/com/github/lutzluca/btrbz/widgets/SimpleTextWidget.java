@@ -4,13 +4,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
 import lombok.Getter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.network.chat.Component;
 
-public class SimpleTextWidget extends ClickableWidget {
+public class SimpleTextWidget extends AbstractWidget {
 
     private int backgroundColor;
     private int textColor;
@@ -20,7 +20,7 @@ public class SimpleTextWidget extends ClickableWidget {
     private boolean disabled = false;
 
     @Getter
-    private Supplier<List<Text>> tooltipSupplier = null;
+    private Supplier<List<Component>> tooltipSupplier = null;
 
     @Getter
     private Duration tooltipDelay = Duration.ofMillis(200);
@@ -28,7 +28,7 @@ public class SimpleTextWidget extends ClickableWidget {
     private long hoverStartTime = 0;
     private boolean wasHoveredLastFrame = false;
 
-    public SimpleTextWidget(int x, int y, int width, int height, Text message) {
+    public SimpleTextWidget(int x, int y, int width, int height, Component message) {
         super(x, y, width, height, message);
         this.backgroundColor = 0x80303030;
         this.textColor = 0xFFFFFFFF;
@@ -55,7 +55,7 @@ public class SimpleTextWidget extends ClickableWidget {
         return this;
     }
 
-    public SimpleTextWidget setTooltipSupplier(Supplier<List<Text>> supplier) {
+    public SimpleTextWidget setTooltipSupplier(Supplier<List<Component>> supplier) {
         this.tooltipSupplier = supplier;
         return this;
     }
@@ -65,14 +65,14 @@ public class SimpleTextWidget extends ClickableWidget {
         return this;
     }
 
-    public List<Text> getTooltipLines() {
+    public List<Component> getTooltipLines() {
         if (this.tooltipSupplier == null) {
             return null;
         }
         return this.tooltipSupplier.get();
     }
 
-    public SimpleTextWidget setTooltipLines(List<Text> lines) {
+    public SimpleTextWidget setTooltipLines(List<Component> lines) {
         this.tooltipSupplier = () -> lines;
         return this;
     }
@@ -100,7 +100,7 @@ public class SimpleTextWidget extends ClickableWidget {
     }
 
     @Override
-    protected void renderWidget(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    protected void renderWidget(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         if (!super.isHovered()) {
             this.wasHoveredLastFrame = false;
         }
@@ -115,14 +115,14 @@ public class SimpleTextWidget extends ClickableWidget {
             bgColor
         );
 
-        var textRenderer = MinecraftClient.getInstance().textRenderer;
+        var textRenderer = Minecraft.getInstance().font;
         int currentTextColor = this.disabled ? this.disabledTextColor : this.textColor;
 
-        ctx.drawTextWithShadow(
+        ctx.drawString(
             textRenderer,
             this.getMessage(),
             this.getX() + 4,
-            this.getY() + (this.height - textRenderer.fontHeight) / 2,
+            this.getY() + (this.height - textRenderer.lineHeight) / 2,
             currentTextColor
         );
     }
@@ -136,7 +136,7 @@ public class SimpleTextWidget extends ClickableWidget {
     }
 
     @Override
-    protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-        this.appendDefaultNarrations(builder);
+    protected void updateWidgetNarration(NarrationElementOutput builder) {
+        this.defaultButtonNarrationText(builder);
     }
 }

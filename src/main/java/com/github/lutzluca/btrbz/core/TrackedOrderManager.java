@@ -32,7 +32,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 @Slf4j
 public class TrackedOrderManager {
@@ -73,12 +73,12 @@ public class TrackedOrderManager {
         var toRemove = new ArrayList<TrackedOrder>();
         var remaining = new ArrayList<>(parsedOrders);
 
-        var filledOrders = new ArrayList<OrderInfo.FilledOrderInfo>();
-        var unfilledOrders = new ArrayList<OrderInfo.UnfilledOrderInfo>();
+        var filledOrders = new ArrayList<FilledOrderInfo>();
+        var unfilledOrders = new ArrayList<UnfilledOrderInfo>();
         for (var order : remaining) {
             switch (order) {
-                case OrderInfo.FilledOrderInfo filled -> filledOrders.add(filled);
-                case OrderInfo.UnfilledOrderInfo unfilled -> unfilledOrders.add(unfilled);
+                case FilledOrderInfo filled -> filledOrders.add(filled);
+                case UnfilledOrderInfo unfilled -> unfilledOrders.add(unfilled);
             }
         }
 
@@ -302,8 +302,8 @@ public class TrackedOrderManager {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Order Notification"))
-                .description(OptionDescription.of(Text.literal("Tracked order notification settings")))
+                .name(Component.literal("Order Notification"))
+                .description(OptionDescription.of(Component.literal("Tracked order notification settings")))
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();
@@ -312,8 +312,8 @@ public class TrackedOrderManager {
         private Option.Builder<Action> createGotoMatchedOption() {
             return Option
                 .<Action>createBuilder()
-                .name(Text.literal("Go To - Matched"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Go To - Matched"))
+                .description(OptionDescription.of(Component.literal(
                     "Where to jump shortcut to when one of your tracked orders becomes matched")))
                 .binding(
                     this.gotoOnMatched,
@@ -326,8 +326,8 @@ public class TrackedOrderManager {
         private Option.Builder<Action> createGotoUndercutOption() {
             return Option
                 .<Action>createBuilder()
-                .name(Text.literal("Go To - Undercut"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Go To - Undercut"))
+                .description(OptionDescription.of(Component.literal(
                     "Where to jump shortcut to when one of your tracked orders is undercut")))
                 .binding(
                     this.gotoOnUndercut,
@@ -340,9 +340,9 @@ public class TrackedOrderManager {
         private Option.Builder<Boolean> createNotifyBestOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Notify - Best"))
+                .name(Component.literal("Notify - Best"))
                 .binding(true, () -> this.notifyBest, val -> this.notifyBest = val)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -350,13 +350,13 @@ public class TrackedOrderManager {
         private Option.Builder<Boolean> createNotifyBestOnPriorityRegain() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.of("Only On Priority Regain"))
+                .name(Component.nullToEmpty("Only On Priority Regain"))
                 .binding(
                     true,
                     () -> this.onlyOnPriorityRegain,
                     val -> this.onlyOnPriorityRegain = val
                 )
-                .description(OptionDescription.of(Text.of(
+                .description(OptionDescription.of(Component.nullToEmpty(
                     "Only sends a notification when a tracked order regains it best/top curr")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -364,9 +364,9 @@ public class TrackedOrderManager {
         private Option.Builder<Boolean> createNotifyMatchedOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Notify - Matched"))
+                .name(Component.literal("Notify - Matched"))
                 .binding(true, () -> this.notifyMatched, val -> this.notifyMatched = val)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Send a notification when a tracked order is matched (multiple orders at the same best price)")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -374,9 +374,9 @@ public class TrackedOrderManager {
         private Option.Builder<Boolean> createNotifyUndercutOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Notify - Undercut"))
+                .name(Component.literal("Notify - Undercut"))
                 .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Send a notification when a tracked order is undercut / outbid by another order")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -384,9 +384,9 @@ public class TrackedOrderManager {
         private Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Tracked Orders"))
+                .name(Component.literal("Tracked Orders"))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
-                .description(OptionDescription.of(Text.literal(
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable the notifications when the curr of an order changes")))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -401,9 +401,9 @@ public class TrackedOrderManager {
                     .create(option)
                     .enumClass(Action.class)
                     .formatValue(action -> switch (action) {
-                        case None -> Text.literal("No action");
-                        case Item -> Text.literal("Go to Item in Bazaar");
-                        case Order -> Text.literal("Open Manage Bazaar Orders");
+                        case None -> Component.literal("No action");
+                        case Item -> Component.literal("Go to Item in Bazaar");
+                        case Order -> Component.literal("Open Manage Bazaar Orders");
                     });
             }
         }

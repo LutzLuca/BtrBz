@@ -15,10 +15,10 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
 
 @Slf4j
 public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> {
@@ -34,24 +34,24 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     }
 
     @Override
-    public List<ClickableWidget> createWidgets(ScreenInfo info) {
-        List<Text> lines = List.of(
-            Text.literal("Daily Limit:").formatted(Formatting.GOLD),
-            Text
+    public List<AbstractWidget> createWidgets(ScreenInfo info) {
+        List<Component> lines = List.of(
+            Component.literal("Daily Limit:").withStyle(ChatFormatting.GOLD),
+            Component
                 .literal(this.formatAmount(this.configState.usedToday) + " / " + Utils.formatCompact(
                     this.configState.dailyLimit,
                     0
                 ))
-                .formatted(Formatting.GREEN)
+                .withStyle(ChatFormatting.GREEN)
         );
 
         var position = this
             .getConfigPosition()
             .or(() -> info.getHandledScreenBounds().map(bounds -> {
-                var textRenderer = MinecraftClient.getInstance().textRenderer;
+                var textRenderer = Minecraft.getInstance().font;
 
-                int lineWidth = lines.stream().mapToInt(textRenderer::getWidth).max().getAsInt();
-                int textHeight = lines.size() * textRenderer.fontHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
+                int lineWidth = lines.stream().mapToInt(textRenderer::width).max().getAsInt();
+                int textHeight = lines.size() * textRenderer.lineHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
 
                 int widgetWidth = lineWidth + 2 * TextDisplayWidget.PADDING_X;
                 int widgetHeight = textHeight + 2 * TextDisplayWidget.PADDING_Y;
@@ -155,8 +155,8 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Order Limit Module"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Order Limit Module"))
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable the Order Limit module that tracks your daily coin spending limit")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -165,8 +165,8 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public Option.Builder<Boolean> createCompactOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Use Compact Display"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Use Compact Display"))
+                .description(OptionDescription.of(Component.literal(
                     "Display the order limit in a compact format that takes up less screen space")))
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController);
@@ -177,8 +177,8 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Order Limit"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Order Limit"))
+                .description(OptionDescription.of(Component.literal(
                     "Display and behaviour settings for the Order Limit module")))
                 .options(rootGroup.build())
                 .collapsed(false)

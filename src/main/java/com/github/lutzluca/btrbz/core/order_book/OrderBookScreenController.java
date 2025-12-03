@@ -8,6 +8,12 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.Optional;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
@@ -15,13 +21,6 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.component.ComponentType;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
 
 public class OrderBookScreenController {
 
@@ -30,7 +29,7 @@ public class OrderBookScreenController {
 
     private OrderBookScreenController() {
         ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getIndex() != CUSTOM_ORDER_BOOK_IDX || !info.inMenu(BazaarMenuType.Item)) {
+            if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || !info.inMenu(BazaarMenuType.Item)) {
                 return Optional.empty();
             }
 
@@ -40,8 +39,8 @@ public class OrderBookScreenController {
 
             var book = new ItemStack(Items.BOOK);
             book.set(
-                DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Open Order Book").styled(style -> style.withItalic(false))
+                DataComponents.CUSTOM_NAME,
+                Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
             );
 
             return Optional.of(book);
@@ -51,7 +50,7 @@ public class OrderBookScreenController {
 
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot.getIndex() == CUSTOM_ORDER_BOOK_IDX && info.inMenu(BazaarMenuType.Item) && ConfigManager.get().orderBook.enabled;
+                return slot.getContainerSlot() == CUSTOM_ORDER_BOOK_IDX && info.inMenu(BazaarMenuType.Item) && ConfigManager.get().orderBook.enabled;
             }
 
             @Override
@@ -60,7 +59,7 @@ public class OrderBookScreenController {
                 if (productNameInfo == null) {
                     Notifier.notifyPlayer(Notifier
                         .prefix()
-                        .append(Text.literal("Failed to determine the opened product name")));
+                        .append(Component.literal("Failed to determine the opened product name")));
                     return false;
                 }
 
@@ -70,7 +69,7 @@ public class OrderBookScreenController {
                     productNameInfo.productName(),
                     orders
                 );
-                MinecraftClient.getInstance().setScreen(orderBookScreen);
+                Minecraft.getInstance().setScreen(orderBookScreen);
 
                 return true;
             }
@@ -92,7 +91,7 @@ public class OrderBookScreenController {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.of("Order Book"))
+                .name(Component.nullToEmpty("Order Book"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -102,7 +101,7 @@ public class OrderBookScreenController {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.of("Order Book"))
+                .name(Component.nullToEmpty("Order Book"))
                 .options(root.build())
                 .collapsed(false)
                 .build();

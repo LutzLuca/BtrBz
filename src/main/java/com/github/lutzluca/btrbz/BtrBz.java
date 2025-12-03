@@ -38,15 +38,15 @@ import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
-import net.minecraft.component.ComponentType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.ClickEvent.RunCommand;
-import net.minecraft.text.HoverEvent.ShowText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.ClickEvent.RunCommand;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent.ShowText;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.Slot;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -54,7 +54,7 @@ public class BtrBz implements ClientModInitializer {
     public static final String MOD_ID = "btrbz";
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
     public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
-    public static ComponentType<Boolean> BOOKMARKED;
+    public static DataComponentType<Boolean> BOOKMARKED;
     private static BtrBz instance;
 
     private TrackedOrderManager orderManager;
@@ -81,9 +81,9 @@ public class BtrBz implements ClientModInitializer {
     public void onInitializeClient() {
         instance = this;
         BOOKMARKED = Registry.register(
-            Registries.DATA_COMPONENT_TYPE,
-            Identifier.of(BtrBz.MOD_ID, "bookmarked"),
-            ComponentType.<Boolean>builder().codec(Codec.BOOL).build()
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            ResourceLocation.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
         );
 
         ConfigManager.load();
@@ -161,7 +161,7 @@ public class BtrBz implements ClientModInitializer {
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var orderInfo = OrderInfoParser.parseOrderInfo(slot.getStack(), slot.getIndex());
+                var orderInfo = OrderInfoParser.parseOrderInfo(slot.getItem(), slot.getContainerSlot());
                 if (orderInfo.isSuccess()) {
                     flipHelper.onOrderClick(orderInfo.get());
                     BazaarOrderActions.onOrderClick(orderInfo.get());
@@ -189,23 +189,23 @@ public class BtrBz implements ClientModInitializer {
         );
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            messageDispatcher.handleChatMessage(Formatting.strip(message.getString()));
+            messageDispatcher.handleChatMessage(ChatFormatting.stripFormatting(message.getString()));
         });
 
         ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
-            var rawMsg = Formatting.strip(message.getString());
+            var rawMsg = ChatFormatting.stripFormatting(message.getString());
             if (overlay || !rawMsg.startsWith("[Bazaar]") || !rawMsg.endsWith("was filled!")) {
                 return message;
             }
 
-            return message.copy().append(Text.literal(" [Go To Orders]")
-                                             .styled(style -> style
+            return message.copy().append(Component.literal(" [Go To Orders]")
+                                             .withStyle(style -> style
                                                  .withClickEvent(new RunCommand(
                                                      "/managebazaarorders"))
                                                  .withHoverEvent(
-                                                     new ShowText(Text.literal(
+                                                     new ShowText(Component.literal(
                                                          "Opens the Bazaar order screen")))
-                                                 .withColor(Formatting.DARK_AQUA)));
+                                                 .withColor(ChatFormatting.DARK_AQUA)));
         });
 
         ScreenInfoHelper.registerOnLoaded(

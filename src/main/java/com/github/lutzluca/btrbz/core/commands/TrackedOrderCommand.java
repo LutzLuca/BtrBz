@@ -5,9 +5,9 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 public class TrackedOrderCommand {
 
@@ -19,17 +19,17 @@ public class TrackedOrderCommand {
 
                 var builder = Notifier.prefix();
                 if (orders.isEmpty()) {
-                    builder.append(Text.literal("No tracked orders").formatted(Formatting.GRAY));
+                    builder.append(Component.literal("No tracked orders").withStyle(ChatFormatting.GRAY));
                     Notifier.notifyPlayer(builder);
                     return 1;
                 }
 
-                var newline = Text.literal("\n");
+                var newline = Component.literal("\n");
 
                 builder = builder
-                    .append(Text
+                    .append(Component
                         .literal("Tracked Orders (" + orders.size() + "):")
-                        .formatted(Formatting.GOLD))
+                        .withStyle(ChatFormatting.GOLD))
                     .append(newline);
 
                 var first = true;
@@ -47,13 +47,13 @@ public class TrackedOrderCommand {
             }))
 
             .then(ClientCommandManager.literal("reset").executes(ctx -> {
-                MinecraftClient.getInstance().execute(() -> {
+                Minecraft.getInstance().execute(() -> {
                     BtrBz.orderManager().resetTrackedOrders();
                     Notifier.notifyPlayer(Notifier
                         .prefix()
-                        .append(Text
+                        .append(Component
                             .literal("Tracked Bazaar orders have been reset.")
-                            .formatted(Formatting.GRAY)));
+                            .withStyle(ChatFormatting.GRAY)));
                 });
 
                 return 1;

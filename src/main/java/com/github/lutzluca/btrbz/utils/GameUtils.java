@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.ScoreboardDisplaySlot;
-import net.minecraft.scoreboard.ScoreboardEntry;
-import net.minecraft.scoreboard.ScoreboardObjective;
-import net.minecraft.scoreboard.Team;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.PlayerScoreEntry;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -29,32 +29,32 @@ public final class GameUtils {
 
         return switch (stack.getItem()) {
             case Item item when item == Items.ARROW ->
-                !stack.getName().getString().equals("Go Back");
+                !stack.getHoverName().getString().equals("Go Back");
             case Item item when item == Items.HOPPER ->
-                !stack.getName().getString().equals("Claim All Coins");
+                !stack.getHoverName().getString().equals("Claim All Coins");
             default -> true;
         };
     }
 
     public static List<String> getScoreboardLines() {
-        var client = MinecraftClient.getInstance();
-        var world = client.world;
+        var client = Minecraft.getInstance();
+        var world = client.level;
         if (world == null) { return List.of(); }
 
         Scoreboard scoreboard = world.getScoreboard();
-        ScoreboardObjective objective = scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.SIDEBAR);
+        Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
         if (objective == null) { return List.of(); }
 
-        var entries = scoreboard.getScoreboardEntries(objective);
+        var entries = scoreboard.listPlayerScores(objective);
 
         List<String> lines = new ArrayList<>();
-        for (ScoreboardEntry entry : entries) {
+        for (PlayerScoreEntry entry : entries) {
             String owner = entry.owner();
-            Team team = scoreboard.getScoreHolderTeam(owner);
+            PlayerTeam team = scoreboard.getPlayersTeam(owner);
 
             String text;
             if (team != null) {
-                text = team.getPrefix().getString() + owner + team.getSuffix().getString();
+                text = team.getPlayerPrefix().getString() + owner + team.getPlayerSuffix().getString();
             } else {
                 text = owner;
             }
@@ -68,21 +68,21 @@ public final class GameUtils {
     }
 
     public static void runCommand(String command) {
-        var client = MinecraftClient.getInstance();
+        var client = Minecraft.getInstance();
         if (client.player != null) {
-            client.player.networkHandler.sendChatCommand(command);
+            client.player.connection.sendCommand(command);
         }
     }
 
     public static <T> void copyIntToClipboard(T value) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client != null) {
-            client.keyboard.setClipboard(String.valueOf(value));
+            client.keyboardHandler.setClipboard(String.valueOf(value));
         }
     }
 
-    public static Text join(List<Text> lines, String sequence) {
-        var res = Text.empty();
+    public static Component join(List<Component> lines, String sequence) {
+        var res = Component.empty();
         for (int i = 0; i < lines.size(); i++) {
             res.append(lines.get(i));
             if (i < lines.size() - 1) {
@@ -94,10 +94,10 @@ public final class GameUtils {
 
     public static boolean isPlayerInventorySlot(@Nullable Slot slot) {
         if (slot == null) { return false; }
-        var client = MinecraftClient.getInstance();
+        var client = Minecraft.getInstance();
         var player = client.player;
         if (player == null) { return false; }
 
-        return slot.inventory == player.getInventory();
+        return slot.container == player.getInventory();
     }
 }

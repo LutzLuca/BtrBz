@@ -4,8 +4,8 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 
 public class ItemOverrideManager {
 

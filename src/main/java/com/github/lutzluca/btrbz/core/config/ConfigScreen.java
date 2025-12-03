@@ -11,18 +11,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ConfigScreen {
 
     public static void open() {
-        var client = MinecraftClient.getInstance();
-        client.send(() -> client.setScreen(ConfigScreen.create(
-            client.currentScreen,
+        var client = Minecraft.getInstance();
+        client.schedule(() -> client.setScreen(ConfigScreen.create(
+            client.screen,
             ConfigManager.get()
         )));
     }
@@ -30,7 +30,7 @@ public class ConfigScreen {
     public static Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(
             ConfigManager.HANDLER, (defaults, cfg, builder) -> {
-                builder.title(Text.literal(BtrBz.MOD_ID));
+                builder.title(Component.literal(BtrBz.MOD_ID));
                 buildGeneralConfig(builder, config);
 
                 return builder;
@@ -41,7 +41,7 @@ public class ConfigScreen {
     private static void buildGeneralConfig(Builder builder, Config config) {
         var general = ConfigCategory
             .createBuilder()
-            .name(Text.literal("General"))
+            .name(Component.literal("General"))
             .group(config.trackedOrders.createGroup())
             .group(config.alert.createGroup())
             .group(config.orderLimit.createGroup())

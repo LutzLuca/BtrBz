@@ -19,9 +19,9 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 @Slf4j
 public class AlertManager {
@@ -96,9 +96,9 @@ public class AlertManager {
         if (removed.isEmpty()) {
             Notifier.notifyPlayer(Notifier
                 .prefix()
-                .append(Text
+                .append(Component
                     .literal("Failed to find an alert associated with " + id + " - it may have already been removed")
-                    .formatted(Formatting.GRAY)));
+                    .withStyle(ChatFormatting.GRAY)));
             return;
         }
         if (removed.size() > 1) {
@@ -107,7 +107,7 @@ public class AlertManager {
 
         Notifier.notifyPlayer(Notifier
             .prefix()
-            .append(Text.literal("Alert removed successfully!").formatted(Formatting.GRAY)));
+            .append(Component.literal("Alert removed successfully!").withStyle(ChatFormatting.GRAY)));
 
     }
 
@@ -144,15 +144,15 @@ public class AlertManager {
             return Try.success(price);
         }
 
-        public MutableText format() {
-            return Text
+        public MutableComponent format() {
+            return Component
                 .empty()
-                .append(Text.literal(productName).formatted(Formatting.GOLD))
-                .append(Text.literal(" @ ").formatted(Formatting.GRAY))
-                .append(Text
+                .append(Component.literal(productName).withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(" @ ").withStyle(ChatFormatting.GRAY))
+                .append(Component
                     .literal(Utils.formatDecimal(this.price, 1, true) + "coins")
-                    .formatted(Formatting.YELLOW))
-                .append(Text.literal(" (" + type.format() + ")").formatted(Formatting.DARK_GRAY));
+                    .withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" (" + type.format() + ")").withStyle(ChatFormatting.DARK_GRAY));
         }
 
         public boolean matches(ResolvedAlertArgs args) {
@@ -173,8 +173,8 @@ public class AlertManager {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Text.literal("Price Alerts"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Price Alerts"))
+                .description(OptionDescription.of(Component.literal(
                     "Enable or disable price alerts. When disabled alerts will not be fired; when re-enabled any alerts whose price is already reached will fire immediately.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
@@ -185,8 +185,8 @@ public class AlertManager {
 
             return OptionGroup
                 .createBuilder()
-                .name(Text.literal("Price Alerts"))
-                .description(OptionDescription.of(Text.literal(
+                .name(Component.literal("Price Alerts"))
+                .description(OptionDescription.of(Component.literal(
                     "Configure price alerting behavior and manage active alerts")))
                 .options(rootGroup.build())
                 .collapsed(false)

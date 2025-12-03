@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.utils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.inventory.Slot;
 
 public class ScreenActionManager {
 

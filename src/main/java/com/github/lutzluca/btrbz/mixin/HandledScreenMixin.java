@@ -5,31 +5,31 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 @Slf4j
-public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen {
+public abstract class HandledScreenMixin<T extends AbstractContainerMenu> extends Screen {
 
     //@Shadow
     //@Final
     //protected T handler;
 
-    protected HandledScreenMixin(Text title) { super(title); }
+    protected HandledScreenMixin(Component title) { super(title); }
 
-    @Inject(method = "close", at = @At("HEAD"))
+    @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
         ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
     }
@@ -42,7 +42,7 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
         double verticalAmount,
         CallbackInfoReturnable<Boolean> cir
     ) {
-        for (Element child : this.children()) {
+        for (GuiEventListener child : this.children()) {
             if (child.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
                 cir.setReturnValue(true);
                 return;
@@ -51,12 +51,12 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
     }
 
 
-    @Inject(method = "onMouseClick(Lnet/minecraft/screen/slot/Slot;IILnet/minecraft/screen/slot/SlotActionType;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ClickType;)V", at = @At("HEAD"), cancellable = true)
     private void onHandledMouseClick(
         Slot slot,
         int slotId,
         int button,
-        SlotActionType actionType,
+        ClickType actionType,
         CallbackInfo ci
     ) {
         var cancelled = ScreenActionManager.handleClick(
@@ -70,18 +70,18 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
         }
     }
 
-    @Inject(method = "drawSlot", at = @At("HEAD"))
-    private void afterDrawSlot(DrawContext context, Slot slot, CallbackInfo ci) {
+    @Inject(method = "renderSlot", at = @At("HEAD"))
+    private void afterRenderSlot(GuiGraphics context, Slot slot, CallbackInfo ci) {
         if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
             return;
         }
-        if (slot.getStack().isEmpty() || GameUtils.isPlayerInventorySlot(slot)) {
+        if (slot.getItem().isEmpty() || GameUtils.isPlayerInventorySlot(slot)) {
             return;
         }
 
         var x = slot.x;
         var y = slot.y;
-        var idx = slot.getIndex();
+        var idx = slot.getContainerSlot();
 
         BtrBz
             .highlightManager()
@@ -90,7 +90,7 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
     }
 
     //@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ingame/HandledScreen;drawSlots(Lnet/minecraft/client/gui/DrawContext;)V", shift = At.Shift.AFTER))
-    //private void afterDrawSlots(
+    //private void afterRenderSlot(
     //    DrawContext context,
     //    int mouseX,
     //    int mouseY,
@@ -104,7 +104,7 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
     //    var manager = BtrBz.highlightManager();
     //
     //    for (Slot slot : this.handler.slots) {
-    //        if (slot.getStack().isEmpty() || GameUtils.isPlayerInventorySlot(slot)) {
+    //        if (slot.getStack().getItem() || GameUtils.isPlayerInventorySlot(slot)) {
     //            continue;
     //        }
     //
