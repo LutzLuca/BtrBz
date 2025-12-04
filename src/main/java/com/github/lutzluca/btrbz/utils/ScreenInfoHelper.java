@@ -129,7 +129,7 @@ public final class ScreenInfoHelper {
 
     public enum BazaarMenuType {
         Main, // Bazaar ➜ <category> / "<search>"
-        Orders, // Your Bazaar Orders
+        Orders, // Your Bazaar Orders or Co-op Bazaar Orders
         InstaBuy, // <product name> ➜ Instant Buy
         BuyOrderSetupPrice,  // How much do you want to pay?
         BuyOrderSetupVolume, // How many do you want?
@@ -168,7 +168,7 @@ public final class ScreenInfoHelper {
                     var str = title.substring("Bazaar ➜ ".length()).trim();
                     yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
                 }
-                case Orders -> title.equals("Your Bazaar Orders");
+                case Orders -> (title.equals("Your Bazaar Orders") || title.equals("Co-op Bazaar Orders"));
                 case InstaBuy -> title.endsWith("➜ Instant Buy");
                 case BuyOrderSetupVolume -> title.equals("How many do you want?");
                 case BuyOrderSetupPrice -> title.equals("How much do you want to pay?");

@@ -223,8 +223,8 @@ public final class ProductInfoProvider {
                 var stack = slot.getItem();
 
                 //Needs Refactoring
-                boolean isControlDown = Minecraft.getInstance().hasShiftDown();
-                boolean isShiftDown = Minecraft.getInstance().hasControlDown();
+                boolean isControlDown = Minecraft.getInstance().hasControlDown();
+                boolean isShiftDown = Minecraft.getInstance().hasShiftDown();
                 return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && isControlDown && isShiftDown;
             }
 
