@@ -10,7 +10,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
 // TODO add colapse/expand functionality
@@ -174,7 +173,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         if (childIdx >= 0) {
             T child = children.get(childIdx);
 
-            if (button == 1 && InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) { //Needs refactoring
+            if (button == 1 && Minecraft.getInstance().hasControlDown()) { //Needs refactoring
                 this.removeChild(childIdx);
                 return true;
             }
