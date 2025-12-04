@@ -161,8 +161,7 @@ public class DraggableWidget extends AbstractWidget {
             return false;
         }
 
-        int totalDragDistance = Math.abs((int) mouseX - this.dragStartX)
-                + Math.abs((int) mouseY - this.dragStartY);
+        int totalDragDistance = Math.abs((int) mouseX - this.dragStartX) + Math.abs((int) mouseY - this.dragStartY);
 
         if (!this.dragging && totalDragDistance > dragThreshold) {
             this.dragging = true;

@@ -106,9 +106,7 @@ public class StaticListWidget<T extends AbstractWidget> extends DraggableWidget 
             this.clickedChild = null;
 
             int childIdx = this.getChildAtPosition(mouseX, mouseY);
-            if (childIdx >= 0
-                    && this.children.get(childIdx) == clicked
-                    && this.onChildClickCallback != null) {
+            if (childIdx >= 0 && this.children.get(childIdx) == clicked && this.onChildClickCallback != null) {
                 this.onChildClickCallback.accept(clicked, childIdx);
             }
 
