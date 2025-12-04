@@ -105,7 +105,7 @@ public class TextDisplayWidget extends DraggableWidget {
     protected void renderBorder(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         if (!this.isDragging()) { return; }
 
-       // ctx.drawBorder(this.getX(), this.getY(), this.width, this.height, 0xFFFFD700);
+       ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, 0xFFFFD700);
     }
 
     @Override

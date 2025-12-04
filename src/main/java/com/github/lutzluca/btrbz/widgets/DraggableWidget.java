@@ -12,6 +12,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -94,9 +96,17 @@ public class DraggableWidget extends AbstractWidget {
         return new Position(this.getX(), this.getY());
     }
 
-//    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.isHovered()) {
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean drag) {
+        if (!this.isActive()) {
+            return false;
+        }
+
+        int button = event.buttonInfo().button();
+        double mouseX = event.x();
+        double mouseY = event.y();
+
+        if (button == 0 && this.isMouseOver(mouseX, mouseY)) {
             this.mousePressed = true;
             this.dragging = false;
             this.dragStartX = (int) mouseX;
@@ -105,17 +115,26 @@ public class DraggableWidget extends AbstractWidget {
             this.widgetStartY = this.getY();
             return true;
         }
-        return false;
+
+        return super.mouseClicked(event, drag);
     }
 
-//    @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (!this.isValidClickButton(event.buttonInfo())) {
+            return false;
+        }
+
+        int button = event.buttonInfo().button();
+        double mouseX = event.x();
+        double mouseY = event.y();
+
         if (button == 0 && this.mousePressed) {
             boolean wasDragging = this.dragging;
             this.mousePressed = false;
             this.dragging = false;
 
-            if (!wasDragging && this.isHovered() && this.onClickCallback != null) {
+            if (!wasDragging && this.isMouseOver(mouseX, mouseY) && this.onClickCallback != null) {
                 this.onClickCallback.accept(this);
             } else if (wasDragging && this.onDragEndCallback != null) {
                 this.onDragEndCallback.accept(this, this.getPosition());
@@ -127,19 +146,23 @@ public class DraggableWidget extends AbstractWidget {
         return false;
     }
 
-//    @Override
-    public boolean mouseDragged(
-        double mouseX,
-        double mouseY,
-        int button,
-        double deltaX,
-        double deltaY
-    ) {
-        if (!this.mousePressed) {
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        if (!this.isValidClickButton(event.buttonInfo())) {
             return false;
         }
 
-        int totalDragDistance = Math.abs((int) mouseX - this.dragStartX) + Math.abs((int) mouseY - this.dragStartY);
+        int button = event.buttonInfo().button();
+        double mouseX = event.x();
+        double mouseY = event.y();
+
+        if (button != 0 || !this.mousePressed) {
+            return false;
+        }
+
+        int totalDragDistance = Math.abs((int) mouseX - this.dragStartX)
+                + Math.abs((int) mouseY - this.dragStartY);
 
         if (!this.dragging && totalDragDistance > dragThreshold) {
             this.dragging = true;
@@ -158,16 +181,20 @@ public class DraggableWidget extends AbstractWidget {
         return true;
     }
 
-//    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        int keyCode = event.key();
+
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.mousePressed) {
             this.cancelDrag();
             return true;
         }
 
-//        return super.keyPressed(keyCode, scanCode, modifiers);
-        return  false;
+        return super.keyPressed(event);
     }
+
+
 
     private void cancelDrag() {
         this.setX(this.widgetStartX);
@@ -242,7 +269,7 @@ public class DraggableWidget extends AbstractWidget {
 
     protected void renderBorder(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         var borderColor = this.dragging ? 0xFFFF0000 : 0xFFFFFFFF;
-//        ctx.drawBorder(this.getX(), this.getY(), this.width, this.height, borderColor);
+        ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, borderColor);
     }
 
     protected void renderContent(GuiGraphics context, int mouseX, int mouseY, float delta) {

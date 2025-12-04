@@ -14,6 +14,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -40,6 +41,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 @Slf4j
 public final class ProductInfoProvider {
@@ -220,8 +222,11 @@ public final class ProductInfoProvider {
                 }
 
                 var stack = slot.getItem();
-//                return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && Screen.hasControlDown() && Screen.hasShiftDown();
-                return false;
+
+                //Needs Refactoring
+                var isControlDown = InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL);
+                var isShiftDown = InputConstants.isKeyDown(Minecraft.getInstance().getWindow(),GLFW.GLFW_KEY_LEFT_SHIFT);
+                return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && isControlDown && isShiftDown;
             }
 
             @Override

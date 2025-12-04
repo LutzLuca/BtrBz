@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 public class StaticListWidget<T extends AbstractWidget> extends DraggableWidget {
@@ -70,13 +71,17 @@ public class StaticListWidget<T extends AbstractWidget> extends DraggableWidget 
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean drag) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.buttonInfo().button();
+
         if (this.isMouseOverTitleBar(mouseX, mouseY) && button == 0) {
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(event, drag);
         }
 
         if (!this.isMouseOverContent(mouseX, mouseY)) {
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(event, drag);
         }
 
         int childIdx = this.getChildAtPosition(mouseX, mouseY);
@@ -86,25 +91,33 @@ public class StaticListWidget<T extends AbstractWidget> extends DraggableWidget 
             return true;
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, drag);
     }
 
+
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        int button = event.buttonInfo().button();
+        double mouseX = event.x();
+        double mouseY = event.y();
+
         if (button == 0 && this.clickedChild != null) {
             T clicked = this.clickedChild;
             this.clickedChild = null;
 
             int childIdx = this.getChildAtPosition(mouseX, mouseY);
-            if (childIdx >= 0 && this.children.get(childIdx) == clicked && this.onChildClickCallback != null) {
+            if (childIdx >= 0
+                    && this.children.get(childIdx) == clicked
+                    && this.onChildClickCallback != null) {
                 this.onChildClickCallback.accept(clicked, childIdx);
             }
 
             return true;
         }
 
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
+
 
     @Override
     public boolean mouseScrolled(
@@ -192,7 +205,7 @@ public class StaticListWidget<T extends AbstractWidget> extends DraggableWidget 
         );
 
         int borderColor = isDraggingWidget ? 0xFFFF6B6B : (isHovered ? 0xFF606060 : 0xFF404040);
-       ctx.drawBorder(this.getX(), this.getY(), width, height, borderColor);
+        ctx.submitOutline(this.getX(), this.getY(), width, height, borderColor);
 
         this.renderTitleBar(ctx, isDraggingWidget, isHovered);
 

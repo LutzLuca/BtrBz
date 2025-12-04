@@ -7,7 +7,10 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
 // TODO add colapse/expand functionality
@@ -152,13 +155,18 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean drag) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.buttonInfo().button();
+
+
         if (this.isMouseOverTitleBar(mouseX, mouseY) && button == 0) {
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(event, drag);
         }
 
         if (!this.isMouseOverContent(mouseX, mouseY)) {
-            return super.mouseClicked(mouseX, mouseY, button);
+            return super.mouseClicked(event, drag);
         }
 
         int childIdx = this.getChildAtPosition(mouseX, mouseY);
@@ -166,10 +174,10 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         if (childIdx >= 0) {
             T child = children.get(childIdx);
 
-//            if (button == 1 && Screen.hasControlDown()) {
-             //   this.removeChild(childIdx);
-            //    return true;
- //           }
+            if (button == 1 && InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) { //Needs refactoring
+                this.removeChild(childIdx);
+                return true;
+            }
 
             if (button == 0) {
                 this.draggedChild = child;
@@ -180,13 +188,18 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, drag);
     }
 
+
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        int button = event.buttonInfo().button();
+        double mouseX = event.x();
+        double mouseY = event.y();
+
         if (button == 0 && this.draggedChild != null) {
-            boolean wasDragging = isDraggingChild;
+            boolean wasDragging = this.isDraggingChild;
 
             this.draggedChild = null;
             this.draggedChildOriginalIdx = -1;
@@ -202,22 +215,18 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             return true;
         }
 
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(
-        double mouseX,
-        double mouseY,
-        int button,
-        double deltaX,
-        double deltaY
-    ) {
+    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        double mouseY = event.y();
+
         if (this.draggedChild != null) {
             int dragDistance = Math.abs((int) mouseY - this.mouseDragStartY);
 
             if (!this.isDraggingChild && dragDistance > this.getDragThreshold()) {
-                isDraggingChild = true;
+                this.isDraggingChild = true;
             }
 
             if (this.isDraggingChild) {
@@ -237,8 +246,9 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             return true;
         }
 
-        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        return super.mouseDragged(event, deltaX, deltaY);
     }
+
 
     @Override
     public boolean mouseScrolled(
@@ -263,7 +273,9 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
+        var keyCode = event.key();
+
         if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.draggedChild != null) {
             this.draggedChild = null;
             this.draggedChildOriginalIdx = -1;
@@ -271,7 +283,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
             return true;
         }
 
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     private boolean isMouseOverTitleBar(double mouseX, double mouseY) {
@@ -337,7 +349,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         );
 
         int borderColor = isDraggingWidget ? 0xFFFF6B6B : (isHovered ? 0xFF606060 : 0xFF404040);
-//        ctx.drawBorder(this.getX(), this.getY(), width, height, borderColor);
+        ctx.submitOutline(this.getX(), this.getY(), width, height, borderColor);
 
         this.renderTitleBar(ctx, isDraggingWidget, isHovered);
 
