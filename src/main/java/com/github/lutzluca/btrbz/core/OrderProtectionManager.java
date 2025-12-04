@@ -105,7 +105,7 @@ public class OrderProtectionManager {
 
                 var validation = pending.validationResult();
                 boolean isBlocked = validation.protect();
-                boolean overrideActive = Minecraft.getInstance().hasControlDown(); //Might need a refactor
+                boolean overrideActive = Minecraft.getInstance().hasControlDown();
 
                 if (isBlocked && !overrideActive) {
                     if (cfg.showChatMessage) {

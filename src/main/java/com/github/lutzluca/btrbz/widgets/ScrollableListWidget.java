@@ -173,7 +173,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         if (childIdx >= 0) {
             T child = children.get(childIdx);
 
-            if (button == 1 && Minecraft.getInstance().hasControlDown()) { //Needs refactoring
+            if (button == 1 && Minecraft.getInstance().hasControlDown()) {
                 this.removeChild(childIdx);
                 return true;
             }
