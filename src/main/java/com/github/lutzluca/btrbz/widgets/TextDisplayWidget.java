@@ -105,7 +105,7 @@ public class TextDisplayWidget extends DraggableWidget {
     protected void renderBorder(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         if (!this.isDragging()) { return; }
 
-       ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, 0xFFFFD700);
+        ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, 0xFFFFD700);
     }
 
     @Override
@@ -123,7 +123,7 @@ public class TextDisplayWidget extends DraggableWidget {
         for (Component line : this.lines) {
             int textWidth = textRenderer.width(line);
             int textX = this.getX() + (this.width - textWidth) / 2;
-            ctx.drawString(textRenderer, line, textX, textY, 0xFFFFFF, false);
+            ctx.drawString(textRenderer, line, textX, textY, 0xFFFFFFFF, false);
             textY += textRenderer.lineHeight + LINE_SPACING;
         }
 
