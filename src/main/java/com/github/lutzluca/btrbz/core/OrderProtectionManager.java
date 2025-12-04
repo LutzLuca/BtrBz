@@ -25,6 +25,7 @@ import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -104,7 +105,7 @@ public class OrderProtectionManager {
 
                 var validation = pending.validationResult();
                 boolean isBlocked = validation.protect();
-                boolean overrideActive = false;
+                boolean overrideActive = Minecraft.getInstance().hasControlDown(); //Might need a refactor
 
                 if (isBlocked && !overrideActive) {
                     if (cfg.showChatMessage) {
@@ -128,7 +129,7 @@ public class OrderProtectionManager {
 
             var validation = pending.validationResult();
             boolean blocked = validation.protect();
-            boolean ctrlHeld = false;
+            boolean ctrlHeld = Minecraft.getInstance().hasControlDown();
 
             lines.add(Component.empty());
 
