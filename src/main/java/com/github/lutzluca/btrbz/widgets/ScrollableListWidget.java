@@ -10,7 +10,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 // TODO add colapse/expand functionality
 // This definitely needs some rework as everything is full of magic numbers (but lgtm)
@@ -273,9 +272,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        var keyCode = event.key();
-
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.draggedChild != null) {
+        if (event.isEscape() && this.draggedChild != null) {
             this.draggedChild = null;
             this.draggedChildOriginalIdx = -1;
             this.isDraggingChild = false;

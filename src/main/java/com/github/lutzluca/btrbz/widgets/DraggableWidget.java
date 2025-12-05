@@ -15,7 +15,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 // NOTE: the tooltip stuff is obnoxious; kinda needed to roll my own, for the integration
 // with the `ScrollableListWidget` using scissor so it would not be cut.
@@ -183,9 +182,7 @@ public class DraggableWidget extends AbstractWidget {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        int keyCode = event.key();
-
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.mousePressed) {
+        if (event.isEscape() && this.mousePressed) {
             this.cancelDrag();
             return true;
         }
