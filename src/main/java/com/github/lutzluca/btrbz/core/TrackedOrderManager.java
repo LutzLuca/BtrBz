@@ -303,7 +303,8 @@ public class TrackedOrderManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Notification"))
-                .description(OptionDescription.of(Component.literal("Tracked order notification settings")))
+                .description(OptionDescription.of(Component.literal(
+                    "Tracked order notification settings")))
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

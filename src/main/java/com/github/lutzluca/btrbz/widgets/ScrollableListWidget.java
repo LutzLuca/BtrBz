@@ -10,7 +10,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 // TODO add colapse/expand functionality
 // This definitely needs some rework as everything is full of magic numbers (but lgtm)
@@ -118,6 +117,10 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     }
 
     public void removeChild(T child) {
+        if (this.tooltipPendingChild == child) {
+            this.tooltipPendingChild = null;
+        }
+
         this.children.remove(child);
         this.clampScrollOffset();
         this.updateDimensions();
@@ -126,6 +129,11 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     public void removeChild(int idx) {
         if (idx >= 0 && idx < this.children.size()) {
             T removed = this.children.remove(idx);
+
+            if (this.tooltipPendingChild == removed) {
+                this.tooltipPendingChild = null;
+            }
+
             if (this.onChildRemovedCallback != null) {
                 this.onChildRemovedCallback.accept(removed);
             }
@@ -138,6 +146,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     public void clearChildren() {
         this.children.clear();
         this.scrollOffset = 0;
+        this.tooltipPendingChild = null;
         this.updateDimensions();
     }
 
@@ -164,7 +173,6 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.buttonInfo().button();
-
 
         if (this.isMouseOverTitleBar(mouseX, mouseY) && button == 0) {
             return super.mouseClicked(event, drag);
@@ -279,9 +287,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        var keyCode = event.key();
-
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && this.draggedChild != null) {
+        if (event.isEscape() && this.draggedChild != null) {
             this.draggedChild = null;
             this.draggedChildOriginalIdx = -1;
             this.isDraggingChild = false;
@@ -369,13 +375,18 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         }
 
         if (this.tooltipPendingChild != null && this.draggedChild == null) {
-            var tooltip = this.tooltipPendingChild.getTooltipLines();
-            ctx.setComponentTooltipForNextFrame(
-                Minecraft.getInstance().font,
-                tooltip,
-                this.tooltipMouseX,
-                this.tooltipMouseY
-            );
+
+            if (this.children.contains(this.tooltipPendingChild)) {
+                var tooltip = this.tooltipPendingChild.getTooltipLines();
+                ctx.setComponentTooltipForNextFrame(
+                    Minecraft.getInstance().font,
+                    tooltip,
+                    this.tooltipMouseX,
+                    this.tooltipMouseY
+                );
+            } else {
+                this.tooltipPendingChild = null;
+            }
         }
     }
 

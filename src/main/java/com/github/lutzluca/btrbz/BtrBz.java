@@ -97,12 +97,12 @@ public class BtrBz implements ClientModInitializer {
 
         var moduleManager = ModuleManager.getInstance();
         moduleManager.discoverBindings();
+        moduleManager.registerModule(BookmarkModule.class);
+        moduleManager.registerModule(PriceDiffModule.class);
+        moduleManager.registerModule(TrackedOrdersListModule.class);
+        moduleManager.registerModule(OrderPresetsModule.class);
         var orderLimitModule = moduleManager.registerModule(OrderLimitModule.class);
-        var bookmarkModule = moduleManager.registerModule(BookmarkModule.class);
-        var priceDiffModule = moduleManager.registerModule(PriceDiffModule.class);
         var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
-        var orderListModule = moduleManager.registerModule(TrackedOrdersListModule.class);
-        var orderPresetModule = moduleManager.registerModule(OrderPresetsModule.class);
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();
