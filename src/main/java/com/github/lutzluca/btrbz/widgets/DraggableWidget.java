@@ -210,7 +210,6 @@ public class DraggableWidget extends AbstractWidget {
     }
 
     public List<Component> getTooltipLines() {
-        System.out.println("getTooltipLines");
         if (this.tooltipSupplier == null) {
             return null;
         }

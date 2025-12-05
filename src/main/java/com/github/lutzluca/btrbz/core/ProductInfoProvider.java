@@ -31,7 +31,6 @@ import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
-import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
@@ -40,7 +39,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 @Slf4j
 public final class ProductInfoProvider {
@@ -67,16 +65,6 @@ public final class ProductInfoProvider {
             log.info("Initialized ProductInfoProvider");
         }
         return instance;
-    }
-
-    private static Optional<String> extractProductName(ContainerScreen screen) {
-        var handler = screen.getMenu();
-        var inv = handler.getContainer();
-        return Try
-            .of(() -> inv.getItem(PRODUCT_IDX))
-            .map(ItemStack::getHoverName)
-            .map(Component::getString)
-            .toJavaOptional();
     }
 
     private static Component createPriceText(

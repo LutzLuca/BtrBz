@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.utils.Position;

@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.utils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
