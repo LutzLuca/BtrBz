@@ -153,6 +153,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             Component.literal("Tracked Orders"),
             info.getScreen()
         )
+            .setcanDeleteEntries(false)
             .setMaxVisibleChildren(8)
             .setChildHeight(14)
             .setChildSpacing(1)

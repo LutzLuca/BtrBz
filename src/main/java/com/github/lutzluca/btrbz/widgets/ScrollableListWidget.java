@@ -33,6 +33,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     private int draggedChildOriginalIdx = -1;
     private int mouseDragStartY = 0;
     private boolean isDraggingChild = false;
+    private boolean canDeleteEntries = true;
 
     private T tooltipPendingChild = null;
     private int tooltipMouseX = 0;
@@ -79,6 +80,11 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
     public ScrollableListWidget<T> setBottomPadding(int padding) {
         this.bottomPadding = Math.max(0, padding);
         this.updateDimensions();
+        return this;
+    }
+
+    public ScrollableListWidget<T> setcanDeleteEntries(boolean canDeleteEntries ) {
+        this.canDeleteEntries = canDeleteEntries ;
         return this;
     }
 
@@ -173,7 +179,7 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         if (childIdx >= 0) {
             T child = children.get(childIdx);
 
-            if (button == 1 && Minecraft.getInstance().hasControlDown()) {
+            if (this.canDeleteEntries && (button == 1 && Minecraft.getInstance().hasControlDown()) ) {
                 this.removeChild(childIdx);
                 return true;
             }
