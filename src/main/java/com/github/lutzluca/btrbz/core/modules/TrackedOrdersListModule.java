@@ -301,7 +301,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             this.setRenderBackground(false);
 
             this.setTooltipSupplier(this::getTooltipLines);
-            this.setTooltipDelay(Duration.ofMillis(300));
         }
 
         private List<Component> priceLines(BazaarData data, String productId) {

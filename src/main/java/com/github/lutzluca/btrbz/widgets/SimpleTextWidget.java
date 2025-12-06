@@ -23,7 +23,7 @@ public class SimpleTextWidget extends AbstractWidget {
     private Supplier<List<Component>> tooltipSupplier = null;
 
     @Getter
-    private Duration tooltipDelay = Duration.ofMillis(200);
+    private final Duration TOOLTIP_DELAY = Duration.ofMillis(200);
 
     private long hoverStartTime = 0;
     private boolean wasHoveredLastFrame = false;
@@ -60,10 +60,6 @@ public class SimpleTextWidget extends AbstractWidget {
         return this;
     }
 
-    public SimpleTextWidget setTooltipShowDelay(Duration delay) {
-        this.tooltipDelay = delay;
-        return this;
-    }
 
     public List<Component> getTooltipLines() {
         if (this.tooltipSupplier == null) {
@@ -91,7 +87,7 @@ public class SimpleTextWidget extends AbstractWidget {
         }
 
         long hoverDuration = now - this.hoverStartTime;
-        return hoverDuration >= this.tooltipDelay.toMillis();
+        return hoverDuration >= this.TOOLTIP_DELAY.toMillis();
     }
 
     @Override
