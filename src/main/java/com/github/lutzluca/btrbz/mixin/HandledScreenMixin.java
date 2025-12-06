@@ -9,6 +9,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
@@ -88,6 +89,17 @@ public abstract class HandledScreenMixin<T extends AbstractContainerMenu> extend
             .getHighlight(idx)
             .ifPresent(color -> context.fill(x, y, x + 16, y + 16, color));
     }
+
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+    private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        for (GuiEventListener child : this.children()) {
+            if (child.keyPressed(event)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
+    }
+
 
     //@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ingame/HandledScreen;drawSlots(Lnet/minecraft/client/gui/DrawContext;)V", shift = At.Shift.AFTER))
     //private void afterRenderSlot(
