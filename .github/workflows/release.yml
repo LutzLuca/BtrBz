@@ -19,6 +19,8 @@ jobs:
           distribution: "microsoft"
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
+      - name: prepare changelog
+        run: ./scripts/extract-latest-changes.sh
       - name: build and release
         run: ./gradlew releaseMod
         env:

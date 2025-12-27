@@ -122,7 +122,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             accessor.setLine(0);
             accessor.invokeSetMessage(String.valueOf(this.pendingVolume));
 
-            signEditScreen.onClose();
+            //NOTE: signEditScreen.onClose() gets broken by Skyblocker so setScreen is used instead.
+            Minecraft.getInstance().setScreen(null);
 
             this.pendingVolume = -1;
             this.pendingPreset = false;

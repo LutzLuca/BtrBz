@@ -103,7 +103,7 @@ public class FlipHelper {
                         .literal("Flip for ")
                         .withStyle(ChatFormatting.GRAY)
                         .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
-                        .append(Component.literal("coins each").withStyle(ChatFormatting.GRAY))
+                        .append(Component.literal(" coins each").withStyle(ChatFormatting.GRAY))
                         .withStyle(style -> style.withItalic(false))
                 );
 
@@ -221,7 +221,8 @@ public class FlipHelper {
             accessor.setLine(0);
             accessor.invokeSetMessage(formatted);
 
-            signEditScreen.onClose();
+            //NOTE: signEditScreen.onClose() gets broken by Skyblocker so setScreen is used instead.
+            Minecraft.getInstance().setScreen(null);
             this.pendingFlips.add(new FlipEntry(
                 potentialFlipProduct.getProductName(),
                 flipPrice.get()

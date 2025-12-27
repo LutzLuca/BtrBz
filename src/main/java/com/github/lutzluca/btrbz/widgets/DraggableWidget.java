@@ -43,7 +43,7 @@ public class DraggableWidget extends AbstractWidget {
     @Getter
     private Supplier<List<Component>> tooltipSupplier = null;
     @Getter
-    private Duration tooltipDelay = Duration.ofMillis(500);
+    private final Duration TOOLTIP_DELAY = Duration.ofMillis(200);
 
     private long hoverStartTime = 0;
     private boolean wasHoveredLastFrame = false;
@@ -83,11 +83,6 @@ public class DraggableWidget extends AbstractWidget {
 
     public DraggableWidget setTooltipSupplier(Supplier<List<Component>> supplier) {
         this.tooltipSupplier = supplier;
-        return this;
-    }
-
-    public DraggableWidget setTooltipShowDelay(Duration delay) {
-        this.tooltipDelay = delay;
         return this;
     }
 
@@ -232,7 +227,7 @@ public class DraggableWidget extends AbstractWidget {
         }
 
         long hoverDuration = now - this.hoverStartTime;
-        return hoverDuration >= this.tooltipDelay.toMillis();
+        return hoverDuration >= this.TOOLTIP_DELAY.toMillis();
     }
 
     @Override
