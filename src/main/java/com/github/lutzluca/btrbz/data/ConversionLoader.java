@@ -38,10 +38,19 @@ public final class ConversionLoader {
         .getConfigDir()
         .resolve(BtrBz.MOD_ID);
     private static final Path LOCAL_CONVERSION_FILEPATH = MOD_CONFIG_DIR.resolve("conversions.json");
-    private static final ResourceLocation BUNDLED_CONVERSION_ID = ResourceLocation.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "conversions.json"
+
+    //? if >=1.21.11 {
+    /*private static final Identifier BUNDLED_CONVERSION_ID =  Identifier.fromNamespaceAndPath(
+            BtrBz.MOD_ID,
+            "conversions.json"
     );
+    *///?} else {
+    private static final ResourceLocation BUNDLED_CONVERSION_ID =  ResourceLocation.fromNamespaceAndPath(
+           BtrBz.MOD_ID,
+           "conversions.json"
+    );
+    //?}
+
 
     private static final String GITHUB_OWNER = "LutzLuca";
     private static final String GITHUB_REPO = "BtrBz";

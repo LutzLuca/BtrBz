@@ -340,7 +340,11 @@ public final class ProductInfoProvider {
             confirmed -> {
                 if (confirmed) {
                     Try
+                        //? if >=1.21.11 {
+                        /*.run(() -> net.minecraft.util.Util.getPlatform().openUri(new URI(link)))
+                        *///?} else {
                         .run(() -> net.minecraft.Util.getPlatform().openUri(new URI(link)))
+                        //?}
                         .onFailure(err -> Notifier.notifyPlayer(Component
                             .literal("Failed to open link: ")
                             .withStyle(ChatFormatting.RED)

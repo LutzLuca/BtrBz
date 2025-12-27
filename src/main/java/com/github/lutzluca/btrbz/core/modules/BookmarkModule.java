@@ -361,7 +361,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 var productName = obj.get("productName").getAsString();
                 var itemData = obj.getAsJsonObject("itemStack");
 
-                var itemId = ResourceLocation.parse(itemData.get("id").getAsString());
+                //? if >=1.21.11 {
+                /*var itemId =  Identifier.parse(itemData.get("id").getAsString());
+                *///?} else {
+                var itemId =  ResourceLocation.parse(itemData.get("id").getAsString());
+                //?}
+
                 var item = BuiltInRegistries.ITEM.getValue(itemId);
                 var stack = new ItemStack(item);
 

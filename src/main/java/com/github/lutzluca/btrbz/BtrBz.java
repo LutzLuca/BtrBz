@@ -80,11 +80,20 @@ public class BtrBz implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
-        BOOKMARKED = Registry.register(
-            BuiltInRegistries.DATA_COMPONENT_TYPE,
-            ResourceLocation.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
-        );
+
+        //? if >=1.21.11 {
+            /*BOOKMARKED = Registry.register(
+                    BuiltInRegistries.DATA_COMPONENT_TYPE,
+                    Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
+                    DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
+            );
+        *///?} else {
+            BOOKMARKED = Registry.register(
+                    BuiltInRegistries.DATA_COMPONENT_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
+                    DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
+            );
+        //?}
 
         ConfigManager.load();
         Commands.registerAll();

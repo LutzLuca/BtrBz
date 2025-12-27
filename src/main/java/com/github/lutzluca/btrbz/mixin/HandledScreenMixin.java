@@ -71,7 +71,22 @@ public abstract class HandledScreenMixin<T extends AbstractContainerMenu> extend
     }
 
     @Inject(method = "renderSlot", at = @At("HEAD"))
-    private void afterRenderSlot(GuiGraphics context, Slot slot, CallbackInfo ci) {
+    //? if >=1.21.11 {
+    /*private void afterRenderSlot(
+        GuiGraphics context,
+        Slot slot,
+        int mouseX,
+        int mouseY,
+        CallbackInfo ci
+    )
+    *///?} else {
+    private void afterRenderSlot(
+        GuiGraphics context,
+        Slot slot,
+        CallbackInfo ci
+    )
+    //?}
+    {
         if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
             return;
         }

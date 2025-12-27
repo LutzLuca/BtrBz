@@ -354,7 +354,8 @@ public class ScrollableListWidget<T extends DraggableWidget> extends DraggableWi
         );
 
         int borderColor = isDraggingWidget ? 0xFFFF6B6B : (isHovered ? 0xFF606060 : 0xFF404040);
-        ctx.submitOutline(this.getX(), this.getY(), width, height, borderColor);
+        //$ outline_swap
+        ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, borderColor);
 
         this.renderTitleBar(ctx, isDraggingWidget, isHovered);
 

@@ -263,7 +263,8 @@ public class DraggableWidget extends AbstractWidget {
     }
 
     protected void renderBorder(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
-        var borderColor = this.dragging ? 0xFFFF0000 : 0xFFFFFFFF;
+        int borderColor = this.dragging ? 0xFFFF0000 : 0xFFFFFFFF;
+        //$ outline_swap
         ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, borderColor);
     }
 

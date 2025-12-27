@@ -1,7 +1,20 @@
 plugins {
-    id("fabric-loom") version "1.13-SNAPSHOT"
+    id("fabric-loom") version "1.14-SNAPSHOT"
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
     java
+}
+
+stonecutter {
+    replacements {
+        string(current.version >= "1.21.11") {
+            replace("import net.minecraft.resources.ResourceLocation;", "import net.minecraft.resources.Identifier;")
+        }
+    }
+
+    swaps["outline_swap"] = when {
+        eval(current.version, ">=1.21.11") -> "ctx.renderOutline(this.getX(), this.getY(), this.width, this.height, borderColor);"
+        else -> "ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, borderColor);"
+    }
 }
 
 fun getProp(name: String): String =

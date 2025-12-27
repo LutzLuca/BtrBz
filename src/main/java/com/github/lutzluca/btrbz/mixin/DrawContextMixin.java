@@ -16,6 +16,29 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiGraphics.class)
 public class DrawContextMixin {
 
+    //? if >=1.21.11 {
+    /*@Unique
+    private static final Identifier BOOKMARK_ICON = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID,
+        "textures/bookmark.png"
+    );
+    @Unique
+    private static final Identifier BOOKMARK_STAR = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID,
+        "textures/bookmark-star.png"
+    );
+
+    @Unique
+    private static final Identifier GREEN_CHECK = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID,
+        "textures/green-check.png"
+    );
+    @Unique
+    private static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID,
+        "textures/red-cross.png"
+    );
+    *///?} else {
     @Unique
     private static final ResourceLocation BOOKMARK_ICON = ResourceLocation.fromNamespaceAndPath(
         BtrBz.MOD_ID,
@@ -37,6 +60,7 @@ public class DrawContextMixin {
         BtrBz.MOD_ID,
         "textures/red-cross.png"
     );
+    //?}
 
     @Inject(method = "renderItem(Lnet/minecraft/world/item/ItemStack;III)V", at = @At("TAIL"))
     private void drawIndicator(ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
