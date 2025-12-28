@@ -168,12 +168,11 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return this.configState.enabled && info.inMenu(
+        return this.configState.enabled && (info.inMenu(
             BazaarMenuType.Main,
             BazaarMenuType.Orders,
             BazaarMenuType.Item,
-            BazaarMenuType.ItemGroup
-        );
+            BazaarMenuType.ItemGroup) || this.configState.showEverywhere && info.inBazaar());
     }
 
     @Override
@@ -397,6 +396,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public List<BookmarkedItem> bookmarkedItems = new ArrayList<>();
         public Integer x, y;
         public boolean enabled = true;
+        public boolean showEverywhere = true;
         public int maxVisibleChildren = 6;
 
         public Option.Builder<Boolean> createEnabledOption() {
@@ -407,6 +407,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     "Display a list of bookmarked bazaar items for quick access")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
+        }
+
+
+        public Option.Builder<Boolean> createShowEverywhereOption() {
+            return Option
+                    .<Boolean>createBuilder()
+                    .name(Component.literal("Display everywhere in Bazaar"))
+                    .description(OptionDescription.of(Component.literal(
+                            "Whether to display the bookmarked list everywhere in the bazaar and not only in the item menus")))
+                    .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
+                    .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Integer> createMaxVisibleOption() {
@@ -428,7 +439,10 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         }
 
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createMaxVisibleOption());
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
+                this.createShowEverywhereOption(),
+                this.createMaxVisibleOption()
+            );
 
             return OptionGroup
                 .createBuilder()

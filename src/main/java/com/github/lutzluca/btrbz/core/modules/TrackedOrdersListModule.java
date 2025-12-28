@@ -204,7 +204,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .name(Component.literal("In Bazaar"))
                 .description(OptionDescription.of(Component.literal(
                     "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
-                .binding(false, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
+                .binding(true, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
