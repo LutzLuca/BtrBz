@@ -143,7 +143,8 @@ public final class ScreenInfoHelper {
         InventorySellConfirmation, // Are you sure?
         OrderOptions, // Order options
         Graphs, // <product name> ➜ Graphs
-        Settings; // Bazaar ➜ Settings
+        Settings,  // Bazaar ➜ Settings
+        Confirm; // Confirm
 
         public static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
@@ -219,6 +220,7 @@ public final class ScreenInfoHelper {
                 case OrderOptions -> title.equals("Order options");
                 case Graphs -> title.endsWith("➜ Graphs");
                 case Settings -> title.equals("Bazaar ➜ Settings");
+                case Confirm -> title.equals("Confirm") && ScreenInfoHelper.get().getPrevInfo().inBazaar();
             };
         }
     }
