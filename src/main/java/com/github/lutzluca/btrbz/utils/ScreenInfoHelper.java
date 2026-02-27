@@ -206,11 +206,11 @@ public final class ScreenInfoHelper {
                     yield info.getGenericContainerScreen().map(gcs -> {
                         var handler = gcs.getMenu();
                         var inventory = handler.getContainer();
-                        var slot = inventory.getContainerSize() - 3;
+                        var slot = inventory.getContainerSize() - 4;
 
                         return Try
                             .of(() -> inventory.getItem(slot).getItem())
-                            .map((item) -> item.equals(Items.CAULDRON) || item.equals(Items.BLACK_STAINED_GLASS_PANE))
+                            .map((item) -> item.equals(Items.BOOK) || item.getName().getString().equals("Manage Orders"))
                             .getOrElse(false);
                     }).orElse(false);
                 }
