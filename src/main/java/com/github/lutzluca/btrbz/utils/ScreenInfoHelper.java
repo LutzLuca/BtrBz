@@ -211,7 +211,7 @@ public final class ScreenInfoHelper {
 
                         return Try
                             .of(() -> inventory.getItem(slot).getItem())
-                            .map((item) -> item.equals(Items.BOOK) || item.getName().getString().equals("Manage Orders"))
+                            .map((item) -> item.equals(Items.BOOK) && item.getName().getString().equals("Manage Orders"))
                             .getOrElse(false);
                     }).orElse(false);
                 }
