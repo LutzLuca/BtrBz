@@ -59,17 +59,43 @@ const NAME_OVERRIDES: Record<string, string> = {
     ENCHANTMENT_ULTIMATE_JERRY_4: "Ultimate Jerry IV",
     ENCHANTMENT_ULTIMATE_JERRY_5: "Ultimate Jerry V",
 
-    ENCHANTMENT_TRIPLE_STRIKE_5: "Triple-Strike V",
-    ENCHANTMENT_SYPHON_4: "Drain IV",
-    ENCHANTMENT_SYPHON_5: "Drain V",
+    ENCHANTMENT_ULTIMATE_REITERATE_1: "Duplex I",
+    ENCHANTMENT_ULTIMATE_REITERATE_2: "Duplex II",
+    ENCHANTMENT_ULTIMATE_REITERATE_3: "Duplex III",
+    ENCHANTMENT_ULTIMATE_REITERATE_4: "Duplex IV",
+    ENCHANTMENT_ULTIMATE_REITERATE_5: "Duplex V",
 
-    ENCHANTMENT_DRAGON_HUNTER_6: "Gravity VI",
+    ENCHANTMENT_ULTIMATE_BOBBIN_TIME_3: "Bobbin' Time III",
+    ENCHANTMENT_ULTIMATE_BOBBIN_TIME_4: "Bobbin' Time IV",
+    ENCHANTMENT_ULTIMATE_BOBBIN_TIME_5: "Bobbin' Time V",
 
     ENCHANTMENT_PRISTINE_1: "Prismatic I",
     ENCHANTMENT_PRISTINE_2: "Prismatic II",
     ENCHANTMENT_PRISTINE_3: "Prismatic III",
     ENCHANTMENT_PRISTINE_4: "Prismatic IV",
     ENCHANTMENT_PRISTINE_5: "Prismatic V",
+
+    ENCHANTMENT_TURBO_CACTUS_1: "Turbo-Cacti I",
+    ENCHANTMENT_TURBO_CACTUS_2: "Turbo-Cacti II",
+    ENCHANTMENT_TURBO_CACTUS_3: "Turbo-Cacti III",
+    ENCHANTMENT_TURBO_CACTUS_4: "Turbo-Cacti IV",
+    ENCHANTMENT_TURBO_CACTUS_5: "Turbo-Cacti V",
+
+    ENCHANTMENT_COUNTER_STRIKE_3: "Counter-Strike III",
+    ENCHANTMENT_COUNTER_STRIKE_4: "Counter-Strike IV",
+    ENCHANTMENT_COUNTER_STRIKE_5: "Counter-Strike V",
+
+    ENCHANTMENT_SYPHON_4: "Drain IV",
+    ENCHANTMENT_SYPHON_5: "Drain V",
+
+    ENCHANTMENT_TRIPLE_STRIKE_5: "Triple-Strike V",
+    ENCHANTMENT_DRAGON_HUNTER_6: "Gravity VI",
+    ENCHANTMENT_ARCANE_6: "Woodsplitter VI",
+
+    SHARD_CINDER_BAT: "Cinderbat Shard",
+    SHARD_ENDSTONE_PROTECTOR: "End Stone Protector Shard",
+    SHARD_SEA_ARCHER: "Bogged Shard",
+    SHARD_STRIDER_SURFER: "Stridersurfer Shard",
 };
 
 const GEM_SYMBOLS: Record<string, string> = {
@@ -157,6 +183,8 @@ function idToName(id: string): string {
         name = `${name.slice("Shard ".length)} Shard`;
     } else if (cleanedId.startsWith("ESSENCE_") && name.startsWith("Essence")) {
         name = `${name.slice("Essence ".length)} Essence`;
+    } else if (cleanedId.startsWith("TURBO_") && name.startsWith("Turbo ")) {
+        name = `Turbo-${name.slice("Turbo ".length)}`;
     }
 
     return name.trim();
@@ -240,9 +268,8 @@ async function createMapping(outputFile = "conversions.json") {
                 const fromItems = id in itemIdToName;
                 fromItems ? usedFromItems++ : constructedManually++;
 
-                const name = fromItems
-                    ? cleanName(itemIdToName[id]!)
-                    : idToName(id);
+                const name =
+                    fromItems ? cleanName(itemIdToName[id]!) : idToName(id);
                 return [id, name];
             })
             .sort(([idA], [idB]) => idA!.localeCompare(idB!)),
