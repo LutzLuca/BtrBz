@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.3-alpha] - 2025-02-27
+
+### Added
+
+- Detection for the "Confirm" menu within in the Bazaar
+
+### Fixed
+
+- Fixed mod failing to load on Minecraft due to missing Apache HttpClient classes
+- Some Item conversions
+- Fixed an issue where some menus were incorrectly classified as Bazaar menus, causing widgets to appear in the wrong screens
+- Fixed an issue where the custom Order Book item override in the Product Menu was also applied to the player inventory, unintentionally replacing the "Skyblock Menu" item.
+- `normalizeProductName` now handles last tokens that are already Roman numerals,
+  uppercasing them correctly instead of leaving them in title case.
+- Fixed modmenu being incorrectly declared as a required dependency.
+  It is now compile-only, meaning the mod should work correctly with or
+  without modmenu installed.
+
 ## [0.1.2-alpha] - 2025-12-28
 
 ### Added
