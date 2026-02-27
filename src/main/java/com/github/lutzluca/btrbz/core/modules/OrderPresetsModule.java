@@ -12,8 +12,8 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.widgets.SimpleTextWidget;
-import com.github.lutzluca.btrbz.widgets.StaticListWidget;
+import com.github.lutzluca.btrbz.widgets.widgets.ListWidget;
+import com.github.lutzluca.btrbz.widgets.base.Renderable;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -22,10 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
@@ -37,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
 
-    private StaticListWidget<OrderPresetEntry> list;
+    private ListWidget list;
     private int currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
 
     // TODO: combine `openedProductId` with ProductInfoProvider's state for `openedProductId`
@@ -199,10 +200,10 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         presets.add(new OrderPreset.Max());
 
-        List<OrderPresetEntry> entries = new ArrayList<>();
+        List<Renderable> entries = new ArrayList<>();
 
         for (var preset : presets) {
-            OrderPresetEntry entry = new OrderPresetEntry(preset);
+            var entry = new OrderPresetRenderable(preset);
 
             switch (preset) {
                 case OrderPreset.Volume volume -> {
@@ -224,7 +225,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             entries.add(entry);
         }
 
-        list.rebuildEntries(entries);
+        list.setItems(entries);
     }
 
     private Optional<Integer> getMaxVolume(@NotNull ItemStack item) {
@@ -246,30 +247,31 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     @Override
-    public List<AbstractWidget> createWidgets(ScreenInfo info) {
+    public List<com.github.lutzluca.btrbz.widgets.base.DraggableWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
+        
         // TODO get a better default position
         var position = this.getConfigPosition().orElse(new Position(10, 10));
-        this.list = new StaticListWidget<>(
+        this.list = new ListWidget(
             position.x(),
             position.y(),
             60,
             100,
-            Component.literal("Presets"),
-            info.getScreen()
+            "Presets"
         );
 
-        this.list.setMaxVisibleChildren(5);
-
-        this.list.onChildClick((entry, index) -> {
-            if (!entry.isDisabled()) {
-                this.handlePresetClick(entry.getPreset());
-            }
-        });
-
-        this.list.onDragEnd((self, pos) -> this.savePosition(pos));
+        this.list.setItemHeight(16)
+            .setItemSpacing(1)
+            .setReorderable(false)
+            .setRemovable(false)
+            .onItemClick(item -> {
+                var preset = (OrderPresetRenderable) item;
+                if (!preset.isDisabled()) {
+                    this.handlePresetClick(preset.getPreset());
+                }
+            }).onDragEnd((self, pos) -> this.savePosition(pos));
 
         this.rebuildList();
 
@@ -277,7 +279,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private void savePosition(Position pos) {
-        log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
+        log.debug("Saving new position for OrderPresetsModule: {}", pos);
         this.updateConfig(cfg -> {
             cfg.x = pos.x();
             cfg.y = pos.y();
@@ -335,8 +337,6 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         log.debug("Preset click processed: volume={}", volume);
 
-
-
         // noinspection OptionalGetWithoutIsPresent
         interactionManager.handleInventoryMouseClick(
             ScreenInfoHelper
@@ -386,20 +386,57 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         }
     }
 
-    @Getter
-    private static class OrderPresetEntry extends SimpleTextWidget {
-
+    public static class OrderPresetRenderable implements Renderable {
+        @Getter
         private final OrderPreset preset;
+        @Getter
+        @Setter
+        private boolean disabled = false;
+        private List<Component> tooltipLines = null;
+        private final Component displayText;
+        private final int backgroundColor;
 
-        public OrderPresetEntry(OrderPreset preset) {
-            super(0, 0, 60, 14, Component.literal(preset.toString()));
+        public OrderPresetRenderable(OrderPreset preset) {
             this.preset = preset;
+            this.displayText = Component.literal(preset.toString());
+            this.backgroundColor = (preset instanceof OrderPreset.Max)
+                ? 0x80404020
+                : 0x80000000;
+        }
 
-            if (preset instanceof OrderPreset.Max) {
-                this.setBackgroundColor(0x80404020);
-            }
+        public void setTooltipLines(List<Component> lines) {
+            this.tooltipLines = lines;
+        }
+
+        @Override
+        public void render(
+            net.minecraft.client.gui.GuiGraphics graphics,
+            int x, int y, int width, int height,
+            int mouseX, int mouseY, float delta,
+            boolean hovered
+        ) {
+            var font = Minecraft.getInstance().font;
+
+            int bgColor = hovered && !disabled ? 0x60FFFFFF : this.backgroundColor;
+            graphics.fill(x, y, x + width, y + height, bgColor);
+
+            int textColor = disabled ? 0xFF888888 : 0xFFFFFFFF;
+            int textY = y + (height - font.lineHeight) / 2;
+            graphics.drawString(font, this.displayText, x + 4, textY, textColor);
+        }
+
+        @Override
+        public List<Component> getTooltip() {
+            return this.tooltipLines;
+        }
+
+        @Override
+        public String getId() {
+            return "preset-" + this.preset.toString();
         }
     }
+
+
 
     public static class OrderPresetsConfig {
 

@@ -4,14 +4,11 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import lombok.extern.slf4j.Slf4j;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,39 +18,28 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractContainerScreen.class)
-@Slf4j
-public abstract class HandledScreenMixin<T extends AbstractContainerMenu> extends Screen {
-
-    //@Shadow
-    //@Final
-    //protected T handler;
-
-    protected HandledScreenMixin(Component title) { super(title); }
+public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
         ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null) {
+            wm.cleanup();
+        }
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void onMouseScrolled(
-        double mouseX,
-        double mouseY,
-        double horizontalAmount,
-        double verticalAmount,
-        CallbackInfoReturnable<Boolean> cir
-    ) {
-        for (GuiEventListener child : this.children()) {
-            if (child.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
-                cir.setReturnValue(true);
-                return;
-            }
+    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
+            cir.setReturnValue(true);
         }
     }
 
 
     @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ClickType;)V", at = @At("HEAD"), cancellable = true)
-    private void onHandledMouseClick(
+    private void onSlotClicked(
         Slot slot,
         int slotId,
         int button,
@@ -107,37 +93,41 @@ public abstract class HandledScreenMixin<T extends AbstractContainerMenu> extend
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        for (GuiEventListener child : this.children()) {
-            if (child.keyPressed(event)) {
-                cir.setReturnValue(true);
-                return;
-            }
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null && wm.keyPressed(event.key(), event.scancode(), event.modifiers())) {
+            cir.setReturnValue(true);
         }
     }
 
+    @Inject(method = "render", at = @At("TAIL"))
+    private void onRender(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null) {
+            wm.render(graphics, mouseX, mouseY, delta);
+        }
+    }
 
-    //@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ingame/HandledScreen;drawSlots(Lnet/minecraft/client/gui/DrawContext;)V", shift = At.Shift.AFTER))
-    //private void afterRenderSlot(
-    //    DrawContext context,
-    //    int mouseX,
-    //    int mouseY,
-    //    float deltaTicks,
-    //    CallbackInfo ci
-    //) {
-    //    if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
-    //        return;
-    //    }
-    //
-    //    var manager = BtrBz.highlightManager();
-    //
-    //    for (Slot slot : this.handler.slots) {
-    //        if (slot.getStack().getItem() || GameUtils.isPlayerInventorySlot(slot)) {
-    //            continue;
-    //        }
-    //
-    //        manager
-    //            .getHighlight(slot.getIndex())
-    //            .ifPresent(color -> context.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, color));
-    //    }
-    //}
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null && wm.mouseClicked(event.x(), event.y(), event.button())) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "mouseReleased", at = @At("HEAD"))
+    private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null) {
+            wm.mouseReleased(event.x(), event.y(), event.button());
+        }
+    }
+
+    @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
+    private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
+        var wm = ModuleManager.getInstance().getWidgetManager();
+        if (wm != null && wm.mouseDragged(event.x(), event.y(), event.button(), deltaX, deltaY)) {
+            cir.setReturnValue(true);
+        }
+    }
 }

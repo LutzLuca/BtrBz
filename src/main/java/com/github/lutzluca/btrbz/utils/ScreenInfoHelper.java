@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
-import com.github.lutzluca.btrbz.mixin.HandledScreenAccessor;
+import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.Arrays;
@@ -280,7 +280,7 @@ public final class ScreenInfoHelper {
         }
 
         public Optional<HandledScreenBounds> getHandledScreenBounds() {
-            if (!(this.screen instanceof HandledScreenAccessor accessor)) {
+            if (!(this.screen instanceof AbstractContainerScreenAccessor accessor)) {
                 return Optional.empty();
             }
 

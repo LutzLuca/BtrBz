@@ -4,7 +4,8 @@ import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
-import com.github.lutzluca.btrbz.mixin.ScreenAccessor;
+import com.github.lutzluca.btrbz.widgets.core.WidgetManager;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
@@ -14,6 +15,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +26,9 @@ public class ModuleManager {
 
     private final Map<Class<? extends Module<?>>, Module<?>> modules = new HashMap<>();
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
+
+    @Getter
+    private WidgetManager widgetManager;
 
     @Setter
     private boolean isDirty = false;
@@ -48,14 +53,9 @@ public class ModuleManager {
 
 
     private void renderModules(ScreenInfo info) {
-        var screen = info.getScreen();
-        if (!(screen instanceof ScreenAccessor accessor)) {
-            return;
-        }
-
         this.modules.values().forEach(module -> module.setDisplayed(false));
 
-        var widgets = this.modules
+        java.util.List<DraggableWidget> widgets = this.modules
             .values()
             .stream()
             .filter(module -> module.shouldDisplay(info))
@@ -63,16 +63,12 @@ public class ModuleManager {
             .flatMap(module -> module.createWidgets(info).stream())
             .toList();
 
-        log.trace("Adding {} widgets for initial render", widgets.size());
-        widgets.forEach(accessor::invokeAddRenderableWidget);
+        this.widgetManager = new WidgetManager(widgets);
+        this.widgetManager.init();
+        log.trace("WidgetManager initialized with {} widgets", widgets.size());
     }
 
     private void revalidateModules(ScreenInfo info) {
-        var screen = info.getScreen();
-        if (!(screen instanceof ScreenAccessor accessor)) {
-            return;
-        }
-
         var newWidgets = this.modules
             .values()
             .stream()
@@ -89,14 +85,14 @@ public class ModuleManager {
 
         if (!newWidgets.isEmpty()) {
             log.debug("Adding {} widgets after revalidation", newWidgets.size());
-            newWidgets.forEach(accessor::invokeAddRenderableWidget);
+            newWidgets.forEach(this.widgetManager::addWidget);
         }
     }
 
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
         try {
             M module = moduleClass.getDeclaredConstructor().newInstance();
-            modules.put(moduleClass, module);
+            this.modules.put(moduleClass, module);
             this.applyConfigToModule(module);
             module.onLoad();
             log.info("Registered module: {}", moduleClass.getName());
@@ -143,7 +139,7 @@ public class ModuleManager {
                 );
 
                 this.validateBinding(field, moduleClass);
-                moduleBindings.put(moduleClass, field);
+                this.moduleBindings.put(moduleClass, field);
             }
         }
     }
@@ -202,7 +198,7 @@ public class ModuleManager {
 
     @SuppressWarnings("unchecked")
     public <M extends Module<?>> M getModule(Class<M> moduleClass) {
-        Module<?> module = modules.get(moduleClass);
+        Module<?> module = this.modules.get(moduleClass);
         if (module == null) {
             throw new IllegalStateException("Module not registered: " + moduleClass.getName());
         }

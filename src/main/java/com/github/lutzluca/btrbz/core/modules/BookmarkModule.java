@@ -14,8 +14,9 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.widgets.DraggableWidget;
-import com.github.lutzluca.btrbz.widgets.ScrollableListWidget;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+import com.github.lutzluca.btrbz.widgets.base.Renderable;
+import com.github.lutzluca.btrbz.widgets.widgets.ListWidget;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -35,12 +36,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.NbtOps;
@@ -50,12 +50,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
-// TODO have a little more configuration for size; this will involve changes to ScrollableListWidget
-// TODO make it a little prettier
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
 
-    private ScrollableListWidget<BookmarkedItemWidget> list;
+    private ListWidget list;
 
     @Override
     public void onLoad() {
@@ -111,7 +109,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return;
         }
 
-        this.list.setMaxVisibleChildren(ConfigManager.get().bookmark.maxVisibleChildren);
+        this.list.setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
     }
 
     private boolean toggleBookmark(String productName, ItemStack itemStack) {
@@ -141,22 +139,22 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         }
 
         if (bookmarked.bookmarked) {
-            this.list.addChild(this.createBookmarkedItemWidget(
-                new BookmarkedItem(
-                    productName,
-                    itemStack
-                ), this.list.getParentScreen()
-            ));
+            this.list.addItem(new BookmarkedItemRenderable(productName, itemStack));
             return bookmarked.bookmarked;
         }
 
         this.list
-            .getChildren()
+            .getItems()
             .stream()
-            .filter(widget -> widget.getProductName().equals(productName))
+            .filter(widget ->((BookmarkedItemRenderable) widget).getProductName().equals(productName))
             .findFirst()
             .ifPresentOrElse(
-                widget -> this.list.removeChild(widget),
+                widget -> {
+                    int index = this.list.getItems().indexOf(widget);
+                    if (index >= 0) {
+                        this.list.removeItem(index);
+                    }
+                },
                 () -> log.warn(
                     "Tried to remove bookmark widget for {}, but it was not found",
                     productName
@@ -176,44 +174,32 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     @Override
-    public List<AbstractWidget> createWidgets(ScreenInfo info) {
+    public List<DraggableWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
 
         var position = this.getConfigPosition().orElse(new Position(10, 10));
 
-        ScrollableListWidget<BookmarkedItemWidget> widget = this.list = new ScrollableListWidget<>(
-            position.x(),
-            position.y(),
-            180,
-            200,
-            Component.literal("Bookmarked Items"),
-            info.getScreen()
-        );
+        var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 
-        widget
-            .setMaxVisibleChildren(this.configState.maxVisibleChildren)
-            .setChildHeight(16)
-            .setBottomPadding(2)
-            .setTopMargin(2)
-            .setChildSpacing(1)
-            .onChildClick((child, index) -> {
-                GameUtils.runCommand(String.format("bz %s", child.productName));
-            })
-            .onChildReordered(() -> syncBookmarksFromList(widget))
-            .onChildRemoved((child) -> syncBookmarksFromList(widget))
-            .onDragEnd((self, pos) -> savePosition(pos));
+        widget.setItemHeight(16)
+            .setItemSpacing(1)
+            .setReorderable(true)
+            .setRemovable(true)
+            .setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
 
-        for (BookmarkedItem item : this.configState.bookmarkedItems) {
-            widget.addChild(this.createBookmarkedItemWidget(item, info.getScreen()));
-        }
+        widget.onItemClick(item -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
+            .onReorder(items -> this.syncBookmarksFromList(items))
+            .onRemove(item -> this.syncBookmarksFromList(this.list.getItems()))
+            .onDragEnd((self, pos) -> this.savePosition(pos));
+
+        List<Renderable> items = this.configState.bookmarkedItems.stream()
+            .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack()))
+            .collect(Collectors.toList());
+        widget.setItems(items);
 
         return List.of(widget);
-    }
-
-    private BookmarkedItemWidget createBookmarkedItemWidget(BookmarkedItem item, Screen parent) {
-        return new BookmarkedItemWidget(0, 0, 180, 16, item.productName, item.itemStack, parent);
     }
 
     public boolean isBookmarked(String productName) {
@@ -222,14 +208,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .anyMatch(item -> item.productName.equals(productName));
     }
 
-    private void syncBookmarksFromList(ScrollableListWidget<BookmarkedItemWidget> list) {
+    private void syncBookmarksFromList(List<Renderable> items) {
         log.debug("Syncing bookmarks from widget list to config");
 
         this.updateConfig(cfg -> {
-            cfg.bookmarkedItems = list
-                .getChildren()
-                .stream()
-                .map(widget -> new BookmarkedItem(widget.getProductName(), widget.getItemStack()))
+            cfg.bookmarkedItems = items.stream()
+                .map(BookmarkedItemRenderable.class::cast)
+                .map(item -> new BookmarkedItem(item.getProductName(), item.getItemStack()))
                 .collect(Collectors.toList());
         });
     }
@@ -248,72 +233,59 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         });
     }
 
-    public static class BookmarkedItemWidget extends DraggableWidget {
-
+    public static class BookmarkedItemRenderable implements Renderable {
         @Getter
         private final String productName;
         @Getter
         private final ItemStack itemStack;
 
         private final int color;
+        private final Component displayText;
 
-        public BookmarkedItemWidget(
-            int x,
-            int y,
-            int width,
-            int height,
-            String productName,
-            ItemStack itemStack,
-            Screen parent
-        ) {
-            super(x, y, width, height, Component.literal(productName), parent);
+        public BookmarkedItemRenderable(String productName, ItemStack itemStack) {
             this.productName = productName;
             this.itemStack = itemStack;
+
             //noinspection DataFlowIssue
             this.color = (0xFF << 24) | Try
-                .of(() -> itemStack
-                    .getHoverName()
-                    .getSiblings()
-                    .getFirst()
-                    .getStyle()
-                    .getColor()
-                    .getValue())
+                .of(() -> itemStack.getHoverName().getSiblings().getFirst()
+                    .getStyle().getColor().getValue())
                 .getOrElse(0xD3D3D3);
-            this.setRenderBackground(false);
-            this.setRenderBorder(false);
+            this.displayText = Component.literal(productName);
         }
 
         @Override
-        protected void renderContent(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
-            var textRenderer = Minecraft.getInstance().font;
+        public void render(
+            GuiGraphics graphics,
+            int x, int y, int width, int height,
+            int mouseX, int mouseY, float delta,
+            boolean hovered
+        ) {
+            var font = Minecraft.getInstance().font;
 
-            int iconX = this.getX() + 4;
-            int iconY = this.getY() + (this.height - 14) / 2;
+            if (hovered) {
+                graphics.fill(x, y, x + width, y + height, 0x30FFFFFF);
+            }
+
+            int iconX = x + 4;
+            int iconY = y + (height - 14) / 2;
             float scale = 14f / 16f;
 
-
-            var matrices = ctx.pose();
+            var matrices = graphics.pose();
             matrices.pushMatrix();
             matrices.translate(iconX, iconY);
             matrices.scale(scale, scale);
-            ctx.renderItem(this.itemStack, 0, 0);
+            graphics.renderItem(this.itemStack, 0, 0);
             matrices.popMatrix();
 
-
-
-            if (this.isHovered) {
-                ctx.fill(
-                    this.getX(),
-                    this.getY(),
-                    this.getX() + this.getWidth(),
-                    this.getY() + this.getHeight(),
-                    0x30FFFFFF
-                );
-            }
-
             int textX = iconX + 18;
-            int textY = this.getY() + (this.height - textRenderer.lineHeight) / 2;
-            ctx.drawString(textRenderer, this.productName, textX, textY, this.color);
+            int textY = y + (height - font.lineHeight) / 2;
+            graphics.drawString(font, this.displayText, textX, textY, this.color);
+        }
+
+        @Override
+        public String getId() {
+            return "bookmark-" + this.productName;
         }
     }
 

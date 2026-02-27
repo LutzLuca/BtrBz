@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -14,25 +15,24 @@ import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.widgets.DraggableWidget;
-import com.github.lutzluca.btrbz.widgets.ScrollableListWidget;
+import com.github.lutzluca.btrbz.widgets.widgets.ListWidget;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+import com.github.lutzluca.btrbz.widgets.base.Renderable;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
+import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
 public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
     private final TooltipCache tooltipCache = new TooltipCache();
-    private ScrollableListWidget<OrderEntryWidget> list;
+    private ListWidget list;
     private Integer currentHoverSlot = null;
 
     @Override
@@ -58,7 +58,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         var entry = this.createEntryWidget(order);
-        this.list.addChild(entry);
+        this.list.addItem(entry);
     }
 
     private void onOrderRemoved(TrackedOrder order) {
@@ -66,11 +66,11 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return;
         }
 
-        var children = this.list.getChildren();
+        var children = this.list.getItems();
         for (int i = 0; i < children.size(); i++) {
-            var widget = children.get(i);
+            var widget = (OrderEntryRenderable) children.get(i);
             if (widget.getOrder() == order) {
-                this.list.removeChild(i);
+                this.list.removeItem(i);
                 break;
             }
         }
@@ -97,12 +97,12 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return;
         }
 
-        this.list.clearChildren();
+        this.list.clear();
 
         var orderManager = BtrBz.orderManager();
         for (var order : orderManager.getTrackedOrders()) {
             var entry = this.createEntryWidget(order);
-            this.list.addChild(entry);
+            this.list.addItem(entry);
         }
     }
 
@@ -111,21 +111,19 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return;
         }
 
-        this.list.clearChildren();
+        this.list.clear();
     }
 
-    private OrderEntryWidget createEntryWidget(TrackedOrder order) {
-        return new OrderEntryWidget(
-            0,
-            0,
-            200,
-            14,
-            order,
-            this.list.getParentScreen(),
-            widget -> this.onWidgetHoverEnter(widget.getSlotIdx()),
-            widget -> this.onWidgetHoverExit(widget.getSlotIdx()),
-            this.tooltipCache
-        );
+    public void updateChildrenCount() {
+        if (this.list == null) {
+            return;
+        }
+
+        this.list.setMaxVisibleItems(this.configState.maxVisibleChildren);
+    }
+
+    private OrderEntryRenderable createEntryWidget(TrackedOrder order) {
+        return new OrderEntryRenderable(order, this.tooltipCache);
     }
 
     @Override
@@ -134,7 +132,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     @Override
-    public List<AbstractWidget> createWidgets(ScreenInfo info) {
+    public List<DraggableWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
@@ -144,23 +142,32 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return List.of();
         }
 
-        this.list = new ScrollableListWidget<OrderEntryWidget>(
+        this.list = new ListWidget(
             position.get().x(),
             position.get().y(),
-            200,
+            175,
             250,
-            Component.literal("Tracked Orders"),
-            info.getScreen()
-        )
-            .setcanDeleteEntries(false)
-            .setMaxVisibleChildren(8)
-            .setChildHeight(14)
-            .setChildSpacing(1)
-            .setTitleBarHeight(18)
-            .setTopMargin(2)
-            .setBottomPadding(2);
+            "Tracked Orders"
+        );
+        this.list.setItemHeight(14)
+            .setItemSpacing(1)
+            .setRemovable(false)
+            .setReorderable(false)
+            .setMaxVisibleItems(this.configState.maxVisibleChildren)
+            .onDragEnd((self, pos) -> this.savePosition(pos));
 
-        this.list.onDragEnd((self, pos) -> this.savePosition(pos));
+        this.list.onHoverChange((oldIdx, newIdx) -> {
+            // TODO: I think here is a bug, not sure why. Sometimes when you open the bazaar the item is still hovered
+            var items = this.list.getItems();
+            log.debug("Hover change: {} -> {} | Displayed Products: {}, {}", oldIdx, newIdx, ((OrderEntryRenderable) items.get(oldIdx)).getOrder(), ((OrderEntryRenderable) items.get(newIdx)).getOrder());
+
+            if (oldIdx >= 0 && oldIdx < items.size() && items.get(oldIdx) instanceof OrderEntryRenderable orderEntry) {
+                this.onWidgetHoverExit(orderEntry.getSlotIdx());
+            }
+            if (newIdx >= 0 && newIdx < items.size() && items.get(newIdx) instanceof OrderEntryRenderable orderEntry) {
+                this.onWidgetHoverEnter(orderEntry.getSlotIdx());
+            }
+        });
 
         this.initializeList();
 
@@ -168,7 +175,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     private void savePosition(Position pos) {
-        log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
+        log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
         this.updateConfig(cfg -> {
             cfg.x = pos.x();
             cfg.y = pos.y();
@@ -196,6 +203,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public boolean enabled = true;
         public boolean showInBazaar = true;
         public boolean showTooltips = true;
+        public int maxVisibleChildren = 6;
 
         public Option.Builder<Boolean> createInBazaarOption() {
             return Option
@@ -217,6 +225,24 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Option.Builder<Integer> createMaxVisibleOption() {
+            return Option
+                .<Integer>createBuilder()
+                .name(Component.literal("Max Visible Items"))
+                .description(OptionDescription.of(Component.literal(
+                    "Maximum number of orders visible at once before scrolling")))
+                .binding(
+                    6, () -> this.maxVisibleChildren, val -> {
+                        this.maxVisibleChildren = val;
+                        ModuleManager
+                            .getInstance()
+                            .getModule(TrackedOrdersListModule.class)
+                            .updateChildrenCount();
+                    }
+                )
+                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(5, 10).step(1));
+        }
+
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
@@ -230,7 +256,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public OptionGroup getGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
                 this.createInBazaarOption(),
-                this.createTooltipsOption()
+                this.createTooltipsOption(),
+                this.createMaxVisibleOption()
             );
 
             return OptionGroup
@@ -271,35 +298,15 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     @Slf4j
-    private static class OrderEntryWidget extends DraggableWidget {
+    private static class OrderEntryRenderable implements Renderable {
 
         @Getter
         private final TrackedOrder order;
-        private final Consumer<OrderEntryWidget> onHoverEnter;
-        private final Consumer<OrderEntryWidget> onHoverExit;
         private final TooltipCache tooltipCache;
-        private boolean wasHovered;
 
-        public OrderEntryWidget(
-            int x,
-            int y,
-            int width,
-            int height,
-            TrackedOrder order,
-            Screen parentScreen,
-            Consumer<OrderEntryWidget> onHoverEnter,
-            Consumer<OrderEntryWidget> onHoverExit,
-            TooltipCache tooltipCache
-        ) {
-            super(x, y, width, height, Component.literal(order.productName), parentScreen);
-            this.tooltipCache = tooltipCache;
+        public OrderEntryRenderable(TrackedOrder order, TooltipCache tooltipCache) {
             this.order = order;
-            this.onHoverEnter = onHoverEnter;
-            this.onHoverExit = onHoverExit;
-            this.setRenderBorder(false);
-            this.setRenderBackground(false);
-
-            this.setTooltipSupplier(this::getTooltipLines);
+            this.tooltipCache = tooltipCache;
         }
 
         private List<Component> priceLines(BazaarData data, String productId) {
@@ -413,30 +420,17 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return lines;
         }
 
-        public List<Component> getTooltipLines() {
+        @Override
+        public List<Component> getTooltip() {
             if (!ConfigManager.get().orderList.showTooltips) {
-                return List.of();
+                return null;
             }
-
             return this.tooltipCache.getOrCompute(this.order, this::buildTooltipLines);
         }
 
         @Override
-        protected void renderContent(GuiGraphics context, int mouseX, int mouseY, float delta) {
-            boolean hovered = this.isHovered();
-            if (hovered && !this.wasHovered) {
-                this.onHoverEnter.accept(this);
-            } else if (!hovered && this.wasHovered) {
-                this.onHoverExit.accept(this);
-            }
-            this.wasHovered = hovered;
-
+        public void render(GuiGraphics context, int x, int y, int w, int h, int mouseX, int mouseY, float delta, boolean hovered) {
             var textRenderer = Minecraft.getInstance().font;
-
-            int x = this.getX();
-            int y = this.getY();
-            int w = this.getWidth();
-            int h = this.getHeight();
 
             String typeText = order.type == OrderType.Sell ? "Sell" : "Buy";
 
@@ -483,6 +477,11 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             }
 
             context.drawString(textRenderer, displayName, textX, textY, nameColor, false);
+        }
+
+        @Override
+        public String getId() {
+            return "order-" + this.order.slot;
         }
 
         public int getSlotIdx() {

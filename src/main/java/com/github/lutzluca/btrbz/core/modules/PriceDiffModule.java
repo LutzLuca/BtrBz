@@ -9,7 +9,8 @@ import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.widgets.TextDisplayWidget;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+import com.github.lutzluca.btrbz.widgets.widgets.LabelWidget;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -17,8 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
@@ -30,11 +29,11 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return configState.enabled && info.inMenu(BazaarMenuType.Item);
+        return this.configState.enabled && info.inMenu(BazaarMenuType.Item);
     }
 
     @Override
-    public List<AbstractWidget> createWidgets(ScreenInfo info) {
+    public List<DraggableWidget> createWidgets(ScreenInfo info) {
         var screenOpt = info.getGenericContainerScreen();
         if (screenOpt.isEmpty()) {
             return List.of();
@@ -69,17 +68,17 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
                 .withStyle(ChatFormatting.YELLOW)
         );
 
-        var position = this.getWidgetPosition(info, lines);
+        var widget = new LabelWidget(0, 0, lines);
+        widget.setAutoSize(true);
+        widget.setAlignment(LabelWidget.Alignment.CENTER);
+
+        var position = this.getWidgetPosition(info, widget);
         if (position.isEmpty()) {
             return List.of();
         }
 
-        var widget = new TextDisplayWidget(
-            position.get().x(),
-            position.get().y(),
-            lines,
-            info.getScreen()
-        ).onDragEnd((self, pos) -> this.savePosition(pos));
+        widget.setPosition(position.get().x(), position.get().y());
+        widget.onDragEnd((self, pos) -> this.savePosition(pos));
 
         return List.of(widget);
     }
@@ -108,17 +107,10 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             .map(pair -> pair.getLeft() - pair.getRight());
     }
 
-    private Optional<Position> getWidgetPosition(ScreenInfo info, List<Component> lines) {
+    private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
         return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
-            var textRenderer = Minecraft.getInstance().font;
-            int maxWidth = lines.stream().mapToInt(textRenderer::width).max().orElse(0);
-            int textHeight = lines.size() * textRenderer.lineHeight + (lines.size() - 1) * TextDisplayWidget.LINE_SPACING;
-
-            int widgetWidth = maxWidth + 2 * TextDisplayWidget.PADDING_X;
-            int widgetHeight = textHeight + 2 * TextDisplayWidget.PADDING_Y;
-
-            int x = bounds.x() + (bounds.width() - widgetWidth) / 2;
-            int y = bounds.y() - widgetHeight - 15;
+            int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
+            int y = bounds.y() - widget.getHeight() - 15;
             return new Position(x, y);
         }));
     }

@@ -5,14 +5,14 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
-import com.github.lutzluca.btrbz.widgets.StaticListWidget;
-import java.util.Objects;
-import lombok.Getter;
+import com.github.lutzluca.btrbz.widgets.core.WidgetManager;
+import com.github.lutzluca.btrbz.widgets.widgets.ListWidget;
+import com.github.lutzluca.btrbz.widgets.base.Renderable;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
+
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -21,8 +21,7 @@ public class OrderBookScreen extends Screen {
     private final Screen parent;
     private final OrderLists orders;
 
-    private StaticListWidget<OrderEntryWidget> buyOrderList;
-    private StaticListWidget<OrderEntryWidget> sellOfferList;
+    private WidgetManager widgetManager;
 
 
     public OrderBookScreen(Screen parent, String productName, OrderLists orders) {
@@ -47,61 +46,57 @@ public class OrderBookScreen extends Screen {
         int buyX = panelX + 10;
         int listY = panelY + 40;
 
-        this.buyOrderList = new StaticListWidget<OrderEntryWidget>(
+        ListWidget buyOrderList = new ListWidget(
             buyX,
             listY,
             listWidth,
             listHeight,
-            Component.literal("Buy Orders"),
-            this
-        )
-            .setMaxVisibleChildren(Math.min(15, this.orders.buyOrders().size()))
-            .onChildClick(this::onBuyOrderClick);
-        this.buyOrderList.setDragThreshold(Integer.MAX_VALUE);
+            "Buy Orders"
+        );
+        buyOrderList.setReorderable(false)
+            .setRemovable(false)
+            .setItemHeight(14)
+            .setDraggable(false);
+
+        buyOrderList.onItemClick(item -> {
+            copyPriceToClipboard(((OrderBookRenderable) item).getPricePerUnit());
+            this.onClose();
+        });
 
         int sellX = buyX + listWidth + 10;
 
-        this.sellOfferList = new StaticListWidget<OrderEntryWidget>(
+        ListWidget sellOfferList = new ListWidget(
             sellX,
             listY,
             listWidth,
             listHeight,
-            Component.literal("Sell Offers"),
-            this
-        )
-            .setMaxVisibleChildren(Math.min(15, this.orders.sellOffers().size()))
-            .onChildClick(this::onSellOfferClick);
-        this.sellOfferList.setDragThreshold(Integer.MAX_VALUE);
+            "Sell Offers"
+        );
+        sellOfferList.setReorderable(false)
+            .setRemovable(false)
+            .setItemHeight(14)
+            .setDraggable(false);
+        
+        sellOfferList.onItemClick(item -> {
+            copyPriceToClipboard(((OrderBookRenderable) item).getPricePerUnit());
+            this.onClose();
+        });
 
-        this.rebuildLists();
-
-        this.addRenderableWidget(buyOrderList);
-        this.addRenderableWidget(sellOfferList);
-    }
-
-    private void rebuildLists() {
-        List<OrderEntryWidget> buyWidgets = new ArrayList<>();
+        List<Renderable> buyWidgets = new ArrayList<>();
         for (var summary : this.orders.buyOrders()) {
-            buyWidgets.add(new OrderEntryWidget(summary, OrderType.Buy, 0, 0, 50, 14));
+            buyWidgets.add(new OrderBookRenderable(summary, OrderType.Buy));
         }
 
-        List<OrderEntryWidget> sellWidgets = new ArrayList<>();
+        List<Renderable> sellWidgets = new ArrayList<>();
         for (var summary : this.orders.sellOffers()) {
-            sellWidgets.add(new OrderEntryWidget(summary, OrderType.Sell, 0, 0, 50, 14));
+            sellWidgets.add(new OrderBookRenderable(summary, OrderType.Sell));
         }
 
-        this.buyOrderList.rebuildEntries(buyWidgets);
-        this.sellOfferList.rebuildEntries(sellWidgets);
-    }
+        buyOrderList.setItems(buyWidgets);
+        sellOfferList.setItems(sellWidgets);
 
-    private void onBuyOrderClick(OrderEntryWidget widget, Integer index) {
-        copyPriceToClipboard(widget.getSummary().getPricePerUnit());
-        this.onClose();
-    }
-
-    private void onSellOfferClick(OrderEntryWidget widget, Integer index) {
-        copyPriceToClipboard(widget.getSummary().getPricePerUnit());
-        this.onClose();
+        this.widgetManager = new WidgetManager(List.of(buyOrderList, sellOfferList));
+        this.widgetManager.init();
     }
 
     private void copyPriceToClipboard(double price) {
@@ -110,22 +105,48 @@ public class OrderBookScreen extends Screen {
 
     @Override
     public void onClose() {
-        Objects.requireNonNull(this.minecraft).setScreen(parent);
+        Minecraft.getInstance().setScreen(parent);
     }
 
     @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, this.width, this.height, 0x80000000);
 
-        context.drawCenteredString(
+        int listY = (this.height - (int) (this.height * 0.8)) / 2 + 40;
+
+        context.drawString(
             this.font,
             this.title,
-            this.width / 2,
-            (this.buyOrderList.getY() - 30),
+            (this.width - this.font.width(this.title)) / 2,
+            listY - 30,
             0xFFFFFF
         );
 
-        super.render(context, mouseX, mouseY, delta);
+        this.widgetManager.render(context, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (this.widgetManager.mouseClicked(event.x(), event.y(), event.button())) return true;
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        return this.widgetManager.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+            || super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        this.widgetManager.mouseReleased(event.x(), event.y(), event.button());
+        return super.mouseReleased(event);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (this.widgetManager.mouseDragged(event.x(), event.y(), event.button(), dragX, dragY)) return true;
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
@@ -133,70 +154,54 @@ public class OrderBookScreen extends Screen {
         return false;
     }
 
-    public class OrderEntryWidget extends AbstractWidget {
-
-        @Getter
+    public static class OrderBookRenderable implements Renderable {
         private final Summary summary;
         private final OrderType type;
+        private final Component priceText;
+        private final Component amountText;
+        private final Component ordersText;
 
-        public OrderEntryWidget(
-            Summary summary,
-            OrderType type,
-            int x,
-            int y,
-            int width,
-            int height
-        ) {
-            super(x, y, width, height, Component.empty());
+        public OrderBookRenderable(Summary summary, OrderType type) {
             this.summary = summary;
             this.type = type;
+            this.priceText = Component.literal(Utils.formatDecimal(summary.getPricePerUnit(), 1, true));
+            this.amountText = Component.literal(String.valueOf(summary.getAmount()));
+            this.ordersText = Component.literal("(" + summary.getOrders() + " orders)");
         }
 
         @Override
-        protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
-            var textRenderer = Minecraft.getInstance().font;
+        public void render(
+            GuiGraphics ctx,
+            int x, int y, int width, int height,
+            int mouseX, int mouseY, float delta,
+            boolean hovered
+        ) {
+            var font = Minecraft.getInstance().font;
 
-            if (this.isHovered()) {
-                context.fill(
-                    this.getX(),
-                    this.getY(),
-                    this.getX() + this.width,
-                    this.getY() + this.height,
-                    type == OrderType.Buy ? 0x6022AA22 : 0x60AA2222
-                );
+            if (hovered) {
+                int color = type == OrderType.Buy ? 0x6022AA22 : 0x60AA2222;
+                ctx.fill(x, y, x + width, y + height, color);
             }
 
-            String price = Utils.formatDecimal(this.summary.getPricePerUnit(), 1, true);
-            String amount = String.valueOf(this.summary.getAmount());
-            String ordersInfo = "(" + this.summary.getOrders() + " orders)";
-
             int textColor = type == OrderType.Buy ? 0xFF55FF55 : 0xFFFF5555;
-            int yPos = this.getY() + (this.height - textRenderer.lineHeight) / 2;
+            int yPos = y + (height - font.lineHeight) / 2;
 
-            context.drawString(textRenderer, price, this.getX() + 5, yPos, textColor);
+            ctx.drawString(font, this.priceText, x + 5, yPos, textColor);
 
-            int ordersWidth = textRenderer.width(ordersInfo);
-            context.drawString(
-                textRenderer,
-                ordersInfo,
-                this.getX() + this.width - ordersWidth - 5,
-                yPos,
-                0xFF888888
-            );
+            int ordersWidth = font.width(this.ordersText);
+            ctx.drawString(font, this.ordersText, x + width - ordersWidth - 5, yPos, 0xFF888888);
 
-            int amountWidth = textRenderer.width(amount);
-            context.drawString(
-                textRenderer,
-                amount,
-                this.getX() + this.width - ordersWidth - amountWidth - 12,
-                yPos,
-                0xFFCCCCCC
-            );
+            int amountWidth = font.width(this.amountText);
+            ctx.drawString(font, this.amountText, x + width - ordersWidth - amountWidth - 12, yPos, 0xFFCCCCCC);
         }
 
         @Override
-        protected void updateWidgetNarration(NarrationElementOutput builder) {
-            this.defaultButtonNarrationText(builder);
+        public String getId() {
+            return "order-" + this.summary.getPricePerUnit();
+        }
+
+        public double getPricePerUnit() {
+            return this.summary.getPricePerUnit();
         }
     }
 }
