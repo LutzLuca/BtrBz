@@ -75,6 +75,8 @@ public class AlertCommandParser {
                 .getOrElseThrow(err -> new ParseException("Invalid product name number format: " + '"' + lastToken + '"'));
 
             titleCaseTokens.set(titleCaseTokens.size() - 1, roman);
+        } else if (Utils.isValidRomanNumeral(lastToken)) {
+            titleCaseTokens.set(titleCaseTokens.size() - 1, lastToken.toUpperCase());
         }
 
         return String.join(" ", titleCaseTokens);
