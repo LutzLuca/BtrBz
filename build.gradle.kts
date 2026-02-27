@@ -88,7 +88,7 @@ dependencies {
 
     modImplementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
 
-    modImplementation("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
+    modCompileOnly("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
 }
 
 tasks {
