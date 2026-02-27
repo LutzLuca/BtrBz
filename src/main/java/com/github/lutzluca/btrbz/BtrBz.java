@@ -100,6 +100,9 @@ public class BtrBz implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
         this.highlightManager = new OrderHighlightManager();
+
+        ScreenInfoHelper.registerOnSwitch(info -> this.highlightManager.clearHighlightOverride());
+
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.alertManager = new AlertManager();
         var orderProtectionManager = OrderProtectionManager.getInstance();

@@ -145,10 +145,11 @@ public class ListWidget extends DraggableWidget {
         // Calculate hovered item (but not when another widget is being dragged or not top widget)
         boolean canProcessHover = ctx.canProcessHover();
         if (!canProcessHover) {
+            int previousHovered = this.hoveredItemIndex;
             this.hoveredItemIndex = -1;
             this.tooltipHoverTicks = 0;
-            if (ctx.isAnyDraggingActive()) {
-                
+            if (previousHovered >= 0 && this.onHoverChangeCallback != null) {
+                this.onHoverChangeCallback.accept(previousHovered, -1);
             }
         } else {
             this.hoveredItemIndex = this.getItemIndexAtPosition(mouseX, mouseY);
