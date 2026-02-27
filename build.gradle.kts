@@ -72,6 +72,10 @@ dependencies {
     implementation("net.hypixel:hypixel-api-transport-apache:4.4")
     include("net.hypixel:hypixel-api-transport-apache:4.4")
 
+    include("org.apache.httpcomponents:httpclient:4.5.14")
+    include("org.apache.httpcomponents:httpcore:4.4.16")
+    include("commons-logging:commons-logging:1.2")
+
     implementation("io.vavr:vavr:0.10.7")
     include("io.vavr:vavr:0.10.7")
 
