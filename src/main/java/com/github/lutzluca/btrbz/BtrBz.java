@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
+import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager;
@@ -60,6 +61,7 @@ public class BtrBz implements ClientModInitializer {
     private TrackedOrderManager orderManager;
     private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
+    private OrderTooltipProvider tooltipProvider;
 
     public static TrackedOrderManager orderManager() {
         return instance.orderManager;
@@ -75,6 +77,10 @@ public class BtrBz implements ClientModInitializer {
 
     public static AlertManager alertManager() {
         return instance.alertManager;
+    }
+
+    public static OrderTooltipProvider tooltipProvider() {
+        return instance.tooltipProvider;
     }
 
     @Override
@@ -100,6 +106,7 @@ public class BtrBz implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
 
         this.highlightManager = new OrderHighlightManager();
+        this.tooltipProvider = new OrderTooltipProvider();
 
         ScreenInfoHelper.registerOnSwitch(info -> this.highlightManager.clearHighlightOverride());
 

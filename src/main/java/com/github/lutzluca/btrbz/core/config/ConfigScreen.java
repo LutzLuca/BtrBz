@@ -49,6 +49,7 @@ public class ConfigScreen {
             .group(config.priceDiff.createGroup())
             .group(config.productInfo.createGroup())
             .group(config.orderActions.createGroup())
+            .group(config.orderTooltip.createGroup())
             .group(config.orderHighlight.createGroup())
             .group(config.flipHelper.createGroup())
             .group(config.orderPresets.createGroup())

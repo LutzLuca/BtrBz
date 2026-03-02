@@ -76,6 +76,10 @@ public class OrderHighlightManager {
         this.overrideColor = null;
     }
 
+    public TrackedOrder getTrackedOrder(int slotIdx) {
+        return this.slotToTrackedOrder.get(slotIdx);
+    }
+
     public static class HighlightConfig {
 
         public boolean enabled = true;

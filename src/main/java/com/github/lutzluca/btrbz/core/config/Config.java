@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
+import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
@@ -74,6 +75,9 @@ public class Config {
 
     @SerialEntry
     public AlertConfig alert = new AlertConfig();
+
+    @SerialEntry
+    public OrderTooltipProvider.TooltipConfig orderTooltip = new OrderTooltipProvider.TooltipConfig();
 
     @SerialEntry
     public OrderBookConfig orderBook = new OrderBookConfig();

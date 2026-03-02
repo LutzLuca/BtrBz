@@ -7,7 +7,6 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
-import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -22,25 +21,18 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
 
 @Slf4j
 public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
-    private final TooltipCache tooltipCache = new TooltipCache();
     private ListWidget list;
     private Integer currentHoverSlot = null;
 
@@ -123,7 +115,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     private OrderEntryRenderable createEntryWidget(TrackedOrder order) {
-        return new OrderEntryRenderable(order, this.tooltipCache);
+        return new OrderEntryRenderable(order);
     }
 
     @Override
@@ -273,152 +265,13 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     @Slf4j
-    private static class TooltipCache {
-
-        private final Map<@NotNull TrackedOrder, @Nullable List<Component>> cache = new HashMap<>();
-
-        TooltipCache() {
-            log.debug("Initializing TooltipCache");
-            BtrBz.bazaarData().addListener(products -> {
-                log.trace(
-                    "Bazaar data updated, clearing tooltip cache with {} entries",
-                    this.cache.size()
-                );
-                this.cache.clear();
-            });
-        }
-
-        List<Component> getOrCompute(@NotNull TrackedOrder order, Supplier<List<Component>> supplier) {
-            return this.cache.computeIfAbsent(
-                order, key -> {
-                    log.trace("Computing tooltip cache for {}", key);
-                    return supplier.get();
-                }
-            );
-        }
-    }
-
-    @Slf4j
     private static class OrderEntryRenderable implements Renderable {
 
         @Getter
         private final TrackedOrder order;
-        private final TooltipCache tooltipCache;
 
-        public OrderEntryRenderable(TrackedOrder order, TooltipCache tooltipCache) {
+        public OrderEntryRenderable(TrackedOrder order) {
             this.order = order;
-            this.tooltipCache = tooltipCache;
-        }
-
-        private List<Component> priceLines(BazaarData data, String productId) {
-            var priceInfo = data.getOrderPrices(productId);
-
-            var header = Component.literal("Current Prices").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-
-            var buyOrderLine = Component
-                .literal("Buy Orders: ")
-                .withStyle(ChatFormatting.YELLOW)
-                .append(priceInfo
-                    .buyOrderPrice()
-                    .map(price -> Component
-                        .literal(Utils.formatDecimal(price, 1, true))
-                        .withStyle(ChatFormatting.WHITE))
-                    .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
-
-            var sellOfferLine = Component
-                .literal("Sell Offers: ")
-                .withStyle(ChatFormatting.YELLOW)
-                .append(priceInfo
-                    .sellOfferPrice()
-                    .map(price -> Component
-                        .literal(Utils.formatDecimal(price, 1, true))
-                        .withStyle(ChatFormatting.WHITE))
-                    .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
-
-            return List.of(header, buyOrderLine, sellOfferLine);
-        }
-
-        private List<Component> currOrderLines(BazaarData data) {
-            var header = Component.literal("Your Order").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-
-            var priceLine = Component
-                .literal("Price: ")
-                .withStyle(ChatFormatting.GRAY)
-                .append(Component
-                    .literal(Utils.formatDecimal(this.order.pricePerUnit, 1, true))
-                    .withStyle(ChatFormatting.WHITE));
-
-            var volumeLine = Component
-                .literal("Volume: ")
-                .withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(String.valueOf(order.volume)).withStyle(ChatFormatting.WHITE));
-
-            return List.of(header, priceLine, volumeLine);
-        }
-
-        private List<Component> statusLines(BazaarData data) {
-            List<Component> lines = new ArrayList<>();
-            switch (order.status) {
-                case OrderStatus.Top ignored -> {
-                    lines.add(Component
-                        .literal("Best Price!")
-                        .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
-                }
-                case OrderStatus.Matched ignored -> {
-                    lines.add(Component.literal("Matched!").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
-                }
-                case OrderStatus.Undercut ignored -> {
-                    lines.add(Component.literal("Undercut!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-
-                    var queueInfo = data.calculateQueuePosition(
-                        order.productName,
-                        order.type,
-                        order.pricePerUnit
-                    );
-
-                    if (queueInfo.isPresent()) {
-                        lines.add(Component
-                            .literal("Orders ahead: ")
-                            .withStyle(ChatFormatting.GRAY)
-                            .append(Component
-                                .literal(String.valueOf(queueInfo.get().ordersAhead))
-                                .withStyle(ChatFormatting.RED)));
-
-                        lines.add(Component
-                            .literal("Items ahead: ")
-                            .withStyle(ChatFormatting.GRAY)
-                            .append(Component
-                                .literal(Utils.formatDecimal(queueInfo.get().itemsAhead, 0, true))
-                                .withStyle(ChatFormatting.RED)));
-                    }
-                }
-                case OrderStatus.Unknown ignored -> {
-                    lines.add(Component.literal("Status Unknown").withStyle(ChatFormatting.GRAY));
-                }
-            }
-
-            return lines;
-        }
-
-        private List<Component> buildTooltipLines() {
-            log.debug("Building TooltipLines");
-
-            var data = BtrBz.bazaarData();
-            var productId = data.nameToId(this.order.productName);
-
-            if (productId.isEmpty()) {
-                return List.of(Component.literal("Unknown Product").withStyle(ChatFormatting.RED));
-            }
-
-            var lines = new ArrayList<>(this.priceLines(data, productId.get()));
-            lines.add(Component.empty());
-
-            lines.addAll(this.currOrderLines(data));
-            lines.add(Component.empty());
-
-            lines.addAll(this.statusLines(data));
-
-            return lines;
         }
 
         @Override
@@ -426,7 +279,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             if (!ConfigManager.get().orderList.showTooltips) {
                 return null;
             }
-            return this.tooltipCache.getOrCompute(this.order, this::buildTooltipLines);
+
+            return BtrBz.tooltipProvider().getCachedTooltip(this.order, ConfigManager.get().orderTooltip, true);
         }
 
         @Override
