@@ -48,16 +48,6 @@ public interface Renderable {
     }
 
     /**
-     * Get a unique identifier for this renderable (for drag-and-drop).
-     * Default implementation uses object identity.
-     *
-     * @return Unique identifier
-     */
-    default String getId() {
-        return Integer.toHexString(System.identityHashCode(this));
-    }
-
-    /**
      * Get tooltip lines to display when this item is hovered.
      * Return null or empty list if no tooltip should be shown.
      *

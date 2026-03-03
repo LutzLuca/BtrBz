@@ -195,11 +195,6 @@ public class OrderBookScreen extends Screen {
             ctx.drawString(font, this.amountText, x + width - ordersWidth - amountWidth - 12, yPos, 0xFFCCCCCC);
         }
 
-        @Override
-        public String getId() {
-            return "order-" + this.summary.getPricePerUnit();
-        }
-
         public double getPricePerUnit() {
             return this.summary.getPricePerUnit();
         }

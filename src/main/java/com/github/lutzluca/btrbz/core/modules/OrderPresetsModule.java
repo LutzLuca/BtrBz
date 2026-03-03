@@ -430,10 +430,6 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             return this.tooltipLines;
         }
 
-        @Override
-        public String getId() {
-            return "preset-" + this.preset.toString();
-        }
     }
 
 

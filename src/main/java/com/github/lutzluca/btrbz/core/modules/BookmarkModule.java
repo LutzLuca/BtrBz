@@ -283,10 +283,6 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             graphics.drawString(font, this.displayText, textX, textY, this.color);
         }
 
-        @Override
-        public String getId() {
-            return "bookmark-" + this.productName;
-        }
     }
 
     public record BookmarkedItem(String productName, ItemStack itemStack) {
