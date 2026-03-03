@@ -323,11 +323,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             context.drawString(textRenderer, displayName, textX, textY, nameColor, false);
         }
 
-        @Override
-        public String getId() {
-            return "order-" + this.order.slot;
-        }
-
         public int getSlotIdx() {
             return this.order.slot;
         }
