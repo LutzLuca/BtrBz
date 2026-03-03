@@ -195,7 +195,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         public boolean enabled = true;
         public boolean showInBazaar = true;
-        public boolean showTooltips = true;
         public int maxVisibleChildren = 6;
 
         public Option.Builder<Boolean> createInBazaarOption() {
@@ -205,16 +204,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .description(OptionDescription.of(Component.literal(
                     "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
                 .binding(true, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
-                .controller(ConfigScreen::createBooleanController);
-        }
-
-        public Option.Builder<Boolean> createTooltipsOption() {
-            return Option
-                .<Boolean>createBuilder()
-                .name(Component.literal("Show Tooltips"))
-                .description(OptionDescription.of(Component.literal(
-                    "Whether to show detailed tooltips when hovering over order entries")))
-                .binding(true, () -> this.showTooltips, enabled -> this.showTooltips = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -249,7 +238,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public OptionGroup getGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
                 this.createInBazaarOption(),
-                this.createTooltipsOption(),
                 this.createMaxVisibleOption()
             );
 
@@ -276,11 +264,12 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         @Override
         public List<Component> getTooltip() {
-            if (!ConfigManager.get().orderList.showTooltips) {
+            var cfg = ConfigManager.get().orderListTooltip;
+            if (!cfg.enabled) {
                 return null;
             }
 
-            return BtrBz.tooltipProvider().getCachedTooltip(this.order, ConfigManager.get().orderTooltip, true);
+            return BtrBz.tooltipProvider().getCachedTooltip(this.order, cfg);
         }
 
         @Override

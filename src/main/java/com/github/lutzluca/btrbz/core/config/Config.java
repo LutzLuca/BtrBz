@@ -77,7 +77,10 @@ public class Config {
     public AlertConfig alert = new AlertConfig();
 
     @SerialEntry
-    public OrderTooltipProvider.TooltipConfig orderTooltip = new OrderTooltipProvider.TooltipConfig();
+    public OrderTooltipProvider.OrderListTooltipConfig orderListTooltip = new OrderTooltipProvider.OrderListTooltipConfig();
+
+    @SerialEntry
+    public OrderTooltipProvider.OrderItemTooltipConfig orderItemTooltip = new OrderTooltipProvider.OrderItemTooltipConfig();
 
     @SerialEntry
     public OrderBookConfig orderBook = new OrderBookConfig();
