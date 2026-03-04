@@ -266,7 +266,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             .setItemSpacing(1)
             .setReorderable(false)
             .setRemovable(false)
-            .onItemClick(item -> {
+            .onItemClick((self, item, idx) -> {
                 var preset = (OrderPresetRenderable) item;
                 if (!preset.isDisabled()) {
                     this.handlePresetClick(preset.getPreset());

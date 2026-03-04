@@ -6,6 +6,8 @@ import com.github.lutzluca.btrbz.widgets.base.RenderContext;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -76,11 +78,11 @@ public class WidgetManager {
         return null;
     }
 
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
             DraggableWidget widget = this.widgets.get(i);
-            if (widget.isVisible() && widget.isMouseOver(mouseX, mouseY)) {
-                if (widget.mouseClicked(mouseX, mouseY, button)) {
+            if (widget.isVisible() && widget.isMouseOver(event.x(), event.y())) {
+                if (widget.mouseClicked(event, doubleClick)) {
                     return true;
                 }
             }
@@ -88,24 +90,28 @@ public class WidgetManager {
         return false;
     }
 
-    public void mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        boolean handled = false;
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
-            this.widgets.get(i).mouseReleased(mouseX, mouseY, button);
+            if (this.widgets.get(i).mouseReleased(event)) {
+                handled = true;
+            }
         }
+        return handled;
     }
 
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
             DraggableWidget widget = this.widgets.get(i);
             if (widget.isDragging()) {
-                return widget.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+                return widget.mouseDragged(event, deltaX, deltaY);
             }
         }
 
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
             DraggableWidget widget = this.widgets.get(i);
-            if (widget.isVisible() && widget.isMouseOver(mouseX, mouseY)) {
-                if (widget.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)) {
+            if (widget.isVisible() && widget.isMouseOver(event.x(), event.y())) {
+                if (widget.mouseDragged(event, deltaX, deltaY)) {
                     return true;
                 }
             }
@@ -123,24 +129,24 @@ public class WidgetManager {
         return false;
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
             for (DraggableWidget widget : this.widgets) {
                 if (widget.isDragging()) {
-                    widget.keyPressed(keyCode, scanCode, modifiers);
+                    widget.keyPressed(event);
                     return true;
                 }
             }
         }
-        
+
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
-            if (this.widgets.get(i).keyPressed(keyCode, scanCode, modifiers)) {
+            if (this.widgets.get(i).keyPressed(event)) {
                 return true;
             }
         }
         return false;
     }
-    
+
     public void cleanup() {
         log.debug("Cleaning up {} widgets", this.widgets.size());
         this.widgets.clear();

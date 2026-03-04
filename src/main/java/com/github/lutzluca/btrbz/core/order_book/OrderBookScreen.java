@@ -58,7 +58,7 @@ public class OrderBookScreen extends Screen {
             .setItemHeight(14)
             .setDraggable(false);
 
-        buyOrderList.onItemClick(item -> {
+        buyOrderList.onItemClick((self, item, idx) -> {
             copyPriceToClipboard(((OrderBookRenderable) item).getPricePerUnit());
             this.onClose();
         });
@@ -76,8 +76,8 @@ public class OrderBookScreen extends Screen {
             .setRemovable(false)
             .setItemHeight(14)
             .setDraggable(false);
-        
-        sellOfferList.onItemClick(item -> {
+
+        sellOfferList.onItemClick((self, item, idx) -> {
             copyPriceToClipboard(((OrderBookRenderable) item).getPricePerUnit());
             this.onClose();
         });
@@ -127,7 +127,7 @@ public class OrderBookScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (this.widgetManager.mouseClicked(event.x(), event.y(), event.button())) return true;
+        if (this.widgetManager.mouseClicked(event, doubleClick)) return true;
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -139,13 +139,13 @@ public class OrderBookScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        this.widgetManager.mouseReleased(event.x(), event.y(), event.button());
+        this.widgetManager.mouseReleased(event);
         return super.mouseReleased(event);
     }
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.widgetManager.mouseDragged(event.x(), event.y(), event.button(), dragX, dragY)) return true;
+        if (this.widgetManager.mouseDragged(event, dragX, dragY)) return true;
         return super.mouseDragged(event, dragX, dragY);
     }
 

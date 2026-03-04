@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.widgets.widgets;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.base.RenderContext;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import net.minecraft.util.FormattedCharSequence;
@@ -134,9 +135,9 @@ public class LabelWidget extends DraggableWidget {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        boolean handled = super.mouseClicked(mouseX, mouseY, button);
-        if (button == 0 && this.isMouseHovered()) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        boolean handled = super.mouseClicked(event, doubleClick);
+        if (event.button() == 0 && this.isMouseHovered()) {
             if (this.clickCallback != null) {
                 this.clickCallback.accept(this);
                 return true;

@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -38,12 +39,10 @@ public interface Renderable {
     /**
      * Handle mouse click on this item.
      *
-     * @param mouseX Mouse X coordinate
-     * @param mouseY Mouse Y coordinate
-     * @param button Mouse button (0=left, 1=right, 2=middle)
+     * @param event Mouse button event with position, button, and modifier information
      * @return true if click was handled
      */
-    default boolean mouseClicked(double mouseX, double mouseY, int button) {
+    default boolean mouseClicked(MouseButtonEvent event) {
         return false;
     }
 

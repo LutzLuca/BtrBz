@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 
 import java.util.function.BiConsumer;
 
@@ -21,7 +23,7 @@ public abstract class DraggableWidget extends AbstractWidget {
     protected double dragStartY;
     protected int initialX;
     protected int initialY;
-    
+
     protected long dragStartTime;
 
     protected int dragThreshold = 5;
@@ -59,11 +61,12 @@ public abstract class DraggableWidget extends AbstractWidget {
 
     protected abstract void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx);
 
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.draggable) {
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0 && this.draggable) {
             this.isPressed = true;
-            this.dragStartX = mouseX;
-            this.dragStartY = mouseY;
+            this.dragStartX = event.x();
+            this.dragStartY = event.y();
             this.initialX = this.x;
             this.initialY = this.y;
             this.dragStartTime = System.currentTimeMillis();
@@ -73,14 +76,15 @@ public abstract class DraggableWidget extends AbstractWidget {
         return false;
     }
 
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (button != 0 || !this.isPressed) {
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        if (event.button() != 0 || !this.isPressed) {
             return false;
         }
 
         double distanceFromStart = Math.sqrt(
-            Math.pow(mouseX - this.dragStartX, 2) + 
-            Math.pow(mouseY - this.dragStartY, 2)
+            Math.pow(event.x() - this.dragStartX, 2) +
+            Math.pow(event.y() - this.dragStartY, 2)
         );
         long dragDuration = System.currentTimeMillis() - this.dragStartTime;
 
@@ -90,8 +94,8 @@ public abstract class DraggableWidget extends AbstractWidget {
         }
 
         if (this.isDragging) {
-            int newX = this.initialX + (int)(mouseX - this.dragStartX);
-            int newY = this.initialY + (int)(mouseY - this.dragStartY);
+            int newX = this.initialX + (int)(event.x() - this.dragStartX);
+            int newY = this.initialY + (int)(event.y() - this.dragStartY);
 
             this.x = this.constrainX(newX);
             this.y = this.constrainY(newY);
@@ -101,11 +105,12 @@ public abstract class DraggableWidget extends AbstractWidget {
         return false;
     }
 
-    public void mouseReleased(double mouseX, double mouseY, int button) {
-        if (button != 0) {
-            return;
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (event.button() != 0) {
+            return false;
         }
-        
+
         this.isPressed = false;
         if (this.isDragging) {
             this.isDragging = false;
@@ -115,10 +120,13 @@ public abstract class DraggableWidget extends AbstractWidget {
             this.initialY = 0;
             this.onDragEnd();
         }
+
+        return false;
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.isDragging && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (this.isDragging && event.key() == GLFW.GLFW_KEY_ESCAPE) {
             this.cancelDrag();
             return true;
         }
@@ -126,6 +134,7 @@ public abstract class DraggableWidget extends AbstractWidget {
         return false;
     }
 
+    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         return false;
     }

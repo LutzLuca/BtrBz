@@ -148,17 +148,24 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             .setMaxVisibleItems(this.configState.maxVisibleChildren)
             .onDragEnd((self, pos) -> this.savePosition(pos));
 
-        this.list.onHoverChange((oldIdx, newIdx) -> {
-            var items = this.list.getItems();
-            var oldOrder = oldIdx >= 0 && oldIdx < items.size() ? ((OrderEntryRenderable) items.get(oldIdx)).getOrder() : null;
-            var newOrder = newIdx >= 0 && newIdx < items.size() ? ((OrderEntryRenderable) items.get(newIdx)).getOrder() : null;
+        this.list.onHoverChange((self, oldIdx, newIdx) -> {
+            var oldEntry = self.getItem(oldIdx)
+                .filter(OrderEntryRenderable.class::isInstance)
+                .map(OrderEntryRenderable.class::cast);
+            var newEntry = self.getItem(newIdx)
+                .filter(OrderEntryRenderable.class::isInstance)
+                .map(OrderEntryRenderable.class::cast);
+
+            var oldOrder = oldEntry.map(OrderEntryRenderable::getOrder);
+            var newOrder = newEntry.map(OrderEntryRenderable::getOrder);
             log.debug("Hover change: {} -> {} | Displayed Products: {}, {}", oldIdx, newIdx, oldOrder, newOrder);
 
-            if (oldIdx >= 0 && oldIdx < items.size() && items.get(oldIdx) instanceof OrderEntryRenderable orderEntry) {
-                this.onWidgetHoverExit(orderEntry.getSlotIdx());
-            }
-            if (newIdx >= 0 && newIdx < items.size() && items.get(newIdx) instanceof OrderEntryRenderable orderEntry) {
-                this.onWidgetHoverEnter(orderEntry.getSlotIdx());
+            oldEntry.ifPresent(entry -> this.onWidgetHoverExit(entry.getSlotIdx()));
+            newEntry.ifPresent(entry -> this.onWidgetHoverEnter(entry.getSlotIdx()));
+
+            if (oldEntry.isEmpty() && newEntry.isEmpty() && (oldIdx >= 0 || newIdx >= 0)) {
+                log.warn("Hover change callback could not resolve items at indices: oldIdx={}, newIdx={}, items.size()={}",
+                    oldIdx, newIdx, self.size());
             }
         });
 

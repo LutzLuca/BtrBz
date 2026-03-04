@@ -189,9 +189,9 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .setRemovable(true)
             .setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
 
-        widget.onItemClick(item -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
-            .onReorder(items -> this.syncBookmarksFromList(items))
-            .onRemove(item -> this.syncBookmarksFromList(this.list.getItems()))
+        widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
+            .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
+            .onRemove((self, item) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> this.savePosition(pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()

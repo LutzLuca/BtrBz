@@ -94,7 +94,7 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.keyPressed(event.key(), event.scancode(), event.modifiers())) {
+        if (wm != null && wm.keyPressed(event)) {
             cir.setReturnValue(true);
         }
     }
@@ -110,7 +110,7 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseClicked(event.x(), event.y(), event.button())) {
+        if (wm != null && wm.mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
         }
     }
@@ -119,14 +119,14 @@ public abstract class AbstractContainerScreenMixin {
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null) {
-            wm.mouseReleased(event.x(), event.y(), event.button());
+            wm.mouseReleased(event);
         }
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
     private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
         var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseDragged(event.x(), event.y(), event.button(), deltaX, deltaY)) {
+        if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
     }
