@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.widgets.widgets;
+package com.github.lutzluca.btrbz.widgets;
 
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.base.RenderContext;

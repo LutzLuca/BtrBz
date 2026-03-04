@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.widgets.util;
+package com.github.lutzluca.btrbz.widgets.core;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
