@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.widgets.base;
+package com.github.lutzluca.btrbz.widgets;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.MouseButtonEvent;

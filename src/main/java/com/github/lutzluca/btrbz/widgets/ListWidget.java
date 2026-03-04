@@ -1,9 +1,8 @@
-package com.github.lutzluca.btrbz.widgets.widgets;
+package com.github.lutzluca.btrbz.widgets;
 
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
-import com.github.lutzluca.btrbz.widgets.base.Renderable;
 import com.github.lutzluca.btrbz.widgets.base.RenderContext;
-import com.github.lutzluca.btrbz.widgets.util.TooltipRenderer;
+import com.github.lutzluca.btrbz.widgets.core.TooltipRenderer;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.KeyEvent;

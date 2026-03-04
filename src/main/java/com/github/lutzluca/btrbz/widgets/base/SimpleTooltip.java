@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
-import com.github.lutzluca.btrbz.widgets.util.TooltipRenderer;
+import com.github.lutzluca.btrbz.widgets.core.TooltipRenderer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
