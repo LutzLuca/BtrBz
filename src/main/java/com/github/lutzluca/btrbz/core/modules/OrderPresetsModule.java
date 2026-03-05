@@ -14,6 +14,8 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -177,7 +179,6 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         }
 
         var purse = this.getPurse();
-
         var pricePerUnit = Optional
             .ofNullable(this.currProductId)
             .flatMap(BtrBz.bazaarData()::highestBuyPrice)
@@ -193,13 +194,12 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         List<OrderPreset> presets = configState.presets
             .stream()
-            .filter(presetVolume -> presetVolume <= currMaxVolume)
+            .filter(presetVolume -> presetVolume <= this.currMaxVolume)
             .sorted()
             .map(OrderPreset.Volume::new)
             .collect(Collectors.toList());
 
-        presets.add(new OrderPreset.Max());
-
+        presets.addFirst(new OrderPreset.Max());
         List<Renderable> entries = new ArrayList<>();
 
         for (var preset : presets) {
@@ -207,7 +207,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
             switch (preset) {
                 case OrderPreset.Volume volume -> {
-                    boolean canAfford = !priceAvailable || (purse.isPresent() && (volume.amount * pricePerUnit.get() <= purse.get()));
+                    boolean canAfford = !priceAvailable || purse.map(coins -> volume.amount * pricePerUnit.get() <= coins).orElse(false);
                     if (!canAfford) {
                         entry.setDisabled(true);
                         entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
@@ -218,7 +218,36 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                         entry.setDisabled(true);
                         entry.setTooltipLines(List.of(Component.literal(
                             "Unable to determine price information")));
+                        break;
                     }
+
+                    if (purse.isEmpty()) {
+                        entry.setDisabled(true);
+                        entry.setTooltipLines(List.of(Component.literal(
+                            "Unable to determine purse amount")));
+                        break;
+                    }
+
+                    int maxVolume = this.calculateMaxVolume(purse.get(), pricePerUnit.get());
+                    String formattedVolume = Utils.formatDecimal(maxVolume, 0, true);
+
+                    if (maxVolume == 0) {
+                        entry.setDisabled(true);
+                        double needed = pricePerUnit.get() * this.currMaxVolume;
+                        double currentPurse = purse.get();
+                        double missing = needed - currentPurse;
+                        String formattedMissing = Utils.formatDecimal(missing, 0, true);
+
+                        entry.setTooltipLines(List.of(
+                            Component.literal("Missing " + formattedMissing + " coins"),
+                            Component.literal("to buy one item")
+                        ));
+                        break;
+                    }
+
+                    entry.setTooltipLines(List.of(
+                        Component.literal(formattedVolume + " items")
+                    ));
                 }
             }
 
@@ -247,13 +276,12 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     @Override
-    public List<com.github.lutzluca.btrbz.widgets.base.DraggableWidget> createWidgets(ScreenInfo info) {
+    public List<DraggableWidget> createWidgets(ScreenInfo info) {
         if (this.list != null) {
             return List.of(this.list);
         }
-        
-        // TODO get a better default position
-        var position = this.getConfigPosition().orElse(new Position(10, 10));
+
+        var position = this.getConfigPosition().orElse(new Position(570, 180));
         this.list = new ListWidget(
             position.x(),
             position.y(),
@@ -364,6 +392,10 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     .map(Number::doubleValue)
                     .toJavaOptional();
             });
+    }
+
+    private int calculateMaxVolume(double purse, double pricePerUnit) {
+        return Math.min((int) (purse / pricePerUnit), this.currMaxVolume);
     }
 
     private sealed interface OrderPreset permits OrderPreset.Volume,
