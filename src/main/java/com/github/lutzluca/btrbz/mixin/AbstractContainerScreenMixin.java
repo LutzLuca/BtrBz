@@ -115,11 +115,11 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    @Inject(method = "mouseReleased", at = @At("HEAD"))
+    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null) {
-            wm.mouseReleased(event);
+        if (wm != null && wm.mouseReleased(event)) {
+            cir.setReturnValue(true);
         }
     }
 

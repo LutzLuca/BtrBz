@@ -369,7 +369,7 @@ public class OrderTooltipProvider {
         public boolean enabled = true;
         public boolean showStatus = true;
         public boolean showQueue = true;
-        public boolean showPrices = true;
+        public boolean showPrices = false;
         public boolean showOnlyWhenUndercut = true;
 
         private static void invalidateCache() {

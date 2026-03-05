@@ -191,7 +191,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
             .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
-            .onRemove((self, item) -> this.syncBookmarksFromList(self.getItems()))
+            .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> this.savePosition(pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
@@ -365,7 +365,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Integer x, y;
         public boolean enabled = true;
         public boolean showEverywhere = true;
-        public int maxVisibleChildren = 6;
+        public int maxVisibleChildren = 8;
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
@@ -395,7 +395,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .description(OptionDescription.of(Component.literal(
                     "Maximum number of bookmarks visible at once before scrolling")))
                 .binding(
-                    6, () -> this.maxVisibleChildren, val -> {
+                    8, () -> this.maxVisibleChildren, val -> {
                         this.maxVisibleChildren = val;
                         ModuleManager
                             .getInstance()
