@@ -6,8 +6,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 
 import java.util.function.BiConsumer;
 
-import org.lwjgl.glfw.GLFW;
-
 import com.github.lutzluca.btrbz.utils.Position;
 
 import lombok.Getter;
@@ -126,7 +124,7 @@ public abstract class DraggableWidget extends AbstractWidget {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (this.isDragging && event.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (this.isDragging && event.isEscape()) {
             this.cancelDrag();
             return true;
         }

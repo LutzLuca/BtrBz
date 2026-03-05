@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
+
 
 public class ListWidget extends DraggableWidget {
     private final List<Renderable> items = new ArrayList<>();
@@ -53,7 +53,6 @@ public class ListWidget extends DraggableWidget {
     private AutoScrollDirection autoScrollDirection = AutoScrollDirection.NONE;
 
     private TriConsumer<ListWidget, Integer, Integer> itemReorderedCallback;
-    private BiConsumer<ListWidget, Renderable> itemRemovedSimpleCallback;
     private TriConsumer<ListWidget, Integer, Integer> onHoverChangeCallback;
     private TriConsumer<ListWidget, Renderable, Integer> itemClickCallback;
     private TriConsumer<ListWidget, Renderable, Integer> itemRemovedCallback;
@@ -71,6 +70,15 @@ public class ListWidget extends DraggableWidget {
     private static final int COLOR_SCROLLBAR_THUMB_DRAG = 0xFF888888;
     private static final int COLOR_BORDER = 0xFF353535;
     private static final int COLOR_TITLE_TEXT = 0xFFDDDDDD;
+
+    // Layout constants
+    private static final int TITLE_BAR_HEIGHT = 20;
+    private static final int TITLE_SEPARATOR_HEIGHT = 1;
+    private static final int CONTENT_START_Y = TITLE_BAR_HEIGHT + TITLE_SEPARATOR_HEIGHT;
+    private static final int SCROLLBAR_WIDTH = 10;
+    private static final int CONTENT_MARGIN_X = 2;
+    private static final int CONTENT_PADDING_X = 4;
+    private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 20;
 
     @FunctionalInterface
     public interface TriConsumer<T, U, V> {
@@ -143,8 +151,8 @@ public class ListWidget extends DraggableWidget {
         graphics.fill(x, y, x + this.width, y + this.height, COLOR_BACKGROUND);
 
         // Title bar
-        graphics.fill(x, y, x + this.width, y + 20, ctx.isTopWidget() ? COLOR_TITLE_BG : COLOR_NON_ACTIVE_TITLE_BG);
-        graphics.fill(x, y + 20, x + this.width, y + 21, COLOR_BORDER); // Title separator separator
+        graphics.fill(x, y, x + this.width, y + TITLE_BAR_HEIGHT, ctx.isTopWidget() ? COLOR_TITLE_BG : COLOR_NON_ACTIVE_TITLE_BG);
+        graphics.fill(x, y + TITLE_BAR_HEIGHT, x + this.width, y + CONTENT_START_Y, COLOR_BORDER); // Title separator
 
         graphics.drawString(
             this.client.font,
@@ -155,10 +163,10 @@ public class ListWidget extends DraggableWidget {
         );
 
         // Content area
-        int contentX = x + 2;
-        int contentY = y + 21;
-        int contentWidth = this.width - 4 - (this.needsScrollbar() ? 10 : 0);
-        int contentHeight = this.height - 21;
+        int contentX = x + CONTENT_MARGIN_X;
+        int contentY = y + CONTENT_START_Y;
+        int contentWidth = this.width - CONTENT_PADDING_X - (this.needsScrollbar() ? SCROLLBAR_WIDTH : 0);
+        int contentHeight = this.height - CONTENT_START_Y;
 
         // Calculate hovered item (but not when another widget is being dragged or not top widget)
         boolean canProcessHover = ctx.canProcessHover();
@@ -223,7 +231,7 @@ public class ListWidget extends DraggableWidget {
     }
 
     private void renderItems(GuiGraphics graphics, int x, int y, int width, int mouseX, int mouseY, float delta) {
-        int visibleHeight = this.height - 21;
+        int visibleHeight = this.height - CONTENT_START_Y;
         int firstVisible = Math.max(0, this.scrollOffset / (this.itemHeight + this.itemSpacing));
         int lastVisible = Math.min(this.items.size() - 1, (this.scrollOffset + visibleHeight) / (this.itemHeight + this.itemSpacing) + 1);
 
@@ -285,21 +293,21 @@ public class ListWidget extends DraggableWidget {
 
     private void updateScrollLimits() {
         int totalHeight = this.items.size() * (this.itemHeight + this.itemSpacing);
-        int visibleHeight = this.height - 21;
+        int visibleHeight = this.height - CONTENT_START_Y;
         this.maxScrollOffset = Math.max(0, totalHeight - visibleHeight);
         this.scrollOffset = Math.min(this.scrollOffset, this.maxScrollOffset);
     }
 
     private boolean needsScrollbar() {
         int totalHeight = this.items.size() * (this.itemHeight + this.itemSpacing);
-        int visibleHeight = this.height - 21;
+        int visibleHeight = this.height - CONTENT_START_Y;
         return totalHeight > visibleHeight;
     }
 
     private int calculateScrollbarThumbHeight(int trackHeight) {
         int totalHeight = this.items.size() * (this.itemHeight + this.itemSpacing);
-        int visibleHeight = this.height - 21;
-        return Math.max(20, (int)((double)visibleHeight / totalHeight * trackHeight));
+        int visibleHeight = this.height - CONTENT_START_Y;
+        return Math.max(SCROLLBAR_MIN_THUMB_HEIGHT, (int)((double)visibleHeight / totalHeight * trackHeight));
     }
 
     private int calculateScrollbarThumbY(int trackY, int trackHeight, int thumbHeight) {
@@ -342,13 +350,13 @@ public class ListWidget extends DraggableWidget {
             }
 
             // Calculate insertion index based on mouse Y
-            int contentY = this.getY() + 21 - this.scrollOffset;
+            int contentY = this.getY() + CONTENT_START_Y - this.scrollOffset;
             int relativeY = (int)event.y() - contentY;
             this.dragInsertIndex = Math.max(0, Math.min(this.items.size(), relativeY / (this.itemHeight + this.itemSpacing)));
 
             // Detect auto-scroll zone during drag
-            int contentHeight = this.height - 21;
-            int relativeMouseY = (int)event.y() - (this.getY() + 21);
+            int contentHeight = this.height - CONTENT_START_Y;
+            int relativeMouseY = (int)event.y() - (this.getY() + CONTENT_START_Y);
 
             if (relativeMouseY < AUTO_SCROLL_MARGIN && this.scrollOffset > 0) {
                 this.autoScrollDirection = AutoScrollDirection.UP;
@@ -382,9 +390,9 @@ public class ListWidget extends DraggableWidget {
 
         // Check if clicking scrollbar
         if (this.needsScrollbar() && event.button() == 0) {
-            int scrollbarX = this.getX() + this.width - 10;
-            int scrollbarY = this.getY() + 21;
-            int scrollbarHeight = this.height - 21;
+            int scrollbarX = this.getX() + this.width - SCROLLBAR_WIDTH;
+            int scrollbarY = this.getY() + CONTENT_START_Y;
+            int scrollbarHeight = this.height - CONTENT_START_Y;
             int thumbHeight = this.calculateScrollbarThumbHeight(scrollbarHeight);
             int thumbY = this.calculateScrollbarThumbY(scrollbarY, scrollbarHeight, thumbHeight);
 
@@ -408,7 +416,7 @@ public class ListWidget extends DraggableWidget {
                     this.dragStartMouseX = event.x();
                     this.dragStartMouseY = event.y();
 
-                    int itemY = this.getY() + 21 + idx * (this.itemHeight + this.itemSpacing) - this.scrollOffset;
+                    int itemY = this.getY() + CONTENT_START_Y + idx * (this.itemHeight + this.itemSpacing) - this.scrollOffset;
                     this.dragOffsetY = event.y() - itemY;
 
                 } else {
@@ -433,57 +441,25 @@ public class ListWidget extends DraggableWidget {
                 this.draggingScrollbar = false;
             } else if (this.draggingItem) {
                 this.reorderItem(this.draggedItemIndex, this.dragInsertIndex);
-                this.draggingItem = false;
-                this.draggedItemIndex = -1;
-                this.draggedItem = null;
-                this.dragInsertIndex = -1;
-                this.autoScrollDirection = AutoScrollDirection.NONE;
+                this.resetDragState();
             } else if (this.draggedItemIndex >= 0) {
-                int currentIdx = this.getItemIndexAtPosition(event.x(), event.y());
-                if (currentIdx != this.draggedItemIndex) {
-                    this.draggedItemIndex = -1;
-                    this.draggedItem = null;
-                    this.autoScrollDirection = AutoScrollDirection.NONE;
-                    super.mouseReleased(event);
-                    return false;
-                }
-                Renderable clickedItem = this.items.get(this.draggedItemIndex);
-                int idx = this.draggedItemIndex;
-                this.draggedItemIndex = -1;
-                this.draggedItem = null;
-                this.autoScrollDirection = AutoScrollDirection.NONE;
-
-                if (clickedItem.mouseClicked(event)) {
+                int originalIdx = this.draggedItemIndex;
+                this.resetDragState();
+                if (this.handleItemClick(event, originalIdx)) {
                     super.mouseReleased(event);
                     return true;
                 }
-
-                if (this.itemClickCallback != null) {
-                    this.itemClickCallback.accept(this, clickedItem, idx);
-                    super.mouseReleased(event);
-                    return true;
-                }
+                super.mouseReleased(event);
+                return false;
             } else if (this.trackingClickItemIndex >= 0) {
-                int currentIdx = this.getItemIndexAtPosition(event.x(), event.y());
-                if (currentIdx != this.trackingClickItemIndex) {
-                    this.trackingClickItemIndex = -1;
-                    super.mouseReleased(event);
-                    return false;
-                }
-                Renderable clickedItem = this.items.get(this.trackingClickItemIndex);
-                int idx = this.trackingClickItemIndex;
+                int originalIdx = this.trackingClickItemIndex;
                 this.trackingClickItemIndex = -1;
-
-                if (clickedItem.mouseClicked(event)) {
+                if (this.handleItemClick(event, originalIdx)) {
                     super.mouseReleased(event);
                     return true;
                 }
-
-                if (this.itemClickCallback != null) {
-                    this.itemClickCallback.accept(this, clickedItem, idx);
-                    super.mouseReleased(event);
-                    return true;
-                }
+                super.mouseReleased(event);
+                return false;
             }
         }
 
@@ -504,25 +480,13 @@ public class ListWidget extends DraggableWidget {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (event.isEscape()) {
-            if (this.draggingItem) {
-                this.draggingItem = false;
-                this.draggedItemIndex = -1;
-                this.draggedItem = null;
-                this.dragInsertIndex = -1;
-                this.autoScrollDirection = AutoScrollDirection.NONE;
-
+            if (this.draggingItem || this.draggedItemIndex >= 0) {
+                this.resetDragState();
                 return true;
             }
 
             if (this.draggingScrollbar) {
                 this.draggingScrollbar = false;
-                return true;
-            }
-
-            if (this.draggedItemIndex >= 0) {
-                this.draggedItemIndex = -1;
-                this.draggedItem = null;
-                this.autoScrollDirection = AutoScrollDirection.NONE;
                 return true;
             }
         }
@@ -541,7 +505,7 @@ public class ListWidget extends DraggableWidget {
      */
     private boolean shouldAllowWidgetDrag(double mouseX, double mouseY) {
         // Always allow dragging in title bar
-        if (mouseY >= this.getY() && mouseY < this.getY() + 20) {
+        if (mouseY >= this.getY() && mouseY < this.getY() + TITLE_BAR_HEIGHT) {
             return true;
         }
 
@@ -559,15 +523,15 @@ public class ListWidget extends DraggableWidget {
             return -1;
         }
 
-        int contentX = this.getX() + 2;
-        int contentY = this.getY() + 21;
-        int contentWidth = this.width - 4 - (this.needsScrollbar() ? 10 : 0);
+        int contentX = this.getX() + CONTENT_MARGIN_X;
+        int contentY = this.getY() + CONTENT_START_Y;
+        int contentWidth = this.width - CONTENT_PADDING_X - (this.needsScrollbar() ? SCROLLBAR_WIDTH : 0);
 
         // Check if in content area
         if (mouseX < contentX || mouseX >= contentX + contentWidth) {
             return -1;
         }
-        if (mouseY < contentY || mouseY >= contentY + (this.height - 21)) {
+        if (mouseY < contentY || mouseY >= contentY + (this.height - CONTENT_START_Y)) {
             return -1;
         }
 
@@ -587,6 +551,41 @@ public class ListWidget extends DraggableWidget {
         }
 
         return idx;
+    }
+
+    /**
+     * Reset all drag-related state to initial values.
+     */
+    private void resetDragState() {
+        this.draggingItem = false;
+        this.draggedItemIndex = -1;
+        this.draggedItem = null;
+        this.dragInsertIndex = -1;
+        this.trackingClickItemIndex = -1;
+        this.autoScrollDirection = AutoScrollDirection.NONE;
+    }
+
+    /**
+     * Handle item click on mouse release. Returns true if click was handled.
+     */
+    private boolean handleItemClick(MouseButtonEvent event, int itemIndex) {
+        int currentIdx = this.getItemIndexAtPosition(event.x(), event.y());
+        if (currentIdx != itemIndex) {
+            return false;
+        }
+
+        Renderable clickedItem = this.items.get(itemIndex);
+
+        if (clickedItem.mouseClicked(event)) {
+            return true;
+        }
+
+        if (this.itemClickCallback != null) {
+            this.itemClickCallback.accept(this, clickedItem, itemIndex);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -628,9 +627,6 @@ public class ListWidget extends DraggableWidget {
             Renderable removed = this.items.remove(idx);
             this.updateScrollLimits();
 
-            if (this.itemRemovedSimpleCallback != null) {
-                this.itemRemovedSimpleCallback.accept(this, removed);
-            }
             if (this.itemRemovedCallback != null) {
                 this.itemRemovedCallback.accept(this, removed, idx);
             }
@@ -686,11 +682,6 @@ public class ListWidget extends DraggableWidget {
 
     public ListWidget onReorder(TriConsumer<ListWidget, Integer, Integer> callback) {
         this.itemReorderedCallback = callback;
-        return this;
-    }
-
-    public ListWidget onRemove(BiConsumer<ListWidget, Renderable> callback) {
-        this.itemRemovedSimpleCallback = callback;
         return this;
     }
 

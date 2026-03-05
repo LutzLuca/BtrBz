@@ -202,7 +202,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         public boolean enabled = true;
         public boolean showInBazaar = true;
-        public int maxVisibleChildren = 6;
+        public int maxVisibleChildren = 8;
 
         public Option.Builder<Boolean> createInBazaarOption() {
             return Option
@@ -221,7 +221,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .description(OptionDescription.of(Component.literal(
                     "Maximum number of orders visible at once before scrolling")))
                 .binding(
-                    6, () -> this.maxVisibleChildren, val -> {
+                    8, () -> this.maxVisibleChildren, val -> {
                         this.maxVisibleChildren = val;
                         ModuleManager
                             .getInstance()
