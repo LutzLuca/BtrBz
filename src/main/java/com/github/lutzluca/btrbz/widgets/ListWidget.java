@@ -15,8 +15,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-import org.lwjgl.glfw.GLFW;
-
 public class ListWidget extends DraggableWidget {
     private final List<Renderable> items = new ArrayList<>();
     private final Component title;
@@ -42,6 +40,7 @@ public class ListWidget extends DraggableWidget {
     private boolean draggingItem = false;
     private int draggedItemIndex = -1;
     private Renderable draggedItem = null;
+    private int trackingClickItemIndex = -1;
     private int dragInsertIndex = -1;
     private double dragOffsetY = 0;
     private double dragStartMouseX = 0;
@@ -331,7 +330,7 @@ public class ListWidget extends DraggableWidget {
         }
 
         // Handle item dragging
-        if (this.draggedItemIndex >= 0) {
+        if (this.reorderable && this.draggedItemIndex >= 0) {
             // Check if drag threshold has been exceeded
             if (!this.draggingItem) {
                 double distance = Math.sqrt(Math.pow(event.x() - this.dragStartMouseX, 2) + Math.pow(event.y() - this.dragStartMouseY, 2));
@@ -373,7 +372,7 @@ public class ListWidget extends DraggableWidget {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         // Check for item removal (Ctrl+Right-click)
-        if (this.removable && event.button() == 1 && (event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0) {
+        if (this.removable && event.button() == 1 && event.hasControlDown()) {
             int idx = this.getItemIndexAtPosition(event.x(), event.y());
             if (idx >= 0) {
                 this.removeItem(idx);
@@ -413,15 +412,7 @@ public class ListWidget extends DraggableWidget {
                     this.dragOffsetY = event.y() - itemY;
 
                 } else {
-                    Renderable clickedItem = this.items.get(idx);
-                    if (clickedItem.mouseClicked(event)) {
-                        return true;
-                    }
-
-                    if (this.itemClickCallback != null) {
-                        this.itemClickCallback.accept(this, clickedItem, idx);
-                        return true;
-                    }
+                    this.trackingClickItemIndex = idx;
                 }
 
                 return true;
@@ -448,11 +439,40 @@ public class ListWidget extends DraggableWidget {
                 this.dragInsertIndex = -1;
                 this.autoScrollDirection = AutoScrollDirection.NONE;
             } else if (this.draggedItemIndex >= 0) {
+                int currentIdx = this.getItemIndexAtPosition(event.x(), event.y());
+                if (currentIdx != this.draggedItemIndex) {
+                    this.draggedItemIndex = -1;
+                    this.draggedItem = null;
+                    this.autoScrollDirection = AutoScrollDirection.NONE;
+                    super.mouseReleased(event);
+                    return false;
+                }
                 Renderable clickedItem = this.items.get(this.draggedItemIndex);
                 int idx = this.draggedItemIndex;
                 this.draggedItemIndex = -1;
                 this.draggedItem = null;
                 this.autoScrollDirection = AutoScrollDirection.NONE;
+
+                if (clickedItem.mouseClicked(event)) {
+                    super.mouseReleased(event);
+                    return true;
+                }
+
+                if (this.itemClickCallback != null) {
+                    this.itemClickCallback.accept(this, clickedItem, idx);
+                    super.mouseReleased(event);
+                    return true;
+                }
+            } else if (this.trackingClickItemIndex >= 0) {
+                int currentIdx = this.getItemIndexAtPosition(event.x(), event.y());
+                if (currentIdx != this.trackingClickItemIndex) {
+                    this.trackingClickItemIndex = -1;
+                    super.mouseReleased(event);
+                    return false;
+                }
+                Renderable clickedItem = this.items.get(this.trackingClickItemIndex);
+                int idx = this.trackingClickItemIndex;
+                this.trackingClickItemIndex = -1;
 
                 if (clickedItem.mouseClicked(event)) {
                     super.mouseReleased(event);
@@ -483,7 +503,7 @@ public class ListWidget extends DraggableWidget {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (event.isEscape()) {
             if (this.draggingItem) {
                 this.draggingItem = false;
                 this.draggedItemIndex = -1;
@@ -511,8 +531,6 @@ public class ListWidget extends DraggableWidget {
     }
 
     public boolean isDragging() {
-        // Check item drag, scrollbar drag, AND widget-level drag (from DraggableWidget)
-        // The 'isDragging' field is inherited from DraggableWidget and tracks widget-level dragging
         return this.draggingItem || this.draggingScrollbar || this.isDragging;
     }
 
@@ -619,8 +637,6 @@ public class ListWidget extends DraggableWidget {
         }
     }
 
-    // ===== Configuration Methods (Fluent API) =====
-
     /**
      * Set item height in pixels.
      */
@@ -720,8 +736,7 @@ public class ListWidget extends DraggableWidget {
             String title
     ) {
         ListWidget widget = new ListWidget(defaultX, defaultY, width, height, title);
-        widget.setStatic();
-        widget.setDraggable(false);
+        widget.setStatic().setDraggable(false);
         return widget;
     }
 
