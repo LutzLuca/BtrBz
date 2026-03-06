@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0-alpha] - 2026-03-06
+
+### Changed
+
+- Complete widget system rewrite with more appealing visuals and improved interactivity
+- Added drag insertion indicator when reordering list items
+- Order tooltips split into separate list and item configurations with different content per context
+- Click callbacks now fire on mouse release instead of press for button-style behavior
+- Increased default max visible children from 6 to 8 in bookmark and tracked orders modules
+
+### Added
+
+- Preset module MAX entry now shows calculated item count in tooltip (e.g., "71,680 items")
+- MAX entry now shows "Missing X coins" tooltip when insufficient funds
+
+### Fixed
+
+- Click is cancelled if mouse is released outside the original item (prevents accidental activations)
+- Fixed missing Bazaar menu detections menu detection (InstaBuyConfirmation, InstaSellConfirmation)
+- Fixed ItemGroup menu detection logic bugs
+
 ## [0.1.3-alpha] - 2025-02-27
 
 ### Added
