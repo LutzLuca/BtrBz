@@ -113,9 +113,7 @@ public class OrderProtectionManager {
                     if (cfg.showChatMessage) {
                         sendBlockedOrderMessage(validation);
                     }
-                    if (cfg.soundOnBlocked) {
-                        SoundUtil.playSound(SoundEvents.VILLAGER_NO, 0.6f);
-                    }
+                    SoundUtil.playSoundIf(cfg.soundOnBlocked, SoundEvents.VILLAGER_NO, 0.6f, 1);
                     return true;
                 }
 
