@@ -19,6 +19,8 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
+import com.google.common.base.Predicate;
+
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -209,6 +211,13 @@ public class TrackedOrderManager {
 
     public List<TrackedOrder> getTrackedOrders() {
         return List.copyOf(this.trackedOrders);
+    }
+
+    public List<TrackedOrder> getTrackedOrders(Predicate<TrackedOrder> predicate) {
+        return this.trackedOrders
+            .stream()
+            .filter(predicate)
+            .toList();
     }
 
     public void addTrackedOrder(TrackedOrder order) {
