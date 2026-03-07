@@ -51,9 +51,7 @@ public class Notifier {
     }
 
     public static void notifyPriceReached(Alert alert, Optional<Double> price) {
-        if (ConfigManager.get().alert.soundOnAlert) {
-            SoundUtil.notifyMultipleTimes(2, SoundEvents.EXPERIENCE_ORB_PICKUP);
-        }
+        SoundUtil.playSoundIf(ConfigManager.get().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
         
         String priceText = price
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
@@ -151,24 +149,18 @@ public class Notifier {
 
         var msg = switch (status) {
             case Top ignored -> {
-                if (cfg.soundBest) {
-                    SoundUtil.playSound(SoundEvents.NOTE_BLOCK_CHIME, 0.5f);
-                }
+                SoundUtil.playSoundIf(cfg.soundBest, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 if (update.prev() instanceof OrderStatus.Unknown) {
                     yield bestMsg(order);
                 }
                 yield reclaimBestMsg(order);
             }
             case Matched ignored -> {
-                if (cfg.soundMatched) {
-                    SoundUtil.playSound(SoundEvents.NOTE_BLOCK_CHIME, 0.5f);
-                }
+                SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 yield matchedMsg(order);
             }
             case Undercut undercut -> {
-                if (cfg.soundUndercut) {
-                    SoundUtil.notifyMultipleTimes(2, SoundEvents.EXPERIENCE_ORB_PICKUP);
-                }
+                SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
                 yield undercutMsg(order, undercut.amount);
             }
             default -> throw new IllegalArgumentException("Unreachable curr: " + status);
