@@ -168,6 +168,7 @@ public class AlertManager {
     public static class AlertConfig {
 
         public boolean enabled = true;
+        public boolean soundOnAlert = true;
         public List<Alert> alerts = new ArrayList<>();
 
         public Option.Builder<Boolean> createEnabledOption() {
@@ -180,8 +181,18 @@ public class AlertManager {
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Option.Builder<Boolean> createSoundOnAlertOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Sound - Price Alert"))
+                .description(OptionDescription.of(Component.literal(
+                    "Play a sound when a price alert target is reached.")))
+                .binding(true, () -> this.soundOnAlert, val -> this.soundOnAlert = val)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnabledOption());
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createSoundOnAlertOption());
 
             return OptionGroup
                 .createBuilder()

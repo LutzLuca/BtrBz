@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.SoundUtil;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -27,6 +28,7 @@ import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
@@ -111,6 +113,7 @@ public class OrderProtectionManager {
                     if (cfg.showChatMessage) {
                         sendBlockedOrderMessage(validation);
                     }
+                    SoundUtil.playSoundIf(cfg.soundOnBlocked, SoundEvents.VILLAGER_NO, 0.6f, 1);
                     return true;
                 }
 
@@ -334,6 +337,7 @@ public class OrderProtectionManager {
 
         public boolean enabled = true;
         public boolean showChatMessage = true;
+        public boolean soundOnBlocked = true;
 
         public boolean blockUndercutPercentage = true;
         public double maxBuyOrderUndercut = 15.0;
@@ -358,6 +362,16 @@ public class OrderProtectionManager {
                 .description(OptionDescription.of(Component.literal(
                     "Show system chat messages when protections are triggered.")))
                 .binding(true, () -> this.showChatMessage, val -> this.showChatMessage = val)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Option.Builder<Boolean> createSoundOnBlockedOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Sound - Order Blocked"))
+                .description(OptionDescription.of(Component.literal(
+                    "Play a sound when an order is blocked by protection.")))
+                .binding(true, () -> this.soundOnBlocked, val -> this.soundOnBlocked = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -432,6 +446,7 @@ public class OrderProtectionManager {
             var rootGroup = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
                     this.createShowChatMessageOption(),
+                    this.createSoundOnBlockedOption(),
                     this.createBlockUndercutOfOpposingOption()
                 )
                 .addSubgroups(undercutGroup);
