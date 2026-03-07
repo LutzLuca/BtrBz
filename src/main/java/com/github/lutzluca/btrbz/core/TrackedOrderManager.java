@@ -284,21 +284,24 @@ public class TrackedOrderManager {
 
         public boolean notifyBest = true;
         public boolean onlyOnPriorityRegain = true;
+        public boolean soundBest = true;
         public boolean notifyMatched = true;
+        public boolean soundMatched = true;
         public boolean notifyUndercut = true;
+        public boolean soundUndercut = true;
 
         public Action gotoOnMatched = Action.Order;
         public Action gotoOnUndercut = Action.Order;
 
         public OptionGroup createGroup() {
-            var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption()).addOptions(this.createNotifyBestOnPriorityRegain());
+            var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption()).addOptions(this.createNotifyBestOnPriorityRegain(), this.createSoundBestOption());
+            var matchedGroup = new OptionGrouping(this.createNotifyMatchedOption()).addOptions(this.createSoundMatchedOption());
+            var undercutGroup = new OptionGrouping(this.createNotifyUndercutOption()).addOptions(this.createSoundUndercutOption());
 
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
-                this.createNotifyMatchedOption(),
-                this.createNotifyUndercutOption(),
                 this.createGotoMatchedOption(),
                 this.createGotoUndercutOption()
-            ).addSubgroups(notifyBestGroup);
+            ).addSubgroups(notifyBestGroup, matchedGroup, undercutGroup);
 
             return OptionGroup
                 .createBuilder()
@@ -379,6 +382,36 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
                 .description(OptionDescription.of(Component.literal(
                     "Send a notification when a tracked order is undercut / outbid by another order")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<Boolean> createSoundBestOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Sound - Best"))
+                .binding(true, () -> this.soundBest, val -> this.soundBest = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Play a sound when a best/top order notification is triggered")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<Boolean> createSoundMatchedOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Sound - Matched"))
+                .binding(true, () -> this.soundMatched, val -> this.soundMatched = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Play a sound when a matched notification is triggered")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<Boolean> createSoundUndercutOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Sound - Undercut"))
+                .binding(true, () -> this.soundUndercut, val -> this.soundUndercut = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Play a sound when an undercut notification is triggered")))
                 .controller(ConfigScreen::createBooleanController);
         }
 

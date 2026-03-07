@@ -20,6 +20,7 @@ import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.sounds.SoundEvents;
 
 @Slf4j
 public class Notifier {
@@ -50,6 +51,10 @@ public class Notifier {
     }
 
     public static void notifyPriceReached(Alert alert, Optional<Double> price) {
+        if (ConfigManager.get().alert.soundOnAlert) {
+            SoundUtil.notifyMultipleTimes(2, SoundEvents.EXPERIENCE_ORB_PICKUP);
+        }
+        
         String priceText = price
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
             .orElse("currently has no listed price. ");
@@ -133,24 +138,42 @@ public class Notifier {
                 .withHoverEvent(new ShowText(Component.literal("Run /" + cmd))));
         notifyPlayer(prefix().append(msg.withStyle(ChatFormatting.WHITE)));
     }
-
+    
+    /**
+     * Assumes the parent notification condition (e.g. notifyBest) is already met by the caller.
+     * Only checks the associated sound toggles before playing.
+     */
     public static void notifyOrderStatus(StatusUpdate update) {
         var order = update.trackedOrder();
         var status = update.curr();
 
+        var cfg = ConfigManager.get().trackedOrders;
+
         var msg = switch (status) {
             case Top ignored -> {
+                if (cfg.soundBest) {
+                    SoundUtil.playSound(SoundEvents.NOTE_BLOCK_CHIME, 0.5f);
+                }
                 if (update.prev() instanceof OrderStatus.Unknown) {
                     yield bestMsg(order);
                 }
                 yield reclaimBestMsg(order);
             }
-            case Matched ignored -> matchedMsg(order);
-            case Undercut undercut -> undercutMsg(order, undercut.amount);
+            case Matched ignored -> {
+                if (cfg.soundMatched) {
+                    SoundUtil.playSound(SoundEvents.NOTE_BLOCK_CHIME, 0.5f);
+                }
+                yield matchedMsg(order);
+            }
+            case Undercut undercut -> {
+                if (cfg.soundUndercut) {
+                    SoundUtil.notifyMultipleTimes(2, SoundEvents.EXPERIENCE_ORB_PICKUP);
+                }
+                yield undercutMsg(order, undercut.amount);
+            }
             default -> throw new IllegalArgumentException("Unreachable curr: " + status);
         };
 
-        var cfg = ConfigManager.get().trackedOrders;
         if (status instanceof Matched && cfg.gotoOnMatched != Action.None) {
             msg.append(makeGotoAction(cfg.gotoOnMatched, order));
         }
