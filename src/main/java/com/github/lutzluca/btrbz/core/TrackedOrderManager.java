@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
@@ -39,11 +38,12 @@ public class TrackedOrderManager {
 
     private final BazaarData bazaarData;
 
-    private final List<TrackedOrder> trackedOrders = new ArrayList<>();
+    private List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
+    private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
     private final List<Consumer<StatusUpdate>> onOrderStatusUpdate = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = null;
 
@@ -56,8 +56,18 @@ public class TrackedOrderManager {
         this.onOrderAddedListeners.add(listener);
     }
 
+    /**
+     * Add a listener for when an individual order is removed.
+     * <p>
+     * <b>Note:</b> This listener is NOT called when the entire list is cleared via {@link #resetTrackedOrders()}.
+     * Use {@link #addOnOrdersResetListener(Runnable)} to handle batch clears.
+     */
     public void addOnOrderRemovedListener(Consumer<TrackedOrder> listener) {
         this.onOrderRemovedListeners.add(listener);
+    }
+
+    public void addOnOrdersResetListener(Runnable listener) {
+        this.onOrdersResetListeners.add(listener);
     }
 
     public void afterOrderSync(BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> cb) {
@@ -190,10 +200,11 @@ public class TrackedOrderManager {
     }
 
     public void resetTrackedOrders() {
-        var removed = this.trackedOrders.size();
+        var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();
-        log.info("Reset tracked orders (removed {})", removed);
-        ModuleManager.getInstance().getModule(TrackedOrdersListModule.class).clearList();
+
+        log.info("Reset tracked orders (removed {})", removedSize);
+        this.onOrdersResetListeners.forEach(Runnable::run);
     }
 
     public List<TrackedOrder> getTrackedOrders() {
