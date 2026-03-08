@@ -73,7 +73,7 @@ public final class GameUtils {
         }
     }
 
-    public static <T> void copyIntToClipboard(T value) {
+    public static <T> void copyToClipboard(T value) {
         Minecraft client = Minecraft.getInstance();
         if (client != null) {
             client.keyboardHandler.setClipboard(String.valueOf(value));

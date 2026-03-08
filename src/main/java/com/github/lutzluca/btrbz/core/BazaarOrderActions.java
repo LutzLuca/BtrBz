@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
@@ -13,8 +14,15 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
+import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
 import lombok.extern.slf4j.Slf4j;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 
@@ -30,11 +38,7 @@ public class BazaarOrderActions {
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
                 var cfg = ConfigManager.get().orderActions;
-                if (!cfg.enabled) {
-                    return false;
-                }
-
-                if (!cfg.copyRemaining) {
+                if (!cfg.enabled || !cfg.copyRemaining) {
                     return false;
                 }
 
@@ -53,8 +57,9 @@ public class BazaarOrderActions {
                 }
 
                 var cfg = ConfigManager.get().orderActions;
-                if (cfg.copyRemaining && remainingOrderAmount != null) {
-                    GameUtils.copyIntToClipboard(remainingOrderAmount);
+                if (cfg.copyRemaining && cfg.copyRemainingModifier.isDown() && remainingOrderAmount != null) {
+                    log.debug("Copying remaining order amount '{}' to clipboard", remainingOrderAmount);
+                    GameUtils.copyToClipboard(remainingOrderAmount);
                     remainingOrderAmount = null;
                 }
 
@@ -80,6 +85,42 @@ public class BazaarOrderActions {
                 remainingOrderAmount = null;
             }
         );
+
+        ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            var cfg = ConfigManager.get().orderActions;
+            if (!cfg.enabled || !cfg.copyRemaining || remainingOrderAmount == null) {
+                return;
+            }
+
+            var screenInfo = ScreenInfoHelper.get().getCurrInfo();
+            if (!screenInfo.inMenu(BazaarMenuType.OrderOptions)) {
+                return;
+            }
+
+            var isCancelOrderSlot = screenInfo.getGenericContainerScreen()
+                .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor ? accessor.getHoveredSlot() : null)
+                .filter(BazaarOrderActions::isCancelOrderSlot)
+                .isPresent();
+
+            if (!isCancelOrderSlot) {
+                return;
+            }
+
+            lines.add(Component.empty());
+            lines.add(Component.literal("[BtrBz]").withStyle(ChatFormatting.AQUA));
+            var modifier = cfg.copyRemainingModifier;
+            var keyName = switch (modifier) {
+                case Ctrl -> "Ctrl";
+                case Alt -> "Alt";
+                case None -> null;
+            };
+
+            var hint = keyName != null
+                ? String.format("Hold %s to copy the remaining amount.", keyName)
+                : "Copies the remaining amount.";
+
+            lines.add(Component.literal(hint).withStyle(ChatFormatting.GRAY));
+        });
     }
 
     // NOTE: this could (and probably should) also be done inside the `OrderOptions` screen
@@ -102,8 +143,8 @@ public class BazaarOrderActions {
         shouldReopenBazaar = true;
     }
 
-    private static boolean isCancelOrderSlot(Slot slot) {
-        return (slot.getContainerSlot() == 11 || slot.getContainerSlot() == 13) && slot
+    private static boolean isCancelOrderSlot(@Nullable Slot slot) {
+        return slot != null && slot.getContainerSlot() == 11 && slot
             .getItem()
             .getHoverName()
             .getString()
@@ -113,8 +154,35 @@ public class BazaarOrderActions {
     public static class OrderActionsConfig {
 
         public boolean enabled = true;
-        public boolean copyRemaining = false;
+        public boolean copyRemaining = true;
+        public Modifier copyRemainingModifier = Modifier.Ctrl;
         public boolean reopenBazaar = false;
+
+        public enum Modifier {
+            None,
+            Ctrl,
+            Alt;
+
+            public static EnumControllerBuilder<Modifier> controller(Option<Modifier> option) {
+                return EnumControllerBuilder
+                    .create(option)
+                    .enumClass(Modifier.class)
+                    .formatValue(modifier -> switch (modifier) {
+                        case None -> Component.literal("None");
+                        case Ctrl -> Component.literal("Ctrl");
+                        case Alt -> Component.literal("Alt");
+                    });
+            }
+
+            public boolean isDown() {
+                var mc = Minecraft.getInstance();
+                return switch (this) {
+                    case None -> true;
+                    case Ctrl -> mc.hasControlDown();
+                    case Alt -> mc.hasAltDown();
+                };
+            }
+        }
 
         public Option.Builder<Boolean> createReopenBazaarOption() {
             return Option
@@ -144,6 +212,16 @@ public class BazaarOrderActions {
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Option.Builder<Modifier> createCopyRemainingModifierOption() {
+            return Option
+                .<Modifier>createBuilder()
+                .name(Component.literal("Copy Remaining Modifier"))
+                .binding(Modifier.Ctrl, () -> this.copyRemainingModifier, val -> this.copyRemainingModifier = val)
+                .description(OptionDescription.of(Component.literal(
+                    "The modifier key that must be held down to copy the remaining amount")))
+                .controller(Modifier::controller);
+        }
+
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
@@ -155,10 +233,12 @@ public class BazaarOrderActions {
         }
 
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
-                this.createCopyRemainingOption(),
-                this.createReopenBazaarOption()
-            );
+            var copyGroup = new OptionGrouping(this.createCopyRemainingOption())
+                .addOptions(this.createCopyRemainingModifierOption());
+
+            var rootGroup = new OptionGrouping(this.createEnabledOption())
+                .addOptions(this.createReopenBazaarOption())
+                .addSubgroups(copyGroup);
 
             return OptionGroup
                 .createBuilder()
