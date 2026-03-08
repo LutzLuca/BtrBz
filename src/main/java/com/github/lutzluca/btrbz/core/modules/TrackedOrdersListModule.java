@@ -42,6 +42,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         orderManager.addOnOrderAddedListener(this::onOrderAdded);
         orderManager.addOnOrderRemovedListener(this::onOrderRemoved);
+        orderManager.addOnOrdersResetListener(this::clearList);
     }
 
     private void onOrderAdded(TrackedOrder order) {

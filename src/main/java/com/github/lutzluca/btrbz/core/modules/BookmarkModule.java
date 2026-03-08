@@ -78,6 +78,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.rebuildOrderCache();
         orderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
+        orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
 
         ItemOverrideManager.register((info, slot, original) -> {
             if (slot.getContainerSlot() != 13 || !info.inMenu(BazaarMenuType.Item)) {
