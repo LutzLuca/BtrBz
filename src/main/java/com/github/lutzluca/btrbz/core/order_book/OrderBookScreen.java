@@ -100,7 +100,7 @@ public class OrderBookScreen extends Screen {
     }
 
     private void copyPriceToClipboard(double price) {
-        Minecraft.getInstance().keyboardHandler.setClipboard(String.format("%.1f", price));
+        Minecraft.getInstance().keyboardHandler.setClipboard(Utils.formatDecimal(price, 1, false));
     }
 
     @Override

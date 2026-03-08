@@ -108,7 +108,7 @@ public class Notifier {
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(String.format("%.1f", alert.price)).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(Utils.formatDecimal(alert.price, 1, true)).withStyle(ChatFormatting.YELLOW))
             .append(Component
                 .literal(" has not been reached for " + durationText + ". ")
                 .withStyle(ChatFormatting.GRAY))

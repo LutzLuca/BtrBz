@@ -112,7 +112,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
     public String formatAmount(double amount) {
         if (!this.configState.useCompact) {
-            return String.format("%.0f", amount);
+            return Utils.formatDecimal(amount, 0, false);
         }
 
         int places;
