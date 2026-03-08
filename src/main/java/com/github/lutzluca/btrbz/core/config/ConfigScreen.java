@@ -44,6 +44,7 @@ public class ConfigScreen {
             .name(Component.literal("General"))
             .group(config.trackedOrders.createGroup())
             .group(config.alert.createGroup())
+            .group(config.chatFilter.createGroup())
             .group(config.orderLimit.createGroup())
             .group(config.bookmark.createGroup())
             .group(config.priceDiff.createGroup())

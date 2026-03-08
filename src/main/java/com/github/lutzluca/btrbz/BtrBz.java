@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
+import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
@@ -112,6 +113,7 @@ public class BtrBz implements ClientModInitializer {
 
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.alertManager = new AlertManager();
+        new ChatFilterManager();
         var orderProtectionManager = OrderProtectionManager.getInstance();
 
         var moduleManager = ModuleManager.getInstance();
