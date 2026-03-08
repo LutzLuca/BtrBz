@@ -317,8 +317,8 @@ public class TrackedOrderManager {
                 .description(OptionDescription.of(Component.literal(
                     "Where to jump shortcut to when one of your tracked orders becomes matched")))
                 .binding(
-                    this.gotoOnMatched,
-                    () -> this.gotoOnMatched,
+                    Action.Order,
+                    () -> this.gotoOnMatched != null ? this.gotoOnMatched : Action.Order,
                     action -> this.gotoOnMatched = action
                 )
                 .controller(Action::controller);
@@ -331,8 +331,8 @@ public class TrackedOrderManager {
                 .description(OptionDescription.of(Component.literal(
                     "Where to jump shortcut to when one of your tracked orders is undercut")))
                 .binding(
-                    this.gotoOnUndercut,
-                    () -> this.gotoOnUndercut,
+                    Action.Order,
+                    () -> this.gotoOnUndercut != null ? this.gotoOnUndercut : Action.Order,
                     action -> this.gotoOnUndercut = action
                 )
                 .controller(Action::controller);

@@ -495,7 +495,11 @@ public final class ProductInfoProvider {
                 .name(Component.literal("Preferred Product Info Site"))
                 .description(OptionDescription.of(Component.literal(
                     "Select which external website to open for product information.")))
-                .binding(this.site, () -> this.site, site -> this.site = site)
+                .binding(
+                    InfoProviderSite.SkyblockBz,
+                    () -> this.site != null ? this.site : InfoProviderSite.SkyblockBz,
+                    site -> this.site = site
+                )
                 .controller(InfoProviderSite::controller);
         }
 

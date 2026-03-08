@@ -216,7 +216,11 @@ public class BazaarOrderActions {
             return Option
                 .<Modifier>createBuilder()
                 .name(Component.literal("Copy Remaining Modifier"))
-                .binding(Modifier.Ctrl, () -> this.copyRemainingModifier, val -> this.copyRemainingModifier = val)
+                .binding(
+                    Modifier.Ctrl,
+                    () -> this.copyRemainingModifier != null ? this.copyRemainingModifier : Modifier.Ctrl,
+                    val -> this.copyRemainingModifier = val
+                )
                 .description(OptionDescription.of(Component.literal(
                     "The modifier key that must be held down to copy the remaining amount")))
                 .controller(Modifier::controller);
