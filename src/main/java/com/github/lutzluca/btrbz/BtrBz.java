@@ -217,14 +217,12 @@ public class BtrBz implements ClientModInitializer {
                 return message;
             }
 
-            return message.copy().append(Component.literal(" [Go To Orders]")
-                                             .withStyle(style -> style
-                                                 .withClickEvent(new RunCommand(
-                                                     "/managebazaarorders"))
-                                                 .withHoverEvent(
-                                                     new ShowText(Component.literal(
-                                                         "Opens the Bazaar order screen")))
-                                                 .withColor(ChatFormatting.DARK_AQUA)));
+            return message.copy()
+                .withStyle(style -> style
+                    .withClickEvent(new RunCommand("/managebazaarorders"))
+                    .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))))
+                .append(Component.literal(" [Go To Orders]")
+                    .withStyle(ChatFormatting.DARK_AQUA));
         });
 
         ScreenInfoHelper.registerOnLoaded(

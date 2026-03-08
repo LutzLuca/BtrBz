@@ -152,32 +152,33 @@ public class Notifier {
 
         var cfg = ConfigManager.get().trackedOrders;
         if (status instanceof Matched && cfg.gotoOnMatched != Action.None) {
-            msg.append(makeGotoAction(cfg.gotoOnMatched, order));
+            applyGotoAction(msg, cfg.gotoOnMatched, order);
         }
 
         if (status instanceof Undercut && cfg.gotoOnUndercut != Action.None) {
-            msg.append(makeGotoAction(cfg.gotoOnUndercut, order));
+            applyGotoAction(msg, cfg.gotoOnUndercut, order);
         }
 
         notifyPlayer(msg);
     }
 
-    private static MutableComponent makeGotoAction(Action action, TrackedOrder order) {
-        var base = (action == Action.Item) ? Component
-            .literal(" [Go To Item]")
-            .withStyle(style -> style
+    private static void applyGotoAction(MutableComponent msg, Action action, TrackedOrder order) {
+        if (action == Action.Item) {
+            msg.withStyle(style -> style
                 .withClickEvent(new RunCommand("/bz " + order.productName))
                 .withHoverEvent(new ShowText(Component
                     .literal("Open ")
                     .withStyle(ChatFormatting.GRAY)
                     .append(Component.literal(order.productName).withStyle(ChatFormatting.AQUA))
-                    .append(Component.literal(" in the Bazaar").withStyle(ChatFormatting.GRAY))))) : Component
-            .literal(" [Go To Orders]")
-            .withStyle(style -> style
-                .withClickEvent(new RunCommand("/managebazaarorders"))
-                .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))));
+                    .append(Component.literal(" in the Bazaar").withStyle(ChatFormatting.GRAY)))));
+            msg.append(Component.literal(" [Go To Item]").withStyle(ChatFormatting.DARK_AQUA));
+            return;
+        }
 
-        return base.withStyle(ChatFormatting.DARK_AQUA);
+        msg.withStyle(style -> style
+            .withClickEvent(new RunCommand("/managebazaarorders"))
+            .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))));
+        msg.append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
     }
 
 
