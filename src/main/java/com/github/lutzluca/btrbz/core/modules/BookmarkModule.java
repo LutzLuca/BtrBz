@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import java.util.Set;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -33,6 +34,7 @@ import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import io.vavr.control.Try;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -55,8 +57,28 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     private ListWidget list;
 
+    private final Set<String> orderBuySet = new HashSet<>();
+    private final Set<String> orderSellSet = new HashSet<>();
+
+    private void rebuildOrderCache() {
+        this.orderBuySet.clear();
+        this.orderSellSet.clear();
+
+        BtrBz.orderManager().getTrackedOrders().forEach(order -> {
+            switch (order.type) {
+                case Buy -> this.orderBuySet.add(order.productName);
+                case Sell -> this.orderSellSet.add(order.productName);
+            }
+        });
+    }
+
     @Override
     public void onLoad() {
+        var orderManager = BtrBz.orderManager();
+        this.rebuildOrderCache();
+        orderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
+        orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
+
         ItemOverrideManager.register((info, slot, original) -> {
             if (slot.getContainerSlot() != 13 || !info.inMenu(BazaarMenuType.Item)) {
                 return Optional.empty();
@@ -113,34 +135,33 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     private boolean toggleBookmark(String productName, ItemStack itemStack) {
-        final class Bookmarked {
-
+        final class BookmarkTag {
             boolean bookmarked;
         }
 
-        var bookmarked = new Bookmarked();
+        var tag = new BookmarkTag();
         this.updateConfig(cfg -> {
             var it = cfg.bookmarkedItems.listIterator();
             while (it.hasNext()) {
                 var item = it.next();
                 if (item.productName.equals(productName)) {
                     it.remove();
-                    bookmarked.bookmarked = false;
+                    tag.bookmarked = false;
                     return;
                 }
             }
 
             it.add(new BookmarkedItem(productName, itemStack));
-            bookmarked.bookmarked = true;
+            tag.bookmarked = true;
         });
 
         if (this.list == null) {
-            return bookmarked.bookmarked;
+            return tag.bookmarked;
         }
 
-        if (bookmarked.bookmarked) {
-            this.list.addItem(new BookmarkedItemRenderable(productName, itemStack));
-            return bookmarked.bookmarked;
+        if (tag.bookmarked) {
+            this.list.addItem(new BookmarkedItemRenderable(productName, itemStack, this.orderBuySet, this.orderSellSet));
+            return tag.bookmarked;
         }
 
         this.list
@@ -161,7 +182,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 )
             );
 
-        return bookmarked.bookmarked;
+        return tag.bookmarked;
     }
 
     @Override
@@ -195,7 +216,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .onDragEnd((self, pos) -> this.savePosition(pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
-            .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack()))
+            .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack(), this.orderBuySet, this.orderSellSet))
             .collect(Collectors.toList());
         widget.setItems(items);
 
@@ -242,9 +263,15 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         private final int color;
         private final Component displayText;
 
-        public BookmarkedItemRenderable(String productName, ItemStack itemStack) {
+        private final Set<String> orderBuySet;
+        private final Set<String> orderSellSet;
+
+        public BookmarkedItemRenderable(String productName, ItemStack itemStack,
+                Set<String> orderBuySet, Set<String> orderSellSet) {
             this.productName = productName;
             this.itemStack = itemStack;
+            this.orderBuySet = orderBuySet;
+            this.orderSellSet = orderSellSet;
 
             //noinspection DataFlowIssue
             this.color = (0xFF << 24) | Try
@@ -281,6 +308,40 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             int textX = iconX + 18;
             int textY = y + (height - font.lineHeight) / 2;
             graphics.drawString(font, this.displayText, textX, textY, this.color);
+
+            // Draw order indicator
+            if (!ConfigManager.get().bookmark.showOrderIndicators) {
+                return;
+            }
+
+            boolean hasBuy = orderBuySet.contains(this.productName);
+            boolean hasSell = orderSellSet.contains(this.productName);
+
+            if (hasBuy || hasSell) {
+                int centerX = x + width - 8;
+                int centerY = y + (height / 2);
+
+                if (hasBuy && hasSell) {
+                    int radius = 2;
+                    int leftDotX = x + width - 13;
+                    int rightDotX = x + width - 6;
+                    drawDot(graphics, leftDotX, centerY, radius, 0xFF55FF55);
+                    drawDot(graphics, rightDotX, centerY, radius, 0xFFFFAA00);
+                } else {
+                    int dotColor = hasBuy ? 0xFF55FF55 : 0xFFFFAA00;
+                    drawDot(graphics, centerX, centerY, 3, dotColor);
+                }
+            }
+        }
+
+        private static void drawDot(GuiGraphics graphics, int cx, int cy, int radius, int color) {
+            for (int dy = -radius; dy <= radius; dy++) {
+                for (int dx = -radius; dx <= radius; dx++) {
+                    if (dx * dx + dy * dy <= radius * radius) {
+                        graphics.fill(cx + dx, cy + dy, cx + dx + 1, cy + dy + 1, color);
+                    }
+                }
+            }
         }
 
     }
@@ -366,6 +427,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public boolean enabled = true;
         public boolean showEverywhere = true;
         public int maxVisibleChildren = 8;
+        public boolean showOrderIndicators = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
@@ -406,10 +468,21 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 14).step(1));
         }
 
+        public Option.Builder<Boolean> createShowOrderIndicatorsOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Show Order Indicators"))
+                .description(OptionDescription.of(Component.literal(
+                    "Show colored dots on bookmarked items that have active tracked orders")))
+                .binding(true, () -> this.showOrderIndicators, val -> this.showOrderIndicators = val)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
                 this.createShowEverywhereOption(),
-                this.createMaxVisibleOption()
+                this.createMaxVisibleOption(),
+                this.createShowOrderIndicatorsOption()
             );
 
             return OptionGroup
