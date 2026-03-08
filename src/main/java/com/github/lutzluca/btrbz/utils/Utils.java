@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -140,7 +141,7 @@ public final class Utils {
             pattern.append("0".repeat(places));
         }
 
-        return new DecimalFormat(pattern.toString()).format(scaled) + suffix;
+        return new DecimalFormat(pattern.toString(), DecimalFormatSymbols.getInstance(Locale.US)).format(scaled) + suffix;
     }
 
 
