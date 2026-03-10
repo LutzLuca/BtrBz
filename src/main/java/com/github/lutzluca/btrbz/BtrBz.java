@@ -185,7 +185,7 @@ public class BtrBz implements ClientModInitializer {
                 var orderInfo = OrderInfoParser.parseOrderInfo(slot.getItem(), slot.getContainerSlot());
                 if (orderInfo.isSuccess()) {
                     flipHelper.onOrderClick(orderInfo.get());
-                    BazaarOrderActions.onOrderClick(orderInfo.get());
+                    BazaarOrderActions.onOrderClick(orderInfo.get(), slot.getItem());
                 }
 
                 return false;

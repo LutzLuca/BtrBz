@@ -7,7 +7,9 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager;
+import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
@@ -15,7 +17,9 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -23,8 +27,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 
 @Slf4j
 public class BazaarOrderActions {
@@ -32,13 +39,19 @@ public class BazaarOrderActions {
     private static boolean shouldReopenBazaar = false;
     private static Integer remainingOrderAmount = null;
 
+    public record CancelledOrderRecord(ItemStack itemStack, String productName) {}
+
+    @Nullable private static CancelledOrderRecord pendingBuyOrder = null;
+    @Nullable private static CancelledOrderRecord lastCancelledBuyOrder = null;
+
+    private static boolean hideCancelledOrderButton = false;
+
     public static void init() {
         ScreenActionManager.register(new ScreenActionManager.ScreenClickRule() {
-
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
                 var cfg = ConfigManager.get().orderActions;
-                if (!cfg.enabled || !cfg.copyRemaining) {
+                if (!cfg.enabled) {
                     return false;
                 }
 
@@ -46,15 +59,21 @@ public class BazaarOrderActions {
                     return false;
                 }
 
-                return info.inMenu(BazaarMenuType.OrderOptions) && isCancelOrderSlot(slot);
+                var prev = ScreenInfoHelper.get().getPrevInfo();
+                return info.inMenu(BazaarMenuType.OrderOptions) && prev.inMenu(BazaarMenuType.Orders) && isCancelOrderSlot(slot);
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var prev = ScreenInfoHelper.get().getPrevInfo();
-                if (!prev.inMenu(BazaarMenuType.Orders)) {
-                    return false;
+                if (pendingBuyOrder != null) {
+                    lastCancelledBuyOrder = pendingBuyOrder;
+                    hideCancelledOrderButton = false;
+                    log.debug(
+                        "Committed last cancelled buy order: productName='{}'",
+                        lastCancelledBuyOrder.productName()
+                    );
                 }
+                pendingBuyOrder = null;
 
                 var cfg = ConfigManager.get().orderActions;
                 if (cfg.copyRemaining && cfg.copyRemainingModifier.isDown() && remainingOrderAmount != null) {
@@ -83,6 +102,84 @@ public class BazaarOrderActions {
         ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.OrderOptions), info -> {
                 remainingOrderAmount = null;
+            }
+        );
+
+        ItemOverrideManager.register((info, slot, original) -> {
+            var cfg = ConfigManager.get().orderActions;
+            if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled || (cfg.clearOnClose && hideCancelledOrderButton) ||
+                lastCancelledBuyOrder == null) {
+                return Optional.empty();
+            }
+
+            if (GameUtils.isPlayerInventorySlot(slot) || !info.inMenu(BazaarMenuType.Orders)) {
+                return Optional.empty();
+            }
+
+            var targetSlotIdx = info.getGenericContainerScreen()
+                .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
+                .orElse(-1);
+
+            if (slot.getContainerSlot() != targetSlotIdx) {
+                return Optional.empty();
+            }
+
+            // Build a renamed copy of the stored item with a completely replaced lore
+            var display = lastCancelledBuyOrder.itemStack().copy();
+            display.set(
+                DataComponents.CUSTOM_NAME,
+                Component.literal("\u00a7eReopen: ")
+                    .withStyle(style -> style.withItalic(false))
+                    .append(
+                        Component.literal(lastCancelledBuyOrder.productName())
+                            .withStyle(style -> style.withItalic(false).withColor(0xFFFFAA00))
+                    )
+            );
+
+            var loreLines = new ArrayList<Component>();
+            loreLines.add(Component.empty());
+            loreLines.add(
+                Component.literal("Click to reopen this product's Bazaar page")
+                    .withStyle(ChatFormatting.GRAY)
+                    .withStyle(style -> style.withItalic(false))
+            );
+            display.set(DataComponents.LORE, new ItemLore(loreLines));
+
+            return Optional.of(display);
+        });
+
+        ScreenActionManager.register(new ScreenClickRule() {
+            @Override
+            public boolean applies(ScreenInfo info, Slot slot, int button) {
+                var cfg = ConfigManager.get().orderActions;
+                if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled || (cfg.clearOnClose && hideCancelledOrderButton) ||
+                    lastCancelledBuyOrder == null) {
+                    return false;
+                }
+
+                if (GameUtils.isPlayerInventorySlot(slot) || !info.inMenu(BazaarMenuType.Orders)) {
+                    return false;
+                }
+
+                var targetSlotIdx = info.getGenericContainerScreen()
+                    .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
+                    .orElse(-1);
+
+                return slot.getContainerSlot() == targetSlotIdx;
+            }
+
+            @Override
+            public boolean onClick(ScreenInfo info, Slot slot, int button) {
+                log.debug("Reopening bazaar page for product '{}'", lastCancelledBuyOrder.productName());
+                GameUtils.runCommand("bz " + lastCancelledBuyOrder.productName());
+                return true;
+            }
+        });
+
+        ScreenInfoHelper.registerOnClose(
+            info -> info.inMenu(BazaarMenuType.Orders),
+            info -> {
+                hideCancelledOrderButton = true;
             }
         );
 
@@ -126,7 +223,17 @@ public class BazaarOrderActions {
     // NOTE: this could (and probably should) also be done inside the `OrderOptions` screen
     // parsing the `Cancel Order` item's lore "You will be refunded {rounded total} coins from
     // {remaining}x missing items."
-    public static void onOrderClick(OrderInfo info) {
+    public static void onOrderClick(OrderInfo info, ItemStack slotItem) {
+        if (info.type() == OrderType.Buy) {
+            pendingBuyOrder = new CancelledOrderRecord(slotItem.copy(), info.productName());
+            log.debug(
+                "Stored pending buy order: productName='{}'",
+                pendingBuyOrder.productName()
+            );
+        } else {
+            pendingBuyOrder = null;
+        }
+
         if (info.unclaimed() != 0 || info.type() != OrderType.Buy) {
             return;
         }
@@ -157,6 +264,8 @@ public class BazaarOrderActions {
         public boolean copyRemaining = true;
         public Modifier copyRemainingModifier = Modifier.Ctrl;
         public boolean reopenBazaar = false;
+        public boolean reopenLastBuyOrderEnabled = true;
+        public boolean clearOnClose = false;
 
         public enum Modifier {
             None,
@@ -229,10 +338,32 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Cancel Router"))
+                .name(Component.literal("Order Actions Toggle"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(OptionDescription.of(Component.literal(
                     "Master switch for actions on order cancel")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Option.Builder<Boolean> createReopenLastBuyOrderEnabledOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Reopen Last Cancelled Buy Order"))
+                .binding(true, () -> this.reopenLastBuyOrderEnabled, val -> this.reopenLastBuyOrderEnabled = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Show a button in the Manage Orders screen to quickly reopen the Bazaar page "
+                    + "of the last cancelled buy order.")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Option.Builder<Boolean> createClearOnCloseOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Hide Button After Closing Orders"))
+                .binding(false, () -> this.clearOnClose, val -> this.clearOnClose = val)
+                .description(OptionDescription.of(Component.literal(
+                    "When enabled, the reopen button is hidden after you close the Manage Orders screen. "
+                    + "It reappears automatically the next time you cancel a buy order.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -240,9 +371,12 @@ public class BazaarOrderActions {
             var copyGroup = new OptionGrouping(this.createCopyRemainingOption())
                 .addOptions(this.createCopyRemainingModifierOption());
 
+            var reopenGroup = new OptionGrouping(this.createReopenLastBuyOrderEnabledOption())
+                .addOptions(this.createClearOnCloseOption());
+
             var rootGroup = new OptionGrouping(this.createEnabledOption())
                 .addOptions(this.createReopenBazaarOption())
-                .addSubgroups(copyGroup);
+                .addSubgroups(copyGroup, reopenGroup);
 
             return OptionGroup
                 .createBuilder()
