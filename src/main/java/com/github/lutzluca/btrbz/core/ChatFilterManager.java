@@ -30,7 +30,7 @@ public class ChatFilterManager {
             }
 
             String content = ChatFormatting.stripFormatting(message.getString());
-            return TRANSIENT_MESSAGES.stream().noneMatch(content::contains);
+            return TRANSIENT_MESSAGES.stream().noneMatch(content::startsWith);
         });
     }
 

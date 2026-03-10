@@ -164,21 +164,23 @@ public class Notifier {
 
     private static void applyGotoAction(MutableComponent msg, Action action, TrackedOrder order) {
         if (action == Action.Item) {
-            msg.withStyle(style -> style
-                .withClickEvent(new RunCommand("/bz " + order.productName))
-                .withHoverEvent(new ShowText(Component
-                    .literal("Open ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal(order.productName).withStyle(ChatFormatting.AQUA))
-                    .append(Component.literal(" in the Bazaar").withStyle(ChatFormatting.GRAY)))));
-            msg.append(Component.literal(" [Go To Item]").withStyle(ChatFormatting.DARK_AQUA));
+            msg.append(Component.literal(" [Go To Item]")
+                .withStyle(ChatFormatting.DARK_AQUA)
+                .withStyle(style -> style
+                    .withClickEvent(new RunCommand("/bz " + order.productName))
+                    .withHoverEvent(new ShowText(Component
+                        .literal("Open ")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal(order.productName).withStyle(ChatFormatting.AQUA))
+                        .append(Component.literal(" in the Bazaar").withStyle(ChatFormatting.GRAY))))));
             return;
         }
 
-        msg.withStyle(style -> style
-            .withClickEvent(new RunCommand("/managebazaarorders"))
-            .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))));
-        msg.append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
+        msg.append(Component.literal(" [Go To Orders]")
+            .withStyle(ChatFormatting.DARK_AQUA)
+            .withStyle(style -> style
+                .withClickEvent(new RunCommand("/managebazaarorders"))
+                .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen")))));
     }
 
 
