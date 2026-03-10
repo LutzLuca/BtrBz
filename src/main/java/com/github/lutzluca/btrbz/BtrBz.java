@@ -142,11 +142,13 @@ public class BtrBz implements ClientModInitializer {
         orderProtectionManager.onSetOrder((stack, pendingOrderData) -> {
             pendingOrderData.ifPresentOrElse(
                 data -> addOutstanding.accept(data.orderInfo()),
-                () -> OrderInfoParser.parseSetOrderItem(stack).onSuccess(addOutstanding)
-                                     .onFailure((err) -> log.warn(
-                                         "Failed to parse confirm item",
-                                         err
-                                     ))
+                () -> OrderInfoParser
+                    .parseSetOrderItem(stack)
+                    .onSuccess(addOutstanding)
+                    .onFailure((err) -> log.warn(
+                        "Failed to parse confirm item",
+                        err
+                    ))
             );
             BazaarOrderActions.setReopenBazaar();
         });
@@ -230,13 +232,16 @@ public class BtrBz implements ClientModInitializer {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Orders),
             (info, inv) -> {
-                var parsed = inv.items.entrySet().stream()
-                                      .filter(entry -> GameUtils
-                                          .orderScreenNonOrderItemsFilter(entry.getValue()))
-                                      .map(entry -> OrderInfoParser
-                                          .parseOrderInfo(entry.getValue(), entry.getKey())
-                                          .toJavaOptional())
-                                      .flatMap(Optional::stream).toList();
+                var parsed = inv.items
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
+                    .map(entry -> OrderInfoParser
+                        .parseOrderInfo(entry.getValue(), entry.getKey())
+                        .toJavaOptional()
+                    )
+                    .flatMap(Optional::stream)
+                    .toList();
 
                 this.orderManager.syncOrders(parsed);
             }

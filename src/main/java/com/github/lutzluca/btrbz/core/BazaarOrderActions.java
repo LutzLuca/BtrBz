@@ -39,10 +39,34 @@ public class BazaarOrderActions {
     private static boolean shouldReopenBazaar = false;
     private static Integer remainingOrderAmount = null;
 
-    public record CancelledOrderRecord(ItemStack itemStack, String productName) {}
+    public record CancelledOrderContext(ItemStack displayItem, String productName) {
+        public static CancelledOrderContext buildDisplayContext(ItemStack originalItem, String productName) {
+            var display = originalItem.copy();
+            display.set(
+                DataComponents.CUSTOM_NAME,
+                Component.literal("Reopen: ")
+                    .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.YELLOW))
+                    .append(
+                        Component.literal(productName)
+                            .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GOLD))
+                    )
+            );
 
-    @Nullable private static CancelledOrderRecord pendingBuyOrder = null;
-    @Nullable private static CancelledOrderRecord lastCancelledBuyOrder = null;
+            var loreLines = new ArrayList<Component>();
+            loreLines.add(Component.empty());
+            loreLines.add(
+                Component.literal("Click to reopen this product's Bazaar page")
+                    .withStyle(ChatFormatting.GRAY)
+                    .withStyle(style -> style.withItalic(false))
+            );
+            display.set(DataComponents.LORE, new ItemLore(loreLines));
+            
+            return new CancelledOrderContext(display, productName);
+        }
+    }
+
+    @Nullable private static CancelledOrderContext pendingBuyOrder = null;
+    @Nullable private static CancelledOrderContext lastCancelledBuyOrder = null;
 
     private static boolean hideCancelledOrderButton = false;
 
@@ -124,28 +148,7 @@ public class BazaarOrderActions {
                 return Optional.empty();
             }
 
-            // Build a renamed copy of the stored item with a completely replaced lore
-            var display = lastCancelledBuyOrder.itemStack().copy();
-            display.set(
-                DataComponents.CUSTOM_NAME,
-                Component.literal("\u00a7eReopen: ")
-                    .withStyle(style -> style.withItalic(false))
-                    .append(
-                        Component.literal(lastCancelledBuyOrder.productName())
-                            .withStyle(style -> style.withItalic(false).withColor(0xFFFFAA00))
-                    )
-            );
-
-            var loreLines = new ArrayList<Component>();
-            loreLines.add(Component.empty());
-            loreLines.add(
-                Component.literal("Click to reopen this product's Bazaar page")
-                    .withStyle(ChatFormatting.GRAY)
-                    .withStyle(style -> style.withItalic(false))
-            );
-            display.set(DataComponents.LORE, new ItemLore(loreLines));
-
-            return Optional.of(display);
+            return Optional.of(lastCancelledBuyOrder.displayItem().copy());
         });
 
         ScreenActionManager.register(new ScreenClickRule() {
@@ -225,7 +228,7 @@ public class BazaarOrderActions {
     // {remaining}x missing items."
     public static void onOrderClick(OrderInfo info, ItemStack slotItem) {
         if (info.type() == OrderType.Buy) {
-            pendingBuyOrder = new CancelledOrderRecord(slotItem.copy(), info.productName());
+            pendingBuyOrder = CancelledOrderContext.buildDisplayContext(slotItem, info.productName());
             log.debug(
                 "Stored pending buy order: productName='{}'",
                 pendingBuyOrder.productName()
@@ -265,7 +268,7 @@ public class BazaarOrderActions {
         public Modifier copyRemainingModifier = Modifier.Ctrl;
         public boolean reopenBazaar = false;
         public boolean reopenLastBuyOrderEnabled = true;
-        public boolean clearOnClose = false;
+        public boolean clearOnClose = true;
 
         public enum Modifier {
             None,
@@ -360,7 +363,7 @@ public class BazaarOrderActions {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Hide Button After Closing Orders"))
-                .binding(false, () -> this.clearOnClose, val -> this.clearOnClose = val)
+                .binding(true, () -> this.clearOnClose, val -> this.clearOnClose = val)
                 .description(OptionDescription.of(Component.literal(
                     "When enabled, the reopen button is hidden after you close the Manage Orders screen. "
                     + "It reappears automatically the next time you cancel a buy order.")))
