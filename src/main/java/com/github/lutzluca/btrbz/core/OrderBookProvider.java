@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core;
 
-import java.util.ArrayList;
 import java.util.Optional;
 
 import com.github.lutzluca.btrbz.BtrBz;
@@ -49,11 +48,9 @@ public class OrderBookProvider {
                 return;
             }
 
-            record Insertion(int index, Component component) {}
-            var insertions = new ArrayList<Insertion>();
-
-            for (int i = 0; i < lines.size(); i++) {
-                var line = lines.get(i).getString();
+            for (int idx = 0; idx < lines.size(); idx++) {
+                var lineComponent = lines.get(idx);
+                var line = lineComponent.getString();
                 // - {price per unit} coins each | {volume}x in {order count} order
                 if (!line.contains(" coins each |")) {
                     continue;
@@ -79,23 +76,13 @@ public class OrderBookProvider {
                     continue;
                 }
 
-                int totalVolume = matches.stream().mapToInt(order -> order.volume).sum();
                 int orderCount = matches.size();
+                var indicator = Component.literal(" (")
+                        .withStyle(ChatFormatting.AQUA)
+                        .append(Component.literal(String.valueOf(orderCount)).withStyle(ChatFormatting.DARK_AQUA))
+                        .append(Component.literal(")").withStyle(ChatFormatting.AQUA));
 
-                var summary = Component.literal("  - ").withStyle(ChatFormatting.DARK_GRAY)
-                        .append(Component.literal("You have ").withStyle(ChatFormatting.GRAY))
-                        .append(Component.literal(Utils.formatDecimal(totalVolume, 0, true)).withStyle(ChatFormatting.GREEN))
-                        .append(Component.literal("x").withStyle(ChatFormatting.GRAY))
-                        .append(Component.literal(" in ").withStyle(ChatFormatting.GRAY))
-                        .append(Component.literal(String.valueOf(orderCount)).withStyle(ChatFormatting.WHITE))
-                        .append(Component.literal(orderCount == 1 ? " order" : " orders").withStyle(ChatFormatting.GRAY));
-
-                insertions.add(new Insertion(i + 1, summary));
-            }
-
-            for (int i = insertions.size() - 1; i >= 0; i--) {
-                var ins = insertions.get(i);
-                lines.add(ins.index(), ins.component());
+                lines.set(idx, lineComponent.copy().append(indicator));
             }
         });
     }
