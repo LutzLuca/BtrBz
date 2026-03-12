@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
-import com.github.lutzluca.btrbz.core.OrderBookProvider;
+import com.github.lutzluca.btrbz.core.ActiveOrderIndicator;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
@@ -109,7 +109,7 @@ public class BtrBz implements ClientModInitializer {
 
         this.highlightManager = new OrderHighlightManager();
         this.tooltipProvider = new OrderTooltipProvider();
-        new OrderBookProvider();
+        new ActiveOrderIndicator();
 
         ScreenInfoHelper.registerOnSwitch(info -> this.highlightManager.clearHighlightOverride());
 

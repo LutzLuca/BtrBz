@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
-import com.github.lutzluca.btrbz.core.OrderBookProvider;
+import com.github.lutzluca.btrbz.core.ActiveOrderIndicator;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.FlipHelper.FlipHelperConfig;
@@ -88,7 +88,7 @@ public class Config {
     public ChatFilterManager.ChatFilterConfig chatFilter = new ChatFilterManager.ChatFilterConfig();
 
     @SerialEntry
-    public OrderBookProvider.Config orderBookProvider = new OrderBookProvider.Config();
+    public ActiveOrderIndicator.Config activeOrderIndicator = new ActiveOrderIndicator.Config();
 
     @SerialEntry
     public OrderBookConfig orderBook = new OrderBookConfig();

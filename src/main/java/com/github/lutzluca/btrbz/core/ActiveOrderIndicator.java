@@ -18,11 +18,11 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
-public class OrderBookProvider {
+public class ActiveOrderIndicator {
 
-    public OrderBookProvider() {
+    public ActiveOrderIndicator() {
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
-            var cfg = ConfigManager.get().orderBookProvider;
+            var cfg = ConfigManager.get().activeOrderIndicator;
             if (!cfg.enabled) {
                 return;
             }
@@ -92,9 +92,9 @@ public class OrderBookProvider {
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option.<Boolean>createBuilder()
-                    .name(Component.literal("Order Book Provider"))
+                    .name(Component.literal("Active Order Indicator"))
                     .binding(true, () -> this.enabled, val -> this.enabled = val)
-                    .description(OptionDescription.of(Component.literal("Add a summary of your active orders to the 'Create Order' item tooltips.")))
+                    .description(OptionDescription.of(Component.literal("Add a hint of your active orders to the 'Sell Offer' and 'Buy Order' item tooltips in the Items Menu.")))
                     .controller(ConfigScreen::createBooleanController);
         }
 
@@ -102,8 +102,8 @@ public class OrderBookProvider {
             var root = new OptionGrouping(this.createEnabledOption());
 
             return OptionGroup.createBuilder()
-                    .name(Component.literal("Order Book Provider"))
-                    .description(OptionDescription.of(Component.literal("Settings for the Order Book Provider feature.")))
+                    .name(Component.literal("Active Order Indicator"))
+                    .description(OptionDescription.of(Component.literal("Settings for the Active Order Indicator feature.")))
                     .options(root.build())
                     .collapsed(false)
                     .build();
