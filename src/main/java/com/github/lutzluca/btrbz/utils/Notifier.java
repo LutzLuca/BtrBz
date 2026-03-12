@@ -20,6 +20,7 @@ import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.sounds.SoundEvents;
 
 @Slf4j
 public class Notifier {
@@ -50,6 +51,8 @@ public class Notifier {
     }
 
     public static void notifyPriceReached(Alert alert, Optional<Double> price) {
+        SoundUtil.playSoundIf(ConfigManager.get().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
+        
         String priceText = price
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
             .orElse("currently has no listed price. ");
@@ -133,24 +136,36 @@ public class Notifier {
                 .withHoverEvent(new ShowText(Component.literal("Run /" + cmd))));
         notifyPlayer(prefix().append(msg.withStyle(ChatFormatting.WHITE)));
     }
-
+    
+    /**
+     * Assumes the parent notification condition (e.g. notifyBest) is already met by the caller.
+     * Only checks the associated sound toggles before playing.
+     */
     public static void notifyOrderStatus(StatusUpdate update) {
         var order = update.trackedOrder();
         var status = update.curr();
 
+        var cfg = ConfigManager.get().trackedOrders;
+
         var msg = switch (status) {
             case Top ignored -> {
+                SoundUtil.playSoundIf(cfg.soundBest, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 if (update.prev() instanceof OrderStatus.Unknown) {
                     yield bestMsg(order);
                 }
                 yield reclaimBestMsg(order);
             }
-            case Matched ignored -> matchedMsg(order);
-            case Undercut undercut -> undercutMsg(order, undercut.amount);
+            case Matched ignored -> {
+                SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
+                yield matchedMsg(order);
+            }
+            case Undercut undercut -> {
+                SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
+                yield undercutMsg(order, undercut.amount);
+            }
             default -> throw new IllegalArgumentException("Unreachable curr: " + status);
         };
 
-        var cfg = ConfigManager.get().trackedOrders;
         if (status instanceof Matched && cfg.gotoOnMatched != Action.None) {
             applyGotoAction(msg, cfg.gotoOnMatched, order);
         }
