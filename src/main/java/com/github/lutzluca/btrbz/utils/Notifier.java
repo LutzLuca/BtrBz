@@ -6,9 +6,7 @@ import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Act
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.data.BazaarData.OrderQueueInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
@@ -207,7 +205,7 @@ public class Notifier {
         var status = Component
             .empty()
             .append(Component.literal("has been ").withStyle(ChatFormatting.WHITE))
-            .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
+            .append(Component.literal("MATCHED").withStyle(ChatFormatting.BLUE));
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
@@ -215,7 +213,18 @@ public class Notifier {
         if (cfg.showQueueInfo) {
             BtrBz.bazaarData().calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit, true
-            ).ifPresent(info -> appendQueueInfo(msg, info, cfg.queueDisplayMode));
+            ).ifPresent(info -> {
+                int displayOrders = info.ordersAhead - 1;
+                int displayItems = info.itemsAhead - order.volume;
+                if(displayOrders <= 0 || displayItems <= 0) {
+                    log.warn("Invalid queue position for {}: ordersAhead={}, itemsAhead={}, volume={}", 
+                        order, info.ordersAhead, info.itemsAhead, order.volume);
+                    return;
+                }
+                
+                msg.append(Component.literal(" by ").withStyle(ChatFormatting.WHITE));
+                msg.append(GameUtils.buildQueueComponent(displayOrders, displayItems, cfg.queueDisplayMode));
+            });
         }
 
         return msg;
@@ -230,7 +239,7 @@ public class Notifier {
             .append(Component
                 .literal(Utils.formatDecimal(undercutAmount, 1, true))
                 .withStyle(ChatFormatting.GOLD))
-            .append(Component.literal(" coins!").withStyle(ChatFormatting.WHITE));
+            .append(Component.literal(" coins").withStyle(ChatFormatting.WHITE));
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
@@ -238,16 +247,13 @@ public class Notifier {
         if (cfg.showQueueInfo) {
             BtrBz.bazaarData().calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit
-            ).ifPresent(info -> appendQueueInfo(msg, info, cfg.queueDisplayMode));
+            ).ifPresent(info -> {
+                msg.append(Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY));
+                msg.append(GameUtils.buildQueueComponent(info.ordersAhead, info.itemsAhead, cfg.queueDisplayMode));
+            });
         }
 
         return msg;
-    }
-
-    private static void appendQueueInfo(MutableComponent msg, OrderQueueInfo queueInfo, QueueDisplayMode mode) {
-        msg.append(Component.literal(" [").withStyle(ChatFormatting.DARK_GRAY))
-            .append(GameUtils.buildQueueComponent(queueInfo.ordersAhead, queueInfo.itemsAhead, mode))
-            .append(Component.literal("]").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     public static MutableComponent prefix() {
