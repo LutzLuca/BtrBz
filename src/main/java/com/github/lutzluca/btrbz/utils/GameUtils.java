@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.scores.DisplaySlot;
@@ -133,5 +134,13 @@ public final class GameUtils {
                     .map(Number::doubleValue)
                     .toJavaOptional();
             });
+    }
+
+    public static MutableComponent buildQueueComponent(int orders, int items) {
+        return Component.literal(String.valueOf(orders))
+            .withStyle(net.minecraft.ChatFormatting.RED)
+            .append(Component.literal(" orders (").withStyle(net.minecraft.ChatFormatting.GRAY))
+            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(net.minecraft.ChatFormatting.RED))
+            .append(Component.literal(" items)").withStyle(net.minecraft.ChatFormatting.GRAY));
     }
 }
