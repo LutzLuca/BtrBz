@@ -301,15 +301,19 @@ public class TrackedOrderManager {
         public Action gotoOnMatched = Action.Order;
         public Action gotoOnUndercut = Action.Order;
 
+        public boolean showQueueInfo = true;
+        public QueueDisplayMode queueDisplayMode = QueueDisplayMode.Both;
+
         public OptionGroup createGroup() {
             var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption()).addOptions(this.createNotifyBestOnPriorityRegain());
+            var queueGroup = new OptionGrouping(this.createShowQueueInfoOption()).addOptions(this.createQueueDisplayModeOption());
 
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
                 this.createNotifyMatchedOption(),
                 this.createNotifyUndercutOption(),
                 this.createGotoMatchedOption(),
                 this.createGotoUndercutOption()
-            ).addSubgroups(notifyBestGroup);
+            ).addSubgroups(notifyBestGroup, queueGroup);
 
             return OptionGroup
                 .createBuilder()
@@ -347,6 +351,30 @@ public class TrackedOrderManager {
                     action -> this.gotoOnUndercut = action
                 )
                 .controller(Action::controller);
+        }
+
+        private Option.Builder<Boolean> createShowQueueInfoOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Show Queue Info"))
+                .binding(true, () -> this.showQueueInfo, val -> this.showQueueInfo = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Display how many orders/items are ahead of your matched or undercut order")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<QueueDisplayMode> createQueueDisplayModeOption() {
+            return Option
+                .<QueueDisplayMode>createBuilder()
+                .name(Component.literal("Queue Display Mode"))
+                .binding(
+                    QueueDisplayMode.Both,
+                    () -> this.queueDisplayMode != null ? this.queueDisplayMode : QueueDisplayMode.Both,
+                    mode -> this.queueDisplayMode = mode
+                )
+                .description(OptionDescription.of(Component.literal(
+                    "Whether to display the number of orders and items, or just the number of items")))
+                .controller(QueueDisplayMode::controller);
         }
 
         private Option.Builder<Boolean> createNotifyBestOption() {
@@ -416,6 +444,21 @@ public class TrackedOrderManager {
                         case None -> Component.literal("No action");
                         case Item -> Component.literal("Go to Item in Bazaar");
                         case Order -> Component.literal("Open Manage Bazaar Orders");
+                    });
+            }
+        }
+
+        public enum QueueDisplayMode {
+            Both,
+            ItemsOnly;
+
+            public static EnumControllerBuilder<QueueDisplayMode> controller(Option<QueueDisplayMode> option) {
+                return EnumControllerBuilder
+                    .create(option)
+                    .enumClass(QueueDisplayMode.class)
+                    .formatValue(mode -> switch (mode) {
+                        case Both -> Component.literal("Orders and Items");
+                        case ItemsOnly -> Component.literal("Items Only");
                     });
             }
         }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -19,6 +20,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
 
 @Slf4j
 public final class GameUtils {
@@ -136,11 +138,17 @@ public final class GameUtils {
             });
     }
 
-    public static MutableComponent buildQueueComponent(int orders, int items) {
+    public static MutableComponent buildQueueComponent(int orders, int items, QueueDisplayMode mode) {
+        if (mode == QueueDisplayMode.ItemsOnly) {
+            return Component.literal(Utils.formatDecimal(items, 0, true))
+                .withStyle(ChatFormatting.RED)
+                .append(Component.literal(" items").withStyle(ChatFormatting.GRAY));
+        }
+
         return Component.literal(String.valueOf(orders))
-            .withStyle(net.minecraft.ChatFormatting.RED)
-            .append(Component.literal(" orders (").withStyle(net.minecraft.ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(net.minecraft.ChatFormatting.RED))
-            .append(Component.literal(" items)").withStyle(net.minecraft.ChatFormatting.GRAY));
+            .withStyle(ChatFormatting.RED)
+            .append(Component.literal(" orders (").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.RED))
+            .append(Component.literal(" items)").withStyle(ChatFormatting.GRAY));
     }
 }

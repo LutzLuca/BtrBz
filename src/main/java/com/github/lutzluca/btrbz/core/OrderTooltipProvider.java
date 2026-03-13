@@ -135,7 +135,11 @@ public class OrderTooltipProvider {
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
                     .literal("Queue: ")
                     .withStyle(ChatFormatting.GRAY)
-                    .append(GameUtils.buildQueueComponent(orderQueueInfo.ordersAhead, orderQueueInfo.itemsAhead))));
+                    .append(GameUtils.buildQueueComponent(
+                        orderQueueInfo.ordersAhead, 
+                        orderQueueInfo.itemsAhead,
+                        ConfigManager.get().trackedOrders.queueDisplayMode
+                    ))));
         }
 
         lines.add(Component.empty());
@@ -176,7 +180,11 @@ public class OrderTooltipProvider {
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
                     .literal("Queue: ")
                     .withStyle(ChatFormatting.GRAY)
-                    .append(GameUtils.buildQueueComponent(orderQueueInfo.ordersAhead, orderQueueInfo.itemsAhead))));
+                    .append(GameUtils.buildQueueComponent(
+                        orderQueueInfo.ordersAhead, 
+                        orderQueueInfo.itemsAhead,
+                        ConfigManager.get().trackedOrders.queueDisplayMode
+                    ))));
         }
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
