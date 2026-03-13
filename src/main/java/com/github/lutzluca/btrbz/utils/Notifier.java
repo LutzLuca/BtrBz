@@ -1,10 +1,12 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.data.BazaarData.OrderQueueInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
@@ -205,7 +207,14 @@ public class Notifier {
             .empty()
             .append(Component.literal("has been ").withStyle(ChatFormatting.WHITE))
             .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
-        return fillBaseMessage(order.type, order.volume, order.productName, status);
+
+        var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
+
+        BtrBz.bazaarData().calculateQueuePosition(
+            order.productName, order.type, order.pricePerUnit, true
+        ).ifPresent(info -> appendQueueInfo(msg, info));
+
+        return msg;
     }
 
     private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount) {
@@ -218,7 +227,20 @@ public class Notifier {
                 .literal(Utils.formatDecimal(undercutAmount, 1, true))
                 .withStyle(ChatFormatting.GOLD))
             .append(Component.literal(" coins!").withStyle(ChatFormatting.WHITE));
-        return fillBaseMessage(order.type, order.volume, order.productName, status);
+
+        var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
+
+        BtrBz.bazaarData().calculateQueuePosition(
+            order.productName, order.type, order.pricePerUnit
+        ).ifPresent(info -> appendQueueInfo(msg, info));
+
+        return msg;
+    }
+
+    private static void appendQueueInfo(MutableComponent msg, OrderQueueInfo queueInfo) {
+        msg.append(Component.literal(" [").withStyle(ChatFormatting.DARK_GRAY))
+            .append(GameUtils.buildQueueComponent(queueInfo.ordersAhead, queueInfo.itemsAhead))
+            .append(Component.literal("]").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     public static MutableComponent prefix() {
