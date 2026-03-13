@@ -108,16 +108,16 @@ public final class GameUtils {
 
         if (mode == QueueDisplayMode.ItemsOnly) {
             return Component.literal(Utils.formatDecimal(items, 0, true))
-                .withStyle(ChatFormatting.RED)
-                .append(Component.literal(itemsLabel).withStyle(ChatFormatting.WHITE));
+                .withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
         }
 
         String ordersLabel = orders == 1 ? " order" : " orders";
 
         return Component.literal(String.valueOf(orders))
-            .withStyle(ChatFormatting.RED)
-            .append(Component.literal(ordersLabel + " totalling ").withStyle(ChatFormatting.WHITE))
-            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.RED))
-            .append(Component.literal(itemsLabel).withStyle(ChatFormatting.WHITE));
+            .withStyle(ChatFormatting.YELLOW)
+            .append(Component.literal(ordersLabel + " / ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
     }
 }

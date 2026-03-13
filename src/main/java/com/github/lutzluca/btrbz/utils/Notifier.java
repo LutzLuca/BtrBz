@@ -188,7 +188,7 @@ public class Notifier {
     private static MutableComponent bestMsg(TrackedOrder order) {
         var status = Component
             .empty()
-            .append(Component.literal("is the ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("is the ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("BEST Order!").withStyle(ChatFormatting.GREEN));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
@@ -196,7 +196,7 @@ public class Notifier {
     private static MutableComponent reclaimBestMsg(TrackedOrder order) {
         var status = Component
             .empty()
-            .append(Component.literal("has ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("has ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("REGAINED BEST Order!").withStyle(ChatFormatting.GREEN));
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
@@ -204,8 +204,8 @@ public class Notifier {
     private static MutableComponent matchedMsg(TrackedOrder order) {
         var status = Component
             .empty()
-            .append(Component.literal("has been ").withStyle(ChatFormatting.WHITE))
-            .append(Component.literal("MATCHED").withStyle(ChatFormatting.BLUE));
+            .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
@@ -214,15 +214,10 @@ public class Notifier {
             BtrBz.bazaarData().calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit, true
             ).ifPresent(info -> {
-                int displayOrders = info.ordersAhead - 1;
-                int displayItems = info.itemsAhead - order.volume;
-                if(displayOrders <= 0 || displayItems <= 0) {
-                    log.warn("Invalid queue position for {}: ordersAhead={}, itemsAhead={}, volume={}", 
-                        order, info.ordersAhead, info.itemsAhead, order.volume);
-                    return;
-                }
-                
-                msg.append(Component.literal(" by ").withStyle(ChatFormatting.WHITE));
+                int displayOrders = Math.max(0, info.ordersAhead - 1);
+                int displayItems = Math.max(0, info.itemsAhead - order.volume);
+
+                msg.append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY));
                 msg.append(GameUtils.buildQueueComponent(displayOrders, displayItems, cfg.queueDisplayMode));
             });
         }
@@ -233,13 +228,13 @@ public class Notifier {
     private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount) {
         var status = Component
             .empty()
-            .append(Component.literal("has been ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
-            .append(Component.literal("by ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
             .append(Component
                 .literal(Utils.formatDecimal(undercutAmount, 1, true))
                 .withStyle(ChatFormatting.GOLD))
-            .append(Component.literal(" coins").withStyle(ChatFormatting.WHITE));
+            .append(Component.literal(" coins!").withStyle(ChatFormatting.GRAY));
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
@@ -248,7 +243,7 @@ public class Notifier {
             BtrBz.bazaarData().calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit
             ).ifPresent(info -> {
-                msg.append(Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY));
+                msg.append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY));
                 msg.append(GameUtils.buildQueueComponent(info.ordersAhead, info.itemsAhead, cfg.queueDisplayMode));
             });
         }
@@ -271,13 +266,13 @@ public class Notifier {
             case Sell -> "Sell offer";
         };
         return prefix()
-            .append(Component.literal("Your ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" for ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(String.valueOf(volume)).withStyle(ChatFormatting.LIGHT_PURPLE))
-            .append(Component.literal("x ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal("x ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(productName).withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" ").withStyle(ChatFormatting.WHITE))
+            .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
             .append(statusPart);
     }
 }
