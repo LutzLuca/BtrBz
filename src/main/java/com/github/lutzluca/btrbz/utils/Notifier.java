@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.Resolved
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.BazaarData.OrderQueueInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
@@ -210,9 +211,12 @@ public class Notifier {
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
-        BtrBz.bazaarData().calculateQueuePosition(
-            order.productName, order.type, order.pricePerUnit, true
-        ).ifPresent(info -> appendQueueInfo(msg, info));
+        var cfg = ConfigManager.get().trackedOrders;
+        if (cfg.showQueueInfo) {
+            BtrBz.bazaarData().calculateQueuePosition(
+                order.productName, order.type, order.pricePerUnit, true
+            ).ifPresent(info -> appendQueueInfo(msg, info, cfg.queueDisplayMode));
+        }
 
         return msg;
     }
@@ -230,16 +234,19 @@ public class Notifier {
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
-        BtrBz.bazaarData().calculateQueuePosition(
-            order.productName, order.type, order.pricePerUnit
-        ).ifPresent(info -> appendQueueInfo(msg, info));
+        var cfg = ConfigManager.get().trackedOrders;
+        if (cfg.showQueueInfo) {
+            BtrBz.bazaarData().calculateQueuePosition(
+                order.productName, order.type, order.pricePerUnit
+            ).ifPresent(info -> appendQueueInfo(msg, info, cfg.queueDisplayMode));
+        }
 
         return msg;
     }
 
-    private static void appendQueueInfo(MutableComponent msg, OrderQueueInfo queueInfo) {
+    private static void appendQueueInfo(MutableComponent msg, OrderQueueInfo queueInfo, QueueDisplayMode mode) {
         msg.append(Component.literal(" [").withStyle(ChatFormatting.DARK_GRAY))
-            .append(GameUtils.buildQueueComponent(queueInfo.ordersAhead, queueInfo.itemsAhead))
+            .append(GameUtils.buildQueueComponent(queueInfo.ordersAhead, queueInfo.itemsAhead, mode))
             .append(Component.literal("]").withStyle(ChatFormatting.DARK_GRAY));
     }
 
