@@ -3,10 +3,12 @@ package com.github.lutzluca.btrbz.utils;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.scores.DisplaySlot;
@@ -15,6 +17,7 @@ import net.minecraft.world.scores.PlayerScoreEntry;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
 
 @Slf4j
 public final class GameUtils {
@@ -98,5 +101,23 @@ public final class GameUtils {
         if (player == null) { return false; }
 
         return slot.container == player.getInventory();
+    }
+
+    public static MutableComponent buildQueueComponent(int orders, int items, QueueDisplayMode mode) {
+        String itemsLabel = items == 1 ? " item" : " items";
+
+        if (mode == QueueDisplayMode.ItemsOnly) {
+            return Component.literal(Utils.formatDecimal(items, 0, true))
+                .withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
+        }
+
+        String ordersLabel = orders == 1 ? " order" : " orders";
+
+        return Component.literal(String.valueOf(orders))
+            .withStyle(ChatFormatting.YELLOW)
+            .append(Component.literal(ordersLabel + " / ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
     }
 }

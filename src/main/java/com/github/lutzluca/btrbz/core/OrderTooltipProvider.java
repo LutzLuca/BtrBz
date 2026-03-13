@@ -135,14 +135,11 @@ public class OrderTooltipProvider {
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
                     .literal("Queue: ")
                     .withStyle(ChatFormatting.GRAY)
-                    .append(Component
-                            .literal(String.valueOf(orderQueueInfo.ordersAhead))
-                            .withStyle(ChatFormatting.RED))
-                    .append(Component.literal(" orders (").withStyle(ChatFormatting.GRAY))
-                    .append(Component
-                            .literal(Utils.formatDecimal(orderQueueInfo.itemsAhead, 0, true))
-                            .withStyle(ChatFormatting.RED))
-                    .append(Component.literal(" items)").withStyle(ChatFormatting.GRAY))));
+                    .append(GameUtils.buildQueueComponent(
+                        orderQueueInfo.ordersAhead, 
+                        orderQueueInfo.itemsAhead,
+                        ConfigManager.get().trackedOrders.queueDisplayMode
+                    ))));
         }
 
         lines.add(Component.empty());
@@ -183,14 +180,11 @@ public class OrderTooltipProvider {
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
                     .literal("Queue: ")
                     .withStyle(ChatFormatting.GRAY)
-                    .append(Component
-                            .literal(String.valueOf(orderQueueInfo.ordersAhead))
-                            .withStyle(ChatFormatting.RED))
-                    .append(Component.literal(" orders (").withStyle(ChatFormatting.GRAY))
-                    .append(Component
-                            .literal(Utils.formatDecimal(orderQueueInfo.itemsAhead, 0, true))
-                            .withStyle(ChatFormatting.RED))
-                    .append(Component.literal(" items)").withStyle(ChatFormatting.GRAY))));
+                    .append(GameUtils.buildQueueComponent(
+                        orderQueueInfo.ordersAhead, 
+                        orderQueueInfo.itemsAhead,
+                        ConfigManager.get().trackedOrders.queueDisplayMode
+                    ))));
         }
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {

@@ -104,6 +104,13 @@ public class BazaarData {
         String productName, OrderType orderType,
         double pricePerUnit
     ) {
+        return calculateQueuePosition(productName, orderType, pricePerUnit, false);
+    }
+
+    public Optional<OrderQueueInfo> calculateQueuePosition(
+        String productName, OrderType orderType,
+        double pricePerUnit, boolean includeAtPrice
+    ) {
         var productId = this.nameToId(productName);
 
         if (productId.isEmpty()) {
@@ -116,8 +123,10 @@ public class BazaarData {
             return Optional.empty();
         }
 
-        var summaries =
-            orderType == OrderType.Sell ? product.getBuySummary() : product.getSellSummary();
+        var summaries = switch (orderType) {
+            case Sell -> product.getBuySummary();
+            case Buy -> product.getSellSummary();
+        };
 
         if (summaries == null || summaries.isEmpty()) {
             return Optional.empty();
@@ -125,10 +134,13 @@ public class BazaarData {
 
         var queueInfo = new OrderQueueInfo(0, 0);
         for (var summary : summaries) {
-            if (switch (orderType) {
-                case Sell -> summary.getPricePerUnit() >= pricePerUnit;
-                case Buy -> summary.getPricePerUnit() <= pricePerUnit;
-            }) {
+            boolean isSamePrice = summary.getPricePerUnit() == pricePerUnit;
+            boolean isBetter = switch (orderType) {
+                case Sell -> summary.getPricePerUnit() < pricePerUnit;
+                case Buy -> summary.getPricePerUnit() > pricePerUnit;
+            };
+
+            if (!isBetter && !(isSamePrice && includeAtPrice)) {
                 break;
             }
             queueInfo.ordersAhead += (int) summary.getOrders();
@@ -141,7 +153,6 @@ public class BazaarData {
     @ToString
     @AllArgsConstructor
     public static final class OrderQueueInfo {
-
         public int ordersAhead;
         public int itemsAhead;
     }
@@ -149,11 +160,9 @@ public class BazaarData {
     public record OrderPriceInfo(
         Optional<@Nullable Double> buyOrderPrice,
         Optional<@Nullable Double> sellOfferPrice
-    ) {
-    }
+    ) { }
 
-    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) {
-    }
+    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { }
 
     public static final class TrackedProduct {
 
