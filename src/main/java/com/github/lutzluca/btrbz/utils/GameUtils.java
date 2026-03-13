@@ -104,16 +104,20 @@ public final class GameUtils {
     }
 
     public static MutableComponent buildQueueComponent(int orders, int items, QueueDisplayMode mode) {
+        String itemsLabel = items == 1 ? " item" : " items";
+
         if (mode == QueueDisplayMode.ItemsOnly) {
             return Component.literal(Utils.formatDecimal(items, 0, true))
                 .withStyle(ChatFormatting.RED)
-                .append(Component.literal(" items").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(itemsLabel).withStyle(ChatFormatting.WHITE));
         }
+
+        String ordersLabel = orders == 1 ? " order" : " orders";
 
         return Component.literal(String.valueOf(orders))
             .withStyle(ChatFormatting.RED)
-            .append(Component.literal(" orders (").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(ordersLabel + " totalling ").withStyle(ChatFormatting.WHITE))
             .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.RED))
-            .append(Component.literal(" items)").withStyle(ChatFormatting.GRAY));
+            .append(Component.literal(itemsLabel).withStyle(ChatFormatting.WHITE));
     }
 }
