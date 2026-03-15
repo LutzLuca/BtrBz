@@ -29,14 +29,13 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "render", at = @At("TAIL"))
+    private void onRender(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
-            cir.setReturnValue(true);
+        if (wm != null) {
+            wm.render(graphics, mouseX, mouseY, delta);
         }
     }
-
 
     @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ClickType;)V", at = @At("HEAD"), cancellable = true)
     private void onSlotClicked(
@@ -99,11 +98,11 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    @Inject(method = "render", at = @At("TAIL"))
-    private void onRender(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
         var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null) {
-            wm.render(graphics, mouseX, mouseY, delta);
+        if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
+            cir.setReturnValue(true);
         }
     }
 

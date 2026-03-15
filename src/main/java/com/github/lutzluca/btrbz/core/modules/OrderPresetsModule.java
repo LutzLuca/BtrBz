@@ -200,6 +200,16 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             .collect(Collectors.toList());
 
         presets.addFirst(new OrderPreset.Max());
+
+        var clipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
+        if (clipboard != null && !clipboard.isBlank()) {
+            Utils.parseUsFormattedNumber(clipboard).map(Number::intValue).onSuccess(clipboardVolume -> {
+                if (clipboardVolume > 0 && clipboardVolume <= this.currMaxVolume) {
+                    presets.add(1, new OrderPreset.Clipboard(clipboardVolume));
+                }
+            });
+        }
+
         List<Renderable> entries = new ArrayList<>();
 
         for (var preset : presets) {
@@ -211,6 +221,15 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     if (!canAfford) {
                         entry.setDisabled(true);
                         entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
+                    }
+                }
+                case OrderPreset.Clipboard value -> {
+                    boolean canAfford = !priceAvailable || purse.map(coins -> value.amount * pricePerUnit.get() <= coins).orElse(false);
+                    if (!canAfford) {
+                        entry.setDisabled(true);
+                        entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
+                    } else {
+                        entry.setTooltipLines(List.of(Component.literal("From Clipboard")));
                     }
                 }
                 case OrderPreset.Max ignored -> {
@@ -270,18 +289,67 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 .map(Number::intValue));
     }
 
+    public enum PresetScreen {
+        VolumeSetupContainer,
+        EnterVolumeSign
+    }
+
+    private Optional<PresetScreen> getPresetScreen(ScreenInfo info) {
+        if (info.inMenu(BazaarMenuType.BuyOrderSetupVolume)) {
+            return Optional.of(PresetScreen.VolumeSetupContainer);
+        }
+
+        var prev = ScreenInfoHelper.get().getPrevInfo();
+        if (this.inTransaction && prev.inMenu(BazaarMenuType.BuyOrderSetupVolume) && info.getScreen() instanceof SignEditScreen) {
+            return Optional.of(PresetScreen.EnterVolumeSign);
+        }
+
+        return Optional.empty();
+    }
+
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return this.configState.enabled && info.inMenu(BazaarMenuType.BuyOrderSetupVolume);
+        if (!this.configState.enabled) {
+            return false;
+        }
+
+        return this.getPresetScreen(info).map(screen -> switch (screen) {
+            case VolumeSetupContainer -> this.configState.enableOnContainer;
+            case EnterVolumeSign -> this.configState.enableOnSign;
+        }).orElse(false);
     }
 
     @Override
     public List<DraggableWidget> createWidgets(ScreenInfo info) {
+        var screen = this.getPresetScreen(info);
+        if (screen.isEmpty()) {
+            log.warn(
+                "OrderPresetsModule: createWidgets was called but no valid preset screen was found" +
+                    "Current Title: '{}', Current Screen: {}, Previous Title: '{}', In Transaction: {}",
+                info.containerName().orElse("N/A"),
+                info.getScreen() != null ? info.getScreen().getClass().getSimpleName() : "N/A",
+                ScreenInfoHelper.get().getPrevInfo().containerName().orElse("N/A"),
+                this.inTransaction
+            );
+
+            return List.of();
+        }
+        var screenType = screen.get();
+
+        var position = this.getConfigPosition(screenType).orElseGet(() -> 
+            switch (screenType) {
+                case PresetScreen.VolumeSetupContainer -> new Position(570, 180);
+                case PresetScreen.EnterVolumeSign -> new Position(20, 20);
+            }
+        );
+
         if (this.list != null) {
+            this.list.setX(position.x());
+            this.list.setY(position.y());
+            this.list.setMaxVisibleItems(6);
             return List.of(this.list);
         }
 
-        var position = this.getConfigPosition().orElse(new Position(570, 180));
         this.list = new ListWidget(
             position.x(),
             position.y(),
@@ -290,7 +358,9 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             "Presets"
         );
 
-        this.list.setItemHeight(16)
+        this.list
+            .setMaxVisibleItems(6)
+            .setItemHeight(16)
             .setItemSpacing(1)
             .setReorderable(false)
             .setRemovable(false)
@@ -299,25 +369,36 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 if (!preset.isDisabled()) {
                     this.handlePresetClick(preset.getPreset());
                 }
-            }).onDragEnd((self, pos) -> this.savePosition(pos));
+            }).onDragEnd((self, pos) -> this.savePosition(pos, this.getPresetScreen(ScreenInfoHelper.get().getCurrInfo()).orElse(PresetScreen.VolumeSetupContainer)));
 
         this.rebuildList();
 
         return List.of(this.list);
     }
 
-    private void savePosition(Position pos) {
-        log.debug("Saving new position for OrderPresetsModule: {}", pos);
+    private void savePosition(Position pos, PresetScreen screen) {
+        log.debug("Saving new position for OrderPresetsModule ({}): {}", screen, pos);
         this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
+            switch (screen) {
+                case PresetScreen.VolumeSetupContainer -> {
+                    cfg.containerX = pos.x();
+                    cfg.containerY = pos.y();
+                }
+                case PresetScreen.EnterVolumeSign -> {
+                    cfg.signX = pos.x();
+                    cfg.signY = pos.y();
+                }
+            }
         });
     }
 
-    private Optional<Position> getConfigPosition() {
-        return Utils
-            .zipNullables(this.configState.x, this.configState.y)
-            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+    private Optional<Position> getConfigPosition(PresetScreen screen) {
+        return switch (screen) {
+            case PresetScreen.VolumeSetupContainer -> Utils.zipNullables(this.configState.containerX, this.configState.containerY)
+                .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+            case PresetScreen.EnterVolumeSign -> Utils.zipNullables(this.configState.signX, this.configState.signY)
+                .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+        };
     }
 
     private void handlePresetClick(OrderPreset preset) {
@@ -325,6 +406,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         int volume = switch (preset) {
             case OrderPreset.Volume(int amount) -> amount;
+            case OrderPreset.Clipboard(int amount) -> amount;
             case OrderPreset.Max() -> {
                 if (this.currProductId == null) {
                     log.debug("Cannot calculate MAX: product ID unavailable");
@@ -365,14 +447,21 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         log.debug("Preset click processed: volume={}", volume);
 
+        var currInfo = ScreenInfoHelper.get().getCurrInfo();
+        if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
+            var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
+            accessor.setLine(0);
+            accessor.invokeSetMessage(String.valueOf(volume));
+            Minecraft.getInstance().setScreen(null);
+
+            this.pendingVolume = -1;
+            this.pendingPreset = false;
+            return;
+        }
+
         // noinspection OptionalGetWithoutIsPresent
         interactionManager.handleInventoryMouseClick(
-            ScreenInfoHelper
-                .get()
-                .getCurrInfo()
-                .getGenericContainerScreen()
-                .get()
-                .getMenu().containerId, 16, 1, ClickType.PICKUP, player
+            currInfo.getGenericContainerScreen().get().getMenu().containerId, 16, 1, ClickType.PICKUP, player
         );
     }
 
@@ -399,9 +488,17 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private sealed interface OrderPreset permits OrderPreset.Volume,
-        OrderPreset.Max {
+        OrderPreset.Max, OrderPreset.Clipboard {
 
         record Volume(int amount) implements OrderPreset {
+
+            @Override
+            public @NotNull String toString() {
+                return String.valueOf(amount);
+            }
+        }
+
+        record Clipboard(int amount) implements OrderPreset {
 
             @Override
             public @NotNull String toString() {
@@ -431,9 +528,11 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         public OrderPresetRenderable(OrderPreset preset) {
             this.preset = preset;
             this.displayText = Component.literal(preset.toString());
-            this.backgroundColor = (preset instanceof OrderPreset.Max)
-                ? 0x80404020
-                : 0x80000000;
+            this.backgroundColor = switch (preset) {
+                case OrderPreset.Max() -> 0x80404020;
+                case OrderPreset.Clipboard(int amount) -> 0x80204080;
+                default -> 0x80000000;
+            };
         }
 
         public void setTooltipLines(List<Component> lines) {
@@ -464,26 +563,51 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
     }
 
-
-
     public static class OrderPresetsConfig {
 
-        public Integer x, y;
+        public Integer containerX, containerY;
+        public Integer signX, signY;
         public boolean enabled = true;
+        public boolean enableOnContainer = true;
+        public boolean enableOnSign = true;
         public List<Integer> presets = List.of();
 
         public Builder<Boolean> createEnableOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.nullToEmpty("Order Presets"))
+                .name(Component.nullToEmpty("Order Presets: Master Switch"))
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the Order Presets module for quick access to predefined order volumes")))
+                    "Master switch to enable or disable the Order Presets module.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Builder<Boolean> createEnableContainerOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.nullToEmpty("Enable in Bazaar Menu"))
+                .description(OptionDescription.of(Component.literal(
+                    "Show presets when setting up an order volume in the container menu.")))
+                .binding(true, () -> this.enableOnContainer, enabled -> this.enableOnContainer = enabled)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Builder<Boolean> createEnableSignOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.nullToEmpty("Enable in Sign Screen"))
+                .description(OptionDescription.of(Component.literal(
+                    "Show presets when editing a sign in the order setup flow.")))
+                .binding(true, () -> this.enableOnSign, enabled -> this.enableOnSign = enabled)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnableOption());
+            var rootGroup = new OptionGrouping(this.createEnableOption())
+                .addOptions(
+                    this.createEnableContainerOption(),
+                    this.createEnableSignOption()
+                );
 
             return OptionGroup
                 .createBuilder()

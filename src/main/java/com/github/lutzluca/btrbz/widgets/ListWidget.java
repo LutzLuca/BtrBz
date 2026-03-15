@@ -633,14 +633,20 @@ public class ListWidget extends DraggableWidget {
         }
     }
 
-    /**
-     * Set item height in pixels.
-     */
     public ListWidget setItemHeight(int height) {
         this.itemHeight = height;
         this.updateScrollLimits();
         this.updateHeightFromMaxVisibleItems();
         return this;
+    }
+
+    /**
+     * Set widget height in pixels.
+     */
+    @Override
+    public void setHeight(int height) {
+        super.setHeight(height);
+        this.updateScrollLimits();
     }
 
     /**
