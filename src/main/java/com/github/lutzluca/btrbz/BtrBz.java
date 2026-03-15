@@ -14,7 +14,7 @@ import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
-import com.github.lutzluca.btrbz.core.modules.OrderPresetsModule;
+import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;

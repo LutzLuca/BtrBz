@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
@@ -98,5 +100,23 @@ public final class GameUtils {
         if (player == null) { return false; }
 
         return slot.container == player.getInventory();
+    }
+
+    public static Optional<Double> getPurse() {
+        return GameUtils
+            .getScoreboardLines()
+            .stream()
+            .filter(line -> line.startsWith("Purse") || line.startsWith("Piggy"))
+            .findFirst()
+            .flatMap(line -> {
+                var remainder = line.replaceFirst("Purse:|Piggy:", "").trim();
+                var spaceIdx = remainder.indexOf(' ');
+
+                return Utils
+                    .parseUsFormattedNumber(
+                        spaceIdx == -1 ? remainder : remainder.substring(0, spaceIdx))
+                    .map(Number::doubleValue)
+                    .toJavaOptional();
+            });
     }
 }
