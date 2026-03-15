@@ -8,20 +8,11 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.OptionalInt;
+
 
 public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max, OrderPreset.Clipboard {
 
-    default OptionalInt getAmount() {
-        return OptionalInt.empty();
-    }
-
     record Volume(int amount) implements OrderPreset {
-        
-        @Override
-        public OptionalInt getAmount() {
-            return OptionalInt.of(this.amount);
-        }
 
         @Override
         public @NotNull String toString() {
@@ -30,11 +21,6 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
     }
 
     record Clipboard(int amount) implements OrderPreset {
-        
-        @Override
-        public OptionalInt getAmount() {
-            return OptionalInt.of(this.amount);
-        }
 
         @Override
         public @NotNull String toString() {

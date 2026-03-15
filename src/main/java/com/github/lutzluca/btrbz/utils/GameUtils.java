@@ -16,10 +16,25 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerScoreEntry;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public final class GameUtils {
+
+    /**
+     * Submits a value to a {@link SignEditScreen} by setting line 0 to the given value
+     * and closing the screen.
+     *
+     * <p>Note: {@code signEditScreen.onClose()} is intentionally avoided because it gets
+     * broken by Skyblocker; {@code setScreen(null)} is used instead.</p>
+     */
+    public static void submitSignValue(SignEditScreen signEditScreen, String value) {
+        var accessor = (com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor) signEditScreen;
+        accessor.setLine(0);
+        accessor.invokeSetMessage(value);
+        Minecraft.getInstance().setScreen(null);
+    }
 
     public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
 

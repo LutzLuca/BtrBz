@@ -11,7 +11,6 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.TimedStore;
-import com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -217,12 +216,8 @@ public class FlipHelper {
             }
 
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
-            var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
-            accessor.setLine(0);
-            accessor.invokeSetMessage(formatted);
+            GameUtils.submitSignValue(signEditScreen, formatted);
 
-            //NOTE: signEditScreen.onClose() gets broken by Skyblocker so setScreen is used instead.
-            Minecraft.getInstance().setScreen(null);
             this.pendingFlips.add(new FlipEntry(
                 potentialFlipProduct.getProductName(),
                 flipPrice.get()
