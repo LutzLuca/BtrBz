@@ -234,7 +234,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             .stream()
             .filter(line -> line.startsWith("Buy up to"))
             .findFirst()
-            .map(line -> line.replaceFirst("Buy up to", "").replaceAll("x*", ""))
+            .map(line -> line.replaceFirst("Buy up to", "").replaceAll("x+", ""))
             .flatMap(volume -> Utils
                 .parseUsFormattedNumber(volume)
                 .toJavaOptional()
@@ -276,7 +276,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         var screen = this.getPresetScreen(info);
         if (screen.isEmpty()) {
             log.warn(
-                "OrderPresetsModule: createWidgets was called but no valid preset screen was found" +
+                "OrderPresetsModule: createWidgets was called but no valid preset screen was found. " +
                     "Current Title: '{}', Current Screen: {}, Previous Title: '{}', In Transaction: {}",
                 info.containerName().orElse("N/A"),
                 info.getScreen() != null ? info.getScreen().getClass().getSimpleName() : "N/A",
@@ -362,26 +362,26 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         log.debug("Handle preset click: {}", preset);
 
         int volume = switch (preset) {
-            case OrderPreset.Max maxPreset -> {
+            case OrderPreset.Max ignored -> {
                 if (this.currProductId == null) {
-                log.debug("Cannot calculate MAX: product ID unavailable");
-                yield 0;
-            }
+                    log.debug("Cannot calculate MAX: product ID unavailable");
+                    yield 0;
+                }
 
-            var price = BtrBz
-                .bazaarData()
-                .highestBuyPrice(this.currProductId)
-                .map(currPrice -> currPrice + 0.1);
+                var price = BtrBz
+                    .bazaarData()
+                    .highestBuyPrice(this.currProductId)
+                    .map(currPrice -> currPrice + 0.1);
 
-            if (price.isEmpty()) {
-                log.debug("Cannot calculate MAX: price unavailable");
-                yield 0;
-            }
+                if (price.isEmpty()) {
+                    log.debug("Cannot calculate MAX: price unavailable");
+                    yield 0;
+                }
 
-            yield GameUtils
-                .getPurse()
-                .map(purse -> this.calculateMaxVolume(purse, price.get()))
-                .orElse(0);
+                yield GameUtils
+                    .getPurse()
+                    .map(purse -> this.calculateMaxVolume(purse, price.get()))
+                    .orElse(0);
             }
             case OrderPreset.Clipboard clipboardPreset -> clipboardPreset.amount();
             case OrderPreset.Volume volumePreset -> volumePreset.amount();
@@ -445,8 +445,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         if (maxVolume == 0) {
             entry.setDisabled(true);
-            double needed = pricePerUnit.get() * this.currMaxVolume;
-            double missing = needed - purse.get();
+            double missing = pricePerUnit.get() - purse.get();
             String formattedMissing = Utils.formatCompact(missing, 1);
 
             entry.setTooltipLines(List.of(

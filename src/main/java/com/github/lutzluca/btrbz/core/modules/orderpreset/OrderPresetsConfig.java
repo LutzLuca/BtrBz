@@ -34,7 +34,7 @@ public class OrderPresetsConfig {
             .<Boolean>createBuilder()
             .name(Component.nullToEmpty("Enable in Bazaar Menu"))
             .description(OptionDescription.of(Component.literal(
-                "Show presets when setting up an order volume in the buy order volume setup menu menu.")))
+                "Show presets when setting up an order volume in the buy order volume setup menu.")))
             .binding(true, () -> this.enableOnContainer, enabled -> this.enableOnContainer = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
