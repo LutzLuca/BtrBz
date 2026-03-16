@@ -102,6 +102,7 @@ public class TrackedOrderManager {
                 info -> {
                     unfilledCopy.remove(info);
                     tracked.slot = info.slotIdx();
+                    tracked.fillAmountSnapshot = info.filledAmountSnapshot();
                 }, () -> toRemove.add(tracked)
             );
         }

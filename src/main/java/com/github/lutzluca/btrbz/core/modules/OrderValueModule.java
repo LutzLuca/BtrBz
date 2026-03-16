@@ -86,7 +86,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
 
         if (this.unfilledOrders != null) {
             for (var order : this.unfilledOrders) {
-                int unfilledVolume = order.volume() - order.filledAmount();
+                int unfilledVolume = order.volume() - order.filledAmountSnapshot();
 
                 switch (order.type()) {
                     case Buy -> {

@@ -90,17 +90,17 @@ public class OrderTooltipProvider {
                 return;
             }
 
-            var tooltipLines = getCachedTooltip(order, cfg);
+            var tooltipLines = this.getCachedTooltip(order, cfg);
             lines.addAll(1, tooltipLines);
         });
     }
 
     public List<Component> getCachedTooltip(TrackedOrder order, OrderListTooltipConfig cfg) {
-        return this.listCache.getOrCompute(order, () -> buildTooltipLines(order, cfg));
+        return this.listCache.getOrCompute(order, () -> OrderTooltipProvider.buildTooltipLines(order, cfg));
     }
 
     public List<Component> getCachedTooltip(TrackedOrder order, OrderItemTooltipConfig cfg) {
-        return this.itemCache.getOrCompute(order, () -> buildTooltipLines(order, cfg));
+        return this.itemCache.getOrCompute(order, () -> OrderTooltipProvider.buildTooltipLines(order, cfg));
     }
 
     public void clearCache() {
@@ -119,9 +119,9 @@ public class OrderTooltipProvider {
         List<Component> lines = new ArrayList<>();
 
         if (cfg.showStatus) {
-            lines.add(statusLine(order));
+            lines.add(OrderTooltipProvider.statusLine(order));
             if (order.status instanceof OrderStatus.Undercut undercut) {
-                lines.add(undercutAmountLine(undercut.amount));
+                lines.add(OrderTooltipProvider.undercutAmountLine(undercut.amount));
             }
         }
 
@@ -143,11 +143,11 @@ public class OrderTooltipProvider {
         }
 
         lines.add(Component.empty());
-        lines.addAll(currOrderLines(order));
+        lines.addAll(OrderTooltipProvider.currOrderLines(order));
 
-        if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
+        if (OrderTooltipProvider.shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
             lines.add(Component.empty());
-            lines.addAll(priceLines(data, productId.get()));
+            lines.addAll(OrderTooltipProvider.priceLines(data, productId.get()));
         }
 
         return lines;
@@ -164,9 +164,20 @@ public class OrderTooltipProvider {
         List<Component> lines = new ArrayList<>();
 
         if (cfg.showStatus) {
-            lines.add(statusLine(order));
+            lines.add(OrderTooltipProvider.statusLine(order));
+
+            if (cfg.showEstimatedTime && order.status instanceof OrderStatus.Top) {
+                int remainingVolume = order.volume - order.fillAmountSnapshot;
+
+                data.getEstimatedFillTimeMinutes(order.productName, order.type, remainingVolume).ifPresent(minutes -> {
+                    var time = Component.literal(Utils.formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
+                    var line = Component.literal("Estimated fill time: ").withStyle(ChatFormatting.GRAY).append(time);
+                    lines.add(line);
+                });
+            }
+
             if (order.status instanceof OrderStatus.Undercut undercut) {
-                lines.add(undercutAmountLine(undercut.amount));
+                lines.add(OrderTooltipProvider.undercutAmountLine(undercut.amount));
             }
         }
 
@@ -202,6 +213,7 @@ public class OrderTooltipProvider {
         if (!showOnlyWhenUndercut) {
             return true;
         }
+
         return order.status instanceof OrderStatus.Undercut;
     }
 
@@ -365,6 +377,7 @@ public class OrderTooltipProvider {
         public boolean showQueue = true;
         public boolean showPrices = false;
         public boolean showOnlyWhenUndercut = true;
+        public boolean showEstimatedTime = false;
 
         private static void invalidateCache() {
             BtrBz.tooltipProvider().clearCache();
@@ -425,6 +438,17 @@ public class OrderTooltipProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Option.Builder<Boolean> createEstimatedTimeOption() {
+            return Option.<Boolean>createBuilder()
+                .name(Component.literal("Show Estimated Fill Time"))
+                .binding(false, () -> this.showEstimatedTime, val -> {
+                    this.showEstimatedTime = val;
+                    invalidateCache();
+                })
+                .description(OptionDescription.of(Component.literal("Show the estimated time to fill the order, based on the Bazaar's moving week volume. Only shown if the order is top priority.")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
         public OptionGroup createGroup() {
             var pricesGroup = new OptionGrouping(this.createPricesOption())
                 .addOptions(this.createOnlyWhenUndercutOption());
@@ -432,7 +456,8 @@ public class OrderTooltipProvider {
             var root = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
                     this.createStatusOption(),
-                    this.createQueueOption()
+                    this.createQueueOption(),
+                    this.createEstimatedTimeOption()
                 )
                 .addSubgroups(pricesGroup);
 

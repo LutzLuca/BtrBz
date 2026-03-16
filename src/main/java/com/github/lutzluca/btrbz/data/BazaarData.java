@@ -150,6 +150,37 @@ public class BazaarData {
         return queueInfo.ordersAhead > 0 ? Optional.of(queueInfo) : Optional.empty();
     }
 
+    public Optional<Double> getEstimatedFillTimeMinutes(String productName, OrderType orderType, int remainingVolume) {
+        if (remainingVolume <= 0) {
+            return Optional.of(0.0);
+        }
+
+        var productId = this.nameToId(productName);
+        if (productId.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var product = this.lastProducts.get(productId.get());
+        if (product == null) {
+            return Optional.empty();
+        }
+
+        var qs = product.getQuickStatus();
+        long movingWeek = switch (orderType) {
+            case Sell -> qs.getBuyMovingWeek();
+            case Buy -> qs.getSellMovingWeek();
+        };
+
+        if (movingWeek <= 0) {
+            return Optional.empty();
+        }
+
+        double hourlyRate = movingWeek / 168.0;
+        double minutesRate = hourlyRate / 60.0;
+
+        return Optional.of(remainingVolume / minutesRate);
+    }
+
     @ToString
     @AllArgsConstructor
     public static final class OrderQueueInfo {

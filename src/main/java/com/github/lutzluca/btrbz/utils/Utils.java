@@ -176,4 +176,23 @@ public final class Utils {
 
         return ret.toString();
     }
+
+    public static String formatDuration(double totalMinutes) {
+        if (totalMinutes < 1) {
+            return "< 1m";
+        }
+
+        long hours = (long) (totalMinutes / 60);
+        long minutes = (long) (totalMinutes % 60);
+
+        if (hours > 0) {
+            if (minutes > 0) {
+                return String.format("%dh %dm", hours, minutes);
+            }
+
+            return String.format("%dh", hours);
+        }
+
+        return String.format("%dm", minutes);
+    }
 }

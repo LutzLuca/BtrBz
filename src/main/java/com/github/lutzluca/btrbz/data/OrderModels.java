@@ -43,7 +43,7 @@ public final class OrderModels {
 
         int slotIdx();
 
-        int filledAmount();
+        int filledAmountSnapshot();
 
         int unclaimed();
 
@@ -52,7 +52,7 @@ public final class OrderModels {
             OrderType type,
             int volume,
             double pricePerUnit,
-            int filledAmount,
+            int filledAmountSnapshot,
             int unclaimed,
             int slotIdx
         ) implements OrderInfo { }
@@ -62,7 +62,7 @@ public final class OrderModels {
             OrderType type,
             int volume,
             double pricePerUnit,
-            int filledAmount,
+            int filledAmountSnapshot,
             int unclaimed,
             int slotIdx
         ) implements OrderInfo { }
@@ -110,7 +110,12 @@ public final class OrderModels {
         public final double pricePerUnit;
         public OrderStatus status = new OrderStatus.Unknown();
         public int slot;
-
+        /**
+         * The amount of items that were filled at the time this order was last viewed in the Bazaar UI.
+         * This value is a snapshot from the UI and may differ from the actual Bazaar state.
+         * It should ONLY be used for UI-side heuristics like the estimated fill time feature.
+         */
+        public int fillAmountSnapshot;
 
         public TrackedOrder(OrderInfo.UnfilledOrderInfo info) {
             this.productName = info.productName;
@@ -118,6 +123,7 @@ public final class OrderModels {
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
             this.slot = info.slotIdx;
+            this.fillAmountSnapshot = info.filledAmountSnapshot;
         }
 
         public TrackedOrder(OutstandingOrderInfo info) {
@@ -126,6 +132,7 @@ public final class OrderModels {
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
             this.slot = -1;
+            this.fillAmountSnapshot = 0;
         }
 
         public boolean matches(OrderInfo info) {

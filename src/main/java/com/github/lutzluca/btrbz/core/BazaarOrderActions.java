@@ -241,7 +241,7 @@ public class BazaarOrderActions {
             return;
         }
 
-        remainingOrderAmount = info.volume() - info.filledAmount();
+        remainingOrderAmount = info.volume() - info.filledAmountSnapshot();
         log.debug(
             "Setting remainingOrderAmount to {} from order info {}",
             remainingOrderAmount,
