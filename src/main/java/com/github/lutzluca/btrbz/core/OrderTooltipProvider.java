@@ -445,7 +445,13 @@ public class OrderTooltipProvider {
                     this.showEstimatedTime = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal("Show the estimated time to fill the order, based on the Bazaar's moving week volume. Only shown if the order is top priority.")))
+                .description(OptionDescription.of(Component.literal(
+                    "Show a rough, opt-in estimate of how long a top-priority order might take to fill. " +
+                    "Calculated as: Remaining Volume / (Weekly Moving Volume / 10,080 minutes). " +
+                    "This time may be significantly off, as it uses a weekly volume average that won't reflect recent market shifts, " +
+                    "and the filled amount is a UI snapshot that may lag behind the actual server state. " +
+                    "Only shown for top orders. Treat this as a ballpark guess, not a reliable countdown."
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
