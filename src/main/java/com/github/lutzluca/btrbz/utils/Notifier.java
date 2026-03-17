@@ -146,7 +146,7 @@ public class Notifier {
                 }
                 yield reclaimBestMsg(order);
             }
-            case Matched ignored -> matchedMsg(order);
+            case Matched ignored -> matchedMsg(order, update.prev());
             case Undercut undercut -> undercutMsg(order, undercut.amount);
             default -> throw new IllegalArgumentException("Unreachable curr: " + status);
         };
@@ -201,7 +201,7 @@ public class Notifier {
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static MutableComponent matchedMsg(TrackedOrder order) {
+    private static MutableComponent matchedMsg(TrackedOrder order, OrderStatus prevStatus) {
         var status = Component
             .empty()
             .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
@@ -209,8 +209,12 @@ public class Notifier {
 
         var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
 
+        // Top -> Matched: the player was already the sole best order, so any new same-price
+        // orders arrived after and are behind in the FIFO queue. The API summary only gives
+        // aggregate (orders, volume) per price bucket with no intra-bucket ordering, so
+        // showing them as "ahead" would be misleading. Skip queue info for this transition.
         var cfg = ConfigManager.get().trackedOrders;
-        if (cfg.showQueueInfo) {
+        if (cfg.showQueueInfo && !(prevStatus instanceof OrderStatus.Top)) {
             BtrBz.bazaarData().calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit, true
             ).ifPresent(info -> {
