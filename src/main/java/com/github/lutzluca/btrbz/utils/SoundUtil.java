@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -10,18 +10,19 @@ import net.minecraft.sounds.SoundEvent;
 
 @Slf4j
 public class SoundUtil {
-    private static final Map<SoundEvent, Long> lastPlayedTimes = new HashMap<>();
+    private static final Map<SoundEvent, Long> lastPlayedTimes = new ConcurrentHashMap<>();
     private static final long SOUND_COOLDOWN_MS = 500L;
+    private static final int MAX_RETRIES = 5;
 
     public static void playSoundIf(boolean enabled, SoundEvent sound, float volume, int repeatCount) {
         if (!enabled) {
             return;
         }
-        playSound(sound, volume, repeatCount);
+        SoundUtil.playSound(sound, volume, repeatCount);
     }
 
     public static void playSoundIf(boolean enabled, Holder<SoundEvent> soundEntry, float volume, int repeatCount) {
-        playSoundIf(enabled, soundEntry.value(), volume, repeatCount);
+        SoundUtil.playSoundIf(enabled, soundEntry.value(), volume, repeatCount);
     }
 
     public static void playSound(SoundEvent sound, float volume, int repeatCount) {
@@ -31,27 +32,33 @@ public class SoundUtil {
 
             for (int i = 0; i < repeatCount; i++) {
                 if (i == 0) {
-                    play(sound, volume);
+                    SoundUtil.play(sound, volume);
                     continue;
                 }
 
-                ClientTickDispatcher.submit(mc -> play(sound, volume), i * 3);
+                ClientTickDispatcher.submit(mc -> SoundUtil.play(sound, volume), i * 3);
             }
         }
     }
 
     public static void playSound(SoundEvent sound, float volume) {
-        playSound(sound, volume, 1);
+        SoundUtil.playSound(sound, volume, 1);
     }
 
     public static void playSound(Holder<SoundEvent> soundEntry, float volume) {
-        playSound(soundEntry.value(), volume);
+        SoundUtil.playSound(soundEntry.value(), volume);
     }
 
     private static void play(SoundEvent sound, float volume) {
+        SoundUtil.play(sound, volume, MAX_RETRIES);
+    }
+
+    private static void play(SoundEvent sound, float volume, int attemptsLeft) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
-            ClientTickDispatcher.submit(mc -> play(sound, volume), 20);
+            if (attemptsLeft > 0) {
+                ClientTickDispatcher.submit(mc -> SoundUtil.play(sound, volume, attemptsLeft - 1), 20);
+            }
             return;
         }
 
