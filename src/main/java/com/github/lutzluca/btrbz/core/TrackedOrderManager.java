@@ -309,12 +309,25 @@ public class TrackedOrderManager {
         public QueueDisplayMode queueDisplayMode = QueueDisplayMode.Both;
 
         public OptionGroup createGroup() {
-            var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption()).addOptions(this.createNotifyBestOnPriorityRegain());
+            var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption())
+                .addOptions(
+                    this.createNotifyBestOnPriorityRegain(),
+                    this.createSoundBestOption()
+                );
 
-            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
-                this.createGotoMatchedOption(),
-                this.createGotoUndercutOption()
-            ).addSubgroups(notifyBestGroup);
+            var queueGroup = new OptionGrouping(this.createShowQueueInfoOption())
+                .addOptions(this.createQueueDisplayModeOption());
+
+            var rootGroup = new OptionGrouping(this.createEnabledOption())
+                .addOptions(
+                    this.createGotoMatchedOption(),
+                    this.createGotoUndercutOption(),
+                    this.createNotifyMatchedOption(),
+                    this.createSoundMatchedOption(),
+                    this.createNotifyUndercutOption(),
+                    this.createSoundUndercutOption()
+                )
+                .addSubgroups(notifyBestGroup, queueGroup);
 
             return OptionGroup
                 .createBuilder()
