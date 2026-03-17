@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -370,7 +371,10 @@ public class TrackedOrderManager {
                 .binding(
                     QueueDisplayMode.Both,
                     () -> this.queueDisplayMode != null ? this.queueDisplayMode : QueueDisplayMode.Both,
-                    mode -> this.queueDisplayMode = mode
+                    mode -> {
+                        this.queueDisplayMode = mode;
+                        BtrBz.tooltipProvider().clearCache();
+                    }
                 )
                 .description(OptionDescription.of(Component.literal(
                     "Whether to display the number of orders and items, or just the number of items")))
