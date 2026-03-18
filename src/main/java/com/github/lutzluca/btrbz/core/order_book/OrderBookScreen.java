@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.widgets.Renderable;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
@@ -32,6 +33,8 @@ public class OrderBookScreen extends Screen {
 
     @Override
     protected void init() {
+        super.init();
+
         int width = this.width;
         int height = this.height;
 
@@ -41,7 +44,7 @@ public class OrderBookScreen extends Screen {
         int panelY = (height - panelHeight) / 2;
 
         int listWidth = (panelWidth - 30) / 2;
-        int listHeight = panelHeight - 60;
+        int listHeight = panelHeight - 90;
 
         int buyX = panelX + 10;
         int listY = panelY + 40;
@@ -97,6 +100,18 @@ public class OrderBookScreen extends Screen {
 
         this.widgetManager = new WidgetManager(List.of(buyOrderList, sellOfferList));
         this.widgetManager.init();
+
+        int buttonWidth = 100;
+        int buttonHeight = 20;
+        int buttonX = panelX + (panelWidth - buttonWidth) / 2;
+        int buttonY = listY + listHeight + 15;
+
+        // TODO: eventually replace with custom button?
+        this.addRenderableWidget(
+            Button.builder(Component.literal("Go Back"), btn -> this.onClose())
+                .bounds(buttonX, buttonY, buttonWidth, buttonHeight)
+                .build()
+        );
     }
 
     private void copyPriceToClipboard(double price) {
@@ -109,17 +124,33 @@ public class OrderBookScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float delta) {
+        // suppress vanilla background rendering so it does not cover the custom background
+    }
+
+    @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         context.fill(0, 0, this.width, this.height, 0x80000000);
 
+        super.render(context, mouseX, mouseY, delta);
+
         int listY = (this.height - (int) (this.height * 0.8)) / 2 + 40;
 
-        context.drawString(
+        context.drawCenteredString(
             this.font,
             this.title,
-            (this.width - this.font.width(this.title)) / 2,
+            this.width / 2,
             listY - 30,
-            0xFFFFFF
+            0xFFFFFFFF
+        );
+
+        Component subtitle = Component.literal("Click an order to copy its price");
+        context.drawCenteredString(
+            this.font,
+            subtitle,
+            this.width / 2,
+            listY - 15,
+            0xFFAAAAAA
         );
 
         this.widgetManager.render(context, mouseX, mouseY, delta);
