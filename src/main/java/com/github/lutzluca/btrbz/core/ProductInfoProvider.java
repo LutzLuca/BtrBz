@@ -139,15 +139,6 @@ public final class ProductInfoProvider {
                 return;
             }
 
-            var prev = ScreenInfoHelper.get().getPrevInfo();
-            boolean prevInFlow = prev.inMenu(PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new));
-
-            if (!prevInFlow) {
-                // do we need this?
-                this.openedProductNameInfo = null;
-                return;
-            }
-
             // Only clear when navigating to a known non-flow bazaar screen or closing
             // entirely. Transient screens (e.g. OrderBookScreen, SignEditScreen, or other
             // injected screens) are implicitly preserved since they don't match any
@@ -173,7 +164,11 @@ public final class ProductInfoProvider {
             if (!cfg.enabled || !cfg.itemClickEnabled) {
                 return Optional.empty();
             }
-            if (this.openedProductNameInfo == null || slot.getContainerSlot() != CUSTOM_ITEM_IDX) {
+
+            if (this.openedProductNameInfo == null ||
+                slot.getContainerSlot() != CUSTOM_ITEM_IDX ||
+                !info.inMenu(BazaarMenuType.Item)
+            ) {
                 return Optional.empty();
             }
 
