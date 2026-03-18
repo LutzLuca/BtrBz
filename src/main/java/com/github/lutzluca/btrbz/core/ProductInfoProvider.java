@@ -49,7 +49,7 @@ public final class ProductInfoProvider {
 
     /**
      * Screens that are part of the product order flow. The opened product info
-     * is preserved when transitioning between these screens.
+     * is preserved when transitioning between these screens
      */
     private static final Set<BazaarMenuType> PRODUCT_FLOW_MENUS = Set.of(
         BazaarMenuType.Item,
@@ -60,6 +60,7 @@ public final class ProductInfoProvider {
         BazaarMenuType.SellOfferConfirmation
     );
 
+    private static final BazaarMenuType[] PRODUCT_FLOW_MENUS_ARRAY = PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new);
 
     private static ProductInfoProvider instance;
     private final PriceCache priceCache;
@@ -145,7 +146,7 @@ public final class ProductInfoProvider {
             // BazaarMenuType
             boolean closed = curr.getScreen() == null;
             boolean leftToNonFlowBazaar = curr.inBazaar()
-                && !curr.inMenu(PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new));
+                && !curr.inMenu(PRODUCT_FLOW_MENUS_ARRAY);
 
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
