@@ -95,8 +95,8 @@ public abstract class DraggableWidget extends AbstractWidget {
             int newX = this.initialX + (int)(event.x() - this.dragStartX);
             int newY = this.initialY + (int)(event.y() - this.dragStartY);
 
-            this.x = this.constrainX(newX);
-            this.y = this.constrainY(newY);
+            this.setX(this.constrainX(newX));
+            this.setY(this.constrainY(newY));
             return true;
         }
 
@@ -142,8 +142,8 @@ public abstract class DraggableWidget extends AbstractWidget {
 
         if (this.isDragging) {
             this.isDragging = false;
-            this.x = this.initialX;
-            this.y = this.initialY;
+            this.setX(this.initialX);
+            this.setY(this.initialY);
         }
     }
 

@@ -56,6 +56,7 @@ public class ConfigScreen {
             .group(config.orderHighlight.createGroup())
             .group(config.flipHelper.createGroup())
             .group(config.orderPresets.createGroup())
+            .group(config.orderBookPrice.createGroup())
             .group(config.orderValueOverlay.createGroup())
             .group(config.orderProtection.createGroup())
             .group(config.orderBook.createGroup())

@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.core.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
+import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
 import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
@@ -124,6 +125,7 @@ public class BtrBz implements ClientModInitializer {
         moduleManager.registerModule(OrderPresetsModule.class);
         var orderLimitModule = moduleManager.registerModule(OrderLimitModule.class);
         var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
+        moduleManager.registerModule(OrderBookPriceModule.class);
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();

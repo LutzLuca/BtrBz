@@ -20,6 +20,8 @@ import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
 import com.github.lutzluca.btrbz.core.modules.OrderValueModule.OrderValueOverlayConfig;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
+import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule;
+import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule.OrderBookPriceConfig;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
 import com.github.lutzluca.btrbz.core.order_book.OrderBookScreenController.OrderBookConfig;
@@ -52,6 +54,10 @@ public class Config {
     @SerialEntry
     @BindModule(OrderPresetsModule.class)
     public OrderPresetsConfig orderPresets = new OrderPresetsConfig();
+
+    @SerialEntry
+    @BindModule(OrderBookPriceModule.class)
+    public OrderBookPriceConfig orderBookPrice = new OrderBookPriceConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
