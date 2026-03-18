@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 
@@ -31,13 +32,11 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
+
     private ListWidget list;
     private int currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
 
-    // TODO: combine `openedProductId` with ProductInfoProvider's state for `openedProductId`
-    // expose the `openedProductId` of the ProductInfoProver and keep state across order
-    // transaction flow (the menus associated with it)
-    private @Nullable String currProductId = null;
+    // Tracks the buy order transaction flow (volume → price → confirmation)
     private int pendingVolume = -1;
     private boolean pendingPreset = false;
     private boolean inTransaction = false;
@@ -51,13 +50,6 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             var prev = ScreenInfoHelper.get().getPrevInfo();
 
             if (curr.inMenu(BazaarMenuType.BuyOrderSetupVolume) && prev.inMenu(BazaarMenuType.Item)) {
-                this.currProductId = prev
-                    .getItemStack(13)
-                    .map(ItemStack::getHoverName)
-                    .map(Component::getString)
-                    .flatMap(BtrBz.bazaarData()::nameToId)
-                    .orElse(null);
-
                 this.currMaxVolume = curr
                     .getItemStack(16)
                     .flatMap(this::getMaxVolume)
@@ -65,8 +57,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
                 this.inTransaction = true;
                 log.debug(
-                    "Starting transaction for resolved product '{}' with maxVolume '{}'",
-                    this.currProductId,
+                    "Starting buy order transaction for product '{}' with maxVolume '{}'",
+                    this.getCurrentProductId(),
                     this.currMaxVolume
                 );
 
@@ -88,8 +80,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
             if (this.inTransaction && (!isOrderFlowMenu && !isOrderFlowSignScreen)) {
                 log.debug(
-                    "Canceling transaction for resolved product '{}': prev={}, curr={}",
-                    this.currProductId,
+                    "Canceling buy order transaction: prev={}, curr={}",
                     prev.getMenuType(),
                     curr.getMenuType()
                 );
@@ -141,14 +132,18 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     public void cancelTransaction() {
-        log.debug("Ending transaction for product '{}'", this.currProductId);
+        log.debug("Ending buy order transaction");
         this.inTransaction = false;
 
         this.pendingVolume = -1;
         this.pendingPreset = false;
 
         this.currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
-        this.currProductId = null;
+    }
+
+    private @Nullable String getCurrentProductId() {
+        var info = ProductInfoProvider.get().getOpenedProductNameInfo();
+        return info != null ? info.productId() : null;
     }
 
     private boolean isOrderFlowSignScreen(ScreenInfo curr, ScreenInfo prev) {
@@ -165,7 +160,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         var purse = GameUtils.getPurse();
         var pricePerUnit = Optional
-            .ofNullable(this.currProductId)
+            .ofNullable(this.getCurrentProductId())
             .flatMap(BtrBz.bazaarData()::highestBuyPrice)
             .map(price -> price + .1);
         var priceAvailable = pricePerUnit.isPresent();
@@ -363,14 +358,15 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         int volume = switch (preset) {
             case OrderPreset.Max ignored -> {
-                if (this.currProductId == null) {
+                var productId = this.getCurrentProductId();
+                if (productId == null) {
                     log.debug("Cannot calculate MAX: product ID unavailable");
                     yield 0;
                 }
 
                 var price = BtrBz
                     .bazaarData()
-                    .highestBuyPrice(this.currProductId)
+                    .highestBuyPrice(productId)
                     .map(currPrice -> currPrice + 0.1);
 
                 if (price.isEmpty()) {

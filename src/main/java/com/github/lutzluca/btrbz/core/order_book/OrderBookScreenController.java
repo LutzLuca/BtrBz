@@ -27,9 +27,18 @@ public class OrderBookScreenController {
     private static final int CUSTOM_ORDER_BOOK_IDX = 8;
     private static OrderBookScreenController instance;
 
+    private static boolean isOrderSetupMenu(ScreenInfo info) {
+        return info.inMenu(
+            BazaarMenuType.Item,
+            BazaarMenuType.BuyOrderSetupVolume,
+            BazaarMenuType.BuyOrderSetupPrice,
+            BazaarMenuType.SellOfferSetup
+        );
+    }
+
     private OrderBookScreenController() {
         ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || !info.inMenu(BazaarMenuType.Item)) {
+            if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || !isOrderSetupMenu(info)) {
                 return Optional.empty();
             }
             if (GameUtils.isPlayerInventorySlot(slot)) {
@@ -53,7 +62,9 @@ public class OrderBookScreenController {
 
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot.getContainerSlot() == CUSTOM_ORDER_BOOK_IDX && info.inMenu(BazaarMenuType.Item) && ConfigManager.get().orderBook.enabled;
+                return slot.getContainerSlot() == CUSTOM_ORDER_BOOK_IDX && 
+                    isOrderSetupMenu(info) && 
+                    ConfigManager.get().orderBook.enabled;
             }
 
             @Override

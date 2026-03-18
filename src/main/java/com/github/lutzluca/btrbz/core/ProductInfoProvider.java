@@ -14,6 +14,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
+import java.util.Set;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -45,6 +46,20 @@ public final class ProductInfoProvider {
 
     private static final int CUSTOM_ITEM_IDX = 22;
     private static final int PRODUCT_IDX = 13;
+
+    /**
+     * Screens that are part of the product order flow. The opened product info
+     * is preserved when transitioning between these screens.
+     */
+    private static final Set<BazaarMenuType> PRODUCT_FLOW_MENUS = Set.of(
+        BazaarMenuType.Item,
+        BazaarMenuType.BuyOrderSetupVolume,
+        BazaarMenuType.BuyOrderSetupPrice,
+        BazaarMenuType.BuyOrderConfirmation,
+        BazaarMenuType.SellOfferSetup,
+        BazaarMenuType.SellOfferConfirmation
+    );
+
 
     private static ProductInfoProvider instance;
     private final PriceCache priceCache;
@@ -119,18 +134,37 @@ public final class ProductInfoProvider {
             }
         );
 
-        ScreenInfoHelper.registerOnClose(
-            ignored -> true, ignored -> {
-                if (this.openedProductNameInfo != null) {
-                    log.debug(
-                        "Closing product: {} ({})",
-                        this.openedProductNameInfo.productName,
-                        this.openedProductNameInfo.productId
-                    );
-                }
+        ScreenInfoHelper.registerOnSwitch(curr -> {
+            if (this.openedProductNameInfo == null) {
+                return;
+            }
+
+            var prev = ScreenInfoHelper.get().getPrevInfo();
+            boolean prevInFlow = prev.inMenu(PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new));
+
+            if (!prevInFlow) {
+                // do we need this?
+                this.openedProductNameInfo = null;
+                return;
+            }
+
+            // Only clear when navigating to a known non-flow bazaar screen or closing
+            // entirely. Transient screens (e.g. OrderBookScreen, SignEditScreen, or other
+            // injected screens) are implicitly preserved since they don't match any
+            // BazaarMenuType
+            boolean closed = curr.getScreen() == null;
+            boolean leftToNonFlowBazaar = curr.inBazaar()
+                && !curr.inMenu(PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new));
+
+            if (closed || leftToNonFlowBazaar) {
+                log.debug(
+                    "Leaving product flow, clearing product: {} ({})",
+                    this.openedProductNameInfo.productName,
+                    this.openedProductNameInfo.productId
+                );
                 this.openedProductNameInfo = null;
             }
-        );
+        });
     }
 
     private void registerInfoProviderItemOverride() {
