@@ -32,6 +32,7 @@ import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
@@ -140,13 +141,25 @@ public final class ProductInfoProvider {
                 return;
             }
 
+            var prev = ScreenInfoHelper.get().getPrevInfo();
+
             // Only clear when navigating to a known non-flow bazaar screen or closing
             // entirely. Transient screens (e.g. OrderBookScreen, SignEditScreen, or other
             // injected screens) are implicitly preserved since they don't match any
             // BazaarMenuType
             boolean closed = curr.getScreen() == null;
+            boolean transientFlowClose = closed && prev.getScreen() instanceof SignEditScreen;
             boolean leftToNonFlowBazaar = curr.inBazaar()
                 && !curr.inMenu(PRODUCT_FLOW_MENUS_ARRAY);
+
+            if (transientFlowClose) {
+                log.debug(
+                    "Preserving product context on transient flow close: {} ({})",
+                    this.openedProductNameInfo.productName,
+                    this.openedProductNameInfo.productId
+                );
+                return;
+            }
 
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
