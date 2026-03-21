@@ -113,11 +113,6 @@ public final class ProductInfoProvider {
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Item), (info, inv) -> {
-                var cfg = ConfigManager.get().productInfo;
-                if (!cfg.enabled) {
-                    return;
-                }
-
                 var productName = inv
                     .getItem(PRODUCT_IDX)
                     .map(ItemStack::getHoverName)

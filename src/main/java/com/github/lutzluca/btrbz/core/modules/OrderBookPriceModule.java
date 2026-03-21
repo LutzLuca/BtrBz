@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -18,12 +19,10 @@ import com.github.lutzluca.btrbz.widgets.base.RenderContext;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
-import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -34,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 @Slf4j
 public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookPriceConfig> {
@@ -153,12 +151,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         if (this.currentOrderType == null) {
             log.debug("Current order type is null, clearing list for product {}", productNameInfo.productName());
-            this.widget.updateList(List.of(), this.configState.clickMode);
+            this.widget.updateList(List.of());
             return;
         }
 
         var orders = BtrBz.bazaarData().getOrderLists(productNameInfo.productId());
-        var productName = productNameInfo.productName();
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();
@@ -167,10 +164,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         List<Renderable> entries = new ArrayList<>();
         for (var summary : summaries) {
-            entries.add(new OrderBookEntry(productName, summary, this.currentOrderType));
+            entries.add(new OrderBookEntry(summary, this.currentOrderType));
         }
 
-        this.widget.updateList(entries, this.configState.clickMode);
+        this.widget.updateList(entries);
     }
 
     @Override
@@ -190,14 +187,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             this.widget = new OrderBookPriceWidget(
                 position.map(Position::x).orElse(20),
                 position.map(Position::y).orElse(20),
-                this.configState.clickMode,
-                mode -> this.updateConfig(cfg -> cfg.clickMode = mode),
                 this::handlePriceClick
             );
 
             this.widget.onDragEnd((self, pos) -> this.savePosition(pos));
-        } else {
-            this.widget.setMode(this.configState.clickMode);
         }
 
         this.widget.setDraggable(true);
@@ -233,18 +226,16 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         this.currentOrderType = orderType;
-        ClickMode mode = this.widget.getMode();
-        double priceToUse = rawPrice;
-
-        if (mode == ClickMode.Undercut) {
-            switch (orderType) {
-                case Buy -> priceToUse = rawPrice + 0.1;
-                case Sell -> priceToUse = Math.max(rawPrice - 0.1, 0.1);
-            }
-        }
+        double priceToUse = this.applyUndercut(rawPrice, orderType);
 
         if (copyOnly) {
-            GameUtils.copyToClipboard(Utils.formatDecimal(priceToUse, 1, false));
+            String formattedPrice = Utils.formatDecimal(priceToUse, 1, false);
+            GameUtils.copyToClipboard(formattedPrice);
+            Notifier.notifyPlayer(Notifier
+                .prefix()
+                .append(Component.literal("Copied price ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(formattedPrice).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                .append(Component.literal(" to clipboard").withStyle(ChatFormatting.GRAY)));
             return;
         }
 
@@ -258,7 +249,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         this.pendingSubmit = true;
         this.pendingPrice = priceToUse;
 
-        log.debug("Price click processed: rawPrice={}, finalPrice={}, mode={}", rawPrice, priceToUse, mode);
+        log.debug("Price click processed: rawPrice={}, finalPrice={}", rawPrice, priceToUse);
 
         if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
             GameUtils.submitSignValue(signEditScreen, Utils.formatDecimal(priceToUse, 1, false));
@@ -273,26 +264,17 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         );
     }
 
-    public enum ClickMode {
-        Matched,
-        Undercut;
-
-        public static EnumControllerBuilder<ClickMode> controller(Option<ClickMode> option) {
-            return EnumControllerBuilder
-                .create(option)
-                .enumClass(ClickMode.class)
-                .formatValue(mode -> switch (mode) {
-                    case Matched -> Component.literal("Copy Price");
-                    case Undercut -> Component.literal("Undercut (±0.1)");
-                });
-        }
+    private double applyUndercut(double rawPrice, OrderType orderType) {
+        return switch (orderType) {
+            case Buy -> rawPrice + 0.1;
+            case Sell -> Math.max(rawPrice - 0.1, 0.1);
+        };
     }
 
     public static class OrderBookPriceConfig {
         public Integer signX;
         public Integer signY;
         public boolean enabled = true;
-        public ClickMode clickMode = ClickMode.Undercut;
 
         public Option.Builder<Boolean> createEnableOption() {
             return Option
@@ -304,23 +286,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<ClickMode> createClickModeOption() {
-            return Option
-                .<ClickMode>createBuilder()
-                .name(Component.nullToEmpty("Default Click Mode"))
-                .description(OptionDescription.of(Component.literal(
-                    "Default behaviour when clicking an order entry. Can also be toggled in the widget.")))
-                .binding(
-                    ClickMode.Undercut,
-                    () -> this.clickMode != null ? this.clickMode : ClickMode.Undercut,
-                    val -> this.clickMode = val
-                )
-                .controller(ClickMode::controller);
-        }
-
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnableOption())
-                .addOptions(this.createClickModeOption());
+            var rootGroup = new OptionGrouping(this.createEnableOption());
 
             return OptionGroup
                 .createBuilder()
@@ -344,7 +311,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         private final Component priceText;
         private final Component statsText;
 
-        public OrderBookEntry(String productName, Summary summary, OrderType type) {
+        public OrderBookEntry(Summary summary, OrderType type) {
             this.summary = summary;
             this.type = type;
             this.priceText = Component.literal(Utils.formatDecimal(summary.getPricePerUnit(), 1, true));
@@ -383,96 +350,79 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
     }
 
-    // it should be explained why we have this here with all the forwarding of the 
-    // callbacks
     private static class OrderBookPriceWidget extends DraggableWidget {
         private static final int HEADER_HEIGHT = 16;
-        private static final int LABEL_HEIGHT = 14;
-        private static final int BUTTON_HEIGHT = 16;
-        private static final int CONTROLS_HEIGHT = LABEL_HEIGHT + BUTTON_HEIGHT;
-        private static final int LIST_Y_OFFSET = HEADER_HEIGHT + CONTROLS_HEIGHT;
+        private static final int INSTRUCTION_HEIGHT = 14;
+        private static final int LIST_Y_OFFSET = HEADER_HEIGHT + INSTRUCTION_HEIGHT;
         private static final int ITEM_HEIGHT = 16;
 
         private static final int DEFAULT_WIDTH = 280;
         private static final int DEFAULT_HEIGHT = 220;
 
+        private static final int HEADER_BACKGROUND_COLOR = 0xC0000000;
+        private static final int INSTRUCTION_BACKGROUND_COLOR = 0x80000000;
+        private static final int TITLE_COLOR = 0xFFFFFFFF;
+        private static final int INSTRUCTION_TEXT_COLOR = 0xFFDDDDDD;
+
+        private static final Component INSTRUCTION_TEXT = Component
+            .literal("L-Click: Apply Matches (\u00b10.1 undercut) | Ctrl: Copy Price")
+            .withStyle(ChatFormatting.GOLD);
+
         private final ListWidget list;
-        private final Button modeToggleButton;
 
-        private ClickMode currentMode;
-        private final Consumer<ClickMode> onModeChanged;
-
-        public OrderBookPriceWidget(
-            int defaultX,
-            int defaultY,
-            ClickMode initialMode,
-            Consumer<ClickMode> onModeChanged,
-            PriceClickHandler onClickHandler
-        ) {
+        public OrderBookPriceWidget(int defaultX, int defaultY, PriceClickHandler onClickHandler) {
             super(defaultX, defaultY, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-            this.currentMode = initialMode;
-            this.onModeChanged = onModeChanged;
-
-            this.modeToggleButton = Button.builder(
-                this.getModeButtonText(initialMode),
-                btn -> this.toggleMode()
-            ).bounds(0, HEADER_HEIGHT + LABEL_HEIGHT, DEFAULT_WIDTH, BUTTON_HEIGHT).build();
 
             this.list = new ListWidget(0, LIST_Y_OFFSET, DEFAULT_WIDTH, DEFAULT_HEIGHT - LIST_Y_OFFSET, "Order Book");
             this.list.setStatic().setDraggable(false);
             this.list.setItemHeight(ITEM_HEIGHT);
             this.list.onItemClick((self, renderable, index) -> {
                 if (renderable instanceof OrderBookEntry entry) {
-                    boolean copyOnly = Minecraft.getInstance().hasShiftDown() || Minecraft.getInstance().hasControlDown();
+                    boolean copyOnly = Minecraft.getInstance().hasControlDown();
                     onClickHandler.onClick(entry.getPricePerUnit(), copyOnly);
                 }
             });
         }
 
-        public void updateList(List<Renderable> items, ClickMode mode) {
+        public void updateList(List<Renderable> items) {
             this.list.setItems(items);
-            this.setMode(mode);
-        }
-
-        public ClickMode getMode() {
-            return this.currentMode;
-        }
-
-        public void setMode(ClickMode mode) {
-            this.currentMode = mode;
-            this.modeToggleButton.setMessage(this.getModeButtonText(mode));
-        }
-
-        private void toggleMode() {
-            this.currentMode = this.currentMode == ClickMode.Matched ? ClickMode.Undercut : ClickMode.Matched;
-            this.modeToggleButton.setMessage(this.getModeButtonText(this.currentMode));
-            this.onModeChanged.accept(this.currentMode);
-        }
-
-        private Component getModeButtonText(ClickMode mode) {
-            return Component.literal(mode == ClickMode.Matched ? "[Switch to Undercut]" : "[Switch to Copy]")
-                .withStyle(mode == ClickMode.Matched ? ChatFormatting.GOLD : ChatFormatting.AQUA);
-        }
-
-        private Component getModeInstruction() {
-            return switch (this.currentMode) {
-                case Matched -> Component.literal("L-Click: Copy Price").withStyle(ChatFormatting.AQUA);
-                case Undercut -> Component.literal("L-Click: Undercut Price").withStyle(ChatFormatting.GOLD);
-            };
         }
 
         @Override
         protected void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
-            graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + HEADER_HEIGHT, 0xC0000000);
-            graphics.drawCenteredString(Minecraft.getInstance().font, "Order Book", this.getX() + this.width / 2, this.getY() + 4, 0xFFFFFFFF);
+            this.renderHeader(graphics);
+            this.renderInstruction(graphics);
+            this.renderList(graphics, mouseX, mouseY, delta);
+        }
 
-            graphics.fill(this.getX(), this.getY() + HEADER_HEIGHT, this.getX() + this.width, this.getY() + LIST_Y_OFFSET, 0x80000000);
-            graphics.drawCenteredString(Minecraft.getInstance().font, this.getModeInstruction(), this.getX() + this.width / 2, this.getY() + HEADER_HEIGHT + 3, 0xFFDDDDDD);
+        private void renderHeader(GuiGraphics graphics) {
+            graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + HEADER_HEIGHT, HEADER_BACKGROUND_COLOR);
+            graphics.drawCenteredString(Minecraft.getInstance().font, "Order Book", this.getX() + this.width / 2, this.getY() + 4, TITLE_COLOR);
+        }
 
-            this.modeToggleButton.setX(this.getX());
-            this.modeToggleButton.setY(this.getY() + HEADER_HEIGHT + LABEL_HEIGHT);
-            this.modeToggleButton.render(graphics, mouseX, mouseY, delta);
+        private void renderInstruction(GuiGraphics graphics) {
+            int x = this.getX();
+            int y = this.getY() + HEADER_HEIGHT;
+            int width = this.width;
+            int height = LIST_Y_OFFSET - HEADER_HEIGHT;
 
+            graphics.fill(
+                x,
+                y,
+                x + width,
+                y + height,
+                INSTRUCTION_BACKGROUND_COLOR
+            );
+            graphics.drawCenteredString(
+                Minecraft.getInstance().font,
+                INSTRUCTION_TEXT,
+                x + width / 2,
+                y + 3,
+                INSTRUCTION_TEXT_COLOR
+            );
+        }
+
+        private void renderList(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
             this.list.setX(this.getX());
             this.list.setY(this.getY() + LIST_Y_OFFSET);
             this.list.render(graphics, mouseX, mouseY, delta);
@@ -480,9 +430,6 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         @Override
         public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-            if (this.modeToggleButton.isMouseOver(event.x(), event.y()) && this.modeToggleButton.mouseClicked(event, doubleClick)) {
-                return true;
-            }
             if (this.list.isMouseOver(event.x(), event.y()) && this.list.mouseClicked(event, doubleClick)) {
                 return true;
             }
@@ -494,9 +441,6 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         public boolean mouseReleased(MouseButtonEvent event) {
             if (this.isDragging()) {
                 return super.mouseReleased(event);
-            }
-            if (this.modeToggleButton.isMouseOver(event.x(), event.y()) && this.modeToggleButton.mouseReleased(event)) {
-                return true;
             }
             if (this.list.mouseReleased(event)) {
                 return true;
@@ -517,7 +461,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         @Override
         public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-            if (this.list.isMouseOver(mouseX, mouseY) && this.list.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)){
+            if (this.list.isMouseOver(mouseX, mouseY) && this.list.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
                 return true;
             }
             return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
