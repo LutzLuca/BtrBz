@@ -163,8 +163,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         };
 
         List<Renderable> entries = new ArrayList<>();
+        double accumulatedVolume = 0;
         for (var summary : summaries) {
-            entries.add(new OrderBookEntry(summary, this.currentOrderType));
+            accumulatedVolume += summary.getAmount();
+            entries.add(new OrderBookEntry(summary, this.currentOrderType, accumulatedVolume));
         }
 
         this.widget.updateList(entries);
@@ -226,10 +228,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         this.currentOrderType = orderType;
-        double priceToUse = this.applyUndercut(rawPrice, orderType);
-
         if (copyOnly) {
-            String formattedPrice = Utils.formatDecimal(priceToUse, 1, false);
+            String formattedPrice = Utils.formatDecimal(rawPrice, 1, false);
             GameUtils.copyToClipboard(formattedPrice);
             Notifier.notifyPlayer(Notifier
                 .prefix()
@@ -238,6 +238,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 .append(Component.literal(" to clipboard").withStyle(ChatFormatting.GRAY)));
             return;
         }
+
+        double priceToUse = this.applyUndercut(rawPrice, orderType);
 
         var client = Minecraft.getInstance();
         var player = client.player;
@@ -310,15 +312,24 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         private final OrderType type;
         private final Component priceText;
         private final Component statsText;
+        private final List<Component> tooltip;
 
-        public OrderBookEntry(Summary summary, OrderType type) {
+        public OrderBookEntry(Summary summary, OrderType type, double accumulatedVolume) {
             this.summary = summary;
             this.type = type;
             this.priceText = Component.literal(Utils.formatDecimal(summary.getPricePerUnit(), 1, true));
 
             int orders = (int) summary.getOrders();
             String volumeStr = Utils.formatDecimal(summary.getAmount(), 0, true);
-            this.statsText = Component.literal(volumeStr + " | " + orders);
+            this.statsText = Component.literal("Vol: " + volumeStr + "  Ord: " + orders);
+
+            String cumulativeVolumeStr = Utils.formatDecimal(accumulatedVolume, 0, true);
+            this.tooltip = List.of(
+                Component.literal("Price: " + Utils.formatDecimal(summary.getPricePerUnit(), 1, true)).withStyle(ChatFormatting.GOLD),
+                Component.literal("Level Volume: " + volumeStr).withStyle(ChatFormatting.GRAY),
+                Component.literal("Orders: " + orders).withStyle(ChatFormatting.GRAY),
+                Component.literal("Cumulative Volume: " + cumulativeVolumeStr).withStyle(ChatFormatting.AQUA)
+            );
         }
 
         @Override
@@ -348,6 +359,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         public double getPricePerUnit() {
             return this.summary.getPricePerUnit();
         }
+
+        @Override
+        public List<Component> getTooltip() {
+            return this.tooltip;
+        }
     }
 
     private static class OrderBookPriceWidget extends DraggableWidget {
@@ -356,7 +372,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         private static final int LIST_Y_OFFSET = HEADER_HEIGHT + INSTRUCTION_HEIGHT;
         private static final int ITEM_HEIGHT = 16;
 
-        private static final int DEFAULT_WIDTH = 280;
+        private static final int DEFAULT_WIDTH = 230;
         private static final int DEFAULT_HEIGHT = 220;
 
         private static final int HEADER_BACKGROUND_COLOR = 0xC0000000;
@@ -365,7 +381,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         private static final int INSTRUCTION_TEXT_COLOR = 0xFFDDDDDD;
 
         private static final Component INSTRUCTION_TEXT = Component
-            .literal("L-Click: Apply Matches (\u00b10.1 undercut) | Ctrl: Copy Price")
+            .literal("Click -> Undercut | Ctrl-Click -> Copy price")
             .withStyle(ChatFormatting.GOLD);
 
         private final ListWidget list;
