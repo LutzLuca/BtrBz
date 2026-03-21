@@ -26,7 +26,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.ClickType;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,12 +36,8 @@ import java.util.Optional;
 @Slf4j
 public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookPriceConfig> {
 
-    private static final int PRICE_SETUP_SIGN_TRIGGER_SLOT = 16;
-
     private OrderBookPriceWidget widget;
 
-    private double pendingPrice = -1;
-    private boolean pendingSubmit = false;
     @Nullable private OrderType currentOrderType;
 
     @Override
@@ -56,7 +51,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             this.refreshCurrentOrderType(curr, prev);
 
             if (!this.isEnterPriceScreen(curr, prev)) {
-                if (this.pendingSubmit || this.pendingPrice >= 0 || this.currentOrderType != null) {
+                if (this.currentOrderType != null) {
                     log.debug(
                         "Clearing stale overlay state: prev={}, curr={}",
                         prev.getMenuType(),
@@ -64,33 +59,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                     );
                 }
 
-                this.pendingPrice = -1;
-                this.pendingSubmit = false;
                 this.currentOrderType = null;
             }
-        });
-
-        ScreenInfoHelper.registerOnSwitch(info -> {
-            if (!this.configState.enabled) {
-                return;
-            }
-
-            var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
-            if (productNameInfo == null || 
-                !(info.getScreen() instanceof SignEditScreen signEditScreen)
-            ) {
-                return;
-            }
-
-            if (!this.pendingSubmit || this.pendingPrice < 0) {
-                return;
-            }
-
-            String priceStr = Utils.formatDecimal(this.pendingPrice, 1, false);
-            GameUtils.submitSignValue(signEditScreen, priceStr);
-
-            this.pendingPrice = -1;
-            this.pendingSubmit = false;
         });
 
         BtrBz.bazaarData().addListener(products -> {
@@ -228,6 +198,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         this.currentOrderType = orderType;
+
         if (copyOnly) {
             String formattedPrice = Utils.formatDecimal(rawPrice, 1, false);
             GameUtils.copyToClipboard(formattedPrice);
@@ -241,29 +212,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         double priceToUse = this.applyUndercut(rawPrice, orderType);
 
-        var client = Minecraft.getInstance();
-        var player = client.player;
-        var interactionManager = client.gameMode;
-        if (player == null || interactionManager == null) {
-            return;
-        }
-
-        this.pendingSubmit = true;
-        this.pendingPrice = priceToUse;
-
         log.debug("Price click processed: rawPrice={}, finalPrice={}", rawPrice, priceToUse);
 
         if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
             GameUtils.submitSignValue(signEditScreen, Utils.formatDecimal(priceToUse, 1, false));
-
-            this.pendingPrice = -1;
-            this.pendingSubmit = false;
-            return;
         }
-
-        interactionManager.handleInventoryMouseClick(
-            currInfo.getGenericContainerScreen().get().getMenu().containerId, PRICE_SETUP_SIGN_TRIGGER_SLOT, 1, ClickType.PICKUP, player
-        );
     }
 
     private double applyUndercut(double rawPrice, OrderType orderType) {
