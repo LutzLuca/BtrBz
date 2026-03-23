@@ -45,14 +45,14 @@ public class OrderBookScreenController {
 
     private void registerItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || !isOrderSetupMenu(info)) {
-                return Optional.empty();
-            }
-            if (GameUtils.isPlayerInventorySlot(slot)) {
+            if (!ConfigManager.get().orderBook.enabled) {
                 return Optional.empty();
             }
 
-            if (!ConfigManager.get().orderBook.enabled) {
+            if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || 
+                !isOrderSetupMenu(info) || 
+                GameUtils.isPlayerInventorySlot(slot)
+            ) {
                 return Optional.empty();
             }
 
@@ -71,7 +71,8 @@ public class OrderBookScreenController {
 
             @Override
             public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot.getContainerSlot() == CUSTOM_ORDER_BOOK_IDX && 
+                return !GameUtils.isPlayerInventorySlot(slot) &&
+                    slot.getContainerSlot() == CUSTOM_ORDER_BOOK_IDX && 
                     isOrderSetupMenu(info) && 
                     ConfigManager.get().orderBook.enabled;
             }
