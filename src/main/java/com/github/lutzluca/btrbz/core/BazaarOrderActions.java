@@ -35,6 +35,7 @@ import net.minecraft.world.item.component.ItemLore;
 
 @Slf4j
 public class BazaarOrderActions {
+    public static final int CANCEL_ORDER_SLOT = 11;
 
     private static boolean shouldReopenBazaar = false;
     private static Integer remainingOrderAmount = null;
@@ -254,7 +255,7 @@ public class BazaarOrderActions {
     }
 
     private static boolean isCancelOrderSlot(@Nullable Slot slot) {
-        return slot != null && slot.getContainerSlot() == 11 && slot
+        return slot != null && slot.getContainerSlot() == CANCEL_ORDER_SLOT && slot
             .getItem()
             .getHoverName()
             .getString()
