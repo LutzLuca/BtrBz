@@ -94,7 +94,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             }
 
             String productName = original.getHoverName().getString();
-            if (BtrBz.bazaarData().nameToId(productName).isEmpty()) {
+            if (this.context().bazaarData().nameToId(productName).isEmpty()) {
                 return Optional.empty();
             }
 

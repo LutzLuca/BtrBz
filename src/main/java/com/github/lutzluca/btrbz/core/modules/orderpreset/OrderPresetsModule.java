@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
@@ -161,7 +160,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         var purse = GameUtils.getPurse();
         var pricePerUnit = Optional
             .ofNullable(this.getCurrentProductId())
-            .flatMap(BtrBz.bazaarData()::highestBuyPrice)
+            .flatMap(this.context().bazaarData()::highestBuyPrice)
             .map(price -> price + .1);
         var priceAvailable = pricePerUnit.isPresent();
 
@@ -364,7 +363,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     yield 0;
                 }
 
-                var price = BtrBz
+                var price = this.context()
                     .bazaarData()
                     .highestBuyPrice(productId)
                     .map(currPrice -> currPrice + 0.1);

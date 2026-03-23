@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -63,7 +62,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             }
         });
 
-        BtrBz.bazaarData().addListener(products -> {
+        this.context().bazaarData().addListener(products -> {
             var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
             if (this.isDisplayed() && productNameInfo != null) {
                 this.rebuildList();
@@ -125,7 +124,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var orders = BtrBz.bazaarData().getOrderLists(productNameInfo.productId());
+        var orders = this.context().bazaarData().getOrderLists(productNameInfo.productId());
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();

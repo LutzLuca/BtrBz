@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
@@ -97,12 +96,13 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
     private Optional<Double> computePriceDiff(String productName) {
         // TODO maybe respect "filling orders" when one would sell it instantly
-        return BtrBz
-            .bazaarData()
+        var bazaarData = this.context().bazaarData();
+
+        return bazaarData
             .nameToId(productName)
             .flatMap(id -> Utils.zipOptionals(
-                BtrBz.bazaarData().lowestSellPrice(id),
-                BtrBz.bazaarData().highestBuyPrice(id)
+                bazaarData.lowestSellPrice(id),
+                bazaarData.highestBuyPrice(id)
             ))
             .map(pair -> pair.getLeft() - pair.getRight());
     }
