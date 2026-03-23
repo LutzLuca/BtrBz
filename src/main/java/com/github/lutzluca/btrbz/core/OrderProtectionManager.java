@@ -221,7 +221,7 @@ public class OrderProtectionManager {
     private static final class OrderValidator {
 
         public static PendingOrderData validate(OutstandingOrderInfo info, BazaarData bazaarData, OrderProtectionConfig cfg) {
-            if (!cfg.enabled || !cfg.blockUndercutPercentage) {
+            if (!cfg.enabled || (!cfg.blockUndercutPercentage && !cfg.blockUndercutOfOpposing)) {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
