@@ -211,10 +211,10 @@ public class BazaarData {
             this.productName = productName;
             this.product = Optional.empty();
 
-            this.updater = products -> this.data.nameToId(productName)
-                                                .flatMap(id -> Optional.ofNullable(products.get(id)))
-                                                .ifPresent(updated -> this.product = Optional.of(
-                                                    updated));
+            this.updater = products -> 
+                this.data.nameToId(productName)
+                        .flatMap(id -> Optional.ofNullable(products.get(id)))
+                        .ifPresent(updated -> this.product = Optional.of(updated));
         }
 
         private void ensureInitialized() {
@@ -222,28 +222,31 @@ public class BazaarData {
                 return;
             }
 
-            this.data.nameToId(productName)
-                     .flatMap(id -> Optional.ofNullable(data.getProducts().get(id)))
-                     .ifPresent(prod -> {
-                         this.product = Optional.of(prod);
+            this.data
+                .nameToId(productName)
+                .flatMap(id -> Optional.ofNullable(data.getProducts().get(id)))
+                .ifPresent(prod -> {
+                    this.product = Optional.of(prod);
 
-                         this.data.addListener(this.updater);
-                         this.listenerRegistered = true;
-                     });
+                    this.data.addListener(this.updater);
+                    this.listenerRegistered = true;
+                });
         }
 
         public Optional<Double> getSellOfferPrice() {
             this.ensureInitialized();
 
             return this.product.flatMap(
-                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit));
+                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit)
+            );
         }
 
         public Optional<Double> getBuyOrderPrice() {
             this.ensureInitialized();
 
             return this.product.flatMap(
-                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit));
+                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit)
+            );
         }
 
         public void destroy() {
