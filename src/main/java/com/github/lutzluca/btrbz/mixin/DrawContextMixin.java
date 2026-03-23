@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 
 import net.minecraft.client.gui.GuiGraphics;
@@ -87,7 +86,7 @@ public class DrawContextMixin {
             );
         }
 
-        var info = OrderProtectionManager.getInstance().getVisualOrderInfo(stack);
+        var info = BtrBz.orderProtectionManager().getVisualOrderInfo(stack);
         if (info.isPresent()) {
             var pending = info.get();
             var overridden = pending.getRight();

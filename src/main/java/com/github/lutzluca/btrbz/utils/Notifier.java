@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
@@ -293,5 +294,18 @@ public class Notifier {
             .append(Component.literal(productName).withStyle(ChatFormatting.YELLOW))
             .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
             .append(statusPart);
+    }
+
+    public static void sendBlockedOrderMessage(ValidationResult validation) {
+        var reason = validation.reason() == null 
+            ? "Order blocked."
+            : "Order blocked: " + validation.reason();
+
+        var msg = Component
+            .literal(reason)
+            .withStyle(ChatFormatting.RED)
+            .append(Component.literal(" Hold Ctrl to override.").withStyle(ChatFormatting.GRAY));
+
+        Notifier.notifyPlayer(msg);
     }
 }

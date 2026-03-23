@@ -37,14 +37,16 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class OrderProtectionManager {
 
+    private static final int CONFIRMATION_SLOT_INDEX = 13;
 
-    private static OrderProtectionManager instance;
-    private static BazaarData bazaarData;
+    private final BazaarData bazaarData;
     private final WeakHashMap<ItemStack, PendingOrderData> validationCache = new WeakHashMap<>();
 
     private @Nullable BiConsumer<ItemStack, Optional<PendingOrderData>> setOrderCallback = null;
 
-    private OrderProtectionManager() {
+    public OrderProtectionManager(BazaarData bazaarData) {
+        this.bazaarData = bazaarData;
+
         ItemOverrideManager.register((info, slot, original) -> {
             if (!ConfigManager.get().orderProtection.enabled) {
                 return Optional.empty();
@@ -56,19 +58,25 @@ public class OrderProtectionManager {
                 return Optional.empty();
             }
 
-            if (slot == null || slot.getContainerSlot() != 13 || original == ItemStack.EMPTY) {
+            if (slot == null || slot.getContainerSlot() != CONFIRMATION_SLOT_INDEX || original.isEmpty()) {
                 return Optional.empty();
             }
 
-            if (validationCache.containsKey(original)) {
+            if (this.validationCache.containsKey(original)) {
                 return Optional.of(original);
             }
 
             OrderInfoParser
                 .parseSetOrderItem(original)
-                .map(OrderValidator::validate)
+                .map(orderInfo -> 
+                    OrderValidator.validate(
+                        orderInfo, 
+                        this.bazaarData, 
+                        ConfigManager.get().orderProtection
+                    )
+                )
                 .onSuccess(pendingOrder -> {
-                    validationCache.put(original, pendingOrder);
+                    this.validationCache.put(original, pendingOrder);
 
                     log.trace(
                         "Validated: {} - {}",
@@ -86,23 +94,25 @@ public class OrderProtectionManager {
                 return info.inMenu(
                     BazaarMenuType.BuyOrderConfirmation,
                     BazaarMenuType.SellOfferConfirmation
-                ) && slot != null && slot.getContainerSlot() == 13;
+                ) && slot != null && slot.getContainerSlot() == CONFIRMATION_SLOT_INDEX;
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
+                var self = OrderProtectionManager.this;
+
                 var stack = slot.getItem();
                 var cfg = ConfigManager.get().orderProtection;
-                var pending = validationCache.get(stack);
+                var pending = self.validationCache.get(stack);
 
                 if (pending == null) {
                     log.warn("No cached validation for confirmation item");
-                    OrderProtectionManager.this.dispatchSetOrder(stack, Optional.empty());
+                    self.dispatchSetOrder(stack, Optional.empty());
                     return false;
                 }
 
                 if (!cfg.enabled) {
-                    OrderProtectionManager.this.dispatchSetOrder(stack, Optional.of(pending));
+                    self.dispatchSetOrder(stack, Optional.of(pending));
                     return false;
                 }
 
@@ -112,13 +122,13 @@ public class OrderProtectionManager {
 
                 if (isBlocked && !overrideActive) {
                     if (cfg.showChatMessage) {
-                        sendBlockedOrderMessage(validation);
+                        Notifier.sendBlockedOrderMessage(validation);
                     }
                     SoundUtil.playSoundIf(cfg.soundOnBlocked, SoundEvents.VILLAGER_NO, 0.6f, 1);
                     return true;
                 }
 
-                OrderProtectionManager.this.dispatchSetOrder(stack, Optional.of(pending));
+                self.dispatchSetOrder(stack, Optional.of(pending));
                 return false;
             }
         });
@@ -128,8 +138,10 @@ public class OrderProtectionManager {
                 return;
             }
 
-            var pending = validationCache.get(stack);
-            if (pending == null) { return; }
+            var pending = this.validationCache.get(stack);
+            if (pending == null) { 
+                return; 
+            }
 
             var validation = pending.validationResult();
             boolean blocked = validation.protect();
@@ -182,29 +194,8 @@ public class OrderProtectionManager {
         });
     }
 
-    private static void sendBlockedOrderMessage(
-        ValidationResult validation
-    ) {
-        var reason = validation.reason() == null ? "Order blocked."
-            : "Order blocked: " + validation.reason();
-
-        var msg = Component
-            .literal(reason)
-            .withStyle(ChatFormatting.RED)
-            .append(Component.literal(" Hold Ctrl to override.").withStyle(ChatFormatting.GRAY));
-
-        Notifier.notifyPlayer(msg);
-    }
-
-    public static void init(BazaarData bazaarData) {
-        OrderProtectionManager.bazaarData = bazaarData;
-    }
-
-    public static OrderProtectionManager getInstance() {
-        if (instance == null) {
-            instance = new OrderProtectionManager();
-        }
-        return instance;
+    public void onSetOrder(BiConsumer<ItemStack, Optional<PendingOrderData>> cb) {
+        this.setOrderCallback = cb;
     }
 
     private void dispatchSetOrder(ItemStack stack, Optional<PendingOrderData> data) {
@@ -212,11 +203,6 @@ public class OrderProtectionManager {
             this.setOrderCallback.accept(stack, data);
         }
     }
-
-    public void onSetOrder(BiConsumer<ItemStack, Optional<PendingOrderData>> cb) {
-        this.setOrderCallback = cb;
-    }
-
 
     public Optional<Pair<PendingOrderData, Boolean>> getVisualOrderInfo(ItemStack stack) {
         if (!ConfigManager.get().orderProtection.enabled) {
@@ -234,21 +220,18 @@ public class OrderProtectionManager {
 
     private static final class OrderValidator {
 
-        public static PendingOrderData validate(OutstandingOrderInfo info) {
-            var cfg = ConfigManager.get().orderProtection;
-
+        public static PendingOrderData validate(OutstandingOrderInfo info, BazaarData bazaarData, OrderProtectionConfig cfg) {
             if (!cfg.enabled || !cfg.blockUndercutPercentage) {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            var data = OrderProtectionManager.bazaarData;
-            var productId = data.nameToId(info.productName());
+            var productId = bazaarData.nameToId(info.productName());
             if (productId.isEmpty()) {
                 log.trace("No product ID found for {}, allowing order", info.productName());
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            var prices = data.getOrderPrices(productId.get());
+            var prices = bazaarData.getOrderPrices(productId.get());
             var validationResult = validateOrder(info, prices, cfg);
             return new PendingOrderData(info, validationResult);
         }

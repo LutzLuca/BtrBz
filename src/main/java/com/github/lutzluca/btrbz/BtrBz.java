@@ -65,6 +65,7 @@ public class BtrBz implements ClientModInitializer {
     private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
     private OrderTooltipProvider tooltipProvider;
+    private OrderProtectionManager orderProtectionManager;
 
     public static TrackedOrderManager orderManager() {
         return instance.orderManager;
@@ -80,6 +81,10 @@ public class BtrBz implements ClientModInitializer {
 
     public static OrderTooltipProvider tooltipProvider() {
         return instance.tooltipProvider;
+    }
+
+    public static OrderProtectionManager orderProtectionManager() {
+        return instance.orderProtectionManager;
     }
 
     @Override
@@ -112,8 +117,7 @@ public class BtrBz implements ClientModInitializer {
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.alertManager = new AlertManager();
         new ChatFilterManager();
-        OrderProtectionManager.init(BAZAAR_DATA);
-        var orderProtectionManager = OrderProtectionManager.getInstance();
+        this.orderProtectionManager = new OrderProtectionManager(BAZAAR_DATA);
 
         var moduleManager = ModuleManager.getInstance();
         moduleManager.initContext(new ModuleContext(BAZAAR_DATA));
