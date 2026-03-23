@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -30,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class OrderTooltipProvider {
 
+    private final BazaarData bazaarData;
     private final OrderTooltipCache listCache;
     private final OrderTooltipCache itemCache;
 
@@ -55,11 +57,12 @@ public class OrderTooltipProvider {
         }
     }
 
-    public OrderTooltipProvider() {
+    public OrderTooltipProvider(BazaarData bazaarData) {
+        this.bazaarData = Objects.requireNonNull(bazaarData, "bazaarData cannot be null");
         this.listCache = new OrderTooltipCache("list");
         this.itemCache = new OrderTooltipCache("item");
 
-        BtrBz.bazaarData().addListener(products -> {
+        this.bazaarData.addListener(products -> {
             this.listCache.clear();
             this.itemCache.clear();
         });
@@ -96,11 +99,11 @@ public class OrderTooltipProvider {
     }
 
     public List<Component> getCachedTooltip(TrackedOrder order, OrderListTooltipConfig cfg) {
-        return this.listCache.getOrCompute(order, () -> OrderTooltipProvider.buildTooltipLines(order, cfg));
+        return this.listCache.getOrCompute(order, () -> this.buildTooltipLines(order, cfg));
     }
 
     public List<Component> getCachedTooltip(TrackedOrder order, OrderItemTooltipConfig cfg) {
-        return this.itemCache.getOrCompute(order, () -> OrderTooltipProvider.buildTooltipLines(order, cfg));
+        return this.itemCache.getOrCompute(order, () -> this.buildTooltipLines(order, cfg));
     }
 
     public void clearCache() {
@@ -108,9 +111,8 @@ public class OrderTooltipProvider {
         this.itemCache.clear();
     }
 
-    public static List<Component> buildTooltipLines(TrackedOrder order, OrderListTooltipConfig cfg) {
-        var data = BtrBz.bazaarData();
-        var productId = data.nameToId(order.productName);
+    public List<Component> buildTooltipLines(TrackedOrder order, OrderListTooltipConfig cfg) {
+        var productId = this.bazaarData.nameToId(order.productName);
 
         if (productId.isEmpty()) {
             return List.of(Component.literal("Unknown Product").withStyle(ChatFormatting.RED));
@@ -126,7 +128,7 @@ public class OrderTooltipProvider {
         }
 
         if (cfg.showQueue && order.status instanceof OrderStatus.Undercut) {
-            var queueInfo = data.calculateQueuePosition(
+            var queueInfo = this.bazaarData.calculateQueuePosition(
                 order.productName,
                 order.type,
                 order.pricePerUnit
@@ -147,15 +149,14 @@ public class OrderTooltipProvider {
 
         if (OrderTooltipProvider.shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
             lines.add(Component.empty());
-            lines.addAll(OrderTooltipProvider.priceLines(data, productId.get()));
+            lines.addAll(OrderTooltipProvider.priceLines(this.bazaarData, productId.get()));
         }
 
         return lines;
     }
 
-    public static List<Component> buildTooltipLines(TrackedOrder order, OrderItemTooltipConfig cfg) {
-        var data = BtrBz.bazaarData();
-        var productId = data.nameToId(order.productName);
+    public List<Component> buildTooltipLines(TrackedOrder order, OrderItemTooltipConfig cfg) {
+        var productId = this.bazaarData.nameToId(order.productName);
 
         if (productId.isEmpty()) {
             return List.of(Component.literal("Unknown Product").withStyle(ChatFormatting.RED));
@@ -169,7 +170,7 @@ public class OrderTooltipProvider {
             if (cfg.showEstimatedTime && order.status instanceof OrderStatus.Top) {
                 int remainingVolume = order.volume - order.fillAmountSnapshot;
 
-                data.getEstimatedFillTimeMinutes(order.productName, order.type, remainingVolume).ifPresent(minutes -> {
+                this.bazaarData.getEstimatedFillTimeMinutes(order.productName, order.type, remainingVolume).ifPresent(minutes -> {
                     var time = Component.literal(Utils.formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
                     var line = Component.literal("Estimated fill time: ").withStyle(ChatFormatting.GRAY).append(time);
                     lines.add(line);
@@ -182,7 +183,7 @@ public class OrderTooltipProvider {
         }
 
         if (cfg.showQueue && order.status instanceof OrderStatus.Undercut) {
-            var queueInfo = data.calculateQueuePosition(
+            var queueInfo = this.bazaarData.calculateQueuePosition(
                 order.productName,
                 order.type,
                 order.pricePerUnit
@@ -200,7 +201,7 @@ public class OrderTooltipProvider {
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
             lines.add(Component.empty());
-            lines.addAll(priceLines(data, productId.get()));
+            lines.addAll(priceLines(this.bazaarData, productId.get()));
         }
 
         return lines;

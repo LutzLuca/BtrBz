@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
+import com.github.lutzluca.btrbz.core.ModContext;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
@@ -73,10 +74,6 @@ public class BtrBz implements ClientModInitializer {
         return instance.highlightManager;
     }
 
-    public static BazaarData bazaarData() {
-        return BtrBz.BAZAAR_DATA;
-    }
-
     public static AlertManager alertManager() {
         return instance.alertManager;
     }
@@ -104,20 +101,22 @@ public class BtrBz implements ClientModInitializer {
         //?}
 
         ConfigManager.load();
-        Commands.registerAll();
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load());
+        Commands.registerAll(BAZAAR_DATA);
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load(BAZAAR_DATA));
 
         this.highlightManager = new OrderHighlightManager();
-        this.tooltipProvider = new OrderTooltipProvider();
+        this.tooltipProvider = new OrderTooltipProvider(BAZAAR_DATA);
 
         ScreenInfoHelper.registerOnSwitch(info -> this.highlightManager.clearHighlightOverride());
 
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.alertManager = new AlertManager();
         new ChatFilterManager();
+        OrderProtectionManager.init(BAZAAR_DATA);
         var orderProtectionManager = OrderProtectionManager.getInstance();
 
         var moduleManager = ModuleManager.getInstance();
+        moduleManager.initContext(new ModContext(BAZAAR_DATA));
         moduleManager.discoverBindings();
         moduleManager.registerModule(BookmarkModule.class);
         moduleManager.registerModule(PriceDiffModule.class);
@@ -159,8 +158,8 @@ public class BtrBz implements ClientModInitializer {
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
         BazaarOrderActions.init();
-        ProductInfoProvider.get();
-        OrderBookScreenController.get();
+        ProductInfoProvider.get(BAZAAR_DATA);
+        OrderBookScreenController.get(BAZAAR_DATA);
 
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
