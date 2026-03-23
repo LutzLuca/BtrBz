@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
@@ -64,11 +65,13 @@ public final class ProductInfoProvider {
     private static final BazaarMenuType[] PRODUCT_FLOW_MENUS_ARRAY = PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new);
 
     private static ProductInfoProvider instance;
+    private final BazaarData bazaarData;
     private final PriceCache priceCache;
     @Getter
     private @Nullable ProductNameInfo openedProductNameInfo;
 
-    private ProductInfoProvider() {
+    private ProductInfoProvider(BazaarData bazaarData) {
+        this.bazaarData = bazaarData;
         this.priceCache = new PriceCache();
         this.registerProductInfoListener();
         this.registerInfoProviderItemOverride();
@@ -76,10 +79,17 @@ public final class ProductInfoProvider {
         this.registerTooltipDisplay();
     }
 
+    public static ProductInfoProvider get(BazaarData bazaarData) {
+        if (instance == null) {
+            instance = new ProductInfoProvider(bazaarData);
+            log.info("Initialized ProductInfoProvider");
+        }
+        return instance;
+    }
+
     public static ProductInfoProvider get() {
         if (instance == null) {
-            instance = new ProductInfoProvider();
-            log.info("Initialized ProductInfoProvider");
+            throw new IllegalStateException("ProductInfoProvider not initialized. Call get(BazaarData) first.");
         }
         return instance;
     }
@@ -119,7 +129,7 @@ public final class ProductInfoProvider {
                     .map(Component::getString)
                     .orElse("<empty>");
 
-                BtrBz.bazaarData().nameToId(productName).ifPresentOrElse(
+                this.bazaarData.nameToId(productName).ifPresentOrElse(
                     productId -> {
                         this.openedProductNameInfo = new ProductNameInfo(productId, productName);
                         log.debug("Opened product: {} ({})", productName, productId);
@@ -398,7 +408,7 @@ public final class ProductInfoProvider {
     }
 
     private Optional<String> resolveProductId(ItemStack stack, String name) {
-        var direct = BtrBz.bazaarData().nameToId(name);
+        var direct = this.bazaarData.nameToId(name);
         if (direct.isPresent()) {
             return direct;
         }
@@ -407,7 +417,7 @@ public final class ProductInfoProvider {
             var ids = OrderInfoParser
                 .getLore(stack)
                 .stream()
-                .map(potentialProduct -> BtrBz.bazaarData().nameToId(potentialProduct))
+                .map(potentialProduct -> this.bazaarData.nameToId(potentialProduct))
                 .flatMap(Optional::stream)
                 .distinct()
                 .toList();
@@ -420,7 +430,7 @@ public final class ProductInfoProvider {
             return Optional.empty();
         }
 
-        return BtrBz.bazaarData().nameToId(name.substring(0, delimiter).trim());
+        return this.bazaarData.nameToId(name.substring(0, delimiter).trim());
     }
 
     public enum InfoProviderSite {
@@ -569,7 +579,7 @@ public final class ProductInfoProvider {
 
         PriceCache() {
             log.debug("Initializing Price Cache");
-            BtrBz.bazaarData().addListener(products -> {
+            ProductInfoProvider.this.bazaarData.addListener(products -> {
                 log.trace(
                     "Bazaar data updated, clearing price cache with {} mappings",
                     this.cache.size()
@@ -591,7 +601,7 @@ public final class ProductInfoProvider {
                 return Optional.empty();
             }
 
-            var data = BtrBz.bazaarData();
+            var data = ProductInfoProvider.this.bazaarData;
 
             var sellOfferPrice = data.lowestSellPrice(productId.get()).orElse(null);
             var buyOrderPrice = data.highestBuyPrice(productId.get()).orElse(null);

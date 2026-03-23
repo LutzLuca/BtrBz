@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.order_book;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -26,6 +27,13 @@ public class OrderBookScreenController {
 
     private static final int CUSTOM_ORDER_BOOK_IDX = 8;
     private static OrderBookScreenController instance;
+    private final BazaarData bazaarData;
+
+    private OrderBookScreenController(BazaarData bazaarData) {
+        this.bazaarData = bazaarData;
+        this.registerItemOverride();
+        this.registerClickAction();
+    }
 
     private static boolean isOrderSetupMenu(ScreenInfo info) {
         return info.inMenu(
@@ -36,7 +44,7 @@ public class OrderBookScreenController {
         );
     }
 
-    private OrderBookScreenController() {
+    private void registerItemOverride() {
         ItemOverrideManager.register((info, slot, original) -> {
             if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || !isOrderSetupMenu(info)) {
                 return Optional.empty();
@@ -57,7 +65,9 @@ public class OrderBookScreenController {
 
             return Optional.of(book);
         });
+    }
 
+    private void registerClickAction() {
         ScreenActionManager.register(new ScreenClickRule() {
 
             @Override
@@ -77,7 +87,7 @@ public class OrderBookScreenController {
                     return false;
                 }
 
-                var orders = BtrBz.bazaarData().getOrderLists(productNameInfo.productId());
+                var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
                 var orderBookScreen = new OrderBookScreen(
                     info.getScreen(),
                     productNameInfo.productName(),
@@ -91,9 +101,9 @@ public class OrderBookScreenController {
         });
     }
 
-    public static OrderBookScreenController get() {
+    public static OrderBookScreenController get(BazaarData bazaarData) {
         if (instance == null) {
-            instance = new OrderBookScreenController();
+            instance = new OrderBookScreenController(bazaarData);
         }
         return instance;
     }

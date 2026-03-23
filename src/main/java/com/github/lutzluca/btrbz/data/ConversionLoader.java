@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -32,6 +33,7 @@ public final class ConversionLoader {
 
     private static final Gson GSON = new Gson();
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    private static BazaarData bazaarData;
 
     private static final Path MOD_CONFIG_DIR = FabricLoader
         .getInstance()
@@ -64,7 +66,8 @@ public final class ConversionLoader {
 
     private ConversionLoader() { }
 
-    public static void load() {
+    public static void load(BazaarData bazaarData) {
+        ConversionLoader.bazaarData = bazaarData;
         log.info("Loading bazaar conversions");
 
         loadFromCache()
@@ -85,7 +88,7 @@ public final class ConversionLoader {
                 ));
             })
             .onSuccess(data -> {
-                BtrBz.bazaarData().setConversions(data.conversions);
+                bazaarData.setConversions(data.conversions);
                 checkForUpdate(data);
             })
             .onFailure(bundleErr -> {
@@ -135,7 +138,7 @@ public final class ConversionLoader {
 
         loadFromGithub().thenAccept(res -> res.onSuccess(data -> {
             log.debug("Successfully fetched conversions from GitHub");
-            BtrBz.bazaarData().setConversions(data.conversions);
+            bazaarData.setConversions(data.conversions);
             Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
 
             MessageQueue.sendOrQueue(
@@ -163,7 +166,7 @@ public final class ConversionLoader {
 
             log.debug("Update available, fetching new conversions");
             fetchUrl(info.download_url).flatMap(ConversionData::parseFrom).onSuccess(newData -> {
-                BtrBz.bazaarData().setConversions(newData.conversions);
+                bazaarData.setConversions(newData.conversions);
                 Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content);
 
                 MessageQueue.sendOrQueue("Updated bazaar conversions", Level.Info);

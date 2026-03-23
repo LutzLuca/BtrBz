@@ -175,7 +175,7 @@ public class TrackedOrderManager {
                 this.onOrderStatusUpdate.forEach(listener -> listener.accept(statusUpdate));
 
                 if (this.shouldNotify(statusUpdate)) {
-                    Notifier.notifyOrderStatus(statusUpdate);
+                    Notifier.notifyOrderStatus(statusUpdate, this.bazaarData);
                 }
             });
     }

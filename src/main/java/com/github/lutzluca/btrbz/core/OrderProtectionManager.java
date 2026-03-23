@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.OrderPriceInfo;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
@@ -39,6 +40,7 @@ public class OrderProtectionManager {
 
 
     private static OrderProtectionManager instance;
+    private static BazaarData bazaarData;
     private final WeakHashMap<ItemStack, PendingOrderData> validationCache = new WeakHashMap<>();
 
     private @Nullable BiConsumer<ItemStack, Optional<PendingOrderData>> setOrderCallback = null;
@@ -195,6 +197,10 @@ public class OrderProtectionManager {
         Notifier.notifyPlayer(msg);
     }
 
+    public static void init(BazaarData bazaarData) {
+        OrderProtectionManager.bazaarData = bazaarData;
+    }
+
     public static OrderProtectionManager getInstance() {
         if (instance == null) {
             instance = new OrderProtectionManager();
@@ -236,7 +242,7 @@ public class OrderProtectionManager {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            var data = BtrBz.bazaarData();
+            var data = OrderProtectionManager.bazaarData;
             var productId = data.nameToId(info.productName());
             if (productId.isEmpty()) {
                 log.trace("No product ID found for {}, allowing order", info.productName());

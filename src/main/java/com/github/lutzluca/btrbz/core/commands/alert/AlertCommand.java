@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.commands.alert;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.commands.Commands;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -18,7 +19,7 @@ public class AlertCommand {
 
     private static final AlertCommandParser PARSER = new AlertCommandParser();
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
         return Commands.rootCommand.then(ClientCommandManager
             .literal("alert")
             .then(ClientCommandManager
@@ -84,7 +85,7 @@ public class AlertCommand {
                         var args = StringArgumentType.getString(ctx, "args");
                         var result = Try
                             .of(() -> PARSER.parse(args))
-                            .flatMap(alertCmd -> alertCmd.resolve(BtrBz.bazaarData()))
+                            .flatMap(alertCmd -> alertCmd.resolve(bazaarData))
                             .flatMap(ResolvedAlertArgs::validate)
                             .onSuccess(resolved -> {
                                 var registered = BtrBz.alertManager().addAlert(resolved);

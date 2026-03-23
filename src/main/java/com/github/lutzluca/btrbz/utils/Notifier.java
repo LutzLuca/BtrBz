@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
@@ -142,7 +143,7 @@ public class Notifier {
      * Assumes the parent notification condition (e.g. notifyBest) is already met by the caller.
      * Only checks the associated sound toggles before playing.
      */
-    public static void notifyOrderStatus(StatusUpdate update) {
+    public static void notifyOrderStatus(StatusUpdate update, BazaarData bazaarData) {
         var order = update.trackedOrder();
         var status = update.curr();
 
@@ -158,11 +159,11 @@ public class Notifier {
             }
             case Matched ignored -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-                yield matchedMsg(order, update.prev());
+                yield matchedMsg(order, update.prev(), bazaarData);
             }
             case Undercut undercut -> {
                 SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
-                yield undercutMsg(order, undercut.amount);
+                yield undercutMsg(order, undercut.amount, bazaarData);
             }
             default -> throw new IllegalArgumentException("Unreachable curr: " + status);
         };
@@ -216,7 +217,7 @@ public class Notifier {
         return fillBaseMessage(order.type, order.volume, order.productName, status);
     }
 
-    private static MutableComponent matchedMsg(TrackedOrder order, OrderStatus prevStatus) {
+    private static MutableComponent matchedMsg(TrackedOrder order, OrderStatus prevStatus, BazaarData bazaarData) {
         var status = Component
             .empty()
             .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
@@ -230,7 +231,7 @@ public class Notifier {
         // showing them as "ahead" would be misleading. Skip queue info for this transition.
         var cfg = ConfigManager.get().trackedOrders;
         if (cfg.showQueueInfo && !(prevStatus instanceof OrderStatus.Top)) {
-            BtrBz.bazaarData().calculateQueuePosition(
+            bazaarData.calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit, true
             ).ifPresent(info -> {
                 int displayOrders = Math.max(0, info.ordersAhead - 1);
@@ -244,7 +245,7 @@ public class Notifier {
         return msg;
     }
 
-    private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount) {
+    private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount, BazaarData bazaarData) {
         var status = Component
             .empty()
             .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
@@ -259,7 +260,7 @@ public class Notifier {
 
         var cfg = ConfigManager.get().trackedOrders;
         if (cfg.showQueueInfo) {
-            BtrBz.bazaarData().calculateQueuePosition(
+            bazaarData.calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit
             ).ifPresent(info -> {
                 msg.append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY));
