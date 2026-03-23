@@ -38,7 +38,12 @@ public class BazaarOrderActions {
     public static final int CANCEL_ORDER_SLOT = 11;
 
     private static boolean shouldReopenBazaar = false;
-    private static Integer remainingOrderAmount = null;
+    private static @Nullable Integer remainingOrderAmount = null;
+
+    @Nullable private static CancelledOrderContext activeBuyOrderContext = null;
+    @Nullable private static CancelledOrderContext lastCancelledBuyOrder = null;
+
+    private static boolean hideCancelledOrderButton = false;
 
     public record CancelledOrderContext(ItemStack displayItem, String productName) {
         public static CancelledOrderContext buildDisplayContext(ItemStack originalItem, String productName) {
@@ -66,11 +71,6 @@ public class BazaarOrderActions {
         }
     }
 
-    @Nullable private static CancelledOrderContext pendingBuyOrder = null;
-    @Nullable private static CancelledOrderContext lastCancelledBuyOrder = null;
-
-    private static boolean hideCancelledOrderButton = false;
-
     public static void init() {
         ScreenActionManager.register(new ScreenActionManager.ScreenClickRule() {
             @Override
@@ -85,20 +85,22 @@ public class BazaarOrderActions {
                 }
 
                 var prev = ScreenInfoHelper.get().getPrevInfo();
-                return info.inMenu(BazaarMenuType.OrderOptions) && prev.inMenu(BazaarMenuType.Orders) && isCancelOrderSlot(slot);
+                return info.inMenu(BazaarMenuType.OrderOptions) && 
+                    prev.inMenu(BazaarMenuType.Orders) && 
+                    isCancelOrderSlot(slot);
             }
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                if (pendingBuyOrder != null) {
-                    lastCancelledBuyOrder = pendingBuyOrder;
+                if (activeBuyOrderContext != null) {
+                    lastCancelledBuyOrder = activeBuyOrderContext;
                     hideCancelledOrderButton = false;
                     log.debug(
-                        "Committed last cancelled buy order: productName='{}'",
+                        "Cancelled buy order for productName='{}', setting as last cancelled buy order",
                         lastCancelledBuyOrder.productName()
                     );
                 }
-                pendingBuyOrder = null;
+                activeBuyOrderContext = null;
 
                 var cfg = ConfigManager.get().orderActions;
                 if (cfg.copyRemaining && cfg.copyRemainingModifier.isDown() && remainingOrderAmount != null) {
@@ -125,9 +127,8 @@ public class BazaarOrderActions {
         );
 
         ScreenInfoHelper.registerOnClose(
-            info -> info.inMenu(BazaarMenuType.OrderOptions), info -> {
-                remainingOrderAmount = null;
-            }
+            info -> info.inMenu(BazaarMenuType.OrderOptions),
+            ignored -> remainingOrderAmount = null
         );
 
         ItemOverrideManager.register((info, slot, original) -> {
@@ -182,9 +183,7 @@ public class BazaarOrderActions {
 
         ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.Orders),
-            info -> {
-                hideCancelledOrderButton = true;
-            }
+            info -> hideCancelledOrderButton = true
         );
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
@@ -224,21 +223,24 @@ public class BazaarOrderActions {
         });
     }
 
-    // NOTE: this could (and probably should) also be done inside the `OrderOptions` screen
-    // parsing the `Cancel Order` item's lore "You will be refunded {rounded total} coins from
-    // {remaining}x missing items."
     public static void onOrderClick(OrderInfo info, ItemStack slotItem) {
-        if (info.type() == OrderType.Buy) {
-            pendingBuyOrder = CancelledOrderContext.buildDisplayContext(slotItem, info.productName());
-            log.debug(
-                "Stored pending buy order: productName='{}'",
-                pendingBuyOrder.productName()
-            );
-        } else {
-            pendingBuyOrder = null;
+        if (info.type() != OrderType.Buy) {
+            log.debug("Order is not a buy order, clearing `activeBuyOrderContext` and `remainingOrderAmount`");
+            activeBuyOrderContext = null;
+            remainingOrderAmount = null;
+            return;
         }
 
-        if (info.unclaimed() != 0 || info.type() != OrderType.Buy) {
+        activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.productName());
+        log.debug(
+            "Set active order context for transition: productName='{}'",
+            activeBuyOrderContext.productName()
+        );
+
+        if (info.unclaimed() != 0) {
+            // NOTE: This should never happen, if you have a partially filled order, clicking it will claim
+            // the filled items first instead of opening the order options.
+            log.warn("Order has unclaimed items, cannot set `remainingOrderAmount`");
             return;
         }
 
