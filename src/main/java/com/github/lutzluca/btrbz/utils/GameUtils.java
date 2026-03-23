@@ -112,12 +112,12 @@ public final class GameUtils {
     }
 
     public static boolean isPlayerInventorySlot(@Nullable Slot slot) {
-        if (slot == null) { return false; }
         var client = Minecraft.getInstance();
         var player = client.player;
-        if (player == null) { return false; }
-
-        return slot.container == player.getInventory();
+        
+        return Utils.zipNullables(slot, player)
+            .map(pair -> pair.getLeft().container == pair.getRight().getInventory())
+            .orElse(false);
     }
 
     public static Optional<Double> getPurse() {

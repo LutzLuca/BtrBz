@@ -20,6 +20,8 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Utils {
 
@@ -105,10 +107,11 @@ public final class Utils {
         return Optional.of(Pair.of(first.get(), second.get()));
     }
 
-    public static <T, U> Optional<Pair<T, U>> zipNullables(T first, U second) {
+    public static <T, U> @NotNull Optional<@NotNull Pair<@NotNull T, @NotNull U>> zipNullables(@Nullable T first, @Nullable U second) {
         if (first == null || second == null) {
             return Optional.empty();
         }
+
         return Optional.of(Pair.of(first, second));
     }
 
