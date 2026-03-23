@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.widgets.core.WidgetManager;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
@@ -18,6 +19,8 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -29,7 +32,9 @@ public class ModuleManager {
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
 
     private @Nullable WidgetManager widgetManager;
-    private @Nullable ModContext context;
+    private @Nullable ModuleContext context;
+
+    public record ModuleContext(@NotNull BazaarData bazaarData) { }
 
     @Setter
     private boolean isDirty = false;
@@ -56,12 +61,12 @@ public class ModuleManager {
         return this.widgetManager;
     }
 
-    public void initContext(ModContext context) {
+    public void initContext(@NotNull ModuleContext context) {
         if (this.context != null) {
             throw new IllegalStateException("ModuleManager context has already been initialized");
         }
 
-        this.context = Objects.requireNonNull(context, "context cannot be null");
+        this.context = context;
     }
 
     private void renderModules(ScreenInfo info) {
@@ -104,7 +109,7 @@ public class ModuleManager {
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
         try {
             M module = moduleClass.getDeclaredConstructor().newInstance();
-            module.initContext(this.context());
+            module.initContext(Objects.requireNonNull(this.context, "ModuleManager context not initialized"));
             this.modules.put(moduleClass, module);
             this.applyConfigToModule(module);
             module.onLoad();
@@ -193,15 +198,6 @@ public class ModuleManager {
 
         return null;
     }
-
-    private ModContext context() {
-        if (this.context == null) {
-            throw new IllegalStateException("ModuleManager context has not been initialized");
-        }
-
-        return this.context;
-    }
-
 
     private void saveOnDirty() {
         if (!this.isDirty) {

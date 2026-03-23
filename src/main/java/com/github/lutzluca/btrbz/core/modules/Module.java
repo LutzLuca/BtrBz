@@ -1,11 +1,13 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.core.ModContext;
 import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.ModuleManager.ModuleContext;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
+
 import lombok.Getter;
 import lombok.Setter;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
@@ -13,7 +15,7 @@ import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 public abstract class Module<T> {
 
     protected T configState;
-    private ModContext context;
+    private ModuleContext context;
 
     @Getter
     @Setter
@@ -25,15 +27,15 @@ public abstract class Module<T> {
 
     public void onLoad() { }
 
-    public final void initContext(ModContext context) {
+    public final void initContext(@NotNull ModuleContext context) {
         if (this.context != null) {
             throw new IllegalStateException(this.getClass().getSimpleName() + " context has already been initialized");
         }
 
-        this.context = Objects.requireNonNull(context, "context cannot be null");
+        this.context = context;
     }
 
-    protected final ModContext context() {
+    protected final @NotNull ModuleContext context() {
         if (this.context == null) {
             throw new IllegalStateException(this.getClass().getSimpleName() + " context has not been initialized");
         }

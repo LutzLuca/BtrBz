@@ -4,8 +4,8 @@ import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.FlipHelper;
-import com.github.lutzluca.btrbz.core.ModContext;
 import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.ModuleManager.ModuleContext;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager;
@@ -116,7 +116,8 @@ public class BtrBz implements ClientModInitializer {
         var orderProtectionManager = OrderProtectionManager.getInstance();
 
         var moduleManager = ModuleManager.getInstance();
-        moduleManager.initContext(new ModContext(BAZAAR_DATA));
+        moduleManager.initContext(new ModuleContext(BAZAAR_DATA));
+
         moduleManager.discoverBindings();
         moduleManager.registerModule(BookmarkModule.class);
         moduleManager.registerModule(PriceDiffModule.class);
