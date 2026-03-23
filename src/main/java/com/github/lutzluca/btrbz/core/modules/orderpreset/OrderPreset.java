@@ -52,7 +52,7 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
             this.backgroundColor = switch (preset) {
                 case OrderPreset.Max() -> 0x80404020;
                 case OrderPreset.Clipboard(int amount) -> 0x80204080;
-                default -> 0x80000000;
+                case OrderPreset.Volume(int amount) -> 0x80000000;
             };
         }
 
