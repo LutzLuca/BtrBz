@@ -32,7 +32,6 @@ public final class ConversionLoader {
 
     private static final Gson GSON = new Gson();
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
-    private static BazaarData bazaarData;
 
     private static final Path MOD_CONFIG_DIR = FabricLoader
         .getInstance()
@@ -66,7 +65,6 @@ public final class ConversionLoader {
     private ConversionLoader() { }
 
     public static void load(BazaarData bazaarData) {
-        ConversionLoader.bazaarData = bazaarData;
         log.info("Loading bazaar conversions");
 
         loadFromCache()
@@ -88,7 +86,7 @@ public final class ConversionLoader {
             })
             .onSuccess(data -> {
                 bazaarData.setConversions(data.conversions);
-                checkForUpdate(data);
+                checkForUpdate(data, bazaarData);
             })
             .onFailure(bundleErr -> {
                 log.error("Failed to load conversions from cache and bundle", bundleErr);
@@ -99,7 +97,7 @@ public final class ConversionLoader {
                         """, Level.Warn
                 );
 
-                fetchFromGithubFallback();
+                fetchFromGithubFallback(bazaarData);
             });
     }
 
@@ -132,7 +130,7 @@ public final class ConversionLoader {
             .flatMap(ConversionData::parseFrom));
     }
 
-    private static void fetchFromGithubFallback() {
+    private static void fetchFromGithubFallback(BazaarData bazaarData) {
         log.debug("Attempting to fetch conversions from GitHub");
 
         loadFromGithub().thenAccept(res -> res.onSuccess(data -> {
@@ -154,7 +152,7 @@ public final class ConversionLoader {
         }));
     }
 
-    private static void checkForUpdate(ConversionData data) {
+    private static void checkForUpdate(ConversionData data, BazaarData bazaarData) {
         var localHash = computeGitBlobHash(data.content);
 
         fetchGithubFileInfo().thenAccept(fileInfo -> fileInfo.onSuccess(info -> {
