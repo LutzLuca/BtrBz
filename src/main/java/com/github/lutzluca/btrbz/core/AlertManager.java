@@ -44,7 +44,6 @@ public class AlertManager {
                     continue;
                 }
 
-                // NOTE: its this even right?
                 var price = priceResult.get();
                 var reached = price.map(marketPrice -> switch (curr.type) {
                     case SellOffer, InstaSell -> marketPrice >= curr.price;
