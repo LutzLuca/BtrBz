@@ -14,12 +14,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
-
-import org.jetbrains.annotations.Nullable;
-
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class ModuleManager {
@@ -30,6 +29,7 @@ public class ModuleManager {
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
 
     private @Nullable WidgetManager widgetManager;
+    private @Nullable ModContext context;
 
     @Setter
     private boolean isDirty = false;
@@ -54,6 +54,14 @@ public class ModuleManager {
 
     public @Nullable WidgetManager getWidgetManager() {
         return this.widgetManager;
+    }
+
+    public void initContext(ModContext context) {
+        if (this.context != null) {
+            throw new IllegalStateException("ModuleManager context has already been initialized");
+        }
+
+        this.context = Objects.requireNonNull(context, "context cannot be null");
     }
 
     private void renderModules(ScreenInfo info) {
@@ -96,6 +104,7 @@ public class ModuleManager {
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
         try {
             M module = moduleClass.getDeclaredConstructor().newInstance();
+            module.initContext(this.context());
             this.modules.put(moduleClass, module);
             this.applyConfigToModule(module);
             module.onLoad();
@@ -183,6 +192,14 @@ public class ModuleManager {
         }
 
         return null;
+    }
+
+    private ModContext context() {
+        if (this.context == null) {
+            throw new IllegalStateException("ModuleManager context has not been initialized");
+        }
+
+        return this.context;
     }
 
 
