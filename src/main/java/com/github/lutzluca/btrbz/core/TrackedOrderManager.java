@@ -184,7 +184,7 @@ public class TrackedOrderManager {
         var cfg = ConfigManager.get().trackedOrders;
 
         return cfg.enabled && switch (update.curr) {
-            case Top ignored -> {
+            case OrderStatus.Top ignored -> {
                 if (!cfg.notifyBest) {
                     yield false;
                 }
@@ -195,9 +195,9 @@ public class TrackedOrderManager {
 
                 yield true;
             }
-            case Matched ignored -> cfg.notifyMatched;
-            case Undercut ignored -> cfg.notifyUndercut;
-            default -> false;
+            case OrderStatus.Matched ignored -> cfg.notifyMatched;
+            case OrderStatus.Undercut ignored -> cfg.notifyUndercut;
+            case OrderStatus.Unknown ignored -> false;
         };
     }
 
