@@ -87,7 +87,7 @@ public class ModuleManager {
             .flatMap(module -> module.createWidgets(info).stream())
             .toList();
 
-        if (!newWidgets.isEmpty()) {
+        if (!newWidgets.isEmpty() && this.widgetManager != null) {
             log.debug("Adding {} widgets after revalidation", newWidgets.size());
             newWidgets.forEach(this.widgetManager::addWidget);
         }

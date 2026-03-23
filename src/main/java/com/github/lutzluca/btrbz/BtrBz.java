@@ -170,7 +170,7 @@ public class BtrBz implements ClientModInitializer {
                     return false;
                 }
 
-                if (slot == null || GameUtils.isPlayerInventorySlot(slot)) {
+                if (GameUtils.isPlayerInventorySlot(slot)) {
                     return false;
                 }
 

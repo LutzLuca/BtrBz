@@ -231,18 +231,18 @@ public class BazaarOrderActions {
             return;
         }
 
-        activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.productName());
-        log.debug(
-            "Set active order context for transition: productName='{}'",
-            activeBuyOrderContext.productName()
-        );
-
         if (info.unclaimed() != 0) {
             // NOTE: This should never happen, if you have a partially filled order, clicking it will claim
             // the filled items first instead of opening the order options.
             log.warn("Order has unclaimed items, cannot set `remainingOrderAmount`");
             return;
         }
+
+        activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.productName());
+        log.debug(
+            "Set active order context for transition: productName='{}'",
+            activeBuyOrderContext.productName()
+        );
 
         remainingOrderAmount = info.volume() - info.filledAmountSnapshot();
         log.debug(

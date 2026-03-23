@@ -107,7 +107,7 @@ public class AlertManager {
                     .literal("Wait, what? Multiple alerts with the same ID? ")
                     .withStyle(ChatFormatting.GRAY))
                 .append(Component
-                    .literal("You're either 1 in 5.3 undecillion (thats a 1 with 36 zeros) lucky, or you've been messin' with the config. ")
+                    .literal("You're either 1 in 5.3 undecillion (that's a 1 with 36 zeros) lucky, or you've been messin' with the config. ")
                     .withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.ITALIC))
                 .append(Component
                     .literal("Either way, they're all history now!")
