@@ -147,10 +147,7 @@ public class BtrBz implements ClientModInitializer {
                 () -> OrderInfoParser
                     .parseSetOrderItem(stack)
                     .onSuccess(addOutstanding)
-                    .onFailure((err) -> log.warn(
-                        "Failed to parse confirm item",
-                        err
-                    ))
+                    .onFailure(err -> log.warn("Failed to parse confirm item", err))
             );
             BazaarOrderActions.setReopenBazaar();
         });
@@ -173,11 +170,7 @@ public class BtrBz implements ClientModInitializer {
                     return false;
                 }
 
-                if (slot == null) {
-                    return false;
-                }
-
-                if (GameUtils.isPlayerInventorySlot(slot)) {
+                if (slot == null || GameUtils.isPlayerInventorySlot(slot)) {
                     return false;
                 }
 
