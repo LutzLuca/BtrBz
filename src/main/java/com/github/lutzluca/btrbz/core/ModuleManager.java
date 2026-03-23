@@ -15,7 +15,9 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-import lombok.Getter;
+
+import org.jetbrains.annotations.Nullable;
+
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,8 +29,7 @@ public class ModuleManager {
     private final Map<Class<? extends Module<?>>, Module<?>> modules = new HashMap<>();
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
 
-    @Getter
-    private WidgetManager widgetManager;
+    private @Nullable WidgetManager widgetManager;
 
     @Setter
     private boolean isDirty = false;
@@ -51,6 +52,9 @@ public class ModuleManager {
         return instance;
     }
 
+    public @Nullable WidgetManager getWidgetManager() {
+        return this.widgetManager;
+    }
 
     private void renderModules(ScreenInfo info) {
         this.modules.values().forEach(module -> module.setDisplayed(false));
