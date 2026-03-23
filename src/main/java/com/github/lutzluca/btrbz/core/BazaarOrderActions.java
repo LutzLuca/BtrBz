@@ -128,7 +128,10 @@ public class BazaarOrderActions {
 
         ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.OrderOptions),
-            ignored -> remainingOrderAmount = null
+            ignored -> {
+                remainingOrderAmount = null;
+                activeBuyOrderContext = null;
+            }
         );
 
         ItemOverrideManager.register((info, slot, original) -> {
@@ -234,7 +237,9 @@ public class BazaarOrderActions {
         if (info.unclaimed() != 0) {
             // NOTE: This should never happen, if you have a partially filled order, clicking it will claim
             // the filled items first instead of opening the order options.
-            log.warn("Order has unclaimed items, cannot set `remainingOrderAmount`");
+            log.warn("Order has unclaimed items, resetting state");
+            activeBuyOrderContext = null;
+            remainingOrderAmount = null;
             return;
         }
 
