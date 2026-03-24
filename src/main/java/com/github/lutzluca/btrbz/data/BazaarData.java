@@ -50,12 +50,17 @@ public class BazaarData {
 
                     ConversionLoader.checkForConversionUpdates(loadResult.contentHash())
                         .thenAccept(updateResult ->
-                            updateResult.onSuccess(maybeNew ->
-                                maybeNew.ifPresent(newResult -> {
-                                    this.idToName = newResult.conversions();
-                                    log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
+                            updateResult
+                                .onSuccess(maybeNew ->
+                                    maybeNew.ifPresent(newResult -> {
+                                        this.idToName = newResult.conversions();
+                                        log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
+                                    })
+                                )
+                                .onFailure(err -> {
+                                    log.error("Failed to refresh conversions, stale data may be used", err);
+                                    log.debug("Conversions remain stale until next successful refresh");
                                 })
-                            )
                         );
                 })
                 .onFailure(err -> {

@@ -114,10 +114,12 @@ public final class ConversionLoader {
                 return fetchUrl(info.download_url)
                     .flatMap(ConversionData::parseFrom)
                     .peek(newData -> {
-                        var result = Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content);
-                        if (result.isSuccess()) {
-                            MessageQueue.sendOrQueue("Updated local bazaar conversions", Level.Info);
-                        }
+                        Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content)
+                            .onSuccess(result -> MessageQueue.sendOrQueue("Updated local bazaar conversions", Level.Info))
+                            .onFailure(err -> {
+                                log.error("Failed to persist conversions to local cache, using in-memory only", err);
+                                MessageQueue.sendOrQueue("Failed to cache conversions locally", Level.Warn);
+                            });
                     })
                     .map(newData -> Optional.of(new LoadResult(
                         newData.conversions,
@@ -145,7 +147,8 @@ public final class ConversionLoader {
             .flatMap(ConversionData::parseFrom)
             .peek(data -> {
                 log.debug("Loaded conversions from bundle, caching locally");
-                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
+                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content)
+                    .onFailure(err -> log.warn("Failed to cache conversions locally", err));
             });
     }
 
@@ -156,7 +159,8 @@ public final class ConversionLoader {
             .flatMap(ConversionData::parseFrom)
             .peek(data -> {
                 log.debug("Loaded conversions from GitHub, caching locally");
-                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
+                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content)
+                    .onFailure(err -> log.warn("Failed to cache conversions locally", err));
             }));
     }
 
