@@ -25,7 +25,6 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
-import com.github.lutzluca.btrbz.data.ConversionLoader;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -56,9 +55,11 @@ import net.minecraft.world.inventory.Slot;
 public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
-    private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
-    public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
     public static DataComponentType<Boolean> BOOKMARKED;
+    
+    public static BazaarMessageDispatcher messageDispatcher = new BazaarMessageDispatcher();
+    private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
+    
     private static BtrBz instance;
 
     private TrackedOrderManager orderManager;
@@ -107,7 +108,7 @@ public class BtrBz implements ClientModInitializer {
 
         ConfigManager.load();
         Commands.registerAll(BAZAAR_DATA);
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> ConversionLoader.load(BAZAAR_DATA));
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> BAZAAR_DATA.loadConversions());
 
         this.highlightManager = new OrderHighlightManager();
         this.tooltipProvider = new OrderTooltipProvider(BAZAAR_DATA);

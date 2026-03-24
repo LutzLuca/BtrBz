@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
@@ -45,12 +46,11 @@ public final class ConversionLoader {
             "conversions.json"
     );
     *///?} else {
-    private static final ResourceLocation BUNDLED_CONVERSION_ID =  ResourceLocation.fromNamespaceAndPath(
-           BtrBz.MOD_ID,
-           "conversions.json"
+    private static final ResourceLocation BUNDLED_CONVERSION_ID = ResourceLocation.fromNamespaceAndPath(
+        BtrBz.MOD_ID,
+        "conversions.json"
     );
     //?}
-
 
     private static final String GITHUB_OWNER = "LutzLuca";
     private static final String GITHUB_REPO = "BtrBz";
@@ -64,41 +64,67 @@ public final class ConversionLoader {
 
     private ConversionLoader() { }
 
-    public static void load(BazaarData bazaarData) {
-        log.info("Loading bazaar conversions");
+    public record LoadResult(BiMap<String, String> conversions, String contentHash) { }
 
-        loadFromCache()
-            .peek(data -> log.debug(
-                "Loaded conversions ({} entries) from local cache",
-                data.conversions.size()
-            ))
-            .recoverWith(cacheErr -> {
+    public static CompletableFuture<Try<LoadResult>> load() {
+
+        var localResult = loadFromCache()
+            .peek(data -> log.debug("Successfully loaded conversions from local cache"))
+            .recoverWith(err -> {
                 log.warn(
                     "Local cache unavailable: '{}', falling back to bundled resource",
-                    cacheErr.getMessage()
+                    err.getMessage()
                 );
-                log.debug("Full error:", cacheErr);
+                log.warn("Full error:", err);
 
-                return loadFromBundleResource().peek(data -> log.debug(
-                    "Loaded conversions ({} entries) from bundled resource",
-                    data.conversions.size()
-                ));
-            })
-            .onSuccess(data -> {
-                bazaarData.setConversions(data.conversions);
-                checkForUpdate(data, bazaarData);
-            })
-            .onFailure(bundleErr -> {
-                log.error("Failed to load conversions from cache and bundle", bundleErr);
-                MessageQueue.sendOrQueue(
-                    """
-                        Failed to load bazaar conversions that are needed for some features to work.
-                        Trying to fetch the latest version from GitHub to resolve this issue.
-                        """, Level.Warn
-                );
-
-                fetchFromGithubFallback(bazaarData);
+                return loadFromBundleResource()
+                    .peek(data -> log.debug("Successfully loaded conversions from bundled resource"));
             });
+
+        if (localResult.isSuccess()) {
+            var data = localResult.get();
+            return CompletableFuture.completedFuture(
+                Try.success(new LoadResult(data.conversions, computeGitBlobHash(data.content)))
+            );
+        }
+
+        log.warn(
+            "Local and bundled resources unavailable: '{}', falling back to GitHub",
+            localResult.getCause().getMessage()
+        );
+        log.warn("Full error:", localResult.getCause());
+
+        return loadFromGithub().thenApply(result ->
+            result
+                .peek(data -> log.debug("Successfully loaded conversions from GitHub"))
+                .map(data -> new LoadResult(data.conversions, computeGitBlobHash(data.content)))
+                .onFailure(err -> log.error("Failed to load conversions from GitHub", err))
+        );
+    }
+
+    public static CompletableFuture<Try<Optional<LoadResult>>> checkForConversionUpdates(String currHash) {
+        return fetchGithubFileInfo().thenApply(fileInfo ->
+            fileInfo.flatMap(info -> {
+                if (currHash.equals(info.sha)) {
+                    log.debug("Conversions are up to date");
+                    return Try.<Optional<LoadResult>>success(Optional.empty());
+                }
+
+                log.debug("Update available, trying to fetch new conversions from github");
+                return fetchUrl(info.download_url)
+                    .flatMap(ConversionData::parseFrom)
+                    .peek(newData -> {
+                        var result = Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content);
+                        if (result.isSuccess()) {
+                            MessageQueue.sendOrQueue("Updated local bazaar conversions", Level.Info);
+                        }
+                    })
+                    .map(newData -> Optional.of(new LoadResult(
+                        newData.conversions,
+                        computeGitBlobHash(newData.content)
+                    )));
+            })
+        );
     }
 
     private static Try<ConversionData> loadFromCache() {
@@ -127,48 +153,11 @@ public final class ConversionLoader {
         return fetchGithubFileInfo().thenApply(info -> info
             .map(GithubFileInfo::download_url)
             .flatMap(ConversionLoader::fetchUrl)
-            .flatMap(ConversionData::parseFrom));
-    }
-
-    private static void fetchFromGithubFallback(BazaarData bazaarData) {
-        log.debug("Attempting to fetch conversions from GitHub");
-
-        loadFromGithub().thenAccept(res -> res.onSuccess(data -> {
-            log.debug("Successfully fetched conversions from GitHub");
-            bazaarData.setConversions(data.conversions);
-            Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
-
-            MessageQueue.sendOrQueue(
-                "Successfully loaded conversions from Github; everything should work as expected",
-                Level.Info
-            );
-        }).onFailure(err -> {
-            log.error("Failed to fetch conversions from GitHub", err);
-
-            MessageQueue.sendOrQueue(
-                "Failed to load bazaar conversions; some features will not work as expected",
-                Level.Error
-            );
-        }));
-    }
-
-    private static void checkForUpdate(ConversionData data, BazaarData bazaarData) {
-        var localHash = computeGitBlobHash(data.content);
-
-        fetchGithubFileInfo().thenAccept(fileInfo -> fileInfo.onSuccess(info -> {
-            if (localHash.equals(info.sha)) {
-                log.debug("Conversions are up to date");
-                return;
-            }
-
-            log.debug("Update available, fetching new conversions");
-            fetchUrl(info.download_url).flatMap(ConversionData::parseFrom).onSuccess(newData -> {
-                bazaarData.setConversions(newData.conversions);
-                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, newData.content);
-
-                MessageQueue.sendOrQueue("Updated bazaar conversions", Level.Info);
-            }).onFailure(err -> log.warn("Failed to fetch or parse updated conversions", err));
-        }).onFailure(err -> log.warn("Failed to check for updates", err)));
+            .flatMap(ConversionData::parseFrom)
+            .peek(data -> {
+                log.debug("Loaded conversions from GitHub, caching locally");
+                Utils.atomicDumpToFile(LOCAL_CONVERSION_FILEPATH, data.content);
+            }));
     }
 
     private static CompletableFuture<Try<GithubFileInfo>> fetchGithubFileInfo() {
@@ -235,7 +224,11 @@ public final class ConversionLoader {
             var resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
 
             if (resp.statusCode() != 200) {
-                throw new IOException("Failed to fetch URL, status: " + resp.statusCode() + " body: " + resp.body());
+                throw new IOException(
+                    String.format("Failed to fetch URL '%s', status: %d body: %s",
+                        url, resp.statusCode(), resp.body()
+                    )
+                );
             }
 
             return resp.body();

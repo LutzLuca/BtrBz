@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.utils.MessageQueue;
+import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.common.collect.BiMap;
 import io.vavr.control.Try;
@@ -18,13 +20,12 @@ import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import org.jetbrains.annotations.Nullable;
 
-// TODO: think about whether to use this as a global instead of passing it to the components
 @Slf4j
 public class BazaarData {
 
     private final List<Consumer<Map<String, Product>>> listeners = new ArrayList<>();
     private Map<String, Product> lastProducts = Collections.emptyMap();
-    private BiMap<String, String> idToName;
+    private volatile BiMap<String, String> idToName;
 
     public BazaarData(BiMap<String, String> conversions) {
         this.idToName = conversions;
@@ -38,8 +39,33 @@ public class BazaarData {
         return Try.of(summaries::getFirst).map(Summary::getPricePerUnit).toJavaOptional();
     }
 
-    public void setConversions(BiMap<String, String> conversions) {
-        this.idToName = conversions;
+    public void loadConversions() {
+        log.info("Loading bazaar conversions");
+
+        ConversionLoader.load().thenAccept(result ->
+            result
+                .onSuccess(loadResult -> {
+                    this.idToName = loadResult.conversions();
+                    log.debug("Conversions applied ({} entries)", loadResult.conversions().size());
+
+                    ConversionLoader.checkForConversionUpdates(loadResult.contentHash())
+                        .thenAccept(updateResult ->
+                            updateResult.onSuccess(maybeNew ->
+                                maybeNew.ifPresent(newResult -> {
+                                    this.idToName = newResult.conversions();
+                                    log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
+                                })
+                            )
+                        );
+                })
+                .onFailure(err -> {
+                    log.error("Failed to load bazaar conversions", err);
+                    MessageQueue.sendOrQueue(
+                        "Failed to load bazaar conversions; some features may not work as expected",
+                        Level.Error
+                    );
+                })
+        );
     }
 
     public void onUpdate(Map<String, Product> products) {
@@ -211,7 +237,7 @@ public class BazaarData {
             this.productName = productName;
             this.product = Optional.empty();
 
-            this.updater = products -> 
+            this.updater = products ->
                 this.data.nameToId(productName)
                         .flatMap(id -> Optional.ofNullable(products.get(id)))
                         .ifPresent(updated -> this.product = Optional.of(updated));
