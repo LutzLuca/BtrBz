@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -63,7 +62,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         });
 
         this.context().bazaarData().addListener(products -> {
-            var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
+            var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
             if (this.isDisplayed() && productNameInfo != null) {
                 this.rebuildList();
             }
@@ -71,7 +70,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private boolean isEnterPriceScreen(ScreenInfo curr, ScreenInfo prev) {
-        var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
+        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
         if (!(curr.getScreen() instanceof SignEditScreen) || productNameInfo == null) {
             return false;
         }
@@ -104,7 +103,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         var prev = ScreenInfoHelper.get().getPrevInfo();
-        var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
+        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
         return productNameInfo != null && this.isEnterPriceScreen(info, prev);
     }
 
@@ -113,7 +112,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
+        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
         if (productNameInfo == null) {
             return;
         }
@@ -184,7 +183,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {
-        var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
+        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
         if (productNameInfo == null) {
             return;
         }

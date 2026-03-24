@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 
@@ -141,7 +140,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private @Nullable String getCurrentProductId() {
-        var info = ProductInfoProvider.get().getOpenedProductNameInfo();
+        var info = this.context().productInfoProvider().getOpenedProductNameInfo();
         return info != null ? info.productId() : null;
     }
 

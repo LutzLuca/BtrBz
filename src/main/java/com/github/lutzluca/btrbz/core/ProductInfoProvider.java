@@ -63,37 +63,22 @@ public final class ProductInfoProvider {
 
     private static final BazaarMenuType[] PRODUCT_FLOW_MENUS_ARRAY = PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new);
 
-    private static ProductInfoProvider instance;
     private final BazaarData bazaarData;
     private final PriceCache priceCache;
     @Getter
     private @Nullable ProductNameInfo openedProductNameInfo;
 
-    private ProductInfoProvider(BazaarData bazaarData) {
+    public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
         this.priceCache = new PriceCache();
         this.registerProductInfoListener();
         this.registerInfoProviderItemOverride();
         this.registerInfoProviderClick();
         this.registerTooltipDisplay();
+        log.info("Initialized ProductInfoProvider");
     }
 
-    public static ProductInfoProvider get(BazaarData bazaarData) {
-        if (instance == null) {
-            instance = new ProductInfoProvider(bazaarData);
-            log.info("Initialized ProductInfoProvider");
-        }
-        return instance;
-    }
-
-    public static ProductInfoProvider get() {
-        if (instance == null) {
-            throw new IllegalStateException("ProductInfoProvider not initialized. Call get(BazaarData) first.");
-        }
-        return instance;
-    }
-
-    private static Component createPriceText(
+    private Component createPriceText(
         String label,
         @Nullable Double price,
         int stackCount,

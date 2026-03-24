@@ -34,7 +34,7 @@ public class ModuleManager {
     private @Nullable WidgetManager widgetManager;
     private @Nullable ModuleContext context;
 
-    public record ModuleContext(@NotNull BazaarData bazaarData) { }
+    public record ModuleContext(@NotNull BazaarData bazaarData, @NotNull ProductInfoProvider productInfoProvider) { }
 
     @Setter
     private boolean isDirty = false;

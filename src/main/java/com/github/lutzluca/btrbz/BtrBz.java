@@ -120,8 +120,12 @@ public class BtrBz implements ClientModInitializer {
         new ChatFilterManager();
         this.orderProtectionManager = new OrderProtectionManager(BAZAAR_DATA);
 
+        var productInfoProvider = new ProductInfoProvider(BAZAAR_DATA);
+        var orderActions = new BazaarOrderActions();
+        new OrderBookScreenController(BAZAAR_DATA, productInfoProvider);
+
         var moduleManager = ModuleManager.getInstance();
-        moduleManager.initContext(new ModuleContext(BAZAAR_DATA));
+        moduleManager.initContext(new ModuleContext(BAZAAR_DATA, productInfoProvider));
 
         moduleManager.discoverBindings();
         moduleManager.registerModule(BookmarkModule.class);
@@ -154,7 +158,7 @@ public class BtrBz implements ClientModInitializer {
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err))
             );
-            BazaarOrderActions.setReopenBazaar();
+            orderActions.setReopenBazaar();
         });
 
         BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
@@ -162,10 +166,6 @@ public class BtrBz implements ClientModInitializer {
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
-
-        BazaarOrderActions.init();
-        ProductInfoProvider.get(BAZAAR_DATA);
-        OrderBookScreenController.get(BAZAAR_DATA);
 
         ScreenActionManager.register(new ScreenClickRule() {
             @Override
@@ -187,7 +187,7 @@ public class BtrBz implements ClientModInitializer {
                 var orderInfo = OrderInfoParser.parseOrderInfo(slot.getItem(), slot.getContainerSlot());
                 if (orderInfo.isSuccess()) {
                     flipHelper.onOrderClick(orderInfo.get());
-                    BazaarOrderActions.onOrderClick(orderInfo.get(), slot.getItem());
+                    orderActions.onOrderClick(orderInfo.get(), slot.getItem());
                 }
 
                 return false;

@@ -25,16 +25,17 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 public class OrderBookScreenController {
 
     private static final int CUSTOM_ORDER_BOOK_IDX = 8;
-    private static OrderBookScreenController instance;
     private final BazaarData bazaarData;
+    private final ProductInfoProvider productInfoProvider;
 
-    private OrderBookScreenController(BazaarData bazaarData) {
+    public OrderBookScreenController(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
+        this.productInfoProvider = productInfoProvider;
         this.registerItemOverride();
         this.registerClickAction();
     }
 
-    private static boolean isOrderSetupMenu(ScreenInfo info) {
+    private boolean isOrderSetupMenu(ScreenInfo info) {
         return info.inMenu(
             BazaarMenuType.Item,
             BazaarMenuType.BuyOrderSetupVolume,
@@ -79,7 +80,7 @@ public class OrderBookScreenController {
 
             @Override
             public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var productNameInfo = ProductInfoProvider.get().getOpenedProductNameInfo();
+                var productNameInfo = OrderBookScreenController.this.productInfoProvider.getOpenedProductNameInfo();
                 if (productNameInfo == null) {
                     Notifier.notifyPlayer(Notifier
                         .prefix()
@@ -99,13 +100,6 @@ public class OrderBookScreenController {
             }
 
         });
-    }
-
-    public static OrderBookScreenController get(BazaarData bazaarData) {
-        if (instance == null) {
-            instance = new OrderBookScreenController(bazaarData);
-        }
-        return instance;
     }
 
     public static class OrderBookConfig {
