@@ -144,7 +144,7 @@ public class Notifier {
      * Only checks the associated sound toggles before playing.
      */
     public static void notifyOrderStatus(StatusUpdate update, BazaarData bazaarData) {
-        var order = update.trackedOrder();
+        var order = update.order();
         var status = update.curr();
 
         var cfg = ConfigManager.get().trackedOrders;

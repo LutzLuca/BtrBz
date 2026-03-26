@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.minecraft.network.chat.Component;
@@ -126,59 +129,77 @@ public class TrackedOrderManager {
         }
     }
 
+    record GroupKey(String productName, OrderType type, double pricePerUnit) {}
+
+    sealed interface GroupStatus {
+        record Undercut(double amount) implements GroupStatus {}
+        record Matched() implements GroupStatus {}
+        record SelfMatched() implements GroupStatus {}
+    }
+
     public void onBazaarUpdate(Map<String, Product> products) {
-        this.trackedOrders
-            .stream()
-            .map(tracked -> {
-                var id = bazaarData.nameToId(tracked.productName);
-                if (id.isEmpty()) {
-                    log.warn(
-                        "No name -> id mapping found for product with name: '{}'",
-                        tracked.productName
-                    );
-                    return Optional.<TrackedStatus>empty();
-                }
+        var updates = this.computeStatusUpdates(products).peek(update -> {
+            update.order().status = update.curr;
+            this.onOrderStatusUpdate.forEach(listener -> listener.accept(update));
+        }).collect(Collectors.toList());
 
-                var product = Optional.ofNullable(products.get(id.get()));
-                if (product.isEmpty()) {
-                    log.warn(
-                        "No product found for item with name '{}' and mapped id '{}'",
-                        tracked.productName,
-                        id.get()
-                    );
-                    return Optional.<TrackedStatus>empty();
-                }
+        this.sendNotifications(updates, products);        
+    }
 
-                var status = this.getStatus(tracked, product.get());
-                if (status.isEmpty()) {
-                    log.debug(
-                        "Unable to determine curr for product '{}' with id '{}'",
-                        tracked.productName,
-                        id.get()
-                    );
-                    return Optional.<TrackedStatus>empty();
-                }
-
-                return Optional.of(new TrackedStatus(tracked, status.get()));
-            })
-            .flatMap(Optional::stream)
-            .filter(trackedStatus -> !trackedStatus.trackedOrder().status.sameVariant(trackedStatus.status()))
-            .forEach(trackedStatus -> {
-                var statusUpdate = new StatusUpdate(
-                    trackedStatus.trackedOrder(),
-                    trackedStatus.status(),
-                    trackedStatus.trackedOrder().status
-                );
-
-                trackedStatus.trackedOrder().status = statusUpdate.curr;
-
-                this.onOrderStatusUpdate.forEach(listener -> listener.accept(statusUpdate));
-
-                if (this.shouldNotify(statusUpdate)) {
-                    Notifier.notifyOrderStatus(statusUpdate, this.bazaarData);
-                }
+    private void sendNotifications(List<StatusUpdate> updates, Map<String, Product> products) {
+        updates.stream()
+            .filter(this::shouldNotify)
+            .forEach(update -> {
+                Notifier.notifyOrderStatus(update, this.bazaarData);
             });
     }
+
+    public Stream<StatusUpdate> computeStatusUpdates(Map<String, Product> products) {
+        return this.trackedOrders
+            .stream()
+            .map(order -> this.getTrackedStatus(order, products))
+            .flatMap(Optional::stream)
+            .filter(trackedStatus -> !trackedStatus.order().status.sameVariant(trackedStatus.status()))
+            .map(trackedStatus -> new StatusUpdate(
+                trackedStatus.order(),
+                trackedStatus.status(),
+                trackedStatus.order().status
+            ));
+    }
+
+       public Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
+        var id = bazaarData.nameToId(order.productName);
+        if (id.isEmpty()) {
+            log.warn(
+                "No name -> id mapping found for product with name: '{}'",
+                order.productName
+            );
+            return Optional.empty();
+        }
+
+        var product = Optional.ofNullable(products.get(id.get()));
+        if (product.isEmpty()) {
+            log.warn(
+                "No product found for item with name '{}' and mapped id '{}'",
+                order.productName,
+                id.get()
+            );
+            return Optional.empty();
+        }
+
+        var status = this.getStatus(order, product.get());
+        if (status.isEmpty()) {
+            log.debug(
+                "Unable to determine curr for product '{}' with id '{}'",
+                order.productName,
+                id.get()
+            );
+            return Optional.empty();
+        }
+
+        return Optional.of(new TrackedStatus(order, status.get()));
+    }
+
 
     private boolean shouldNotify(StatusUpdate update) {
         var cfg = ConfigManager.get().trackedOrders;
@@ -287,9 +308,9 @@ public class TrackedOrderManager {
         };
     }
 
-    private record TrackedStatus(TrackedOrder trackedOrder, OrderStatus status) { }
+    private record TrackedStatus(TrackedOrder order, OrderStatus status) { }
 
-    public record StatusUpdate(TrackedOrder trackedOrder, OrderStatus curr, OrderStatus prev) { }
+    public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) { }
 
     public static class OrderManagerConfig {
 
