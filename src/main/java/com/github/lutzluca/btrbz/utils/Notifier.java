@@ -113,7 +113,8 @@ public class Notifier {
             case GroupStatus.Undercut undercut -> {
                 SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
                 var undercutMsg = groupMsg(key, groupSize, totalVolume, cfg,
-                    Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED)
+                    Component.literal("were ").withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
                         .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
                         .append(Component.literal(Utils.formatDecimal(undercut.amount(), 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
