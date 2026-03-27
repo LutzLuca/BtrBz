@@ -181,6 +181,28 @@ public class BazaarData {
         return queueInfo.ordersAhead > 0 ? Optional.of(queueInfo) : Optional.empty();
     }
 
+    /**
+     * Returns the number of orders in the bucket at the given price per unit.
+     * <p>
+     * Returns -1 if the product is not found, the order type is not found, or the price per unit is not found.
+     */
+    public int getBucketOrderCount(String productName, OrderType orderType, double pricePerUnit) {
+        var productId = this.nameToId(productName).orElse(null);
+        if (productId == null) return -1;
+        var product = this.lastProducts.get(productId);
+        if (product == null) return -1;
+
+        var relevantSummary = switch (orderType) {
+            case Buy -> Utils.getFirst(product.getSellSummary());
+            case Sell -> Utils.getFirst(product.getBuySummary());
+        };
+
+        return relevantSummary
+            .filter(summary -> summary.getPricePerUnit() == pricePerUnit)
+            .map(summary -> (int) summary.getOrders())
+            .orElse(-1);
+    }
+
     public Optional<Double> getEstimatedFillTimeMinutes(String productName, OrderType orderType, int remainingVolume) {
         if (remainingVolume <= 0) {
             return Optional.of(0.0);

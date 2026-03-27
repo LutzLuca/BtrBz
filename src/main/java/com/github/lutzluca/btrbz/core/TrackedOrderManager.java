@@ -33,6 +33,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.jetbrains.annotations.Nullable;
+
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.minecraft.network.chat.Component;
@@ -129,9 +131,9 @@ public class TrackedOrderManager {
         }
     }
 
-    record GroupKey(String productName, OrderType type, double pricePerUnit) {}
+    public record GroupKey(String productName, OrderType type, double pricePerUnit) {}
 
-    sealed interface GroupStatus {
+    public sealed interface GroupStatus {
         record Undercut(double amount) implements GroupStatus {}
         record Matched() implements GroupStatus {}
         record SelfMatched() implements GroupStatus {}
@@ -146,12 +148,136 @@ public class TrackedOrderManager {
         this.sendNotifications(updates, products);        
     }
 
-    private void sendNotifications(List<StatusUpdate> updates, Map<String, Product> products) {
-        updates.stream()
-            .filter(this::shouldNotify)
-            .forEach(update -> {
-                Notifier.notifyOrderStatus(update, this.bazaarData);
-            });
+    private void sendNotifications(List<StatusUpdate> statusUpdates, Map<String, Product> products) {
+        var cfg = ConfigManager.get().trackedOrders;
+        if(!cfg.enabled) {
+            return;
+        }
+
+        Map<GroupKey, List<TrackedOrder>> orderGroups = this.trackedOrders.stream()
+            .collect(Collectors.groupingBy(order -> new GroupKey(
+                order.productName,
+                order.type,
+                order.pricePerUnit
+            )));
+        Map<GroupKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
+            .collect(Collectors.groupingBy(update -> new GroupKey(
+                update.order().productName,
+                update.order().type,
+                update.order().pricePerUnit
+            )));
+
+        for(var entry : statusGroups.entrySet()) {
+            var key = entry.getKey();
+            var updates = entry.getValue();
+            var orders = orderGroups.get(key);
+            
+            if(orders.size() == 1) {
+                var statusUpdate = updates.getFirst();
+                if(this.shouldNotify(statusUpdate)) {
+                    Notifier.notifyOrderStatus(statusUpdate, bazaarData);
+                }
+                continue;
+            }
+
+            this.processGroupNotification(key, orders, updates, products);
+        }
+    }
+
+    private void processGroupNotification(
+        GroupKey key,
+        List<TrackedOrder> orders,
+        List<StatusUpdate> updates,
+        Map<String,Product> products
+    ) {
+        var cfg = ConfigManager.get().trackedOrders;
+        
+        if(!cfg.groupOrders) {
+            updates.stream()
+                .filter(this::shouldNotify)
+                .forEach(update -> Notifier.notifyOrderStatus(update, bazaarData));
+            return;   
+        }
+
+        GroupStatus curr = this.getCurrentGroupStatus(key, orders, products);
+        boolean shouldNotify = switch (curr) {
+            case GroupStatus.Undercut ignored -> cfg.notifyUndercut;
+            case GroupStatus.Matched ignored -> cfg.notifyMatched;
+            case GroupStatus.SelfMatched ignored -> cfg.notifyMatched;
+        };
+
+        if (!shouldNotify) {
+            return;
+        }
+
+        GroupStatus prev = this.getPreviousGroupStatus(orders, updates);
+        
+        if(curr == null || prev == null) {
+            log.warn("Group ({}) has no settled status, skipping group notification: previous status: {}, current status: {}", key, prev, curr);
+            return;
+        }
+
+        Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
+    }
+
+
+    private @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, Map<String,Product> products) {
+        boolean hasMatched = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Matched);
+        boolean hasUndercut = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
+        boolean hasUnknown = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Unknown);
+
+        if(hasUnknown) {
+            log.warn("Group ({}) has Unknown-status order after poll. Likely unresolved product name, skipping group notification", key);
+            return null;
+        }
+
+        if(hasMatched && hasUndercut) {
+            log.warn("Group ({}) has both Matched and Undercut orders. This must be a logic error, skipping group notification", key);
+            return null;
+        }
+
+        // either matched or undercut
+        if(hasUndercut) {
+            // per definition all the orders within the `orders` list must have undercut status
+            // as well as the same (product name, type, price per unit)
+            var representativeOrder = orders.getFirst();
+            var undercutAmount = ((OrderStatus.Undercut) representativeOrder.status).amount;
+            return new GroupStatus.Undercut(undercutAmount);
+        }
+
+        int bucketOrderCount = bazaarData.getBucketOrderCount(key.productName, key.type, key.pricePerUnit);
+        if(bucketOrderCount == -1) {
+            log.warn("Group ({}) has no orders at the given price per unit, skipping group notification", key);
+            return null;
+        }
+
+        return orders.size() == bucketOrderCount ? new GroupStatus.SelfMatched() : new GroupStatus.Matched();
+    }
+
+    private @Nullable GroupStatus getPreviousGroupStatus(List<TrackedOrder> orders, List<StatusUpdate> updates) {
+        Map<TrackedOrder, OrderStatus> prevStatuses = orders.stream()
+            .collect(Collectors.toMap(order -> order, order -> order.status));
+
+        updates.stream().forEach(update -> prevStatuses.put(update.order(), update.prev()));
+
+        var values = prevStatuses.values();
+
+        if (values.stream().anyMatch(status -> status instanceof OrderStatus.Undercut)) {
+            // `amount` MUST be identical across all orders in the group
+            double amount = values.stream()
+                .filter(status -> status instanceof OrderStatus.Undercut)
+                .map(status -> ((OrderStatus.Undercut) status).amount)
+                .findFirst()
+                .orElseThrow();
+            return new GroupStatus.Undercut(amount);
+        }
+
+        if (values.stream().anyMatch(status -> status instanceof OrderStatus.Matched)) {
+            return new GroupStatus.Matched();
+        }
+
+        // Top, Unknown, or mix of both -> group had no settled matched state before
+        return null;
     }
 
     public Stream<StatusUpdate> computeStatusUpdates(Map<String, Product> products) {
@@ -329,6 +455,9 @@ public class TrackedOrderManager {
 
         public boolean showQueueInfo = true;
         public QueueDisplayMode queueDisplayMode = QueueDisplayMode.Both;
+
+        public boolean groupOrders = true;
+        public boolean includePricePerUnit = false;
 
         public OptionGroup createGroup() {
             var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption())
