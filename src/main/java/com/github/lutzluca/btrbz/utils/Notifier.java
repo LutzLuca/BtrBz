@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupKey;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupStatus;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
@@ -153,46 +154,46 @@ public class Notifier {
 
         var cfg = ConfigManager.get().trackedOrders;
 
-        var msg = switch (status) {
+        MutableComponent msg = switch (status) {
             case Top ignored -> {
                 SoundUtil.playSoundIf(cfg.soundBest, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 if (update.prev() instanceof OrderStatus.Unknown) {
-                    yield bestMsg(order);
+                    yield bestMsg(order, cfg);
                 }
-                yield reclaimBestMsg(order);
+                yield reclaimBestMsg(order, cfg);
             }
             case Matched ignored -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-                yield matchedMsg(order, update.prev(), bazaarData);
+                yield matchedMsg(order, update.prev(), bazaarData, cfg);
             }
             case Undercut undercut -> {
                 SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
-                yield undercutMsg(order, undercut.amount, bazaarData);
+                yield undercutMsg(order, undercut.amount, bazaarData, cfg);
             }
-            default -> throw new IllegalArgumentException("Unreachable curr: " + status);
+            default -> throw new IllegalArgumentException("Unreachable status: " + status);
         };
 
         if (status instanceof Matched && cfg.gotoOnMatched != Action.None) {
-            applyGotoAction(msg, cfg.gotoOnMatched, order);
+            applyGotoAction(msg, cfg.gotoOnMatched, order.productName);
         }
 
         if (status instanceof Undercut && cfg.gotoOnUndercut != Action.None) {
-            applyGotoAction(msg, cfg.gotoOnUndercut, order);
+            applyGotoAction(msg, cfg.gotoOnUndercut, order.productName);
         }
 
         notifyPlayer(msg);
     }
 
-    private static void applyGotoAction(MutableComponent msg, Action action, TrackedOrder order) {
+    private static void applyGotoAction(MutableComponent msg, Action action, String productName) {
         if (action == Action.Item) {
             msg.append(Component.literal(" [Go To Item]")
                 .withStyle(ChatFormatting.DARK_AQUA)
                 .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/bz " + order.productName))
+                    .withClickEvent(new RunCommand("/bz " + productName))
                     .withHoverEvent(new ShowText(Component
                         .literal("Open ")
                         .withStyle(ChatFormatting.GRAY)
-                        .append(Component.literal(order.productName).withStyle(ChatFormatting.AQUA))
+                        .append(Component.literal(productName).withStyle(ChatFormatting.AQUA))
                         .append(Component.literal(" in the Bazaar").withStyle(ChatFormatting.GRAY))))));
             return;
         }
@@ -205,35 +206,34 @@ public class Notifier {
     }
 
 
-    private static MutableComponent bestMsg(TrackedOrder order) {
+    private static MutableComponent bestMsg(TrackedOrder order, OrderManagerConfig cfg) {
         var status = Component
             .empty()
             .append(Component.literal("is the ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("BEST Order!").withStyle(ChatFormatting.GREEN));
-        return fillBaseMessage(order.type, order.volume, order.productName, status);
+        return fillBaseMessage(order.type, order.volume, order.productName, status, null, order.pricePerUnit, cfg);
     }
 
-    private static MutableComponent reclaimBestMsg(TrackedOrder order) {
+    private static MutableComponent reclaimBestMsg(TrackedOrder order, OrderManagerConfig cfg) {
         var status = Component
             .empty()
             .append(Component.literal("has ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("REGAINED BEST Order!").withStyle(ChatFormatting.GREEN));
-        return fillBaseMessage(order.type, order.volume, order.productName, status);
+        return fillBaseMessage(order.type, order.volume, order.productName, status, null, order.pricePerUnit, cfg);
     }
 
-    private static MutableComponent matchedMsg(TrackedOrder order, OrderStatus prevStatus, BazaarData bazaarData) {
+    private static MutableComponent matchedMsg(TrackedOrder order, OrderStatus prevStatus, BazaarData bazaarData, OrderManagerConfig cfg) {
         var status = Component
             .empty()
             .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
 
-        var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
+        MutableComponent msg = fillBaseMessage(order.type, order.volume, order.productName, status, null, order.pricePerUnit, cfg);
 
         // Top -> Matched: the player was already the sole best order, so any new same-price
         // orders arrived after and are behind in the FIFO queue. The API summary only gives
         // aggregate (orders, volume) per price bucket with no intra-bucket ordering, so
         // showing them as "ahead" would be misleading. Skip queue info for this transition.
-        var cfg = ConfigManager.get().trackedOrders;
         if (cfg.showQueueInfo && !(prevStatus instanceof OrderStatus.Top)) {
             bazaarData.calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit, true
@@ -249,7 +249,7 @@ public class Notifier {
         return msg;
     }
 
-    private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount, BazaarData bazaarData) {
+    private static MutableComponent undercutMsg(TrackedOrder order, double undercutAmount, BazaarData bazaarData, OrderManagerConfig cfg) {
         var status = Component
             .empty()
             .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
@@ -260,9 +260,8 @@ public class Notifier {
                 .withStyle(ChatFormatting.GOLD))
             .append(Component.literal(" coins!").withStyle(ChatFormatting.GRAY));
 
-        var msg = fillBaseMessage(order.type, order.volume, order.productName, status);
+        MutableComponent msg = fillBaseMessage(order.type, order.volume, order.productName, status, null, order.pricePerUnit, cfg);
 
-        var cfg = ConfigManager.get().trackedOrders;
         if (cfg.showQueueInfo) {
             bazaarData.calculateQueuePosition(
                 order.productName, order.type, order.pricePerUnit
@@ -283,21 +282,53 @@ public class Notifier {
         OrderType type,
         int volume,
         String productName,
-        Component statusPart
+        Component statusPart,
+        @org.jetbrains.annotations.Nullable Integer groupSize,
+        @org.jetbrains.annotations.Nullable Double price,
+        OrderManagerConfig cfg
     ) {
         var orderString = switch (type) {
-            case Buy -> "Buy order";
-            case Sell -> "Sell offer";
+            case Buy -> groupSize != null && groupSize > 1 ? "Buy orders" : "Buy order";
+            case Sell -> groupSize != null && groupSize > 1 ? "Sell offers" : "Sell offer";
         };
-        return prefix()
-            .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+
+        var msg = prefix()
+            .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY));
+
+        if (groupSize != null && groupSize > 1) {
+            msg.append(Component.literal(groupSize + "x ").withStyle(ChatFormatting.AQUA));
+        }
+
+        msg.append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
             .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(String.valueOf(volume)).withStyle(ChatFormatting.LIGHT_PURPLE))
-            .append(Component.literal("x ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(productName).withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
-            .append(statusPart);
+            .append(Component.literal(String.valueOf(volume)).withStyle(ChatFormatting.LIGHT_PURPLE));
+
+        if (groupSize != null && groupSize > 1) {
+            msg.append(Component.literal("x total").withStyle(ChatFormatting.GRAY));
+        } else {
+            msg.append(Component.literal("x").withStyle(ChatFormatting.GRAY));
+        }
+
+        msg.append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(productName).withStyle(ChatFormatting.YELLOW));
+
+        if (cfg.includePricePerUnit && price != null) {
+            msg.append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(Utils.formatDecimal(price, 1, true)).withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+        }
+
+        return msg.append(Component.literal(" ").withStyle(ChatFormatting.GRAY)).append(statusPart);
+    }
+
+    private static MutableComponent fillGroupBaseMessage(
+        GroupKey key,
+        int groupSize,
+        int totalVolume,
+        Component statusPart,
+        OrderManagerConfig cfg
+    ) {
+        return fillBaseMessage(key.type(), totalVolume, key.productName(), statusPart, groupSize, key.pricePerUnit(), cfg);
     }
 
     public static void sendBlockedOrderMessage(ValidationResult validation) {

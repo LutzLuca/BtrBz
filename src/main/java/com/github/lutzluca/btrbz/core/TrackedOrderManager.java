@@ -200,6 +200,12 @@ public class TrackedOrderManager {
         }
 
         GroupStatus curr = this.getCurrentGroupStatus(key, orders, products);
+        
+        if(curr == null) {
+            log.warn("Group ({}) has no settled status, skipping group notification", key);
+            return;
+        }
+
         boolean shouldNotify = switch (curr) {
             case GroupStatus.Undercut ignored -> cfg.notifyUndercut;
             case GroupStatus.Matched ignored -> cfg.notifyMatched;
@@ -210,12 +216,7 @@ public class TrackedOrderManager {
             return;
         }
 
-        GroupStatus prev = this.getPreviousGroupStatus(orders, updates);
-        
-        if(curr == null || prev == null) {
-            log.warn("Group ({}) has no settled status, skipping group notification: previous status: {}, current status: {}", key, prev, curr);
-            return;
-        }
+        GroupStatus prev = this.getPreviousGroupStatus(key, orders, updates);
 
         Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
     }
@@ -254,11 +255,14 @@ public class TrackedOrderManager {
         return orders.size() == bucketOrderCount ? new GroupStatus.SelfMatched() : new GroupStatus.Matched();
     }
 
-    private @Nullable GroupStatus getPreviousGroupStatus(List<TrackedOrder> orders, List<StatusUpdate> updates) {
+    // orders are all currently tracekd orders, while the updates are only the ones that changes, thus we can use the 
+    // orders to get the previous status of these, as they did not change their state it must be their current status
+    // for the updated orders we use the prev field
+    private @Nullable GroupStatus getPreviousGroupStatus(GroupKey key, List<TrackedOrder> orders, List<StatusUpdate> updates) {
         Map<TrackedOrder, OrderStatus> prevStatuses = orders.stream()
             .collect(Collectors.toMap(order -> order, order -> order.status));
 
-        updates.stream().forEach(update -> prevStatuses.put(update.order(), update.prev()));
+        updates.forEach(update -> prevStatuses.put(update.order(), update.prev()));
 
         var values = prevStatuses.values();
 
@@ -277,6 +281,8 @@ public class TrackedOrderManager {
         }
 
         // Top, Unknown, or mix of both -> group had no settled matched state before
+        log.warn("Group ({}) has no settled matched state before, skipping group notification currently tracked orders: {} | updates: {}", 
+            key, orders, updates);
         return null;
     }
 
@@ -293,7 +299,7 @@ public class TrackedOrderManager {
             ));
     }
 
-       public Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
+    private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
         var id = bazaarData.nameToId(order.productName);
         if (id.isEmpty()) {
             log.warn(
@@ -471,6 +477,8 @@ public class TrackedOrderManager {
 
             var rootGroup = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
+                    this.createGroupOrdersOption(),
+                    this.createIncludePricePerUnitOption(),
                     this.createGotoMatchedOption(),
                     this.createGotoUndercutOption(),
                     this.createNotifyMatchedOption(),
@@ -616,6 +624,26 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.soundUndercut, val -> this.soundUndercut = val)
                 .description(OptionDescription.of(Component.literal(
                     "Play a sound when an undercut notification is triggered")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<Boolean> createGroupOrdersOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Group Orders"))
+                .binding(true, () -> this.groupOrders, val -> this.groupOrders = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Group multiple orders at the same price into a single notification")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<Boolean> createIncludePricePerUnitOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Include Price Per Unit"))
+                .binding(false, () -> this.includePricePerUnit, val -> this.includePricePerUnit = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Include the price per unit in the notification message")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
