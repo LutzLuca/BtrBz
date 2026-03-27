@@ -50,7 +50,6 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
-    private final List<Consumer<StatusUpdate>> onOrderStatusUpdate = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = null;
 
     public TrackedOrderManager(BazaarData bazaarData) {
@@ -78,10 +77,6 @@ public class TrackedOrderManager {
 
     public void afterOrderSync(BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> cb) {
         this.onSyncCompletedCallback = cb;
-    }
-
-    public void addOnOrderStatusUpdate(Consumer<StatusUpdate> listener) {
-        this.onOrderStatusUpdate.add(listener);
     }
 
     public void syncOrders(List<OrderInfo> parsedOrders) {
@@ -142,7 +137,6 @@ public class TrackedOrderManager {
     public void onBazaarUpdate(Map<String, Product> products) {
         var updates = this.computeStatusUpdates(products).peek(update -> {
             update.order().status = update.curr;
-            this.onOrderStatusUpdate.forEach(listener -> listener.accept(update));
         }).collect(Collectors.toList());
 
         this.sendNotifications(updates, products);        
@@ -224,10 +218,8 @@ public class TrackedOrderManager {
         }
 
         GroupStatus prev = this.getPreviousGroupStatus(key, orders, updates);
-
         Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
     }
-
 
     private @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, Map<String,Product> products) {
         boolean hasMatched = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Matched);
@@ -293,7 +285,7 @@ public class TrackedOrderManager {
         }
 
         // Top, Unknown, or mix of both -> group had no settled matched state before
-        log.warn("Group ({}) has no settled matched state before, skipping group notification currently tracked orders: {} | updates: {}", 
+        log.debug("Group ({}) had no prior matched group state. currently tracked orders: {} | updates: {}", 
             key, orders, updates);
         return null;
     }
