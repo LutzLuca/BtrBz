@@ -148,6 +148,13 @@ public class TrackedOrderManager {
         this.sendNotifications(updates, products);        
     }
 
+    // Known limitation: transitions that only change `GroupStatus` without changing the underlying
+    // `OrderStatus` variant are not detected. Concretely, if a stranger cancels their order from
+    // your bucket, all your orders stay `OrderStatus.Matched`, no `sameVariant` change fires, so
+    // no `StatusUpdate` is produced, and `sendNotifications` never processes the group.
+    // Fixing this would require a separate group-level status diff pass (tracking previous
+    // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
+    // Accepted as a known limitation (for now).
     private void sendNotifications(List<StatusUpdate> statusUpdates, Map<String, Product> products) {
         var cfg = ConfigManager.get().trackedOrders;
         if(!cfg.enabled) {
@@ -246,7 +253,7 @@ public class TrackedOrderManager {
             return new GroupStatus.Undercut(undercutAmount);
         }
 
-        int bucketOrderCount = bazaarData.getBucketOrderCount(key.productName, key.type, key.pricePerUnit);
+        int bucketOrderCount = this.countOrdersAtBestPrice(key, this.bazaarData);
         if(bucketOrderCount == -1) {
             log.warn("Group ({}) has no orders at the given price per unit, skipping group notification", key);
             return null;
@@ -255,9 +262,14 @@ public class TrackedOrderManager {
         return orders.size() == bucketOrderCount ? new GroupStatus.SelfMatched() : new GroupStatus.Matched();
     }
 
-    // orders are all currently tracekd orders, while the updates are only the ones that changes, thus we can use the 
-    // orders to get the previous status of these, as they did not change their state it must be their current status
-    // for the updated orders we use the prev field
+   // Reconstruct the previous group status from two sources:
+   // - Orders that did NOT change this poll are absent from `updates`, meaning their current
+   //   status IS their previous status (nothing moved for them).
+   // - Orders that DID change this poll have an explicit `prev` field in their `StatusUpdate`,
+   //   which overrides the default.
+   // Building a full `prevStatuses` map across all orders gives us a complete picture of where
+   // the entire group stood before this poll, which we then reduce to a single `GroupStatus`
+   // using the same precedence as `getCurrentGroupStatus`: `Undercut` > `Matched` > everything else.
     private @Nullable GroupStatus getPreviousGroupStatus(GroupKey key, List<TrackedOrder> orders, List<StatusUpdate> updates) {
         Map<TrackedOrder, OrderStatus> prevStatuses = orders.stream()
             .collect(Collectors.toMap(order -> order, order -> order.status));
@@ -284,6 +296,27 @@ public class TrackedOrderManager {
         log.warn("Group ({}) has no settled matched state before, skipping group notification currently tracked orders: {} | updates: {}", 
             key, orders, updates);
         return null;
+    }
+
+    private int countOrdersAtBestPrice(GroupKey key, BazaarData bazaarData) {
+        var productId = bazaarData.nameToId(key.productName).orElse(null);
+        if (productId == null) {
+            log.warn("Group ({}) has no name -> id mapping, skipping group notification", key);
+            return -1;
+        }
+        
+        var lists = bazaarData.getOrderLists(productId);
+        
+        var relevantSummaries = switch (key.type) {
+            case Buy -> lists.buyOrders();
+            case Sell -> lists.sellOffers();
+        };
+    
+        return relevantSummaries.stream()
+            .filter(summary -> summary.getPricePerUnit() == key.pricePerUnit)
+            .findFirst()
+            .map(summary -> (int) summary.getOrders())
+            .orElse(-1);
     }
 
     public Stream<StatusUpdate> computeStatusUpdates(Map<String, Product> products) {

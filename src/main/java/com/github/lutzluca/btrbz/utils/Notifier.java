@@ -20,6 +20,9 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.jetbrains.annotations.Nullable;
+
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -283,8 +286,8 @@ public class Notifier {
         int volume,
         String productName,
         Component statusPart,
-        @org.jetbrains.annotations.Nullable Integer groupSize,
-        @org.jetbrains.annotations.Nullable Double price,
+        @Nullable Integer groupSize,
+        @Nullable Double price,
         OrderManagerConfig cfg
     ) {
         var orderString = switch (type) {
@@ -345,96 +348,98 @@ public class Notifier {
     }
 
     public static void notifyGroupOrderStatus(
-    GroupKey key,
-    List<TrackedOrder> allOrders,
-    GroupStatus currGroupStatus,
-    GroupStatus prevGroupStatus,
-    BazaarData bazaarData
-) {
-    var cfg = ConfigManager.get().trackedOrders;
-    int totalVolume = allOrders.stream().mapToInt(o -> o.volume).sum();
-    int groupSize = allOrders.size();
+        GroupKey key,
+        List<TrackedOrder> allOrders,
+        GroupStatus currGroupStatus,
+        GroupStatus prevGroupStatus,
+        BazaarData bazaarData
+    ) {
+        var cfg = ConfigManager.get().trackedOrders;
+        int totalVolume = allOrders.stream().mapToInt(o -> o.volume).sum();
+        int groupSize = allOrders.size();
 
-    var msg = switch (currGroupStatus) {
-        case GroupStatus.Undercut undercut -> {
-            SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
+        var msg = switch (currGroupStatus) {
+            case GroupStatus.Undercut undercut -> {
+                SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
 
-            var statusPart = Component.empty()
-                .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
-                .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(
-                    Utils.formatDecimal(undercut.amount(), 1, true) + " coins!")
-                    .withStyle(ChatFormatting.GOLD));
+                var statusPart = Component.empty()
+                    .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
+                    .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(
+                        Utils.formatDecimal(undercut.amount(), 1, true) + " coins!")
+                        .withStyle(ChatFormatting.GOLD));
 
-            var m = fillGroupBaseMessage(key, groupSize, totalVolume, statusPart, cfg);
+                var m = fillGroupBaseMessage(key, groupSize, totalVolume, statusPart, cfg);
 
-            if (cfg.showQueueInfo) {
-                bazaarData.calculateQueuePosition(
-                    key.productName(), key.type(), key.pricePerUnit()
-                ).ifPresent(info -> {
-                    m.append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY));
-                    m.append(GameUtils.buildQueueComponent(
-                        info.ordersAhead, info.itemsAhead, cfg.queueDisplayMode));
-                });
-            }
-
-            yield m;
-        }
-
-        case GroupStatus.Matched ignored -> {
-            SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-
-            var statusPart = Component.empty()
-                .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
-
-            var m = fillGroupBaseMessage(key, groupSize, totalVolume, statusPart, cfg);
-
-            // For groups, Top→Matched is structurally impossible, so we always
-            // show queue info — there's no prior "sole best" state to special-case.
-            if (cfg.showQueueInfo) {
-                bazaarData.calculateQueuePosition(
-                    key.productName(), key.type(), key.pricePerUnit(), true
-                ).ifPresent(info -> {
-                    int displayOrders = Math.max(0, info.ordersAhead - groupSize);
-                    int displayItems = Math.max(0, info.itemsAhead - totalVolume);
-
-                    if (displayOrders > 0 || displayItems > 0) {
+                if (cfg.showQueueInfo) {
+                    bazaarData.calculateQueuePosition(
+                        key.productName(), key.type(), key.pricePerUnit()
+                    ).ifPresent(info -> {
                         m.append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY));
                         m.append(GameUtils.buildQueueComponent(
-                            displayOrders, displayItems, cfg.queueDisplayMode));
-                    }
-                });
+                            info.ordersAhead, info.itemsAhead, cfg.queueDisplayMode));
+                    });
+                }
+
+                yield m;
             }
 
-            yield m;
+            case GroupStatus.Matched ignored -> {
+                SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
+
+                String verb = groupSize > 1 ? "were " : "was ";
+
+                var statusPart = Component.empty()
+                    .append(Component.literal(verb).withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE));
+
+                var m = fillGroupBaseMessage(key, groupSize, totalVolume, statusPart, cfg);
+
+                // For groups, Top->Matched is structurally impossible, so we always
+                // show queue info — there's no prior "sole best" state to special-case.
+                if (cfg.showQueueInfo) {
+                    bazaarData.calculateQueuePosition(
+                        key.productName(), key.type(), key.pricePerUnit(), true
+                    ).ifPresent(info -> {
+                        int displayOrders = Math.max(0, info.ordersAhead - groupSize);
+                        int displayItems = Math.max(0, info.itemsAhead - totalVolume);
+
+                        if (displayOrders > 0 || displayItems > 0) {
+                            m.append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY));
+                            m.append(GameUtils.buildQueueComponent(
+                                displayOrders, displayItems, cfg.queueDisplayMode));
+                        }
+                    });
+                }
+
+                yield m;
+            }
+
+            case GroupStatus.SelfMatched ignored -> {
+                SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
+
+                var statusPart = Component.empty()
+                    .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal("SELF-MATCHED!").withStyle(ChatFormatting.BLUE));
+
+                // No queue info — you own the entire bucket, nobody is ahead of you
+                yield fillGroupBaseMessage(key, groupSize, totalVolume, statusPart, cfg);
+            }
+        };
+
+        if (currGroupStatus instanceof GroupStatus.Matched
+            || currGroupStatus instanceof GroupStatus.SelfMatched) {
+            if (cfg.gotoOnMatched != Action.None) {
+                applyGotoAction(msg, cfg.gotoOnMatched, key.productName());
+            }
         }
 
-        case GroupStatus.SelfMatched ignored -> {
-            SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-
-            var statusPart = Component.empty()
-                .append(Component.literal("was ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("SELF-MATCHED!").withStyle(ChatFormatting.BLUE));
-
-            // No queue info — you own the entire bucket, nobody is ahead of you
-            yield fillGroupBaseMessage(key, groupSize, totalVolume, statusPart, cfg);
+        if (currGroupStatus instanceof GroupStatus.Undercut) {
+            if (cfg.gotoOnUndercut != Action.None) {
+                applyGotoAction(msg, cfg.gotoOnUndercut, key.productName());
+            }
         }
-    };
 
-    if (currGroupStatus instanceof GroupStatus.Matched
-        || currGroupStatus instanceof GroupStatus.SelfMatched) {
-        if (cfg.gotoOnMatched != Action.None) {
-            applyGotoAction(msg, cfg.gotoOnMatched, key.productName());
-        }
+        notifyPlayer(msg);
     }
-
-    if (currGroupStatus instanceof GroupStatus.Undercut) {
-        if (cfg.gotoOnUndercut != Action.None) {
-            applyGotoAction(msg, cfg.gotoOnUndercut, key.productName());
-        }
-    }
-
-    notifyPlayer(msg);
-}
 }
