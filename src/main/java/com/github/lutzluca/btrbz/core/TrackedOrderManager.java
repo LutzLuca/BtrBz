@@ -25,9 +25,13 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -46,6 +50,9 @@ public class TrackedOrderManager {
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
+    private final Set<SelfUnderbidKey> selfUnderbidState = new HashSet<>();
+
+    public record SelfUnderbidKey(String productName, OrderType type) {}
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
@@ -124,6 +131,7 @@ public class TrackedOrderManager {
         if (this.trackedOrders.remove(order)) {
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
+        this.recomputeSelfUnderbidState(order.productName, order.type, this.bazaarData.getProducts());
     }
 
     public record GroupKey(String productName, OrderType type, double pricePerUnit) {}
@@ -139,7 +147,8 @@ public class TrackedOrderManager {
             update.order().status = update.curr;
         }).collect(Collectors.toList());
 
-        this.sendNotifications(updates, products);        
+        this.sendNotifications(updates, products);
+        this.resolveSelfUnderbidStates(products);
     }
 
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
@@ -382,6 +391,7 @@ public class TrackedOrderManager {
     public void resetTrackedOrders() {
         var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();
+        this.selfUnderbidState.clear();
 
         log.info("Reset tracked orders (removed {})", removedSize);
         this.onOrdersResetListeners.forEach(Runnable::run);
@@ -468,6 +478,108 @@ public class TrackedOrderManager {
     private record TrackedStatus(TrackedOrder order, OrderStatus status) { }
 
     public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) { }
+
+    private void resolveSelfUnderbidStates(Map<String, Product> products) {
+        var pairs = this.trackedOrders.stream()
+            .map(o -> new SelfUnderbidKey(o.productName, o.type))
+            .distinct()
+            .toList();
+
+        for (var pair : pairs) {
+            var result = this.computeSelfUnderbidState(pair.productName(), pair.type(), products);
+            if (result.isSelfUndercut() && !this.selfUnderbidState.contains(pair)) {
+                this.selfUnderbidState.add(pair);
+                Notifier.notifySelfUnderbid(pair, result.bestPrice(), result.secondBestPrice());
+            } else if (!result.isSelfUndercut()) {
+                this.selfUnderbidState.remove(pair);
+            }
+        }
+    }
+
+    private void recomputeSelfUnderbidState(
+        String productName, OrderType type, Map<String, Product> products
+    ) {
+        var key = new SelfUnderbidKey(productName, type);
+        var result = this.computeSelfUnderbidState(productName, type, products);
+        if (!result.isSelfUndercut()) {
+            this.selfUnderbidState.remove(key);
+        }
+        // if still true: leave the set as-is, no re-notification
+    }
+
+    private record SelfUnderbidResult(boolean isSelfUndercut, double bestPrice, double secondBestPrice) {
+        static SelfUnderbidResult notUndercut() {
+            return new SelfUnderbidResult(false, 0, 0);
+        }
+    }
+
+    private SelfUnderbidResult computeSelfUnderbidState(
+        String productName, OrderType type, Map<String, Product> products
+    ) {
+        var ordersForPair = this.trackedOrders.stream()
+            .filter(o -> o.productName.equals(productName) && o.type == type)
+            .toList();
+
+        boolean hasTop = ordersForPair.stream().anyMatch(o -> o.status instanceof OrderStatus.Top);
+        boolean hasUndercut = ordersForPair.stream().anyMatch(o -> o.status instanceof OrderStatus.Undercut);
+        if (!hasTop || !hasUndercut) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        // Among the undercut orders, pick the one closest to the top (best-priced for its type).
+        // For Buy orders the highest price is best; for Sell offers the lowest price is best.
+        Comparator<Double> bestFirst = type == OrderType.Buy
+            ? Comparator.reverseOrder()
+            : Comparator.naturalOrder();
+
+        OptionalDouble secondBestOpt = ordersForPair.stream()
+            .filter(o -> o.status instanceof OrderStatus.Undercut)
+            .mapToDouble(o -> o.pricePerUnit)
+            .boxed()
+            .min(bestFirst)
+            .map(OptionalDouble::of)
+            .orElse(OptionalDouble.empty());
+
+        if (secondBestOpt.isEmpty()) {
+            return SelfUnderbidResult.notUndercut();
+        }
+        double secondBestPrice = secondBestOpt.getAsDouble();
+
+        long playerOrderCountAtSecondBest = ordersForPair.stream()
+            .filter(o -> Double.compare(o.pricePerUnit, secondBestPrice) == 0)
+            .count();
+
+        var productId = this.bazaarData.nameToId(productName).orElse(null);
+        if (productId == null) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        var product = products.get(productId);
+        if (product == null) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        var summaries = switch (type) {
+            case Buy -> product.getSellSummary();
+            case Sell -> product.getBuySummary();
+        };
+
+        if (summaries == null || summaries.size() < 2) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        double bestPrice = summaries.get(0).getPricePerUnit();
+        var secondEntry = summaries.get(1);
+
+        boolean priceMatches = Double.compare(secondEntry.getPricePerUnit(), secondBestPrice) == 0;
+        boolean orderCountMatches = secondEntry.getOrders() == playerOrderCountAtSecondBest;
+
+        if (!priceMatches || !orderCountMatches) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        return new SelfUnderbidResult(true, bestPrice, secondBestPrice);
+    }
 
     public static class OrderManagerConfig {
 
