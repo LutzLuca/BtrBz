@@ -230,7 +230,7 @@ public class Notifier {
                 .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen")))));
     }
 
-    public static void notifySelfUnderbid(SelfUnderbidKey key, double bestPrice, double secondBestPrice) {
+    public static void notifySelfUndercut(SelfUnderbidKey key, double bestPrice, double secondBestPrice) {
         var orderString = key.type() == OrderType.Buy ? "Buy Order" : "Sell Offer";
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))

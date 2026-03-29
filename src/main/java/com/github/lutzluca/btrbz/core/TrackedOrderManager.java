@@ -131,7 +131,10 @@ public class TrackedOrderManager {
         if (this.trackedOrders.remove(order)) {
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
-        this.recomputeSelfUnderbidState(order.productName, order.type, this.bazaarData.getProducts());
+
+        // Invalidate the self-undercut state for this pair so the set never orphans a key
+        // when all orders for a pair are removed. The next API poll is the source of truth.
+        this.selfUnderbidState.remove(new SelfUnderbidKey(order.productName, order.type));
     }
 
     public record GroupKey(String productName, OrderType type, double pricePerUnit) {}
@@ -148,7 +151,7 @@ public class TrackedOrderManager {
         }).collect(Collectors.toList());
 
         this.sendNotifications(updates, products);
-        this.resolveSelfUnderbidStates(products);
+        this.resolveSelfUndercutStates(products);
     }
 
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
@@ -479,32 +482,29 @@ public class TrackedOrderManager {
 
     public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) { }
 
-    private void resolveSelfUnderbidStates(Map<String, Product> products) {
-        var pairs = this.trackedOrders.stream()
-            .map(o -> new SelfUnderbidKey(o.productName, o.type))
+    private void resolveSelfUndercutStates(Map<String, Product> products) {
+        var keys = this.trackedOrders.stream()
+            .map(order -> new SelfUnderbidKey(order.productName, order.type))
             .distinct()
             .toList();
 
-        for (var pair : pairs) {
-            var result = this.computeSelfUnderbidState(pair.productName(), pair.type(), products);
-            if (result.isSelfUndercut() && !this.selfUnderbidState.contains(pair)) {
-                this.selfUnderbidState.add(pair);
-                Notifier.notifySelfUnderbid(pair, result.bestPrice(), result.secondBestPrice());
-            } else if (!result.isSelfUndercut()) {
-                this.selfUnderbidState.remove(pair);
+        var cfg = ConfigManager.get().trackedOrders;
+
+        for (var key : keys) {
+            var result = this.computeSelfUndercutState(key.productName(), key.type(), products);
+
+            if (result.isSelfUndercut() && !this.selfUnderbidState.contains(key)) {
+                this.selfUnderbidState.add(key);
+                if (cfg.enabled && cfg.notifySelfUndercut) {
+                    Notifier.notifySelfUndercut(key, result.bestPrice(), result.secondBestPrice());
+                }
+                continue;
+            }
+
+            if (!result.isSelfUndercut()) {
+                this.selfUnderbidState.remove(key);
             }
         }
-    }
-
-    private void recomputeSelfUnderbidState(
-        String productName, OrderType type, Map<String, Product> products
-    ) {
-        var key = new SelfUnderbidKey(productName, type);
-        var result = this.computeSelfUnderbidState(productName, type, products);
-        if (!result.isSelfUndercut()) {
-            this.selfUnderbidState.remove(key);
-        }
-        // if still true: leave the set as-is, no re-notification
     }
 
     private record SelfUnderbidResult(boolean isSelfUndercut, double bestPrice, double secondBestPrice) {
@@ -513,16 +513,48 @@ public class TrackedOrderManager {
         }
     }
 
-    private SelfUnderbidResult computeSelfUnderbidState(
+    private SelfUnderbidResult computeSelfUndercutState(
         String productName, OrderType type, Map<String, Product> products
     ) {
-        var ordersForPair = this.trackedOrders.stream()
-            .filter(o -> o.productName.equals(productName) && o.type == type)
+        var matchingOrders = this.trackedOrders.stream()
+            .filter(order -> order.productName.equals(productName) && order.type == type)
             .toList();
 
-        boolean hasTop = ordersForPair.stream().anyMatch(o -> o.status instanceof OrderStatus.Top);
-        boolean hasUndercut = ordersForPair.stream().anyMatch(o -> o.status instanceof OrderStatus.Undercut);
-        if (!hasTop || !hasUndercut) {
+        boolean hasUndercut = matchingOrders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
+        if (!hasUndercut) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        var productId = this.bazaarData.nameToId(productName).orElse(null);
+        if (productId == null) {
+            log.debug("Product '{}' not found in bazaar data", productName);
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        var product = products.get(productId);
+        if (product == null) {
+            log.debug("Product '{}' not found in products map", productName);
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        var summaries = switch (type) {
+            case Buy -> product.getSellSummary();
+            case Sell -> product.getBuySummary();
+        };
+
+        if (summaries == null || summaries.size() < 2) {
+            log.debug("Product '{}' has less than 2 summaries", productName);
+            return SelfUnderbidResult.notUndercut();
+        }
+
+        // Check that the best bucket in the book is entirely owned by the player.
+        // This covers both Top (player is sole occupant) and the Matched case where
+        // the player holds the top slot alongside strangers.
+        double bestPrice = summaries.getFirst().getPricePerUnit();
+        long playerOrderCountAtBest = matchingOrders.stream()
+            .filter(order -> Double.compare(order.pricePerUnit, bestPrice) == 0)
+            .count();
+        if (summaries.getFirst().getOrders() != playerOrderCountAtBest || playerOrderCountAtBest == 0) {
             return SelfUnderbidResult.notUndercut();
         }
 
@@ -532,9 +564,9 @@ public class TrackedOrderManager {
             ? Comparator.reverseOrder()
             : Comparator.naturalOrder();
 
-        OptionalDouble secondBestOpt = ordersForPair.stream()
-            .filter(o -> o.status instanceof OrderStatus.Undercut)
-            .mapToDouble(o -> o.pricePerUnit)
+        OptionalDouble secondBestOpt = matchingOrders.stream()
+            .filter(order -> order.status instanceof OrderStatus.Undercut)
+            .mapToDouble(order -> order.pricePerUnit)
             .boxed()
             .min(bestFirst)
             .map(OptionalDouble::of)
@@ -545,30 +577,10 @@ public class TrackedOrderManager {
         }
         double secondBestPrice = secondBestOpt.getAsDouble();
 
-        long playerOrderCountAtSecondBest = ordersForPair.stream()
-            .filter(o -> Double.compare(o.pricePerUnit, secondBestPrice) == 0)
+        long playerOrderCountAtSecondBest = matchingOrders.stream()
+            .filter(order -> Double.compare(order.pricePerUnit, secondBestPrice) == 0)
             .count();
 
-        var productId = this.bazaarData.nameToId(productName).orElse(null);
-        if (productId == null) {
-            return SelfUnderbidResult.notUndercut();
-        }
-
-        var product = products.get(productId);
-        if (product == null) {
-            return SelfUnderbidResult.notUndercut();
-        }
-
-        var summaries = switch (type) {
-            case Buy -> product.getSellSummary();
-            case Sell -> product.getBuySummary();
-        };
-
-        if (summaries == null || summaries.size() < 2) {
-            return SelfUnderbidResult.notUndercut();
-        }
-
-        double bestPrice = summaries.get(0).getPricePerUnit();
         var secondEntry = summaries.get(1);
 
         boolean priceMatches = Double.compare(secondEntry.getPricePerUnit(), secondBestPrice) == 0;
@@ -592,6 +604,7 @@ public class TrackedOrderManager {
         public boolean soundMatched = true;
         public boolean notifyUndercut = true;
         public boolean soundUndercut = true;
+        public boolean notifySelfUndercut = true;
 
         public Action gotoOnMatched = Action.Order;
         public Action gotoOnUndercut = Action.Order;
@@ -621,7 +634,8 @@ public class TrackedOrderManager {
                     this.createNotifyMatchedOption(),
                     this.createSoundMatchedOption(),
                     this.createNotifyUndercutOption(),
-                    this.createSoundUndercutOption()
+                    this.createSoundUndercutOption(),
+                    this.createNotifySelfUndercutOption()
                 )
                 .addSubgroups(notifyBestGroup, queueGroup);
 
@@ -771,6 +785,16 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.groupOrders, val -> this.groupOrders = val)
                 .description(OptionDescription.of(Component.literal(
                     "Group multiple orders at the same price into a single notification")))
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        private Option.Builder<Boolean> createNotifySelfUndercutOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("Notify - Self Undercut"))
+                .binding(true, () -> this.notifySelfUndercut, val -> this.notifySelfUndercut = val)
+                .description(OptionDescription.of(Component.literal(
+                    "Send a notification when you place an order that undercuts your own existing order")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
