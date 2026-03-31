@@ -548,23 +548,48 @@ public class TrackedOrderManager {
             return SelfUnderbidResult.notUndercut();
         }
 
-        // Check that the best bucket in the book is entirely owned by the player.
-        // This covers both Top (player is sole occupant) and the Matched case where
-        // the player holds the top slot alongside strangers.
-        double bestPrice = summaries.getFirst().getPricePerUnit();
+        // Find the player's own best-priced bucket anywhere in the book.
+        // We do NOT require the player to own summaries[0]: after a reset+sync all orders
+        // arrive as Undercut (strangers may be ahead), yet the player's two adjacent orders
+        // can still form a self-undercut pair further down the book.
+        Comparator<Double> bestFirst = type == OrderType.Buy
+            ? Comparator.reverseOrder()
+            : Comparator.naturalOrder();
+
+        OptionalDouble bestPlayerPriceOpt = matchingOrders.stream()
+            .mapToDouble(order -> order.pricePerUnit)
+            .boxed()
+            .min(bestFirst)
+            .map(OptionalDouble::of)
+            .orElse(OptionalDouble.empty());
+
+        if (bestPlayerPriceOpt.isEmpty()) {
+            return SelfUnderbidResult.notUndercut();
+        }
+        double bestPrice = bestPlayerPriceOpt.getAsDouble();
+
+        // Find the book index of the player's best-priced bucket and verify the player
+        // exclusively owns that slot (playerOrderCountAtBest == summaries[i].getOrders()).
+        int bestIdx = -1;
+        for (int i = 0; i < summaries.size(); i++) {
+            if (Double.compare(summaries.get(i).getPricePerUnit(), bestPrice) == 0) {
+                bestIdx = i;
+                break;
+            }
+        }
+        if (bestIdx == -1 || bestIdx + 1 >= summaries.size()) {
+            return SelfUnderbidResult.notUndercut();
+        }
+
         long playerOrderCountAtBest = matchingOrders.stream()
             .filter(order -> Double.compare(order.pricePerUnit, bestPrice) == 0)
             .count();
-        if (summaries.getFirst().getOrders() != playerOrderCountAtBest || playerOrderCountAtBest == 0) {
+        if (summaries.get(bestIdx).getOrders() != playerOrderCountAtBest || playerOrderCountAtBest == 0) {
             return SelfUnderbidResult.notUndercut();
         }
 
         // Among the undercut orders, pick the one closest to the top (best-priced for its type).
         // For Buy orders the highest price is best; for Sell offers the lowest price is best.
-        Comparator<Double> bestFirst = type == OrderType.Buy
-            ? Comparator.reverseOrder()
-            : Comparator.naturalOrder();
-
         OptionalDouble secondBestOpt = matchingOrders.stream()
             .filter(order -> order.status instanceof OrderStatus.Undercut)
             .mapToDouble(order -> order.pricePerUnit)
@@ -582,7 +607,8 @@ public class TrackedOrderManager {
             .filter(order -> Double.compare(order.pricePerUnit, secondBestPrice) == 0)
             .count();
 
-        var secondEntry = summaries.get(1);
+        // Use the book entry immediately below the player's best bucket, not a hardcoded index.
+        var secondEntry = summaries.get(bestIdx + 1);
 
         boolean priceMatches = Double.compare(secondEntry.getPricePerUnit(), secondBestPrice) == 0;
         boolean orderCountMatches = secondEntry.getOrders() == playerOrderCountAtSecondBest;
