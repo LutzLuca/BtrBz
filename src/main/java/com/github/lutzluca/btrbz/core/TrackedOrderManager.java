@@ -26,12 +26,11 @@ import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -50,7 +49,8 @@ public class TrackedOrderManager {
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
-    private final Set<SelfUnderbidKey> selfUnderbidState = new HashSet<>();
+    private record SelfUnderbidPricePair(double bestPrice, double secondBestPrice) {}
+    private final Map<SelfUnderbidKey, SelfUnderbidPricePair> selfUnderbidState = new HashMap<>();
 
     public record SelfUnderbidKey(String productName, OrderType type) {}
 
@@ -131,9 +131,6 @@ public class TrackedOrderManager {
         if (this.trackedOrders.remove(order)) {
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
-
-        // Invalidate the self-undercut state for this pair so the set never orphans a key
-        // when all orders for a pair are removed. The next API poll is the source of truth.
         this.selfUnderbidState.remove(new SelfUnderbidKey(order.productName, order.type));
     }
 
@@ -493,8 +490,13 @@ public class TrackedOrderManager {
         for (var key : keys) {
             var result = this.computeSelfUndercutState(key.productName(), key.type(), products);
 
-            if (result.isSelfUndercut() && !this.selfUnderbidState.contains(key)) {
-                this.selfUnderbidState.add(key);
+            var existing = this.selfUnderbidState.get(key);
+            boolean pricesChanged = existing == null
+                || Double.compare(existing.bestPrice(), result.bestPrice()) != 0
+                || Double.compare(existing.secondBestPrice(), result.secondBestPrice()) != 0;
+
+            if (result.isSelfUndercut() && pricesChanged) {
+                this.selfUnderbidState.put(key, new SelfUnderbidPricePair(result.bestPrice(), result.secondBestPrice()));
                 if (cfg.enabled && cfg.notifySelfUndercut) {
                     Notifier.notifySelfUndercut(key, result.bestPrice(), result.secondBestPrice());
                 }
