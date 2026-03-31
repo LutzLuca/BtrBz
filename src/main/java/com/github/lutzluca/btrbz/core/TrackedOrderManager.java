@@ -131,7 +131,6 @@ public class TrackedOrderManager {
         if (this.trackedOrders.remove(order)) {
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
-        this.selfUnderbidState.remove(new SelfUnderbidKey(order.productName, order.type));
     }
 
     public record GroupKey(String productName, OrderType type, double pricePerUnit) {}
