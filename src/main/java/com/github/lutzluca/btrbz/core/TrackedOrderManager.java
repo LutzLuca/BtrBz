@@ -588,10 +588,11 @@ public class TrackedOrderManager {
             return SelfUnderbidResult.notUndercut();
         }
 
-        // Among the undercut orders, pick the one closest to the top (best-priced for its type).
-        // For Buy orders the highest price is best; for Sell offers the lowest price is best.
+        // Among the undercut orders, pick the one closest to the top (best-priced for its type),
+        // making sure to exclude the best player price we just found.
         OptionalDouble secondBestOpt = matchingOrders.stream()
             .filter(order -> order.status instanceof OrderStatus.Undercut)
+            .filter(order -> Double.compare(order.pricePerUnit, bestPrice) != 0)
             .mapToDouble(order -> order.pricePerUnit)
             .boxed()
             .min(bestFirst)
