@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalDouble;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -50,7 +49,7 @@ public class TrackedOrderManager {
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
     private record SelfUnderbidPricePair(double bestPrice, double secondBestPrice) {}
-    private final Map<SelfUnderbidKey, SelfUnderbidPricePair> selfUnderbidState = new HashMap<>();
+    private final Map<SelfUnderbidKey, SelfUnderbidPricePair> selfUndercutState = new HashMap<>();
 
     public record SelfUnderbidKey(String productName, OrderType type) {}
 
@@ -129,6 +128,14 @@ public class TrackedOrderManager {
 
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
+            var key = new SelfUnderbidKey(order.productName, order.type);
+            var cached = this.selfUndercutState.get(key);
+            if (cached != null && (
+                Double.compare(order.pricePerUnit, cached.bestPrice()) == 0
+                || Double.compare(order.pricePerUnit, cached.secondBestPrice()) == 0
+            )) {
+                this.selfUndercutState.remove(key);
+            }
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
     }
@@ -390,7 +397,7 @@ public class TrackedOrderManager {
     public void resetTrackedOrders() {
         var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();
-        this.selfUnderbidState.clear();
+        this.selfUndercutState.clear();
 
         log.info("Reset tracked orders (removed {})", removedSize);
         this.onOrdersResetListeners.forEach(Runnable::run);
@@ -484,58 +491,77 @@ public class TrackedOrderManager {
             .distinct()
             .toList();
 
+        this.selfUndercutState.keySet().retainAll(keys);
+
         var cfg = ConfigManager.get().trackedOrders;
 
         for (var key : keys) {
             var result = this.computeSelfUndercutState(key.productName(), key.type(), products);
+            var existing = this.selfUndercutState.get(key);
 
-            var existing = this.selfUnderbidState.get(key);
-            boolean pricesChanged = existing == null
-                || Double.compare(existing.bestPrice(), result.bestPrice()) != 0
-                || Double.compare(existing.secondBestPrice(), result.secondBestPrice()) != 0;
+            if (result instanceof SelfUnderbidResult.Undercut undercut) {
+                boolean pricesChanged = existing == null
+                    || Double.compare(existing.bestPrice(), undercut.bestPrice()) != 0
+                    || Double.compare(existing.secondBestPrice(), undercut.secondBestPrice()) != 0;
+                if(!pricesChanged) {
+                    continue;
+                }
 
-            if (result.isSelfUndercut() && pricesChanged) {
-                this.selfUnderbidState.put(key, new SelfUnderbidPricePair(result.bestPrice(), result.secondBestPrice()));
+                this.selfUndercutState.put(key, new SelfUnderbidPricePair(undercut.bestPrice(), undercut.secondBestPrice()));
                 if (cfg.enabled && cfg.notifySelfUndercut) {
-                    Notifier.notifySelfUndercut(key, result.bestPrice(), result.secondBestPrice());
+                    Notifier.notifySelfUndercut(key, undercut.bestPrice(), undercut.secondBestPrice());
                 }
                 continue;
             }
 
             if (!result.isSelfUndercut()) {
-                this.selfUnderbidState.remove(key);
+                this.selfUndercutState.remove(key);
             }
         }
     }
 
-    private record SelfUnderbidResult(boolean isSelfUndercut, double bestPrice, double secondBestPrice) {
-        static SelfUnderbidResult notUndercut() {
-            return new SelfUnderbidResult(false, 0, 0);
+    private sealed interface SelfUnderbidResult {
+        record Undercut(double bestPrice, double secondBestPrice) implements SelfUnderbidResult {}
+        record NotUndercut() implements SelfUnderbidResult {}
+
+        default boolean isSelfUndercut() {
+            return this instanceof Undercut;
         }
     }
 
     private SelfUnderbidResult computeSelfUndercutState(
-        String productName, OrderType type, Map<String, Product> products
+        String productName, 
+        OrderType type, 
+        Map<String, Product> products
     ) {
         var matchingOrders = this.trackedOrders.stream()
             .filter(order -> order.productName.equals(productName) && order.type == type)
             .toList();
 
-        boolean hasUndercut = matchingOrders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
-        if (!hasUndercut) {
-            return SelfUnderbidResult.notUndercut();
+        Comparator<Double> bestFirst = type == OrderType.Buy
+            ? Comparator.reverseOrder()
+            : Comparator.naturalOrder();
+
+        var playerPrices = matchingOrders.stream()
+            .map(order -> order.pricePerUnit)
+            .distinct()
+            .sorted(bestFirst)
+            .toList();
+
+        if (playerPrices.size() < 2) {
+            return new SelfUnderbidResult.NotUndercut();
         }
 
         var productId = this.bazaarData.nameToId(productName).orElse(null);
         if (productId == null) {
             log.debug("Product '{}' not found in bazaar data", productName);
-            return SelfUnderbidResult.notUndercut();
+            return new SelfUnderbidResult.NotUndercut();
         }
 
         var product = products.get(productId);
         if (product == null) {
             log.debug("Product '{}' not found in products map", productName);
-            return SelfUnderbidResult.notUndercut();
+            return new SelfUnderbidResult.NotUndercut();
         }
 
         var summaries = switch (type) {
@@ -544,81 +570,39 @@ public class TrackedOrderManager {
         };
 
         if (summaries == null || summaries.size() < 2) {
-            log.debug("Product '{}' has less than 2 summaries", productName);
-            return SelfUnderbidResult.notUndercut();
+            return new SelfUnderbidResult.NotUndercut();
         }
 
-        // Find the player's own best-priced bucket anywhere in the book.
-        // We do NOT require the player to own summaries[0]: after a reset+sync all orders
-        // arrive as Undercut (strangers may be ahead), yet the player's two adjacent orders
-        // can still form a self-undercut pair further down the book.
-        Comparator<Double> bestFirst = type == OrderType.Buy
-            ? Comparator.reverseOrder()
-            : Comparator.naturalOrder();
+        var topBucket = summaries.getFirst();
+        var secondBucket = summaries.get(1);
+        double bestPlayerPrice = playerPrices.getFirst();
+        double secondBestPlayerPrice = playerPrices.get(1);
 
-        OptionalDouble bestPlayerPriceOpt = matchingOrders.stream()
-            .mapToDouble(order -> order.pricePerUnit)
-            .boxed()
-            .min(bestFirst)
-            .map(OptionalDouble::of)
-            .orElse(OptionalDouble.empty());
-
-        if (bestPlayerPriceOpt.isEmpty()) {
-            return SelfUnderbidResult.notUndercut();
-        }
-        double bestPrice = bestPlayerPriceOpt.getAsDouble();
-
-        // Find the book index of the player's best-priced bucket and verify the player
-        // exclusively owns that slot (playerOrderCountAtBest == summaries[i].getOrders()).
-        int bestIdx = -1;
-        for (int i = 0; i < summaries.size(); i++) {
-            if (Double.compare(summaries.get(i).getPricePerUnit(), bestPrice) == 0) {
-                bestIdx = i;
-                break;
-            }
-        }
-        if (bestIdx == -1 || bestIdx + 1 >= summaries.size()) {
-            return SelfUnderbidResult.notUndercut();
+        if (Double.compare(topBucket.getPricePerUnit(), bestPlayerPrice) != 0) {
+            return new SelfUnderbidResult.NotUndercut();
         }
 
-        long playerOrderCountAtBest = matchingOrders.stream()
-            .filter(order -> Double.compare(order.pricePerUnit, bestPrice) == 0)
-            .count();
-        if (summaries.get(bestIdx).getOrders() != playerOrderCountAtBest || playerOrderCountAtBest == 0) {
-            return SelfUnderbidResult.notUndercut();
-        }
-
-        // Among the undercut orders, pick the one closest to the top (best-priced for its type),
-        // making sure to exclude the best player price we just found.
-        OptionalDouble secondBestOpt = matchingOrders.stream()
-            .filter(order -> order.status instanceof OrderStatus.Undercut)
-            .filter(order -> Double.compare(order.pricePerUnit, bestPrice) != 0)
-            .mapToDouble(order -> order.pricePerUnit)
-            .boxed()
-            .min(bestFirst)
-            .map(OptionalDouble::of)
-            .orElse(OptionalDouble.empty());
-
-        if (secondBestOpt.isEmpty()) {
-            return SelfUnderbidResult.notUndercut();
-        }
-        double secondBestPrice = secondBestOpt.getAsDouble();
-
-        long playerOrderCountAtSecondBest = matchingOrders.stream()
-            .filter(order -> Double.compare(order.pricePerUnit, secondBestPrice) == 0)
+        long playerCountAtBest = matchingOrders.stream()
+            .filter(order -> Double.compare(order.pricePerUnit, bestPlayerPrice) == 0)
             .count();
 
-        // Use the book entry immediately below the player's best bucket, not a hardcoded index.
-        var secondEntry = summaries.get(bestIdx + 1);
-
-        boolean priceMatches = Double.compare(secondEntry.getPricePerUnit(), secondBestPrice) == 0;
-        boolean orderCountMatches = secondEntry.getOrders() == playerOrderCountAtSecondBest;
-
-        if (!priceMatches || !orderCountMatches) {
-            return SelfUnderbidResult.notUndercut();
+        if (topBucket.getOrders() != playerCountAtBest) {
+            return new SelfUnderbidResult.NotUndercut();
         }
 
-        return new SelfUnderbidResult(true, bestPrice, secondBestPrice);
+        if (Double.compare(secondBucket.getPricePerUnit(), secondBestPlayerPrice) != 0) {
+            return new SelfUnderbidResult.NotUndercut();
+        }
+
+        long playerCountAtSecondBest = matchingOrders.stream()
+            .filter(order -> Double.compare(order.pricePerUnit, secondBestPlayerPrice) == 0)
+            .count();
+
+        if (secondBucket.getOrders() != playerCountAtSecondBest) {
+            return new SelfUnderbidResult.NotUndercut();
+        }
+
+        return new SelfUnderbidResult.Undercut(bestPlayerPrice, secondBestPlayerPrice);
     }
 
     public static class OrderManagerConfig {
