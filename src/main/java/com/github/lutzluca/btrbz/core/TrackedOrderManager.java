@@ -129,11 +129,9 @@ public class TrackedOrderManager {
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
             var key = new SelfUnderbidKey(order.productName, order.type);
-            var cached = this.selfUndercutState.get(key);
-            if (cached != null && (
-                Double.compare(order.pricePerUnit, cached.bestPrice()) == 0
-                || Double.compare(order.pricePerUnit, cached.secondBestPrice()) == 0
-            )) {
+            boolean removedLastOrder = this.trackedOrders.stream()
+                .noneMatch(curr -> curr.productName.equals(order.productName) && curr.type == order.type);
+            if (removedLastOrder) {
                 this.selfUndercutState.remove(key);
             }
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
@@ -806,7 +804,7 @@ public class TrackedOrderManager {
                 .name(Component.literal("Notify - Self Undercut"))
                 .binding(true, () -> this.notifySelfUndercut, val -> this.notifySelfUndercut = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Send a notification when you place an order that undercuts your own existing order")))
+                    "Send a notification when a previously placed order is detected to be undercut")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
