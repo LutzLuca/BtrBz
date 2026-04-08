@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.5.0-alpha] - 2026-04-08
+
+### Added
+
+- Added self-undercut detection alerts - notifies you when your own orders get undercut by others at the same price level
+- Added grouped order notifications (opt-in, not fully tested - might be a little weird) - consolidates multiple orders with identical product, type, and price into single notifications with group size display
+- Added price per unit display option in order notifications
+
+### Fixed
+
+- Fixed order status computation with ghost orders - ghost orders from Hypixel API are now correctly treated as "Top" instead of "Matched", preventing false status escalation
+- Fixed click rule to only apply outside player's inventory, matching the ItemOverride behavior
+- Fixed opposing-order protection to remain independent from percentage blocking logic
+
+### Internal
+
+- Added references directory to gitignore
+- Converted static components (BazaarOrderActions, ProductInfoProvider, OrderBookScreenController) to instance-based dependency injection
+- Moved conversion loading logic into BazaarData class with improved error handling
+- Converted OrderProtectionManager from singleton to constructor injection
+- Renamed ModContext to ModuleContext and inlined into ModuleManager
+- Downgraded sound utility and widget manager logging to trace level
+
 ## [0.4.0-alpha] - 2026-03-18
 
 ### Added
