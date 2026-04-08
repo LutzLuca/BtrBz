@@ -35,7 +35,7 @@ public class SoundUtil {
         lastPlayedTimes.compute(sound, (key, lastTime) -> {
             long last = Optional.ofNullable(lastTime).orElse(0L);
             if (now - last > SOUND_COOLDOWN_MS) {
-                log.debug("Requesting sound: {} (volume={}, repeats={})", sound.location(), volume, repeatCount);
+                log.trace("Requesting sound: {} (volume={}, repeats={})", sound.location(), volume, repeatCount);
                 for (int i = 0; i < repeatCount; i++) {
                     if (i == 0) {
                         SoundUtil.play(sound, volume);
@@ -43,14 +43,14 @@ public class SoundUtil {
                     }
 
                     int delay = i * 3;
-                    log.debug("Scheduling repeat #{} for {} with delay {} ticks", i, sound.location(), delay);
+                    log.trace("Scheduling repeat #{} for {} with delay {} ticks", i, sound.location(), delay);
                     ClientTickDispatcher.submit(mc -> SoundUtil.play(sound, volume), delay);
                 }
 
                 return now;
             }
 
-            log.debug("Sound {} suppressed by cooldown ({}ms since last play)", sound.location(), now - last);
+            log.trace("Sound {} suppressed by cooldown ({}ms since last play)", sound.location(), now - last);
             return lastTime;
         });
     }
