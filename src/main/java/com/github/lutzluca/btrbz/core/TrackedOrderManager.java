@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import lombok.extern.slf4j.Slf4j;
@@ -459,7 +460,9 @@ public class TrackedOrderManager {
             case Buy -> Utils.getFirst(product.getSellSummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1 ? new Matched() : new Top();
+                    return summary.getOrders() > 1
+                        ? this.matchedOrGhostTop(order, summary)
+                        : new Top();
                 }
                 if (order.pricePerUnit > bestPrice) {
                     return new Top();
@@ -469,7 +472,9 @@ public class TrackedOrderManager {
             case Sell -> Utils.getFirst(product.getBuySummary()).map(summary -> {
                 double bestPrice = summary.getPricePerUnit();
                 if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1 ? new Matched() : new Top();
+                    return summary.getOrders() > 1
+                        ? this.matchedOrGhostTop(order, summary)
+                        : new Top();
                 }
                 if (order.pricePerUnit < bestPrice) {
                     return new Top();
@@ -477,6 +482,25 @@ public class TrackedOrderManager {
                 return new Undercut(order.pricePerUnit - bestPrice);
             });
         };
+    }
+
+    /**
+     * The Hypixel API can contain "ghost orders", entries that report
+     * {@code orders > 1} at a price bucket but carry 0 actual items. When only ghost
+     * orders sit alongside the player's order, the bucket's total item amount equals
+     * (or is less than) the player's own volume, meaning there is no real competition.
+     * In that case the order is effectively {@link Top}, not {@link Matched}.
+     */
+    private @NotNull OrderStatus matchedOrGhostTop(TrackedOrder order, Product.Summary summary) {
+        int itemsAhead = Math.max(0, (int) summary.getAmount() - order.volume);
+        if (itemsAhead == 0) {
+            log.debug(
+                "Ghost order detected for {}: bucket has {} orders but 0 items ahead of player volume ({}), treating as Top",
+                order.productName, (int) summary.getOrders(), order.volume
+            );
+            return new Top();
+        }
+        return new Matched();
     }
 
     private record TrackedStatus(TrackedOrder order, OrderStatus status) { }
@@ -623,7 +647,9 @@ public class TrackedOrderManager {
         public boolean showQueueInfo = true;
         public QueueDisplayMode queueDisplayMode = QueueDisplayMode.Both;
 
-        public boolean groupOrders = true;
+        // Not yet fully tested, ghost order interactions with grouped status transitions
+        // (e.g. Matched → SelfMatched) are still unreliable. Disabled by default until resolved.
+        public boolean groupOrders = false;
         public boolean includePricePerUnit = false;
 
         public OptionGroup createGroup() {
@@ -793,9 +819,9 @@ public class TrackedOrderManager {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Group Orders"))
-                .binding(true, () -> this.groupOrders, val -> this.groupOrders = val)
+                .binding(false, () -> this.groupOrders, val -> this.groupOrders = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Group multiple orders at the same price into a single notification")))
+                    "(Experimental) Group multiple orders at the same price into a single notification. Not yet fully tested, use with caution")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
