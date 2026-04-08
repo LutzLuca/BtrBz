@@ -20,6 +20,7 @@ import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupKey;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupStatus;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
+import com.github.lutzluca.btrbz.core.TrackedOrderManager.SelfUndercutKey;
 import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
@@ -227,6 +228,24 @@ public class Notifier {
             .withStyle(style -> style
                 .withClickEvent(new RunCommand("/managebazaarorders"))
                 .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen")))));
+    }
+
+    public static void notifySelfUndercut(SelfUndercutKey key, double bestPrice, double secondBestPrice) {
+        var orderString = key.type() == OrderType.Buy ? "Buy Order" : "Sell Offer";
+        var msg = prefix()
+            .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(key.productName()).withStyle(ChatFormatting.YELLOW))
+            .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("SELF-UNDERCUT").withStyle(ChatFormatting.RED))
+            .append(Component.literal(" from ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(Utils.formatDecimal(bestPrice, 1, true)).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" to ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(Utils.formatDecimal(secondBestPrice, 1, true)).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+
+        notifyPlayer(msg);
     }
 
     public static void notifyAlertRegistered(ResolvedAlertArgs cmd) {
