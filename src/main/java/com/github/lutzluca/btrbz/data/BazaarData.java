@@ -131,12 +131,13 @@ public class BazaarData {
     }
 
     public OrderLists getOrderLists(String productId) {
+        // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
         return Optional.ofNullable(this.getProducts().get(productId))
-                       .map(prod -> new OrderLists(
-                           Optional.ofNullable(prod.getBuySummary()).orElse(List.of()),
-                           Optional.ofNullable(prod.getSellSummary()).orElse(List.of())
-                       ))
-                       .orElse(OrderLists.empty());
+            .map(prod -> new OrderLists(
+                Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
+                Optional.ofNullable(prod.getBuySummary()).orElse(List.of())
+            ))
+            .orElse(OrderLists.empty());
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
