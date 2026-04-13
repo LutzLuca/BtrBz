@@ -1,10 +1,13 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import net.minecraft.world.inventory.Slot;
 
+@Slf4j
 public class ScreenActionManager {
 
     private static final List<ScreenClickRule> RULES = new ArrayList<>();
@@ -20,8 +23,28 @@ public class ScreenActionManager {
         }
 
         for (ScreenClickRule rule : RULES) {
-            if (rule.applies(info, slot, button)) {
-                return rule.onClick(info, slot, button);
+            var applies = Try.of(() -> rule.applies(info, slot, button))
+                .onFailure(err -> log.error(
+                    "Screen click rule '{}' failed while matching screen '{}' slot '{}' button '{}'",
+                    rule.getClass().getName(),
+                    info.containerName().orElse("<no-container>"),
+                    slot.getContainerSlot(),
+                    button,
+                    err
+                ))
+                .getOrElse(false);
+
+            if (applies) {
+                return Try.of(() -> rule.onClick(info, slot, button))
+                    .onFailure(err -> log.error(
+                        "Screen click rule '{}' failed while handling screen '{}' slot '{}' button '{}'",
+                        rule.getClass().getName(),
+                        info.containerName().orElse("<no-container>"),
+                        slot.getContainerSlot(),
+                        button,
+                        err
+                    ))
+                    .getOrElse(false);
             }
         }
 

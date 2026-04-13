@@ -76,7 +76,12 @@ public class BazaarData {
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = products;
         for (var listener : this.listeners) {
-            listener.accept(this.lastProducts);
+            Try.run(() -> listener.accept(this.lastProducts)).onFailure(err -> log.error(
+                "Bazaar update listener '{}' failed while processing {} products",
+                listener.getClass().getName(),
+                this.lastProducts.size(),
+                err
+            ));
         }
     }
 
@@ -127,7 +132,10 @@ public class BazaarData {
 
     public OrderLists getOrderLists(String productId) {
         return Optional.ofNullable(this.getProducts().get(productId))
-                       .map(prod -> new OrderLists(prod.getSellSummary(), prod.getBuySummary()))
+                       .map(prod -> new OrderLists(
+                           Optional.ofNullable(prod.getBuySummary()).orElse(List.of()),
+                           Optional.ofNullable(prod.getSellSummary()).orElse(List.of())
+                       ))
                        .orElse(new OrderLists(List.of(), List.of()));
     }
 
@@ -197,6 +205,10 @@ public class BazaarData {
         }
 
         var qs = product.getQuickStatus();
+        if (qs == null) {
+            return Optional.empty();
+        }
+
         long movingWeek = switch (orderType) {
             case Sell -> qs.getBuyMovingWeek();
             case Buy -> qs.getSellMovingWeek();
