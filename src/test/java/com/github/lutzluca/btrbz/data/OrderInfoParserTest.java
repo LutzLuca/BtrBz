@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.data;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.List;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -320,11 +321,11 @@ class OrderInfoParserTest {
         }
     }
 
-    private static java.util.List<String> orderLore(String... lines) {
-        return java.util.List.of(lines);
+    private static List<String> orderLore(String... lines) {
+        return List.of(lines);
     }
 
-    private static java.util.List<String> confirmLore(String... lines) {
-        return java.util.List.of(lines);
+    private static List<String> confirmLore(String... lines) {
+        return List.of(lines);
     }
 }

@@ -14,6 +14,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -72,7 +73,7 @@ public class ModuleManager {
     private void renderModules(ScreenInfo info) {
         this.modules.values().forEach(module -> module.setDisplayed(false));
 
-        java.util.List<DraggableWidget> widgets = this.modules
+        List<DraggableWidget> widgets = this.modules
             .values()
             .stream()
             .filter(module -> module.shouldDisplay(info))
