@@ -90,7 +90,7 @@ public class DrawContextMixin {
         if (info.isPresent()) {
             var pending = info.get();
             var overridden = pending.getRight();
-            var blocked = pending.getLeft().validationResult().protect();
+            var blocked = pending.getLeft().protect();
 
             var texture = !blocked || overridden ? GREEN_CHECK : RED_CROSS;
             int iconX = x + 16 - iconSize;

@@ -72,22 +72,42 @@ public final class ScreenInfoHelper {
 
     private void setupInventoryWatcher() {
         this.inventoryWatcher.setOnLoaded(inventory -> {
-            this.currInfo.markInventoryLoaded();
+            var screenInfo = this.currInfo;
+
+            screenInfo.markInventoryLoaded();
             log.trace("Inventory loaded: '{}'", inventory.title);
 
-            this.screenLoadListenerEntries
-                .stream()
-                .filter(entry -> entry.matcher.test(this.currInfo))
-                .forEach(entry -> entry.listener.accept(this.currInfo, inventory));
+            this.screenLoadListenerEntries.forEach(entry ->
+                Try.run(() -> {
+                    if (entry.matcher.test(screenInfo)) {
+                        entry.listener.accept(screenInfo, inventory);
+                    }
+                }).onFailure(err -> log.error(
+                    "Screen load listener failed for screen '{}' and listener '{}'",
+                    screenInfo.containerName().orElse("<unknown>"),
+                    entry.listener.getClass().getName(),
+                    err
+                ))
+            );
         });
 
         this.inventoryWatcher.setOnClose(title -> {
+            var screenInfo = this.prevInfo;
+
             log.trace("Inventory closed: '{}'", title);
 
-            this.screenCloseListenerEntries
-                .stream()
-                .filter(entry -> entry.matcher.test(this.prevInfo))
-                .forEach(entry -> entry.listener.accept(this.prevInfo));
+            this.screenCloseListenerEntries.forEach(entry ->
+                Try.run(() -> {
+                    if (entry.matcher.test(screenInfo)) {
+                        entry.listener.accept(screenInfo);
+                    }
+                }).onFailure(err -> log.error(
+                    "Screen close listener failed for screen '{}' and listener '{}'",
+                    screenInfo.containerName().orElse("<unknown>"),
+                    entry.listener.getClass().getName(),
+                    err
+                ))
+            );
         });
     }
 
@@ -105,7 +125,16 @@ public final class ScreenInfoHelper {
     }
 
     public void fireScreenSwitchCallbacks() {
-        this.switchListeners.forEach(listener -> listener.accept(this.currInfo));
+        var screenInfo = this.currInfo;
+
+        this.switchListeners.forEach(listener ->
+            Try.run(() -> listener.accept(screenInfo)).onFailure(err -> log.error(
+                "Screen switch listener failed for screen '{}' and listener '{}'",
+                screenInfo.containerName().orElse("<unknown>"),
+                listener.getClass().getName(),
+                err
+            ))
+        );
     }
 
     private enum BazaarCategory {

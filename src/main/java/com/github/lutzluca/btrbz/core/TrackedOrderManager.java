@@ -61,7 +61,8 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
-    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = null;
+    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
+        (unfilledOrders, filledOrders) -> { };
 
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;

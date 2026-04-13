@@ -75,8 +75,15 @@ public class BazaarData {
 
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = products;
+        var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
+
         for (var listener : this.listeners) {
-            listener.accept(this.lastProducts);
+            Try.run(() -> listener.accept(snapshotProducts)).onFailure(err -> log.error(
+                "Bazaar update listener '{}' failed while processing {} products",
+                listener.getClass().getName(),
+                snapshotProducts.size(),
+                err
+            ));
         }
     }
 
@@ -126,9 +133,13 @@ public class BazaarData {
     }
 
     public OrderLists getOrderLists(String productId) {
+        // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
         return Optional.ofNullable(this.getProducts().get(productId))
-                       .map(prod -> new OrderLists(prod.getSellSummary(), prod.getBuySummary()))
-                       .orElse(new OrderLists(List.of(), List.of()));
+            .map(prod -> new OrderLists(
+                Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
+                Optional.ofNullable(prod.getBuySummary()).orElse(List.of())
+            ))
+            .orElse(OrderLists.empty());
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
@@ -197,6 +208,10 @@ public class BazaarData {
         }
 
         var qs = product.getQuickStatus();
+        if (qs == null) {
+            return Optional.empty();
+        }
+
         long movingWeek = switch (orderType) {
             case Sell -> qs.getBuyMovingWeek();
             case Buy -> qs.getSellMovingWeek();
@@ -224,7 +239,11 @@ public class BazaarData {
         Optional<@Nullable Double> sellOfferPrice
     ) { }
 
-    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { }
+    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { 
+        public static OrderLists empty() {
+            return new OrderLists(List.of(), List.of());
+        }
+    }
 
     public static final class TrackedProduct {
 

@@ -166,9 +166,9 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
 
     public static class OrderValueOverlayConfig {
 
-        Integer x, y;
+        public Integer x, y;
 
-        boolean enabled = false;
+        public boolean enabled = false;
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option

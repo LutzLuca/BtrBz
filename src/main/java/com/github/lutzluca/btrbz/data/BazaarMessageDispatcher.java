@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +24,14 @@ public final class BazaarMessageDispatcher {
         log.debug("Dispatching bazaar message: {}", msg);
 
         Optional.ofNullable(this.listeners.get(msg.getClass())).ifPresent(listeners ->
-            listeners.forEach(listener -> ((Consumer<T>) listener).accept(msg))
+            listeners.forEach(listener ->
+                Try.run(() -> ((Consumer<T>) listener).accept(msg)).onFailure(err -> log.error(
+                    "Bazaar message listener '{}' failed for message '{}'",
+                    listener.getClass().getName(),
+                    msg.getClass().getSimpleName(),
+                    err
+                ))
+            )
         );
     }
 
