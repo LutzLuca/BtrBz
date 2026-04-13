@@ -14,7 +14,6 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
@@ -201,7 +200,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return Optional.of(this.list);
         }
 
-        var position = this.loadConfigPosition(cfg -> cfg.position).orElse(new Position(10, 10));
+        var position = Optional.ofNullable(this.configState.position).orElse(new Position(10, 10));
 
         var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 
@@ -216,7 +215,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> {
                 log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
-                this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition);
+                this.updateConfig(cfg -> cfg.position = pos);
             });
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()

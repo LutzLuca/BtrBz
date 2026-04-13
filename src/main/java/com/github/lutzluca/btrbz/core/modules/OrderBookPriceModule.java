@@ -160,10 +160,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 this::handlePriceClick
             );
 
-            this.widget.onDragEnd((self, pos) -> this.saveConfigPosition(
-                pos,
-                (cfg, savedPosition) -> cfg.signPosition = savedPosition
-            ));
+            this.widget.onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.signPosition = pos));
         }
 
         this.widget.setDraggable(true);
@@ -173,7 +170,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private Optional<Position> getPosition() {
-        return this.loadConfigPosition(cfg -> cfg.signPosition);
+        return Optional.ofNullable(this.configState.signPosition);
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {

@@ -77,7 +77,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         }
 
         widget.setPosition(position.get().x(), position.get().y());
-        widget.onDragEnd((self, pos) -> this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition));
+        widget.onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         return Optional.of(widget);
     }
@@ -108,7 +108,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
-        return this.loadConfigPosition(cfg -> cfg.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return Optional.ofNullable(this.configState.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
             int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
             int y = bounds.y() - widget.getHeight() - 15;
             return new Position(x, y);

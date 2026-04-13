@@ -329,21 +329,15 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     private void savePosition(Position pos, PresetScreen screen) {
         log.debug("Saving new position for OrderPresetsModule ({}): {}", screen, pos);
         switch (screen) {
-            case PresetScreen.VolumeSetupContainer -> this.saveConfigPosition(
-                pos,
-                (cfg, savedPosition) -> cfg.containerPosition = savedPosition
-            );
-            case PresetScreen.EnterVolumeSign -> this.saveConfigPosition(
-                pos,
-                (cfg, savedPosition) -> cfg.signPosition = savedPosition
-            );
+            case PresetScreen.VolumeSetupContainer -> this.updateConfig(cfg -> cfg.containerPosition = pos);
+            case PresetScreen.EnterVolumeSign -> this.updateConfig(cfg -> cfg.signPosition = pos);
         }
     }
 
     private Optional<Position> getConfigPosition(PresetScreen screen) {
         return switch (screen) {
-            case PresetScreen.VolumeSetupContainer -> this.loadConfigPosition(cfg -> cfg.containerPosition);
-            case PresetScreen.EnterVolumeSign -> this.loadConfigPosition(cfg -> cfg.signPosition);
+            case PresetScreen.VolumeSetupContainer -> Optional.ofNullable(this.configState.containerPosition);
+            case PresetScreen.EnterVolumeSign -> Optional.ofNullable(this.configState.signPosition);
         };
     }
 

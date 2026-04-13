@@ -2,12 +2,9 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.ModuleManager.ModuleContext;
-import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -53,13 +50,5 @@ public abstract class Module<T> {
     protected void updateConfig(Consumer<T> updater) {
         updater.accept(this.configState);
         ModuleManager.getInstance().setDirty(true);
-    }
-
-    protected final Optional<Position> loadConfigPosition(Function<T, Position> getter) {
-        return Optional.ofNullable(getter.apply(this.configState));
-    }
-
-    protected final void saveConfigPosition(Position position, BiConsumer<T, Position> setter) {
-        this.updateConfig(cfg -> setter.accept(cfg, position));
     }
 }

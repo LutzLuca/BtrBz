@@ -13,7 +13,6 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
@@ -149,7 +148,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             .setMaxVisibleItems(this.configState.maxVisibleChildren)
             .onDragEnd((self, pos) -> {
                 log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
-                this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition);
+                this.updateConfig(cfg -> cfg.position = pos);
             });
 
         this.list.onHoverChange((self, oldIdx, newIdx) -> {
@@ -179,7 +178,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info) {
-        return this.loadConfigPosition(cfg -> cfg.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return Optional.ofNullable(this.configState.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
             var x = bounds.x() + bounds.width();
             var y = bounds.y();
             var padding = 20;

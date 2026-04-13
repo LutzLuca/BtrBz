@@ -48,11 +48,10 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             .setAlignment(LabelWidget.Alignment.CENTER)
             .onDragEnd((self, pos) -> {
                 log.debug("Saving new position for OrderLimitModule: {}", pos);
-                this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition);
+                this.updateConfig(cfg -> cfg.position = pos);
             });
 
-        var position = this
-            .loadConfigPosition(cfg -> cfg.position)
+        var position = Optional.ofNullable(this.configState.position)
             .or(() -> info.getHandledScreenBounds().map(bounds -> {
                 int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
                 int y = bounds.y() - widget.getHeight() - 25;
