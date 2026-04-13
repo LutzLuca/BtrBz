@@ -196,12 +196,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         if (this.list != null) {
-            return List.of(this.list);
+            return Optional.of(this.list);
         }
 
-        var position = this.getConfigPosition().orElse(new Position(10, 10));
+        var position = this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).orElse(new Position(10, 10));
 
         var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 
@@ -214,14 +214,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
             .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
-            .onDragEnd((self, pos) -> this.savePosition(pos));
+            .onDragEnd((self, pos) -> {
+                log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
+                this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y);
+            });
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
             .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack(), this.orderBuySet, this.orderSellSet))
             .collect(Collectors.toList());
         widget.setItems(items);
 
-        return List.of(widget);
+        return Optional.of(widget);
     }
 
     public boolean isBookmarked(String productName) {
@@ -237,20 +240,6 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .map(BookmarkedItemRenderable.class::cast)
             .map(item -> new BookmarkedItem(item.getProductName(), item.getItemStack()))
             .collect(Collectors.toList()));
-    }
-
-    private Optional<Position> getConfigPosition() {
-        return Utils
-            .zipNullables(this.configState.x, this.configState.y)
-            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
-    }
-
-    private void savePosition(Position pos) {
-        log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
-        this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
-        });
     }
 
     public static class BookmarkedItemRenderable implements Renderable {

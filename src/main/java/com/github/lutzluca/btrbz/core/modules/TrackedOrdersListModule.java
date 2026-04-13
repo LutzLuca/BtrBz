@@ -125,14 +125,14 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         if (this.list != null) {
-            return List.of(this.list);
+            return Optional.of(this.list);
         }
 
         var position = this.getWidgetPosition(info);
         if (position.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
 
         this.list = new ListWidget(
@@ -147,7 +147,10 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             .setRemovable(false)
             .setReorderable(false)
             .setMaxVisibleItems(this.configState.maxVisibleChildren)
-            .onDragEnd((self, pos) -> this.savePosition(pos));
+            .onDragEnd((self, pos) -> {
+                log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
+                this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y);
+            });
 
         this.list.onHoverChange((self, oldIdx, newIdx) -> {
             var oldEntry = self.getItem(oldIdx)
@@ -172,29 +175,17 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         this.initializeList();
 
-        return List.of(this.list);
-    }
-
-    private void savePosition(Position pos) {
-        log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
-        this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
-        });
+        return Optional.of(this.list);
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info) {
-        return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).or(() -> info.getHandledScreenBounds().map(bounds -> {
             var x = bounds.x() + bounds.width();
             var y = bounds.y();
             var padding = 20;
 
             return new Position(x + padding, y);
         }));
-    }
-
-    private Optional<Position> getConfigPosition() {
-        return Utils.zipNullables(this.configState.x, this.configState.y).map(Position::from);
     }
 
     public static class OrderListConfig {

@@ -57,20 +57,22 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         var lines = this.getLines();
 
         this.widget = new LabelWidget(0, 0, lines);
-        this.widget.setAutoSize(true).setAlignment(LabelWidget.Alignment.CENTER).onDragEnd((self, pos) -> this.savePosition(pos));
+        this.widget.setAutoSize(true)
+            .setAlignment(LabelWidget.Alignment.CENTER)
+            .onDragEnd((self, pos) -> this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y));
 
         var position = this.getWidgetPosition(info, this.widget);
         if (position.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
 
         this.widget.setPosition(position.get().x(), position.get().y());
 
-        return List.of(this.widget);
+        return Optional.of(this.widget);
     }
 
     private List<Component> getLines() {
@@ -143,25 +145,12 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         );
     }
 
-    private void savePosition(Position pos) {
-        this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
-        });
-    }
-
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
-        return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).or(() -> info.getHandledScreenBounds().map(bounds -> {
             int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
             int y = bounds.y() - widget.getHeight() - 15;
             return new Position(x, y);
         }));
-    }
-
-    private Optional<Position> getConfigPosition() {
-        return Utils
-            .zipNullables(this.configState.x, this.configState.y)
-            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
     }
 
     public static class OrderValueOverlayConfig {

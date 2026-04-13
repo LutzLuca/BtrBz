@@ -32,10 +32,10 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         var screenOpt = info.getGenericContainerScreen();
         if (screenOpt.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
 
         var screen = screenOpt.get();
@@ -46,12 +46,12 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
         int listedCount = this.parseListedCount(inv.getItem(SELL_INSTANTLY_SLOT)).orElse(0);
         if (listedCount <= 0) {
-            return List.of();
+            return Optional.empty();
         }
 
         var priceDiffOpt = this.computePriceDiff(productName);
         if (priceDiffOpt.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
 
         double perItemDiff = priceDiffOpt.get();
@@ -73,13 +73,13 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
         var position = this.getWidgetPosition(info, widget);
         if (position.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
 
         widget.setPosition(position.get().x(), position.get().y());
-        widget.onDragEnd((self, pos) -> this.savePosition(pos));
+        widget.onDragEnd((self, pos) -> this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y));
 
-        return List.of(widget);
+        return Optional.of(widget);
     }
 
     private Optional<Integer> parseListedCount(ItemStack sellStack) {
@@ -108,24 +108,11 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
-        return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).or(() -> info.getHandledScreenBounds().map(bounds -> {
             int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
             int y = bounds.y() - widget.getHeight() - 15;
             return new Position(x, y);
         }));
-    }
-
-    private Optional<Position> getConfigPosition() {
-        return Utils
-            .zipNullables(this.configState.x, this.configState.y)
-            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
-    }
-
-    private void savePosition(Position pos) {
-        this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
-        });
     }
 
     public static class PriceDiffConfig {

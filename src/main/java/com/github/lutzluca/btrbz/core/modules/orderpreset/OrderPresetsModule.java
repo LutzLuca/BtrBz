@@ -265,7 +265,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         var screen = this.getPresetScreen(info);
         if (screen.isEmpty()) {
             log.warn(
@@ -277,7 +277,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 this.inTransaction
             );
 
-            return List.of();
+            return Optional.empty();
         }
 
         var screenType = screen.get();
@@ -297,7 +297,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             this.list.setX(position.x());
             this.list.setY(position.y());
             this.list.setMaxVisibleItems(maxVisible);
-            return List.of(this.list);
+            return Optional.of(this.list);
         }
 
         this.list = new ListWidget(
@@ -323,31 +323,32 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         this.rebuildList();
 
-        return List.of(this.list);
+        return Optional.of(this.list);
     }
 
     private void savePosition(Position pos, PresetScreen screen) {
         log.debug("Saving new position for OrderPresetsModule ({}): {}", screen, pos);
-        this.updateConfig(cfg -> {
-            switch (screen) {
-                case PresetScreen.VolumeSetupContainer -> {
-                    cfg.containerX = pos.x();
-                    cfg.containerY = pos.y();
-                }
-                case PresetScreen.EnterVolumeSign -> {
-                    cfg.signX = pos.x();
-                    cfg.signY = pos.y();
-                }
-            }
-        });
+        switch (screen) {
+            case PresetScreen.VolumeSetupContainer -> this.saveConfigPosition(
+                pos,
+                (cfg, x) -> cfg.containerX = x,
+                (cfg, y) -> cfg.containerY = y
+            );
+            case PresetScreen.EnterVolumeSign -> this.saveConfigPosition(
+                pos,
+                (cfg, x) -> cfg.signX = x,
+                (cfg, y) -> cfg.signY = y
+            );
+        }
     }
 
     private Optional<Position> getConfigPosition(PresetScreen screen) {
         return switch (screen) {
-            case PresetScreen.VolumeSetupContainer -> Utils.zipNullables(this.configState.containerX, this.configState.containerY)
-                .map(pair -> new Position(pair.getLeft(), pair.getRight()));
-            case PresetScreen.EnterVolumeSign -> Utils.zipNullables(this.configState.signX, this.configState.signY)
-                .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+            case PresetScreen.VolumeSetupContainer -> this.loadConfigPosition(
+                cfg -> cfg.containerX,
+                cfg -> cfg.containerY
+            );
+            case PresetScreen.EnterVolumeSign -> this.loadConfigPosition(cfg -> cfg.signX, cfg -> cfg.signY);
         };
     }
 
