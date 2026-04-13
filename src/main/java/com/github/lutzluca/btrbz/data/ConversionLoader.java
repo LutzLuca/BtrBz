@@ -84,7 +84,8 @@ public final class ConversionLoader {
         if (localResult.isSuccess()) {
             var data = localResult.get();
             return CompletableFuture.completedFuture(
-                Try.success(new LoadResult(data.conversions, computeGitBlobHash(data.content)))
+                computeGitBlobHash(data.content)
+                    .map(contentHash -> new LoadResult(data.conversions, contentHash))
             );
         }
 
@@ -97,7 +98,8 @@ public final class ConversionLoader {
         return loadFromGithub().thenApply(result ->
             result
                 .peek(data -> log.debug("Successfully loaded conversions from GitHub"))
-                .map(data -> new LoadResult(data.conversions, computeGitBlobHash(data.content)))
+                .flatMap(data -> computeGitBlobHash(data.content)
+                    .map(contentHash -> new LoadResult(data.conversions, contentHash)))
                 .onFailure(err -> log.error("Failed to load conversions from GitHub", err))
         );
     }
@@ -119,10 +121,11 @@ public final class ConversionLoader {
                             log.error("Failed to persist conversions to local cache, using in-memory only", err);
                             MessageQueue.sendOrQueue("Failed to cache conversions locally", Level.Warn);
                         }))
-                    .map(newData -> Optional.of(new LoadResult(
-                        newData.conversions,
-                        computeGitBlobHash(newData.content)
-                    )));
+                        .flatMap(newData -> computeGitBlobHash(newData.content)
+                            .map(contentHash -> Optional.of(new LoadResult(
+                                newData.conversions,
+                                contentHash
+                            ))));
             })
         );
     }
@@ -237,7 +240,7 @@ public final class ConversionLoader {
         });
     }
 
-    private static String computeGitBlobHash(String content) {
+    private static Try<String> computeGitBlobHash(String content) {
         return Try.of(() -> {
             String header = "blob " + content.getBytes(StandardCharsets.UTF_8).length + "\0";
             var digest = MessageDigest.getInstance("SHA-1");
@@ -245,7 +248,7 @@ public final class ConversionLoader {
             digest.update(content.getBytes(StandardCharsets.UTF_8));
 
             return String.format("%040x", new BigInteger(1, digest.digest()));
-        }).get();
+        });
     }
 
     private static Try<String> readStream(InputStream stream) {

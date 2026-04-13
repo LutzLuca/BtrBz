@@ -38,9 +38,12 @@ import org.jetbrains.annotations.Nullable;
 public class OrderProtectionManager {
 
     private static final int CONFIRMATION_SLOT_INDEX = 13;
+    private static final String VALIDATION_FAILURE_REASON = "Could not validate this order.";
+    private static final String VALIDATION_UNAVAILABLE_REASON = "Order validation unavailable.";
 
     private final BazaarData bazaarData;
     private final WeakHashMap<ItemStack, PendingOrderData> validationCache = new WeakHashMap<>();
+    private final WeakHashMap<ItemStack, ValidationResult> validationFailureCache = new WeakHashMap<>();
 
     private @Nullable BiConsumer<ItemStack, Optional<PendingOrderData>> setOrderCallback = null;
 
@@ -65,23 +68,39 @@ public class OrderProtectionManager {
             if (this.validationCache.containsKey(original)) {
                 return Optional.of(original);
             }
+            if (this.validationFailureCache.containsKey(original)) {
+                return Optional.of(original);
+            }
 
             OrderInfoParser
                 .parseSetOrderItem(original)
-                .map(orderInfo -> 
+                .map(orderInfo ->
                     OrderValidator.validate(
-                        orderInfo, 
-                        this.bazaarData, 
+                        orderInfo,
+                        this.bazaarData,
                         ConfigManager.get().orderProtection
                     )
                 )
                 .onSuccess(pendingOrder -> {
                     this.validationCache.put(original, pendingOrder);
+                    this.validationFailureCache.remove(original);
 
                     log.trace(
                         "Validated: {} - {}",
                         pendingOrder.orderInfo().productName(),
                         pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
+                    );
+                })
+                .onFailure(err -> {
+                    this.validationCache.remove(original);
+                    this.validationFailureCache.put(
+                        original,
+                        ValidationResult.blocked(VALIDATION_FAILURE_REASON)
+                    );
+                    log.warn(
+                        "Failed to parse or validate confirmation item '{}'",
+                        original.getHoverName().getString(),
+                        err
                     );
                 });
 
@@ -104,19 +123,17 @@ public class OrderProtectionManager {
                 var stack = slot.getItem();
                 var cfg = ConfigManager.get().orderProtection;
                 var pending = self.validationCache.get(stack);
-
-                if (pending == null) {
-                    log.warn("No cached validation for confirmation item");
-                    self.dispatchSetOrder(stack, Optional.empty());
-                    return false;
-                }
+                var validation = self.getValidationResult(stack)
+                    .orElseGet(() -> {
+                        log.warn("No cached validation for confirmation item");
+                        return ValidationResult.blocked(VALIDATION_UNAVAILABLE_REASON);
+                    });
 
                 if (!cfg.enabled) {
-                    self.dispatchSetOrder(stack, Optional.of(pending));
+                    self.dispatchSetOrder(stack, Optional.ofNullable(pending));
                     return false;
                 }
 
-                var validation = pending.validationResult();
                 boolean isBlocked = validation.protect();
                 boolean overrideActive = Minecraft.getInstance().hasControlDown();
 
@@ -126,6 +143,11 @@ public class OrderProtectionManager {
                     }
                     SoundUtil.playSoundIf(cfg.soundOnBlocked, SoundEvents.VILLAGER_NO, 0.6f, 1);
                     return true;
+                }
+
+                if (pending == null) {
+                    self.dispatchSetOrder(stack, Optional.empty());
+                    return false;
                 }
 
                 self.dispatchSetOrder(stack, Optional.of(pending));
@@ -138,12 +160,11 @@ public class OrderProtectionManager {
                 return;
             }
 
-            var pending = this.validationCache.get(stack);
-            if (pending == null) { 
-                return; 
+            var validation = this.getValidationResult(stack).orElse(null);
+            if (validation == null) {
+                return;
             }
 
-            var validation = pending.validationResult();
             boolean blocked = validation.protect();
             boolean ctrlHeld = Minecraft.getInstance().hasControlDown();
 
@@ -198,20 +219,25 @@ public class OrderProtectionManager {
         this.setOrderCallback = cb;
     }
 
+    private Optional<ValidationResult> getValidationResult(ItemStack stack) {
+        return Optional
+            .ofNullable(this.validationCache.get(stack))
+            .map(PendingOrderData::validationResult)
+            .or(() -> Optional.ofNullable(this.validationFailureCache.get(stack)));
+    }
+
     private void dispatchSetOrder(ItemStack stack, Optional<PendingOrderData> data) {
         if (this.setOrderCallback != null) {
             this.setOrderCallback.accept(stack, data);
         }
     }
 
-    public Optional<Pair<PendingOrderData, Boolean>> getVisualOrderInfo(ItemStack stack) {
+    public Optional<Pair<ValidationResult, Boolean>> getVisualOrderInfo(ItemStack stack) {
         if (!ConfigManager.get().orderProtection.enabled) {
             return Optional.empty();
         }
 
-        return Optional
-            .ofNullable(validationCache.get(stack))
-            .map(data -> Pair.of(data, false));
+        return this.getValidationResult(stack).map(data -> Pair.of(data, false));
     }
 
     public record PendingOrderData(

@@ -136,7 +136,7 @@ public class BazaarData {
                            Optional.ofNullable(prod.getBuySummary()).orElse(List.of()),
                            Optional.ofNullable(prod.getSellSummary()).orElse(List.of())
                        ))
-                       .orElse(new OrderLists(List.of(), List.of()));
+                       .orElse(OrderLists.empty());
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
@@ -236,7 +236,11 @@ public class BazaarData {
         Optional<@Nullable Double> sellOfferPrice
     ) { }
 
-    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { }
+    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { 
+        public static OrderLists empty() {
+            return new OrderLists(List.of(), List.of());
+        }
+    }
 
     public static final class TrackedProduct {
 

@@ -25,7 +25,7 @@ public class ItemOverrideManager {
                 .onFailure(err -> log.error(
                     "Item override rule '{}' failed for screen '{}' and slot '{}'",
                     rule.getClass().getName(),
-                    info.containerName().orElse("<no-container>"),
+                    info.containerName().orElse("<unknown>"),
                     slot == null ? "<null>" : slot.getContainerSlot(),
                     err
                 ))

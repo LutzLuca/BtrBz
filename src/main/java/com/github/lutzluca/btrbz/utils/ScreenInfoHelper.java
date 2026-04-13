@@ -84,7 +84,7 @@ public final class ScreenInfoHelper {
                     }
                 }).onFailure(err -> log.error(
                     "Screen load listener failed for screen '{}' and listener '{}'",
-                    screenInfo.containerName().orElse("<no-container>"),
+                    screenInfo.containerName().orElse("<unknown>"),
                     entry.listener.getClass().getName(),
                     err
                 ))
@@ -103,7 +103,7 @@ public final class ScreenInfoHelper {
                     }
                 }).onFailure(err -> log.error(
                     "Screen close listener failed for screen '{}' and listener '{}'",
-                    screenInfo.containerName().orElse("<no-container>"),
+                    screenInfo.containerName().orElse("<unknown>"),
                     entry.listener.getClass().getName(),
                     err
                 ))
@@ -130,7 +130,7 @@ public final class ScreenInfoHelper {
         this.switchListeners.forEach(listener ->
             Try.run(() -> listener.accept(screenInfo)).onFailure(err -> log.error(
                 "Screen switch listener failed for screen '{}' and listener '{}'",
-                screenInfo.containerName().orElse("<no-container>"),
+                screenInfo.containerName().orElse("<unknown>"),
                 listener.getClass().getName(),
                 err
             ))

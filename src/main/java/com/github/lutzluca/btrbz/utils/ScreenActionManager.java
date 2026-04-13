@@ -27,25 +27,27 @@ public class ScreenActionManager {
                 .onFailure(err -> log.error(
                     "Screen click rule '{}' failed while matching screen '{}' slot '{}' button '{}'",
                     rule.getClass().getName(),
-                    info.containerName().orElse("<no-container>"),
+                    info.containerName().orElse("<unknown>"),
                     slot.getContainerSlot(),
                     button,
                     err
                 ))
                 .getOrElse(false);
 
-            if (applies) {
-                return Try.of(() -> rule.onClick(info, slot, button))
-                    .onFailure(err -> log.error(
-                        "Screen click rule '{}' failed while handling screen '{}' slot '{}' button '{}'",
-                        rule.getClass().getName(),
-                        info.containerName().orElse("<no-container>"),
-                        slot.getContainerSlot(),
-                        button,
-                        err
-                    ))
-                    .getOrElse(false);
+            if (!applies) {
+                return false;
             }
+
+            return Try.of(() -> rule.onClick(info, slot, button))
+                .onFailure(err -> log.error(
+                    "Screen click rule '{}' failed while handling screen '{}' slot '{}' button '{}'",
+                    rule.getClass().getName(),
+                    info.containerName().orElse("<unknown>"),
+                    slot.getContainerSlot(),
+                    button,
+                    err
+                ))
+                .getOrElse(false);
         }
 
         return false;
