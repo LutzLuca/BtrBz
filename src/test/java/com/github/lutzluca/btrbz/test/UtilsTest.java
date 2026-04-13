@@ -51,6 +51,11 @@ class UtilsTest {
     class FormatCompact {
 
         @Test
+        void rejectsNegativePlaces() {
+            assertThrows(IllegalArgumentException.class, () -> Utils.formatCompact(100, -1));
+        }
+
+        @Test
         void formatsPlainValues() {
             assertEquals("999", Utils.formatCompact(999, 0));
         }

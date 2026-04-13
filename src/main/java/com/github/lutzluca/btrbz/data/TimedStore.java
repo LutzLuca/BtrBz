@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.data;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -12,7 +13,7 @@ import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TimedStore<T> {
+public class TimedStore<T> implements AutoCloseable {
 
     private final long timeToLiveMs;
     private final LongSupplier clock;
@@ -32,8 +33,12 @@ public class TimedStore<T> {
     }
 
     TimedStore(long timeToLiveMs, LongSupplier clock) {
+        if (timeToLiveMs <= 0) {
+            throw new IllegalArgumentException("TimedStore timeToLiveMs must be > 0");
+        }
+
         this.timeToLiveMs = timeToLiveMs;
-        this.clock = clock;
+        this.clock = Objects.requireNonNull(clock, "TimedStore clock must not be null");
         this.scheduler.scheduleAtFixedRate(
             this::cleanupExpired,
             timeToLiveMs,
@@ -92,6 +97,17 @@ public class TimedStore<T> {
 
     void triggerCleanup() {
         this.cleanupExpired();
+    }
+
+    int entryCount() {
+        synchronized (this.entries) {
+            return this.entries.size();
+        }
+    }
+
+    @Override
+    public void close() {
+        this.scheduler.shutdownNow();
     }
 
     private record Entry<T>(T value, long expiresAt) { }
