@@ -75,11 +75,13 @@ public class BazaarData {
 
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = products;
+        var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
+
         for (var listener : this.listeners) {
-            Try.run(() -> listener.accept(this.lastProducts)).onFailure(err -> log.error(
+            Try.run(() -> listener.accept(snapshotProducts)).onFailure(err -> log.error(
                 "Bazaar update listener '{}' failed while processing {} products",
                 listener.getClass().getName(),
-                this.lastProducts.size(),
+                snapshotProducts.size(),
                 err
             ));
         }
