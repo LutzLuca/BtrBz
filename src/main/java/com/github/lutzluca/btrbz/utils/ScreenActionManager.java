@@ -35,7 +35,7 @@ public class ScreenActionManager {
                 .getOrElse(false);
 
             if (!applies) {
-                return false;
+                continue;
             }
 
             return Try.of(() -> rule.onClick(info, slot, button))
