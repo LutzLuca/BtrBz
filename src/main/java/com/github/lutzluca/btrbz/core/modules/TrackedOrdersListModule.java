@@ -149,7 +149,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             .setMaxVisibleItems(this.configState.maxVisibleChildren)
             .onDragEnd((self, pos) -> {
                 log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
-                this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y);
+                this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition);
             });
 
         this.list.onHoverChange((self, oldIdx, newIdx) -> {
@@ -179,7 +179,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info) {
-        return this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return this.loadConfigPosition(cfg -> cfg.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
             var x = bounds.x() + bounds.width();
             var y = bounds.y();
             var padding = 20;
@@ -190,7 +190,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
     public static class OrderListConfig {
 
-        public Integer x, y;
+        public Position position;
 
         public boolean enabled = true;
         public boolean showInBazaar = true;

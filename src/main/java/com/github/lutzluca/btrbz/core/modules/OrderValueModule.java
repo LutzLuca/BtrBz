@@ -63,7 +63,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         this.widget = new LabelWidget(0, 0, lines);
         this.widget.setAutoSize(true)
             .setAlignment(LabelWidget.Alignment.CENTER)
-            .onDragEnd((self, pos) -> this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y));
+            .onDragEnd((self, pos) -> this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition));
 
         var position = this.getWidgetPosition(info, this.widget);
         if (position.isEmpty()) {
@@ -146,7 +146,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
-        return this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).or(() -> info.getHandledScreenBounds().map(bounds -> {
+        return this.loadConfigPosition(cfg -> cfg.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
             int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
             int y = bounds.y() - widget.getHeight() - 15;
             return new Position(x, y);
@@ -155,7 +155,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
 
     public static class OrderValueOverlayConfig {
 
-        public Integer x, y;
+        public Position position;
 
         public boolean enabled = false;
 

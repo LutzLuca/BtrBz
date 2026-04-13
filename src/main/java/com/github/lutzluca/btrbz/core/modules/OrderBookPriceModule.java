@@ -162,8 +162,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
             this.widget.onDragEnd((self, pos) -> this.saveConfigPosition(
                 pos,
-                (cfg, x) -> cfg.signX = x,
-                (cfg, y) -> cfg.signY = y
+                (cfg, savedPosition) -> cfg.signPosition = savedPosition
             ));
         }
 
@@ -174,7 +173,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private Optional<Position> getPosition() {
-        return this.loadConfigPosition(cfg -> cfg.signX, cfg -> cfg.signY);
+        return this.loadConfigPosition(cfg -> cfg.signPosition);
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {
@@ -220,8 +219,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     public static class OrderBookPriceConfig {
-        public Integer signX;
-        public Integer signY;
+        public Position signPosition;
         public boolean enabled = true;
 
         public Option.Builder<Boolean> createEnableOption() {

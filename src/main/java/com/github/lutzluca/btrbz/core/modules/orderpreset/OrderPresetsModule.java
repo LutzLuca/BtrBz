@@ -331,24 +331,19 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         switch (screen) {
             case PresetScreen.VolumeSetupContainer -> this.saveConfigPosition(
                 pos,
-                (cfg, x) -> cfg.containerX = x,
-                (cfg, y) -> cfg.containerY = y
+                (cfg, savedPosition) -> cfg.containerPosition = savedPosition
             );
             case PresetScreen.EnterVolumeSign -> this.saveConfigPosition(
                 pos,
-                (cfg, x) -> cfg.signX = x,
-                (cfg, y) -> cfg.signY = y
+                (cfg, savedPosition) -> cfg.signPosition = savedPosition
             );
         }
     }
 
     private Optional<Position> getConfigPosition(PresetScreen screen) {
         return switch (screen) {
-            case PresetScreen.VolumeSetupContainer -> this.loadConfigPosition(
-                cfg -> cfg.containerX,
-                cfg -> cfg.containerY
-            );
-            case PresetScreen.EnterVolumeSign -> this.loadConfigPosition(cfg -> cfg.signX, cfg -> cfg.signY);
+            case PresetScreen.VolumeSetupContainer -> this.loadConfigPosition(cfg -> cfg.containerPosition);
+            case PresetScreen.EnterVolumeSign -> this.loadConfigPosition(cfg -> cfg.signPosition);
         };
     }
 

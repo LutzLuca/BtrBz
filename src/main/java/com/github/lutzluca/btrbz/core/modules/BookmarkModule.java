@@ -201,7 +201,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return Optional.of(this.list);
         }
 
-        var position = this.loadConfigPosition(cfg -> cfg.x, cfg -> cfg.y).orElse(new Position(10, 10));
+        var position = this.loadConfigPosition(cfg -> cfg.position).orElse(new Position(10, 10));
 
         var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 
@@ -216,7 +216,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> {
                 log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
-                this.saveConfigPosition(pos, (cfg, x) -> cfg.x = x, (cfg, y) -> cfg.y = y);
+                this.saveConfigPosition(pos, (cfg, savedPosition) -> cfg.position = savedPosition);
             });
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
@@ -411,7 +411,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         // TODO option for cropping at current displayed items instead of occupying the full space
         // always
         public List<BookmarkedItem> bookmarkedItems = new ArrayList<>();
-        public Integer x, y;
+        public Position position;
         public boolean enabled = true;
         public boolean showEverywhere = true;
         public int maxVisibleChildren = 8;
