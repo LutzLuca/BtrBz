@@ -3,17 +3,20 @@ package com.github.lutzluca.btrbz.data;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TimedStore<T> {
+public class TimedStore<T> implements AutoCloseable {
 
     private final long timeToLiveMs;
+    private final LongSupplier clock;
     private final List<Entry<T>> entries = new ArrayList<>();
 
     // maybe use a shared `ScheduledExecutorService` for all TimedStore instances.
@@ -26,7 +29,16 @@ public class TimedStore<T> {
     });
 
     public TimedStore(long timeToLiveMs) {
+        this(timeToLiveMs, System::currentTimeMillis);
+    }
+
+    TimedStore(long timeToLiveMs, LongSupplier clock) {
+        if (timeToLiveMs <= 0) {
+            throw new IllegalArgumentException("TimedStore timeToLiveMs must be > 0");
+        }
+
         this.timeToLiveMs = timeToLiveMs;
+        this.clock = Objects.requireNonNull(clock, "TimedStore clock must not be null");
         this.scheduler.scheduleAtFixedRate(
             this::cleanupExpired,
             timeToLiveMs,
@@ -37,7 +49,7 @@ public class TimedStore<T> {
 
     public void add(T item) {
         synchronized (this.entries) {
-            this.entries.add(new Entry<>(item, System.currentTimeMillis() + this.timeToLiveMs));
+            this.entries.add(new Entry<>(item, this.clock.getAsLong() + this.timeToLiveMs));
         }
     }
 
@@ -45,7 +57,7 @@ public class TimedStore<T> {
         synchronized (this.entries) {
             for (var it = this.entries.iterator(); it.hasNext(); ) {
                 var curr = it.next();
-                if (curr.expiresAt < System.currentTimeMillis()) {
+                if (curr.expiresAt < this.clock.getAsLong()) {
                     log.trace("removed expired timedstore entry: {}", curr);
                     it.remove();
                     continue;
@@ -62,7 +74,7 @@ public class TimedStore<T> {
     }
 
     public List<T> items() {
-        var now = System.currentTimeMillis();
+        var now = this.clock.getAsLong();
         synchronized (this.entries) {
             return this.entries
                 .stream()
@@ -73,7 +85,7 @@ public class TimedStore<T> {
     }
 
     private void cleanupExpired() {
-        long now = System.currentTimeMillis();
+        long now = this.clock.getAsLong();
         synchronized (this.entries) {
             var expired = Utils.removeIfAndReturn(this.entries, entry -> entry.expiresAt < now);
             log.trace(
@@ -81,6 +93,21 @@ public class TimedStore<T> {
                 expired.size(), expired
             );
         }
+    }
+
+    void triggerCleanup() {
+        this.cleanupExpired();
+    }
+
+    int entryCount() {
+        synchronized (this.entries) {
+            return this.entries.size();
+        }
+    }
+
+    @Override
+    public void close() {
+        this.scheduler.shutdownNow();
     }
 
     private record Entry<T>(T value, long expiresAt) { }

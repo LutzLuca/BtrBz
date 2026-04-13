@@ -28,7 +28,12 @@ public final class OrderInfoParser {
     private OrderInfoParser() { }
 
     public static Try<BazaarMessage> parseBazaarMessage(String bazaarMsg) {
-        assert bazaarMsg.startsWith("[Bazaar]");
+        if (!bazaarMsg.startsWith("[Bazaar]")) {
+            return Try.failure(new IllegalArgumentException(
+                "Unhandled bazaar message format: " + bazaarMsg
+            ));
+        }
+
         var msg = bazaarMsg.replace("[Bazaar]", "").trim();
 
         if (msg.endsWith("was filled!") || msg.endsWith("was filled! [Go To Orders]")) {
@@ -184,6 +189,10 @@ public final class OrderInfoParser {
     }
 
     public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx) {
+        return parseOrderInfo(item.getHoverName().getString(), getLore(item), slotIdx);
+    }
+
+    static Try<OrderInfo> parseOrderInfo(String title, List<String> lore, int slotIdx) {
         // name: {type} {productName}
         // lore lines:
         // Worth {roundedFormattedTotal} coins
@@ -196,7 +205,7 @@ public final class OrderInfoParser {
         // You have {unclaimed} of ... to claim
         // ...
         return Try.of(() -> {
-            var orderInfo = item.getHoverName().getString().split(" ", 2);
+            var orderInfo = title.split(" ", 2);
             if (orderInfo.length != 2) {
                 throw new IllegalArgumentException(
                     "Title line of item does not follow the pattern '<type> <productName>'");
@@ -210,7 +219,6 @@ public final class OrderInfoParser {
             }
 
             var productName = orderInfo[1];
-            var lore = getLore(item);
             var additionalInfo = getAdditionalOrderInfo(lore);
             if (additionalInfo.isFailure()) {
                 throw new IllegalArgumentException(
@@ -244,7 +252,7 @@ public final class OrderInfoParser {
         });
     }
 
-    private static Try<OrderDetails> getAdditionalOrderInfo(List<String> lore) {
+    static Try<OrderDetails> getAdditionalOrderInfo(List<String> lore) {
         return Try.of(() -> {
             Double pricePerUnit = null;
             Integer volume = null;
@@ -315,6 +323,14 @@ public final class OrderInfoParser {
     }
 
     public static Try<OutstandingOrderInfo> parseSetOrderItem(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return Try.failure(new IllegalArgumentException("Empty item"));
+        }
+
+        return parseSetOrderItem(item.getHoverName().getString(), getLore(item));
+    }
+
+    static Try<OutstandingOrderInfo> parseSetOrderItem(String title, List<String> lore) {
         // name: Buy Order / Sell Offer
         // lore lines:
         // Bazaar
@@ -325,18 +341,12 @@ public final class OrderInfoParser {
         // Total price / You earn: {total} coins.
         // ...
         return Try.of(() -> {
-            if (item == null || item.isEmpty()) {
-                throw new IllegalArgumentException("Empty item");
-            }
-
-            String title = item.getHoverName().getString();
             var type = switch (title) {
                 case "Sell Offer" -> OrderType.Sell;
                 case "Buy Order" -> OrderType.Buy;
                 default -> throw new IllegalArgumentException("Unknown confirm title: " + title);
             };
 
-            var lore = getLore(item);
             Double pricePerUnit = null;
             Integer volume = null;
             String productName = null;
