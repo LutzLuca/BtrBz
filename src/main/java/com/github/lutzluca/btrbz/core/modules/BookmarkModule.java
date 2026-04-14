@@ -214,7 +214,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> {
-                log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
+                log.debug("Saving new position for BookmarkModule: {}", pos);
                 this.updateConfig(cfg -> cfg.position = pos);
             });
 
