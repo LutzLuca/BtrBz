@@ -269,7 +269,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         var screen = this.getPresetScreen(info);
         if (screen.isEmpty()) {
             log.warn(
-                "OrderPresetsModule: createWidgets was called but no valid preset screen was found. " +
+                "OrderPresetsModule: createWidget was called but no valid preset screen was found. " +
                     "Current Title: '{}', Current Screen: {}, Previous Title: '{}', In Transaction: {}",
                 info.containerName().orElse("N/A"),
                 info.getScreen() != null ? info.getScreen().getClass().getSimpleName() : "N/A",

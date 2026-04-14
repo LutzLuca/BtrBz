@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule.OrderBookPriceConfig;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
 import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsConfig;
@@ -10,6 +12,7 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -79,6 +82,55 @@ class PositionConfigTest {
             assertEquals(91, json.getAsJsonObject("sign_position").get("y").getAsInt());
             assertFalse(json.has("sign_x"));
             assertFalse(json.has("sign_y"));
+        }
+
+        @Test
+        void serializesNullPosition() {
+            OrderLimitConfig orderLimitConfig = new OrderLimitConfig();
+            orderLimitConfig.position = null;
+
+            JsonObject orderLimitJson = gson.toJsonTree(orderLimitConfig).getAsJsonObject();
+
+            assertFalse(orderLimitJson.has("position"));
+            assertNull(gson.fromJson(orderLimitJson, OrderLimitConfig.class).position);
+
+            OrderBookPriceConfig orderBookPriceConfig = new OrderBookPriceConfig();
+            orderBookPriceConfig.signPosition = null;
+
+            JsonObject orderBookPriceJson = gson.toJsonTree(orderBookPriceConfig).getAsJsonObject();
+
+            assertFalse(orderBookPriceJson.has("sign_position"));
+            assertNull(gson.fromJson(orderBookPriceJson, OrderBookPriceConfig.class).signPosition);
+        }
+
+        @Test
+        void deserializesInvalidPositionThrows() {
+            String missingX = """
+                {
+                  \"position\": { \"y\": 67 },
+                  \"enabled\": true
+                }
+                """;
+
+            String missingY = """
+                {
+                  \"position\": { \"x\": 45 },
+                  \"enabled\": true
+                }
+                """;
+
+            assertThrows(JsonParseException.class, () -> gson.fromJson(missingX, OrderLimitConfig.class));
+            assertThrows(JsonParseException.class, () -> gson.fromJson(missingY, OrderLimitConfig.class));
+        }
+
+        @Test
+        void roundTripPositionSerialization() {
+            OrderPresetsConfig config = new OrderPresetsConfig();
+            config.containerPosition = new Position(21, 43);
+
+            OrderPresetsConfig roundTripped = gson.fromJson(gson.toJson(config), OrderPresetsConfig.class);
+
+            assertEquals(new Position(21, 43), roundTripped.containerPosition);
         }
     }
 }

@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
@@ -20,6 +21,10 @@ public record Position(int x, int y) {
 
         @Override
         public JsonElement serialize(Position src, Type typeOfSrc, JsonSerializationContext context) {
+            if (src == null) {
+                return JsonNull.INSTANCE;
+            }
+
             JsonObject object = new JsonObject();
             object.addProperty("x", src.x());
             object.addProperty("y", src.y());
