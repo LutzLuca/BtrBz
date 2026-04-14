@@ -200,7 +200,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return Optional.of(this.list);
         }
 
-        var position = Optional.ofNullable(this.configState.position).orElse(new Position(10, 10));
+        var position = Optional.ofNullable(this.configState.position).orElse(new Position(150, 275));
 
         var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 

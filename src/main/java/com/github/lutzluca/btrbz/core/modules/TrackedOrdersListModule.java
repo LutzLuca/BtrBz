@@ -130,13 +130,10 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         var position = this.getWidgetPosition(info);
-        if (position.isEmpty()) {
-            return Optional.empty();
-        }
 
         this.list = new ListWidget(
-            position.get().x(),
-            position.get().y(),
+            position.x(),
+            position.y(),
             175,
             250,
             "Tracked Orders"
@@ -177,14 +174,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         return Optional.of(this.list);
     }
 
-    private Optional<Position> getWidgetPosition(ScreenInfo info) {
-        return Optional.ofNullable(this.configState.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
-            var x = bounds.x() + bounds.width();
-            var y = bounds.y();
-            var padding = 20;
-
-            return new Position(x + padding, y);
-        }));
+    private Position getWidgetPosition(ScreenInfo info) {
+        return Optional.ofNullable(this.configState.position).orElse(new Position(150, 100));
     }
 
     public static class OrderListConfig {

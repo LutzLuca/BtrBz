@@ -284,7 +284,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         var position = this.getConfigPosition(screenType).orElseGet(() -> 
             switch (screenType) {
                 case PresetScreen.VolumeSetupContainer -> new Position(570, 180);
-                case PresetScreen.EnterVolumeSign -> new Position(20, 20);
+                case PresetScreen.EnterVolumeSign -> new Position(580, 40);
             }
         );
 
