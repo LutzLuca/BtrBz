@@ -335,7 +335,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public record BookmarkedItem(String productName, ItemStack itemStack) {
 
-        public static class BookmarkedItemSerializer implements JsonSerializer<BookmarkedItem>,
+        public static class GsonAdapter implements JsonSerializer<BookmarkedItem>,
             JsonDeserializer<BookmarkedItem> {
 
             @Override

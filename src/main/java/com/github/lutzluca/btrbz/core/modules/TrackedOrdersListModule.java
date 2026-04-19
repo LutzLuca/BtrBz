@@ -143,10 +143,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             .setRemovable(false)
             .setReorderable(false)
             .setMaxVisibleItems(this.configState.maxVisibleChildren)
-            .onDragEnd((self, pos) -> {
-                log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
-                this.updateConfig(cfg -> cfg.position = pos);
-            });
+            .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         this.list.onHoverChange((self, oldIdx, newIdx) -> {
             var oldEntry = self.getItem(oldIdx)

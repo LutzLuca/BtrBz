@@ -17,12 +17,10 @@ public final class ConfigManager {
         .createBuilder(Config.class)
         .serializer(config -> GsonConfigSerializerBuilder
             .create(config)
-            .appendGsonBuilder(gsonBuilder -> gsonBuilder
-                .registerTypeAdapter(
-                    BookmarkedItem.class,
-                    new BookmarkedItem.BookmarkedItemSerializer()
-                )
-                .registerTypeAdapter(Position.class, new Position.GsonAdapter()))
+            .appendGsonBuilder(builder -> builder
+                .registerTypeAdapter(BookmarkedItem.class, new BookmarkedItem.GsonAdapter())
+                .registerTypeAdapter(Position.class, new Position.GsonAdapter())
+            )
             .setPath(FabricLoader
                 .getInstance()
                 .getConfigDir()

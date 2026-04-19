@@ -7,6 +7,8 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.LabelWidget;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -32,7 +34,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     }
 
     @Override
-    public Optional<com.github.lutzluca.btrbz.widgets.base.DraggableWidget> createWidget(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         List<Component> lines = List.of(
             Component.literal("Daily Limit:").withStyle(ChatFormatting.GOLD),
             Component
@@ -46,10 +48,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         var widget = new LabelWidget(0, 0, lines)
             .setAutoSize(true)
             .setAlignment(LabelWidget.Alignment.CENTER)
-            .onDragEnd((self, pos) -> {
-                log.debug("Saving new position for OrderLimitModule: {}", pos);
-                this.updateConfig(cfg -> cfg.position = pos);
-            });
+            .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         var position = Optional.ofNullable(this.configState.position)
             .or(() -> info.getHandledScreenBounds().map(bounds -> {
