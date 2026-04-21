@@ -213,10 +213,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
             .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
-            .onDragEnd((self, pos) -> {
-                log.debug("Saving new position for BookmarkModule: {}", pos);
-                this.updateConfig(cfg -> cfg.position = pos);
-            });
+            .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
             .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack(), this.orderBuySet, this.orderSellSet))

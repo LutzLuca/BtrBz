@@ -327,7 +327,6 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private void savePosition(Position pos, PresetScreen screen) {
-        log.debug("Saving new position for OrderPresetsModule ({}): {}", screen, pos);
         switch (screen) {
             case PresetScreen.VolumeSetupContainer -> this.updateConfig(cfg -> cfg.containerPosition = pos);
             case PresetScreen.EnterVolumeSign -> this.updateConfig(cfg -> cfg.signPosition = pos);
