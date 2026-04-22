@@ -265,11 +265,11 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         var screen = this.getPresetScreen(info);
         if (screen.isEmpty()) {
             log.warn(
-                "OrderPresetsModule: createWidgets was called but no valid preset screen was found. " +
+                "OrderPresetsModule: createWidget was called but no valid preset screen was found. " +
                     "Current Title: '{}', Current Screen: {}, Previous Title: '{}', In Transaction: {}",
                 info.containerName().orElse("N/A"),
                 info.getScreen() != null ? info.getScreen().getClass().getSimpleName() : "N/A",
@@ -277,14 +277,14 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 this.inTransaction
             );
 
-            return List.of();
+            return Optional.empty();
         }
 
         var screenType = screen.get();
         var position = this.getConfigPosition(screenType).orElseGet(() -> 
             switch (screenType) {
                 case PresetScreen.VolumeSetupContainer -> new Position(570, 180);
-                case PresetScreen.EnterVolumeSign -> new Position(20, 20);
+                case PresetScreen.EnterVolumeSign -> new Position(580, 40);
             }
         );
 
@@ -297,7 +297,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             this.list.setX(position.x());
             this.list.setY(position.y());
             this.list.setMaxVisibleItems(maxVisible);
-            return List.of(this.list);
+            return Optional.of(this.list);
         }
 
         this.list = new ListWidget(
@@ -323,31 +323,20 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         this.rebuildList();
 
-        return List.of(this.list);
+        return Optional.of(this.list);
     }
 
     private void savePosition(Position pos, PresetScreen screen) {
-        log.debug("Saving new position for OrderPresetsModule ({}): {}", screen, pos);
-        this.updateConfig(cfg -> {
-            switch (screen) {
-                case PresetScreen.VolumeSetupContainer -> {
-                    cfg.containerX = pos.x();
-                    cfg.containerY = pos.y();
-                }
-                case PresetScreen.EnterVolumeSign -> {
-                    cfg.signX = pos.x();
-                    cfg.signY = pos.y();
-                }
-            }
-        });
+        switch (screen) {
+            case PresetScreen.VolumeSetupContainer -> this.updateConfig(cfg -> cfg.containerPosition = pos);
+            case PresetScreen.EnterVolumeSign -> this.updateConfig(cfg -> cfg.signPosition = pos);
+        }
     }
 
     private Optional<Position> getConfigPosition(PresetScreen screen) {
         return switch (screen) {
-            case PresetScreen.VolumeSetupContainer -> Utils.zipNullables(this.configState.containerX, this.configState.containerY)
-                .map(pair -> new Position(pair.getLeft(), pair.getRight()));
-            case PresetScreen.EnterVolumeSign -> Utils.zipNullables(this.configState.signX, this.configState.signY)
-                .map(pair -> new Position(pair.getLeft(), pair.getRight()));
+            case PresetScreen.VolumeSetupContainer -> Optional.ofNullable(this.configState.containerPosition);
+            case PresetScreen.EnterVolumeSign -> Optional.ofNullable(this.configState.signPosition);
         };
     }
 

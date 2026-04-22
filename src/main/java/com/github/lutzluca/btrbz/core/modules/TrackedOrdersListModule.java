@@ -13,7 +13,6 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
@@ -125,19 +124,16 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         if (this.list != null) {
-            return List.of(this.list);
+            return Optional.of(this.list);
         }
 
         var position = this.getWidgetPosition(info);
-        if (position.isEmpty()) {
-            return List.of();
-        }
 
         this.list = new ListWidget(
-            position.get().x(),
-            position.get().y(),
+            position.x(),
+            position.y(),
             175,
             250,
             "Tracked Orders"
@@ -147,7 +143,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             .setRemovable(false)
             .setReorderable(false)
             .setMaxVisibleItems(this.configState.maxVisibleChildren)
-            .onDragEnd((self, pos) -> this.savePosition(pos));
+            .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         this.list.onHoverChange((self, oldIdx, newIdx) -> {
             var oldEntry = self.getItem(oldIdx)
@@ -172,34 +168,16 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         this.initializeList();
 
-        return List.of(this.list);
+        return Optional.of(this.list);
     }
 
-    private void savePosition(Position pos) {
-        log.debug("Saving new position for TrackedOrdersListModule: {}", pos);
-        this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
-        });
-    }
-
-    private Optional<Position> getWidgetPosition(ScreenInfo info) {
-        return this.getConfigPosition().or(() -> info.getHandledScreenBounds().map(bounds -> {
-            var x = bounds.x() + bounds.width();
-            var y = bounds.y();
-            var padding = 20;
-
-            return new Position(x + padding, y);
-        }));
-    }
-
-    private Optional<Position> getConfigPosition() {
-        return Utils.zipNullables(this.configState.x, this.configState.y).map(Position::from);
+    private Position getWidgetPosition(ScreenInfo info) {
+        return Optional.ofNullable(this.configState.position).orElse(new Position(150, 100));
     }
 
     public static class OrderListConfig {
 
-        public Integer x, y;
+        public Position position;
 
         public boolean enabled = true;
         public boolean showInBazaar = true;

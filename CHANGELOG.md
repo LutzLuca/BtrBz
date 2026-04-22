@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Switched draggable widget position config fields to nested `Position` objects instead of separate coordinate keys
+
+### Breaking
+
+- Reset saved widget positions because the alpha-stage config layout changed from flat `x`/`y` fields to nested `Position` objects with no backward-compatibility migration
+
 ## [0.5.0-alpha] - 2026-04-08
 
 ### Added

@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.modules;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.ModuleManager.ModuleContext;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +45,7 @@ public abstract class Module<T> {
 
     public abstract boolean shouldDisplay(ScreenInfo info);
 
-    public abstract List<DraggableWidget> createWidgets(ScreenInfo info);
+    public abstract Optional<DraggableWidget> createWidget(ScreenInfo info);
 
     protected void updateConfig(Consumer<T> updater) {
         updater.accept(this.configState);

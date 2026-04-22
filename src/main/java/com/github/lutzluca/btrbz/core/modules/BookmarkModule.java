@@ -14,7 +14,6 @@ import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
@@ -196,12 +195,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         if (this.list != null) {
-            return List.of(this.list);
+            return Optional.of(this.list);
         }
 
-        var position = this.getConfigPosition().orElse(new Position(10, 10));
+        var position = Optional.ofNullable(this.configState.position).orElse(new Position(150, 275));
 
         var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 
@@ -214,14 +213,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
             .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
-            .onDragEnd((self, pos) -> this.savePosition(pos));
+            .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
             .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack(), this.orderBuySet, this.orderSellSet))
             .collect(Collectors.toList());
         widget.setItems(items);
 
-        return List.of(widget);
+        return Optional.of(widget);
     }
 
     public boolean isBookmarked(String productName) {
@@ -237,20 +236,6 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .map(BookmarkedItemRenderable.class::cast)
             .map(item -> new BookmarkedItem(item.getProductName(), item.getItemStack()))
             .collect(Collectors.toList()));
-    }
-
-    private Optional<Position> getConfigPosition() {
-        return Utils
-            .zipNullables(this.configState.x, this.configState.y)
-            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
-    }
-
-    private void savePosition(Position pos) {
-        log.debug("Saving new position for BookmarkedItemsModule: {}", pos);
-        this.updateConfig(cfg -> {
-            cfg.x = pos.x();
-            cfg.y = pos.y();
-        });
     }
 
     public static class BookmarkedItemRenderable implements Renderable {
@@ -347,7 +332,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public record BookmarkedItem(String productName, ItemStack itemStack) {
 
-        public static class BookmarkedItemSerializer implements JsonSerializer<BookmarkedItem>,
+        public static class GsonAdapter implements JsonSerializer<BookmarkedItem>,
             JsonDeserializer<BookmarkedItem> {
 
             @Override
@@ -422,7 +407,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         // TODO option for cropping at current displayed items instead of occupying the full space
         // always
         public List<BookmarkedItem> bookmarkedItems = new ArrayList<>();
-        public Integer x, y;
+        public Position position;
         public boolean enabled = true;
         public boolean showEverywhere = true;
         public int maxVisibleChildren = 8;

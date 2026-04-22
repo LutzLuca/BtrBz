@@ -141,15 +141,15 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     @Override
-    public List<DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         var prev = ScreenInfoHelper.get().getPrevInfo();
         if (!this.isEnterPriceScreen(info, prev)) {
-            return List.of();
+            return Optional.empty();
         }
         this.resolveCurrentOrderType(info, prev).ifPresent(orderType -> this.currentOrderType = orderType);
 
         if (this.currentOrderType == null) {
-            return List.of();
+            return Optional.empty();
         }
 
         var position = this.getPosition();
@@ -160,26 +160,17 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 this::handlePriceClick
             );
 
-            this.widget.onDragEnd((self, pos) -> this.savePosition(pos));
+            this.widget.onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.signPosition = pos));
         }
 
         this.widget.setDraggable(true);
 
         this.rebuildList();
-        return List.of(this.widget);
+        return Optional.of(this.widget);
     }
 
     private Optional<Position> getPosition() {
-        return Utils
-            .zipNullables(this.configState.signX, this.configState.signY)
-            .map(Position::from);
-    }
-
-    private void savePosition(Position pos) {
-        this.updateConfig(cfg -> {
-            cfg.signX = pos.x();
-            cfg.signY = pos.y();
-        });
+        return Optional.ofNullable(this.configState.signPosition);
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {
@@ -225,8 +216,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     public static class OrderBookPriceConfig {
-        public Integer signX;
-        public Integer signY;
+        public Position signPosition;
         public boolean enabled = true;
 
         public Option.Builder<Boolean> createEnableOption() {

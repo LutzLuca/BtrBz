@@ -7,6 +7,8 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.LabelWidget;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -32,7 +34,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     }
 
     @Override
-    public List<com.github.lutzluca.btrbz.widgets.base.DraggableWidget> createWidgets(ScreenInfo info) {
+    public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         List<Component> lines = List.of(
             Component.literal("Daily Limit:").withStyle(ChatFormatting.GOLD),
             Component
@@ -46,10 +48,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         var widget = new LabelWidget(0, 0, lines)
             .setAutoSize(true)
             .setAlignment(LabelWidget.Alignment.CENTER)
-            .onDragEnd((self, pos) -> this.savePosition(pos));
+            .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
-        var position = this
-            .getConfigPosition()
+        var position = Optional.ofNullable(this.configState.position)
             .or(() -> info.getHandledScreenBounds().map(bounds -> {
                 int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
                 int y = bounds.y() - widget.getHeight() - 25;
@@ -58,12 +59,12 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
         if (position.isEmpty()) {
             log.warn("Could not determine position for OrderLimitModule widget");
-            return List.of();
+            return Optional.empty();
         }
 
         widget.setPosition(position.get().x(), position.get().y());
 
-        return List.of(widget);
+        return Optional.of(widget);
     }
 
     public void onTransaction(double transactionAmount) {
@@ -78,21 +79,6 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         );
     }
 
-    private Optional<Position> getConfigPosition() {
-        return Utils
-            .zipNullables(this.configState.x, this.configState.y)
-            .map(pair -> new Position(pair.getLeft(), pair.getRight()));
-    }
-
-    private void savePosition(int newX, int newY) {
-        log.debug("Saving new position for OrderLimitModule: {}", new Position(newX, newY));
-
-        this.updateConfig((config) -> {
-            config.x = newX;
-            config.y = newY;
-        });
-    }
-
     private void resetOrderLimitOnNewDay() {
         long today = LocalDate.now(ZoneOffset.UTC).toEpochDay();
 
@@ -104,10 +90,6 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
                 cfg.lastResetEpochDay = today;
             });
         }
-    }
-
-    private void savePosition(Position pos) {
-        this.savePosition(pos.x(), pos.y());
     }
 
     public String formatAmount(double amount) {
@@ -132,7 +114,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
     public static class OrderLimitConfig {
 
-        public Integer x, y;
+        public Position position;
 
         public boolean enabled = true;
 

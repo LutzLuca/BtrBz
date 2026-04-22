@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookmarkedItem;
+import com.github.lutzluca.btrbz.utils.Position;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import java.util.function.Consumer;
@@ -16,10 +17,10 @@ public final class ConfigManager {
         .createBuilder(Config.class)
         .serializer(config -> GsonConfigSerializerBuilder
             .create(config)
-            .appendGsonBuilder(gsonBuilder -> gsonBuilder.registerTypeAdapter(
-                BookmarkedItem.class,
-                new BookmarkedItem.BookmarkedItemSerializer()
-            ))
+            .appendGsonBuilder(builder -> builder
+                .registerTypeAdapter(BookmarkedItem.class, new BookmarkedItem.GsonAdapter())
+                .registerTypeAdapter(Position.class, new Position.GsonAdapter())
+            )
             .setPath(FabricLoader
                 .getInstance()
                 .getConfigDir()

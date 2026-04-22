@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
+import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import dev.isxander.yacl3.api.Option;
@@ -12,8 +13,8 @@ import java.util.List;
 
 public class OrderPresetsConfig {
 
-    public Integer containerX, containerY;
-    public Integer signX, signY;
+    public Position containerPosition;
+    public Position signPosition;
     public boolean enabled = true;
     public boolean enableOnContainer = true;
     public boolean enableOnSign = true;

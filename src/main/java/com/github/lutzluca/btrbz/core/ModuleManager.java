@@ -78,7 +78,7 @@ public class ModuleManager {
             .stream()
             .filter(module -> module.shouldDisplay(info))
             .peek(module -> module.setDisplayed(true))
-            .flatMap(module -> module.createWidgets(info).stream())
+            .flatMap(module -> module.createWidget(info).stream())
             .toList();
 
         this.widgetManager = new WidgetManager(widgets);
@@ -98,7 +98,7 @@ public class ModuleManager {
                 );
                 module.setDisplayed(true);
             })
-            .flatMap(module -> module.createWidgets(info).stream())
+            .flatMap(module -> module.createWidget(info).stream())
             .toList();
 
         if (!newWidgets.isEmpty() && this.widgetManager != null) {
