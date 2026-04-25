@@ -161,7 +161,7 @@ public final class ProductInfoProvider {
     private void registerInfoProviderSlotBehavior() {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
-                .named("product-info.synthetic-slot")
+                .named("product-info.button")
                 .matches(context -> {
                     var cfg = ConfigManager.get().productInfo;
                     if (!cfg.enabled || !cfg.itemClickEnabled || this.openedProductNameInfo == null) {
@@ -216,7 +216,7 @@ public final class ProductInfoProvider {
     private void registerCtrlShiftClickBehavior() {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
-                .named("product-info.ctrl-shift-click")
+                .named("product-info.quick-open")
                 .matches(context -> {
                     var cfg = ConfigManager.get().productInfo;
                     return cfg.enabled &&
@@ -227,7 +227,7 @@ public final class ProductInfoProvider {
                 })
                 .onClick(context -> {
                     var cfg = ConfigManager.get().productInfo;
-                    if (!context.controlDown() || !context.shiftDown()) {
+                    if (!context.modifiers().controlDown() || !context.modifiers().shiftDown()) {
                         return ClickOutcome.Pass;
                     }
 

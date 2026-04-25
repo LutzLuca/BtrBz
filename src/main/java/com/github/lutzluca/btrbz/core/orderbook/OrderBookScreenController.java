@@ -44,11 +44,11 @@ public class OrderBookScreenController {
     private void registerSlotBehavior() {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
-                .named("order-book.synthetic-slot")
+                .named("order-book.button")
                 .matches(context ->
                     !context.isPlayerInventorySlot() &&
                         context.containerSlot() == CUSTOM_ORDER_BOOK_IDX &&
-                        this.isOrderSetupMenu(context.info()) &&
+                        this.isOrderSetupMenu(context.currInfo()) &&
                         ConfigManager.get().orderBook.enabled
                 )
                 .overrideItem(context -> {
@@ -71,7 +71,7 @@ public class OrderBookScreenController {
 
                     var orders = this.bazaarData.getOrderLists(productNameInfo.productId());
                     var orderBookScreen = new OrderBookScreen(
-                        context.info().getScreen(),
+                        context.currInfo().getScreen(),
                         productNameInfo.productName(),
                         orders
                     );

@@ -145,7 +145,7 @@ public class BazaarOrderActions {
     private void registerReopenSlotBehavior() {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
-                .named("order-actions.reopen-last-buy-order")
+                .named("order-actions.reopen-button")
                 .matches(context -> {
                     var cfg = ConfigManager.get().orderActions;
                     if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled ||
@@ -156,7 +156,7 @@ public class BazaarOrderActions {
 
                     return !context.isPlayerInventorySlot() &&
                         context.inMenu(BazaarMenuType.Orders) &&
-                        context.containerSlot() == this.getReopenTargetSlot(context.info());
+                        context.containerSlot() == this.getReopenTargetSlot(context.currInfo());
                 })
                 .overrideItem(context -> Optional.of(this.lastCancelledBuyOrder.displayItem().copy()))
                 .onClick(context -> {

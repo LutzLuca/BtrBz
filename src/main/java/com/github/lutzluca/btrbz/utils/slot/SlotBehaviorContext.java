@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface SlotBehaviorContext {
 
-    ScreenInfo info();
+    ScreenInfo currInfo();
 
     ScreenInfo prevInfo();
 
@@ -18,7 +18,7 @@ public interface SlotBehaviorContext {
     ItemStack rawItem();
 
     default boolean inMenu(BazaarMenuType... menuTypes) {
-        return this.info().inMenu(menuTypes);
+        return this.currInfo().inMenu(menuTypes);
     }
 
     default int containerSlot() {

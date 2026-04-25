@@ -73,7 +73,7 @@ public class FlipHelper {
     private void registerFlipHelperSlotBehavior() {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
-                .named("flip-helper.synthetic-slot")
+                .named("flip-helper.suggestion")
                 .matches(context -> {
                     if (!ConfigManager.get().flipHelper.enabled || this.potentialFlipProduct == null) {
                         return false;
@@ -102,7 +102,7 @@ public class FlipHelper {
                 .onClick(context -> {
                     var client = Minecraft.getInstance();
 
-                    var gcsOpt = context.info().getGenericContainerScreen();
+                    var gcsOpt = context.currInfo().getGenericContainerScreen();
                     if (gcsOpt.isEmpty()) {
                         return ClickOutcome.Pass;
                     }

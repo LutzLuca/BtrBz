@@ -25,8 +25,8 @@ public final class SlotBehaviorManager {
         REGISTRATIONS.add(registration);
     }
 
-    public static ItemStack applyItemOverride(ScreenInfo info, ScreenInfo prevInfo, Slot slot, ItemStack rawItem) {
-        var context = new ItemOverrideContext(info, prevInfo, slot, rawItem);
+    public static ItemStack applyItemOverride(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
+        var context = new ItemOverrideContext(currentInfo, previousInfo, slot, rawItem);
 
         for (SlotBehaviorRegistration registration : REGISTRATIONS) {
             if (registration.itemOverrideHandler() == null) {
@@ -37,7 +37,7 @@ public final class SlotBehaviorManager {
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while matching override screen '{}' slot '{}'",
                     registration.name(),
-                    info.containerName().orElse("<unknown>"),
+                    currentInfo.containerName().orElse("<unknown>"),
                     context.containerSlot(),
                     err
                 ))
@@ -51,7 +51,7 @@ public final class SlotBehaviorManager {
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while overriding screen '{}' slot '{}'",
                     registration.name(),
-                    info.containerName().orElse("<unknown>"),
+                    currentInfo.containerName().orElse("<unknown>"),
                     context.containerSlot(),
                     err
                 ))
@@ -66,7 +66,7 @@ public final class SlotBehaviorManager {
     }
 
     public static SlotClickContext createClickContext(
-        ScreenInfo info,
+        ScreenInfo currInfo,
         ScreenInfo prevInfo,
         @Nullable Slot slot,
         int button,
@@ -75,20 +75,18 @@ public final class SlotBehaviorManager {
         var rawItem = resolveRawItem(slot);
         var displayItem = slot == null
             ? ItemStack.EMPTY
-            : applyItemOverride(info, prevInfo, slot, rawItem);
-        var client = Minecraft.getInstance();
+            : applyItemOverride(currInfo, prevInfo, slot, rawItem);
+        var modifiers = SlotInputModifiers.from(Minecraft.getInstance());
 
         return new SlotClickContext(
-            info,
+            currInfo,
             prevInfo,
             slot,
             rawItem,
             displayItem,
             button,
             actionType,
-            client.hasControlDown(),
-            client.hasShiftDown(),
-            client.hasAltDown()
+            modifiers
         );
     }
 
@@ -108,7 +106,7 @@ public final class SlotBehaviorManager {
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while matching click screen '{}' slot '{}' action '{}'",
                     registration.name(),
-                    context.info().containerName().orElse("<unknown>"),
+                    context.currInfo().containerName().orElse("<unknown>"),
                     context.containerSlot(),
                     context.actionType(),
                     err
@@ -123,7 +121,7 @@ public final class SlotBehaviorManager {
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while handling click screen '{}' slot '{}' action '{}'",
                     registration.name(),
-                    context.info().containerName().orElse("<unknown>"),
+                    context.currInfo().containerName().orElse("<unknown>"),
                     context.containerSlot(),
                     context.actionType(),
                     err

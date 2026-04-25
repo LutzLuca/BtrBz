@@ -26,7 +26,7 @@ public final class SlotObserverManager {
                 .onFailure(err -> log.error(
                     "Slot observer '{}' failed while matching screen '{}' slot '{}' action '{}'",
                     observer.getClass().getName(),
-                    context.info().containerName().orElse("<unknown>"),
+                    context.currInfo().containerName().orElse("<unknown>"),
                     context.containerSlot(),
                     context.actionType(),
                     err
@@ -41,7 +41,7 @@ public final class SlotObserverManager {
                 .onFailure(err -> log.error(
                     "Slot observer '{}' failed while handling screen '{}' slot '{}' action '{}'",
                     observer.getClass().getName(),
-                    context.info().containerName().orElse("<unknown>"),
+                    context.currInfo().containerName().orElse("<unknown>"),
                     context.containerSlot(),
                     context.actionType(),
                     err

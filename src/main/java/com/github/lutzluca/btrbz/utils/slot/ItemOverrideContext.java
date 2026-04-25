@@ -6,7 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public record ItemOverrideContext(
-    ScreenInfo info,
+    ScreenInfo currInfo,
     ScreenInfo prevInfo,
     @Nullable Slot slot,
     ItemStack rawItem

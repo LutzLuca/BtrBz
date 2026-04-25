@@ -87,7 +87,7 @@ public class OrderProtectionManager {
                         return ClickOutcome.Handled;
                     }
 
-                    if (validation.protect() && !context.controlDown()) {
+                    if (validation.protect() && !context.modifiers().controlDown()) {
                         if (cfg.showChatMessage) {
                             Notifier.sendBlockedOrderMessage(validation);
                         }

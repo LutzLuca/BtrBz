@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
@@ -146,9 +147,7 @@ class SlotBehaviorManagerTest {
                 slot.getItem().copy(),
                 0,
                 ClickType.PICKUP,
-                false,
-                false,
-                false
+                new SlotInputModifiers(false, false, false)
             );
 
             var outcome = SlotBehaviorManager.handleClick(context);

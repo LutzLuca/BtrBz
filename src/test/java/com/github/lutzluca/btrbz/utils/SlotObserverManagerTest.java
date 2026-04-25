@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
 import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.ClickType;
@@ -65,9 +66,7 @@ class SlotObserverManagerTest {
             ItemStack.EMPTY,
             0,
             ClickType.PICKUP,
-            false,
-            false,
-            false
+            new SlotInputModifiers(false, false, false)
         ));
 
         assertEquals(1, matchingCalls.get());

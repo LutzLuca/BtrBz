@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public record SlotBehaviorRegistration(
@@ -17,6 +18,7 @@ public record SlotBehaviorRegistration(
     public SlotBehaviorRegistration {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(matcher, "matcher");
+
         if (itemOverrideHandler == null && clickHandler == null) {
             throw new IllegalArgumentException(
                 "At least one handler must be provided for slot behavior '" + name + "'"
@@ -24,7 +26,7 @@ public record SlotBehaviorRegistration(
         }
     }
 
-    public static Builder named(String name) {
+    public static Builder named(@NotNull String name) {
         return new Builder(name);
     }
 
@@ -50,29 +52,26 @@ public record SlotBehaviorRegistration(
         private @Nullable ItemOverrideHandler itemOverrideHandler;
         private @Nullable ClickHandler clickHandler;
 
-        private Builder(String name) {
-            this.name = Objects.requireNonNull(name, "name");
+        private Builder(@NotNull String name) {
+            this.name = name;
         }
 
-        public Builder matches(Matcher matcher) {
-            this.matcher = Objects.requireNonNull(matcher, "matcher");
+        public @NotNull Builder matches(@NotNull Matcher matcher) {
+            this.matcher = matcher;
             return this;
         }
 
-        public Builder overrideItem(ItemOverrideHandler itemOverrideHandler) {
-            this.itemOverrideHandler = Objects.requireNonNull(
-                itemOverrideHandler,
-                "itemOverrideHandler"
-            );
+        public @NotNull Builder overrideItem(@NotNull ItemOverrideHandler itemOverrideHandler) {
+            this.itemOverrideHandler = itemOverrideHandler;
             return this;
         }
 
-        public Builder onClick(ClickHandler clickHandler) {
-            this.clickHandler = Objects.requireNonNull(clickHandler, "clickHandler");
+        public @NotNull Builder onClick(@NotNull ClickHandler clickHandler) {
+            this.clickHandler = clickHandler;
             return this;
         }
 
-        public SlotBehaviorRegistration build() {
+        public @NotNull SlotBehaviorRegistration build() {
             return new SlotBehaviorRegistration(
                 this.name,
                 this.matcher,

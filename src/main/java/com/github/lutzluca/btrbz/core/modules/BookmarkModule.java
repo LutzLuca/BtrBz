@@ -80,7 +80,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
-                .named("bookmark.item-slot")
+                .named("bookmark.toggle")
                 .matches(context ->
                     context.containerSlot() == 13 &&
                         context.inMenu(BazaarMenuType.Item) &&
