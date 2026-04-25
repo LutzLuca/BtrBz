@@ -7,12 +7,14 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.OrderPriceInfo;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
@@ -29,7 +31,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
@@ -50,110 +51,60 @@ public class OrderProtectionManager {
     public OrderProtectionManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
 
-        ItemOverrideManager.register((info, slot, original) -> {
-            if (!ConfigManager.get().orderProtection.enabled) {
-                return Optional.empty();
-            }
-            if (!info.inMenu(
+        ScreenInfoHelper.registerOnLoaded(
+            info -> info.inMenu(
                 BazaarMenuType.BuyOrderConfirmation,
                 BazaarMenuType.SellOfferConfirmation
-            )) {
-                return Optional.empty();
-            }
+            ),
+            (info, inventory) -> this.precomputeValidation(info, inventory)
+        );
 
-            if (slot == null || slot.getContainerSlot() != CONFIRMATION_SLOT_INDEX || original.isEmpty()) {
-                return Optional.empty();
-            }
-
-            if (this.validationCache.containsKey(original)) {
-                return Optional.of(original);
-            }
-            if (this.validationFailureCache.containsKey(original)) {
-                return Optional.of(original);
-            }
-
-            OrderInfoParser
-                .parseSetOrderItem(original)
-                .map(orderInfo ->
-                    OrderValidator.validate(
-                        orderInfo,
-                        this.bazaarData,
-                        ConfigManager.get().orderProtection
-                    )
+        SlotBehaviorManager.register(
+            SlotBehaviorRegistration
+                .named("order-protection.confirmation-slot")
+                .matches(context ->
+                    context.inMenu(
+                        BazaarMenuType.BuyOrderConfirmation,
+                        BazaarMenuType.SellOfferConfirmation
+                    ) && context.containerSlot() == CONFIRMATION_SLOT_INDEX
                 )
-                .onSuccess(pendingOrder -> {
-                    this.validationCache.put(original, pendingOrder);
-                    this.validationFailureCache.remove(original);
-
-                    log.trace(
-                        "Validated: {} - {}",
-                        pendingOrder.orderInfo().productName(),
-                        pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
-                    );
-                })
-                .onFailure(err -> {
-                    this.validationCache.remove(original);
-                    this.validationFailureCache.put(
-                        original,
-                        ValidationResult.blocked(VALIDATION_FAILURE_REASON)
-                    );
-                    log.warn(
-                        "Failed to parse or validate confirmation item '{}'",
-                        original.getHoverName().getString(),
-                        err
-                    );
-                });
-
-            return Optional.of(original);
-        });
-
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return info.inMenu(
-                    BazaarMenuType.BuyOrderConfirmation,
-                    BazaarMenuType.SellOfferConfirmation
-                ) && slot != null && slot.getContainerSlot() == CONFIRMATION_SLOT_INDEX;
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var self = OrderProtectionManager.this;
-
-                var stack = slot.getItem();
-                var cfg = ConfigManager.get().orderProtection;
-                var pending = self.validationCache.get(stack);
-                var validation = self.getValidationResult(stack)
-                    .orElseGet(() -> {
-                        log.warn("No cached validation for confirmation item");
-                        return ValidationResult.blocked(VALIDATION_UNAVAILABLE_REASON);
-                    });
-
-                if (!cfg.enabled) {
-                    self.dispatchSetOrder(stack, Optional.ofNullable(pending));
-                    return false;
-                }
-
-                boolean isBlocked = validation.protect();
-                boolean overrideActive = Minecraft.getInstance().hasControlDown();
-
-                if (isBlocked && !overrideActive) {
-                    if (cfg.showChatMessage) {
-                        Notifier.sendBlockedOrderMessage(validation);
+                .onClick(context -> {
+                    var stack = context.rawItem();
+                    var cfg = ConfigManager.get().orderProtection;
+                    if (cfg.enabled && !this.hasCachedValidation(stack)) {
+                        this.computeValidation(stack);
                     }
-                    SoundUtil.playSoundIf(cfg.soundOnBlocked, SoundEvents.VILLAGER_NO, 0.6f, 1);
-                    return true;
-                }
 
-                if (pending == null) {
-                    self.dispatchSetOrder(stack, Optional.empty());
-                    return false;
-                }
+                    var pending = this.validationCache.get(stack);
+                    var validation = this.getValidationResult(stack)
+                        .orElseGet(() -> {
+                            log.warn("No cached validation for confirmation item");
+                            return ValidationResult.blocked(VALIDATION_UNAVAILABLE_REASON);
+                        });
 
-                self.dispatchSetOrder(stack, Optional.of(pending));
-                return false;
-            }
-        });
+                    if (!cfg.enabled) {
+                        this.dispatchSetOrder(stack, Optional.ofNullable(pending));
+                        return ClickOutcome.Handled;
+                    }
+
+                    if (validation.protect() && !context.controlDown()) {
+                        if (cfg.showChatMessage) {
+                            Notifier.sendBlockedOrderMessage(validation);
+                        }
+                        SoundUtil.playSoundIf(cfg.soundOnBlocked, SoundEvents.VILLAGER_NO, 0.6f, 1);
+                        return ClickOutcome.Cancel;
+                    }
+
+                    if (pending == null) {
+                        this.dispatchSetOrder(stack, Optional.empty());
+                        return ClickOutcome.Handled;
+                    }
+
+                    this.dispatchSetOrder(stack, Optional.of(pending));
+                    return ClickOutcome.Handled;
+                })
+                .build()
+        );
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
             if (!ConfigManager.get().orderProtection.enabled) {
@@ -213,6 +164,58 @@ public class OrderProtectionManager {
 
             lines.add(Component.literal("Hold Ctrl to override").withStyle(ChatFormatting.DARK_GRAY));
         });
+    }
+
+    private void precomputeValidation(ScreenInfo info, Inventory inventory) {
+        if (!ConfigManager.get().orderProtection.enabled) {
+            return;
+        }
+
+        inventory.getItem(CONFIRMATION_SLOT_INDEX)
+            .filter(stack -> !stack.isEmpty())
+            .ifPresent(this::computeValidation);
+    }
+
+    private boolean hasCachedValidation(ItemStack stack) {
+        return this.validationCache.containsKey(stack) || this.validationFailureCache.containsKey(stack);
+    }
+
+    private void computeValidation(ItemStack stack) {
+        if (stack.isEmpty() || this.hasCachedValidation(stack)) {
+            return;
+        }
+
+        OrderInfoParser
+            .parseSetOrderItem(stack)
+            .map(orderInfo ->
+                OrderValidator.validate(
+                    orderInfo,
+                    this.bazaarData,
+                    ConfigManager.get().orderProtection
+                )
+            )
+            .onSuccess(pendingOrder -> {
+                this.validationCache.put(stack, pendingOrder);
+                this.validationFailureCache.remove(stack);
+
+                log.trace(
+                    "Validated: {} - {}",
+                    pendingOrder.orderInfo().productName(),
+                    pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
+                );
+            })
+            .onFailure(err -> {
+                this.validationCache.remove(stack);
+                this.validationFailureCache.put(
+                    stack,
+                    ValidationResult.blocked(VALIDATION_FAILURE_REASON)
+                );
+                log.warn(
+                    "Failed to parse or validate confirmation item '{}'",
+                    stack.getHoverName().getString(),
+                    err
+                );
+            });
     }
 
     public void onSetOrder(BiConsumer<ItemStack, Optional<PendingOrderData>> cb) {

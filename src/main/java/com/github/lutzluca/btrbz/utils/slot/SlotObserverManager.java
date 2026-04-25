@@ -1,0 +1,58 @@
+package com.github.lutzluca.btrbz.utils.slot;
+
+import io.vavr.control.Try;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public final class SlotObserverManager {
+
+    private static final List<SlotObserver> OBSERVERS = new ArrayList<>();
+
+    private SlotObserverManager() { }
+
+    public static void register(SlotObserver observer) {
+        OBSERVERS.add(observer);
+    }
+
+    public static void observeClick(SlotClickContext context) {
+        if (context.slot() == null) {
+            return;
+        }
+
+        for (SlotObserver observer : OBSERVERS) {
+            var matches = Try.of(() -> observer.matches(context))
+                .onFailure(err -> log.error(
+                    "Slot observer '{}' failed while matching screen '{}' slot '{}' action '{}'",
+                    observer.getClass().getName(),
+                    context.info().containerName().orElse("<unknown>"),
+                    context.containerSlot(),
+                    context.actionType(),
+                    err
+                ))
+                .getOrElse(false);
+
+            if (!matches) {
+                continue;
+            }
+
+            Try.run(() -> observer.onClick(context))
+                .onFailure(err -> log.error(
+                    "Slot observer '{}' failed while handling screen '{}' slot '{}' action '{}'",
+                    observer.getClass().getName(),
+                    context.info().containerName().orElse("<unknown>"),
+                    context.containerSlot(),
+                    context.actionType(),
+                    err
+                ));
+        }
+    }
+
+    public interface SlotObserver {
+
+        boolean matches(SlotClickContext context);
+
+        void onClick(SlotClickContext context);
+    }
+}

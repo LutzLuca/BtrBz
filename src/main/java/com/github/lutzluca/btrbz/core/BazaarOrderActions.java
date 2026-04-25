@@ -6,13 +6,15 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
@@ -46,10 +48,9 @@ public class BazaarOrderActions {
     private boolean hideCancelledOrderButton = false;
 
     public BazaarOrderActions() {
-        this.registerCancelOrderClickRule();
+        this.registerCancelOrderObserver();
         this.registerCloseHandlers();
-        this.registerItemOverride();
-        this.registerReopenClickRule();
+        this.registerReopenSlotBehavior();
         this.registerTooltipCallback();
     }
 
@@ -79,27 +80,25 @@ public class BazaarOrderActions {
         }
     }
 
-    private void registerCancelOrderClickRule() {
-        ScreenActionManager.register(new ScreenActionManager.ScreenClickRule() {
+    private void registerCancelOrderObserver() {
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
+            public boolean matches(SlotClickContext context) {
                 var cfg = ConfigManager.get().orderActions;
-                if (!cfg.enabled) {
+                if (!cfg.enabled || context.isPlayerInventorySlot()) {
                     return false;
                 }
 
-                if (GameUtils.isPlayerInventorySlot(slot)) {
-                    return false;
-                }
-
-                var prev = ScreenInfoHelper.get().getPrevInfo();
-                return info.inMenu(BazaarMenuType.OrderOptions) && 
-                    prev.inMenu(BazaarMenuType.Orders) && 
-                    BazaarOrderActions.this.isCancelOrderSlot(slot);
+                return context.inMenu(BazaarMenuType.OrderOptions) &&
+                    context.prevInfo().inMenu(BazaarMenuType.Orders) &&
+                    BazaarOrderActions.this.isCancelOrderSlot(
+                        context.containerSlot(),
+                        context.displayItem()
+                    );
             }
 
             @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
+            public void onClick(SlotClickContext context) {
                 if (BazaarOrderActions.this.activeBuyOrderContext != null) {
                     BazaarOrderActions.this.lastCancelledBuyOrder = BazaarOrderActions.this.activeBuyOrderContext;
                     BazaarOrderActions.this.hideCancelledOrderButton = false;
@@ -116,8 +115,6 @@ public class BazaarOrderActions {
                     GameUtils.copyToClipboard(BazaarOrderActions.this.remainingOrderAmount);
                     BazaarOrderActions.this.remainingOrderAmount = null;
                 }
-
-                return false;
             }
         });
     }
@@ -145,58 +142,33 @@ public class BazaarOrderActions {
         );
     }
 
-    private void registerItemOverride() {
-        ItemOverrideManager.register((info, slot, original) -> {
-            var cfg = ConfigManager.get().orderActions;
-            if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled || (cfg.clearOnClose && BazaarOrderActions.this.hideCancelledOrderButton) ||
-                BazaarOrderActions.this.lastCancelledBuyOrder == null) {
-                return Optional.empty();
-            }
+    private void registerReopenSlotBehavior() {
+        SlotBehaviorManager.register(
+            SlotBehaviorRegistration
+                .named("order-actions.reopen-last-buy-order")
+                .matches(context -> {
+                    var cfg = ConfigManager.get().orderActions;
+                    if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled ||
+                        (cfg.clearOnClose && this.hideCancelledOrderButton) ||
+                        this.lastCancelledBuyOrder == null) {
+                        return false;
+                    }
 
-            if (GameUtils.isPlayerInventorySlot(slot) || !info.inMenu(BazaarMenuType.Orders)) {
-                return Optional.empty();
-            }
-
-            var targetSlotIdx = info.getGenericContainerScreen()
-                .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
-                .orElse(-1);
-
-            if (slot.getContainerSlot() != targetSlotIdx) {
-                return Optional.empty();
-            }
-
-            return Optional.of(BazaarOrderActions.this.lastCancelledBuyOrder.displayItem().copy());
-        });
-    }
-
-    private void registerReopenClickRule() {
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().orderActions;
-                if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled || (cfg.clearOnClose && BazaarOrderActions.this.hideCancelledOrderButton) ||
-                    BazaarOrderActions.this.lastCancelledBuyOrder == null) {
-                    return false;
-                }
-
-                if (GameUtils.isPlayerInventorySlot(slot) || !info.inMenu(BazaarMenuType.Orders)) {
-                    return false;
-                }
-
-                var targetSlotIdx = info.getGenericContainerScreen()
-                    .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
-                    .orElse(-1);
-
-                return slot.getContainerSlot() == targetSlotIdx;
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                log.debug("Reopening bazaar page for product '{}'", BazaarOrderActions.this.lastCancelledBuyOrder.productName());
-                GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.productName());
-                return true;
-            }
-        });
+                    return !context.isPlayerInventorySlot() &&
+                        context.inMenu(BazaarMenuType.Orders) &&
+                        context.containerSlot() == this.getReopenTargetSlot(context.info());
+                })
+                .overrideItem(context -> Optional.of(this.lastCancelledBuyOrder.displayItem().copy()))
+                .onClick(context -> {
+                    log.debug(
+                        "Reopening bazaar page for product '{}'",
+                        BazaarOrderActions.this.lastCancelledBuyOrder.productName()
+                    );
+                    GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.productName());
+                    return ClickOutcome.Cancel;
+                })
+                .build()
+        );
 
         ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.Orders),
@@ -275,12 +247,19 @@ public class BazaarOrderActions {
         this.shouldReopenBazaar = true;
     }
 
+    private int getReopenTargetSlot(ScreenInfo info) {
+        return info.getGenericContainerScreen()
+            .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
+            .orElse(-1);
+    }
+
+    private boolean isCancelOrderSlot(int slotIndex, ItemStack stack) {
+        return slotIndex == CANCEL_ORDER_SLOT &&
+            stack.getHoverName().getString().equals("Cancel Order");
+    }
+
     private boolean isCancelOrderSlot(@Nullable Slot slot) {
-        return slot != null && slot.getContainerSlot() == CANCEL_ORDER_SLOT && slot
-            .getItem()
-            .getHoverName()
-            .getString()
-            .equals("Cancel Order");
+        return slot != null && this.isCancelOrderSlot(slot.getContainerSlot(), slot.getItem());
     }
 
     public static class OrderActionsConfig {

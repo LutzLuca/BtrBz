@@ -7,13 +7,13 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import java.util.Set;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Position;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
@@ -48,7 +48,6 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 @Slf4j
@@ -79,51 +78,44 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
 
-        ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getContainerSlot() != 13 || !info.inMenu(BazaarMenuType.Item)) {
-                return Optional.empty();
-            }
+        SlotBehaviorManager.register(
+            SlotBehaviorRegistration
+                .named("bookmark.item-slot")
+                .matches(context ->
+                    context.containerSlot() == 13 &&
+                        context.inMenu(BazaarMenuType.Item) &&
+                        !context.isPlayerInventorySlot() &&
+                        context.rawItem() != ItemStack.EMPTY
+                )
+                .overrideItem(context -> {
+                    var productName = context.rawItem().getHoverName().getString();
+                    if (this.context().bazaarData().nameToId(productName).isEmpty()) {
+                        return Optional.empty();
+                    }
 
-            if (GameUtils.isPlayerInventorySlot(slot) || original == ItemStack.EMPTY) {
-                return Optional.empty();
-            }
+                    return Optional.of(this.decorateBookmarkedDisplayItem(
+                        context.rawItem(),
+                        this.isBookmarked(productName)
+                    ));
+                })
+                .onClick(context -> {
+                    var bookmarked = context.displayItem().get(BtrBz.BOOKMARKED);
+                    if (bookmarked == null) {
+                        return ClickOutcome.Pass;
+                    }
 
-            if (original.get(BtrBz.BOOKMARKED) != null) {
-                return Optional.of(original);
-            }
+                    String productName = context.displayItem().getHoverName().getString();
+                    this.toggleBookmark(productName, context.displayItem().copy());
+                    return ClickOutcome.Cancel;
+                })
+                .build()
+        );
+    }
 
-            String productName = original.getHoverName().getString();
-            if (this.context().bazaarData().nameToId(productName).isEmpty()) {
-                return Optional.empty();
-            }
-
-            boolean isBookmarked = this.isBookmarked(productName);
-
-            original.set(BtrBz.BOOKMARKED, isBookmarked);
-
-            return Optional.of(original);
-        });
-
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getContainerSlot() == 13 && info.inMenu(BazaarMenuType.Item);
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var bookmarked = slot.getItem().get(BtrBz.BOOKMARKED);
-                if (bookmarked == null) {
-                    return false;
-                }
-
-                String productName = slot.getItem().getHoverName().getString();
-
-                var isBookmarked = toggleBookmark(productName, slot.getItem().copy());
-                slot.getItem().set(BtrBz.BOOKMARKED, isBookmarked);
-                return true;
-            }
-        });
+    private ItemStack decorateBookmarkedDisplayItem(ItemStack original, boolean isBookmarked) {
+        var display = original.copy();
+        display.set(BtrBz.BOOKMARKED, isBookmarked);
+        return display;
     }
 
     public void updateChildrenCount() {

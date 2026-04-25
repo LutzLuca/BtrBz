@@ -5,14 +5,12 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Set;
 import dev.isxander.yacl3.api.Option;
@@ -35,7 +33,6 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -72,8 +69,8 @@ public final class ProductInfoProvider {
         this.bazaarData = bazaarData;
         this.priceCache = new PriceCache();
         this.registerProductInfoListener();
-        this.registerInfoProviderItemOverride();
-        this.registerInfoProviderClick();
+        this.registerInfoProviderSlotBehavior();
+        this.registerCtrlShiftClickBehavior();
         this.registerTooltipDisplay();
         log.info("Initialized ProductInfoProvider");
     }
@@ -161,108 +158,92 @@ public final class ProductInfoProvider {
         });
     }
 
-    private void registerInfoProviderItemOverride() {
-        ItemOverrideManager.register((info, slot, original) -> {
-            var cfg = ConfigManager.get().productInfo;
-            if (!cfg.enabled || !cfg.itemClickEnabled) {
-                return Optional.empty();
-            }
+    private void registerInfoProviderSlotBehavior() {
+        SlotBehaviorManager.register(
+            SlotBehaviorRegistration
+                .named("product-info.synthetic-slot")
+                .matches(context -> {
+                    var cfg = ConfigManager.get().productInfo;
+                    if (!cfg.enabled || !cfg.itemClickEnabled || this.openedProductNameInfo == null) {
+                        return false;
+                    }
 
-            if (this.openedProductNameInfo == null ||
-                slot.getContainerSlot() != CUSTOM_ITEM_IDX ||
-                !info.inMenu(BazaarMenuType.Item)
-            ) {
-                return Optional.empty();
-            }
+                    return !context.isPlayerInventorySlot() &&
+                        context.containerSlot() == CUSTOM_ITEM_IDX &&
+                        context.inMenu(BazaarMenuType.Item);
+                })
+                .overrideItem(context -> {
+                    var cfg = ConfigManager.get().productInfo;
+                    var item = new ItemStack(Items.PAPER);
+                    item.set(
+                        DataComponents.CUSTOM_NAME,
+                        Component
+                            .literal("Product Info")
+                            .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                            .withStyle(style -> style.withItalic(false))
+                    );
 
-            if (GameUtils.isPlayerInventorySlot(slot)) {
-                return Optional.empty();
-            }
+                    var loreLines = Stream.of(
+                        Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
 
-            var item = new ItemStack(Items.PAPER);
-            item.set(
-                DataComponents.CUSTOM_NAME,
-                Component
-                    .literal("Product Info")
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-                    .withStyle(style -> style.withItalic(false))
-            );
+                        Component.literal("and live market data for this item.").withStyle(ChatFormatting.GRAY),
 
-            var loreLines = Stream.of(
-                Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
+                        Component.empty(),
 
-                Component.literal("and live market data for this item.").withStyle(ChatFormatting.GRAY),
+                        Component
+                            .literal("➤ Click to open ")
+                            .withStyle(ChatFormatting.DARK_GRAY)
+                            .withStyle(style -> style.withItalic(false))
+                            .append(Component
+                                .literal(cfg.site.displayName())
+                                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                    ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
-                Component.empty(),
-
-                Component
-                    .literal("➤ Click to open ")
-                    .withStyle(ChatFormatting.DARK_GRAY)
-                    .withStyle(style -> style.withItalic(false))
-                    .append(Component
-                        .literal(cfg.site.displayName())
-                        .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-            ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
-
-            item.set(DataComponents.LORE, new ItemLore(loreLines));
-            return Optional.of(item);
-        });
+                    item.set(DataComponents.LORE, new ItemLore(loreLines));
+                    return Optional.of(item);
+                })
+                .onClick(context -> {
+                    var cfg = ConfigManager.get().productInfo;
+                    ProductInfoProvider.this.confirmAndOpen(
+                        cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId)
+                    );
+                    return ClickOutcome.Cancel;
+                })
+                .build()
+        );
     }
 
-    private void registerInfoProviderClick() {
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                if (!cfg.enabled || !cfg.itemClickEnabled || ProductInfoProvider.this.openedProductNameInfo == null || slot == null) {
-                    return false;
-                }
+    private void registerCtrlShiftClickBehavior() {
+        SlotBehaviorManager.register(
+            SlotBehaviorRegistration
+                .named("product-info.ctrl-shift-click")
+                .matches(context -> {
+                    var cfg = ConfigManager.get().productInfo;
+                    return cfg.enabled &&
+                        cfg.ctrlShiftEnabled &&
+                        context.slot() != null &&
+                        !context.rawItem().isEmpty() &&
+                        this.shouldApplyCtrlShiftClick(context.rawItem());
+                })
+                .onClick(context -> {
+                    var cfg = ConfigManager.get().productInfo;
+                    if (!context.controlDown() || !context.shiftDown()) {
+                        return ClickOutcome.Pass;
+                    }
 
-                if (GameUtils.isPlayerInventorySlot(slot)) {
-                    return false;
-                }
+                    var stack = context.rawItem();
+                    var name = stack.getHoverName().getString();
+                    var id = this.resolveProductId(stack, name);
+                    if (id.isEmpty()) {
+                        log.warn("No product id found for {}", name);
+                        return ClickOutcome.Pass;
+                    }
 
-                return slot.getContainerSlot() == CUSTOM_ITEM_IDX && info.inMenu(BazaarMenuType.Item);
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                ProductInfoProvider.this.confirmAndOpen(cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId));
-                return true;
-            }
-        });
-
-        ScreenActionManager.register(new ScreenClickRule() {
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                if (!cfg.enabled || !cfg.ctrlShiftEnabled || slot == null) {
-                    return false;
-                }
-
-                var stack = slot.getItem();
-
-
-                boolean isControlDown = Minecraft.getInstance().hasControlDown();
-                boolean isShiftDown = Minecraft.getInstance().hasShiftDown();
-                return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && isControlDown && isShiftDown;
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                var stack = slot.getItem();
-                var name = stack.getHoverName().getString();
-                var id = resolveProductId(stack, name);
-                if (id.isEmpty()) {
-                    log.warn("No product id found for {}", name);
-                    return false;
-                }
-
-                ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
-                return true;
-            }
-        });
+                    ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
+                    return ClickOutcome.Cancel;
+                })
+                .build()
+        );
     }
 
     private void registerTooltipDisplay() {

@@ -28,11 +28,10 @@ import com.github.lutzluca.btrbz.data.BazaarPoller;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import com.google.common.collect.HashBiMap;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
@@ -49,7 +48,6 @@ import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.Slot;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -167,30 +165,33 @@ public class BtrBz implements ClientModInitializer {
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
-        ScreenActionManager.register(new ScreenClickRule() {
+        
+
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
+            public boolean matches(SlotClickContext context) {
                 var cfg = ConfigManager.get();
                 if (!cfg.flipHelper.enabled && !cfg.orderActions.enabled) {
                     return false;
                 }
 
-                if (GameUtils.isPlayerInventorySlot(slot)) {
+                if (context.isPlayerInventorySlot()) {
                     return false;
                 }
 
-                return info.inMenu(BazaarMenuType.Orders);
+                return context.inMenu(BazaarMenuType.Orders);
             }
 
             @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var orderInfo = OrderInfoParser.parseOrderInfo(slot.getItem(), slot.getContainerSlot());
+            public void onClick(SlotClickContext context) {
+                var orderInfo = OrderInfoParser.parseOrderInfo(
+                    context.rawItem(),
+                    context.containerSlot()
+                );
                 if (orderInfo.isSuccess()) {
                     flipHelper.onOrderClick(orderInfo.get());
-                    orderActions.onOrderClick(orderInfo.get(), slot.getItem());
+                    orderActions.onOrderClick(orderInfo.get(), context.rawItem());
                 }
-
-                return false;
             }
         });
 

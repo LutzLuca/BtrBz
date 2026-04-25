@@ -12,6 +12,7 @@
         "MinecraftClientMixin",
         "ContainerEventHandlerMixin",
         "SkyBlockBazaarReplyAccessor",
+        "SlotAccessor",
         "SlotMixin"
     ],
     "injectors": {
