@@ -111,7 +111,7 @@ public class OrderProtectionManager {
                 return;
             }
 
-            var validation = this.getValidationResult(stack).orElse(null);
+            var validation = this.getOrComputeVisualValidation(stack).orElse(null);
             if (validation == null) {
                 return;
             }
@@ -171,9 +171,14 @@ public class OrderProtectionManager {
             return;
         }
 
-        inventory.getItem(CONFIRMATION_SLOT_INDEX)
-            .filter(stack -> !stack.isEmpty())
+        resolvePrecomputedValidationStack(info, inventory)
             .ifPresent(this::computeValidation);
+    }
+
+    static Optional<ItemStack> resolvePrecomputedValidationStack(ScreenInfo info, Inventory inventory) {
+        return info.getItemStack(CONFIRMATION_SLOT_INDEX)
+            .filter(stack -> !stack.isEmpty())
+            .or(() -> inventory.getItem(CONFIRMATION_SLOT_INDEX).filter(stack -> !stack.isEmpty()));
     }
 
     private boolean hasCachedValidation(ItemStack stack) {
@@ -229,6 +234,29 @@ public class OrderProtectionManager {
             .or(() -> Optional.ofNullable(this.validationFailureCache.get(stack)));
     }
 
+    private Optional<ValidationResult> getOrComputeVisualValidation(ItemStack stack) {
+        var cached = this.getValidationResult(stack);
+        if (cached.isPresent()) {
+            return cached;
+        }
+
+        if (!isConfirmationItem(stack)) {
+            return Optional.empty();
+        }
+
+        this.computeValidation(stack);
+        return this.getValidationResult(stack);
+    }
+
+    private static boolean isConfirmationItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+
+        var title = stack.getHoverName().getString();
+        return title.equals("Buy Order") || title.equals("Sell Offer");
+    }
+
     private void dispatchSetOrder(ItemStack stack, Optional<PendingOrderData> data) {
         if (this.setOrderCallback != null) {
             this.setOrderCallback.accept(stack, data);
@@ -240,7 +268,7 @@ public class OrderProtectionManager {
             return Optional.empty();
         }
 
-        return this.getValidationResult(stack).map(data -> Pair.of(data, false));
+        return this.getOrComputeVisualValidation(stack).map(data -> Pair.of(data, false));
     }
 
     public record PendingOrderData(

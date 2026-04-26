@@ -11,10 +11,12 @@ import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
+import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +33,7 @@ class SlotBehaviorManagerTest {
     @BeforeEach
     void clearRegistrations() throws Exception {
         clearStaticList(SlotBehaviorManager.class, "REGISTRATIONS");
+        clearStaticList(SlotObserverManager.class, "OBSERVERS");
     }
 
     @Nested
@@ -159,9 +162,164 @@ class SlotBehaviorManagerTest {
         }
     }
 
+    @Nested
+    @DisplayName("handleClickAndObserve")
+    class HandleClickAndObserve {
+
+        @Test
+        void doesNotObserveCancelledClicks() {
+            var observerCalls = new AtomicInteger();
+
+            SlotBehaviorManager.register(
+                SlotBehaviorRegistration
+                    .named("cancel")
+                    .onClick(context -> ClickOutcome.Cancel)
+                    .build()
+            );
+            SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+                @Override
+                public boolean matches(SlotClickContext context) {
+                    return true;
+                }
+
+                @Override
+                public void onClick(SlotClickContext context) {
+                    observerCalls.incrementAndGet();
+                }
+            });
+
+            var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
+
+            assertEquals(ClickOutcome.Cancel, outcome);
+            assertEquals(0, observerCalls.get());
+        }
+
+        @Test
+        void observesPassOutcome() {
+            var observerCalls = new AtomicInteger();
+
+            SlotBehaviorManager.register(
+                SlotBehaviorRegistration
+                    .named("pass")
+                    .onClick(context -> ClickOutcome.Pass)
+                    .build()
+            );
+            SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+                @Override
+                public boolean matches(SlotClickContext context) {
+                    return true;
+                }
+
+                @Override
+                public void onClick(SlotClickContext context) {
+                    observerCalls.incrementAndGet();
+                }
+            });
+
+            var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
+
+            assertEquals(ClickOutcome.Pass, outcome);
+            assertEquals(1, observerCalls.get());
+        }
+
+        @Test
+        void observesHandledOutcome() {
+            var observerCalls = new AtomicInteger();
+
+            SlotBehaviorManager.register(
+                SlotBehaviorRegistration
+                    .named("handled")
+                    .onClick(context -> ClickOutcome.Handled)
+                    .build()
+            );
+            SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+                @Override
+                public boolean matches(SlotClickContext context) {
+                    return true;
+                }
+
+                @Override
+                public void onClick(SlotClickContext context) {
+                    observerCalls.incrementAndGet();
+                }
+            });
+
+            var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
+
+            assertEquals(ClickOutcome.Handled, outcome);
+            assertEquals(1, observerCalls.get());
+        }
+
+        @Test
+        void doesNotObserveCancelledOverriddenClicks() {
+            var observerCalls = new AtomicInteger();
+            var rawSlot = createFilledSlot();
+
+            SlotBehaviorManager.register(
+                SlotBehaviorRegistration
+                    .named("override-and-cancel")
+                    .overrideItem(context -> Optional.of(new ItemStack(Items.BOOK)))
+                    .onClick(context -> ClickOutcome.Cancel)
+                    .build()
+            );
+            SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+                @Override
+                public boolean matches(SlotClickContext context) {
+                    return !context.rawItem().isEmpty();
+                }
+
+                @Override
+                public void onClick(SlotClickContext context) {
+                    observerCalls.incrementAndGet();
+                }
+            });
+
+            var displayItem = SlotBehaviorManager.applyItemOverride(
+                new ScreenInfoHelper.ScreenInfo(null),
+                new ScreenInfoHelper.ScreenInfo(null),
+                rawSlot,
+                rawSlot.getItem()
+            );
+            var context = new SlotClickContext(
+                new ScreenInfoHelper.ScreenInfo(null),
+                new ScreenInfoHelper.ScreenInfo(null),
+                rawSlot,
+                rawSlot.getItem(),
+                displayItem,
+                0,
+                ClickType.PICKUP,
+                SlotInputModifiers.none()
+            );
+
+            var outcome = SlotBehaviorManager.handleClickAndObserve(context);
+
+            assertEquals(ClickOutcome.Cancel, outcome);
+            assertEquals(0, observerCalls.get());
+        }
+    }
+
     private static Slot createSlot() {
         var container = new SimpleContainer(1);
         return new Slot(container, 0, 0, 0);
+    }
+
+    private static Slot createFilledSlot() {
+        var container = new SimpleContainer(1);
+        container.setItem(0, new ItemStack(Items.STONE));
+        return new Slot(container, 0, 0, 0);
+    }
+
+    private static SlotClickContext createClickContext(Slot slot) {
+        return new SlotClickContext(
+            new ScreenInfoHelper.ScreenInfo(null),
+            new ScreenInfoHelper.ScreenInfo(null),
+            slot,
+            slot.getItem(),
+            slot.getItem().copy(),
+            0,
+            ClickType.PICKUP,
+            SlotInputModifiers.none()
+        );
     }
 
     @SuppressWarnings("unchecked")

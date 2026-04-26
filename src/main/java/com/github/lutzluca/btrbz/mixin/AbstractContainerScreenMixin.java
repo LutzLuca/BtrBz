@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -55,9 +54,7 @@ public abstract class AbstractContainerScreenMixin {
             actionType
         );
 
-        SlotObserverManager.observeClick(context);
-
-        var outcome = SlotBehaviorManager.handleClick(context);
+        var outcome = SlotBehaviorManager.handleClickAndObserve(context);
 
         if (outcome == ClickOutcome.Cancel) {
             ci.cancel();

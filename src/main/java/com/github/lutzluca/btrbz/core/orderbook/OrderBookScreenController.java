@@ -66,7 +66,7 @@ public class OrderBookScreenController {
                         Notifier.notifyPlayer(Notifier
                             .prefix()
                             .append(Component.literal("Failed to determine the opened product name")));
-                        return ClickOutcome.Handled;
+                        return ClickOutcome.Cancel;
                     }
 
                     var orders = this.bazaarData.getOrderLists(productNameInfo.productId());

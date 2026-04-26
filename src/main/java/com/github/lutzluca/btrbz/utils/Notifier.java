@@ -37,7 +37,7 @@ public class Notifier {
 
     public static boolean notifyPlayer(Component msg) {
         Minecraft client = Minecraft.getInstance();
-        if (client.player != null) {
+        if (client != null && client.player != null) {
             client.player.displayClientMessage(msg, false);
             return true;
         }

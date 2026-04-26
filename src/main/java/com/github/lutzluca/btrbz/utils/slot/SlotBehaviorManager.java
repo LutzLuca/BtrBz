@@ -140,6 +140,15 @@ public final class SlotBehaviorManager {
         return aggregate;
     }
 
+    public static ClickOutcome handleClickAndObserve(SlotClickContext context) {
+        var outcome = handleClick(context);
+        if (outcome != ClickOutcome.Cancel) {
+            SlotObserverManager.observeClick(context);
+        }
+
+        return outcome;
+    }
+
     static ItemStack resolveRawItem(@Nullable Slot slot) {
         if (slot == null) {
             return ItemStack.EMPTY;
