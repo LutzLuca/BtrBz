@@ -38,6 +38,7 @@ import net.minecraft.world.item.component.ItemLore;
 @Slf4j
 public class BazaarOrderActions {
     public static final int CANCEL_ORDER_SLOT = 11;
+    private static final int REOPEN_BUTTON_OFFSET_FROM_CONTAINER_END = 6;
 
     private boolean shouldReopenBazaar = false;
     private @Nullable Integer remainingOrderAmount = null;
@@ -158,13 +159,25 @@ public class BazaarOrderActions {
                         context.inMenu(BazaarMenuType.Orders) &&
                         context.containerSlot() == this.getReopenTargetSlot(context.currInfo());
                 })
-                .overrideItem(context -> Optional.of(this.lastCancelledBuyOrder.displayItem().copy()))
+                .overrideItem(context -> {
+                    var order = this.lastCancelledBuyOrder;
+                    if (order == null) {
+                        return Optional.empty();
+                    }
+
+                    return Optional.of(order.displayItem().copy());
+                })
                 .onClick(context -> {
+                    var order = this.lastCancelledBuyOrder;
+                    if (order == null) {
+                        return ClickOutcome.Cancel;
+                    }
+
                     log.debug(
                         "Reopening bazaar page for product '{}'",
-                        BazaarOrderActions.this.lastCancelledBuyOrder.productName()
+                        order.productName()
                     );
-                    GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.productName());
+                    GameUtils.runCommand("bz " + order.productName());
                     return ClickOutcome.Cancel;
                 })
                 .build()
@@ -248,8 +261,10 @@ public class BazaarOrderActions {
     }
 
     private int getReopenTargetSlot(ScreenInfo info) {
+        // ScreenInfo gives us the live Orders container size; Hypixel's reopen action occupies
+        // the chest slot at size - 6 (bottom row, fourth slot from the left), not a player slot.
         return info.getGenericContainerScreen()
-            .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
+            .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - REOPEN_BUTTON_OFFSET_FROM_CONTAINER_END)
             .orElse(-1);
     }
 

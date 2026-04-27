@@ -244,6 +244,13 @@ public class OrderProtectionManager {
             return Optional.empty();
         }
 
+        if (!ScreenInfoHelper.get().getCurrInfo().inMenu(
+            BazaarMenuType.BuyOrderConfirmation,
+            BazaarMenuType.SellOfferConfirmation
+        )) {
+            return Optional.empty();
+        }
+
         this.computeValidation(stack);
         return this.getValidationResult(stack);
     }

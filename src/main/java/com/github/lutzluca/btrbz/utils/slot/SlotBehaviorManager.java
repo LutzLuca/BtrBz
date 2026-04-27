@@ -21,10 +21,22 @@ public final class SlotBehaviorManager {
 
     private SlotBehaviorManager() { }
 
+    /**
+     * Registers a slot behavior in evaluation order.
+     *
+     * Item override conflicts are resolved purely by registration order: the first matching
+     * registration that returns a replacement wins, and there is no automatic conflict resolution.
+     */
     public static void register(SlotBehaviorRegistration registration) {
         REGISTRATIONS.add(registration);
     }
 
+    /**
+     * Applies the first matching item override for the given slot context.
+     *
+     * Registration order determines precedence: first registered wins, and later matching
+     * overrides are not evaluated once a replacement is returned.
+     */
     public static ItemStack applyItemOverride(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
         var context = new ItemOverrideContext(currentInfo, previousInfo, slot, rawItem);
 

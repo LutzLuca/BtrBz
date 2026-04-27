@@ -170,11 +170,6 @@ public class BtrBz implements ClientModInitializer {
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
             public boolean matches(SlotClickContext context) {
-                var cfg = ConfigManager.get();
-                if (!cfg.flipHelper.enabled && !cfg.orderActions.enabled) {
-                    return false;
-                }
-
                 if (context.isPlayerInventorySlot()) {
                     return false;
                 }
@@ -184,13 +179,20 @@ public class BtrBz implements ClientModInitializer {
 
             @Override
             public void onClick(SlotClickContext context) {
+                var cfg = ConfigManager.get();
                 var orderInfo = OrderInfoParser.parseOrderInfo(
                     context.rawItem(),
                     context.containerSlot()
                 );
                 if (orderInfo.isSuccess()) {
-                    flipHelper.onOrderClick(orderInfo.get());
-                    orderActions.onOrderClick(orderInfo.get(), context.rawItem());
+                    var parsedOrderInfo = orderInfo.get();
+                    if (cfg.flipHelper.enabled) {
+                        flipHelper.onOrderClick(parsedOrderInfo);
+                    }
+
+                    // Keep OrderActions state in sync even while the feature is disabled.
+                    // Its own slot behaviors and tooltips already gate display on config.
+                    orderActions.onOrderClick(parsedOrderInfo, context.rawItem());
                 }
             }
         });

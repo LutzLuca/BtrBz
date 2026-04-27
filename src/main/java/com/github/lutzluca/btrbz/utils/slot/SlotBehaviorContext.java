@@ -22,7 +22,8 @@ public interface SlotBehaviorContext {
     }
 
     default int containerSlot() {
-        return this.slot() == null ? -1 : this.slot().getContainerSlot();
+        var slot = this.slot();
+        return slot == null ? -1 : slot.getContainerSlot();
     }
 
     default boolean isPlayerInventorySlot() {

@@ -85,7 +85,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     context.containerSlot() == 13 &&
                         context.inMenu(BazaarMenuType.Item) &&
                         !context.isPlayerInventorySlot() &&
-                        context.rawItem() != ItemStack.EMPTY
+                        !context.rawItem().isEmpty()
                 )
                 .overrideItem(context -> {
                     var productName = context.rawItem().getHoverName().getString();

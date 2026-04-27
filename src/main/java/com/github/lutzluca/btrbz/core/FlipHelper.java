@@ -135,7 +135,7 @@ public class FlipHelper {
                     );
                     this.pendingFlip = true;
 
-                    return ClickOutcome.Handled;
+                    return ClickOutcome.Cancel;
                 })
                 .build()
         );
