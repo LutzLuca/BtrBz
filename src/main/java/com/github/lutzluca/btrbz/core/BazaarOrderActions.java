@@ -84,22 +84,22 @@ public class BazaarOrderActions {
     private void registerCancelOrderObserver() {
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
-            public boolean matches(SlotClickContext context) {
+            public boolean matches(SlotClickContext ctx) {
                 var cfg = ConfigManager.get().orderActions;
-                if (!cfg.enabled || context.isPlayerInventorySlot()) {
+                if (!cfg.enabled || ctx.isPlayerInventorySlot()) {
                     return false;
                 }
 
-                return context.inMenu(BazaarMenuType.OrderOptions) &&
-                    context.prevInfo().inMenu(BazaarMenuType.Orders) &&
+                return ctx.inMenu(BazaarMenuType.OrderOptions) &&
+                    ctx.prevInfo().inMenu(BazaarMenuType.Orders) &&
                     BazaarOrderActions.this.isCancelOrderSlot(
-                        context.containerSlot(),
-                        context.displayItem()
+                        ctx.containerSlot(),
+                        ctx.displayItem()
                     );
             }
 
             @Override
-            public void onClick(SlotClickContext context) {
+            public void onClick(SlotClickContext ctx) {
                 if (BazaarOrderActions.this.activeBuyOrderContext != null) {
                     BazaarOrderActions.this.lastCancelledBuyOrder = BazaarOrderActions.this.activeBuyOrderContext;
                     BazaarOrderActions.this.hideCancelledOrderButton = false;
@@ -147,7 +147,7 @@ public class BazaarOrderActions {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("order-actions.reopen-button")
-                .matches(context -> {
+                .matches(ctx -> {
                     var cfg = ConfigManager.get().orderActions;
                     if (!cfg.enabled || !cfg.reopenLastBuyOrderEnabled ||
                         (cfg.clearOnClose && this.hideCancelledOrderButton) ||
@@ -155,13 +155,13 @@ public class BazaarOrderActions {
                         return false;
                     }
 
-                    return !context.isPlayerInventorySlot() &&
-                        context.inMenu(BazaarMenuType.Orders) &&
-                        this.getReopenTargetSlot(context.currInfo())
-                            .map(targetSlot -> context.containerSlot() == targetSlot)
+                    return !ctx.isPlayerInventorySlot() &&
+                        ctx.inMenu(BazaarMenuType.Orders) &&
+                        this.getReopenTargetSlot(ctx.currInfo())
+                            .map(targetSlot -> ctx.containerSlot() == targetSlot)
                             .orElse(false);
                 })
-                .overrideItem(context -> {
+                .overrideItem(ctx -> {
                     var order = this.lastCancelledBuyOrder;
                     if (order == null) {
                         return Optional.empty();
@@ -169,7 +169,7 @@ public class BazaarOrderActions {
 
                     return Optional.of(order.displayItem().copy());
                 })
-                .onClick(context -> {
+                .onClick(ctx -> {
                     var order = this.lastCancelledBuyOrder;
                     if (order == null) {
                         return ClickOutcome.Cancel;

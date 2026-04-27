@@ -74,16 +74,16 @@ public class FlipHelper {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("flip-helper.suggestion")
-                .matches(context -> {
+                .matches(ctx -> {
                     if (!ConfigManager.get().flipHelper.enabled || this.potentialFlipProduct == null) {
                         return false;
                     }
 
-                    return !context.isPlayerInventorySlot() &&
-                        context.containerSlot() == CUSTOM_HELPER_ITEM_SLOT_IDX &&
-                        context.inMenu(BazaarMenuType.OrderOptions);
+                    return !ctx.isPlayerInventorySlot() &&
+                        ctx.containerSlot() == CUSTOM_HELPER_ITEM_SLOT_IDX &&
+                        ctx.inMenu(BazaarMenuType.OrderOptions);
                 })
-                .overrideItem(context -> this.potentialFlipProduct.getSellOfferPrice().map(price -> {
+                .overrideItem(ctx -> this.potentialFlipProduct.getSellOfferPrice().map(price -> {
                     var formatted = Utils.formatDecimal(Math.max(price - 0.1, .1), 1, true);
 
                     var customHelperItem = new ItemStack(Items.NETHER_STAR);
@@ -99,10 +99,10 @@ public class FlipHelper {
 
                     return customHelperItem;
                 }))
-                .onClick(context -> {
+                .onClick(ctx -> {
                     var client = Minecraft.getInstance();
 
-                    var gcsOpt = context.currInfo().getGenericContainerScreen();
+                    var gcsOpt = ctx.currInfo().getGenericContainerScreen();
                     if (gcsOpt.isEmpty()) {
                         return ClickOutcome.Pass;
                     }
@@ -129,7 +129,7 @@ public class FlipHelper {
                     interactionManager.handleInventoryMouseClick(
                         handler.containerId,
                         FLIP_ORDER_ITEM_SLOT_IDX,
-                        context.button(),
+                        ctx.button(),
                         ClickType.PICKUP,
                         player
                     );

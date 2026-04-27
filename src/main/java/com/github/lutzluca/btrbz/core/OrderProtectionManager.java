@@ -61,15 +61,15 @@ public class OrderProtectionManager {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("order-protection.confirmation-slot")
-                .matches(context ->
-                    context.inMenu(
+                .matches(ctx ->
+                    ctx.inMenu(
                         BazaarMenuType.BuyOrderConfirmation,
                         BazaarMenuType.SellOfferConfirmation
-                    ) && !context.isPlayerInventorySlot() &&
-                        context.containerSlot() == CONFIRMATION_SLOT_INDEX
+                    ) && !ctx.isPlayerInventorySlot() &&
+                        ctx.containerSlot() == CONFIRMATION_SLOT_INDEX
                 )
-                .onClick(context -> {
-                    var stack = context.rawItem();
+                .onClick(ctx -> {
+                    var stack = ctx.rawItem();
                     var cfg = ConfigManager.get().orderProtection;
                     var pending = this.validationCache.get(stack);
                     if (!cfg.enabled) {
@@ -88,7 +88,7 @@ public class OrderProtectionManager {
                             return ValidationResult.blocked(VALIDATION_UNAVAILABLE_REASON);
                         });
 
-                    if (validation.protect() && !context.modifiers().controlDown()) {
+                    if (validation.protect() && !ctx.modifiers().controlDown()) {
                         if (cfg.showChatMessage) {
                             Notifier.sendBlockedOrderMessage(validation);
                         }

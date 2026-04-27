@@ -46,7 +46,7 @@ public abstract class AbstractContainerScreenMixin {
         ClickType actionType,
         CallbackInfo ci
     ) {
-        var context = SlotBehaviorManager.createClickContext(
+        var ctx = SlotBehaviorManager.createClickContext(
             ScreenInfoHelper.get().getCurrInfo(),
             ScreenInfoHelper.get().getPrevInfo(),
             slot,
@@ -54,7 +54,7 @@ public abstract class AbstractContainerScreenMixin {
             actionType
         );
 
-        var outcome = SlotBehaviorManager.handleClickAndObserve(context);
+        var outcome = SlotBehaviorManager.handleClickAndObserve(ctx);
 
         if (outcome == ClickOutcome.Cancel) {
             ci.cancel();

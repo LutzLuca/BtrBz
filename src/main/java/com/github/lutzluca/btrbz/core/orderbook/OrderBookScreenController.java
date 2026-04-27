@@ -45,13 +45,13 @@ public class OrderBookScreenController {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("order-book.button")
-                .matches(context ->
-                    !context.isPlayerInventorySlot() &&
-                        context.containerSlot() == CUSTOM_ORDER_BOOK_IDX &&
-                        this.isOrderSetupMenu(context.currInfo()) &&
+                .matches(ctx ->
+                    !ctx.isPlayerInventorySlot() &&
+                        ctx.containerSlot() == CUSTOM_ORDER_BOOK_IDX &&
+                        this.isOrderSetupMenu(ctx.currInfo()) &&
                         ConfigManager.get().orderBook.enabled
                 )
-                .overrideItem(context -> {
+                .overrideItem(ctx -> {
                     var book = new ItemStack(Items.BOOK);
                     book.set(
                         DataComponents.CUSTOM_NAME,
@@ -60,7 +60,7 @@ public class OrderBookScreenController {
 
                     return Optional.of(book);
                 })
-                .onClick(context -> {
+                .onClick(ctx -> {
                     var productNameInfo = this.productInfoProvider.getOpenedProductNameInfo();
                     if (productNameInfo == null) {
                         Notifier.notifyPlayer(Notifier
@@ -71,7 +71,7 @@ public class OrderBookScreenController {
 
                     var orders = this.bazaarData.getOrderLists(productNameInfo.productId());
                     var orderBookScreen = new OrderBookScreen(
-                        context.currInfo().getScreen(),
+                        ctx.currInfo().getScreen(),
                         productNameInfo.productName(),
                         orders
                     );

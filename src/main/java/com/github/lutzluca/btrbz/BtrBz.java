@@ -169,20 +169,20 @@ public class BtrBz implements ClientModInitializer {
 
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
-            public boolean matches(SlotClickContext context) {
-                if (context.isPlayerInventorySlot()) {
+            public boolean matches(SlotClickContext ctx) {
+                if (ctx.isPlayerInventorySlot()) {
                     return false;
                 }
 
-                return context.inMenu(BazaarMenuType.Orders);
+                return ctx.inMenu(BazaarMenuType.Orders);
             }
 
             @Override
-            public void onClick(SlotClickContext context) {
+            public void onClick(SlotClickContext ctx) {
                 var cfg = ConfigManager.get();
                 var orderInfo = OrderInfoParser.parseOrderInfo(
-                    context.rawItem(),
-                    context.containerSlot()
+                    ctx.rawItem(),
+                    ctx.containerSlot()
                 );
                 if (orderInfo.isSuccess()) {
                     var parsedOrderInfo = orderInfo.get();
@@ -192,7 +192,7 @@ public class BtrBz implements ClientModInitializer {
 
                     // Keep OrderActions state in sync even while the feature is disabled.
                     // Its own slot behaviors and tooltips already gate display on config.
-                    orderActions.onOrderClick(parsedOrderInfo, context.rawItem());
+                    orderActions.onOrderClick(parsedOrderInfo, ctx.rawItem());
                 }
             }
         });

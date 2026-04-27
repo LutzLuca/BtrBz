@@ -34,23 +34,23 @@ class SlotObserverManagerTest {
 
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
-            public boolean matches(SlotClickContext context) {
+            public boolean matches(SlotClickContext ctx) {
                 return true;
             }
 
             @Override
-            public void onClick(SlotClickContext context) {
+            public void onClick(SlotClickContext ctx) {
                 matchingCalls.incrementAndGet();
             }
         });
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
-            public boolean matches(SlotClickContext context) {
+            public boolean matches(SlotClickContext ctx) {
                 return false;
             }
 
             @Override
-            public void onClick(SlotClickContext context) {
+            public void onClick(SlotClickContext ctx) {
                 skippedCalls.incrementAndGet();
             }
         });

@@ -42,11 +42,11 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("click-only")
-                    .matches(context -> {
+                    .matches(ctx -> {
                         matcherCalls.incrementAndGet();
                         return true;
                     })
-                    .onClick(context -> ClickOutcome.Pass)
+                    .onClick(ctx -> ClickOutcome.Pass)
                     .build()
             );
 
@@ -72,17 +72,17 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("first-override")
-                    .overrideItem(context -> Optional.of(replacement))
+                    .overrideItem(ctx -> Optional.of(replacement))
                     .build()
             );
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("second-override")
-                    .matches(context -> {
+                    .matches(ctx -> {
                         secondCalls.incrementAndGet();
                         return true;
                     })
-                    .overrideItem(context -> Optional.of(ItemStack.EMPTY))
+                    .overrideItem(ctx -> Optional.of(ItemStack.EMPTY))
                     .build()
             );
 
@@ -112,7 +112,7 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("handled")
-                    .onClick(context -> {
+                    .onClick(ctx -> {
                         firstCalls.incrementAndGet();
                         return ClickOutcome.Handled;
                     })
@@ -121,7 +121,7 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("cancel")
-                    .onClick(context -> {
+                    .onClick(ctx -> {
                         secondCalls.incrementAndGet();
                         return ClickOutcome.Cancel;
                     })
@@ -130,7 +130,7 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("after-cancel")
-                    .onClick(context -> {
+                    .onClick(ctx -> {
                         thirdCalls.incrementAndGet();
                         return ClickOutcome.Handled;
                     })
@@ -138,7 +138,7 @@ class SlotBehaviorManagerTest {
             );
 
             var slot = createSlot();
-            var context = new SlotClickContext(
+            var ctx = new SlotClickContext(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
                 slot,
@@ -149,7 +149,7 @@ class SlotBehaviorManagerTest {
                 new SlotInputModifiers(false, false, false)
             );
 
-            var outcome = SlotBehaviorManager.handleClick(context);
+            var outcome = SlotBehaviorManager.handleClick(ctx);
 
             assertEquals(ClickOutcome.Cancel, outcome);
             assertEquals(1, firstCalls.get());
@@ -169,17 +169,17 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("cancel")
-                    .onClick(context -> ClickOutcome.Cancel)
+                    .onClick(ctx -> ClickOutcome.Cancel)
                     .build()
             );
             SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
                 @Override
-                public boolean matches(SlotClickContext context) {
+                public boolean matches(SlotClickContext ctx) {
                     return true;
                 }
 
                 @Override
-                public void onClick(SlotClickContext context) {
+                public void onClick(SlotClickContext ctx) {
                     observerCalls.incrementAndGet();
                 }
             });
@@ -197,17 +197,17 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("pass")
-                    .onClick(context -> ClickOutcome.Pass)
+                    .onClick(ctx -> ClickOutcome.Pass)
                     .build()
             );
             SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
                 @Override
-                public boolean matches(SlotClickContext context) {
+                public boolean matches(SlotClickContext ctx) {
                     return true;
                 }
 
                 @Override
-                public void onClick(SlotClickContext context) {
+                public void onClick(SlotClickContext ctx) {
                     observerCalls.incrementAndGet();
                 }
             });
@@ -225,17 +225,17 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("handled")
-                    .onClick(context -> ClickOutcome.Handled)
+                    .onClick(ctx -> ClickOutcome.Handled)
                     .build()
             );
             SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
                 @Override
-                public boolean matches(SlotClickContext context) {
+                public boolean matches(SlotClickContext ctx) {
                     return true;
                 }
 
                 @Override
-                public void onClick(SlotClickContext context) {
+                public void onClick(SlotClickContext ctx) {
                     observerCalls.incrementAndGet();
                 }
             });
@@ -254,18 +254,18 @@ class SlotBehaviorManagerTest {
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration
                     .named("override-and-cancel")
-                    .overrideItem(context -> Optional.of(new ItemStack(Items.BOOK)))
-                    .onClick(context -> ClickOutcome.Cancel)
+                    .overrideItem(ctx -> Optional.of(new ItemStack(Items.BOOK)))
+                    .onClick(ctx -> ClickOutcome.Cancel)
                     .build()
             );
             SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
                 @Override
-                public boolean matches(SlotClickContext context) {
-                    return !context.rawItem().isEmpty();
+                public boolean matches(SlotClickContext ctx) {
+                    return !ctx.rawItem().isEmpty();
                 }
 
                 @Override
-                public void onClick(SlotClickContext context) {
+                public void onClick(SlotClickContext ctx) {
                     observerCalls.incrementAndGet();
                 }
             });
@@ -276,7 +276,7 @@ class SlotBehaviorManagerTest {
                 rawSlot,
                 rawSlot.getItem()
             );
-            var context = new SlotClickContext(
+            var ctx = new SlotClickContext(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
                 rawSlot,
@@ -287,7 +287,7 @@ class SlotBehaviorManagerTest {
                 SlotInputModifiers.none()
             );
 
-            var outcome = SlotBehaviorManager.handleClickAndObserve(context);
+            var outcome = SlotBehaviorManager.handleClickAndObserve(ctx);
 
             assertEquals(ClickOutcome.Cancel, outcome);
             assertEquals(0, observerCalls.get());

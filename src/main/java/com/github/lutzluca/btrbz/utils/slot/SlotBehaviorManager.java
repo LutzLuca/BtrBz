@@ -42,19 +42,19 @@ public final class SlotBehaviorManager {
      * overrides are not evaluated once a replacement is returned.
      */
     public static ItemStack applyItemOverride(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
-        var context = new ItemOverrideContext(currentInfo, previousInfo, slot, rawItem);
+        var ctx = new ItemOverrideContext(currentInfo, previousInfo, slot, rawItem);
 
         for (SlotBehaviorRegistration registration : REGISTRATIONS) {
             if (registration.itemOverrideHandler() == null) {
                 continue;
             }
 
-            var matches = Try.of(() -> registration.matcher().matches(context))
+            var matches = Try.of(() -> registration.matcher().matches(ctx))
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while matching override screen '{}' slot '{}'",
                     registration.name(),
                     currentInfo.containerName().orElse("<unknown>"),
-                    context.containerSlot(),
+                    ctx.containerSlot(),
                     err
                 ))
                 .getOrElse(false);
@@ -63,12 +63,12 @@ public final class SlotBehaviorManager {
                 continue;
             }
 
-            var replacement = Try.of(() -> registration.itemOverrideHandler().override(context))
+            var replacement = Try.of(() -> registration.itemOverrideHandler().override(ctx))
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while overriding screen '{}' slot '{}'",
                     registration.name(),
                     currentInfo.containerName().orElse("<unknown>"),
-                    context.containerSlot(),
+                    ctx.containerSlot(),
                     err
                 ))
                 .getOrElse(Optional.empty());
@@ -106,8 +106,8 @@ public final class SlotBehaviorManager {
         );
     }
 
-    public static ClickOutcome handleClick(SlotClickContext context) {
-        if (context.slot() == null) {
+    public static ClickOutcome handleClick(SlotClickContext ctx) {
+        if (ctx.slot() == null) {
             return ClickOutcome.Pass;
         }
 
@@ -118,13 +118,13 @@ public final class SlotBehaviorManager {
                 continue;
             }
 
-            var matches = Try.of(() -> registration.matcher().matches(context))
+            var matches = Try.of(() -> registration.matcher().matches(ctx))
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while matching click screen '{}' slot '{}' action '{}'",
                     registration.name(),
-                    context.currInfo().containerName().orElse("<unknown>"),
-                    context.containerSlot(),
-                    context.actionType(),
+                    ctx.currInfo().containerName().orElse("<unknown>"),
+                    ctx.containerSlot(),
+                    ctx.actionType(),
                     err
                 ))
                 .getOrElse(false);
@@ -133,13 +133,13 @@ public final class SlotBehaviorManager {
                 continue;
             }
 
-            var outcome = Try.of(() -> registration.clickHandler().onClick(context))
+            var outcome = Try.of(() -> registration.clickHandler().onClick(ctx))
                 .onFailure(err -> log.error(
                     "Slot behavior '{}' failed while handling click screen '{}' slot '{}' action '{}'",
                     registration.name(),
-                    context.currInfo().containerName().orElse("<unknown>"),
-                    context.containerSlot(),
-                    context.actionType(),
+                    ctx.currInfo().containerName().orElse("<unknown>"),
+                    ctx.containerSlot(),
+                    ctx.actionType(),
                     err
                 ))
                 .getOrElse(ClickOutcome.Pass);
@@ -156,10 +156,10 @@ public final class SlotBehaviorManager {
         return aggregate;
     }
 
-    public static ClickOutcome handleClickAndObserve(SlotClickContext context) {
-        var outcome = handleClick(context);
+    public static ClickOutcome handleClickAndObserve(SlotClickContext ctx) {
+        var outcome = handleClick(ctx);
         if (outcome != ClickOutcome.Cancel) {
-            SlotObserverManager.observeClick(context);
+            SlotObserverManager.observeClick(ctx);
         }
 
         return outcome;

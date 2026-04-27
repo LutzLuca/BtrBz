@@ -32,23 +32,23 @@ public record SlotBehaviorRegistration(
 
     @FunctionalInterface
     public interface Matcher {
-        boolean matches(SlotBehaviorContext context);
+        boolean matches(SlotBehaviorContext ctx);
     }
 
     @FunctionalInterface
     public interface ItemOverrideHandler {
-        Optional<ItemStack> override(ItemOverrideContext context);
+        Optional<ItemStack> override(ItemOverrideContext ctx);
     }
 
     @FunctionalInterface
     public interface ClickHandler {
-        ClickOutcome onClick(SlotClickContext context);
+        ClickOutcome onClick(SlotClickContext ctx);
     }
 
     public static final class Builder {
 
         private final String name;
-        private Matcher matcher = context -> true;
+        private Matcher matcher = ctx -> true;
         private @Nullable ItemOverrideHandler itemOverrideHandler;
         private @Nullable ClickHandler clickHandler;
 

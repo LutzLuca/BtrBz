@@ -81,31 +81,31 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("bookmark.toggle")
-                .matches(context ->
-                    context.containerSlot() == 13 &&
-                        context.inMenu(BazaarMenuType.Item) &&
-                        !context.isPlayerInventorySlot() &&
-                        !context.rawItem().isEmpty()
+                .matches(ctx ->
+                    ctx.containerSlot() == 13 &&
+                        ctx.inMenu(BazaarMenuType.Item) &&
+                        !ctx.isPlayerInventorySlot() &&
+                        !ctx.rawItem().isEmpty()
                 )
-                .overrideItem(context -> {
-                    var productName = context.rawItem().getHoverName().getString();
+                .overrideItem(ctx -> {
+                    var productName = ctx.rawItem().getHoverName().getString();
                     if (this.context().bazaarData().nameToId(productName).isEmpty()) {
                         return Optional.empty();
                     }
 
                     return Optional.of(this.decorateBookmarkedDisplayItem(
-                        context.rawItem(),
+                        ctx.rawItem(),
                         this.isBookmarked(productName)
                     ));
                 })
-                .onClick(context -> {
-                    var bookmarked = context.displayItem().get(BtrBz.BOOKMARKED);
+                .onClick(ctx -> {
+                    var bookmarked = ctx.displayItem().get(BtrBz.BOOKMARKED);
                     if (bookmarked == null) {
                         return ClickOutcome.Pass;
                     }
 
-                    String productName = context.displayItem().getHoverName().getString();
-                    this.toggleBookmark(productName, context.displayItem().copy());
+                    String productName = ctx.displayItem().getHoverName().getString();
+                    this.toggleBookmark(productName, ctx.displayItem().copy());
                     return ClickOutcome.Cancel;
                 })
                 .build()

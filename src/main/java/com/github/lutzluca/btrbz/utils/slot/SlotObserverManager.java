@@ -20,19 +20,19 @@ public final class SlotObserverManager {
         OBSERVERS.clear();
     }
 
-    public static void observeClick(SlotClickContext context) {
-        if (context.slot() == null) {
+    public static void observeClick(SlotClickContext ctx) {
+        if (ctx.slot() == null) {
             return;
         }
 
         for (SlotObserver observer : OBSERVERS) {
-            var matches = Try.of(() -> observer.matches(context))
+            var matches = Try.of(() -> observer.matches(ctx))
                 .onFailure(err -> log.error(
                     "Slot observer '{}' failed while matching screen '{}' slot '{}' action '{}'",
                     observer.getClass().getName(),
-                    context.currInfo().containerName().orElse("<unknown>"),
-                    context.containerSlot(),
-                    context.actionType(),
+                    ctx.currInfo().containerName().orElse("<unknown>"),
+                    ctx.containerSlot(),
+                    ctx.actionType(),
                     err
                 ))
                 .getOrElse(false);
@@ -41,13 +41,13 @@ public final class SlotObserverManager {
                 continue;
             }
 
-            Try.run(() -> observer.onClick(context))
+            Try.run(() -> observer.onClick(ctx))
                 .onFailure(err -> log.error(
                     "Slot observer '{}' failed while handling screen '{}' slot '{}' action '{}'",
                     observer.getClass().getName(),
-                    context.currInfo().containerName().orElse("<unknown>"),
-                    context.containerSlot(),
-                    context.actionType(),
+                    ctx.currInfo().containerName().orElse("<unknown>"),
+                    ctx.containerSlot(),
+                    ctx.actionType(),
                     err
                 ));
         }
@@ -55,8 +55,8 @@ public final class SlotObserverManager {
 
     public interface SlotObserver {
 
-        boolean matches(SlotClickContext context);
+        boolean matches(SlotClickContext ctx);
 
-        void onClick(SlotClickContext context);
+        void onClick(SlotClickContext ctx);
     }
 }

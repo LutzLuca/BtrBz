@@ -162,17 +162,17 @@ public final class ProductInfoProvider {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("product-info.button")
-                .matches(context -> {
+                .matches(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
                     if (!cfg.enabled || !cfg.itemClickEnabled || this.openedProductNameInfo == null) {
                         return false;
                     }
 
-                    return !context.isPlayerInventorySlot() &&
-                        context.containerSlot() == CUSTOM_ITEM_IDX &&
-                        context.inMenu(BazaarMenuType.Item);
+                    return !ctx.isPlayerInventorySlot() &&
+                        ctx.containerSlot() == CUSTOM_ITEM_IDX &&
+                        ctx.inMenu(BazaarMenuType.Item);
                 })
-                .overrideItem(context -> {
+                .overrideItem(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
                     var item = new ItemStack(Items.PAPER);
                     item.set(
@@ -202,7 +202,7 @@ public final class ProductInfoProvider {
                     item.set(DataComponents.LORE, new ItemLore(loreLines));
                     return Optional.of(item);
                 })
-                .onClick(context -> {
+                .onClick(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
                     ProductInfoProvider.this.confirmAndOpen(
                         cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId)
@@ -217,21 +217,21 @@ public final class ProductInfoProvider {
         SlotBehaviorManager.register(
             SlotBehaviorRegistration
                 .named("product-info.quick-open")
-                .matches(context -> {
+                .matches(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
                     return cfg.enabled &&
                         cfg.ctrlShiftEnabled &&
-                        context.slot() != null &&
-                        !context.rawItem().isEmpty() &&
-                        this.shouldApplyCtrlShiftClick(context.rawItem());
+                        ctx.slot() != null &&
+                        !ctx.rawItem().isEmpty() &&
+                        this.shouldApplyCtrlShiftClick(ctx.rawItem());
                 })
-                .onClick(context -> {
+                .onClick(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
-                    if (!context.modifiers().controlDown() || !context.modifiers().shiftDown()) {
+                    if (!ctx.modifiers().controlDown() || !ctx.modifiers().shiftDown()) {
                         return ClickOutcome.Pass;
                     }
 
-                    var stack = context.rawItem();
+                    var stack = ctx.rawItem();
                     var name = stack.getHoverName().getString();
                     var id = this.resolveProductId(stack, name);
                     if (id.isEmpty()) {
