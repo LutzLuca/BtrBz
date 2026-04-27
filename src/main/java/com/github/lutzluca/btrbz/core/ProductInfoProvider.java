@@ -221,16 +221,14 @@ public final class ProductInfoProvider {
                     var cfg = ConfigManager.get().productInfo;
                     return cfg.enabled &&
                         cfg.ctrlShiftEnabled &&
+                        ctx.modifiers().controlDown() &&
+                        ctx.modifiers().shiftDown() &&
                         ctx.slot() != null &&
                         !ctx.rawItem().isEmpty() &&
                         this.shouldApplyCtrlShiftClick(ctx.rawItem());
                 })
                 .onClick(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
-                    if (!ctx.modifiers().controlDown() || !ctx.modifiers().shiftDown()) {
-                        return ClickOutcome.Pass;
-                    }
-
                     var stack = ctx.rawItem();
                     var name = stack.getHoverName().getString();
                     var id = this.resolveProductId(stack, name);

@@ -67,7 +67,7 @@ class SlotBehaviorManagerTest {
         @Test
         void returnsFirstReplacementWithoutEvaluatingLaterOverrides() {
             var secondCalls = new AtomicInteger();
-            var replacement = ItemStack.EMPTY;
+            var replacement = new ItemStack(Items.STONE);
 
             SlotBehaviorManager.register(
                 SlotBehaviorRegistration

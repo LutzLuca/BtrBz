@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,6 +69,78 @@ class SlotObserverManagerTest {
 
         assertEquals(1, matchingCalls.get());
         assertEquals(0, skippedCalls.get());
+    }
+
+    @Test
+    @DisplayName("observeClick isolates throwing observers")
+    void observeClickIsolatesThrowingObservers() {
+        var firstCalls = new AtomicInteger();
+        var throwingMatchCalls = new AtomicInteger();
+        var throwingClickCalls = new AtomicInteger();
+        var lastCalls = new AtomicInteger();
+
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+            @Override
+            public boolean matches(SlotClickContext ctx) {
+                return true;
+            }
+
+            @Override
+            public void onClick(SlotClickContext ctx) {
+                firstCalls.incrementAndGet();
+            }
+        });
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+            @Override
+            public boolean matches(SlotClickContext ctx) {
+                throwingMatchCalls.incrementAndGet();
+                throw new IllegalStateException("match failure");
+            }
+
+            @Override
+            public void onClick(SlotClickContext ctx) {
+                throw new AssertionError("onClick should not run when matches throws");
+            }
+        });
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+            @Override
+            public boolean matches(SlotClickContext ctx) {
+                return true;
+            }
+
+            @Override
+            public void onClick(SlotClickContext ctx) {
+                throwingClickCalls.incrementAndGet();
+                throw new IllegalStateException("click failure");
+            }
+        });
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+            @Override
+            public boolean matches(SlotClickContext ctx) {
+                return true;
+            }
+
+            @Override
+            public void onClick(SlotClickContext ctx) {
+                lastCalls.incrementAndGet();
+            }
+        });
+
+        assertDoesNotThrow(() -> SlotObserverManager.observeClick(new SlotClickContext(
+            new ScreenInfoHelper.ScreenInfo(null),
+            new ScreenInfoHelper.ScreenInfo(null),
+            createSlot(),
+            ItemStack.EMPTY,
+            ItemStack.EMPTY,
+            0,
+            ClickType.PICKUP,
+            new SlotInputModifiers(false, false, false)
+        )));
+
+        assertEquals(1, firstCalls.get());
+        assertEquals(1, throwingMatchCalls.get());
+        assertEquals(1, throwingClickCalls.get());
+        assertEquals(1, lastCalls.get());
     }
 
     private static Slot createSlot() {

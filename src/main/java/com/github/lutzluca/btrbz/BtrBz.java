@@ -165,8 +165,6 @@ public class BtrBz implements ClientModInitializer {
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
-        
-
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
             @Override
             public boolean matches(SlotClickContext ctx) {

@@ -104,8 +104,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                         return ClickOutcome.Pass;
                     }
 
-                    String productName = ctx.displayItem().getHoverName().getString();
-                    this.toggleBookmark(productName, ctx.displayItem().copy());
+                    String productName = ctx.rawItem().getHoverName().getString();
+                    this.toggleBookmark(productName, ctx.rawItem().copy());
                     return ClickOutcome.Cancel;
                 })
                 .build()

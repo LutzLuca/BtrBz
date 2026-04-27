@@ -29,4 +29,8 @@ public interface SlotBehaviorContext {
     default boolean isPlayerInventorySlot() {
         return GameUtils.isPlayerInventorySlot(this.slot());
     }
+
+    default SlotInputModifiers modifiers() {
+        return SlotInputModifiers.none();
+    }
 }
