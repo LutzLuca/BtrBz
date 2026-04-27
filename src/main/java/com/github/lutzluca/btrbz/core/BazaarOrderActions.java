@@ -157,7 +157,9 @@ public class BazaarOrderActions {
 
                     return !context.isPlayerInventorySlot() &&
                         context.inMenu(BazaarMenuType.Orders) &&
-                        context.containerSlot() == this.getReopenTargetSlot(context.currInfo());
+                        this.getReopenTargetSlot(context.currInfo())
+                            .map(targetSlot -> context.containerSlot() == targetSlot)
+                            .orElse(false);
                 })
                 .overrideItem(context -> {
                     var order = this.lastCancelledBuyOrder;
@@ -260,12 +262,11 @@ public class BazaarOrderActions {
         this.shouldReopenBazaar = true;
     }
 
-    private int getReopenTargetSlot(ScreenInfo info) {
+    private Optional<Integer> getReopenTargetSlot(ScreenInfo info) {
         // ScreenInfo gives us the live Orders container size; Hypixel's reopen action occupies
         // the chest slot at size - 6 (bottom row, fourth slot from the left), not a player slot.
         return info.getGenericContainerScreen()
-            .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - REOPEN_BUTTON_OFFSET_FROM_CONTAINER_END)
-            .orElse(-1);
+            .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - REOPEN_BUTTON_OFFSET_FROM_CONTAINER_END);
     }
 
     private boolean isCancelOrderSlot(int slotIndex, ItemStack stack) {

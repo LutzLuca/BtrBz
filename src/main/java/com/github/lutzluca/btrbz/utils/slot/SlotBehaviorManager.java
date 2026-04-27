@@ -23,7 +23,7 @@ public final class SlotBehaviorManager {
 
     /**
      * Registers a slot behavior in evaluation order.
-     *
+     * <p>
      * Item override conflicts are resolved purely by registration order: the first matching
      * registration that returns a replacement wins, and there is no automatic conflict resolution.
      */
@@ -37,7 +37,7 @@ public final class SlotBehaviorManager {
 
     /**
      * Applies the first matching item override for the given slot context.
-     *
+     * <p>
      * Registration order determines precedence: first registered wins, and later matching
      * overrides are not evaluated once a replacement is returned.
      */

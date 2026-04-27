@@ -55,8 +55,7 @@ public class OrderProtectionManager {
             info -> info.inMenu(
                 BazaarMenuType.BuyOrderConfirmation,
                 BazaarMenuType.SellOfferConfirmation
-            ),
-            (info, inventory) -> this.precomputeValidation(info, inventory)
+            ), this::precomputeValidation
         );
 
         SlotBehaviorManager.register(
@@ -66,26 +65,28 @@ public class OrderProtectionManager {
                     context.inMenu(
                         BazaarMenuType.BuyOrderConfirmation,
                         BazaarMenuType.SellOfferConfirmation
-                    ) && context.containerSlot() == CONFIRMATION_SLOT_INDEX
+                    ) && !context.isPlayerInventorySlot() &&
+                        context.containerSlot() == CONFIRMATION_SLOT_INDEX
                 )
                 .onClick(context -> {
                     var stack = context.rawItem();
                     var cfg = ConfigManager.get().orderProtection;
-                    if (cfg.enabled && !this.hasCachedValidation(stack)) {
+                    var pending = this.validationCache.get(stack);
+                    if (!cfg.enabled) {
+                        this.dispatchSetOrder(stack, Optional.ofNullable(pending));
+                        return ClickOutcome.Handled;
+                    }
+
+                    if (!this.hasCachedValidation(stack)) {
                         this.computeValidation(stack);
                     }
 
-                    var pending = this.validationCache.get(stack);
+                    pending = this.validationCache.get(stack);
                     var validation = this.getValidationResult(stack)
                         .orElseGet(() -> {
                             log.warn("No cached validation for confirmation item");
                             return ValidationResult.blocked(VALIDATION_UNAVAILABLE_REASON);
                         });
-
-                    if (!cfg.enabled) {
-                        this.dispatchSetOrder(stack, Optional.ofNullable(pending));
-                        return ClickOutcome.Handled;
-                    }
 
                     if (validation.protect() && !context.modifiers().controlDown()) {
                         if (cfg.showChatMessage) {
