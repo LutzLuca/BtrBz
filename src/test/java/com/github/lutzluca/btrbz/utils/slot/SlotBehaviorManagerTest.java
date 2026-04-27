@@ -1,17 +1,13 @@
-package com.github.lutzluca.btrbz.utils;
+package com.github.lutzluca.btrbz.utils.slot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import java.lang.reflect.Field;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
-import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
@@ -31,9 +27,9 @@ class SlotBehaviorManagerTest {
     }
 
     @BeforeEach
-    void clearRegistrations() throws Exception {
-        clearStaticList(SlotBehaviorManager.class, "REGISTRATIONS");
-        clearStaticList(SlotObserverManager.class, "OBSERVERS");
+    void clearRegistrations() {
+        SlotBehaviorManager.clearRegistrations();
+        SlotObserverManager.clearObservers();
     }
 
     @Nested
@@ -54,7 +50,7 @@ class SlotBehaviorManagerTest {
                     .build()
             );
 
-                    var slot = createSlot();
+            var slot = createSlot();
             var rawItem = slot.getItem();
 
             var result = SlotBehaviorManager.applyItemOverride(
@@ -141,7 +137,7 @@ class SlotBehaviorManagerTest {
                     .build()
             );
 
-                    var slot = createSlot();
+            var slot = createSlot();
             var context = new SlotClickContext(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
@@ -320,12 +316,5 @@ class SlotBehaviorManagerTest {
             ClickType.PICKUP,
             SlotInputModifiers.none()
         );
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void clearStaticList(Class<?> type, String fieldName) throws Exception {
-        Field field = type.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        ((List<Object>) field.get(null)).clear();
     }
 }

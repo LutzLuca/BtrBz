@@ -16,6 +16,10 @@ public final class SlotObserverManager {
         OBSERVERS.add(observer);
     }
 
+    static void clearObservers() {
+        OBSERVERS.clear();
+    }
+
     public static void observeClick(SlotClickContext context) {
         if (context.slot() == null) {
             return;

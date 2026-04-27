@@ -1,13 +1,10 @@
-package com.github.lutzluca.btrbz.utils;
+package com.github.lutzluca.btrbz.utils.slot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import java.lang.reflect.Field;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
-import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
+import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
@@ -25,8 +22,8 @@ class SlotObserverManagerTest {
     }
 
     @BeforeEach
-    void clearObservers() throws Exception {
-        clearStaticList(SlotObserverManager.class, "OBSERVERS");
+    void clearObservers() {
+        SlotObserverManager.clearObservers();
     }
 
     @Test
@@ -76,12 +73,5 @@ class SlotObserverManagerTest {
     private static Slot createSlot() {
         var container = new SimpleContainer(1);
         return new Slot(container, 0, 0, 0);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void clearStaticList(Class<?> type, String fieldName) throws Exception {
-        Field field = type.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        ((List<Object>) field.get(null)).clear();
     }
 }

@@ -31,6 +31,10 @@ public final class SlotBehaviorManager {
         REGISTRATIONS.add(registration);
     }
 
+    static void clearRegistrations() {
+        REGISTRATIONS.clear();
+    }
+
     /**
      * Applies the first matching item override for the given slot context.
      *
