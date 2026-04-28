@@ -53,6 +53,8 @@ import net.minecraft.world.item.ItemStack;
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
 
+    private static final int OPENED_PRODUCT_SLOT_IDX = 13;
+
     private ListWidget list;
 
     private final Set<String> orderBuySet = new HashSet<>();
@@ -82,7 +84,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             SlotBehaviorRegistration
                 .named("bookmark.toggle")
                 .matches(ctx ->
-                    ctx.containerSlot() == 13 &&
+                    ctx.containerSlot() == OPENED_PRODUCT_SLOT_IDX &&
                         ctx.inMenu(BazaarMenuType.Item) &&
                         !ctx.isPlayerInventorySlot() &&
                         !ctx.rawItem().isEmpty()

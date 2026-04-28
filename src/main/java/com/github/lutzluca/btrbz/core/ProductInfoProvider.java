@@ -10,6 +10,7 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Set;
@@ -225,7 +226,7 @@ public final class ProductInfoProvider {
                         ctx.modifiers().shiftDown() &&
                         ctx.slot() != null &&
                         !ctx.rawItem().isEmpty() &&
-                        this.shouldApplyCtrlShiftClick(ctx.rawItem());
+                        this.shouldApplyCtrlShiftClick(ctx);
                 })
                 .onClick(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
@@ -314,6 +315,22 @@ public final class ProductInfoProvider {
     }
 
     private boolean shouldApplyCtrlShiftClick(ItemStack stack) {
+        return this.shouldApplyCtrlShiftClick(
+            stack, 
+            ScreenInfoHelper.get().getCurrInfo(), 
+            this.isStackInPlayerInventory(stack)
+        );
+    }
+
+    private boolean shouldApplyCtrlShiftClick(SlotBehaviorContext ctx) {
+        return this.shouldApplyCtrlShiftClick(
+            ctx.rawItem(),
+            ctx.currInfo(),
+            ctx.isPlayerInventorySlot()
+        );
+    }
+
+    private boolean shouldApplyCtrlShiftClick(ItemStack stack, ScreenInfoHelper.ScreenInfo currInfo, boolean isPlayerInventorySlot) {
         var cfg = ConfigManager.get().productInfo;
         if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
             return false;
@@ -324,15 +341,15 @@ public final class ProductInfoProvider {
             return false;
         }
 
-        if (ScreenInfoHelper.inMenu(BazaarMenuType.Main, BazaarMenuType.Item)) {
-            return this.isStackInPlayerInventory(stack);
+        if (currInfo.inMenu(BazaarMenuType.Main, BazaarMenuType.Item)) {
+            return isPlayerInventorySlot;
         }
 
         if (cfg.showOutsideBazaar) {
             return true;
         }
 
-        return ScreenInfoHelper.inBazaar();
+        return currInfo.inBazaar();
     }
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
