@@ -7,6 +7,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
@@ -91,6 +92,40 @@ public final class GameUtils {
         if (client.player != null) {
             client.player.connection.sendCommand(command);
         }
+    }
+
+    public static boolean tryHandleInventoryMouseClick(
+        int containerId,
+        int slotId,
+        int button,
+        ClickType clickType
+    ) {
+        var client = Minecraft.getInstance();
+        var player = client.player;
+        var interactionManager = client.gameMode;
+
+        if (player == null || interactionManager == null) {
+            log.warn(
+                "Failed to dispatch inventory click: playerPresent={}, interactionManagerPresent={}, containerId={}, slotId={}, button={}, clickType={}",
+                player != null,
+                interactionManager != null,
+                containerId,
+                slotId,
+                button,
+                clickType
+            );
+            return false;
+        }
+
+        interactionManager.handleInventoryMouseClick(
+            containerId,
+            slotId,
+            button,
+            clickType,
+            player
+        );
+
+        return true;
     }
 
     public static <T> void copyToClipboard(T value) {

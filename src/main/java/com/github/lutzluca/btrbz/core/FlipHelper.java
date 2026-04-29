@@ -24,7 +24,6 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -100,20 +99,12 @@ public class FlipHelper {
                     return customHelperItem;
                 }))
                 .onClick(ctx -> {
-                    var client = Minecraft.getInstance();
-
                     var gcsOpt = ctx.currInfo().getGenericContainerScreen();
                     if (gcsOpt.isEmpty()) {
                         return ClickOutcome.Pass;
                     }
 
-                    var handler = gcsOpt.get().getMenu();
-                    var player = client.player;
-                    var interactionManager = client.gameMode;
-
-                    if (player == null || interactionManager == null) {
-                        return ClickOutcome.Pass;
-                    }
+                    var menu = gcsOpt.get().getMenu();
 
                     if (this.potentialFlipProduct == null || this.potentialFlipProduct
                         .getSellOfferPrice()
@@ -126,13 +117,15 @@ public class FlipHelper {
                         return ClickOutcome.Pass;
                     }
 
-                    interactionManager.handleInventoryMouseClick(
-                        handler.containerId,
+                    if (!GameUtils.tryHandleInventoryMouseClick(
+                        menu.containerId,
                         FLIP_ORDER_ITEM_SLOT_IDX,
                         ctx.button(),
-                        ClickType.PICKUP,
-                        player
-                    );
+                        ClickType.PICKUP
+                    )) {
+                        return ClickOutcome.Pass;
+                    }
+
                     this.pendingFlip = true;
 
                     return ClickOutcome.Cancel;
