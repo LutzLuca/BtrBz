@@ -118,6 +118,7 @@ class SlotObserverManagerTest {
     void observeClickIsolatesThrowingObservers() {
         var firstCalls = new AtomicInteger();
         var throwingMatchCalls = new AtomicInteger();
+        var addedObserveCalls = new AtomicInteger();
         var throwingClickCalls = new AtomicInteger();
         var lastCalls = new AtomicInteger();
 
@@ -141,7 +142,7 @@ class SlotObserverManagerTest {
 
             @Override
             public void onClick(SlotClickContext ctx) {
-                throw new AssertionError("onClick should not run when matches throws");
+                addedObserveCalls.incrementAndGet();
             }
         });
         SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
@@ -181,6 +182,7 @@ class SlotObserverManagerTest {
 
         Assertions.assertEquals(1, firstCalls.get());
         Assertions.assertEquals(1, throwingMatchCalls.get());
+        Assertions.assertEquals(0, addedObserveCalls.get());
         Assertions.assertEquals(1, throwingClickCalls.get());
         Assertions.assertEquals(1, lastCalls.get());
     }

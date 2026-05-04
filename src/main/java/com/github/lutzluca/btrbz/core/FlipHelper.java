@@ -119,7 +119,7 @@ public class FlipHelper {
                     if (!GameUtils.tryHandleInventoryMouseClick(
                         menu.containerId,
                         FLIP_ORDER_ITEM_SLOT_IDX,
-                        ctx.button(),
+                            0,
                         ClickType.PICKUP
                     )) {
                         return ClickOutcome.Pass;
