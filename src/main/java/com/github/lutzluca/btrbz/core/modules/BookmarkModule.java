@@ -1,22 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
-import java.util.Set;
-import com.github.lutzluca.btrbz.utils.ClickOutcome;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.Position;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
-import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
-import com.github.lutzluca.btrbz.widgets.Renderable;
-import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -36,8 +19,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
@@ -49,6 +32,22 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.Position;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.widgets.ListWidget;
+import com.github.lutzluca.btrbz.widgets.Renderable;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
@@ -292,8 +291,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return;
             }
 
-            boolean hasBuy = orderBuySet.contains(this.productName);
-            boolean hasSell = orderSellSet.contains(this.productName);
+            boolean hasBuy = this.orderBuySet.contains(this.productName);
+            boolean hasSell = this.orderSellSet.contains(this.productName);
 
             if (hasBuy || hasSell) {
                 int centerX = x + width - 8;

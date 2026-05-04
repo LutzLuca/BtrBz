@@ -1,32 +1,21 @@
 package com.github.lutzluca.btrbz.core;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.utils.ClickOutcome;
-import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
-import com.github.lutzluca.btrbz.utils.Utils;
+import java.net.URI;
+import java.util.Optional;
 import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import io.vavr.control.Try;
-import java.net.URI;
-import java.util.Optional;
-import java.util.WeakHashMap;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -37,8 +26,19 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.Notifier;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.Utils;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
 
 @Slf4j
 public final class ProductInfoProvider {
@@ -309,8 +309,8 @@ public final class ProductInfoProvider {
                     .append(Component.literal("x").withStyle(ChatFormatting.GRAY)));
             }
 
-            lines.add(createPriceText("Buy Order: ", cached.buyOrderPrice, count, isShiftHeld));
-            lines.add(createPriceText("Sell Offer: ", cached.sellOfferPrice, count, isShiftHeld));
+            lines.add(this.createPriceText("Buy Order: ", cached.buyOrderPrice, count, isShiftHeld));
+            lines.add(this.createPriceText("Sell Offer: ", cached.sellOfferPrice, count, isShiftHeld));
         });
     }
 
@@ -438,7 +438,7 @@ public final class ProductInfoProvider {
         }
 
         public String format(String productId) {
-            return String.format(urlFormat, productId);
+            return String.format(this.urlFormat, productId);
         }
 
         public String displayName() {
@@ -565,19 +565,19 @@ public final class ProductInfoProvider {
                     this.cache.size()
                 );
 
-                cache.clear();
+                this.cache.clear();
             });
         }
 
         Optional<CachedPrice> get(ItemStack stack) {
-            if (cache.containsKey(stack)) {
-                return Optional.ofNullable(cache.get(stack));
+            if (this.cache.containsKey(stack)) {
+                return Optional.ofNullable(this.cache.get(stack));
             }
             var name = stack.getHoverName().getString();
-            var productId = resolveProductId(stack, name);
+            var productId = ProductInfoProvider.this.resolveProductId(stack, name);
 
             if (productId.isEmpty()) {
-                cache.put(stack, null);
+                this.cache.put(stack, null);
                 return Optional.empty();
             }
 
@@ -587,7 +587,7 @@ public final class ProductInfoProvider {
             var buyOrderPrice = data.highestBuyPrice(productId.get()).orElse(null);
 
             var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
-            cache.put(stack, cached);
+            this.cache.put(stack, cached);
 
             log.trace(
                 "Cached price for '{}' (id: {}): buy={}, sell={}",

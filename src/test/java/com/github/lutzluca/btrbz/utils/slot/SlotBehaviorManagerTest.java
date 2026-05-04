@@ -1,23 +1,21 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.github.lutzluca.btrbz.utils.ClickOutcome;
-import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 
 class SlotBehaviorManagerTest {
 
@@ -60,8 +58,8 @@ class SlotBehaviorManagerTest {
                 rawItem
             );
 
-            assertSame(rawItem, result);
-            assertEquals(0, matcherCalls.get());
+            Assertions.assertSame(rawItem, result);
+            Assertions.assertEquals(0, matcherCalls.get());
         }
 
         @Test
@@ -94,8 +92,40 @@ class SlotBehaviorManagerTest {
                 slot.getItem()
             );
 
-            assertSame(replacement, result);
-            assertEquals(0, secondCalls.get());
+            Assertions.assertSame(replacement, result);
+            Assertions.assertEquals(0, secondCalls.get());
+        }
+    }
+
+    @Nested
+    @DisplayName("createClickContext")
+    class CreateClickContext {
+
+        @Test
+        void preservesRawItemAndUsesOverriddenDisplayItem() {
+            var replacement = new ItemStack(Items.BOOK);
+            SlotBehaviorManager.register(
+                SlotBehaviorRegistration
+                    .named("override-display")
+                    .overrideItem(ctx -> Optional.of(replacement))
+                    .build()
+            );
+
+            var slot = createFilledSlot();
+
+            var ctx = SlotBehaviorManager.createClickContext(
+                new ScreenInfoHelper.ScreenInfo(null),
+                new ScreenInfoHelper.ScreenInfo(null),
+                slot,
+                1,
+                ClickType.PICKUP
+            );
+
+            Assertions.assertSame(slot, ctx.slot());
+            Assertions.assertEquals(Items.STONE, ctx.rawItem().getItem());
+            Assertions.assertSame(replacement, ctx.displayItem());
+            Assertions.assertEquals(1, ctx.button());
+            Assertions.assertEquals(ClickType.PICKUP, ctx.actionType());
         }
     }
 
@@ -151,10 +181,31 @@ class SlotBehaviorManagerTest {
 
             var outcome = SlotBehaviorManager.handleClick(ctx);
 
-            assertEquals(ClickOutcome.Cancel, outcome);
-            assertEquals(1, firstCalls.get());
-            assertEquals(1, secondCalls.get());
-            assertEquals(0, thirdCalls.get());
+            Assertions.assertEquals(ClickOutcome.Cancel, outcome);
+            Assertions.assertEquals(1, firstCalls.get());
+            Assertions.assertEquals(1, secondCalls.get());
+            Assertions.assertEquals(0, thirdCalls.get());
+        }
+
+        @Test
+        void returnsPassWhenNoRegistrationMatches() {
+            var handlerCalls = new AtomicInteger();
+
+            SlotBehaviorManager.register(
+                SlotBehaviorRegistration
+                    .named("non-matching")
+                    .matches(ctx -> false)
+                    .onClick(ctx -> {
+                        handlerCalls.incrementAndGet();
+                        return ClickOutcome.Cancel;
+                    })
+                    .build()
+            );
+
+            var outcome = SlotBehaviorManager.handleClick(createClickContext(createSlot()));
+
+            Assertions.assertEquals(ClickOutcome.Pass, outcome);
+            Assertions.assertEquals(0, handlerCalls.get());
         }
     }
 
@@ -186,8 +237,8 @@ class SlotBehaviorManagerTest {
 
             var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
 
-            assertEquals(ClickOutcome.Cancel, outcome);
-            assertEquals(0, observerCalls.get());
+            Assertions.assertEquals(ClickOutcome.Cancel, outcome);
+            Assertions.assertEquals(0, observerCalls.get());
         }
 
         @Test
@@ -214,8 +265,8 @@ class SlotBehaviorManagerTest {
 
             var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
 
-            assertEquals(ClickOutcome.Pass, outcome);
-            assertEquals(1, observerCalls.get());
+            Assertions.assertEquals(ClickOutcome.Pass, outcome);
+            Assertions.assertEquals(1, observerCalls.get());
         }
 
         @Test
@@ -242,8 +293,8 @@ class SlotBehaviorManagerTest {
 
             var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
 
-            assertEquals(ClickOutcome.Handled, outcome);
-            assertEquals(1, observerCalls.get());
+            Assertions.assertEquals(ClickOutcome.Handled, outcome);
+            Assertions.assertEquals(1, observerCalls.get());
         }
 
         @Test
@@ -289,8 +340,8 @@ class SlotBehaviorManagerTest {
 
             var outcome = SlotBehaviorManager.handleClickAndObserve(ctx);
 
-            assertEquals(ClickOutcome.Cancel, outcome);
-            assertEquals(0, observerCalls.get());
+            Assertions.assertEquals(ClickOutcome.Cancel, outcome);
+            Assertions.assertEquals(0, observerCalls.get());
         }
     }
 

@@ -1,18 +1,18 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
-import com.github.lutzluca.btrbz.mixin.SlotAccessor;
-import com.github.lutzluca.btrbz.utils.ClickOutcome;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import io.vavr.control.Try;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.mixin.SlotAccessor;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 
 @Slf4j
 public final class SlotBehaviorManager {
@@ -92,7 +92,10 @@ public final class SlotBehaviorManager {
         var displayItem = slot == null
             ? ItemStack.EMPTY
             : applyItemOverride(currInfo, prevInfo, slot, rawItem);
-        var modifiers = SlotInputModifiers.from(Minecraft.getInstance());
+        var client = Minecraft.getInstance();
+        var modifiers = client == null
+            ? SlotInputModifiers.none()
+            : SlotInputModifiers.from(client);
 
         return new SlotClickContext(
             currInfo,
@@ -159,6 +162,9 @@ public final class SlotBehaviorManager {
     public static ClickOutcome handleClickAndObserve(SlotClickContext ctx) {
         var outcome = handleClick(ctx);
         if (outcome != ClickOutcome.Cancel) {
+            // NOTE: Observers currently fire before vanilla slot handling. Moving this to a
+            // post-vanilla hook may make more sense if observers should only see clicks that
+            // vanilla actually processes
             SlotObserverManager.observeClick(ctx);
         }
 

@@ -1,19 +1,19 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 
 class SlotObserverManagerTest {
 
@@ -67,8 +67,50 @@ class SlotObserverManagerTest {
             new SlotInputModifiers(false, false, false)
         ));
 
-        assertEquals(1, matchingCalls.get());
-        assertEquals(0, skippedCalls.get());
+        Assertions.assertEquals(1, matchingCalls.get());
+        Assertions.assertEquals(0, skippedCalls.get());
+    }
+
+    @Test
+    @DisplayName("observeClick notifies all matching observers in registration order")
+    void observeClickNotifiesAllMatchingObserversInRegistrationOrder() {
+        var calls = new ArrayList<String>();
+
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+            @Override
+            public boolean matches(SlotClickContext ctx) {
+                return true;
+            }
+
+            @Override
+            public void onClick(SlotClickContext ctx) {
+                calls.add("first");
+            }
+        });
+        SlotObserverManager.register(new SlotObserverManager.SlotObserver() {
+            @Override
+            public boolean matches(SlotClickContext ctx) {
+                return true;
+            }
+
+            @Override
+            public void onClick(SlotClickContext ctx) {
+                calls.add("second");
+            }
+        });
+
+        SlotObserverManager.observeClick(new SlotClickContext(
+            new ScreenInfoHelper.ScreenInfo(null),
+            new ScreenInfoHelper.ScreenInfo(null),
+            createSlot(),
+            ItemStack.EMPTY,
+            ItemStack.EMPTY,
+            0,
+            ClickType.PICKUP,
+            SlotInputModifiers.none()
+        ));
+
+        Assertions.assertEquals(List.of("first", "second"), calls);
     }
 
     @Test
@@ -126,7 +168,7 @@ class SlotObserverManagerTest {
             }
         });
 
-        assertDoesNotThrow(() -> SlotObserverManager.observeClick(new SlotClickContext(
+        Assertions.assertDoesNotThrow(() -> SlotObserverManager.observeClick(new SlotClickContext(
             new ScreenInfoHelper.ScreenInfo(null),
             new ScreenInfoHelper.ScreenInfo(null),
             createSlot(),
@@ -137,10 +179,10 @@ class SlotObserverManagerTest {
             new SlotInputModifiers(false, false, false)
         )));
 
-        assertEquals(1, firstCalls.get());
-        assertEquals(1, throwingMatchCalls.get());
-        assertEquals(1, throwingClickCalls.get());
-        assertEquals(1, lastCalls.get());
+        Assertions.assertEquals(1, firstCalls.get());
+        Assertions.assertEquals(1, throwingMatchCalls.get());
+        Assertions.assertEquals(1, throwingClickCalls.get());
+        Assertions.assertEquals(1, lastCalls.get());
     }
 
     private static Slot createSlot() {

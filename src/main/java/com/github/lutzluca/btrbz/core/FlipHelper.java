@@ -1,5 +1,16 @@
 package com.github.lutzluca.btrbz.core;
 
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
+import lombok.extern.slf4j.Slf4j;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -16,21 +27,9 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
 import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
-import com.github.lutzluca.btrbz.utils.Utils;
-import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
-import dev.isxander.yacl3.api.OptionGroup;
-import lombok.extern.slf4j.Slf4j;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.screens.inventory.SignEditScreen;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-
 
 @Slf4j
 public class FlipHelper {
@@ -141,7 +140,7 @@ public class FlipHelper {
             }
             var prev = ScreenInfoHelper.get().getPrevInfo();
             if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
-                pendingFlip = false;
+                this.pendingFlip = false;
                 return;
             }
 
@@ -185,7 +184,7 @@ public class FlipHelper {
             GameUtils.submitSignValue(signEditScreen, formatted);
 
             this.pendingFlips.add(new FlipEntry(
-                potentialFlipProduct.getProductName(),
+                this.potentialFlipProduct.getProductName(),
                 flipPrice.get()
             ));
 
