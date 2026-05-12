@@ -7,20 +7,20 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.utils.ClickOutcome;
 
-public record SlotBehaviorRegistration(
+public record SlotInterceptorRegistration(
     String name,
     Matcher matcher,
     @Nullable ItemOverrideHandler itemOverrideHandler,
     @Nullable ClickHandler clickHandler
 ) {
 
-    public SlotBehaviorRegistration {
+    public SlotInterceptorRegistration {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(matcher, "matcher");
 
         if (itemOverrideHandler == null && clickHandler == null) {
             throw new IllegalArgumentException(
-                "At least one handler must be provided for slot behavior '" + name + "'"
+                "At least one handler must be provided for slot interceptor '" + name + "'"
             );
         }
     }
@@ -31,7 +31,7 @@ public record SlotBehaviorRegistration(
 
     @FunctionalInterface
     public interface Matcher {
-        boolean matches(SlotBehaviorContext ctx);
+        boolean matches(SlotInterceptorContext ctx);
     }
 
     @FunctionalInterface
@@ -70,8 +70,8 @@ public record SlotBehaviorRegistration(
             return this;
         }
 
-        public @NotNull SlotBehaviorRegistration build() {
-            return new SlotBehaviorRegistration(
+        public @NotNull SlotInterceptorRegistration build() {
+            return new SlotInterceptorRegistration(
                 this.name,
                 this.matcher,
                 this.itemOverrideHandler,

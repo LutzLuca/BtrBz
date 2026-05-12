@@ -36,9 +36,9 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
 
 @Slf4j
 public final class ProductInfoProvider {
@@ -70,7 +70,7 @@ public final class ProductInfoProvider {
         this.bazaarData = bazaarData;
         this.priceCache = new PriceCache();
         this.registerProductInfoListener();
-        this.registerInfoProviderSlotBehavior();
+        this.registerInfoProviderSlotInterceptor();
         this.registerCtrlShiftClickBehavior();
         this.registerTooltipDisplay();
         log.info("Initialized ProductInfoProvider");
@@ -159,9 +159,9 @@ public final class ProductInfoProvider {
         });
     }
 
-    private void registerInfoProviderSlotBehavior() {
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+    private void registerInfoProviderSlotInterceptor() {
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("product-info.button")
                 .matches(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
@@ -215,8 +215,8 @@ public final class ProductInfoProvider {
     }
 
     private void registerCtrlShiftClickBehavior() {
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("product-info.quick-open")
                 .matches(ctx -> {
                     var cfg = ConfigManager.get().productInfo;
@@ -322,7 +322,7 @@ public final class ProductInfoProvider {
         );
     }
 
-    private boolean shouldApplyCtrlShiftClick(SlotBehaviorContext ctx) {
+    private boolean shouldApplyCtrlShiftClick(SlotInterceptorContext ctx) {
         return this.shouldApplyCtrlShiftClick(
             ctx.rawItem(),
             ctx.currInfo(),

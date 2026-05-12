@@ -13,8 +13,8 @@ import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
@@ -58,8 +58,8 @@ public class OrderProtectionManager {
             ), this::precomputeValidation
         );
 
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("order-protection.confirmation-slot")
                 .matches(ctx ->
                     ctx.inMenu(

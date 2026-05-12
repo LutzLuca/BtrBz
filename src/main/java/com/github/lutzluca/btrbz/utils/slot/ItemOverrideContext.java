@@ -10,7 +10,7 @@ public record ItemOverrideContext(
     ScreenInfo prevInfo,
     @Nullable Slot slot,
     ItemStack rawItem
-) implements SlotBehaviorContext {
+) implements SlotInterceptorContext {
 
     public ItemOverrideContext {
         rawItem = rawItem == null ? ItemStack.EMPTY : rawItem;

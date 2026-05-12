@@ -28,8 +28,8 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotObserverManager;
 
@@ -49,7 +49,7 @@ public class BazaarOrderActions {
     public BazaarOrderActions() {
         this.registerCancelOrderObserver();
         this.registerCloseHandlers();
-        this.registerReopenSlotBehavior();
+        this.registerReopenSlotInterceptor();
         this.registerTooltipCallback();
     }
 
@@ -141,9 +141,9 @@ public class BazaarOrderActions {
         );
     }
 
-    private void registerReopenSlotBehavior() {
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+    private void registerReopenSlotInterceptor() {
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("order-actions.reopen-button")
                 .matches(ctx -> {
                     var cfg = ConfigManager.get().orderActions;

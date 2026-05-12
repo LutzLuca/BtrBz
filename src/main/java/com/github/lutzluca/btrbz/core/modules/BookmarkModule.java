@@ -43,8 +43,8 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
@@ -79,8 +79,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
 
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("bookmark.toggle")
                 .matches(ctx ->
                     ctx.containerSlot() == OPENED_PRODUCT_SLOT_IDX &&

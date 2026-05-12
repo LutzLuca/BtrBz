@@ -15,19 +15,19 @@ import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 
 @Slf4j
-public final class SlotBehaviorManager {
+public final class SlotInterceptorManager {
 
-    private static final List<SlotBehaviorRegistration> REGISTRATIONS = new ArrayList<>();
+    private static final List<SlotInterceptorRegistration> REGISTRATIONS = new ArrayList<>();
 
-    private SlotBehaviorManager() { }
+    private SlotInterceptorManager() { }
 
     /**
-     * Registers a slot behavior in evaluation order.
+     * Registers a slot interceptor in evaluation order.
      * <p>
      * Item override conflicts are resolved purely by registration order: the first matching
      * registration that returns a replacement wins, and there is no automatic conflict resolution.
      */
-    public static void register(SlotBehaviorRegistration registration) {
+    public static void register(SlotInterceptorRegistration registration) {
         REGISTRATIONS.add(registration);
     }
 
@@ -44,14 +44,14 @@ public final class SlotBehaviorManager {
     public static ItemStack applyItemOverride(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
         var ctx = new ItemOverrideContext(currentInfo, previousInfo, slot, rawItem);
 
-        for (SlotBehaviorRegistration registration : REGISTRATIONS) {
+        for (SlotInterceptorRegistration registration : REGISTRATIONS) {
             if (registration.itemOverrideHandler() == null) {
                 continue;
             }
 
             var matches = Try.of(() -> registration.matcher().matches(ctx))
                 .onFailure(err -> log.error(
-                    "Slot behavior '{}' failed while matching override screen '{}' slot '{}'",
+                    "Slot interceptor '{}' failed while matching override screen '{}' slot '{}'",
                     registration.name(),
                     currentInfo.containerName().orElse("<unknown>"),
                     ctx.containerSlot(),
@@ -65,7 +65,7 @@ public final class SlotBehaviorManager {
 
             var replacement = Try.of(() -> registration.itemOverrideHandler().override(ctx))
                 .onFailure(err -> log.error(
-                    "Slot behavior '{}' failed while overriding screen '{}' slot '{}'",
+                    "Slot interceptor '{}' failed while overriding screen '{}' slot '{}'",
                     registration.name(),
                     currentInfo.containerName().orElse("<unknown>"),
                     ctx.containerSlot(),
@@ -116,14 +116,14 @@ public final class SlotBehaviorManager {
 
         ClickOutcome aggregate = ClickOutcome.Pass;
 
-        for (SlotBehaviorRegistration registration : REGISTRATIONS) {
+        for (SlotInterceptorRegistration registration : REGISTRATIONS) {
             if (registration.clickHandler() == null) {
                 continue;
             }
 
             var matches = Try.of(() -> registration.matcher().matches(ctx))
                 .onFailure(err -> log.error(
-                    "Slot behavior '{}' failed while matching click screen '{}' slot '{}' action '{}'",
+                    "Slot interceptor '{}' failed while matching click screen '{}' slot '{}' action '{}'",
                     registration.name(),
                     ctx.currInfo().containerName().orElse("<unknown>"),
                     ctx.containerSlot(),
@@ -138,7 +138,7 @@ public final class SlotBehaviorManager {
 
             var outcome = Try.of(() -> registration.clickHandler().onClick(ctx))
                 .onFailure(err -> log.error(
-                    "Slot behavior '{}' failed while handling click screen '{}' slot '{}' action '{}'",
+                    "Slot interceptor '{}' failed while handling click screen '{}' slot '{}' action '{}'",
                     registration.name(),
                     ctx.currInfo().containerName().orElse("<unknown>"),
                     ctx.containerSlot(),

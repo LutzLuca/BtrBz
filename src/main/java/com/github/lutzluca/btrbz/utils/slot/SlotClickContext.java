@@ -15,7 +15,7 @@ public record SlotClickContext(
     int button,
     ClickType actionType,
     SlotInputModifiers modifiers
-) implements SlotBehaviorContext {
+) implements SlotInterceptorContext {
 
     public SlotClickContext {
         rawItem = rawItem == null ? ItemStack.EMPTY : rawItem;

@@ -28,8 +28,8 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
 
 @Slf4j
 public class FlipHelper {
@@ -45,7 +45,7 @@ public class FlipHelper {
 
     public FlipHelper(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.registerFlipHelperSlotBehavior();
+        this.registerFlipHelperSlotInterceptor();
         this.registerFlipPriceScreenHandler();
     }
 
@@ -68,9 +68,9 @@ public class FlipHelper {
         log.debug("Set `potentialFlipProduct` for product: '{}'", info.productName());
     }
 
-    private void registerFlipHelperSlotBehavior() {
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+    private void registerFlipHelperSlotInterceptor() {
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("flip-helper.suggestion")
                 .matches(ctx -> {
                     if (!ConfigManager.get().flipHelper.enabled || this.potentialFlipProduct == null) {

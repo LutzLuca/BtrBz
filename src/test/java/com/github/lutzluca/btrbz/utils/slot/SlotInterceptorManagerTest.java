@@ -17,7 +17,7 @@ import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.MinecraftTestBootstrap;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 
-class SlotBehaviorManagerTest {
+class SlotInterceptorManagerTest {
 
     @BeforeAll
     static void bootstrapMinecraft() {
@@ -26,7 +26,7 @@ class SlotBehaviorManagerTest {
 
     @BeforeEach
     void clearRegistrations() {
-        SlotBehaviorManager.clearRegistrations();
+        SlotInterceptorManager.clearRegistrations();
         SlotObserverManager.clearObservers();
     }
 
@@ -37,8 +37,8 @@ class SlotBehaviorManagerTest {
         @Test
         void ignoresClickOnlyRegistrations() {
             var matcherCalls = new AtomicInteger();
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("click-only")
                     .matches(ctx -> {
                         matcherCalls.incrementAndGet();
@@ -51,7 +51,7 @@ class SlotBehaviorManagerTest {
             var slot = createSlot();
             var rawItem = slot.getItem();
 
-            var result = SlotBehaviorManager.applyItemOverride(
+            var result = SlotInterceptorManager.applyItemOverride(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
                 slot,
@@ -67,14 +67,14 @@ class SlotBehaviorManagerTest {
             var secondCalls = new AtomicInteger();
             var replacement = new ItemStack(Items.STONE);
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("first-override")
                     .overrideItem(ctx -> Optional.of(replacement))
                     .build()
             );
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("second-override")
                     .matches(ctx -> {
                         secondCalls.incrementAndGet();
@@ -85,7 +85,7 @@ class SlotBehaviorManagerTest {
             );
 
             var slot = createSlot();
-            var result = SlotBehaviorManager.applyItemOverride(
+            var result = SlotInterceptorManager.applyItemOverride(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
                 slot,
@@ -104,8 +104,8 @@ class SlotBehaviorManagerTest {
         @Test
         void preservesRawItemAndUsesOverriddenDisplayItem() {
             var replacement = new ItemStack(Items.BOOK);
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("override-display")
                     .overrideItem(ctx -> Optional.of(replacement))
                     .build()
@@ -113,7 +113,7 @@ class SlotBehaviorManagerTest {
 
             var slot = createFilledSlot();
 
-            var ctx = SlotBehaviorManager.createClickContext(
+            var ctx = SlotInterceptorManager.createClickContext(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
                 slot,
@@ -139,8 +139,8 @@ class SlotBehaviorManagerTest {
             var secondCalls = new AtomicInteger();
             var thirdCalls = new AtomicInteger();
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("handled")
                     .onClick(ctx -> {
                         firstCalls.incrementAndGet();
@@ -148,8 +148,8 @@ class SlotBehaviorManagerTest {
                     })
                     .build()
             );
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("cancel")
                     .onClick(ctx -> {
                         secondCalls.incrementAndGet();
@@ -157,8 +157,8 @@ class SlotBehaviorManagerTest {
                     })
                     .build()
             );
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("after-cancel")
                     .onClick(ctx -> {
                         thirdCalls.incrementAndGet();
@@ -179,7 +179,7 @@ class SlotBehaviorManagerTest {
                 new SlotInputModifiers(false, false, false)
             );
 
-            var outcome = SlotBehaviorManager.handleClick(ctx);
+            var outcome = SlotInterceptorManager.handleClick(ctx);
 
             Assertions.assertEquals(ClickOutcome.Cancel, outcome);
             Assertions.assertEquals(1, firstCalls.get());
@@ -191,8 +191,8 @@ class SlotBehaviorManagerTest {
         void returnsPassWhenNoRegistrationMatches() {
             var handlerCalls = new AtomicInteger();
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("non-matching")
                     .matches(ctx -> false)
                     .onClick(ctx -> {
@@ -202,7 +202,7 @@ class SlotBehaviorManagerTest {
                     .build()
             );
 
-            var outcome = SlotBehaviorManager.handleClick(createClickContext(createSlot()));
+            var outcome = SlotInterceptorManager.handleClick(createClickContext(createSlot()));
 
             Assertions.assertEquals(ClickOutcome.Pass, outcome);
             Assertions.assertEquals(0, handlerCalls.get());
@@ -217,8 +217,8 @@ class SlotBehaviorManagerTest {
         void doesNotObserveCancelledClicks() {
             var observerCalls = new AtomicInteger();
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("cancel")
                     .onClick(ctx -> ClickOutcome.Cancel)
                     .build()
@@ -235,7 +235,7 @@ class SlotBehaviorManagerTest {
                 }
             });
 
-            var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
+            var outcome = SlotInterceptorManager.handleClickAndObserve(createClickContext(createSlot()));
 
             Assertions.assertEquals(ClickOutcome.Cancel, outcome);
             Assertions.assertEquals(0, observerCalls.get());
@@ -245,8 +245,8 @@ class SlotBehaviorManagerTest {
         void observesPassOutcome() {
             var observerCalls = new AtomicInteger();
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("pass")
                     .onClick(ctx -> ClickOutcome.Pass)
                     .build()
@@ -263,7 +263,7 @@ class SlotBehaviorManagerTest {
                 }
             });
 
-            var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
+            var outcome = SlotInterceptorManager.handleClickAndObserve(createClickContext(createSlot()));
 
             Assertions.assertEquals(ClickOutcome.Pass, outcome);
             Assertions.assertEquals(1, observerCalls.get());
@@ -273,8 +273,8 @@ class SlotBehaviorManagerTest {
         void observesHandledOutcome() {
             var observerCalls = new AtomicInteger();
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("handled")
                     .onClick(ctx -> ClickOutcome.Handled)
                     .build()
@@ -291,7 +291,7 @@ class SlotBehaviorManagerTest {
                 }
             });
 
-            var outcome = SlotBehaviorManager.handleClickAndObserve(createClickContext(createSlot()));
+            var outcome = SlotInterceptorManager.handleClickAndObserve(createClickContext(createSlot()));
 
             Assertions.assertEquals(ClickOutcome.Handled, outcome);
             Assertions.assertEquals(1, observerCalls.get());
@@ -302,8 +302,8 @@ class SlotBehaviorManagerTest {
             var observerCalls = new AtomicInteger();
             var rawSlot = createFilledSlot();
 
-            SlotBehaviorManager.register(
-                SlotBehaviorRegistration
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
                     .named("override-and-cancel")
                     .overrideItem(ctx -> Optional.of(new ItemStack(Items.BOOK)))
                     .onClick(ctx -> ClickOutcome.Cancel)
@@ -321,7 +321,7 @@ class SlotBehaviorManagerTest {
                 }
             });
 
-            var displayItem = SlotBehaviorManager.applyItemOverride(
+            var displayItem = SlotInterceptorManager.applyItemOverride(
                 new ScreenInfoHelper.ScreenInfo(null),
                 new ScreenInfoHelper.ScreenInfo(null),
                 rawSlot,
@@ -338,7 +338,7 @@ class SlotBehaviorManagerTest {
                 SlotInputModifiers.none()
             );
 
-            var outcome = SlotBehaviorManager.handleClickAndObserve(ctx);
+            var outcome = SlotInterceptorManager.handleClickAndObserve(ctx);
 
             Assertions.assertEquals(ClickOutcome.Cancel, outcome);
             Assertions.assertEquals(0, observerCalls.get());

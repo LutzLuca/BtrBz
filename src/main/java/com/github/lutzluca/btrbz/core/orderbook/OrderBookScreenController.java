@@ -9,8 +9,8 @@ import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorManager;
-import com.github.lutzluca.btrbz.utils.slot.SlotBehaviorRegistration;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.Optional;
@@ -29,7 +29,7 @@ public class OrderBookScreenController {
     public OrderBookScreenController(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
         this.productInfoProvider = productInfoProvider;
-        this.registerSlotBehavior();
+        this.registerSlotInterceptor();
     }
 
     private boolean isOrderSetupMenu(ScreenInfo info) {
@@ -41,9 +41,9 @@ public class OrderBookScreenController {
         );
     }
 
-    private void registerSlotBehavior() {
-        SlotBehaviorManager.register(
-            SlotBehaviorRegistration
+    private void registerSlotInterceptor() {
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
                 .named("order-book.button")
                 .matches(ctx ->
                     !ctx.isPlayerInventorySlot() &&

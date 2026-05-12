@@ -9,11 +9,11 @@ public record SlotInputModifiers(
     boolean altDown
 ) {
 
-    public static SlotInputModifiers from(MouseButtonEvent event) {
+    public static SlotInputModifiers from(MouseButtonEvent ev) {
         return new SlotInputModifiers(
-            event.hasControlDown(),
-            event.hasShiftDown(),
-            event.hasAltDown()
+            ev.hasControlDown(),
+            ev.hasShiftDown(),
+            ev.hasAltDown()
         );
     }
 

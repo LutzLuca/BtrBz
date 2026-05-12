@@ -7,7 +7,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-public interface SlotBehaviorContext {
+public interface SlotInterceptorContext {
 
     ScreenInfo currInfo();
 
@@ -17,8 +17,8 @@ public interface SlotBehaviorContext {
 
     ItemStack rawItem();
 
-    default boolean inMenu(BazaarMenuType... menuTypes) {
-        return this.currInfo().inMenu(menuTypes);
+    default boolean inMenu(BazaarMenuType... menus) {
+        return this.currInfo().inMenu(menus);
     }
 
     default int containerSlot() {
