@@ -1,22 +1,5 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
-import java.util.Set;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
-import com.github.lutzluca.btrbz.utils.Position;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
-import com.github.lutzluca.btrbz.widgets.Renderable;
-import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -36,8 +19,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
@@ -48,11 +31,28 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import com.github.lutzluca.btrbz.utils.ClickOutcome;
+import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.Position;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorRegistration;
+import com.github.lutzluca.btrbz.widgets.ListWidget;
+import com.github.lutzluca.btrbz.widgets.Renderable;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
+
+    private static final int OPENED_PRODUCT_SLOT_IDX = 13;
 
     private ListWidget list;
 
@@ -79,51 +79,44 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
 
-        ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getContainerSlot() != 13 || !info.inMenu(BazaarMenuType.Item)) {
-                return Optional.empty();
-            }
+        SlotInterceptorManager.register(
+            SlotInterceptorRegistration
+                .named("bookmark.toggle")
+                .matches(ctx ->
+                    ctx.containerSlot() == OPENED_PRODUCT_SLOT_IDX &&
+                        ctx.inMenu(BazaarMenuType.Item) &&
+                        !ctx.isPlayerInventorySlot() &&
+                        !ctx.rawItem().isEmpty()
+                )
+                .overrideItem(ctx -> {
+                    var productName = ctx.rawItem().getHoverName().getString();
+                    if (this.context().bazaarData().nameToId(productName).isEmpty()) {
+                        return Optional.empty();
+                    }
 
-            if (GameUtils.isPlayerInventorySlot(slot) || original == ItemStack.EMPTY) {
-                return Optional.empty();
-            }
+                    return Optional.of(this.decorateBookmarkedDisplayItem(
+                        ctx.rawItem(),
+                        this.isBookmarked(productName)
+                    ));
+                })
+                .onClick(ctx -> {
+                    var bookmarked = ctx.displayItem().get(BtrBz.BOOKMARKED);
+                    if (bookmarked == null) {
+                        return ClickOutcome.Pass;
+                    }
 
-            if (original.get(BtrBz.BOOKMARKED) != null) {
-                return Optional.of(original);
-            }
+                    String productName = ctx.rawItem().getHoverName().getString();
+                    this.toggleBookmark(productName, ctx.rawItem().copy());
+                    return ClickOutcome.Cancel;
+                })
+                .build()
+        );
+    }
 
-            String productName = original.getHoverName().getString();
-            if (this.context().bazaarData().nameToId(productName).isEmpty()) {
-                return Optional.empty();
-            }
-
-            boolean isBookmarked = this.isBookmarked(productName);
-
-            original.set(BtrBz.BOOKMARKED, isBookmarked);
-
-            return Optional.of(original);
-        });
-
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getContainerSlot() == 13 && info.inMenu(BazaarMenuType.Item);
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var bookmarked = slot.getItem().get(BtrBz.BOOKMARKED);
-                if (bookmarked == null) {
-                    return false;
-                }
-
-                String productName = slot.getItem().getHoverName().getString();
-
-                var isBookmarked = toggleBookmark(productName, slot.getItem().copy());
-                slot.getItem().set(BtrBz.BOOKMARKED, isBookmarked);
-                return true;
-            }
-        });
+    private ItemStack decorateBookmarkedDisplayItem(ItemStack original, boolean isBookmarked) {
+        var display = original.copy();
+        display.set(BtrBz.BOOKMARKED, isBookmarked);
+        return display;
     }
 
     public void updateChildrenCount() {
@@ -298,8 +291,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return;
             }
 
-            boolean hasBuy = orderBuySet.contains(this.productName);
-            boolean hasSell = orderSellSet.contains(this.productName);
+            boolean hasBuy = this.orderBuySet.contains(this.productName);
+            boolean hasSell = this.orderSellSet.contains(this.productName);
 
             if (hasBuy || hasSell) {
                 int centerX = x + width - 8;

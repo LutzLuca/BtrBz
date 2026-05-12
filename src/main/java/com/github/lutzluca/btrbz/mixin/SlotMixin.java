@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,8 +17,9 @@ public abstract class SlotMixin {
     private void onGetItem(CallbackInfoReturnable<ItemStack> cir) {
         ItemStack original = cir.getReturnValue();
 
-        ItemStack modified = ItemOverrideManager.apply(
+        ItemStack modified = SlotInterceptorManager.applyItemOverride(
             ScreenInfoHelper.get().getCurrInfo(),
+            ScreenInfoHelper.get().getPrevInfo(),
             (Slot) (Object) this,
             original
         );
