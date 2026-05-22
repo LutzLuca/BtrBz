@@ -2,9 +2,24 @@
 
 ## [Unreleased]
 
+## [0.6.0-alpha] - 2026-05-22
+
+### Fixed
+
+- Added a recursive check to prevent crashes with skyblock-api 4.1.11+
+- Fixed order lists retrieval by correcting buy and sell summaries swap logic
+
 ### Changed
 
 - Switched draggable widget position config fields to nested `Position` objects instead of separate coordinate keys
+- Updated conversions.json with latest Hypixel item mappings (2026-04-29)
+
+### Internal
+
+- Added comprehensive unit tests for data models (UtilsTest, OrderModelsTest, OrderInfoParserTest, TimedStoreTest) covering utility methods, domain value semantics, lore parsing, and cache expiry behavior
+- Added optional config flag for making message style configurable
+- Added recursion detection in slot override processing to prevent infinite loops when mods like skyblock-api enumerate menu slots
+- Improved null safety throughout codebase
 
 ### Breaking
 
