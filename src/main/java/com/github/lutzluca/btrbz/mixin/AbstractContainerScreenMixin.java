@@ -1,28 +1,50 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import java.util.IdentityHashMap;
+import java.util.Map;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.utils.ClickOutcome;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.slot.SlotDisplaySnapshot;
 import com.github.lutzluca.btrbz.utils.slot.SlotInterceptorManager;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin {
 
+    @Shadow
+    @Nullable
+    protected Slot hoveredSlot;
+
+    @Unique
+    private SlotDisplaySnapshot btrbz$renderDisplaySnapshot = SlotDisplaySnapshot.EMPTY;
+
+    @Unique
+    private SlotDisplaySnapshot btrbz$tooltipDisplaySnapshot = SlotDisplaySnapshot.EMPTY;
+
+    @Unique
+    private final Map<Slot, SlotDisplaySnapshot> btrbz$displaySnapshots = new IdentityHashMap<>();
+
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
+        this.btrbz$displaySnapshots.clear();
         ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null) {
@@ -36,6 +58,98 @@ public abstract class AbstractContainerScreenMixin {
         if (wm != null) {
             wm.render(graphics, mouseX, mouseY, delta);
         }
+    }
+
+    @Inject(method = "render", at = @At("HEAD"))
+    private void btrbz$beginRenderDisplayCache(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        this.btrbz$displaySnapshots.clear();
+    }
+
+    @Inject(method = "renderSlot", at = @At("HEAD"))
+    //? if >=1.21.11 {
+    /*private void btrbz$captureRenderDisplaySnapshot(
+        GuiGraphics context,
+        Slot slot,
+        int mouseX,
+        int mouseY,
+        CallbackInfo ci
+    )
+    *///?} else {
+    private void btrbz$captureRenderDisplaySnapshot(
+        GuiGraphics context,
+        Slot slot,
+        CallbackInfo ci
+    )
+    //?}
+    {
+        this.btrbz$renderDisplaySnapshot = this.btrbz$createDisplaySnapshot(slot);
+    }
+
+    @Redirect(
+        method = "renderSlot",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/inventory/Slot;getItem()Lnet/minecraft/world/item/ItemStack;"
+        )
+    )
+    private ItemStack useDisplayItemForRenderedSlot(Slot slot) {
+        return this.btrbz$renderDisplaySnapshot.displayItem();
+    }
+
+    @Inject(method = "renderSlot", at = @At("RETURN"))
+    //? if >=1.21.11 {
+    /*private void btrbz$clearRenderDisplaySnapshot(
+        GuiGraphics context,
+        Slot slot,
+        int mouseX,
+        int mouseY,
+        CallbackInfo ci
+    )
+    *///?} else {
+    private void btrbz$clearRenderDisplaySnapshot(
+        GuiGraphics context,
+        Slot slot,
+        CallbackInfo ci
+    )
+    //?}
+    {
+        this.btrbz$renderDisplaySnapshot = SlotDisplaySnapshot.EMPTY;
+    }
+
+    @Inject(method = "renderTooltip", at = @At("HEAD"))
+    private void btrbz$captureTooltipDisplaySnapshot(
+        GuiGraphics context,
+        int mouseX,
+        int mouseY,
+        CallbackInfo ci
+    ) {
+        this.btrbz$tooltipDisplaySnapshot = this.btrbz$createDisplaySnapshot(this.hoveredSlot);
+    }
+
+    @Redirect(
+        method = "renderTooltip",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/Slot;hasItem()Z")
+    )
+    private boolean useDisplayPresenceForRenderedTooltip(Slot slot) {
+        return this.btrbz$tooltipDisplaySnapshot.hasDisplayItem();
+    }
+
+    @Redirect(
+        method = "renderTooltip",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/inventory/Slot;getItem()Lnet/minecraft/world/item/ItemStack;")
+    )
+    private ItemStack useDisplayItemForRenderedTooltip(Slot slot) {
+        return this.btrbz$tooltipDisplaySnapshot.displayItem();
+    }
+
+    @Inject(method = "renderTooltip", at = @At("RETURN"))
+    private void btrbz$clearTooltipDisplaySnapshot(
+        GuiGraphics context,
+        int mouseX,
+        int mouseY,
+        CallbackInfo ci
+    ) {
+        this.btrbz$tooltipDisplaySnapshot = SlotDisplaySnapshot.EMPTY;
     }
 
     @Inject(method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ClickType;)V", at = @At("HEAD"), cancellable = true)
@@ -133,5 +247,21 @@ public abstract class AbstractContainerScreenMixin {
         if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
+    }
+
+    @Unique
+    private SlotDisplaySnapshot btrbz$createDisplaySnapshot(@Nullable Slot slot) {
+        if (slot == null) {
+            return SlotDisplaySnapshot.EMPTY;
+        }
+
+        return this.btrbz$displaySnapshots.computeIfAbsent(
+            slot,
+            key -> SlotInterceptorManager.createDisplaySnapshot(
+                ScreenInfoHelper.get().getCurrInfo(),
+                ScreenInfoHelper.get().getPrevInfo(),
+                key
+            )
+        );
     }
 }

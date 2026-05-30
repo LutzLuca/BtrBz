@@ -18,13 +18,14 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 public final class SlotInterceptorManager {
 
     private static final List<SlotInterceptorRegistration> REGISTRATIONS = new ArrayList<>();
+    private static final ThreadLocal<Boolean> RESOLVING_DISPLAY = ThreadLocal.withInitial(() -> false);
 
     private SlotInterceptorManager() { }
 
     /**
      * Registers a slot interceptor in evaluation order.
      * <p>
-     * Item override conflicts are resolved purely by registration order: the first matching
+     * Display override conflicts are resolved purely by registration order: the first matching
      * registration that returns a replacement wins, and there is no automatic conflict resolution.
      */
     public static void register(SlotInterceptorRegistration registration) {
@@ -35,13 +36,52 @@ public final class SlotInterceptorManager {
         REGISTRATIONS.clear();
     }
 
+    public static ItemStack resolveDisplayItem(ScreenInfo currInfo, ScreenInfo prevInfo, Slot slot) {
+        return createDisplaySnapshot(currInfo, prevInfo, slot).displayItem();
+    }
+
+    public static boolean hasDisplayItem(ScreenInfo currInfo, ScreenInfo prevInfo, Slot slot) {
+        return createDisplaySnapshot(currInfo, prevInfo, slot).hasDisplayItem();
+    }
+
+    public static SlotDisplaySnapshot createDisplaySnapshot(
+        ScreenInfo currInfo,
+        ScreenInfo prevInfo,
+        @Nullable Slot slot
+    ) {
+        if (slot == null) {
+            return SlotDisplaySnapshot.EMPTY;
+        }
+
+        var rawItem = resolveRawItem(slot);
+        var displayItem = resolveDisplayItem(currInfo, prevInfo, slot, rawItem);
+        return new SlotDisplaySnapshot(slot, rawItem, displayItem);
+    }
+
     /**
-     * Applies the first matching item override for the given slot context.
+     * Applies the first matching display override for the given slot context.
      * <p>
      * Registration order determines precedence: first registered wins, and later matching
      * overrides are not evaluated once a replacement is returned.
      */
+    public static ItemStack resolveDisplayItem(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
+        if (RESOLVING_DISPLAY.get()) {
+            return rawItem;
+        }
+
+        RESOLVING_DISPLAY.set(true);
+        try {
+            return resolveDisplayItemInternal(currentInfo, previousInfo, slot, rawItem);
+        } finally {
+            RESOLVING_DISPLAY.set(false);
+        }
+    }
+
     public static ItemStack applyItemOverride(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
+        return resolveDisplayItem(currentInfo, previousInfo, slot, rawItem);
+    }
+
+    private static ItemStack resolveDisplayItemInternal(ScreenInfo currentInfo, ScreenInfo previousInfo, Slot slot, ItemStack rawItem) {
         var ctx = new ItemOverrideContext(currentInfo, previousInfo, slot, rawItem);
 
         for (SlotInterceptorRegistration registration : REGISTRATIONS) {
@@ -88,10 +128,7 @@ public final class SlotInterceptorManager {
         int button,
         ClickType actionType
     ) {
-        var rawItem = resolveRawItem(slot);
-        var displayItem = slot == null
-            ? ItemStack.EMPTY
-            : applyItemOverride(currInfo, prevInfo, slot, rawItem);
+        var snapshot = createDisplaySnapshot(currInfo, prevInfo, slot);
         var client = Minecraft.getInstance();
         var modifiers = client == null
             ? SlotInputModifiers.none()
@@ -101,8 +138,8 @@ public final class SlotInterceptorManager {
             currInfo,
             prevInfo,
             slot,
-            rawItem,
-            displayItem,
+            snapshot.rawItem(),
+            snapshot.displayItem(),
             button,
             actionType,
             modifiers

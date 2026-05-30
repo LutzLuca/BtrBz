@@ -98,6 +98,92 @@ class SlotInterceptorManagerTest {
     }
 
     @Nested
+    @DisplayName("createDisplaySnapshot")
+    class CreateDisplaySnapshot {
+
+        @Test
+        void detectsSyntheticDisplayItemWithoutMutatingCanonicalSlotItem() {
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
+                    .named("empty-slot-display")
+                    .overrideItem(ctx -> Optional.of(new ItemStack(Items.BOOK)))
+                    .build()
+            );
+
+            var currInfo = new ScreenInfoHelper.ScreenInfo(null);
+            var prevInfo = new ScreenInfoHelper.ScreenInfo(null);
+            var slot = createSlot();
+
+            var snapshot = SlotInterceptorManager.createDisplaySnapshot(currInfo, prevInfo, slot);
+
+            Assertions.assertSame(slot, snapshot.slot());
+            Assertions.assertTrue(snapshot.rawItem().isEmpty());
+            Assertions.assertTrue(snapshot.hasDisplayItem());
+            Assertions.assertTrue(slot.getItem().isEmpty());
+        }
+
+        @Test
+        void returnsEmptySnapshotForNullSlot() {
+            var snapshot = SlotInterceptorManager.createDisplaySnapshot(
+                new ScreenInfoHelper.ScreenInfo(null),
+                new ScreenInfoHelper.ScreenInfo(null),
+                null
+            );
+
+            Assertions.assertSame(SlotDisplaySnapshot.EMPTY, snapshot);
+        }
+
+        @Test
+        void suppressesRecursiveDisplayResolution() {
+            var overrideCalls = new AtomicInteger();
+            var currInfo = new ScreenInfoHelper.ScreenInfo(null);
+            var prevInfo = new ScreenInfoHelper.ScreenInfo(null);
+            var slot = createFilledSlot();
+
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
+                    .named("recursive-display")
+                    .overrideItem(ctx -> {
+                        overrideCalls.incrementAndGet();
+                        var nested = SlotInterceptorManager.resolveDisplayItem(
+                            currInfo,
+                            prevInfo,
+                            slot,
+                            ctx.rawItem()
+                        );
+                        Assertions.assertSame(ctx.rawItem(), nested);
+                        return Optional.of(new ItemStack(Items.BOOK));
+                    })
+                    .build()
+            );
+
+            var snapshot = SlotInterceptorManager.createDisplaySnapshot(currInfo, prevInfo, slot);
+
+            Assertions.assertEquals(Items.BOOK, snapshot.displayItem().getItem());
+            Assertions.assertEquals(1, overrideCalls.get());
+        }
+
+        @Test
+        void resolvesFreshSnapshotsWithoutExplicitInvalidation() {
+            SlotInterceptorManager.register(
+                SlotInterceptorRegistration
+                    .named("dynamic-display")
+                    .overrideItem(ctx -> Optional.of(new ItemStack(Items.BOOK)))
+                    .build()
+            );
+
+            var currInfo = new ScreenInfoHelper.ScreenInfo(null);
+            var prevInfo = new ScreenInfoHelper.ScreenInfo(null);
+            var slot = createSlot();
+
+            var first = SlotInterceptorManager.createDisplaySnapshot(currInfo, prevInfo, slot);
+            var second = SlotInterceptorManager.createDisplaySnapshot(currInfo, prevInfo, slot);
+
+            Assertions.assertNotSame(first.displayItem(), second.displayItem());
+        }
+    }
+
+    @Nested
     @DisplayName("createClickContext")
     class CreateClickContext {
 
