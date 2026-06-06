@@ -6,19 +6,19 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.utils.Notifier;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.utils.slot.SlotHook;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
-import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 
@@ -31,8 +31,7 @@ public class OrderBookScreenController {
     public OrderBookScreenController(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
         this.productInfoProvider = productInfoProvider;
-        this.registerItemOverride();
-        this.registerClickAction();
+        SlotHookRegistry.register(new Hook());
     }
 
     private boolean isOrderSetupMenu(ScreenInfo info) {
@@ -44,62 +43,51 @@ public class OrderBookScreenController {
         );
     }
 
-    private void registerItemOverride() {
-        ItemOverrideManager.register((info, slot, original) -> {
-            if (!ConfigManager.get().orderBook.enabled) {
-                return Optional.empty();
-            }
-
-            if (slot.getContainerSlot() != CUSTOM_ORDER_BOOK_IDX || 
-                !isOrderSetupMenu(info) || 
-                GameUtils.isPlayerInventorySlot(slot)
-            ) {
-                return Optional.empty();
-            }
-
-            var book = new ItemStack(Items.BOOK);
-            book.set(
-                DataComponents.CUSTOM_NAME,
-                Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
-            );
-
-            return Optional.of(book);
-        });
+    private ItemStack createOrderBookDisplayItem() {
+        var book = new ItemStack(Items.BOOK);
+        book.set(
+            DataComponents.CUSTOM_NAME,
+            Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
+        );
+        return book;
     }
 
-    private void registerClickAction() {
-        ScreenActionManager.register(new ScreenClickRule() {
+    public final class Hook implements SlotHook {
 
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return !GameUtils.isPlayerInventorySlot(slot) &&
-                    slot.getContainerSlot() == CUSTOM_ORDER_BOOK_IDX && 
-                    isOrderSetupMenu(info) && 
-                    ConfigManager.get().orderBook.enabled;
+        private Hook() { }
+
+        @Override
+        public boolean matches(SlotView slot) {
+            return ConfigManager.get().orderBook.enabled
+                && !slot.playerInventorySlot()
+                && slot.slotIndex() == CUSTOM_ORDER_BOOK_IDX
+                && OrderBookScreenController.this.isOrderSetupMenu(slot.currInfo());
+        }
+
+        @Override
+        public ItemStack createDisplayStack(SlotRenderContext context) {
+            return OrderBookScreenController.this.createOrderBookDisplayItem();
+        }
+
+        @Override
+        public SlotClickResult onClick(SlotClickContext context) {
+            var productNameInfo = OrderBookScreenController.this.productInfoProvider.getOpenedProductNameInfo();
+            if (productNameInfo == null) {
+                Notifier.notifyPlayer(Notifier
+                    .prefix()
+                    .append(Component.literal("Failed to determine the opened product name")));
+                return SlotClickResult.Pass;
             }
 
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var productNameInfo = OrderBookScreenController.this.productInfoProvider.getOpenedProductNameInfo();
-                if (productNameInfo == null) {
-                    Notifier.notifyPlayer(Notifier
-                        .prefix()
-                        .append(Component.literal("Failed to determine the opened product name")));
-                    return false;
-                }
-
-                var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
-                var orderBookScreen = new OrderBookScreen(
-                    info.getScreen(),
-                    productNameInfo.productName(),
-                    orders
-                );
-                Minecraft.getInstance().setScreen(orderBookScreen);
-
-                return true;
-            }
-
-        });
+            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
+            var orderBookScreen = new OrderBookScreen(
+                context.slot().currInfo().getScreen(),
+                productNameInfo.productName(),
+                orders
+            );
+            Minecraft.getInstance().setScreen(orderBookScreen);
+            return SlotClickResult.Consume;
+        }
     }
 
     public static class OrderBookConfig {

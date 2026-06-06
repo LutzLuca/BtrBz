@@ -8,12 +8,15 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import java.util.Set;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Position;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.utils.slot.SlotHook;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.ListWidget;
@@ -48,7 +51,6 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 @Slf4j
@@ -79,51 +81,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
 
-        ItemOverrideManager.register((info, slot, original) -> {
-            if (slot.getContainerSlot() != 13 || !info.inMenu(BazaarMenuType.Item)) {
-                return Optional.empty();
-            }
-
-            if (GameUtils.isPlayerInventorySlot(slot) || original == ItemStack.EMPTY) {
-                return Optional.empty();
-            }
-
-            if (original.get(BtrBz.BOOKMARKED) != null) {
-                return Optional.of(original);
-            }
-
-            String productName = original.getHoverName().getString();
-            if (this.context().bazaarData().nameToId(productName).isEmpty()) {
-                return Optional.empty();
-            }
-
-            boolean isBookmarked = this.isBookmarked(productName);
-
-            original.set(BtrBz.BOOKMARKED, isBookmarked);
-
-            return Optional.of(original);
-        });
-
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                return slot != null && slot.getContainerSlot() == 13 && info.inMenu(BazaarMenuType.Item);
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var bookmarked = slot.getItem().get(BtrBz.BOOKMARKED);
-                if (bookmarked == null) {
-                    return false;
-                }
-
-                String productName = slot.getItem().getHoverName().getString();
-
-                var isBookmarked = toggleBookmark(productName, slot.getItem().copy());
-                slot.getItem().set(BtrBz.BOOKMARKED, isBookmarked);
-                return true;
-            }
-        });
+        SlotHookRegistry.register(new BookmarkedItemHook());
     }
 
     public void updateChildrenCount() {
@@ -227,6 +185,50 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         return this.configState.bookmarkedItems
             .stream()
             .anyMatch(item -> item.productName.equals(productName));
+    }
+
+    public final class BookmarkedItemHook implements SlotHook {
+
+        private BookmarkedItemHook() { }
+
+        @Override
+        public boolean matches(SlotView slot) {
+            return slot.slotIndex() == 13 && slot.currInfo().inMenu(BazaarMenuType.Item);
+        }
+
+        @Override
+        public ItemStack createDisplayStack(SlotRenderContext context) {
+            var rawStack = context.view().rawStack();
+            if (context.view().playerInventorySlot() || rawStack.isEmpty()) {
+                return null;
+            }
+
+            if (rawStack.get(BtrBz.BOOKMARKED) != null) {
+                return rawStack;
+            }
+
+            String productName = rawStack.getHoverName().getString();
+            if (BookmarkModule.this.context().bazaarData().nameToId(productName).isEmpty()) {
+                return null;
+            }
+
+            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(productName));
+            return rawStack;
+        }
+
+        @Override
+        public SlotClickResult onClick(SlotClickContext context) {
+            var rawStack = context.slot().rawStack();
+            var bookmarked = rawStack.get(BtrBz.BOOKMARKED);
+            if (bookmarked == null) {
+                return SlotClickResult.Pass;
+            }
+
+            String productName = rawStack.getHoverName().getString();
+            var isBookmarked = BookmarkModule.this.toggleBookmark(productName, rawStack.copy());
+            rawStack.set(BtrBz.BOOKMARKED, isBookmarked);
+            return SlotClickResult.Consume;
+        }
     }
 
     private void syncBookmarksFromList(List<Renderable> items) {

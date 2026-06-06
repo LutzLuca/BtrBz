@@ -2,18 +2,25 @@ package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import com.github.lutzluca.btrbz.core.ModuleManager;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -45,15 +52,50 @@ public abstract class AbstractContainerScreenMixin {
         ClickType actionType,
         CallbackInfo ci
     ) {
-        var cancelled = ScreenActionManager.handleClick(
-            ScreenInfoHelper.get().getCurrInfo(),
-            slot,
-            button
+        if (slot == null) {
+            return;
+        }
+
+        var context = new SlotClickContext(
+            this.createSlotView(slot, slot.getItem()),
+            actionType,
+            button,
+            SlotInputModifiers.from(Minecraft.getInstance())
         );
 
-        if (cancelled) {
+        if (SlotHookRegistry.handleClick(context)) {
             ci.cancel();
         }
+    }
+
+    @ModifyVariable(method = "renderSlot", at = @At("STORE"), ordinal = 0)
+    //? if >=1.21.11 {
+    /*private ItemStack modifyRenderSlotStack(
+        ItemStack rawStack,
+        GuiGraphics graphics,
+        Slot slot,
+        int mouseX,
+        int mouseY
+    )
+    *///?} else {
+    private ItemStack modifyRenderSlotStack(
+        ItemStack rawStack,
+        GuiGraphics graphics,
+        Slot slot
+    )
+    //?}
+    {
+        return this.getDisplayStack(slot, rawStack);
+    }
+
+    @ModifyVariable(method = "renderTooltip", at = @At("STORE"), ordinal = 0)
+    private ItemStack modifyTooltipStack(ItemStack rawStack, GuiGraphics graphics, int mouseX, int mouseY) {
+        var hoveredSlot = ((AbstractContainerScreenAccessor) this).getHoveredSlot();
+        if (hoveredSlot == null) {
+            return rawStack;
+        }
+
+        return this.getDisplayStack(hoveredSlot, rawStack);
     }
 
     @Inject(method = "renderSlot", at = @At("HEAD"))
@@ -128,5 +170,22 @@ public abstract class AbstractContainerScreenMixin {
         if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
+    }
+
+    private ItemStack getDisplayStack(Slot slot, ItemStack rawStack) {
+        return SlotHookRegistry.getDisplayStack(
+            new SlotRenderContext(this.createSlotView(slot, rawStack))
+        );
+    }
+
+    private SlotView createSlotView(Slot slot, ItemStack rawStack) {
+        var helper = ScreenInfoHelper.get();
+        return new SlotView(
+            helper.getCurrInfo(),
+            helper.getPrevInfo(),
+            slot,
+            rawStack,
+            GameUtils.isPlayerInventorySlot(slot)
+        );
     }
 }

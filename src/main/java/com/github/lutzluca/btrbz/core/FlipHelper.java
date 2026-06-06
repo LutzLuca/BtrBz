@@ -7,23 +7,25 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.TrackedProduct;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
+import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.utils.slot.SlotHook;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -31,7 +33,6 @@ import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -47,11 +48,11 @@ public class FlipHelper {
 
     private TrackedProduct potentialFlipProduct = null;
     private boolean pendingFlip = false;
+    private CachedHelperDisplay cachedHelperDisplay = null;
 
     public FlipHelper(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.registerFlipHelperItemOverride();
-        this.registerFlipExecutionTrigger();
+        this.registerSlotHooks();
         this.registerFlipPriceScreenHandler();
     }
 
@@ -70,99 +71,57 @@ public class FlipHelper {
             this.potentialFlipProduct.destroy();
         }
 
+        this.cachedHelperDisplay = null;
         this.potentialFlipProduct = new TrackedProduct(this.bazaarData, info.productName());
         log.debug("Set `potentialFlipProduct` for product: '{}'", info.productName());
     }
 
-    private void registerFlipHelperItemOverride() {
-        ItemOverrideManager.register((info, slot, original) -> {
-            if (!ConfigManager.get().flipHelper.enabled) {
-                return Optional.empty();
-            }
-
-            if (!info.inMenu(BazaarMenuType.OrderOptions)) {
-                return Optional.empty();
-            }
-
-            if (slot == null || slot.getContainerSlot() != CUSTOM_HELPER_ITEM_SLOT_IDX || this.potentialFlipProduct == null) {
-                return Optional.empty();
-            }
-
-            if (GameUtils.isPlayerInventorySlot(slot)) {
-                return Optional.empty();
-            }
-
-            return this.potentialFlipProduct.getSellOfferPrice().map(price -> {
-                var formatted = Utils.formatDecimal(Math.max(price - 0.1, .1), 1, true);
-
-                var customHelperItem = new ItemStack(Items.NETHER_STAR);
-                customHelperItem.set(
-                    DataComponents.CUSTOM_NAME,
-                    Component
-                        .literal("Flip for ")
-                        .withStyle(ChatFormatting.GRAY)
-                        .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
-                        .append(Component.literal(" coins each").withStyle(ChatFormatting.GRAY))
-                        .withStyle(style -> style.withItalic(false))
-                );
-
-                return customHelperItem;
-            });
-        });
+    private void registerSlotHooks() {
+        SlotHookRegistry.register(new HelperItemHook());
+        SlotHookRegistry.register(new OrdersObserverHook());
     }
 
-    private void registerFlipExecutionTrigger() {
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                if (!ConfigManager.get().flipHelper.enabled) {
-                    return false;
-                }
+    private ItemStack createHelperDisplayStack(double price) {
+        var formatted = Utils.formatDecimal(Math.max(price - 0.1, .1), 1, true);
 
-                return slot != null && slot.getContainerSlot() == CUSTOM_HELPER_ITEM_SLOT_IDX && info.inMenu(
-                    BazaarMenuType.OrderOptions);
-            }
+        var customHelperItem = new ItemStack(Items.NETHER_STAR);
+        customHelperItem.set(
+            DataComponents.CUSTOM_NAME,
+            Component
+                .literal("Flip for ")
+                .withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(" coins each").withStyle(ChatFormatting.GRAY))
+                .withStyle(style -> style.withItalic(false))
+        );
+        return customHelperItem;
+    }
 
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var client = Minecraft.getInstance();
+    private ItemStack getCachedHelperDisplayStack() {
+        if (this.potentialFlipProduct == null) {
+            this.cachedHelperDisplay = null;
+            return null;
+        }
 
-                var gcsOpt = info.getGenericContainerScreen();
-                if (gcsOpt.isEmpty()) {
-                    return false;
-                }
+        var cachedPrice = this.potentialFlipProduct.getSellOfferPrice()
+            .map(price -> Math.max(price - 0.1, .1));
+        if (cachedPrice.isEmpty()) {
+            this.cachedHelperDisplay = null;
+            return null;
+        }
 
-                var handler = gcsOpt.get().getMenu();
-                var player = client.player;
-                var interactionManager = client.gameMode;
+        var productName = this.potentialFlipProduct.getProductName();
+        var displayPrice = cachedPrice.get();
 
-                if (player == null || interactionManager == null) {
-                    return false;
-                }
+        if (this.cachedHelperDisplay != null
+            && this.cachedHelperDisplay.productName().equals(productName)
+            && Double.compare(this.cachedHelperDisplay.displayPrice(), displayPrice) == 0) {
+            return this.cachedHelperDisplay.display().copy();
+        }
 
-                if (potentialFlipProduct == null || potentialFlipProduct
-                    .getSellOfferPrice()
-                    .isEmpty()) {
-
-                    log.debug(
-                        "Ignoring flip execution click because it's price could not be resolved: '{}'",
-                        potentialFlipProduct == null ? "no product selected" : "price not available"
-                    );
-                    return false;
-                }
-
-                interactionManager.handleInventoryMouseClick(
-                    handler.containerId,
-                    FLIP_ORDER_ITEM_SLOT_IDX,
-                    button,
-                    ClickType.PICKUP,
-                    player
-                );
-                pendingFlip = true;
-
-                return false;
-            }
-        });
+        var display = this.createHelperDisplayStack(displayPrice);
+        this.cachedHelperDisplay = new CachedHelperDisplay(productName, displayPrice, display.copy());
+        return display;
     }
 
     private void registerFlipPriceScreenHandler() {
@@ -274,9 +233,93 @@ public class FlipHelper {
             );
             this.potentialFlipProduct.destroy();
         }
+        this.cachedHelperDisplay = null;
         this.potentialFlipProduct = null;
         this.pendingFlip = false;
     }
+
+    public final class HelperItemHook implements SlotHook {
+
+        private HelperItemHook() { }
+
+        @Override
+        public boolean matches(SlotView slot) {
+            return ConfigManager.get().flipHelper.enabled
+                && !slot.playerInventorySlot()
+                && slot.slotIndex() == CUSTOM_HELPER_ITEM_SLOT_IDX
+                && slot.currInfo().inMenu(BazaarMenuType.OrderOptions)
+                && FlipHelper.this.potentialFlipProduct != null;
+        }
+
+        @Override
+        public ItemStack createDisplayStack(SlotRenderContext context) {
+            return FlipHelper.this.getCachedHelperDisplayStack();
+        }
+
+        @Override
+        public SlotClickResult onClick(SlotClickContext context) {
+            var client = Minecraft.getInstance();
+            var gcsOpt = context.slot().currInfo().getGenericContainerScreen();
+            if (gcsOpt.isEmpty()) {
+                return SlotClickResult.Pass;
+            }
+
+            var handler = gcsOpt.get().getMenu();
+            var player = client.player;
+            var interactionManager = client.gameMode;
+            if (player == null || interactionManager == null) {
+                return SlotClickResult.Pass;
+            }
+
+            if (FlipHelper.this.potentialFlipProduct == null || FlipHelper.this.potentialFlipProduct
+                .getSellOfferPrice()
+                .isEmpty()) {
+
+                log.debug(
+                    "Ignoring flip execution click because it's price could not be resolved: '{}'",
+                    FlipHelper.this.potentialFlipProduct == null ? "no product selected" : "price not available"
+                );
+                return SlotClickResult.Pass;
+            }
+
+            interactionManager.handleInventoryMouseClick(
+                handler.containerId,
+                FLIP_ORDER_ITEM_SLOT_IDX,
+                context.button(),
+                ClickType.PICKUP,
+                player
+            );
+            FlipHelper.this.pendingFlip = true;
+            return SlotClickResult.Consume;
+        }
+    }
+
+    public final class OrdersObserverHook implements SlotHook {
+
+        private OrdersObserverHook() { }
+
+        @Override
+        public boolean matches(SlotView slot) {
+            return ConfigManager.get().flipHelper.enabled
+                && slot.currInfo().inMenu(BazaarMenuType.Orders)
+                && !slot.playerInventorySlot();
+        }
+
+        @Override
+        public SlotClickResult onClick(SlotClickContext context) {
+            var orderInfo = OrderInfoParser.parseOrderInfo(
+                context.slot().rawStack(),
+                context.slot().slotIndex()
+            );
+            if (orderInfo.isSuccess()) {
+                FlipHelper.this.onOrderClick(orderInfo.get());
+            }
+
+            return SlotClickResult.Pass;
+        }
+    }
+
+    private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) { }
 
     private record FlipEntry(String productName, double pricePerUnit) { }
 
