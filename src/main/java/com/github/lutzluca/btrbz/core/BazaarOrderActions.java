@@ -282,7 +282,7 @@ public class BazaarOrderActions {
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var slot = ctx.slot();
+            var slot = ctx.view();
             var orderInfo = OrderInfoParser.parseOrderInfo(
                 slot.rawStack(),
                 slot.slotIdx()

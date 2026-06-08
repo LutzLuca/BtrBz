@@ -82,7 +82,7 @@ public class FlipHelper {
     }
 
     private ItemStack createHelperDisplayStack(double price) {
-        var formatted = Utils.formatDecimal(Math.max(price - 0.1, .1), 1, true);
+        var formatted = Utils.formatDecimal(Math.max(price, .1), 1, true);
 
         var customHelperItem = new ItemStack(Items.NETHER_STAR);
         customHelperItem.set(
@@ -259,7 +259,7 @@ public class FlipHelper {
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var client = Minecraft.getInstance();
-            var gcsOpt = ctx.slot().currInfo().getGenericContainerScreen();
+            var gcsOpt = ctx.view().currInfo().getGenericContainerScreen();
             if (gcsOpt.isEmpty()) {
                 return SlotClickResult.Pass;
             }
@@ -308,8 +308,8 @@ public class FlipHelper {
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var orderInfo = OrderInfoParser.parseOrderInfo(
-                ctx.slot().rawStack(),
-                ctx.slot().slotIdx()
+                ctx.view().rawStack(),
+                ctx.view().slotIdx()
             );
             if (orderInfo.isSuccess()) {
                 FlipHelper.this.onOrderClick(orderInfo.get());

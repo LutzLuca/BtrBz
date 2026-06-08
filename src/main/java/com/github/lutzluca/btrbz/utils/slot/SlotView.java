@@ -8,8 +8,8 @@ import org.jetbrains.annotations.NotNull;
 public record SlotView(
     @NotNull ScreenInfo currInfo,
     @NotNull ScreenInfo prevInfo,
-    Slot slot,
-    ItemStack rawStack,
+    @NotNull Slot slot,
+    @NotNull ItemStack rawStack,
     boolean playerInventorySlot
 ) {
 

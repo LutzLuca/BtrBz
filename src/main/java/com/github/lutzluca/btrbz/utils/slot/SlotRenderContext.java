@@ -1,3 +1,5 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
-public record SlotRenderContext(SlotView view) { }
+import org.jetbrains.annotations.NotNull;
+
+public record SlotRenderContext(@NotNull SlotView view) { }

@@ -314,7 +314,7 @@ public final class ProductInfoProvider {
                 }
 
                 var prev = ScreenInfoHelper.get().getPrevInfo();
-                client.setScreen(prev.inMenu(BazaarMenuType.Item) ? prev.getScreen() : null);
+                client.setScreen(prev != null ? prev.getScreen() : null);
             }, link, true
         ));
     }
@@ -432,7 +432,7 @@ public final class ProductInfoProvider {
             }
 
             var cfg = ConfigManager.get().productInfo;
-            var stack = ctx.slot().rawStack();
+            var stack = ctx.view().rawStack();
             var name = stack.getHoverName().getString();
             var id = ProductInfoProvider.this.resolveProductId(stack, name);
             if (id.isEmpty()) {

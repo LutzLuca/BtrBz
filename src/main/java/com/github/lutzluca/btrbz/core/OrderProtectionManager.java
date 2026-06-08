@@ -183,7 +183,9 @@ public class OrderProtectionManager {
 
         @Override
         public boolean matches(SlotView view) {
-            return view.slotIdx() == CONFIRMATION_SLOT_INDEX && view.currInfo().inMenu(
+            // format this
+            return view.slotIdx() == CONFIRMATION_SLOT_INDEX && !view.playerInventorySlot() 
+            && view.currInfo().inMenu(
                 BazaarMenuType.BuyOrderConfirmation,
                 BazaarMenuType.SellOfferConfirmation
             );
@@ -200,7 +202,7 @@ public class OrderProtectionManager {
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var stack = ctx.slot().rawStack();
+            var stack = ctx.view().rawStack();
             var cfg = ConfigManager.get().orderProtection;
             var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)

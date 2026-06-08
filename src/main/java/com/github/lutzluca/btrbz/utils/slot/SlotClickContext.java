@@ -1,10 +1,11 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
 import net.minecraft.world.inventory.ClickType;
+import org.jetbrains.annotations.NotNull;
 
 public record SlotClickContext(
-    SlotView slot,
-    ClickType actionType,
+    @NotNull SlotView view,
+    @NotNull ClickType actionType,
     int button,
-    SlotInputModifiers modifiers
+    @NotNull SlotInputModifiers modifiers
 ) { }

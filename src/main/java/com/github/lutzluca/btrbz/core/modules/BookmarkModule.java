@@ -56,6 +56,8 @@ import net.minecraft.world.item.ItemStack;
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
 
+    public static final int PRODUCT_SLOT_IDX = 13;
+
     private ListWidget list;
 
     private final Set<String> orderBuySet = new HashSet<>();
@@ -193,11 +195,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         @Override
         public boolean matches(SlotView view) {
-            return view.slotIdx() == 13 && view.currInfo().inMenu(BazaarMenuType.Item);
+            return BookmarkModule.this.configState.enabled
+                && view.slotIdx() == PRODUCT_SLOT_IDX
+                && view.currInfo().inMenu(BazaarMenuType.Item);
         }
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
+            if (!BookmarkModule.this.configState.enabled) {
+                return null;
+            }
+
             var rawStack = ctx.view().rawStack();
             if (ctx.view().playerInventorySlot() || rawStack.isEmpty()) {
                 return null;
@@ -218,7 +226,11 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var rawStack = ctx.slot().rawStack();
+            if (!BookmarkModule.this.configState.enabled) {
+                return SlotClickResult.Pass;
+            }
+
+            var rawStack = ctx.view().rawStack();
             var bookmarked = rawStack.get(BtrBz.BOOKMARKED);
             if (bookmarked == null) {
                 return SlotClickResult.Pass;

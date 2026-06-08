@@ -76,12 +76,12 @@ public class OrderBookScreenController {
                 Notifier.notifyPlayer(Notifier
                     .prefix()
                     .append(Component.literal("Failed to determine the opened product name")));
-                return SlotClickResult.Pass;
+                return SlotClickResult.Consume;
             }
 
             var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
             var orderBookScreen = new OrderBookScreen(
-                ctx.slot().currInfo().getScreen(),
+                ctx.view().currInfo().getScreen(),
                 productNameInfo.productName(),
                 orders
             );
