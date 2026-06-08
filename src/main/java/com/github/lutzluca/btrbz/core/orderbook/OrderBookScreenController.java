@@ -20,7 +20,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 
 public class OrderBookScreenController {
 
@@ -31,42 +30,34 @@ public class OrderBookScreenController {
     public OrderBookScreenController(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
         this.productInfoProvider = productInfoProvider;
-        SlotHookRegistry.register(new Hook());
+        SlotHookRegistry.register(new OrderBookButtonHook());
     }
 
-    private boolean isOrderSetupMenu(ScreenInfo info) {
-        return info.inMenu(
-            BazaarMenuType.Item,
-            BazaarMenuType.BuyOrderSetupVolume,
-            BazaarMenuType.BuyOrderSetupPrice,
-            BazaarMenuType.SellOfferSetup
-        );
-    }
+    public final class OrderBookButtonHook implements SlotHook {
 
-    private ItemStack createOrderBookDisplayItem() {
-        var book = new ItemStack(Items.BOOK);
-        book.set(
-            DataComponents.CUSTOM_NAME,
-            Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
-        );
-        return book;
-    }
-
-    public final class Hook implements SlotHook {
-
-        private Hook() { }
-
+        private OrderBookButtonHook() { }
         @Override
         public boolean matches(SlotView view) {
             return ConfigManager.get().orderBook.enabled
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_ORDER_BOOK_IDX
-                && OrderBookScreenController.this.isOrderSetupMenu(view.currInfo());
+                && view.currInfo().inMenu(
+                    BazaarMenuType.Item,
+                    BazaarMenuType.BuyOrderSetupVolume,
+                    BazaarMenuType.BuyOrderSetupPrice,
+                    BazaarMenuType.SellOfferSetup
+                );
         }
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
-            return OrderBookScreenController.this.createOrderBookDisplayItem();
+            var book = new ItemStack(Items.BOOK);
+            book.set(
+                DataComponents.CUSTOM_NAME,
+                Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
+            );
+
+            return book;
         }
 
         @Override

@@ -80,7 +80,7 @@ public class BazaarOrderActions {
 
     private void registerSlotHooks() {
         SlotHookRegistry.register(new CancelOrderHook());
-        SlotHookRegistry.register(new ReopenLastBuyOrderHook());
+        SlotHookRegistry.register(new ReopenOrderHook());
         SlotHookRegistry.register(new OrdersObserverHook());
     }
 
@@ -237,9 +237,9 @@ public class BazaarOrderActions {
         }
     }
 
-    public final class ReopenLastBuyOrderHook implements SlotHook {
+    public final class ReopenOrderHook implements SlotHook {
 
-        private ReopenLastBuyOrderHook() {
+        private ReopenOrderHook() {
             BazaarOrderActions.this.registerReopenCloseHandler();
         }
 

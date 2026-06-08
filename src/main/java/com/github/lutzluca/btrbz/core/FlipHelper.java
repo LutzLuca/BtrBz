@@ -77,8 +77,8 @@ public class FlipHelper {
     }
 
     private void registerSlotHooks() {
-        SlotHookRegistry.register(new HelperItemHook());
-        SlotHookRegistry.register(new OrdersObserverHook());
+        SlotHookRegistry.register(new OrderFlipHook());
+        SlotHookRegistry.register(new OrderProductObserverHook());
     }
 
     private ItemStack createHelperDisplayStack(double price) {
@@ -238,9 +238,9 @@ public class FlipHelper {
         this.pendingFlip = false;
     }
 
-    public final class HelperItemHook implements SlotHook {
+    public final class OrderFlipHook implements SlotHook {
 
-        private HelperItemHook() { }
+        private OrderFlipHook() { }
 
         @Override
         public boolean matches(SlotView view) {
@@ -294,9 +294,9 @@ public class FlipHelper {
         }
     }
 
-    public final class OrdersObserverHook implements SlotHook {
+    public final class OrderProductObserverHook implements SlotHook {
 
-        private OrdersObserverHook() { }
+        private OrderProductObserverHook() { }
 
         @Override
         public boolean matches(SlotView view) {

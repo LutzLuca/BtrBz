@@ -183,12 +183,9 @@ public class OrderProtectionManager {
 
         @Override
         public boolean matches(SlotView view) {
-            // format this
-            return view.slotIdx() == CONFIRMATION_SLOT_INDEX && !view.playerInventorySlot() 
-            && view.currInfo().inMenu(
-                BazaarMenuType.BuyOrderConfirmation,
-                BazaarMenuType.SellOfferConfirmation
-            );
+            return !view.playerInventorySlot()
+                && view.slotIdx() == CONFIRMATION_SLOT_INDEX
+                && view.currInfo().inMenu(BazaarMenuType.BuyOrderConfirmation, BazaarMenuType.SellOfferConfirmation);
         }
 
         @Override

@@ -161,8 +161,8 @@ public final class ProductInfoProvider {
     }
 
     private void registerSlotHooks() {
-        SlotHookRegistry.register(new ItemHook());
-        SlotHookRegistry.register(new CtrlShiftHook());
+        SlotHookRegistry.register(new InfoSiteButtonHook());
+        SlotHookRegistry.register(new ProductLookupHook());
     }
 
     private ItemStack createProductInfoItem() {
@@ -386,9 +386,9 @@ public final class ProductInfoProvider {
 
     private record CachedPrice(@Nullable Double sellOfferPrice, @Nullable Double buyOrderPrice) { }
 
-    public final class ItemHook implements SlotHook {
+    public final class InfoSiteButtonHook implements SlotHook {
 
-        private ItemHook() { }
+        private InfoSiteButtonHook() { }
 
         @Override
         public boolean matches(SlotView view) {
@@ -416,9 +416,9 @@ public final class ProductInfoProvider {
         }
     }
 
-    public final class CtrlShiftHook implements SlotHook {
+    public final class ProductLookupHook implements SlotHook {
 
-        private CtrlShiftHook() { }
+        private ProductLookupHook() { }
 
         @Override
         public boolean matches(SlotView view) {
