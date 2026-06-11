@@ -5,15 +5,16 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ItemOverrideManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager;
-import com.github.lutzluca.btrbz.utils.ScreenActionManager.ScreenClickRule;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.utils.slot.SlotHook;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import java.util.Set;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
@@ -35,7 +36,6 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -72,8 +72,7 @@ public final class ProductInfoProvider {
         this.bazaarData = bazaarData;
         this.priceCache = new PriceCache();
         this.registerProductInfoListener();
-        this.registerInfoProviderItemOverride();
-        this.registerInfoProviderClick();
+        this.registerSlotHooks();
         this.registerTooltipDisplay();
         log.info("Initialized ProductInfoProvider");
     }
@@ -161,108 +160,37 @@ public final class ProductInfoProvider {
         });
     }
 
-    private void registerInfoProviderItemOverride() {
-        ItemOverrideManager.register((info, slot, original) -> {
-            var cfg = ConfigManager.get().productInfo;
-            if (!cfg.enabled || !cfg.itemClickEnabled) {
-                return Optional.empty();
-            }
-
-            if (this.openedProductNameInfo == null ||
-                slot.getContainerSlot() != CUSTOM_ITEM_IDX ||
-                !info.inMenu(BazaarMenuType.Item)
-            ) {
-                return Optional.empty();
-            }
-
-            if (GameUtils.isPlayerInventorySlot(slot)) {
-                return Optional.empty();
-            }
-
-            var item = new ItemStack(Items.PAPER);
-            item.set(
-                DataComponents.CUSTOM_NAME,
-                Component
-                    .literal("Product Info")
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-                    .withStyle(style -> style.withItalic(false))
-            );
-
-            var loreLines = Stream.of(
-                Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
-
-                Component.literal("and live market data for this item.").withStyle(ChatFormatting.GRAY),
-
-                Component.empty(),
-
-                Component
-                    .literal("➤ Click to open ")
-                    .withStyle(ChatFormatting.DARK_GRAY)
-                    .withStyle(style -> style.withItalic(false))
-                    .append(Component
-                        .literal(cfg.site.displayName())
-                        .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-            ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
-
-            item.set(DataComponents.LORE, new ItemLore(loreLines));
-            return Optional.of(item);
-        });
+    private void registerSlotHooks() {
+        SlotHookRegistry.register(new InfoSiteButtonHook());
+        SlotHookRegistry.register(new ProductLookupHook());
     }
 
-    private void registerInfoProviderClick() {
-        ScreenActionManager.register(new ScreenClickRule() {
-            @Override
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                if (!cfg.enabled || !cfg.itemClickEnabled || ProductInfoProvider.this.openedProductNameInfo == null || slot == null) {
-                    return false;
-                }
+    private ItemStack createProductInfoItem() {
+        var cfg = ConfigManager.get().productInfo;
+        var item = new ItemStack(Items.PAPER);
+        item.set(
+            DataComponents.CUSTOM_NAME,
+            Component
+                .literal("Product Info")
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .withStyle(style -> style.withItalic(false))
+        );
 
-                if (GameUtils.isPlayerInventorySlot(slot)) {
-                    return false;
-                }
+        var loreLines = Stream.of(
+            Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
+            Component.literal("and live market data for this item.").withStyle(ChatFormatting.GRAY),
+            Component.empty(),
+            Component
+                .literal("➤ Click to open ")
+                .withStyle(ChatFormatting.DARK_GRAY)
+                .withStyle(style -> style.withItalic(false))
+                .append(Component
+                    .literal(cfg.site.displayName())
+                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+        ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
-                return slot.getContainerSlot() == CUSTOM_ITEM_IDX && info.inMenu(BazaarMenuType.Item);
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                ProductInfoProvider.this.confirmAndOpen(cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId));
-                return true;
-            }
-        });
-
-        ScreenActionManager.register(new ScreenClickRule() {
-            public boolean applies(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                if (!cfg.enabled || !cfg.ctrlShiftEnabled || slot == null) {
-                    return false;
-                }
-
-                var stack = slot.getItem();
-
-
-                boolean isControlDown = Minecraft.getInstance().hasControlDown();
-                boolean isShiftDown = Minecraft.getInstance().hasShiftDown();
-                return !stack.isEmpty() && shouldApplyCtrlShiftClick(stack) && isControlDown && isShiftDown;
-            }
-
-            @Override
-            public boolean onClick(ScreenInfo info, Slot slot, int button) {
-                var cfg = ConfigManager.get().productInfo;
-                var stack = slot.getItem();
-                var name = stack.getHoverName().getString();
-                var id = resolveProductId(stack, name);
-                if (id.isEmpty()) {
-                    log.warn("No product id found for {}", name);
-                    return false;
-                }
-
-                ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
-                return true;
-            }
-        });
+        item.set(DataComponents.LORE, new ItemLore(loreLines));
+        return item;
     }
 
     private void registerTooltipDisplay() {
@@ -386,7 +314,7 @@ public final class ProductInfoProvider {
                 }
 
                 var prev = ScreenInfoHelper.get().getPrevInfo();
-                client.setScreen(prev.inMenu(BazaarMenuType.Item) ? prev.getScreen() : null);
+                client.setScreen(prev != null ? prev.getScreen() : null);
             }, link, true
         ));
     }
@@ -457,6 +385,65 @@ public final class ProductInfoProvider {
     public record ProductNameInfo(@NotNull String productId, @NotNull String productName) { }
 
     private record CachedPrice(@Nullable Double sellOfferPrice, @Nullable Double buyOrderPrice) { }
+
+    public final class InfoSiteButtonHook implements SlotHook {
+
+        private InfoSiteButtonHook() { }
+
+        @Override
+        public boolean matches(SlotView view) {
+            var cfg = ConfigManager.get().productInfo;
+            return cfg.enabled
+                && cfg.itemClickEnabled
+                && ProductInfoProvider.this.openedProductNameInfo != null
+                && !view.playerInventorySlot()
+                && view.slotIdx() == CUSTOM_ITEM_IDX
+                && view.currInfo().inMenu(BazaarMenuType.Item);
+        }
+
+        @Override
+        public ItemStack createDisplayStack(SlotRenderContext ctx) {
+            return ProductInfoProvider.this.createProductInfoItem();
+        }
+
+        @Override
+        public SlotClickResult onClick(SlotClickContext ctx) {
+            var cfg = ConfigManager.get().productInfo;
+            ProductInfoProvider.this.confirmAndOpen(
+                cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId)
+            );
+            return SlotClickResult.Consume;
+        }
+    }
+
+    public final class ProductLookupHook implements SlotHook {
+
+        private ProductLookupHook() { }
+
+        @Override
+        public boolean matches(SlotView view) {
+            return !view.rawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view.rawStack());
+        }
+
+        @Override
+        public SlotClickResult onClick(SlotClickContext ctx) {
+            if (!ctx.modifiers().controlDown() || !ctx.modifiers().shiftDown()) {
+                return SlotClickResult.Pass;
+            }
+
+            var cfg = ConfigManager.get().productInfo;
+            var stack = ctx.view().rawStack();
+            var name = stack.getHoverName().getString();
+            var id = ProductInfoProvider.this.resolveProductId(stack, name);
+            if (id.isEmpty()) {
+                log.warn("No product id found for {}", name);
+                return SlotClickResult.Pass;
+            }
+
+            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
+            return SlotClickResult.Consume;
+        }
+    }
 
     public static class ProductInfoProviderConfig {
 

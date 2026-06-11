@@ -9,10 +9,10 @@
         "DrawContextMixin",
         "AbstractContainerScreenAccessor",
         "AbstractContainerScreenMixin",
+        "VirtualSlotScreenMixin",
         "MinecraftClientMixin",
         "ContainerEventHandlerMixin",
-        "SkyBlockBazaarReplyAccessor",
-        "SlotMixin"
+        "SkyBlockBazaarReplyAccessor"
     ],
     "injectors": {
         "defaultRequire": 1
