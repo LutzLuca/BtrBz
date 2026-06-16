@@ -14,6 +14,9 @@
         ],
         "modmenu": [
             "com.github.lutzluca.btrbz.core.config.BtrBzModMenu"
+        ],
+        "catharsis:imc/disabled": [
+            "com.github.lutzluca.btrbz.compat.CatharsisSupport::disabled"
         ]
     },
     "mixins": [

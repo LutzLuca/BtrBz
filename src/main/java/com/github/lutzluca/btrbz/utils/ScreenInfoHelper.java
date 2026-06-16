@@ -29,10 +29,11 @@ public final class ScreenInfoHelper {
     private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
     private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
     private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
+    
     @Getter
-    private volatile ScreenInfo currInfo = new ScreenInfo(null);
+    private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
     @Getter
-    private volatile ScreenInfo prevInfo = new ScreenInfo(null);
+    private volatile @NotNull ScreenInfo prevInfo = new ScreenInfo(null);
 
     private ScreenInfoHelper() {
         this.setupInventoryWatcher();
