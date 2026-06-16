@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @Slf4j
 public final class ConversionLoader {
@@ -40,17 +40,10 @@ public final class ConversionLoader {
         .resolve(BtrBz.MOD_ID);
     private static final Path LOCAL_CONVERSION_FILEPATH = MOD_CONFIG_DIR.resolve("conversions.json");
 
-    //? if >=1.21.11 {
-    /*private static final Identifier BUNDLED_CONVERSION_ID =  Identifier.fromNamespaceAndPath(
-            BtrBz.MOD_ID,
-            "conversions.json"
-    );
-    *///?} else {
-    private static final ResourceLocation BUNDLED_CONVERSION_ID = ResourceLocation.fromNamespaceAndPath(
+    private static final Identifier BUNDLED_CONVERSION_ID = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID,
         "conversions.json"
     );
-    //?}
 
     private static final String GITHUB_OWNER = "LutzLuca";
     private static final String GITHUB_REPO = "BtrBz";

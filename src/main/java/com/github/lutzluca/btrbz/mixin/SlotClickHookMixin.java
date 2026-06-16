@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
@@ -18,7 +18,7 @@ import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
 public abstract class SlotClickHookMixin {
 
     @Inject(
-        method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ClickType;)V",
+        method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V",
         at = @At("HEAD"),
         cancellable = true
     )
@@ -26,7 +26,7 @@ public abstract class SlotClickHookMixin {
         Slot slot,
         int slotId,
         int button,
-        ClickType type,
+        ContainerInput type,
         CallbackInfo ci
     ) {
         if (slot == null) {
@@ -39,7 +39,7 @@ public abstract class SlotClickHookMixin {
     }
 
     @Unique
-    private boolean btrbz$handleSlotHook(Slot slot, int button, ClickType type) {
+    private boolean btrbz$handleSlotHook(Slot slot, int button, ContainerInput type) {
         var raw = VirtualSlotProjection.withProjectionSuppressed(slot::getItem);
 
         var ctx = new SlotClickContext(

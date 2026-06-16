@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.commands;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -12,9 +12,9 @@ import net.minecraft.network.chat.Component;
 public class TrackedOrderCommand {
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommandManager
+        return Commands.rootCommand.then(ClientCommands
             .literal("orders")
-            .then(ClientCommandManager.literal("list").executes(ctx -> {
+            .then(ClientCommands.literal("list").executes(ctx -> {
                 var orders = BtrBz.orderManager().getTrackedOrders();
 
                 var builder = Notifier.prefix();
@@ -46,7 +46,7 @@ public class TrackedOrderCommand {
                 return 1;
             }))
 
-            .then(ClientCommandManager.literal("reset").executes(ctx -> {
+            .then(ClientCommands.literal("reset").executes(ctx -> {
                 Minecraft.getInstance().execute(() -> {
                     BtrBz.orderManager().resetTrackedOrders();
                     Notifier.notifyPlayer(Notifier

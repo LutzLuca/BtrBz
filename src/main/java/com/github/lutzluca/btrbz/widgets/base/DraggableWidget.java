@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 
@@ -38,12 +38,12 @@ public abstract class DraggableWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    protected void renderWidget(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         RenderContext ctx = new RenderContext(true, false);
         this.renderWidget(graphics, mouseX, mouseY, delta, ctx);
     }
 
-    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+    public void renderWidget(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
         this.renderContent(graphics, mouseX, mouseY, delta, ctx);
 
         boolean canShowTooltip = this.isMouseOver(this.client.mouseHandler.xpos(), this.client.mouseHandler.ypos()) && !this.isDragging && ctx.canShowTooltips();
@@ -57,7 +57,7 @@ public abstract class DraggableWidget extends AbstractWidget {
         }
     }
 
-    protected abstract void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx);
+    protected abstract void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx);
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {

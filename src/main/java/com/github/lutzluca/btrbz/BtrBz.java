@@ -45,7 +45,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -88,19 +88,11 @@ public class BtrBz implements ClientModInitializer {
     public void onInitializeClient() {
         instance = this;
 
-        //? if >=1.21.11 {
-            /*BOOKMARKED = Registry.register(
-                    BuiltInRegistries.DATA_COMPONENT_TYPE,
-                    Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-                    DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
-            );
-        *///?} else {
-            BOOKMARKED = Registry.register(
-                    BuiltInRegistries.DATA_COMPONENT_TYPE,
-                    ResourceLocation.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-                    DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
-            );
-        //?}
+        BOOKMARKED = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
+        );
 
         ConfigManager.load();
         Commands.registerAll(BAZAAR_DATA);

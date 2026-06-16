@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.widgets;
 
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.base.RenderContext;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
@@ -105,7 +105,7 @@ public class LabelWidget extends DraggableWidget {
     }
 
     @Override
-    protected void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+    protected void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
         this.ensureCache();
 
         int x = this.getX();
@@ -130,7 +130,7 @@ public class LabelWidget extends DraggableWidget {
                 case RIGHT -> x + this.width - this.padding - lineWidth;
             };
 
-            graphics.drawString(this.client.font, visualLine, lineX, lineY, 0xFFFFFFFF, true);
+            graphics.text(this.client.font, visualLine, lineX, lineY, 0xFFFFFFFF, true);
         }
     }
 

@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Provides tooltip rendering for widgets.
@@ -13,7 +13,7 @@ public interface TooltipProvider {
      * @param mouseX Mouse X coordinate
      * @param mouseY Mouse Y coordinate
      */
-    void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY);
+    void renderTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY);
 
     /**
      * Reset hover state when mouse leaves widget.

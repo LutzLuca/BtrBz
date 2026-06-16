@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.widgets.core;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
@@ -22,13 +22,13 @@ public final class TooltipRenderer {
     /**
      * Render tooltip immediately at the given position.
      */
-    public static void renderImmediate(GuiGraphics graphics, List<Component> lines, int mouseX, int mouseY) {
+    public static void renderImmediate(GuiGraphicsExtractor graphics, List<Component> lines, int mouseX, int mouseY) {
         if (lines == null || lines.isEmpty()) {
             return;
         }
         
         List<ClientTooltipComponent> components = toClientComponents(lines);
-        graphics.renderTooltip(
+        graphics.tooltip(
             CLIENT.font,
             components,
             mouseX,
@@ -42,7 +42,7 @@ public final class TooltipRenderer {
      * Queue tooltip to be rendered on the next frame.
      * Use this when tooltip should render above other elements.
      */
-    public static void renderDeferred(GuiGraphics graphics, List<Component> lines, int mouseX, int mouseY) {
+    public static void renderDeferred(GuiGraphicsExtractor graphics, List<Component> lines, int mouseX, int mouseY) {
         if (lines == null || lines.isEmpty()) {
             return;
         }

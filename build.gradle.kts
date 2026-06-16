@@ -1,20 +1,7 @@
 plugins {
-    id("fabric-loom") version "1.14-SNAPSHOT"
+    id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
     java
-}
-
-stonecutter {
-    replacements {
-        string(current.version >= "1.21.11") {
-            replace("import net.minecraft.resources.ResourceLocation;", "import net.minecraft.resources.Identifier;")
-        }
-    }
-
-    swaps["outline_swap"] = when {
-        eval(current.version, ">=1.21.11") -> "ctx.renderOutline(this.getX(), this.getY(), this.width, this.height, borderColor);"
-        else -> "ctx.submitOutline(this.getX(), this.getY(), this.width, this.height, borderColor);"
-    }
 }
 
 fun getProp(name: String): String =
@@ -57,11 +44,10 @@ fabricApi {
 
 dependencies {
     minecraft("com.mojang:minecraft:${stonecutter.current.project}")
-    mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
-    testImplementation("net.fabricmc:fabric-loader-junit:${getProp("loader_version")}")
+    implementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
 
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.0")
@@ -84,11 +70,11 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")
 
-    modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
+    runtimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
 
-    modImplementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
+    implementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
 
-    modCompileOnly("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
+    compileOnly("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
 }
 
 tasks {
@@ -114,7 +100,7 @@ java {
 publishMods {
     dryRun.set(false)
 
-    file = tasks.remapJar.get().archiveFile
+    file = tasks.jar.get().archiveFile
     changelog = rootProject.file("CHANGELOG_LATEST.md").takeIf { it.exists() }?.readText()
         ?: "No changelog provided"
 

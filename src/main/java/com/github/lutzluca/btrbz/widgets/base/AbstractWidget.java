@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.layouts.LayoutElement;
@@ -50,7 +50,7 @@ public abstract class AbstractWidget implements LayoutElement, GuiEventListener,
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (!this.visible) {
             return;
         }
@@ -58,7 +58,7 @@ public abstract class AbstractWidget implements LayoutElement, GuiEventListener,
         renderWidget(graphics, mouseX, mouseY, delta);
     }
 
-    protected abstract void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float delta);
+    protected abstract void renderWidget(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta);
 
     protected boolean isMouseHovered() {
         double guiScale = this.client.getWindow().getGuiScale();
