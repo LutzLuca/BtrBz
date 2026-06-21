@@ -103,6 +103,7 @@ public final class OrderModels {
     @ToString
     public static class TrackedOrder {
 
+        public final ProductIdentity product;
         public final String productName;
         public final OrderType type;
 
@@ -118,7 +119,12 @@ public final class OrderModels {
         public int fillAmountSnapshot;
 
         public TrackedOrder(OrderInfo.UnfilledOrderInfo info) {
-            this.productName = info.productName;
+            this(info, new UnresolvedProduct(info.productName, null));
+        }
+
+        public TrackedOrder(OrderInfo.UnfilledOrderInfo info, ProductIdentity product) {
+            this.product = product;
+            this.productName = product.displayName();
             this.type = info.type;
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
@@ -127,7 +133,8 @@ public final class OrderModels {
         }
 
         public TrackedOrder(OutstandingOrderInfo info) {
-            this.productName = info.productName;
+            this.product = info.product();
+            this.productName = this.product.displayName();
             this.type = info.type;
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
@@ -138,7 +145,7 @@ public final class OrderModels {
         public boolean matches(OrderInfo info) {
             // @formatter:off
             return (
-                this.productName.equals(info.productName())
+                this.product.displayName().equals(info.productName())
                 && this.type == info.type()
                 && this.volume == info.volume()
                 && Double.compare(this.pricePerUnit, info.pricePerUnit()) == 0
@@ -169,12 +176,24 @@ public final class OrderModels {
     }
 
     public record OutstandingOrderInfo(
-        String productName, OrderType type, int volume, double pricePerUnit, double total
+        ProductIdentity product, OrderType type, int volume, double pricePerUnit, double total
     ) {
+
+        public OutstandingOrderInfo(String productName, OrderType type, int volume, double pricePerUnit, double total) {
+            this(new UnresolvedProduct(productName, null), type, volume, pricePerUnit, total);
+        }
+
+        public OutstandingOrderInfo withProduct(ProductIdentity product) {
+            return new OutstandingOrderInfo(product, this.type, this.volume, this.pricePerUnit, this.total);
+        }
+
+        public String productName() {
+            return this.product.displayName();
+        }
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {
             // @formatter:off
-            return this.productName.equals(setupInfo.productName()) 
+            return this.productName().equals(setupInfo.productName())
                 && this.type == setupInfo.type() 
                 && this.volume == setupInfo.volume() 
                 && Double.compare(this.total,setupInfo.total()) == 0;

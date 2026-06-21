@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.ArrayList;
@@ -193,21 +194,35 @@ public class AlertCommandParser {
     ) {
 
         public Try<ResolvedAlertArgs> resolve(BazaarData data) {
-            return this.expr
-                .resolve(this.productName, this.type, data)
-                .map(price -> new ResolvedAlertArgs(
-                    this.timestamp,
-                    this.productName,
-                    data.nameToId(this.productName).get(),
-                    this.type,
-                    price
-                ));
+            return Try
+                .of(() -> data
+                    .resolveProductName(this.productName)
+                    .resolvedProduct()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                        "Invalid or unrecognized name " + '"' + this.productName + '"'
+                    )))
+                .flatMap(product -> this.expr
+                    .resolve(product, this.type, data)
+                    .map(price -> new ResolvedAlertArgs(
+                        this.timestamp,
+                        product,
+                        this.type,
+                        price
+                    )));
         }
     }
 
     public record ResolvedAlertArgs(
-        long timestamp, String productName, String productId, AlertType type, double price
+        long timestamp, ProductRef product, AlertType type, double price
     ) {
+
+        public String productName() {
+            return this.product.displayName();
+        }
+
+        public String productId() {
+            return this.product.productId();
+        }
 
         public Try<ResolvedAlertArgs> validate() {
             if (this.price <= 0.0) {

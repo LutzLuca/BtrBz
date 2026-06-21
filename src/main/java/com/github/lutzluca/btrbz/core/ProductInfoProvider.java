@@ -4,7 +4,8 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -65,7 +66,6 @@ public final class ProductInfoProvider {
 
     private final BazaarData bazaarData;
     private final PriceCache priceCache;
-    private final ProductIdCache productIdCache;
 
     private @Nullable ItemStack cachedProductInfoItem = null;
     private @Nullable InfoProviderSite cachedProductInfoSite = null;
@@ -76,7 +76,6 @@ public final class ProductInfoProvider {
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
         this.priceCache = new PriceCache();
-        this.productIdCache = new ProductIdCache();
         this.registerProductInfoListener();
         this.registerSlotHooks();
         this.registerTooltipDisplay();
@@ -112,19 +111,19 @@ public final class ProductInfoProvider {
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Item), (info, inv) -> {
-                var productName = inv
+                var product = inv
                     .getItem(PRODUCT_IDX)
-                    .map(ItemStack::getHoverName)
-                    .map(Component::getString)
-                    .orElse("<empty>");
+                    .map(this.bazaarData::resolveProduct)
+                    .flatMap(ProductIdentity::resolvedProduct);
 
-                this.bazaarData.nameToId(productName).ifPresentOrElse(
-                    productId -> {
-                        this.openedProductNameInfo = new ProductNameInfo(productId, productName);
-                        log.debug("Opened product: {} ({})", productName, productId);
-                    }, () -> {
+                product.ifPresentOrElse(
+                    resolved -> {
+                        this.openedProductNameInfo = new ProductNameInfo(resolved);
+                        log.debug("Opened product: {} ({})", resolved.displayName(), resolved.productId());
+                    },
+                    () -> {
                         this.openedProductNameInfo = null;
-                        log.warn("No product id found for {}", productName);
+                        log.warn("No product resolved for Bazaar item screen");
                     }
                 );
             }
@@ -149,8 +148,8 @@ public final class ProductInfoProvider {
             if (transientFlowClose) {
                 log.debug(
                     "Preserving product context on transient flow close: {} ({})",
-                    this.openedProductNameInfo.productName,
-                    this.openedProductNameInfo.productId
+                    this.openedProductNameInfo.productName(),
+                    this.openedProductNameInfo.productId()
                 );
                 return;
             }
@@ -158,8 +157,8 @@ public final class ProductInfoProvider {
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
                     "Leaving product flow, clearing product: {} ({})",
-                    this.openedProductNameInfo.productName,
-                    this.openedProductNameInfo.productId
+                    this.openedProductNameInfo.productName(),
+                    this.openedProductNameInfo.productId()
                 );
                 this.openedProductNameInfo = null;
             }
@@ -287,7 +286,7 @@ public final class ProductInfoProvider {
             return false;
         }
 
-        if (this.productIdCache.get(stack).isEmpty()) {
+        if (this.resolveProduct(stack).resolvedProduct().isEmpty()) {
             return false;
         }
 
@@ -336,6 +335,10 @@ public final class ProductInfoProvider {
         ));
     }
 
+    private ProductIdentity resolveProduct(ItemStack stack) {
+        return this.bazaarData.resolveProduct(stack);
+    }
+
     public enum InfoProviderSite {
         Coflnet("https://sky.coflnet.com/item/%s?range=day"),
         SkyblockBz("https://skyblock.bz/product/%s"),
@@ -373,9 +376,21 @@ public final class ProductInfoProvider {
         }
     }
 
-    public record ProductNameInfo(@NotNull String productId, @NotNull String productName) { }
+    public record ProductNameInfo(@NotNull ProductRef product) {
+        public String productId() {
+            return this.product.productId();
+        }
 
-    private record CachedPrice(@Nullable Double sellOfferPrice, @Nullable Double buyOrderPrice) { }
+        public String productName() {
+            return this.product.displayName();
+        }
+    }
+
+    private record CachedPrice(
+        ProductIdentity product,
+        @Nullable Double sellOfferPrice,
+        @Nullable Double buyOrderPrice
+    ) { }
 
     public final class InfoSiteButtonHook implements SlotHook {
 
@@ -401,7 +416,7 @@ public final class ProductInfoProvider {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var cfg = ConfigManager.get().productInfo;
             ProductInfoProvider.this.confirmAndOpen(
-                cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId)
+                cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId())
             );
             return SlotClickResult.Consume;
         }
@@ -424,13 +439,13 @@ public final class ProductInfoProvider {
 
             var cfg = ConfigManager.get().productInfo;
             var stack = ctx.view().getRawStack();
-            var id = ProductInfoProvider.this.productIdCache.get(stack);
-            if (id.isEmpty()) {
+            var product = ProductInfoProvider.this.resolveProduct(stack).resolvedProduct();
+            if (product.isEmpty()) {
                 log.warn("No product id found for {}", stack.getHoverName().getString());
                 return SlotClickResult.Pass;
             }
 
-            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
+            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(product.get().productId()));
             return SlotClickResult.Consume;
         }
     }
@@ -534,73 +549,23 @@ public final class ProductInfoProvider {
         }
     }
 
-    private class ProductIdCache {
+    private class PriceCache {
 
-        private final WeakHashMap<ItemStack, Optional<String>> cache = new WeakHashMap<>();
+        private final WeakHashMap<ItemStack, CachedPrice> cache = new WeakHashMap<>();
 
-        ProductIdCache() {
-            log.debug("Initializing Product ID Cache");
-            ProductInfoProvider.this.bazaarData.addConversionListener(() -> {
+        PriceCache() {
+            log.debug("Initializing Price Cache");
+            ProductInfoProvider.this.bazaarData.addListener(products -> {
                 log.trace(
-                    "Conversions updated, clearing product id cache with {} mappings",
+                    "Bazaar data updated, clearing price cache with {} mappings",
                     this.cache.size()
                 );
 
                 this.cache.clear();
             });
-        }
-
-        Optional<String> get(ItemStack stack) {
-            var cached = this.cache.get(stack);
-            if (cached != null) {
-                return cached;
-            }
-
-            var name = stack.getHoverName().getString();
-
-            var direct = ProductInfoProvider.this.bazaarData.nameToId(name);
-            if (direct.isPresent()) {
-                this.cache.put(stack, direct);
-                return direct;
-            }
-
-            if ("Enchanted Book".equals(name)) {
-                var ids = OrderInfoParser
-                    .getLore(stack)
-                    .stream()
-                    .map(ProductInfoProvider.this.bazaarData::nameToId)
-                    .flatMap(Optional::stream)
-                    .distinct()
-                    .toList();
-
-                var result = ids.size() == 1 ? Optional.of(ids.getFirst()) : Optional.<String>empty();
-
-                this.cache.put(stack, result);
-                return result;
-            }
-
-            var delimiter = name.lastIndexOf(' ');
-            if (delimiter == -1 || !Utils.isValidRomanNumeral(name.substring(delimiter).trim())) {
-                this.cache.put(stack, Optional.empty());
-                return Optional.empty();
-            }
-
-            var result = ProductInfoProvider.this.bazaarData.nameToId(name.substring(0, delimiter).trim());
-
-            this.cache.put(stack, result);
-            return result;
-        }
-    }
-
-    private class PriceCache {
-
-        private final WeakHashMap<ItemStack, @Nullable CachedPrice> cache = new WeakHashMap<>();
-
-        PriceCache() {
-            log.debug("Initializing Price Cache");
-            ProductInfoProvider.this.bazaarData.addBazaarListener(products -> {
+            ProductInfoProvider.this.bazaarData.addIndexChangeListener(() -> {
                 log.trace(
-                    "Bazaar data updated, clearing price cache with {} mappings",
+                    "Conversion index updated, clearing price cache with {} mappings",
                     this.cache.size()
                 );
 
@@ -609,30 +574,32 @@ public final class ProductInfoProvider {
         }
 
         Optional<CachedPrice> get(ItemStack stack) {
-            var existing = this.cache.get(stack);
-            if (existing != null || this.cache.containsKey(stack)) {
-                return Optional.ofNullable(existing);
+            if (this.cache.containsKey(stack)) {
+                var cached = this.cache.get(stack);
+                return cached.product().resolvedProduct().isPresent()
+                    ? Optional.of(cached)
+                    : Optional.empty();
             }
+            var product = ProductInfoProvider.this.resolveProduct(stack);
+            var productRef = product.resolvedProduct();
 
-            var productId = ProductInfoProvider.this.productIdCache.get(stack);
-
-            if (productId.isEmpty()) {
-                this.cache.put(stack, null);
+            if (productRef.isEmpty()) {
+                this.cache.put(stack, new CachedPrice(product, null, null));
                 return Optional.empty();
             }
 
             var data = ProductInfoProvider.this.bazaarData;
 
-            var sellOfferPrice = data.lowestSellPrice(productId.get()).orElse(null);
-            var buyOrderPrice = data.highestBuyPrice(productId.get()).orElse(null);
+            var sellOfferPrice = data.lowestSellOfferPrice(productRef.get()).orElse(null);
+            var buyOrderPrice = data.highestBuyOrderPrice(productRef.get()).orElse(null);
 
-            var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
+            var cached = new CachedPrice(product, sellOfferPrice, buyOrderPrice);
             this.cache.put(stack, cached);
 
             log.trace(
                 "Cached price for '{}' (id: {}): buy={}, sell={}",
-                stack.getHoverName().getString(),
-                productId.get(),
+                productRef.get().displayName(),
+                productRef.get().productId(),
                 buyOrderPrice,
                 sellOfferPrice
             );

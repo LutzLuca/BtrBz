@@ -17,6 +17,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -52,9 +53,13 @@ public class TrackedOrderManager {
     private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) {}
     private final Map<SelfUndercutKey, SelfUndercutPricePair> selfUndercutState = new HashMap<>();
 
-    public record SelfUndercutKey(String productName, OrderType type) {
+    public record SelfUndercutKey(ProductIdentity product, OrderType type) {
         public static SelfUndercutKey from(TrackedOrder order) {
-            return new SelfUndercutKey(order.productName, order.type);
+            return new SelfUndercutKey(order.product, order.type);
+        }
+
+        public String productName() {
+            return this.product.displayName();
         }
     }
 
@@ -127,16 +132,19 @@ public class TrackedOrderManager {
         );
 
         toRemove.forEach(this::removeTrackedOrder);
-        unfilledCopy.stream().map(TrackedOrder::new).forEach(this::addTrackedOrder);
+        unfilledCopy
+            .stream()
+            .map(info -> new TrackedOrder(info, this.bazaarData.resolveProductName(info.productName())))
+            .forEach(this::addTrackedOrder);
 
         this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
     }
 
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
-            var key = new SelfUndercutKey(order.productName, order.type);
+            var key = new SelfUndercutKey(order.product, order.type);
             boolean removedLastOrder = this.trackedOrders.stream()
-                .noneMatch(curr -> curr.productName.equals(order.productName) && curr.type == order.type);
+                .noneMatch(curr -> curr.product.equals(order.product) && curr.type == order.type);
             log.debug("Removed last order for {}: {}", order.productName, removedLastOrder);
             if (removedLastOrder) {
                 this.selfUndercutState.remove(key);
@@ -145,9 +153,13 @@ public class TrackedOrderManager {
         }
     }
 
-    public record GroupKey(String productName, OrderType type, double pricePerUnit) {
+    public record GroupKey(ProductIdentity product, OrderType type, double pricePerUnit) {
         public static GroupKey from(TrackedOrder order) {
-            return new GroupKey(order.productName, order.type, order.pricePerUnit);
+            return new GroupKey(order.product, order.type, order.pricePerUnit);
+        }
+
+        public String productName() {
+            return this.product.displayName();
         }
     }
 
@@ -306,13 +318,13 @@ public class TrackedOrderManager {
     }
 
     private int countOrdersAtBestPrice(GroupKey key, BazaarData bazaarData) {
-        var productId = bazaarData.nameToId(key.productName).orElse(null);
-        if (productId == null) {
-            log.warn("Group ({}) has no name -> id mapping, skipping group notification", key);
+        var product = key.product().resolvedProduct().orElse(null);
+        if (product == null) {
+            log.warn("Group ({}) has unresolved product, skipping group notification", key);
             return -1;
         }
         
-        var lists = bazaarData.getOrderLists(productId);
+        var lists = bazaarData.getOrderLists(product);
         
         var relevantSummaries = switch (key.type) {
             case Buy -> lists.buyOrders();
@@ -340,21 +352,21 @@ public class TrackedOrderManager {
     }
 
     private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
-        var id = bazaarData.nameToId(order.productName);
-        if (id.isEmpty()) {
+        var ref = order.product.resolvedProduct();
+        if (ref.isEmpty()) {
             log.warn(
-                "No name -> id mapping found for product with name: '{}'",
+                "Tracked order product is unresolved: '{}'",
                 order.productName
             );
             return Optional.empty();
         }
 
-        var product = Optional.ofNullable(products.get(id.get()));
+        var product = Optional.ofNullable(products.get(ref.get().productId()));
         if (product.isEmpty()) {
             log.warn(
                 "No product found for item with name '{}' and mapped id '{}'",
                 order.productName,
-                id.get()
+                ref.get().productId()
             );
             return Optional.empty();
         }
@@ -364,7 +376,7 @@ public class TrackedOrderManager {
             log.debug(
                 "Unable to determine curr for product '{}' with id '{}'",
                 order.productName,
-                id.get()
+                ref.get().productId()
             );
             return Optional.empty();
         }
@@ -518,7 +530,7 @@ public class TrackedOrderManager {
         var cfg = ConfigManager.get().trackedOrders;
 
         for (var key : keys) {
-            var result = this.computeSelfUndercutState(key.productName(), key.type(), products);
+            var result = this.computeSelfUndercutState(key.product(), key.type(), products);
             var existing = this.selfUndercutState.get(key);
 
             if (result instanceof SelfUndercutResult.Undercut undercut) {
@@ -552,12 +564,12 @@ public class TrackedOrderManager {
     }
 
     private SelfUndercutResult computeSelfUndercutState(
-        String productName, 
+        ProductIdentity productIdentity,
         OrderType type, 
         Map<String, Product> products
     ) {
         var matchingOrders = this.trackedOrders.stream()
-            .filter(order -> order.productName.equals(productName) && order.type == type)
+            .filter(order -> order.product.equals(productIdentity) && order.type == type)
             .toList();
 
         Comparator<Double> bestFirst = type == OrderType.Buy
@@ -574,15 +586,15 @@ public class TrackedOrderManager {
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var productId = this.bazaarData.nameToId(productName).orElse(null);
-        if (productId == null) {
-            log.debug("Product '{}' not found in bazaar data", productName);
+        var productRef = productIdentity.resolvedProduct().orElse(null);
+        if (productRef == null) {
+            log.debug("Product '{}' is unresolved", productIdentity.displayName());
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var product = products.get(productId);
+        var product = products.get(productRef.productId());
         if (product == null) {
-            log.debug("Product '{}' not found in products map", productName);
+            log.debug("Product '{}' not found in products map", productRef.displayName());
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -609,7 +621,7 @@ public class TrackedOrderManager {
             .count();
 
         if (topBucket.getOrders() != playerCountAtBest) {
-            log.trace("Top bucket count mismatch for {}: API orders={}, local tracked={}", productName, topBucket.getOrders(), playerCountAtBest);
+            log.trace("Top bucket count mismatch for {}: API orders={}, local tracked={}", productRef.displayName(), topBucket.getOrders(), playerCountAtBest);
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -622,7 +634,7 @@ public class TrackedOrderManager {
             .count();
 
         if (secondBucket.getOrders() != playerCountAtSecondBest) {
-            log.trace("Second bucket count mismatch for {}: API orders={}, local tracked={}", productName, secondBucket.getOrders(), playerCountAtSecondBest);
+            log.trace("Second bucket count mismatch for {}: API orders={}, local tracked={}", productRef.displayName(), secondBucket.getOrders(), playerCountAtSecondBest);
             return new SelfUndercutResult.NotUndercut();
         }
 

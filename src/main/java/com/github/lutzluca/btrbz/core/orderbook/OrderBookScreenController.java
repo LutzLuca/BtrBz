@@ -79,7 +79,7 @@ public class OrderBookScreenController {
                 return SlotClickResult.Consume;
             }
 
-            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
+            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.product());
             var orderBookScreen = new OrderBookScreen(
                 ctx.view().getCurrInfo().getScreen(),
                 productNameInfo.productName(),

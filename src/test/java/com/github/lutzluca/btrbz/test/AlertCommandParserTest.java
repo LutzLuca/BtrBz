@@ -13,7 +13,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.google.common.collect.HashBiMap;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import io.vavr.control.Try;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -216,12 +216,13 @@ class AlertCommandParserTest {
     @DisplayName("Expression Resolution")
     class ExpressionResolution {
 
-        private final BazaarData mockData = new BazaarData(HashBiMap.create()) { };
+        private final BazaarData mockData = new BazaarData();
+        private final ProductRef product = new ProductRef("TEST_PRODUCT", "Test Product");
 
         @Test
         void literalResolves() {
             Literal literal = new Literal(12_000_000.0);
-            Try<Double> result = literal.resolve("", AlertType.BuyOrder, mockData);
+            Try<Double> result = literal.resolve(this.product, AlertType.BuyOrder, mockData);
             assertTrue(result.isSuccess());
             assertEquals(12_000_000.0, result.get());
         }
@@ -229,7 +230,7 @@ class AlertCommandParserTest {
         @Test
         void binaryOpResolves() {
             Binary expr = new Binary(new Literal(100.0), BinaryOperator.Add, new Literal(50.0));
-            Try<Double> result = expr.resolve("", AlertType.BuyOrder, mockData);
+            Try<Double> result = expr.resolve(this.product, AlertType.BuyOrder, mockData);
             assertTrue(result.isSuccess());
             assertEquals(150.0, result.get());
         }
@@ -241,7 +242,7 @@ class AlertCommandParserTest {
                     BinaryOperator.Add,
                     new Binary(new Literal(50.0), BinaryOperator.Multiply, new Literal(2.0))
             );
-            Try<Double> result = expr.resolve("", AlertType.BuyOrder, mockData);
+            Try<Double> result = expr.resolve(this.product, AlertType.BuyOrder, mockData);
             assertTrue(result.isSuccess());
             assertEquals(200.0, result.get());
         }
@@ -249,7 +250,7 @@ class AlertCommandParserTest {
         @Test
         void divisionResolution() {
             Binary expr = new Binary(new Literal(100.0), BinaryOperator.Divide, new Literal(4.0));
-            Try<Double> result = expr.resolve("", AlertType.BuyOrder, mockData);
+            Try<Double> result = expr.resolve(this.product, AlertType.BuyOrder, mockData);
             assertTrue(result.isSuccess());
             assertEquals(25.0, result.get());
         }

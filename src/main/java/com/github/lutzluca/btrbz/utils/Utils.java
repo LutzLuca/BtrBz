@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import io.vavr.control.Try;
-import java.io.File;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -51,23 +54,70 @@ public final class Utils {
 
     public static Try<Path> atomicDumpToFile(Path path, String content) {
         return Try.of(() -> {
-            var parent = path.getParent();
+            var target = path.toAbsolutePath();
+            var parent = target.getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
             }
 
-            var tmp = File.createTempFile("btrbz-", ".tmp");
+            var tmp = parent != null
+                ? Files.createTempFile(parent, "btrbz-", ".tmp")
+                : Files.createTempFile("btrbz-", ".tmp");
 
-            Files.writeString(tmp.toPath(), content);
-            tmp.deleteOnExit();
+            Files.writeString(tmp, content);
 
-            return Files.move(
-                tmp.toPath(),
-                path,
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            try {
+                return Files.move(
+                    tmp,
+                    target,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (AtomicMoveNotSupportedException ignored) {
+                return Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+                Files.deleteIfExists(tmp);
+            }
         });
+    }
+
+    public static String cleanDisplayName(String displayName) {
+        if (displayName == null) {
+            return "";
+        }
+
+        return Optional
+            .ofNullable(ChatFormatting.stripFormatting(displayName))
+            .orElse(displayName)
+            .replaceAll("\\s+", " ")
+            .trim();
+    }
+
+    public static String normalizeDisplayName(String displayName) {
+        return cleanDisplayName(displayName).toLowerCase(Locale.US);
+    }
+
+    public static String titleCase(String value) {
+        var words = value.toLowerCase(Locale.US).split("\\s+");
+        var builder = new StringBuilder();
+        for (var word : words) {
+            if (word.isBlank()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return builder.toString();
+    }
+
+    public static Optional<String> customDataId(ItemStack stack) {
+        return Optional
+            .ofNullable(stack.get(DataComponents.CUSTOM_DATA))
+            .flatMap(data -> data.copyTag().getString("id"))
+            .map(String::trim)
+            .filter(id -> !id.isEmpty());
     }
 
     public static String formatDecimal(double value, int places, boolean groupings) {
