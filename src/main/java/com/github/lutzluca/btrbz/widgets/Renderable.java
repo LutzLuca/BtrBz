@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.widgets;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
@@ -28,7 +28,7 @@ public interface Renderable {
      * @param hovered Whether this item is currently hovered
      */
     void render(
-        GuiGraphics graphics,
+        GuiGraphicsExtractor graphics,
         int x, int y,
         int width, int height,
         int mouseX, int mouseY,

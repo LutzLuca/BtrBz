@@ -7,7 +7,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
@@ -17,9 +17,9 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 public class PresetCommand {
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommandManager
+        return Commands.rootCommand.then(ClientCommands
             .literal("preset")
-            .then(ClientCommandManager.literal("add").then(ClientCommandManager
+            .then(ClientCommands.literal("add").then(ClientCommands
                 .argument(
                     "volume",
                     IntegerArgumentType.integer(1, GameUtils.GLOBAL_MAX_ORDER_VOLUME)
@@ -58,9 +58,9 @@ public class PresetCommand {
                     return 1;
                 })))
 
-            .then(ClientCommandManager
+            .then(ClientCommands
                 .literal("remove")
-                .then(ClientCommandManager
+                .then(ClientCommands
                     .argument("volume", IntegerArgumentType.integer())
                     .executes(ctx -> {
                         int volume = IntegerArgumentType.getInteger(ctx, "volume");
@@ -93,7 +93,7 @@ public class PresetCommand {
                         return 1;
                     })))
 
-            .then(ClientCommandManager.literal("list").executes(ctx -> {
+            .then(ClientCommands.literal("list").executes(ctx -> {
                 var presets = ConfigManager.get().orderPresets.presets;
 
                 if (presets.isEmpty()) {
@@ -135,7 +135,7 @@ public class PresetCommand {
                 return 1;
             }))
 
-            .then(ClientCommandManager.literal("clear").executes(ctx -> {
+            .then(ClientCommands.literal("clear").executes(ctx -> {
                 ConfigManager.withConfig(cfg -> {
                     int count = cfg.orderPresets.presets.size();
                     cfg.orderPresets.presets = List.of();

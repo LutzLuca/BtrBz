@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
 import org.jetbrains.annotations.NotNull;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 
 /**
  * @param actionType the resolved client click action. Vanilla or client mods may rewrite
@@ -10,7 +10,7 @@ import net.minecraft.world.inventory.ClickType;
  */
 public record SlotClickContext(
     @NotNull SlotView view,
-    @NotNull ClickType actionType,
+    @NotNull ContainerInput actionType,
     int button,
     @NotNull SlotInputModifiers modifiers
 ) { }

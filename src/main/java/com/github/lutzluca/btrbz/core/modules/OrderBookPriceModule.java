@@ -20,7 +20,7 @@ import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -275,7 +275,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         @Override
         public void render(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int x, int y,
             int width, int height,
             int mouseX, int mouseY, float delta,
@@ -291,10 +291,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             int priceColor = this.type == OrderType.Buy ? 0xFF55FF55 : 0xFFFF5555;
             int textY = y + (height - font.lineHeight) / 2;
 
-            graphics.drawString(font, this.priceText, x + 5, textY, priceColor);
+            graphics.text(font, this.priceText, x + 5, textY, priceColor);
 
             int statsWidth = font.width(this.statsText);
-            graphics.drawString(font, this.statsText, x + width - statsWidth - 5, textY, 0xFFCCCCCC);
+            graphics.text(font, this.statsText, x + width - statsWidth - 5, textY, 0xFFCCCCCC);
         }
 
         public double getPricePerUnit() {
@@ -346,18 +346,18 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         @Override
-        protected void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+        protected void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
             this.renderHeader(graphics);
             this.renderInstruction(graphics);
             this.renderList(graphics, mouseX, mouseY, delta);
         }
 
-        private void renderHeader(GuiGraphics graphics) {
+        private void renderHeader(GuiGraphicsExtractor graphics) {
             graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + HEADER_HEIGHT, HEADER_BACKGROUND_COLOR);
-            graphics.drawCenteredString(Minecraft.getInstance().font, "Order Book", this.getX() + this.width / 2, this.getY() + 4, TITLE_COLOR);
+            graphics.centeredText(Minecraft.getInstance().font, "Order Book", this.getX() + this.width / 2, this.getY() + 4, TITLE_COLOR);
         }
 
-        private void renderInstruction(GuiGraphics graphics) {
+        private void renderInstruction(GuiGraphicsExtractor graphics) {
             int x = this.getX();
             int y = this.getY() + HEADER_HEIGHT;
             int width = this.width;
@@ -370,7 +370,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 y + height,
                 INSTRUCTION_BACKGROUND_COLOR
             );
-            graphics.drawCenteredString(
+            graphics.centeredText(
                 Minecraft.getInstance().font,
                 INSTRUCTION_TEXT,
                 x + width / 2,
@@ -379,10 +379,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             );
         }
 
-        private void renderList(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+        private void renderList(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
             this.list.setX(this.getX());
             this.list.setY(this.getY() + LIST_Y_OFFSET);
-            this.list.render(graphics, mouseX, mouseY, delta);
+            this.list.extractRenderState(graphics, mouseX, mouseY, delta);
         }
 
         @Override

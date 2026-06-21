@@ -6,7 +6,7 @@ import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.List;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -24,11 +24,11 @@ public class TaxCommand {
     };
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommandManager
+        return Commands.rootCommand.then(ClientCommands
             .literal("tax")
-            .then(ClientCommandManager
+            .then(ClientCommands
                 .literal("set")
-                .then(ClientCommandManager
+                .then(ClientCommands
                     .argument("rate", FloatArgumentType.floatArg())
                     .suggests(RATE_SUGGESTIONS)
                     .executes(ctx -> {
@@ -64,7 +64,7 @@ public class TaxCommand {
                         return 1;
                     })))
 
-            .then(ClientCommandManager.literal("show").executes(ctx -> {
+            .then(ClientCommands.literal("show").executes(ctx -> {
                 Notifier.notifyPlayer(Notifier
                     .prefix()
                     .append(Component.literal("Your tax rate is ").withStyle(ChatFormatting.GRAY))

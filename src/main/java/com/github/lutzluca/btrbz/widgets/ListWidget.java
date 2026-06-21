@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.base.RenderContext;
 import com.github.lutzluca.btrbz.widgets.core.TooltipRenderer;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -129,7 +129,7 @@ public class ListWidget extends DraggableWidget {
     }
 
     @Override
-    protected void renderContent(GuiGraphics graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+    protected void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
         if (this.draggingItem && this.autoScrollDirection != AutoScrollDirection.NONE) {
             float scrollAmount = AUTO_SCROLL_SPEED * delta;
             if (this.autoScrollDirection == AutoScrollDirection.UP) {
@@ -154,7 +154,7 @@ public class ListWidget extends DraggableWidget {
         graphics.fill(x, y, x + this.width, y + TITLE_BAR_HEIGHT, ctx.isTopWidget() ? COLOR_TITLE_BG : COLOR_NON_ACTIVE_TITLE_BG);
         graphics.fill(x, y + TITLE_BAR_HEIGHT, x + this.width, y + CONTENT_START_Y, COLOR_BORDER); // Title separator
 
-        graphics.drawString(
+        graphics.text(
             this.client.font,
             this.title,
             x + 4, y + 6,
@@ -230,7 +230,7 @@ public class ListWidget extends DraggableWidget {
         }
     }
 
-    private void renderItems(GuiGraphics graphics, int x, int y, int width, int mouseX, int mouseY, float delta) {
+    private void renderItems(GuiGraphicsExtractor graphics, int x, int y, int width, int mouseX, int mouseY, float delta) {
         int visibleHeight = this.height - CONTENT_START_Y;
         int firstVisible = Math.max(0, this.scrollOffset / (this.itemHeight + this.itemSpacing));
         int lastVisible = Math.min(this.items.size() - 1, (this.scrollOffset + visibleHeight) / (this.itemHeight + this.itemSpacing) + 1);
@@ -271,7 +271,7 @@ public class ListWidget extends DraggableWidget {
         }
     }
 
-    private void renderScrollbar(GuiGraphics graphics, int x, int y, int height, int mouseX, int mouseY) {
+    private void renderScrollbar(GuiGraphicsExtractor graphics, int x, int y, int height, int mouseX, int mouseY) {
         // Track
         graphics.fill(x, y, x + 8, y + height, COLOR_SCROLLBAR_TRACK);
 

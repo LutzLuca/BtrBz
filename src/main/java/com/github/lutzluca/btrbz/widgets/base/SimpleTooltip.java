@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.widgets.base;
 
 import com.github.lutzluca.btrbz.widgets.core.TooltipRenderer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ public class SimpleTooltip implements TooltipProvider {
     }
     
     @Override
-    public void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+    public void renderTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         long now = System.currentTimeMillis();
         if (!this.wasHovered) {
             this.hoverStartTime = now;

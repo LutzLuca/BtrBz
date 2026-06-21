@@ -5,7 +5,7 @@ import com.github.lutzluca.btrbz.widgets.base.RenderContext;
 
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +43,7 @@ public class WidgetManager {
         log.trace("Initializing {} widgets", this.widgets.size());
     }
 
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         boolean anyWidgetDragging = this.isAnyWidgetDragging();
         DraggableWidget topWidget = this.findTopmostWidgetAt(mouseX, mouseY);
 

@@ -50,7 +50,7 @@ public class MessageQueue {
                     .prefix()
                     .append(Component.literal(entry.msg).withStyle(entry.level.color));
 
-                client.player.displayClientMessage(msg, false);
+                client.player.sendSystemMessage(msg);
             });
 
             log.info("Flushed {} queued messages to player", MESSAGES.size());

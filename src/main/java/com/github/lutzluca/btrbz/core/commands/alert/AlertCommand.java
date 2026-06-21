@@ -10,7 +10,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.vavr.control.Try;
 import java.util.UUID;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -20,11 +20,11 @@ public class AlertCommand {
     private static final AlertCommandParser PARSER = new AlertCommandParser();
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
-        return Commands.rootCommand.then(ClientCommandManager
+        return Commands.rootCommand.then(ClientCommands
             .literal("alert")
-            .then(ClientCommandManager
+            .then(ClientCommands
                 .literal("remove")
-                .then(ClientCommandManager
+                .then(ClientCommands
                     .argument("id", StringArgumentType.string())
                     .executes(ctx -> {
                         String id = StringArgumentType.getString(ctx, "id");
@@ -43,7 +43,7 @@ public class AlertCommand {
                         return 1;
                     })))
 
-            .then(ClientCommandManager.literal("list").executes(ctx -> {
+            .then(ClientCommands.literal("list").executes(ctx -> {
                 var alerts = ConfigManager.get().alert.alerts;
                 if (alerts.isEmpty()) {
                     Notifier.notifyPlayer(Notifier
@@ -77,9 +77,9 @@ public class AlertCommand {
                 return 1;
             }))
 
-            .then(ClientCommandManager
+            .then(ClientCommands
                 .literal("add")
-                .then(ClientCommandManager
+                .then(ClientCommands
                     .argument("args", StringArgumentType.greedyString())
                     .executes(ctx -> {
                         var args = StringArgumentType.getString(ctx, "args");

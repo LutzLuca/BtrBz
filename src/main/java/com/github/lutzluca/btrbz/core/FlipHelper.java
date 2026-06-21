@@ -32,7 +32,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -282,11 +282,11 @@ public class FlipHelper {
                 return SlotClickResult.Pass;
             }
 
-            interactionManager.handleInventoryMouseClick(
+            interactionManager.handleContainerInput(
                 handler.containerId,
                 FLIP_ORDER_ITEM_SLOT_IDX,
                 ctx.button(),
-                ClickType.PICKUP,
+                ContainerInput.PICKUP,
                 player
             );
             FlipHelper.this.pendingFlip = true;

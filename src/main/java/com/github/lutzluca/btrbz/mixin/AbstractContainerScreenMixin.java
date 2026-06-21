@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -28,30 +28,22 @@ public abstract class AbstractContainerScreenMixin {
         }
     }
 
-    @Inject(method = "render", at = @At("TAIL"))
-    private void onRender(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null) {
             wm.render(graphics, mouseX, mouseY, delta);
         }
     }
 
-    @Inject(method = "renderSlot", at = @At("HEAD"))
-    //? if >=1.21.11 {
-    /*private void renderOrderHighlight(
-        GuiGraphics context,
+    @Inject(method = "extractSlot", at = @At("HEAD"))
+    private void renderOrderHighlight(
+        GuiGraphicsExtractor context,
         Slot slot,
         int mouseX,
         int mouseY,
         CallbackInfo ci
     )
-    *///?} else {
-    private void renderOrderHighlight(
-        GuiGraphics context,
-        Slot slot,
-        CallbackInfo ci
-    )
-    //?}
     {
         if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
             return;

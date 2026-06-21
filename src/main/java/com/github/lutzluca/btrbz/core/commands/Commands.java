@@ -4,13 +4,13 @@ import com.github.lutzluca.btrbz.core.commands.alert.AlertCommand;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 public class Commands {
 
-    public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommandManager
+    public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands
         .literal("btrbz")
         .executes((ctx) -> {
             ConfigScreen.open();

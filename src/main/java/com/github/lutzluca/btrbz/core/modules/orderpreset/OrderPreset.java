@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.widgets.Renderable;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
@@ -59,7 +60,7 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
 
         @Override
         public void render(
-            net.minecraft.client.gui.GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             int x, int y, int width, int height,
             int mouseX, int mouseY, float delta,
             boolean hovered
@@ -71,7 +72,7 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
 
             int textColor = disabled ? 0xFF888888 : 0xFFFFFFFF;
             int textY = y + (height - font.lineHeight) / 2;
-            graphics.drawString(font, this.displayText, x + 4, textY, textColor);
+            graphics.text(font, this.displayText, x + 4, textY, textColor);
         }
 
         @Override

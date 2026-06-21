@@ -25,7 +25,7 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 
@@ -259,7 +259,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         @Override
-        public void render(GuiGraphics context, int x, int y, int w, int h, int mouseX, int mouseY, float delta, boolean hovered) {
+        public void render(GuiGraphicsExtractor context, int x, int y, int w, int h, int mouseX, int mouseY, float delta, boolean hovered) {
             var textRenderer = Minecraft.getInstance().font;
 
             String typeText = order.type == OrderType.Sell ? "Sell" : "Buy";
@@ -287,13 +287,13 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             int textX = dotX + dotSize + 5;
             int textY = y + (h - 8) / 2;
 
-            context.drawString(textRenderer, typeText, textX, textY, typeColor, false);
+            context.text(textRenderer, typeText, textX, textY, typeColor, false);
             textX += textRenderer.width(typeText) + 2;
 
-            context.drawString(textRenderer, "-", textX, textY, separatorColor, false);
+            context.text(textRenderer, "-", textX, textY, separatorColor, false);
             textX += textRenderer.width("-") + 2;
 
-            context.drawString(textRenderer, volumeText, textX, textY, volumeColor, false);
+            context.text(textRenderer, volumeText, textX, textY, volumeColor, false);
             textX += textRenderer.width(volumeText) + 2;
 
             int remainingWidth = (x + w - 4) - textX;
@@ -306,7 +306,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 displayName = displayName + "...";
             }
 
-            context.drawString(textRenderer, displayName, textX, textY, nameColor, false);
+            context.text(textRenderer, displayName, textX, textY, nameColor, false);
         }
 
         public int getSlotIdx() {
