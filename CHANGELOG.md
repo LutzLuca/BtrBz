@@ -1,6 +1,24 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.0-alpha] - 2026-06-21
+
+### Changed
+
+- Ported to Minecraft 26.1.x
+- Dropped support for 1.21.10 and 1.21.11
+
+### Fixed
+
+- Bookmark tag now respects enabled option in display rendering
+- FlipHelper double subtraction of 0.1 removed
+- Order Book button clicks no longer let vanilla clicks slip through
+- Screen restoration after product info lookup dismiss now works regardless of screen type
+- Catharsis compatibility via IMC integration
+
+### Internal
+
+- Replaced split slot click/render override system with unified Slot Hook architecture
+- FlipHelper display stack now cached via CachedHelperDisplay record (using SlotHook's)
 
 ## [0.6.0-alpha] - 2026-05-22
 
