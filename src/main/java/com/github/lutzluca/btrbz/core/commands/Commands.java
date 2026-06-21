@@ -21,6 +21,7 @@ public class Commands {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(rootCommand);
             dispatcher.register(AlertCommand.get(bazaarData));
+            dispatcher.register(ConversionCommand.get(bazaarData));
             dispatcher.register(TrackedOrderCommand.get());
             dispatcher.register(TaxCommand.get());
             dispatcher.register(PresetCommand.get());

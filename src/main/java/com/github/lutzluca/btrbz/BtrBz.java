@@ -30,7 +30,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.google.common.collect.HashBiMap;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -54,7 +54,7 @@ public class BtrBz implements ClientModInitializer {
     public static DataComponentType<Boolean> BOOKMARKED;
     
     public static final BazaarMessageDispatcher MESSAGE_DISPATCHER = new BazaarMessageDispatcher();
-    private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
+    private static final BazaarData BAZAAR_DATA = new BazaarData();
     
     private static BtrBz instance;
 
@@ -143,6 +143,10 @@ public class BtrBz implements ClientModInitializer {
                 data -> addOutstanding.accept(data.orderInfo()),
                 () -> OrderInfoParser
                     .parseSetOrderItem(stack)
+                    .map(info -> info.withProduct(BAZAAR_DATA.resolveProduct(
+                        Utils.customDataId(stack).orElse(null),
+                        info.productName()
+                    )))
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err))
             );

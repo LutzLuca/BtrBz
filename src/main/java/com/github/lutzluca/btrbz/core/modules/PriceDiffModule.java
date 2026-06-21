@@ -49,7 +49,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             return Optional.empty();
         }
 
-        var priceDiffOpt = this.computePriceDiff(productName);
+        var priceDiffOpt = this.computePriceDiff(inv.getItem(PRODUCT_SLOT));
         if (priceDiffOpt.isEmpty()) {
             return Optional.empty();
         }
@@ -94,15 +94,16 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             .map(Number::intValue);
     }
 
-    private Optional<Double> computePriceDiff(String productName) {
+    private Optional<Double> computePriceDiff(ItemStack productStack) {
         // TODO maybe respect "filling orders" when one would sell it instantly
         var bazaarData = this.context().bazaarData();
 
         return bazaarData
-            .nameToId(productName)
-            .flatMap(id -> Utils.zipOptionals(
-                bazaarData.lowestSellPrice(id),
-                bazaarData.highestBuyPrice(id)
+            .resolveProduct(productStack)
+            .resolvedProduct()
+            .flatMap(product -> Utils.zipOptionals(
+                bazaarData.lowestSellOfferPrice(product),
+                bazaarData.highestBuyOrderPrice(product)
             ))
             .map(pair -> pair.getLeft() - pair.getRight());
     }

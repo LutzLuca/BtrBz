@@ -66,7 +66,8 @@ public class Notifier {
                     .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo && !(update.prev() instanceof OrderStatus.Top)) {
-                    bazaarData.calculateQueuePosition(order.productName, order.type, order.pricePerUnit, true)
+                    order.product.resolvedProduct()
+                        .flatMap(product -> bazaarData.calculateQueuePosition(product, order.type, order.pricePerUnit, true))
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - 1),
                             Math.max(0, info.itemsAhead - order.volume),
@@ -83,7 +84,8 @@ public class Notifier {
                     .append(Component.literal(Utils.formatDecimal(undercut.amount, 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
-                    bazaarData.calculateQueuePosition(order.productName, order.type, order.pricePerUnit)
+                    order.product.resolvedProduct()
+                        .flatMap(product -> bazaarData.calculateQueuePosition(product, order.type, order.pricePerUnit))
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
                 yield undercutMsg;
@@ -120,7 +122,8 @@ public class Notifier {
                         .append(Component.literal(Utils.formatDecimal(undercut.amount(), 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
-                    bazaarData.calculateQueuePosition(key.productName(), key.type(), key.pricePerUnit())
+                    key.product().resolvedProduct()
+                        .flatMap(product -> bazaarData.calculateQueuePosition(product, key.type(), key.pricePerUnit()))
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
                 
@@ -133,7 +136,8 @@ public class Notifier {
                         .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo) {
-                    bazaarData.calculateQueuePosition(key.productName(), key.type(), key.pricePerUnit(), true)
+                    key.product().resolvedProduct()
+                        .flatMap(product -> bazaarData.calculateQueuePosition(product, key.type(), key.pricePerUnit(), true))
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - groupSize),
                             Math.max(0, info.itemsAhead - totalVolume),
@@ -272,7 +276,7 @@ public class Notifier {
 
         Component msg = prefix()
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(alert.productName()).withStyle(ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
             .append(Component
                 .literal(Utils.formatDecimal(alert.price, 1, true) + "coins")
@@ -284,8 +288,8 @@ public class Notifier {
             .append(Component
                 .literal("[Click to view]")
                 .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/bz " + alert.productName))
-                    .withHoverEvent(new ShowText(Component.literal("Click to go to " + alert.productName + " in the bazaar"))))
+                    .withClickEvent(new RunCommand("/bz " + alert.productName()))
+                    .withHoverEvent(new ShowText(Component.literal("Click to go to " + alert.productName() + " in the bazaar"))))
                 .withStyle(ChatFormatting.RED));
 
         notifyPlayer(msg);
@@ -312,7 +316,7 @@ public class Notifier {
     public static void notifyInvalidProduct(Alert alert) {
         Component msg = prefix()
             .append(Component.literal("The price of ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(alert.productName).withStyle(ChatFormatting.AQUA))
+            .append(Component.literal(alert.productName()).withStyle(ChatFormatting.AQUA))
             .append(Component.literal(" could not be determined. ").withStyle(ChatFormatting.GRAY))
             .append(clickToRemoveAlert(alert.id, "Click to remove this alert"));
         notifyPlayer(msg);
@@ -321,7 +325,7 @@ public class Notifier {
     public static void notifyOutdatedAlert(Alert alert, String durationText) {
         Component msg = prefix()
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(alert.productName()).withStyle(ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(Utils.formatDecimal(alert.price, 1, true)).withStyle(ChatFormatting.YELLOW))
             .append(Component

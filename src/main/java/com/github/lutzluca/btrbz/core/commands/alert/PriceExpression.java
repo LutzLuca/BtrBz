@@ -5,13 +5,14 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Binary;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import io.vavr.control.Try;
 
 public sealed interface PriceExpression permits Literal,
     Reference,
     Binary {
 
-    Try<Double> resolve(String productName, AlertType type, BazaarData bazaarData);
+    Try<Double> resolve(ProductRef product, AlertType type, BazaarData bazaarData);
 
     enum AlertType {
         BuyOrder,
@@ -86,7 +87,7 @@ public sealed interface PriceExpression permits Literal,
     record Literal(double value) implements PriceExpression {
 
         @Override
-        public Try<Double> resolve(String productName, AlertType type, BazaarData bazaarData) {
+        public Try<Double> resolve(ProductRef product, AlertType type, BazaarData bazaarData) {
             return Try.success(value);
         }
     }
@@ -94,25 +95,20 @@ public sealed interface PriceExpression permits Literal,
     record Reference(ReferenceType reference) implements PriceExpression {
 
         @Override
-        public Try<Double> resolve(String productName, AlertType type, BazaarData bazaarData) {
-            var id = bazaarData.nameToId(productName);
-            if (id.isEmpty()) {
-                return Try.failure(new IllegalArgumentException("Invalid or unrecognized name " + '"' + productName + '"'));
-            }
-
+        public Try<Double> resolve(ProductRef product, AlertType type, BazaarData bazaarData) {
             var lookupType = switch (this.reference) {
                 case ReferenceType.Order -> type.getAssociatedOrderType();
                 case ReferenceType.Insta -> type.getAssociatedInstaType();
             };
 
             var price = switch (lookupType) {
-                case BuyOrder, InstaSell -> bazaarData.highestBuyPrice(id.get());
-                case SellOffer, InstaBuy -> bazaarData.lowestSellPrice(id.get());
+                case BuyOrder, InstaSell -> bazaarData.highestBuyOrderPrice(product);
+                case SellOffer, InstaBuy -> bazaarData.lowestSellOfferPrice(product);
             };
 
             return price
                 .map(Try::success)
-                .orElseGet(() -> Try.failure(new IllegalStateException("The price of " + '"' + productName + '"' + " could not be determined")));
+                .orElseGet(() -> Try.failure(new IllegalStateException("The price of " + '"' + product.displayName() + '"' + " could not be determined")));
         }
     }
 
@@ -120,11 +116,11 @@ public sealed interface PriceExpression permits Literal,
         implements PriceExpression {
 
         @Override
-        public Try<Double> resolve(String productName, AlertType type, BazaarData bazaarData) {
+        public Try<Double> resolve(ProductRef product, AlertType type, BazaarData bazaarData) {
             return left
-                .resolve(productName, type, bazaarData)
+                .resolve(product, type, bazaarData)
                 .flatMap(leftVal -> right
-                    .resolve(productName, type, bazaarData)
+                    .resolve(product, type, bazaarData)
                     .map(rightVal -> op.apply(leftVal, rightVal)));
         }
     }

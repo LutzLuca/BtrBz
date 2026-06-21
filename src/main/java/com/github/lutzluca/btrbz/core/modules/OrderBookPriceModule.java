@@ -128,7 +128,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var orders = this.context().bazaarData().getOrderLists(productNameInfo.productId());
+        var orders = this.context().bazaarData().getOrderLists(productNameInfo.product());
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();

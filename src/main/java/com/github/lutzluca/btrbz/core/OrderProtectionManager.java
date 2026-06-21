@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.BazaarData.OrderPriceInfo;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -144,6 +144,10 @@ public class OrderProtectionManager {
 
         OrderInfoParser
             .parseSetOrderItem(rawStack)
+            .map(orderInfo -> orderInfo.withProduct(this.bazaarData.resolveProduct(
+                Utils.customDataId(rawStack).orElse(null),
+                orderInfo.productName()
+            )))
             .map(orderInfo -> OrderValidator.validate(
                 orderInfo,
                 this.bazaarData,
@@ -247,24 +251,27 @@ public class OrderProtectionManager {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            var productId = bazaarData.nameToId(info.productName());
-            if (productId.isEmpty()) {
-                log.trace("No product ID found for {}, allowing order", info.productName());
-                return new PendingOrderData(info, ValidationResult.allowed());
+            var product = info.product().resolvedProduct();
+            if (product.isEmpty()) {
+                log.warn("Order protection blocked unresolved product '{}'", info.productName());
+                return new PendingOrderData(
+                    info,
+                    ValidationResult.blocked("Unknown or unresolved product: " + info.productName())
+                );
             }
 
-            var prices = bazaarData.getOrderPrices(productId.get());
+            var prices = bazaarData.getMarketPrices(product.get());
             var validationResult = validateOrder(info, prices, cfg);
             return new PendingOrderData(info, validationResult);
         }
 
         private static ValidationResult validateOrder(
             OutstandingOrderInfo info,
-            OrderPriceInfo prices,
+            MarketPrices prices,
             OrderProtectionConfig cfg
         ) {
-            var bestSell = prices.sellOfferPrice();
-            var bestBuy = prices.buyOrderPrice();
+            var bestSell = prices.lowestSellOfferPrice();
+            var bestBuy = prices.highestBuyOrderPrice();
 
             return switch (info.type()) {
                 case Sell -> validateSellOffer(info, bestSell, bestBuy, cfg);

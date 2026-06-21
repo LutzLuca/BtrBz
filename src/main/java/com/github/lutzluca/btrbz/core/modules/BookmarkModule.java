@@ -1,14 +1,25 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.Position;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.utils.slot.SlotHook;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
+import com.github.lutzluca.btrbz.widgets.Renderable;
+import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -23,6 +34,15 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import io.vavr.control.Try;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
@@ -36,25 +56,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.Position;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
-import com.github.lutzluca.btrbz.utils.slot.SlotHook;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
-import com.github.lutzluca.btrbz.widgets.ListWidget;
-import com.github.lutzluca.btrbz.widgets.Renderable;
-import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
@@ -72,8 +73,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         BtrBz.orderManager().getTrackedOrders().forEach(order -> {
             switch (order.type) {
-                case Buy -> this.orderBuySet.add(order.productName);
-                case Sell -> this.orderSellSet.add(order.productName);
+                case Buy -> order.product.resolvedProduct().ifPresent(product -> this.orderBuySet.add(product.productId()));
+                case Sell -> order.product.resolvedProduct().ifPresent(product -> this.orderSellSet.add(product.productId()));
             }
         });
     }
@@ -99,7 +100,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.list.setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
     }
 
-    private boolean toggleBookmark(String productName, ItemStack itemStack) {
+    private boolean toggleBookmark(ProductRef product, ItemStack itemStack) {
         final class BookmarkTag {
             boolean bookmarked;
         }
@@ -109,14 +110,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             var it = cfg.bookmarkedItems.listIterator();
             while (it.hasNext()) {
                 var item = it.next();
-                if (item.productName().equals(productName)) {
+                if (item.product().productId().equals(product.productId())) {
                     it.remove();
                     tag.bookmarked = false;
                     return;
                 }
             }
 
-            it.add(new BookmarkedItem(productName, itemStack));
+            it.add(new BookmarkedItem(product, itemStack));
             tag.bookmarked = true;
         });
 
@@ -125,14 +126,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         }
 
         if (tag.bookmarked) {
-            this.list.addItem(new BookmarkedItemRenderable(productName, itemStack, this.orderBuySet, this.orderSellSet));
+            this.list.addItem(new BookmarkedItemRenderable(product, itemStack, this.orderBuySet, this.orderSellSet));
             return tag.bookmarked;
         }
 
         this.list
             .getItems()
             .stream()
-            .filter(widget ->((BookmarkedItemRenderable) widget).getProductName().equals(productName))
+            .filter(widget -> ((BookmarkedItemRenderable) widget).getProduct().productId().equals(product.productId()))
             .findFirst()
             .ifPresentOrElse(
                 widget -> {
@@ -143,7 +144,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 },
                 () -> log.warn(
                     "Tried to remove bookmark widget for {}, but it was not found",
-                    productName
+                    product.displayName()
                 )
             );
 
@@ -181,20 +182,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
-            .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack(), this.orderBuySet, this.orderSellSet))
+            .map(item -> new BookmarkedItemRenderable(item.product(), item.itemStack(), this.orderBuySet, this.orderSellSet))
             .collect(Collectors.toList());
         widget.setItems(items);
 
         return Optional.of(widget);
     }
 
-    public boolean isBookmarked(String productName) {
-        for (var item : this.configState.bookmarkedItems) {
-            if (item.productName().equals(productName)) {
-                return true;
-            }
-        }
-        return false;
+    public boolean isBookmarked(ProductRef product) {
+        return this.configState.bookmarkedItems
+            .stream()
+            .anyMatch(item -> item.product().productId().equals(product.productId()));
     }
 
     public final class BookmarkedItemHook implements SlotHook {
@@ -224,7 +222,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return null;
             }
 
-            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(productNameInfo.productName()));
+            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(productNameInfo.product()));
             return rawStack;
         }
 
@@ -245,7 +243,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return SlotClickResult.Pass;
             }
 
-            var isBookmarked = BookmarkModule.this.toggleBookmark(productNameInfo.productName(), rawStack.copy());
+            var isBookmarked = BookmarkModule.this.toggleBookmark(productNameInfo.product(), rawStack.copy());
             rawStack.set(BtrBz.BOOKMARKED, isBookmarked);
             return SlotClickResult.Consume;
         }
@@ -256,11 +254,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         this.updateConfig(cfg -> cfg.bookmarkedItems = items.stream()
             .map(BookmarkedItemRenderable.class::cast)
-            .map(item -> new BookmarkedItem(item.getProductName(), item.getItemStack()))
+            .map(item -> new BookmarkedItem(item.getProduct(), item.getItemStack()))
             .collect(Collectors.toList()));
     }
 
     public static class BookmarkedItemRenderable implements Renderable {
+        @Getter
+        private final ProductRef product;
         @Getter
         private final String productName;
         @Getter
@@ -272,9 +272,10 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         private final Set<String> orderBuySet;
         private final Set<String> orderSellSet;
 
-        public BookmarkedItemRenderable(String productName, ItemStack itemStack,
+        public BookmarkedItemRenderable(ProductRef product, ItemStack itemStack,
                 Set<String> orderBuySet, Set<String> orderSellSet) {
-            this.productName = productName;
+            this.product = product;
+            this.productName = product.displayName();
             this.itemStack = itemStack;
             this.orderBuySet = orderBuySet;
             this.orderSellSet = orderSellSet;
@@ -319,8 +320,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return;
             }
 
-            boolean hasBuy = this.orderBuySet.contains(this.productName);
-            boolean hasSell = this.orderSellSet.contains(this.productName);
+            boolean hasBuy = orderBuySet.contains(this.product.productId());
+            boolean hasSell = orderSellSet.contains(this.product.productId());
 
             if (hasBuy || hasSell) {
                 int centerX = x + width - 8;
@@ -351,19 +352,23 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     }
 
-    public record BookmarkedItem(String productName, ItemStackTemplate itemTemplate) {
+    public record BookmarkedItem(ProductRef product, ItemStackTemplate itemTemplate) {
 
         public BookmarkedItem {
-            if (productName == null || productName.isBlank()) {
-                throw new IllegalArgumentException("Product name cannot be null or blank");
+            if (product == null) {
+                throw new IllegalArgumentException("Product cannot be null");
             }
             if (itemTemplate == null) {
                 throw new IllegalArgumentException("Item template cannot be null");
             }
         }
 
-        public BookmarkedItem(String productName, ItemStack itemStack) {
-            this(productName, ItemStackTemplate.fromNonEmptyStack(itemStack));
+        public BookmarkedItem(ProductRef product, ItemStack itemStack) {
+            this(product, ItemStackTemplate.fromNonEmptyStack(itemStack));
+        }
+
+        public String productName() {
+            return this.product.displayName();
         }
 
         public ItemStack itemStack() {
@@ -380,7 +385,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 JsonSerializationContext context
             ) {
                 var obj = new JsonObject();
-                obj.addProperty("productName", src.productName());
+                obj.addProperty("productId", src.product.productId());
+                obj.addProperty("displayName", src.product.displayName());
 
                 var itemData = new JsonObject();
                 var template = src.itemTemplate();
@@ -409,14 +415,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             ) throws JsonParseException {
                 var obj = json.getAsJsonObject();
 
-                var productName = obj.get("productName").getAsString();
+                var product = new ProductRef(
+                    obj.get("productId").getAsString(),
+                    obj.get("displayName").getAsString()
+                );
                 var itemData = obj.getAsJsonObject("itemStack");
                 var itemIdString = itemData.get("id").getAsString();
                 var itemId = Identifier.tryParse(itemIdString);
                 if (itemId == null) {
                     log.warn(
                         "Skipping bookmark {} with invalid item id {}",
-                        productName,
+                        product.displayName(),
                         itemIdString
                     );
                     return null;
@@ -424,7 +433,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 var item = BuiltInRegistries.ITEM.getValue(itemId);
                 if (item == Items.AIR) {
-                    log.warn("Skipping bookmark {} with unknown item id {}", productName, itemId);
+                    log.warn("Skipping bookmark {} with unknown item id {}", product.displayName(), itemId);
                     return null;
                 }
 
@@ -438,14 +447,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                             .parse(new Dynamic<>(NbtOps.INSTANCE, componentNbt))
                             .getOrThrow();
                     } catch (CommandSyntaxException err) {
-                        log.warn("Ignoring invalid components for bookmark {}", productName, err);
+                        log.warn("Ignoring invalid components for bookmark {}", product.displayName(), err);
                     } catch (RuntimeException err) {
-                        log.warn("Ignoring malformed components for bookmark {}", productName, err);
+                        log.warn("Ignoring malformed components for bookmark {}", product.displayName(), err);
                     }
                 }
 
                 var template = new ItemStackTemplate(item, components);
-                return new BookmarkedItem(productName, template);
+                return new BookmarkedItem(product, template);
             }
         }
 

@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.core.modules.Module;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -56,7 +57,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 this.inTransaction = true;
                 log.debug(
                     "Starting buy order transaction for product '{}' with maxVolume '{}'",
-                    this.getCurrentProductId(),
+                    this.getCurrentProduct(),
                     this.currMaxVolume
                 );
 
@@ -139,9 +140,9 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         this.currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
     }
 
-    private @Nullable String getCurrentProductId() {
+    private @Nullable ProductRef getCurrentProduct() {
         var info = this.context().productInfoProvider().getOpenedProductNameInfo();
-        return info != null ? info.productId() : null;
+        return info != null ? info.product() : null;
     }
 
     private boolean isOrderFlowSignScreen(ScreenInfo curr, ScreenInfo prev) {
@@ -158,8 +159,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         var purse = GameUtils.getPurse();
         var pricePerUnit = Optional
-            .ofNullable(this.getCurrentProductId())
-            .flatMap(this.context().bazaarData()::highestBuyPrice)
+            .ofNullable(this.getCurrentProduct())
+            .flatMap(this.context().bazaarData()::highestBuyOrderPrice)
             .map(price -> price + .1);
         var priceAvailable = pricePerUnit.isPresent();
 
@@ -393,16 +394,16 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         log.debug("Handle preset click: {}", preset);
 
         int volume = switch (preset) {
-            case OrderPreset.Max _ -> {
-                var productId = this.getCurrentProductId();
-                if (productId == null) {
-                    log.debug("Cannot calculate MAX: product ID unavailable");
+            case OrderPreset.Max ignored -> {
+                var product = this.getCurrentProduct();
+                if (product == null) {
+                    log.debug("Cannot calculate MAX: product unavailable");
                     yield 0;
                 }
 
                 var price = this.context()
                     .bazaarData()
-                    .highestBuyPrice(productId)
+                    .highestBuyOrderPrice(product)
                     .map(currPrice -> currPrice + 0.1);
 
                 if (price.isEmpty()) {

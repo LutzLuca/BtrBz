@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
@@ -130,8 +131,7 @@ public class AlertManager {
 
         public final UUID id;
         public final long createdAt;
-        public final String productName;
-        public final String productId;
+        public final ProductRef product;
         public final AlertType type;
         public final double price;
 
@@ -140,16 +140,23 @@ public class AlertManager {
         private Alert(ResolvedAlertArgs args) {
             this.id = UUID.randomUUID();
             this.createdAt = args.timestamp();
-            this.productName = args.productName();
-            this.productId = args.productId();
+            this.product = args.product();
             this.type = args.type();
             this.price = args.price();
         }
 
+        public String productName() {
+            return this.product.displayName();
+        }
+
+        public String productId() {
+            return this.product.productId();
+        }
+
         public Try<Optional<Double>> getAssociatedPrice(Map<String, Product> products) {
-            var prod = products.get(this.productId);
+            var prod = products.get(this.productId());
             if (prod == null) {
-                return Try.failure(new Exception("The product \"" + this.productName + "\" could not be found in the bazaar data"));
+                return Try.failure(new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
             }
 
             var price = switch (this.type) {
@@ -162,7 +169,7 @@ public class AlertManager {
         public MutableComponent format() {
             return Component
                 .empty()
-                .append(Component.literal(productName).withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(this.productName()).withStyle(ChatFormatting.GOLD))
                 .append(Component.literal(" @ ").withStyle(ChatFormatting.GRAY))
                 .append(Component
                     .literal(Utils.formatDecimal(this.price, 1, true) + "coins")
@@ -172,8 +179,7 @@ public class AlertManager {
 
         public boolean matches(ResolvedAlertArgs args) {
             // @formatter:off
-            return this.productName.equals(args.productName())
-                && this.productId.equals(args.productId())
+            return this.productId().equals(args.productId())
                 && this.type == args.type()
                 && Double.compare(this.price, args.price()) == 0;
             // @formatter:on

@@ -1,13 +1,13 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
-import com.github.lutzluca.btrbz.utils.MessageQueue;
-import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
+import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
+import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.google.common.collect.BiMap;
 import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,19 +18,22 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
-import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class BazaarData {
 
-    private final List<Consumer<Map<String, Product>>> bazaarListeners = new ArrayList<>();
-    private final List<Runnable> conversionListeners = new ArrayList<>();
+    private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
+    private final ConversionIndexService conversionIndexService;
     private Map<String, Product> lastProducts = Collections.emptyMap();
-    private volatile BiMap<String, String> idToName;
 
-    public BazaarData(BiMap<String, String> conversions) {
-        this.idToName = conversions;
+    public BazaarData() {
+        this(new ConversionIndexService());
+    }
+
+    public BazaarData(ConversionIndexService conversionIndexService) {
+        this.conversionIndexService = conversionIndexService;
     }
 
     public static Optional<Double> firstSummaryPrice(List<Summary> summaries) {
@@ -42,169 +45,116 @@ public class BazaarData {
     }
 
     public void loadConversions() {
-        log.info("Loading bazaar conversions");
-
-        ConversionLoader.load().thenAccept(result ->
-            result
-                .onSuccess(loadResult -> {
-                    Minecraft.getInstance().execute(() -> {
-                        this.idToName = loadResult.conversions();
-                        this.notifyConversionListeners();
-                    });
-                    log.debug("Conversions applied ({} entries)", loadResult.conversions().size());
-
-                    ConversionLoader.checkForConversionUpdates(loadResult.contentHash())
-                        .thenAccept(updateResult ->
-                            updateResult
-                                .onSuccess(maybeNew ->
-                                    maybeNew.ifPresent(newResult -> {
-                                        Minecraft.getInstance().execute(() -> {
-                                            this.idToName = newResult.conversions();
-                                            this.notifyConversionListeners();
-                                        });
-                                        log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
-                                    })
-                                )
-                                .onFailure(err -> {
-                                    log.error("Failed to refresh conversions, stale data may be used", err);
-                                    log.debug("Conversions remain stale until next successful refresh");
-                                })
-                        );
-                })
-                .onFailure(err -> {
-                    log.error("Failed to load bazaar conversions", err);
-                    MessageQueue.sendOrQueue(
-                        "Failed to load bazaar conversions; some features may not work as expected",
-                        Level.Error
-                    );
-                })
-        );
+        log.info("Loading bazaar conversion index");
+        this.conversionIndexService.loadConversionIndex();
+        this.conversionIndexService.refreshConversionIndex(false);
     }
 
-    private void notifyConversionListeners() {
-        for (var listener : this.conversionListeners) {
-            Try.run(listener::run).onFailure(err -> log.error(
-                "Conversion update listener '{}' failed",
-                listener.getClass().getName(),
-                err
-            ));
-        }
+    public boolean refreshConversions(boolean manual) {
+        return this.conversionIndexService.refreshConversionIndex(manual);
     }
 
-    public void addConversionListener(Runnable listener) {
-        this.conversionListeners.add(listener);
-        log.trace(
-            "Inserting listener for onConversionUpdate currently, bazaarListeners registered: {}",
-            this.conversionListeners.size()
-        );
+    public ConversionStatus getConversionStatus() {
+        return this.conversionIndexService.status();
     }
 
-    public void removeConversionListener(Runnable listener) {
-        if (this.conversionListeners.remove(listener)) {
-            log.trace(
-                "Removing listener for onConversionUpdate currently, bazaarListeners registered: {}",
-                this.conversionListeners.size()
-            );
-        }
+    public Optional<ProductRef> productById(String productId) {
+        return this.conversionIndexService.productById(productId);
     }
 
-    public void notifyBazaarListeners(Map<String, Product> products) {
-        this.lastProducts = products;
-        var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
+    public ProductIdentity resolveProduct(ItemStack stack) {
+        return this.conversionIndexService.resolveProduct(stack);
+    }
 
-        for (var bazaarListener : this.bazaarListeners) {
-            Try.run(() -> bazaarListener.accept(snapshotProducts)).onFailure(err -> log.error(
+    public ProductIdentity resolveProduct(@Nullable String rawProductId, String displayName) {
+        return this.conversionIndexService.resolveProduct(rawProductId, displayName);
+    }
+
+    public ProductIdentity resolveProductName(String displayName) {
+        return this.conversionIndexService.resolveProductName(displayName);
+    }
+
+    public void addIndexChangeListener(Runnable listener) {
+        this.conversionIndexService.addIndexChangeListener(listener);
+    }
+
+    public void removeIndexChangeListener(Runnable listener) {
+        this.conversionIndexService.removeIndexChangeListener(listener);
+    }
+
+    public void addConversionEventListener(Consumer<ConversionEvent> listener) {
+        this.conversionIndexService.addConversionEventListener(listener);
+    }
+
+    public void removeConversionEventListener(Consumer<ConversionEvent> listener) {
+        this.conversionIndexService.removeConversionEventListener(listener);
+    }
+
+    public void onUpdate(Map<String, Product> products) {
+        this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
+            products == null ? Map.of() : products
+        ));
+        var snapshot = this.currentSnapshot();
+
+        for (var listener : this.listeners) {
+            Try.run(() -> listener.accept(snapshot)).onFailure(err -> log.error(
                 "Bazaar update listener '{}' failed while processing {} products",
-                bazaarListener.getClass().getName(),
-                snapshotProducts.size(),
+                listener.getClass().getName(),
+                snapshot.size(),
                 err
             ));
         }
     }
 
-    public void addBazaarListener(Consumer<Map<String, Product>> listener) {
-        this.bazaarListeners.add(listener);
+    public void addListener(Consumer<MarketSnapshot> listener) {
+        this.listeners.add(listener);
         log.trace(
-            "Inserting listener for onBazaarUpdate currently, bazaarListeners registered: {}",
-            this.bazaarListeners.size()
+            "Inserting listener for onBazaarUpdate currently, listeners registered: {}",
+            this.listeners.size()
         );
     }
 
-    public void removeBazaarListener(Consumer<Map<String, Product>> listener) {
-        if (this.bazaarListeners.remove(listener)) {
+    public void removeListener(Consumer<MarketSnapshot> listener) {
+        if (this.listeners.remove(listener)) {
             log.trace(
-                "Removing listener for onBazaarUpdate currently, bazaarListeners registered: {}",
-                this.bazaarListeners.size()
+                "Removing listener for onBazaarUpdate currently, listeners registered: {}",
+                this.listeners.size()
             );
         }
     }
 
-    public Map<String, Product> getProducts() {
-        return this.lastProducts;
+    private MarketSnapshot currentSnapshot() {
+        return new MarketSnapshot(this.lastProducts);
     }
 
-    public Optional<Double> lowestSellPrice(String productId) {
-        var product = Optional.ofNullable(this.getProducts().get(productId));
-        return product.flatMap(prod -> firstSummaryPrice(prod.getBuySummary()));
+    public Optional<Double> lowestSellOfferPrice(ProductRef product) {
+        return this.currentSnapshot().lowestSellOfferPrice(product);
     }
 
-    public Optional<Double> highestBuyPrice(String productId) {
-        var product = Optional.ofNullable(this.getProducts().get(productId));
-        return product.flatMap(prod -> firstSummaryPrice(prod.getSellSummary()));
+    public Optional<Double> highestBuyOrderPrice(ProductRef product) {
+        return this.currentSnapshot().highestBuyOrderPrice(product);
     }
 
-    public Optional<String> nameToId(String name) {
-        if (this.idToName == null) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(this.idToName.inverse().get(name));
+    public MarketPrices getMarketPrices(ProductRef product) {
+        return this.currentSnapshot().getMarketPrices(product);
     }
 
-    public OrderPriceInfo getOrderPrices(String productId) {
-        var buyOrderPrice = this.highestBuyPrice(productId);
-        var sellOfferPrice = this.lowestSellPrice(productId);
-
-        return new OrderPriceInfo(buyOrderPrice, sellOfferPrice);
-    }
-
-    public OrderLists getOrderLists(String productId) {
-        // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
-        return Optional.ofNullable(this.getProducts().get(productId))
-            .map(prod -> new OrderLists(
-                Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
-                Optional.ofNullable(prod.getBuySummary()).orElse(List.of())
-            ))
-            .orElse(OrderLists.empty());
+    public OrderLists getOrderLists(ProductRef product) {
+        return this.currentSnapshot().getOrderLists(product);
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        String productName, OrderType orderType,
+        ProductRef product, OrderType orderType,
         double pricePerUnit
     ) {
-        return calculateQueuePosition(productName, orderType, pricePerUnit, false);
+        return this.calculateQueuePosition(product, orderType, pricePerUnit, false);
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        String productName, OrderType orderType,
+        ProductRef product, OrderType orderType,
         double pricePerUnit, boolean includeAtPrice
     ) {
-        var productId = this.nameToId(productName);
-
-        if (productId.isEmpty()) {
-            return Optional.empty();
-        }
-
-        var product = this.lastProducts.get(productId.get());
-
-        if (product == null) {
-            return Optional.empty();
-        }
-
-        var summaries = switch (orderType) {
-            case Sell -> product.getBuySummary();
-            case Buy -> product.getSellSummary();
-        };
-
+        var summaries = this.currentSnapshot().summariesForOrderType(product, orderType);
         if (summaries == null || summaries.isEmpty()) {
             return Optional.empty();
         }
@@ -227,22 +177,15 @@ public class BazaarData {
         return queueInfo.ordersAhead > 0 ? Optional.of(queueInfo) : Optional.empty();
     }
 
-    public Optional<Double> getEstimatedFillTimeMinutes(String productName, OrderType orderType, int remainingVolume) {
+    public Optional<Double> getEstimatedFillTimeMinutes(ProductRef product, OrderType orderType, int remainingVolume) {
         if (remainingVolume <= 0) {
             return Optional.of(0.0);
         }
 
-        var productId = this.nameToId(productName);
-        if (productId.isEmpty()) {
-            return Optional.empty();
-        }
-
-        var product = this.lastProducts.get(productId.get());
-        if (product == null) {
-            return Optional.empty();
-        }
-
-        var qs = product.getQuickStatus();
+        var qs = this.currentSnapshot()
+            .rawProduct(product)
+            .map(Product::getQuickStatus)
+            .orElse(null);
         if (qs == null) {
             return Optional.empty();
         }
@@ -269,37 +212,94 @@ public class BazaarData {
         public int itemsAhead;
     }
 
-    public record OrderPriceInfo(
-        Optional<@Nullable Double> buyOrderPrice,
-        Optional<@Nullable Double> sellOfferPrice
+    public record MarketPrices(
+        Optional<@Nullable Double> highestBuyOrderPrice,
+        Optional<@Nullable Double> lowestSellOfferPrice
     ) { }
 
-    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { 
+    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) {
         public static OrderLists empty() {
             return new OrderLists(List.of(), List.of());
+        }
+    }
+
+    public static final class MarketSnapshot {
+
+        private final Map<String, Product> products;
+
+        private MarketSnapshot(Map<String, Product> products) {
+            this.products = products;
+        }
+
+        public int size() {
+            return this.products.size();
+        }
+
+        public boolean contains(ProductRef product) {
+            return this.products.containsKey(product.productId());
+        }
+
+        public Optional<Double> lowestSellOfferPrice(ProductRef product) {
+            return this.rawProduct(product)
+                .flatMap(prod -> firstSummaryPrice(prod.getBuySummary()));
+        }
+
+        public Optional<Double> highestBuyOrderPrice(ProductRef product) {
+            return this.rawProduct(product)
+                .flatMap(prod -> firstSummaryPrice(prod.getSellSummary()));
+        }
+
+        public MarketPrices getMarketPrices(ProductRef product) {
+            return new MarketPrices(
+                this.highestBuyOrderPrice(product),
+                this.lowestSellOfferPrice(product)
+            );
+        }
+
+        public OrderLists getOrderLists(ProductRef product) {
+            // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
+            return this.rawProduct(product)
+                .map(prod -> new OrderLists(
+                    Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
+                    Optional.ofNullable(prod.getBuySummary()).orElse(List.of())
+                ))
+                .orElse(OrderLists.empty());
+        }
+
+        public List<Summary> summariesForOrderType(ProductRef product, OrderType orderType) {
+            var lists = this.getOrderLists(product);
+            return switch (orderType) {
+                case Buy -> lists.buyOrders();
+                case Sell -> lists.sellOffers();
+            };
+        }
+
+        private Optional<Product> rawProduct(ProductRef product) {
+            return Optional.ofNullable(this.products.get(product.productId()));
         }
     }
 
     public static final class TrackedProduct {
 
         @Getter
-        private final String productName;
+        private final ProductRef product;
         private final BazaarData data;
-        private final Consumer<Map<String, Product>> updater;
+        private final Consumer<MarketSnapshot> updater;
         @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
         @Getter
-        private Optional<Product> product;
+        private Optional<Product> bazaarProduct;
         private boolean listenerRegistered = false;
 
-        public TrackedProduct(BazaarData data, String productName) {
+        public TrackedProduct(BazaarData data, ProductRef product) {
             this.data = data;
-            this.productName = productName;
-            this.product = Optional.empty();
+            this.product = product;
+            this.bazaarProduct = Optional.empty();
 
-            this.updater = products ->
-                this.data.nameToId(productName)
-                        .flatMap(id -> Optional.ofNullable(products.get(id)))
-                        .ifPresent(updated -> this.product = Optional.of(updated));
+            this.updater = snapshot -> this.bazaarProduct = snapshot.rawProduct(product);
+        }
+
+        public String getProductName() {
+            return this.product.displayName();
         }
 
         private void ensureInitialized() {
@@ -307,21 +307,15 @@ public class BazaarData {
                 return;
             }
 
-            this.data
-                .nameToId(productName)
-                .flatMap(id -> Optional.ofNullable(data.getProducts().get(id)))
-                .ifPresent(prod -> {
-                    this.product = Optional.of(prod);
-
-                    this.data.addBazaarListener(this.updater);
-                    this.listenerRegistered = true;
-                });
+            this.bazaarProduct = this.data.currentSnapshot().rawProduct(this.product);
+            this.data.addListener(this.updater);
+            this.listenerRegistered = true;
         }
 
         public Optional<Double> getSellOfferPrice() {
             this.ensureInitialized();
 
-            return this.product.flatMap(
+            return this.bazaarProduct.flatMap(
                 prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit)
             );
         }
@@ -329,14 +323,15 @@ public class BazaarData {
         public Optional<Double> getBuyOrderPrice() {
             this.ensureInitialized();
 
-            return this.product.flatMap(
+            return this.bazaarProduct.flatMap(
                 prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit)
             );
         }
 
         public void destroy() {
-            this.product = Optional.empty();
-            this.data.removeBazaarListener(this.updater);
+            this.bazaarProduct = Optional.empty();
+            this.data.removeListener(this.updater);
+            this.listenerRegistered = false;
         }
     }
 }
