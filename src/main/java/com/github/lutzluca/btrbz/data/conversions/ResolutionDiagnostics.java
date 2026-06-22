@@ -27,9 +27,9 @@ final class ResolutionDiagnostics {
                 resolved.productId(),
                 resolved.displayName()
             ),
-            "Resolved Bazaar product id '{}' as '{}', but parsed/display name was '{}'",
+            "Resolved Bazaar product id '{}' as {}, but parsed/display name was '{}'",
             rawProductId,
-            resolved.displayName(),
+            resolved,
             parsedName
         );
     }
@@ -51,7 +51,7 @@ final class ResolutionDiagnostics {
     }
 
     private void logDebugOnce(String key, String message, Object... args) {
-        if (this.loggedKeys.add(key)) {
+        if (this.loggedKeys.add(key) && log.isDebugEnabled()) {
             log.debug(message, args);
         }
     }

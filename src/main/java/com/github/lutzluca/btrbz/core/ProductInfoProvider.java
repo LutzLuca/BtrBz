@@ -119,7 +119,7 @@ public final class ProductInfoProvider {
                 product.ifPresentOrElse(
                     resolved -> {
                         this.openedProductNameInfo = new ProductNameInfo(resolved);
-                        log.debug("Opened product: {} ({})", resolved.displayName(), resolved.productId());
+                        log.debug("Opened product: {}", resolved);
                     },
                     () -> {
                         this.openedProductNameInfo = null;
@@ -147,18 +147,16 @@ public final class ProductInfoProvider {
 
             if (transientFlowClose) {
                 log.debug(
-                    "Preserving product context on transient flow close: {} ({})",
-                    this.openedProductNameInfo.productName(),
-                    this.openedProductNameInfo.productId()
+                    "Preserving product context on transient flow close: {}",
+                    this.openedProductNameInfo.product()
                 );
                 return;
             }
 
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
-                    "Leaving product flow, clearing product: {} ({})",
-                    this.openedProductNameInfo.productName(),
-                    this.openedProductNameInfo.productId()
+                    "Leaving product flow, clearing product: {}",
+                    this.openedProductNameInfo.product()
                 );
                 this.openedProductNameInfo = null;
             }
@@ -597,9 +595,8 @@ public final class ProductInfoProvider {
             this.cache.put(stack, cached);
 
             log.trace(
-                "Cached price for '{}' (id: {}): buy={}, sell={}",
-                productRef.get().displayName(),
-                productRef.get().productId(),
+                "Cached price for {}: buy={}, sell={}",
+                productRef.get(),
                 buyOrderPrice,
                 sellOfferPrice
             );

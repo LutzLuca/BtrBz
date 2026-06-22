@@ -145,7 +145,11 @@ public class TrackedOrderManager {
             var key = new SelfUndercutKey(order.product, order.type);
             boolean removedLastOrder = this.trackedOrders.stream()
                 .noneMatch(curr -> curr.product.equals(order.product) && curr.type == order.type);
-            log.debug("Removed last order for {}: {}", order.productName, removedLastOrder);
+            log.debug(
+                "Removed last order for {}: {}",
+                order.product.resolvedProduct().map(Object::toString).orElse(order.productName),
+                removedLastOrder
+            );
             if (removedLastOrder) {
                 this.selfUndercutState.remove(key);
             }
@@ -364,9 +368,8 @@ public class TrackedOrderManager {
         var product = Optional.ofNullable(products.get(ref.get().productId()));
         if (product.isEmpty()) {
             log.warn(
-                "No product found for item with name '{}' and mapped id '{}'",
-                order.productName,
-                ref.get().productId()
+                "No product found for tracked order product {}",
+                ref.get()
             );
             return Optional.empty();
         }
@@ -374,9 +377,8 @@ public class TrackedOrderManager {
         var status = this.getStatus(order, product.get());
         if (status.isEmpty()) {
             log.debug(
-                "Unable to determine curr for product '{}' with id '{}'",
-                order.productName,
-                ref.get().productId()
+                "Unable to determine curr for product {}",
+                ref.get()
             );
             return Optional.empty();
         }
@@ -509,7 +511,9 @@ public class TrackedOrderManager {
         if (itemsAhead == 0) {
             log.debug(
                 "Ghost order detected for {}: bucket has {} orders but 0 items ahead of player volume ({}), treating as Top",
-                order.productName, (int) summary.getOrders(), order.volume
+                order.product.resolvedProduct().map(Object::toString).orElse(order.productName),
+                (int) summary.getOrders(),
+                order.volume
             );
             return new Top();
         }
@@ -594,7 +598,7 @@ public class TrackedOrderManager {
 
         var product = products.get(productRef.productId());
         if (product == null) {
-            log.debug("Product '{}' not found in products map", productRef.displayName());
+            log.debug("Product {} not found in products map", productRef);
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -621,7 +625,12 @@ public class TrackedOrderManager {
             .count();
 
         if (topBucket.getOrders() != playerCountAtBest) {
-            log.trace("Top bucket count mismatch for {}: API orders={}, local tracked={}", productRef.displayName(), topBucket.getOrders(), playerCountAtBest);
+            log.trace(
+                "Top bucket count mismatch for {}: API orders={}, local tracked={}",
+                productRef,
+                topBucket.getOrders(),
+                playerCountAtBest
+            );
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -634,7 +643,12 @@ public class TrackedOrderManager {
             .count();
 
         if (secondBucket.getOrders() != playerCountAtSecondBest) {
-            log.trace("Second bucket count mismatch for {}: API orders={}, local tracked={}", productRef.displayName(), secondBucket.getOrders(), playerCountAtSecondBest);
+            log.trace(
+                "Second bucket count mismatch for {}: API orders={}, local tracked={}",
+                productRef,
+                secondBucket.getOrders(),
+                playerCountAtSecondBest
+            );
             return new SelfUndercutResult.NotUndercut();
         }
 

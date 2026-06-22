@@ -47,7 +47,7 @@ final class ConversionNameDeriver {
         }
 
         return switch (productId) {
-            case "BAZAAR_COOKIE" -> new DerivedDisplayName("Bazaar Cookie", false);
+            case "BAZAAR_COOKIE" -> new DerivedDisplayName("Booster Cookie", false);
             case "SLEEPY_HOLLOW" -> new DerivedDisplayName("Sleepy Hollow", false);
             default -> new DerivedDisplayName(Utils.titleCase(productId.replace('_', ' ')), true);
         };

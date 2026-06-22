@@ -56,8 +56,11 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
                 this.inTransaction = true;
                 log.debug(
-                    "Starting buy order transaction for product '{}' with maxVolume '{}'",
-                    this.getCurrentProduct(),
+                    "Starting buy order transaction for product {} with maxVolume '{}'",
+                    Optional
+                        .ofNullable(this.getCurrentProduct())
+                        .map(Object::toString)
+                        .orElse("<unknown>"),
                     this.currMaxVolume
                 );
 
