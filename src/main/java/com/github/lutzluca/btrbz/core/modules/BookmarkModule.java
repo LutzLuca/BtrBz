@@ -4,9 +4,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -78,6 +80,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     @Override
     public void onLoad() {
+        this.configState.bookmarkedItems.removeIf(Objects::isNull);
+
         var orderManager = BtrBz.orderManager();
         this.rebuildOrderCache();
         orderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
@@ -386,7 +390,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                     itemData.addProperty("components", nbt.toString());
                 }
-                
+
                 obj.add("itemStack", itemData);
                 return obj;
             }
@@ -401,17 +405,27 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 var productName = obj.get("productName").getAsString();
                 var itemData = obj.getAsJsonObject("itemStack");
-                var itemId = Identifier.parse(itemData.get("id").getAsString());
+                var itemIdString = itemData.get("id").getAsString();
+                var itemId = Identifier.tryParse(itemIdString);
+                if (itemId == null) {
+                    log.warn(
+                        "Skipping bookmark {} with invalid item id {}",
+                        productName,
+                        itemIdString
+                    );
+                    return null;
+                }
 
                 var item = BuiltInRegistries.ITEM.getValue(itemId);
                 if (item == Items.AIR) {
-                    throw new JsonParseException("Unknown bookmark item id: " + itemId);
+                    log.warn("Skipping bookmark {} with unknown item id {}", productName, itemId);
+                    return null;
                 }
 
                 var components = DataComponentPatch.EMPTY;
                 if (itemData.has("components")) {
                     String componentString = itemData.get("components").getAsString();
-                    
+
                     try {
                         var componentNbt = TagParser.parseCompoundFully(componentString);
                         components = DataComponentPatch.CODEC
@@ -419,6 +433,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                             .getOrThrow();
                     } catch (CommandSyntaxException err) {
                         log.warn("Ignoring invalid components for bookmark {}", productName, err);
+                    } catch (RuntimeException err) {
+                        log.warn("Ignoring malformed components for bookmark {}", productName, err);
                     }
                 }
 
