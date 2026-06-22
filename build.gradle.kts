@@ -1,6 +1,6 @@
 plugins {
     id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
-    id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+    id("me.modmuss50.mod-publish-plugin") version "2.0.1"
     java
 }
 
@@ -112,7 +112,7 @@ publishMods {
     modLoaders.add("fabric")
 
     displayName =
-        "BtrBz v${getProp("mod_version")}$versionSuffix for ${stonecutter.current.version}"
+        "BtrBz v${getProp("mod_version")}$versionSuffix for ${getProp("mc_version")}"
     version = "${getProp("mod_version")}$versionSuffix+${stonecutter.current.version}"
 
     github {
@@ -124,7 +124,10 @@ publishMods {
     modrinth {
         accessToken = providers.environmentVariable("MODRINTH_TOKEN")
         projectId = "IzWPcaNg"
-        minecraftVersions.add(stonecutter.current.version)
+        minecraftVersionRange {
+            start.set(stonecutter.current.version)
+            end.set(getProp("modrinth_minecraft_version_end"))
+        }
 
         projectDescription = rootProject.file("README.md").readText()
 
