@@ -1,25 +1,12 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.Position;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
-import com.github.lutzluca.btrbz.utils.slot.SlotHook;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
-import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
-import com.github.lutzluca.btrbz.widgets.Renderable;
-import com.github.lutzluca.btrbz.widgets.ListWidget;
+import java.util.stream.Collectors;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -34,13 +21,6 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import io.vavr.control.Try;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
@@ -52,6 +32,27 @@ import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
+import net.minecraft.world.item.Items;
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
+import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.Position;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.utils.slot.SlotHook;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
+import com.github.lutzluca.btrbz.widgets.ListWidget;
+import com.github.lutzluca.btrbz.widgets.Renderable;
+import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
 @Slf4j
 public class BookmarkModule extends Module<BookMarkConfig> {
@@ -104,7 +105,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             var it = cfg.bookmarkedItems.listIterator();
             while (it.hasNext()) {
                 var item = it.next();
-                if (item.productName.equals(productName)) {
+                if (item.productName().equals(productName)) {
                     it.remove();
                     tag.bookmarked = false;
                     return;
@@ -186,7 +187,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     public boolean isBookmarked(String productName) {
         return this.configState.bookmarkedItems
             .stream()
-            .anyMatch(item -> item.productName.equals(productName));
+            .anyMatch(item -> item.productName().equals(productName));
     }
 
     public final class BookmarkedItemHook implements SlotHook {
@@ -308,8 +309,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return;
             }
 
-            boolean hasBuy = orderBuySet.contains(this.productName);
-            boolean hasSell = orderSellSet.contains(this.productName);
+            boolean hasBuy = this.orderBuySet.contains(this.productName);
+            boolean hasSell = this.orderSellSet.contains(this.productName);
 
             if (hasBuy || hasSell) {
                 int centerX = x + width - 8;
@@ -340,7 +341,24 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     }
 
-    public record BookmarkedItem(String productName, ItemStack itemStack) {
+    public record BookmarkedItem(String productName, ItemStackTemplate itemTemplate) {
+
+        public BookmarkedItem {
+            if (productName == null || productName.isBlank()) {
+                throw new IllegalArgumentException("Product name cannot be null or blank");
+            }
+            if (itemTemplate == null) {
+                throw new IllegalArgumentException("Item template cannot be null");
+            }
+        }
+
+        public BookmarkedItem(String productName, ItemStack itemStack) {
+            this(productName, ItemStackTemplate.fromNonEmptyStack(itemStack));
+        }
+
+        public ItemStack itemStack() {
+            return this.itemTemplate.create();
+        }
 
         public static class GsonAdapter implements JsonSerializer<BookmarkedItem>,
             JsonDeserializer<BookmarkedItem> {
@@ -352,15 +370,15 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 JsonSerializationContext context
             ) {
                 var obj = new JsonObject();
-                obj.addProperty("productName", src.productName);
+                obj.addProperty("productName", src.productName());
 
                 var itemData = new JsonObject();
-                var stack = src.itemStack;
+                var template = src.itemTemplate();
 
-                var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                var itemId = BuiltInRegistries.ITEM.getKey(template.item().value());
                 itemData.addProperty("id", itemId.toString());
 
-                var components = stack.getComponentsPatch();
+                var components = template.components();
                 if (!components.isEmpty()) {
                     var nbt = DataComponentPatch.CODEC
                         .encodeStart(NbtOps.INSTANCE, components)
@@ -368,6 +386,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                     itemData.addProperty("components", nbt.toString());
                 }
+                
                 obj.add("itemStack", itemData);
                 return obj;
             }
@@ -382,26 +401,29 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 var productName = obj.get("productName").getAsString();
                 var itemData = obj.getAsJsonObject("itemStack");
-                var itemId =  Identifier.parse(itemData.get("id").getAsString());
+                var itemId = Identifier.parse(itemData.get("id").getAsString());
 
                 var item = BuiltInRegistries.ITEM.getValue(itemId);
-                var stack = new ItemStack(item);
+                if (item == Items.AIR) {
+                    throw new JsonParseException("Unknown bookmark item id: " + itemId);
+                }
 
+                var components = DataComponentPatch.EMPTY;
                 if (itemData.has("components")) {
                     String componentString = itemData.get("components").getAsString();
+                    
                     try {
                         var componentNbt = TagParser.parseCompoundFully(componentString);
-                        var components = DataComponentPatch.CODEC
+                        components = DataComponentPatch.CODEC
                             .parse(new Dynamic<>(NbtOps.INSTANCE, componentNbt))
                             .getOrThrow();
-
-                        stack.applyComponentsAndValidate(components);
                     } catch (CommandSyntaxException err) {
-                        err.printStackTrace();
+                        log.warn("Ignoring invalid components for bookmark {}", productName, err);
                     }
                 }
 
-                return new BookmarkedItem(productName, stack);
+                var template = new ItemStackTemplate(item, components);
+                return new BookmarkedItem(productName, template);
             }
         }
 
