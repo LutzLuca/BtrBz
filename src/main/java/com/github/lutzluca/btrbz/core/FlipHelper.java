@@ -81,7 +81,7 @@ public class FlipHelper {
         }
 
         this.potentialFlipProduct = new TrackedProduct(this.bazaarData, product.get());
-        log.debug("Set `potentialFlipProduct` for product: '{}'", product.get().displayName());
+        log.debug("Set `potentialFlipProduct` for product: {}", product.get());
     }
 
     private void registerSlotHooks() {
@@ -172,8 +172,8 @@ public class FlipHelper {
 
             if (flipPrice.isEmpty()) {
                 log.warn(
-                    "Could not resolve price for product '{}'",
-                    this.potentialFlipProduct.getProductName()
+                    "Could not resolve price for product {}",
+                    this.potentialFlipProduct.getProduct()
                 );
                 this.clearPendingFlipState();
                 return;
@@ -231,7 +231,7 @@ public class FlipHelper {
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
             flipped.volume(),
-            flipped.productName(),
+            entry.product(),
             Utils.formatDecimal(pricePerUnit, 1, true)
         );
     }
@@ -239,8 +239,8 @@ public class FlipHelper {
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
             log.debug(
-                "Destroying `potentialFlipProduct` '{}'",
-                this.potentialFlipProduct.getProductName()
+                "Destroying `potentialFlipProduct` {}",
+                this.potentialFlipProduct.getProduct()
             );
             this.potentialFlipProduct.destroy();
         }

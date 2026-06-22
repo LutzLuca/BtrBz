@@ -144,7 +144,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 },
                 () -> log.warn(
                     "Tried to remove bookmark widget for {}, but it was not found",
-                    product.displayName()
+                    product
                 )
             );
 
@@ -425,7 +425,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 if (itemId == null) {
                     log.warn(
                         "Skipping bookmark {} with invalid item id {}",
-                        product.displayName(),
+                        product,
                         itemIdString
                     );
                     return null;
@@ -433,7 +433,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 var item = BuiltInRegistries.ITEM.getValue(itemId);
                 if (item == Items.AIR) {
-                    log.warn("Skipping bookmark {} with unknown item id {}", product.displayName(), itemId);
+                    log.warn("Skipping bookmark {} with unknown item id {}", product, itemId);
                     return null;
                 }
 
@@ -447,9 +447,9 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                             .parse(new Dynamic<>(NbtOps.INSTANCE, componentNbt))
                             .getOrThrow();
                     } catch (CommandSyntaxException err) {
-                        log.warn("Ignoring invalid components for bookmark {}", product.displayName(), err);
+                        log.warn("Ignoring invalid components for bookmark {}", product, err);
                     } catch (RuntimeException err) {
-                        log.warn("Ignoring malformed components for bookmark {}", product.displayName(), err);
+                        log.warn("Ignoring malformed components for bookmark {}", product, err);
                     }
                 }
 

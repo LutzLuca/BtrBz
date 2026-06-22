@@ -168,6 +168,26 @@ public final class ConversionIndexService {
             counts.neu(),
             counts.derived()
         );
+        this.logDerivedMappings(index);
+    }
+
+    private void logDerivedMappings(ConversionIndex index) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+
+        log.debug("Derived conversion mappings ({} entries):", index.sourceCounts().derived());
+        index
+            .products()
+            .entrySet()
+            .stream()
+            .filter(entry -> entry.getValue().source() instanceof ProductNameSource.Derived)
+            .sorted((first, second) -> first.getKey().compareTo(second.getKey()))
+            .forEach(entry -> log.debug(
+                "Derived conversion mapping: {} -> {}",
+                entry.getKey(),
+                entry.getValue().displayName()
+            ));
     }
 
     private void handleRefreshFailure(ConversionRefreshException failure, boolean manual) {

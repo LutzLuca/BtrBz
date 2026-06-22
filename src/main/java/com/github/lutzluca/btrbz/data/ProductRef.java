@@ -12,8 +12,4 @@ public record ProductRef(String productId, String displayName) implements Produc
         }
     }
 
-    @Override
-    public String identityKey() {
-        return "id:" + this.productId;
-    }
 }

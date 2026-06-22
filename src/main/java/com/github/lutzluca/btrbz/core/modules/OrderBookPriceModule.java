@@ -123,7 +123,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         if (this.currentOrderType == null) {
-            log.debug("Current order type is null, clearing list for product {}", productNameInfo.productName());
+            log.debug("Current order type is null, clearing list for product {}", productNameInfo.product());
             this.widget.updateList(List.of());
             return;
         }

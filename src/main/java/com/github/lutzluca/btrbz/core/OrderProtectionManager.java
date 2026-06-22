@@ -159,7 +159,12 @@ public class OrderProtectionManager {
 
                 log.trace(
                     "Validated: {} - {}",
-                    pendingOrder.orderInfo().productName(),
+                    pendingOrder
+                        .orderInfo()
+                        .product()
+                        .resolvedProduct()
+                        .map(Object::toString)
+                        .orElse(pendingOrder.orderInfo().productName()),
                     pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
                 );
             })
