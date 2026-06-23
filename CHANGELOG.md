@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.2-alpha] - 2026-06-23
+
+### Fixed
+
+- Fixed Bazaar order parsing when item titles and lore contain raw Minecraft formatting codes
+
 ## [0.7.1-alpha] - 2026-06-22
 
 ### Fixed
