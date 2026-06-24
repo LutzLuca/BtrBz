@@ -82,17 +82,28 @@ public final class GameUtils {
 
             String text;
             if (team != null) {
-                text = team.getPlayerPrefix().getString() + owner + team.getPlayerSuffix().getString();
+                var prefix = team.getPlayerPrefix().getString();
+                var suffix = team.getPlayerSuffix().getString();
+                text = prefix + owner + suffix;
             } else {
                 text = owner;
             }
 
-            text = stripFormattingCodes(text).trim();
+            text = stripScoreboardFormattingCodes(text);
 
             if (!text.isBlank()) { lines.add(text); }
         }
 
         return lines;
+    }
+
+    static String stripScoreboardFormattingCodes(String text) {
+        /*
+         * Scoreboard lines are built as team prefix + owner + suffix. Hypixel apparently
+         * uses nonstandard raw formatting-like owner tokens such as "§j", so remove
+         * leftover section-code pairs here.
+         */
+        return stripFormattingCodes(text).replaceAll("§.", "").trim();
     }
 
     public static void runCommand(String command) {
@@ -136,10 +147,15 @@ public final class GameUtils {
             .flatMap(line -> {
                 var remainder = line.replaceFirst("Purse:|Piggy:", "").trim();
                 var spaceIdx = remainder.indexOf(' ');
+                var amountToken = spaceIdx == -1 ? remainder : remainder.substring(0, spaceIdx);
 
                 return Utils
-                    .parseUsFormattedNumber(
-                        spaceIdx == -1 ? remainder : remainder.substring(0, spaceIdx))
+                    .parseUsFormattedNumber(amountToken)
+                    .onSuccess(purse -> log.debug(
+                        "Parsed purse scoreboard line: line='{}', amountToken='{}', purse={}",
+                        line,
+                        amountToken,
+                        purse))
                     .map(Number::doubleValue)
                     .toJavaOptional();
             });
