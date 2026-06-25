@@ -16,10 +16,6 @@ public final class VirtualSlotProjection {
 
     private VirtualSlotProjection() { }
 
-    public static boolean isProjectionSuppressed() {
-        return SUPPRESSION_DEPTH.get() > 0;
-    }
-
     public static <T> T withProjectionSuppressed(Supplier<T> supplier) {
         int prevDepth = SUPPRESSION_DEPTH.get();
         SUPPRESSION_DEPTH.set(prevDepth + 1);
@@ -27,16 +23,12 @@ public final class VirtualSlotProjection {
         try {
             return supplier.get();
         } finally {
-            if (prevDepth == 0) {
-                SUPPRESSION_DEPTH.remove();
-            } else {
-                SUPPRESSION_DEPTH.set(prevDepth);
-            }
+            SUPPRESSION_DEPTH.set(prevDepth);
         }
     }
 
     public static ItemStack project(Slot slot, ItemStack raw) {
-        if (VirtualSlotProjection.isProjectionSuppressed()) {
+        if (SUPPRESSION_DEPTH.get() > 0) {
             return raw;
         }
 
