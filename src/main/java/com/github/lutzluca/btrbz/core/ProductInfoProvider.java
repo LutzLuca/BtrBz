@@ -550,7 +550,7 @@ public final class ProductInfoProvider {
         }
 
         Optional<String> get(ItemStack stack) {
-            var cached = cache.get(stack);
+            var cached = this.cache.get(stack);
             if (cached != null) {
                 return cached;
             }
@@ -559,7 +559,7 @@ public final class ProductInfoProvider {
 
             var direct = ProductInfoProvider.this.bazaarData.nameToId(name);
             if (direct.isPresent()) {
-                cache.put(stack, direct);
+                this.cache.put(stack, direct);
                 return direct;
             }
 
@@ -574,19 +574,19 @@ public final class ProductInfoProvider {
 
                 var result = ids.size() == 1 ? Optional.of(ids.getFirst()) : Optional.<String>empty();
 
-                cache.put(stack, result);
+                this.cache.put(stack, result);
                 return result;
             }
 
             var delimiter = name.lastIndexOf(' ');
             if (delimiter == -1 || !Utils.isValidRomanNumeral(name.substring(delimiter).trim())) {
-                cache.put(stack, Optional.empty());
+                this.cache.put(stack, Optional.empty());
                 return Optional.empty();
             }
 
             var result = ProductInfoProvider.this.bazaarData.nameToId(name.substring(0, delimiter).trim());
 
-            cache.put(stack, result);
+            this.cache.put(stack, result);
             return result;
         }
     }
@@ -603,20 +603,20 @@ public final class ProductInfoProvider {
                     this.cache.size()
                 );
 
-                cache.clear();
+                this.cache.clear();
             });
         }
 
         Optional<CachedPrice> get(ItemStack stack) {
-            var existing = cache.get(stack);
-            if (existing != null || cache.containsKey(stack)) {
+            var existing = this.cache.get(stack);
+            if (existing != null || this.cache.containsKey(stack)) {
                 return Optional.ofNullable(existing);
             }
 
             var productId = ProductInfoProvider.this.productIdCache.get(stack);
 
             if (productId.isEmpty()) {
-                cache.put(stack, null);
+                this.cache.put(stack, null);
                 return Optional.empty();
             }
 
@@ -626,7 +626,7 @@ public final class ProductInfoProvider {
             var buyOrderPrice = data.highestBuyPrice(productId.get()).orElse(null);
 
             var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
-            cache.put(stack, cached);
+            this.cache.put(stack, cached);
 
             log.trace(
                 "Cached price for '{}' (id: {}): buy={}, sell={}",
