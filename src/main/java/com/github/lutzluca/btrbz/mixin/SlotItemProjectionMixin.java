@@ -16,7 +16,7 @@ public abstract class SlotItemProjectionMixin {
 
     @Inject(method = "getItem", at = @At("RETURN"), cancellable = true)
     private void projectItem(CallbackInfoReturnable<ItemStack> cir) {
-        if (VirtualSlotProjection.isProjectionSuppressed()) {
+        if (!Minecraft.getInstance().isSameThread()) {
             return;
         }
 
