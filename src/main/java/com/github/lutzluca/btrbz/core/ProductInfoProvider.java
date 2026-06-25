@@ -281,19 +281,20 @@ public final class ProductInfoProvider {
             return false;
         }
 
+        boolean inBazaarMainOrItem = ScreenInfoHelper.inMenu(BazaarMenuType.Main, BazaarMenuType.Item);
+        if (!inBazaarMainOrItem && !cfg.showOutsideBazaar && !ScreenInfoHelper.inBazaar()) {
+            return false;
+        }
+
         if (this.productIdCache.get(stack).isEmpty()) {
             return false;
         }
 
-        if (ScreenInfoHelper.inMenu(BazaarMenuType.Main, BazaarMenuType.Item)) {
+        if (inBazaarMainOrItem) {
             return this.isStackInPlayerInventory(stack);
         }
 
-        if (cfg.showOutsideBazaar) {
-            return true;
-        }
-
-        return ScreenInfoHelper.inBazaar();
+        return true;
     }
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
