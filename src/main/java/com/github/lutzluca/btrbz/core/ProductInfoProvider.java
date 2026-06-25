@@ -289,11 +289,18 @@ public final class ProductInfoProvider {
     private boolean isStackInPlayerInventory(ItemStack stack) {
         // NOTE: reference equality is intentional here
         // noinspection DataFlowIssue
-        return Try
-            .of(() -> StreamSupport
-                .stream(Minecraft.getInstance().player.getInventory().spliterator(), false)
-                .anyMatch(playerStack -> playerStack == stack))
-            .getOrElse(false);
+        var player = Minecraft.getInstance().player;
+        if (player == null) {
+            return false;
+        }
+
+        for (var playerStack : player.getInventory()) {
+            if (playerStack == stack) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void confirmAndOpen(String link) {
