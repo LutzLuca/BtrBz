@@ -285,7 +285,12 @@ public final class ScreenInfoHelper {
         }
 
         public boolean inMenu(BazaarMenuType... menu) {
-            return Arrays.stream(menu).anyMatch((menuType) -> this.state.matches(this, menuType));
+            for (var type : menu) {
+                if (this.state.matches(this, type)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public Optional<BazaarMenuType> getMenuType() {
