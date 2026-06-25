@@ -173,8 +173,8 @@ public final class ProductInfoProvider {
     private ItemStack createProductInfoItem() {
         var cfg = ConfigManager.get().productInfo;
 
-        if (cachedProductInfoItem != null && cachedProductInfoSite == cfg.site) {
-            return cachedProductInfoItem;
+        if (this.cachedProductInfoItem != null && this.cachedProductInfoSite == cfg.site) {
+            return this.cachedProductInfoItem.copy();
         }
 
         var item = new ItemStack(Items.PAPER);
@@ -201,9 +201,9 @@ public final class ProductInfoProvider {
 
         item.set(DataComponents.LORE, new ItemLore(loreLines));
 
-        cachedProductInfoItem = item;
-        cachedProductInfoSite = cfg.site;
-        return cachedProductInfoItem.copy();
+        this.cachedProductInfoItem = item;
+        this.cachedProductInfoSite = cfg.site;
+        return this.cachedProductInfoItem.copy();
     }
 
     private void registerTooltipDisplay() {

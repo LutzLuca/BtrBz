@@ -54,8 +54,8 @@ public class OrderBookScreenController {
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
-            if (cachedDisplayStack != null) {
-                return cachedDisplayStack;
+            if (this.cachedDisplayStack != null) {
+                return this.cachedDisplayStack.copy();
             }
 
             var book = new ItemStack(Items.BOOK);
@@ -64,8 +64,8 @@ public class OrderBookScreenController {
                 Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
             );
 
-            cachedDisplayStack = book;
-            return cachedDisplayStack.copy();
+            this.cachedDisplayStack = book;
+            return this.cachedDisplayStack.copy();
         }
 
         @Override

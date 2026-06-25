@@ -272,7 +272,6 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             this.orderBuySet = orderBuySet;
             this.orderSellSet = orderSellSet;
 
-            //noinspection DataFlowIssue
             this.color = (0xFF << 24) | Try
                 .of(() -> itemStack.getHoverName().getSiblings().getFirst()
                     .getStyle().getColor().getValue())
