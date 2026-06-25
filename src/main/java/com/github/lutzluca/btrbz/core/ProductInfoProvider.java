@@ -26,7 +26,6 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -539,8 +538,9 @@ public final class ProductInfoProvider {
         }
 
         Optional<String> get(ItemStack stack) {
-            if (cache.containsKey(stack)) {
-                return cache.get(stack);
+            var cached = cache.get(stack);
+            if (cached != null) {
+                return cached;
             }
 
             var name = stack.getHoverName().getString();
@@ -596,9 +596,11 @@ public final class ProductInfoProvider {
         }
 
         Optional<CachedPrice> get(ItemStack stack) {
-            if (cache.containsKey(stack)) {
-                return Optional.ofNullable(cache.get(stack));
+            var existing = cache.get(stack);
+            if (existing != null || cache.containsKey(stack)) {
+                return Optional.ofNullable(existing);
             }
+
             var productId = ProductInfoProvider.this.productIdCache.get(stack);
 
             if (productId.isEmpty()) {
