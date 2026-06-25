@@ -539,9 +539,9 @@ public final class ProductInfoProvider {
 
         ProductIdCache() {
             log.debug("Initializing Product ID Cache");
-            ProductInfoProvider.this.bazaarData.addListener(products -> {
+            ProductInfoProvider.this.bazaarData.addConversionListener(() -> {
                 log.trace(
-                    "Bazaar data updated, clearing product id cache with {} mappings",
+                    "Conversions updated, clearing product id cache with {} mappings",
                     this.cache.size()
                 );
 
@@ -597,7 +597,7 @@ public final class ProductInfoProvider {
 
         PriceCache() {
             log.debug("Initializing Price Cache");
-            ProductInfoProvider.this.bazaarData.addListener(products -> {
+            ProductInfoProvider.this.bazaarData.addBazaarListener(products -> {
                 log.trace(
                     "Bazaar data updated, clearing price cache with {} mappings",
                     this.cache.size()

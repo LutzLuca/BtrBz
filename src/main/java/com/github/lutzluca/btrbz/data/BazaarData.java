@@ -18,12 +18,14 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class BazaarData {
 
-    private final List<Consumer<Map<String, Product>>> listeners = new ArrayList<>();
+    private final List<Consumer<Map<String, Product>>> bazaarListeners = new ArrayList<>();
+    private final List<Runnable> conversionListeners = new ArrayList<>();
     private Map<String, Product> lastProducts = Collections.emptyMap();
     private volatile BiMap<String, String> idToName;
 
@@ -45,7 +47,10 @@ public class BazaarData {
         ConversionLoader.load().thenAccept(result ->
             result
                 .onSuccess(loadResult -> {
-                    this.idToName = loadResult.conversions();
+                    Minecraft.getInstance().execute(() -> {
+                        this.idToName = loadResult.conversions();
+                        this.conversionListeners.forEach(Runnable::run);
+                    });
                     log.debug("Conversions applied ({} entries)", loadResult.conversions().size());
 
                     ConversionLoader.checkForConversionUpdates(loadResult.contentHash())
@@ -53,7 +58,10 @@ public class BazaarData {
                             updateResult
                                 .onSuccess(maybeNew ->
                                     maybeNew.ifPresent(newResult -> {
-                                        this.idToName = newResult.conversions();
+                                        Minecraft.getInstance().execute(() -> {
+                                            this.idToName = newResult.conversions();
+                                            this.conversionListeners.forEach(Runnable::run);
+                                        });
                                         log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
                                     })
                                 )
@@ -77,29 +85,46 @@ public class BazaarData {
         this.lastProducts = products;
         var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
 
-        for (var listener : this.listeners) {
-            Try.run(() -> listener.accept(snapshotProducts)).onFailure(err -> log.error(
+        for (var bazaarListener : this.bazaarListeners) {
+            Try.run(() -> bazaarListener.accept(snapshotProducts)).onFailure(err -> log.error(
                 "Bazaar update listener '{}' failed while processing {} products",
-                listener.getClass().getName(),
+                bazaarListener.getClass().getName(),
                 snapshotProducts.size(),
                 err
             ));
         }
     }
 
-    public void addListener(Consumer<Map<String, Product>> listener) {
-        this.listeners.add(listener);
+    public void addConversionListener(Runnable listener) {
+        this.conversionListeners.add(listener);
         log.trace(
-            "Inserting listener for onBazaarUpdate currently, listeners registered: {}",
-            this.listeners.size()
+            "Inserting listener for onConversionUpdate currently, bazaarListeners registered: {}",
+            this.conversionListeners.size()
         );
     }
 
-    public void removeListener(Consumer<Map<String, Product>> listener) {
-        if (this.listeners.remove(listener)) {
+    public void removeConversionListener(Runnable listener) {
+        if (this.conversionListeners.remove(listener)) {
             log.trace(
-                "Removing listener for onBazaarUpdate currently, listeners registered: {}",
-                this.listeners.size()
+                "Removing listener for onConversionUpdate currently, bazaarListeners registered: {}",
+                this.conversionListeners.size()
+            );
+        }
+    }
+
+    public void addBazaarListener(Consumer<Map<String, Product>> listener) {
+        this.bazaarListeners.add(listener);
+        log.trace(
+            "Inserting listener for onBazaarUpdate currently, bazaarListeners registered: {}",
+            this.bazaarListeners.size()
+        );
+    }
+
+    public void removeBazaarListener(Consumer<Map<String, Product>> listener) {
+        if (this.bazaarListeners.remove(listener)) {
+            log.trace(
+                "Removing listener for onBazaarUpdate currently, bazaarListeners registered: {}",
+                this.bazaarListeners.size()
             );
         }
     }
@@ -278,7 +303,7 @@ public class BazaarData {
                 .ifPresent(prod -> {
                     this.product = Optional.of(prod);
 
-                    this.data.addListener(this.updater);
+                    this.data.addBazaarListener(this.updater);
                     this.listenerRegistered = true;
                 });
         }
@@ -301,7 +326,7 @@ public class BazaarData {
 
         public void destroy() {
             this.product = Optional.empty();
-            this.data.removeListener(this.updater);
+            this.data.removeBazaarListener(this.updater);
         }
     }
 }

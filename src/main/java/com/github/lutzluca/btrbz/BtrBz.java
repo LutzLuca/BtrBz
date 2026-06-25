@@ -149,8 +149,8 @@ public class BtrBz implements ClientModInitializer {
             orderActions.setReopenBazaar();
         });
 
-        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
-        BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
+        BAZAAR_DATA.addBazaarListener(this.alertManager::onBazaarUpdate);
+        BAZAAR_DATA.addBazaarListener(this.orderManager::onBazaarUpdate);
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
