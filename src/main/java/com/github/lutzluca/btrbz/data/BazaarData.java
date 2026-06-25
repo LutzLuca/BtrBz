@@ -49,7 +49,7 @@ public class BazaarData {
                 .onSuccess(loadResult -> {
                     Minecraft.getInstance().execute(() -> {
                         this.idToName = loadResult.conversions();
-                        this.conversionListeners.forEach(Runnable::run);
+                        this.notifyConversionListeners();
                     });
                     log.debug("Conversions applied ({} entries)", loadResult.conversions().size());
 
@@ -60,7 +60,7 @@ public class BazaarData {
                                     maybeNew.ifPresent(newResult -> {
                                         Minecraft.getInstance().execute(() -> {
                                             this.idToName = newResult.conversions();
-                                            this.conversionListeners.forEach(Runnable::run);
+                                            this.notifyConversionListeners();
                                         });
                                         log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
                                     })
@@ -81,15 +81,11 @@ public class BazaarData {
         );
     }
 
-    public void onUpdate(Map<String, Product> products) {
-        this.lastProducts = products;
-        var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
-
-        for (var bazaarListener : this.bazaarListeners) {
-            Try.run(() -> bazaarListener.accept(snapshotProducts)).onFailure(err -> log.error(
-                "Bazaar update listener '{}' failed while processing {} products",
-                bazaarListener.getClass().getName(),
-                snapshotProducts.size(),
+    private void notifyConversionListeners() {
+        for (var listener : this.conversionListeners) {
+            Try.run(listener::run).onFailure(err -> log.error(
+                "Conversion update listener '{}' failed",
+                listener.getClass().getName(),
                 err
             ));
         }
@@ -109,6 +105,20 @@ public class BazaarData {
                 "Removing listener for onConversionUpdate currently, bazaarListeners registered: {}",
                 this.conversionListeners.size()
             );
+        }
+    }
+
+    public void notifyBazaarListeners(Map<String, Product> products) {
+        this.lastProducts = products;
+        var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
+
+        for (var bazaarListener : this.bazaarListeners) {
+            Try.run(() -> bazaarListener.accept(snapshotProducts)).onFailure(err -> log.error(
+                "Bazaar update listener '{}' failed while processing {} products",
+                bazaarListener.getClass().getName(),
+                snapshotProducts.size(),
+                err
+            ));
         }
     }
 
