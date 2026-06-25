@@ -66,6 +66,9 @@ public final class ProductInfoProvider {
     private final PriceCache priceCache;
     private final ProductIdCache productIdCache;
 
+    private @Nullable ItemStack cachedProductInfoItem = null;
+    private @Nullable InfoProviderSite cachedProductInfoSite = null;
+
     @Getter
     private @Nullable ProductNameInfo openedProductNameInfo;
 
@@ -169,6 +172,11 @@ public final class ProductInfoProvider {
 
     private ItemStack createProductInfoItem() {
         var cfg = ConfigManager.get().productInfo;
+
+        if (cachedProductInfoItem != null && cachedProductInfoSite == cfg.site) {
+            return cachedProductInfoItem;
+        }
+
         var item = new ItemStack(Items.PAPER);
         item.set(
             DataComponents.CUSTOM_NAME,
@@ -192,7 +200,10 @@ public final class ProductInfoProvider {
         ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
         item.set(DataComponents.LORE, new ItemLore(loreLines));
-        return item;
+
+        cachedProductInfoItem = item;
+        cachedProductInfoSite = cfg.site;
+        return cachedProductInfoItem.copy();
     }
 
     private void registerTooltipDisplay() {

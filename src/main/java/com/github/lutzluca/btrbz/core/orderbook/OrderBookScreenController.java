@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import org.jetbrains.annotations.Nullable;
 
 public class OrderBookScreenController {
 
@@ -34,8 +35,10 @@ public class OrderBookScreenController {
     }
 
     public final class OrderBookButtonHook implements SlotHook {
+        private @Nullable ItemStack cachedDisplayStack = null;
 
         private OrderBookButtonHook() { }
+
         @Override
         public boolean matches(SlotView view) {
             return ConfigManager.get().orderBook.enabled
@@ -51,13 +54,18 @@ public class OrderBookScreenController {
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
+            if (cachedDisplayStack != null) {
+                return cachedDisplayStack;
+            }
+
             var book = new ItemStack(Items.BOOK);
             book.set(
                 DataComponents.CUSTOM_NAME,
                 Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
             );
 
-            return book;
+            cachedDisplayStack = book;
+            return cachedDisplayStack.copy();
         }
 
         @Override
