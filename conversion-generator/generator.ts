@@ -81,6 +81,12 @@ const NAME_OVERRIDES: Record<string, string> = {
     ENCHANTMENT_TURBO_CACTUS_4: "Turbo-Cacti IV",
     ENCHANTMENT_TURBO_CACTUS_5: "Turbo-Cacti V",
 
+    ENCHANTMENT_TURBO_COCO_1: "Turbo-Cocoa I",
+    ENCHANTMENT_TURBO_COCO_2: "Turbo-Cocoa II",
+    ENCHANTMENT_TURBO_COCO_3: "Turbo-Cocoa III",
+    ENCHANTMENT_TURBO_COCO_4: "Turbo-Cocoa IV",
+    ENCHANTMENT_TURBO_COCO_5: "Turbo-Cocoa V",
+
     ENCHANTMENT_COUNTER_STRIKE_3: "Counter-Strike III",
     ENCHANTMENT_COUNTER_STRIKE_4: "Counter-Strike IV",
     ENCHANTMENT_COUNTER_STRIKE_5: "Counter-Strike V",
@@ -96,6 +102,8 @@ const NAME_OVERRIDES: Record<string, string> = {
     SHARD_ENDSTONE_PROTECTOR: "End Stone Protector Shard",
     SHARD_SEA_ARCHER: "Bogged Shard",
     SHARD_STRIDER_SURFER: "Stridersurfer Shard",
+    SHARD_ABYSSAL_LANTERN: "Abyssal Lanternfish Shard",
+    SHARD_XYZ: "XYZ Shard",
 };
 
 const GEM_SYMBOLS: Record<string, string> = {
