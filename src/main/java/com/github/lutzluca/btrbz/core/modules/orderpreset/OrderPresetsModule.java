@@ -13,7 +13,6 @@ import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -152,7 +151,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     public void rebuildList() {
-        if (list == null) {
+        if (this.list == null) {
             return;
         }
 
@@ -170,7 +169,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             purse
         );
 
-        List<OrderPreset> presets = configState.presets
+        List<OrderPreset> presets = this.configState.presets
             .stream()
             .filter(presetVolume -> presetVolume <= this.currMaxVolume)
             .sorted()
@@ -188,37 +187,67 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             });
         }
 
-        List<Renderable> entries = new ArrayList<>();
+        List<Renderable> entries = presets
+            .stream()
+            .map(preset -> this.createPresetEntry(preset, priceAvailable, pricePerUnit, purse))
+            .flatMap(Optional::stream)
+            .collect(Collectors.toList());
 
-        for (var preset : presets) {
-            var entry = new OrderPreset.RenderableEntry(preset);
+        this.list.setItems(entries);
+    }
 
-            switch (preset) {
-                case OrderPreset.Max ignored -> this.configureMaxEntry(entry, priceAvailable, pricePerUnit, purse);
-                case OrderPreset.Clipboard clipboardPreset -> {
-                    var amount = clipboardPreset.amount();
+    private Optional<OrderPreset.RenderableEntry> createPresetEntry(
+        OrderPreset preset,
+        boolean priceAvailable,
+        Optional<Double> pricePerUnit,
+        Optional<Double> purse
+    ) {
+        return switch (preset) {
+            case OrderPreset.Max ignored -> this.createMaxEntry(preset, priceAvailable, pricePerUnit, purse);
+            case OrderPreset.Clipboard clipboardPreset -> this.createAmountEntry(
+                preset,
+                clipboardPreset.amount(),
+                priceAvailable,
+                pricePerUnit,
+                purse,
+                List.of(Component.literal("From Clipboard"))
+            );
+            case OrderPreset.Volume(int amount) -> this.createAmountEntry(
+                preset,
+                amount,
+                priceAvailable,
+                pricePerUnit,
+                purse,
+                List.of()
+            );
+        };
+    }
 
-                    boolean canAfford = !priceAvailable || purse.map(coins -> amount * pricePerUnit.get() <= coins).orElse(false);
-                    if (!canAfford) {
-                        entry.setDisabled(true);
-                        entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
-                    } else {
-                        entry.setTooltipLines(List.of(Component.literal("From Clipboard")));
-                    }
-                }
-                case OrderPreset.Volume(int amount) -> {
-                    boolean canAfford = !priceAvailable || purse.map(coins -> amount * pricePerUnit.get() <= coins).orElse(false);
-                    if (!canAfford) {
-                        entry.setDisabled(true);
-                        entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
-                    }
-                }
+    private Optional<OrderPreset.RenderableEntry> createAmountEntry(
+        OrderPreset preset,
+        int amount,
+        boolean priceAvailable,
+        Optional<Double> pricePerUnit,
+        Optional<Double> purse,
+        List<Component> affordableTooltipLines
+    ) {
+        var entry = new OrderPreset.RenderableEntry(preset);
+        boolean canAfford = !priceAvailable || purse.map(coins -> amount * pricePerUnit.get() <= coins).orElse(false);
+        if (!canAfford) {
+            if (this.configState.hideUnaffordablePresets) {
+                return Optional.empty();
             }
 
-            entries.add(entry);
+            entry.setDisabled(true);
+            entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
+            return Optional.of(entry);
         }
 
-        list.setItems(entries);
+        if (!affordableTooltipLines.isEmpty()) {
+            entry.setTooltipLines(affordableTooltipLines);
+        }
+
+        return Optional.of(entry);
     }
 
     private Optional<Integer> getMaxVolume(@NotNull ItemStack item) {
@@ -297,6 +326,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             this.list.setX(position.x());
             this.list.setY(position.y());
             this.list.setMaxVisibleItems(maxVisible);
+            this.rebuildList();
             return Optional.of(this.list);
         }
 
@@ -319,7 +349,10 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 if (!preset.isDisabled()) {
                     this.handlePresetClick(preset.getPreset());
                 }
-            }).onDragEnd((self, pos) -> this.savePosition(pos, this.getPresetScreen(ScreenInfoHelper.get().getCurrInfo()).orElse(PresetScreen.VolumeSetupContainer)));
+            }).onDragEnd((self, pos) -> this.savePosition(
+                pos,
+                this.getPresetScreen(ScreenInfoHelper.get().getCurrInfo()).orElse(PresetScreen.VolumeSetupContainer)
+            ));
 
         this.rebuildList();
 
@@ -406,27 +439,33 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         return Math.min((int) (purse / pricePerUnit), this.currMaxVolume);
     }
 
-    private void configureMaxEntry(
-        OrderPreset.RenderableEntry entry,
+    private Optional<OrderPreset.RenderableEntry> createMaxEntry(
+        OrderPreset preset,
         boolean priceAvailable,
         Optional<Double> pricePerUnit,
         Optional<Double> purse
     ) {
+        var entry = new OrderPreset.RenderableEntry(preset);
+
         if (!priceAvailable) {
             entry.setDisabled(true);
             entry.setTooltipLines(List.of(Component.literal("Unable to determine price information")));
-            return;
+            return Optional.of(entry);
         }
 
         if (purse.isEmpty()) {
             entry.setDisabled(true);
             entry.setTooltipLines(List.of(Component.literal("Unable to determine purse amount")));
-            return;
+            return Optional.of(entry);
         }
 
         int maxVolume = this.calculateMaxVolume(purse.get(), pricePerUnit.get());
 
         if (maxVolume == 0) {
+            if (this.configState.hideUnaffordablePresets) {
+                return Optional.empty();
+            }
+
             entry.setDisabled(true);
             double missing = pricePerUnit.get() - purse.get();
             String formattedMissing = Utils.formatCompact(missing, 1);
@@ -435,11 +474,12 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                 Component.literal("Missing " + formattedMissing + " coins"),
                 Component.literal("to buy one item")
             ));
-            return;
+            return Optional.of(entry);
         }
 
         entry.setTooltipLines(List.of(
             Component.literal(Utils.formatDecimal(maxVolume, 0, true) + " items")
         ));
+        return Optional.of(entry);
     }
 }

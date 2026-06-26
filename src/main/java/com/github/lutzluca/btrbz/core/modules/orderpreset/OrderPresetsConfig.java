@@ -18,6 +18,7 @@ public class OrderPresetsConfig {
     public boolean enabled = true;
     public boolean enableOnContainer = true;
     public boolean enableOnSign = true;
+    public boolean hideUnaffordablePresets = false;
     public List<Integer> presets = List.of();
 
     public Builder<Boolean> createEnableOption() {
@@ -50,11 +51,22 @@ public class OrderPresetsConfig {
             .controller(ConfigScreen::createBooleanController);
     }
 
+    public Builder<Boolean> createHideUnaffordablePresetsOption() {
+        return Option
+            .<Boolean>createBuilder()
+            .name(Component.nullToEmpty("Hide Unaffordable Presets"))
+            .description(OptionDescription.of(Component.literal(
+                "Hide presets that cannot currently be purchased due to insufficient coins.")))
+            .binding(false, () -> this.hideUnaffordablePresets, hide -> this.hideUnaffordablePresets = hide)
+            .controller(ConfigScreen::createBooleanController);
+    }
+
     public OptionGroup createGroup() {
         var rootGroup = new OptionGrouping(this.createEnableOption())
             .addOptions(
                 this.createEnableContainerOption(),
-                this.createEnableSignOption()
+                this.createEnableSignOption(),
+                this.createHideUnaffordablePresetsOption()
             );
 
         return OptionGroup
