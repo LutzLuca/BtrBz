@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.widgets.ListWidget;
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -174,7 +175,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             .filter(presetVolume -> presetVolume <= this.currMaxVolume)
             .sorted()
             .map(OrderPreset.Volume::new)
-            .collect(Collectors.toList());
+            .collect(Collectors.toCollection(ArrayList::new));
 
         presets.addFirst(new OrderPreset.Max());
 
@@ -232,7 +233,22 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         List<Component> affordableTooltipLines
     ) {
         var entry = new OrderPreset.RenderableEntry(preset);
-        boolean canAfford = !priceAvailable || purse.map(coins -> amount * pricePerUnit.get() <= coins).orElse(false);
+
+        if (!priceAvailable) {
+            if (!affordableTooltipLines.isEmpty()) {
+                entry.setTooltipLines(affordableTooltipLines);
+            }
+
+            return Optional.of(entry);
+        }
+
+        if (purse.isEmpty()) {
+            entry.setDisabled(true);
+            entry.setTooltipLines(List.of(Component.literal("Unable to determine purse amount")));
+            return Optional.of(entry);
+        }
+
+        boolean canAfford = amount * pricePerUnit.get() <= purse.get();
         if (!canAfford) {
             if (this.configState.hideUnaffordablePresets) {
                 return Optional.empty();
