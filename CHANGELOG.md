@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.0-alpha] - 2026-06-26
+
+### Added
+
+- Added an Order Presets setting to hide unaffordable fixed, clipboard, and Max presets instead of showing them disabled
+
+### Changed
+
+- Reduced render-thread time in Bazaar menus by replacing per-slot list scans, stream checks, and duplicate map/item lookups on hot render paths
+- Added shared product ID caching so Bazaar hooks no longer resolve the same product repeatedly while rendering
+
+### Fixed
+
+- Fixed a rare render freeze when menu projections are requested off the main game thread during quick menu swaps
+
 ## [0.7.3-alpha] - 2026-06-24
 
 ### Fixed
