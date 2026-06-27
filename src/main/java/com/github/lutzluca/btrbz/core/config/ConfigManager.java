@@ -44,11 +44,17 @@ public final class ConfigManager {
         return HANDLER.instance();
     }
 
+    /**
+     * Saves immediately: avoid regular hot-path calls like tick, render, or polling.
+     */
     public static void withConfig(Consumer<Config> consumer) {
         consumer.accept(HANDLER.instance());
         save();
     }
 
+    /**
+     * Saves immediately: avoid regular hot-path calls like tick, render, or polling.
+     */
     public static <R> R compute(Function<Config, R> function) {
         R ret = function.apply(HANDLER.instance());
         save();
@@ -60,4 +66,3 @@ public final class ConfigManager {
         HANDLER.save();
     }
 }
-
