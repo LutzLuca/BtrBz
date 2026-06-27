@@ -29,7 +29,10 @@ public final class Utils {
     public static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
     public static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
     private static final Pattern ROMAN_NUMERAL_PATTERN =
-        Pattern.compile("^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$");
+        Pattern.compile(
+            "^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$",
+            Pattern.CASE_INSENSITIVE
+        );
 
     private Utils() { }
 
@@ -152,7 +155,7 @@ public final class Utils {
 
 
     public static boolean isValidRomanNumeral(String roman) {
-        return ROMAN_NUMERAL_PATTERN.matcher(roman.toUpperCase()).matches();
+        return ROMAN_NUMERAL_PATTERN.matcher(roman).matches();
     }
 
     public static String intToRoman(int num) {
