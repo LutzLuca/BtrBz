@@ -1,7 +1,11 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.slot.*;
+import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
+import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;

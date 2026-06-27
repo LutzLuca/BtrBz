@@ -15,7 +15,6 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHook;
 import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
-import java.util.Set;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
