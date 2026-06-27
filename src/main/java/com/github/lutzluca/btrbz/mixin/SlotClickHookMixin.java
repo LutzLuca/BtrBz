@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.slot.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,10 +11,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
-import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class SlotClickHookMixin {
@@ -41,14 +39,14 @@ public abstract class SlotClickHookMixin {
     @Unique
     private boolean btrbz$handleSlotHook(Slot slot, int button, ContainerInput type) {
         var raw = VirtualSlotProjection.withProjectionSuppressed(slot::getItem);
+        var helper = ScreenInfoHelper.get();
 
         var ctx = new SlotClickContext(
-            VirtualSlotProjection.createSlotView(slot, raw),
+            new SlotView().update(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw),
             type,
             button,
             SlotInputModifiers.from(Minecraft.getInstance())
         );
-
         return SlotHookRegistry.handleClick(ctx);
     }
 }

@@ -51,16 +51,18 @@ public final class ProductInfoProvider {
      * Screens that are part of the product order flow. The opened product info
      * is preserved when transitioning between these screens
      */
-    private static final Set<BazaarMenuType> PRODUCT_FLOW_MENUS = Set.of(
+    private static final BazaarMenuType[] PRODUCT_FLOW_MENUS = {
         BazaarMenuType.Item,
         BazaarMenuType.BuyOrderSetupVolume,
         BazaarMenuType.BuyOrderSetupPrice,
         BazaarMenuType.BuyOrderConfirmation,
         BazaarMenuType.SellOfferSetup,
         BazaarMenuType.SellOfferConfirmation
-    );
-
-    private static final BazaarMenuType[] PRODUCT_FLOW_MENUS_ARRAY = PRODUCT_FLOW_MENUS.toArray(BazaarMenuType[]::new);
+    };
+    private static final BazaarMenuType[] CTRL_SHIFT_MENUS = {
+        BazaarMenuType.Main,
+        BazaarMenuType.Item
+    };
 
     private final BazaarData bazaarData;
     private final PriceCache priceCache;
@@ -143,7 +145,7 @@ public final class ProductInfoProvider {
             boolean closed = curr.getScreen() == null;
             boolean transientFlowClose = closed && prev.getScreen() instanceof SignEditScreen;
             boolean leftToNonFlowBazaar = curr.inBazaar()
-                && !curr.inMenu(PRODUCT_FLOW_MENUS_ARRAY);
+                && !curr.inMenu(PRODUCT_FLOW_MENUS);
 
             if (transientFlowClose) {
                 log.debug(
@@ -281,7 +283,7 @@ public final class ProductInfoProvider {
             return false;
         }
 
-        boolean inBazaarMainOrItem = ScreenInfoHelper.inMenu(BazaarMenuType.Main, BazaarMenuType.Item);
+        boolean inBazaarMainOrItem = ScreenInfoHelper.inMenu(CTRL_SHIFT_MENUS);
         if (!inBazaarMainOrItem && !cfg.showOutsideBazaar && !ScreenInfoHelper.inBazaar()) {
             return false;
         }
@@ -388,7 +390,7 @@ public final class ProductInfoProvider {
                 && ProductInfoProvider.this.openedProductNameInfo != null
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_ITEM_IDX
-                && view.currInfo().inMenu(BazaarMenuType.Item);
+                && view.getCurrInfo().inMenu(BazaarMenuType.Item);
         }
 
         @Override
@@ -412,7 +414,7 @@ public final class ProductInfoProvider {
 
         @Override
         public boolean matches(SlotView view) {
-            return !view.rawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view.rawStack());
+            return !view.getRawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view.getRawStack());
         }
 
         @Override
@@ -422,7 +424,7 @@ public final class ProductInfoProvider {
             }
 
             var cfg = ConfigManager.get().productInfo;
-            var stack = ctx.view().rawStack();
+            var stack = ctx.view().getRawStack();
             var id = ProductInfoProvider.this.productIdCache.get(stack);
             if (id.isEmpty()) {
                 log.warn("No product id found for {}", stack.getHoverName().getString());

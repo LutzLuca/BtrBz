@@ -41,6 +41,10 @@ public class OrderProtectionManager {
     private static final int CONFIRMATION_SLOT_INDEX = 13;
     private static final String VALIDATION_FAILURE_REASON = "Could not validate this order.";
     private static final String VALIDATION_UNAVAILABLE_REASON = "Order validation unavailable.";
+    private static final BazaarMenuType[] CONFIRMATION_MENUS = {
+        BazaarMenuType.BuyOrderConfirmation,
+        BazaarMenuType.SellOfferConfirmation
+    };
 
     private final BazaarData bazaarData;
     private final WeakHashMap<ItemStack, PendingOrderData> validationCache = new WeakHashMap<>();
@@ -185,21 +189,21 @@ public class OrderProtectionManager {
         public boolean matches(SlotView view) {
             return !view.playerInventorySlot()
                 && view.slotIdx() == CONFIRMATION_SLOT_INDEX
-                && view.currInfo().inMenu(BazaarMenuType.BuyOrderConfirmation, BazaarMenuType.SellOfferConfirmation);
+                && view.getCurrInfo().inMenu(CONFIRMATION_MENUS);
         }
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
             if (ConfigManager.get().orderProtection.enabled) {
-                OrderProtectionManager.this.validateConfirmationStack(ctx.view().rawStack());
+                OrderProtectionManager.this.validateConfirmationStack(ctx.view().getRawStack());
             }
 
-            return ctx.view().rawStack();
+            return ctx.view().getRawStack();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var stack = ctx.view().rawStack();
+            var stack = ctx.view().getRawStack();
             var cfg = ConfigManager.get().orderProtection;
             var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)

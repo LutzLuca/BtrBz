@@ -27,6 +27,12 @@ public class OrderBookScreenController {
     private static final int CUSTOM_ORDER_BOOK_IDX = 8;
     private final BazaarData bazaarData;
     private final ProductInfoProvider productInfoProvider;
+    private static final BazaarMenuType[] ORDER_BOOK_MENUS = {
+        BazaarMenuType.Item,
+        BazaarMenuType.BuyOrderSetupVolume,
+        BazaarMenuType.BuyOrderSetupPrice,
+        BazaarMenuType.SellOfferSetup
+    };
 
     public OrderBookScreenController(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
@@ -44,12 +50,7 @@ public class OrderBookScreenController {
             return ConfigManager.get().orderBook.enabled
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_ORDER_BOOK_IDX
-                && view.currInfo().inMenu(
-                    BazaarMenuType.Item,
-                    BazaarMenuType.BuyOrderSetupVolume,
-                    BazaarMenuType.BuyOrderSetupPrice,
-                    BazaarMenuType.SellOfferSetup
-                );
+                && view.getCurrInfo().inMenu(ORDER_BOOK_MENUS);
         }
 
         @Override
@@ -80,7 +81,7 @@ public class OrderBookScreenController {
 
             var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
             var orderBookScreen = new OrderBookScreen(
-                ctx.view().currInfo().getScreen(),
+                ctx.view().getCurrInfo().getScreen(),
                 productNameInfo.productName(),
                 orders
             );

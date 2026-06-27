@@ -27,27 +27,21 @@ public final class VirtualSlotProjection {
         }
     }
 
-    public static ItemStack project(Slot slot, ItemStack raw) {
+    public static ItemStack project(Slot slot, ItemStack raw, SlotView sharedView, SlotRenderContext sharedContext) {
         if (SUPPRESSION_DEPTH.get() > 0) {
             return raw;
         }
 
-        var proj = VirtualSlotProjection.withProjectionSuppressed(() -> {
-            var view = VirtualSlotProjection.createSlotView(slot, raw);
-            return SlotHookRegistry.getDisplayStack(new SlotRenderContext(view));
-        });
+        int prevDepth = SUPPRESSION_DEPTH.get();
+        SUPPRESSION_DEPTH.set(prevDepth + 1);
 
-        return proj == raw ? raw : CatharsisSupport.disableCatharsisModifications(proj);
-    }
-
-    public static @NotNull SlotView createSlotView(Slot slot, ItemStack rawStack) {
-        var helper = ScreenInfoHelper.get();
-        
-        return new SlotView(
-            helper.getCurrInfo(),
-            helper.getPrevInfo(),
-            slot,
-            rawStack
-        );
+        try {
+            var helper = ScreenInfoHelper.get();
+            sharedView.update(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw);
+            var proj = SlotHookRegistry.getDisplayStack(sharedContext);
+            return proj == raw ? raw : CatharsisSupport.disableCatharsisModifications(proj);
+        } finally {
+            SUPPRESSION_DEPTH.set(prevDepth);
+        }
     }
 }

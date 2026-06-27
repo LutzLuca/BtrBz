@@ -36,6 +36,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
     private OrderBookPriceWidget widget;
 
+    private static final BazaarMenuType[] PRICE_SETUP_MENUS = {
+        BazaarMenuType.BuyOrderSetupPrice,
+        BazaarMenuType.SellOfferSetup
+    };
+
     @Nullable private OrderType currentOrderType;
 
     @Override
@@ -75,7 +80,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return false;
         }
 
-        return prev.inMenu(BazaarMenuType.BuyOrderSetupPrice, BazaarMenuType.SellOfferSetup);
+        return prev.inMenu(PRICE_SETUP_MENUS);
     }
 
     private Optional<OrderType> resolveCurrentOrderType(ScreenInfo curr, ScreenInfo prev) {

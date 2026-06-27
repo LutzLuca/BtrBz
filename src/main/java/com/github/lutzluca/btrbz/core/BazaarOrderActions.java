@@ -186,7 +186,7 @@ public class BazaarOrderActions {
     }
 
     private int getReopenTargetSlotIdx(SlotView slot) {
-        return slot.currInfo()
+        return slot.getCurrInfo()
             .getGenericContainerScreen()
             .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
             .orElse(-1);
@@ -209,9 +209,9 @@ public class BazaarOrderActions {
             var cfg = ConfigManager.get().orderActions;
             return cfg.enabled
                 && !view.playerInventorySlot()
-                && view.currInfo().inMenu(BazaarMenuType.OrderOptions)
-                && view.prevInfo().inMenu(BazaarMenuType.Orders)
-                && BazaarOrderActions.this.isCancelOrderSlot(view.slot());
+                && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
+                && view.getPrevInfo().inMenu(BazaarMenuType.Orders)
+                && BazaarOrderActions.this.isCancelOrderSlot(view.getSlot());
         }
 
         @Override
@@ -252,7 +252,7 @@ public class BazaarOrderActions {
                 && (!cfg.clearOnClose || !BazaarOrderActions.this.hideCancelledOrderButton)
                 && BazaarOrderActions.this.lastCancelledBuyOrder != null
                 && !view.playerInventorySlot()
-                && view.currInfo().inMenu(BazaarMenuType.Orders)
+                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && view.slotIdx() == BazaarOrderActions.this.getReopenTargetSlotIdx(view);
         }
 
@@ -276,7 +276,7 @@ public class BazaarOrderActions {
         @Override
         public boolean matches(SlotView view) {
             return ConfigManager.get().orderActions.enabled
-                && view.currInfo().inMenu(BazaarMenuType.Orders)
+                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }
 
@@ -284,11 +284,11 @@ public class BazaarOrderActions {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var slot = ctx.view();
             var orderInfo = OrderInfoParser.parseOrderInfo(
-                slot.rawStack(),
+                slot.getRawStack(),
                 slot.slotIdx()
             );
             if (orderInfo.isSuccess()) {
-                BazaarOrderActions.this.onOrderClick(orderInfo.get(), slot.rawStack());
+                BazaarOrderActions.this.onOrderClick(orderInfo.get(), slot.getRawStack());
             }
 
             return SlotClickResult.Pass;
