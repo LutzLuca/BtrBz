@@ -47,6 +47,9 @@ public abstract class Module<T> {
 
     public abstract Optional<DraggableWidget> createWidget(ScreenInfo info);
 
+    /**
+     * Schedules a config save: avoid regular hot-path calls like tick, render, or polling.
+     */
     protected void updateConfig(Consumer<T> updater) {
         updater.accept(this.configState);
         ModuleManager.getInstance().setDirty(true);

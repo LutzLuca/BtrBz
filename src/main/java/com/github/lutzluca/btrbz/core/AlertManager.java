@@ -29,48 +29,55 @@ public class AlertManager {
     public AlertManager() { }
 
     public void onBazaarUpdate(Map<String, Product> products) {
-        if (!ConfigManager.get().alert.enabled) {
+        var cfg = ConfigManager.get().alert;
+        if (!cfg.enabled) {
             return;
         }
 
-        ConfigManager.withConfig(cfg -> {
-            var it = cfg.alert.alerts.iterator();
+        boolean changed = false;
+        var it = cfg.alerts.iterator();
 
-            while (it.hasNext()) {
-                var curr = it.next();
-                var priceResult = curr.getAssociatedPrice(products);
-                if (priceResult.isFailure()) {
-                    Notifier.notifyInvalidProduct(curr);
-                    continue;
-                }
-
-                var price = priceResult.get();
-                var reached = price.map(marketPrice -> switch (curr.type) {
-                    case SellOffer, InstaSell -> marketPrice >= curr.price;
-                    case BuyOrder, InstaBuy -> marketPrice <= curr.price;
-                }).orElse(true);
-
-                if (reached) {
-                    it.remove();
-                    Notifier.notifyPriceReached(curr, price);
-                    continue;
-                }
-
-                var now = System.currentTimeMillis();
-                var duration = now - curr.createdAt;
-
-                if (duration > Utils.WEEK_DURATION_MS && curr.remindedAfter < Utils.WEEK_DURATION_MS) {
-                    Notifier.notifyOutdatedAlert(curr, "over a week");
-                    curr.remindedAfter = duration;
-                    continue;
-                }
-
-                if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
-                    Notifier.notifyOutdatedAlert(curr, "over a month");
-                    curr.remindedAfter = duration;
-                }
+        while (it.hasNext()) {
+            var curr = it.next();
+            var priceResult = curr.getAssociatedPrice(products);
+            if (priceResult.isFailure()) {
+                Notifier.notifyInvalidProduct(curr);
+                continue;
             }
-        });
+
+            var price = priceResult.get();
+            var reached = price.map(marketPrice -> switch (curr.type) {
+                case SellOffer, InstaSell -> marketPrice >= curr.price;
+                case BuyOrder, InstaBuy -> marketPrice <= curr.price;
+            }).orElse(true);
+
+            if (reached) {
+                it.remove();
+                changed = true;
+                Notifier.notifyPriceReached(curr, price);
+                continue;
+            }
+
+            var now = System.currentTimeMillis();
+            var duration = now - curr.createdAt;
+
+            if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
+                Notifier.notifyOutdatedAlert(curr, "over a month");
+                curr.remindedAfter = duration;
+                changed = true;
+            }
+
+            if (duration > Utils.WEEK_DURATION_MS && curr.remindedAfter < Utils.WEEK_DURATION_MS) {
+                Notifier.notifyOutdatedAlert(curr, "over a week");
+                curr.remindedAfter = duration;
+                changed = true;
+                continue;
+            }
+        }
+
+        if (changed) {
+            ConfigManager.save();
+        }
     }
 
     public boolean addAlert(ResolvedAlertArgs args) {
