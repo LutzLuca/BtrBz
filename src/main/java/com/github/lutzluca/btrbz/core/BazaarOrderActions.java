@@ -100,7 +100,7 @@ public class BazaarOrderActions {
 
         ScreenInfoHelper.registerOnClose(
             info -> info.inMenu(BazaarMenuType.OrderOptions),
-            ignored -> {
+            _ -> {
                 BazaarOrderActions.this.remainingOrderAmount = null;
                 BazaarOrderActions.this.activeBuyOrderContext = null;
             }

@@ -77,7 +77,7 @@ public class ScreenInventoryTracker {
         switch (packet) {
             case ClientboundOpenScreenPacket openPacket -> this.handleOpenScreen(openPacket);
             case ClientboundContainerSetSlotPacket slotPacket -> this.handleSlotUpdate(slotPacket);
-            case ClientboundContainerClosePacket ignored -> this.close();
+            case ClientboundContainerClosePacket _ -> this.close();
             default -> { }
         }
     }

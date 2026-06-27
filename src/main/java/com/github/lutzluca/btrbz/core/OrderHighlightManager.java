@@ -26,10 +26,10 @@ public class OrderHighlightManager {
 
     public static int colorForStatus(OrderStatus status) {
         return switch (status) {
-            case OrderStatus.Top ignored -> 0xFF55FF55;
-            case OrderStatus.Matched ignored -> 0xFF5555FF;
-            case OrderStatus.Undercut ignored -> 0xFFFF5555;
-            case OrderStatus.Unknown ignored -> 0xFFAA55FF;
+            case OrderStatus.Top _ -> 0xFF55FF55;
+            case OrderStatus.Matched _ -> 0xFF5555FF;
+            case OrderStatus.Undercut _ -> 0xFFFF5555;
+            case OrderStatus.Unknown _ -> 0xFFAA55FF;
         };
     }
 

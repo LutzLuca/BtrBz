@@ -51,7 +51,7 @@ public class ModuleManager {
 
             ScreenInfoHelper.registerOnLoaded(
                 info -> true,
-                (info, ignored) -> instance.revalidateModules(info)
+                (info, _) -> instance.revalidateModules(info)
             );
         }
 
