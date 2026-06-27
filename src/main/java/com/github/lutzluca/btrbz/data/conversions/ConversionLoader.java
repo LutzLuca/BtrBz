@@ -49,8 +49,7 @@ final class ConversionLoader {
     private static Try<ConversionIndex> loadFromLocalCache() {
         return Try
             .of(() -> Files.readString(LOCAL_INDEX_FILEPATH, StandardCharsets.UTF_8))
-            .flatMap(ConversionLoader::parseIndex)
-            .map(ConversionIndexNormalizer::normalizeDerivedEntries);
+            .flatMap(ConversionLoader::parseIndex);
     }
 
     private static Try<ConversionIndex> loadFromBundledSeed() {
@@ -63,7 +62,6 @@ final class ConversionLoader {
                 .open())
             .flatMap(ConversionLoader::readStream)
             .flatMap(ConversionLoader::parseIndex)
-            .map(ConversionIndexNormalizer::normalizeDerivedEntries)
             .onFailure(err -> log.error("Bundled conversion index unavailable", err));
     }
 

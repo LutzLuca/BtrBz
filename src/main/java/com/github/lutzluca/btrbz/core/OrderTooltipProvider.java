@@ -63,7 +63,7 @@ public class OrderTooltipProvider {
         this.listCache = new OrderTooltipCache("list");
         this.itemCache = new OrderTooltipCache("item");
 
-        this.bazaarData.addBazaarListener(products -> {
+        this.bazaarData.addListener(snapshot -> {
             this.listCache.clear();
             this.itemCache.clear();
         });

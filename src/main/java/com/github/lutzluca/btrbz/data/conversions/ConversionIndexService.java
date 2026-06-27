@@ -1,14 +1,14 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
+import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.ProductRef;
-import com.github.lutzluca.btrbz.utils.MessageQueue;
-import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import io.vavr.control.Try;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +20,13 @@ public final class ConversionIndexService {
 
     private final ProductResolver resolver;
     private final List<Runnable> indexChangeListeners = new ArrayList<>();
+    private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
 
     private volatile ConversionIndex currentIndex;
     private volatile IndexLoadSource activeLoadSource;
     private volatile @Nullable String lastSuccessfulRefreshAt;
     private volatile Optional<ConversionRefreshException> lastFailure = Optional.empty();
-    private boolean automaticFailureNotified;
 
     public ConversionIndexService() {
         this(ConversionIndex.empty(), IndexLoadSource.Unavailable);
@@ -37,9 +37,10 @@ public final class ConversionIndexService {
     }
 
     private ConversionIndexService(ConversionIndex initialIndex, IndexLoadSource source) {
-        this.currentIndex = ConversionIndexNormalizer.normalizeDerivedEntries(initialIndex);
-        this.activeLoadSource = source;
+        this.currentIndex = ConversionIndex.empty();
+        this.activeLoadSource = IndexLoadSource.Unavailable;
         this.resolver = new ProductResolver(this, new ResolutionDiagnostics());
+        this.applyIndex(initialIndex, source);
     }
 
     public void loadConversionIndex() {
@@ -56,22 +57,23 @@ public final class ConversionIndexService {
             result.getCause().getMessage(),
             result.getCause()
         );
-        this.currentIndex = ConversionIndex.empty();
-        this.activeLoadSource = IndexLoadSource.Unavailable;
         this.lastFailure = Optional.of(failure);
+        this.applyIndex(ConversionIndex.empty(), IndexLoadSource.Unavailable);
         log.error("Failed to load any Bazaar conversion index", result.getCause());
-        MessageQueue.sendOrQueue(
-            "Failed to load Bazaar conversions; some features may not work as expected. Try /btrbz conversions refresh.",
-            Level.Error
-        );
-        this.notifyIndexChanged();
+        this.emitConversionEvent(new ConversionEvent(
+            ConversionEvent.Kind.LoadFailure,
+            false,
+            failure.shortMessage()
+        ));
     }
 
     public boolean refreshConversionIndex(boolean manual) {
         if (!this.refreshInFlight.compareAndSet(false, true)) {
-            if (manual) {
-                MessageQueue.sendOrQueue("Bazaar conversion refresh is already running", Level.Info);
-            }
+            this.emitConversionEvent(new ConversionEvent(
+                ConversionEvent.Kind.RefreshAlreadyRunning,
+                manual,
+                ""
+            ));
             return false;
         }
 
@@ -127,12 +129,20 @@ public final class ConversionIndexService {
         this.indexChangeListeners.remove(listener);
     }
 
+    public void addConversionEventListener(Consumer<ConversionEvent> listener) {
+        this.conversionEventListeners.add(listener);
+    }
+
+    public void removeConversionEventListener(Consumer<ConversionEvent> listener) {
+        this.conversionEventListeners.remove(listener);
+    }
+
     private void applyRemoteRefresh(ConversionIndex index, boolean manual) {
-        this.applyIndex(index, IndexLoadSource.RemoteRefresh);
+        var appliedIndex = this.applyIndex(index, IndexLoadSource.RemoteRefresh);
         this.lastSuccessfulRefreshAt = Instant.now().toString();
         this.lastFailure = Optional.empty();
 
-        ConversionLoader.persistIndex(index)
+        ConversionLoader.persistIndex(appliedIndex)
             .onFailure(err -> {
                 var failure = new ConversionRefreshException(
                     ConversionFailurePhase.Persist,
@@ -141,21 +151,29 @@ public final class ConversionIndexService {
                 );
                 this.lastFailure = Optional.of(failure);
                 log.warn("Refreshed Bazaar conversion index but failed to persist local cache", err);
-                if (manual) {
-                    MessageQueue.sendOrQueue("Updated Bazaar conversions, but failed to cache them locally", Level.Warn);
-                }
+                this.emitConversionEvent(new ConversionEvent(
+                    ConversionEvent.Kind.PersistFailure,
+                    manual,
+                    failure.shortMessage()
+                ));
             });
 
-        if (manual && this.lastFailure.isEmpty()) {
-            MessageQueue.sendOrQueue("Updated Bazaar conversion index", Level.Info);
+        if (this.lastFailure.isEmpty()) {
+            this.emitConversionEvent(new ConversionEvent(
+                ConversionEvent.Kind.RefreshSuccess,
+                manual,
+                ""
+            ));
         }
     }
 
-    private void applyIndex(ConversionIndex index, IndexLoadSource source) {
-        this.currentIndex = ConversionIndexNormalizer.normalizeDerivedEntries(index);
+    private ConversionIndex applyIndex(ConversionIndex index, IndexLoadSource source) {
+        var normalized = ConversionIndexNormalizer.normalizeDerivedEntries(index);
+        this.currentIndex = normalized;
         this.activeLoadSource = source;
-        this.logIndexSummary(source, this.currentIndex);
+        this.logIndexSummary(source, normalized);
         this.notifyIndexChanged();
+        return normalized;
     }
 
     private void logIndexSummary(IndexLoadSource source, ConversionIndex index) {
@@ -193,24 +211,24 @@ public final class ConversionIndexService {
     private void handleRefreshFailure(ConversionRefreshException failure, boolean manual) {
         this.lastFailure = Optional.of(failure);
         log.error("Failed to refresh Bazaar conversion index; active index remains unchanged", failure);
-        if (manual) {
-            MessageQueue.sendOrQueue("Failed to refresh Bazaar conversions: " + failure.shortMessage(), Level.Warn);
-            return;
-        }
-
-        if (!this.automaticFailureNotified) {
-            this.automaticFailureNotified = true;
-            MessageQueue.sendOrQueue(
-                "BtrBz could not refresh Bazaar conversions; using bundled/cache data. Run /btrbz conversions status for details.",
-                Level.Warn
-            );
-        }
+        this.emitConversionEvent(new ConversionEvent(
+            ConversionEvent.Kind.RefreshFailure,
+            manual,
+            failure.shortMessage()
+        ));
     }
 
     private void notifyIndexChanged() {
         List.copyOf(this.indexChangeListeners).forEach(listener ->
             Try.run(listener::run)
                 .onFailure(err -> log.error("Conversion index listener failed", err))
+        );
+    }
+
+    private void emitConversionEvent(ConversionEvent event) {
+        List.copyOf(this.conversionEventListeners).forEach(listener ->
+            Try.run(() -> listener.accept(event))
+                .onFailure(err -> log.error("Conversion event listener failed", err))
         );
     }
 

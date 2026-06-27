@@ -5,21 +5,27 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import io.vavr.control.Try;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -29,7 +35,7 @@ public class AlertManager {
 
     public AlertManager() { }
 
-    public void onBazaarUpdate(Map<String, Product> products) {
+    public void onBazaarUpdate(MarketSnapshot snapshot) {
         var cfg = ConfigManager.get().alert;
         if (!cfg.enabled) {
             return;
@@ -40,7 +46,7 @@ public class AlertManager {
 
         while (it.hasNext()) {
             var curr = it.next();
-            var priceResult = curr.getAssociatedPrice(products);
+            var priceResult = curr.getAssociatedPrice(snapshot);
             if (priceResult.isFailure()) {
                 Notifier.notifyInvalidProduct(curr);
                 continue;
@@ -145,6 +151,22 @@ public class AlertManager {
             this.price = args.price();
         }
 
+        private Alert(
+            UUID id,
+            long createdAt,
+            ProductRef product,
+            AlertType type,
+            double price,
+            long remindedAfter
+        ) {
+            this.id = id;
+            this.createdAt = createdAt;
+            this.product = product;
+            this.type = type;
+            this.price = price;
+            this.remindedAfter = remindedAfter;
+        }
+
         public String productName() {
             return this.product.displayName();
         }
@@ -153,15 +175,15 @@ public class AlertManager {
             return this.product.productId();
         }
 
-        public Try<Optional<Double>> getAssociatedPrice(Map<String, Product> products) {
-            var prod = products.get(this.productId());
-            if (prod == null) {
+        public Try<Optional<Double>> getAssociatedPrice(MarketSnapshot snapshot) {
+            if (!snapshot.contains(this.product)) {
                 return Try.failure(new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
             }
 
+            var prices = snapshot.getMarketPrices(this.product);
             var price = switch (this.type) {
-                case BuyOrder, InstaSell -> BazaarData.firstSummaryPrice(prod.getSellSummary());
-                case SellOffer, InstaBuy -> BazaarData.firstSummaryPrice(prod.getBuySummary());
+                case BuyOrder, InstaSell -> prices.highestBuyOrderPrice();
+                case SellOffer, InstaBuy -> prices.lowestSellOfferPrice();
             };
             return Try.success(price);
         }
@@ -174,7 +196,7 @@ public class AlertManager {
                 .append(Component
                     .literal(Utils.formatDecimal(this.price, 1, true) + "coins")
                     .withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" (" + type.format() + ")").withStyle(ChatFormatting.DARK_GRAY));
+                .append(Component.literal(" (" + this.type.format() + ")").withStyle(ChatFormatting.DARK_GRAY));
         }
 
         public boolean matches(ResolvedAlertArgs args) {
@@ -183,6 +205,61 @@ public class AlertManager {
                 && this.type == args.type()
                 && Double.compare(this.price, args.price()) == 0;
             // @formatter:on
+        }
+
+        public static final class GsonAdapter implements JsonSerializer<Alert>, JsonDeserializer<Alert> {
+
+            @Override
+            public JsonElement serialize(
+                Alert src,
+                Type typeOfSrc,
+                JsonSerializationContext context
+            ) {
+                var obj = new JsonObject();
+                obj.addProperty("id", src.id.toString());
+                obj.addProperty("createdAt", src.createdAt);
+                obj.addProperty("productId", src.productId());
+                obj.addProperty("displayName", src.productName());
+                obj.add("type", context.serialize(src.type));
+                obj.addProperty("price", src.price);
+                obj.addProperty("remindedAfter", src.remindedAfter);
+                return obj;
+            }
+
+            @Override
+            public Alert deserialize(
+                JsonElement json,
+                Type typeOfT,
+                JsonDeserializationContext context
+            ) throws JsonParseException {
+                var obj = json.getAsJsonObject();
+
+                return new Alert(
+                    UUID.fromString(required(obj, "id").getAsString()),
+                    required(obj, "createdAt").getAsLong(),
+                    new ProductRef(
+                        required(obj, "productId").getAsString(),
+                        required(obj, "displayName").getAsString()
+                    ),
+                    context.deserialize(required(obj, "type"), AlertType.class),
+                    required(obj, "price").getAsDouble(),
+                    optionalLong(obj, "remindedAfter").orElse(-1L)
+                );
+            }
+
+            private static JsonElement required(JsonObject obj, String name) {
+                if (!obj.has(name) || obj.get(name).isJsonNull()) {
+                    throw new JsonParseException("Alert is missing required field '" + name + "'");
+                }
+                return obj.get(name);
+            }
+
+            private static Optional<Long> optionalLong(JsonObject obj, String name) {
+                if (obj == null || !obj.has(name) || obj.get(name).isJsonNull()) {
+                    return Optional.empty();
+                }
+                return Optional.of(obj.get(name).getAsLong());
+            }
         }
     }
 

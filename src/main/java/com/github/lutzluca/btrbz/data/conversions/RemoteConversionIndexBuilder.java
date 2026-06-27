@@ -54,7 +54,7 @@ final class RemoteConversionIndexBuilder {
         var productIds = fetchBazaarProductIds();
         var hypixelItems = fetchHypixelItemNames();
         var neuCommit = fetchNeuCommit();
-        var neuEntries = current.neuCommit().filter(neuCommit::equals).isPresent()
+        var neuEntries = shouldReuseNeuEntries(current, neuCommit, productIds, hypixelItems)
             ? reusableNeuEntries(current)
             : fetchNeuEntries(neuCommit, productIds);
 
@@ -100,12 +100,12 @@ final class RemoteConversionIndexBuilder {
             );
         }
 
-        var index = ConversionIndexNormalizer.normalizeDerivedEntries(new ConversionIndex(
+        var index = new ConversionIndex(
             ConversionIndex.SCHEMA_VERSION,
             Instant.now().toString(),
             neuCommit,
             products
-        ));
+        );
         var counts = index.sourceCounts();
         log.debug(
             "Built Bazaar conversion index from {} products: hypixelItems={}, neu={}, derived={}, neuCommit={}",
@@ -119,6 +119,25 @@ final class RemoteConversionIndexBuilder {
             log.warn("Generic title-case conversion fallback used during refresh; sample: {}", derivedFallbackExamples);
         }
         return index;
+    }
+
+    static boolean shouldReuseNeuEntries(
+        ConversionIndex current,
+        String neuCommit,
+        Set<String> productIds,
+        Map<String, String> hypixelItems
+    ) {
+        if (current == null || current.neuCommit().filter(neuCommit::equals).isEmpty()) {
+            return false;
+        }
+
+        return productIds
+            .stream()
+            .filter(productId -> {
+                var hypixelName = hypixelItems.get(productId);
+                return hypixelName == null || hypixelName.isBlank();
+            })
+            .allMatch(productId -> current.products().containsKey(productId));
     }
 
     private static Set<String> fetchBazaarProductIds() throws ConversionRefreshException {

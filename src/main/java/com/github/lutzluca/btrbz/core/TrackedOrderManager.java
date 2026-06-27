@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
@@ -40,7 +41,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import lombok.extern.slf4j.Slf4j;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
+import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
@@ -173,13 +174,13 @@ public class TrackedOrderManager {
         record SelfMatched() implements GroupStatus {}
     }
 
-    public void onBazaarUpdate(Map<String, Product> products) {
-        var updates = this.computeStatusUpdates(products).peek(update -> {
+    public void onBazaarUpdate(MarketSnapshot snapshot) {
+        var updates = this.computeStatusUpdates(snapshot).peek(update -> {
             update.order().status = update.curr;
         }).collect(Collectors.toList());
 
-        this.sendNotifications(updates, products);
-        this.resolveSelfUndercutStates(products);
+        this.sendNotifications(updates, snapshot);
+        this.resolveSelfUndercutStates(snapshot);
     }
 
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
@@ -189,7 +190,7 @@ public class TrackedOrderManager {
     // Fixing this would require a separate group-level status diff pass (tracking previous
     // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
     // Accepted as a known limitation (for now).
-    private void sendNotifications(List<StatusUpdate> statusUpdates, Map<String, Product> products) {
+    private void sendNotifications(List<StatusUpdate> statusUpdates, MarketSnapshot snapshot) {
         var cfg = ConfigManager.get().trackedOrders;
         if(!cfg.enabled) {
             return;
@@ -213,7 +214,7 @@ public class TrackedOrderManager {
                 continue;
             }
 
-            this.processGroupNotification(key, orders, updates, products);
+            this.processGroupNotification(key, orders, updates, snapshot);
         }
     }
 
@@ -221,7 +222,7 @@ public class TrackedOrderManager {
         GroupKey key,
         List<TrackedOrder> orders,
         List<StatusUpdate> updates,
-        Map<String,Product> products
+        MarketSnapshot snapshot
     ) {
         var cfg = ConfigManager.get().trackedOrders;
         
@@ -232,7 +233,7 @@ public class TrackedOrderManager {
             return;   
         }
 
-        GroupStatus curr = this.getCurrentGroupStatus(key, orders, products);
+        GroupStatus curr = this.getCurrentGroupStatus(key, orders, snapshot);
         
         if(curr == null) {
             log.warn("Group ({}) has no settled status, skipping group notification", key);
@@ -253,7 +254,7 @@ public class TrackedOrderManager {
         Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
     }
 
-    private @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, Map<String,Product> products) {
+    private @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, MarketSnapshot snapshot) {
         boolean hasMatched = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Matched);
         boolean hasUndercut = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
         boolean hasUnknown = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Unknown);
@@ -276,7 +277,7 @@ public class TrackedOrderManager {
             return new GroupStatus.Undercut(undercutAmount);
         }
 
-        int bucketOrderCount = this.countOrdersAtBestPrice(key, this.bazaarData);
+        int bucketOrderCount = this.countOrdersAtBestPrice(key, snapshot);
         if(bucketOrderCount == -1) {
             log.warn("Group ({}) has no orders at the given price per unit, skipping group notification", key);
             return null;
@@ -321,14 +322,14 @@ public class TrackedOrderManager {
         return null;
     }
 
-    private int countOrdersAtBestPrice(GroupKey key, BazaarData bazaarData) {
+    private int countOrdersAtBestPrice(GroupKey key, MarketSnapshot snapshot) {
         var product = key.product().resolvedProduct().orElse(null);
         if (product == null) {
             log.warn("Group ({}) has unresolved product, skipping group notification", key);
             return -1;
         }
         
-        var lists = bazaarData.getOrderLists(product);
+        var lists = snapshot.getOrderLists(product);
         
         var relevantSummaries = switch (key.type) {
             case Buy -> lists.buyOrders();
@@ -342,10 +343,10 @@ public class TrackedOrderManager {
             .orElse(-1);
     }
 
-    public Stream<StatusUpdate> computeStatusUpdates(Map<String, Product> products) {
+    public Stream<StatusUpdate> computeStatusUpdates(MarketSnapshot snapshot) {
         return this.trackedOrders
             .stream()
-            .map(order -> this.getTrackedStatus(order, products))
+            .map(order -> this.getTrackedStatus(order, snapshot))
             .flatMap(Optional::stream)
             .filter(trackedStatus -> !trackedStatus.order().status.sameVariant(trackedStatus.status()))
             .map(trackedStatus -> new StatusUpdate(
@@ -355,7 +356,7 @@ public class TrackedOrderManager {
             ));
     }
 
-    private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
+    private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, MarketSnapshot snapshot) {
         var ref = order.product.resolvedProduct();
         if (ref.isEmpty()) {
             log.warn(
@@ -365,8 +366,7 @@ public class TrackedOrderManager {
             return Optional.empty();
         }
 
-        var product = Optional.ofNullable(products.get(ref.get().productId()));
-        if (product.isEmpty()) {
+        if (!snapshot.contains(ref.get())) {
             log.warn(
                 "No product found for tracked order product {}",
                 ref.get()
@@ -374,7 +374,7 @@ public class TrackedOrderManager {
             return Optional.empty();
         }
 
-        var status = this.getStatus(order, product.get());
+        var status = this.getStatus(order, snapshot.summariesForOrderType(ref.get(), order.type));
         if (status.isEmpty()) {
             log.debug(
                 "Unable to determine curr for product {}",
@@ -468,35 +468,24 @@ public class TrackedOrderManager {
             );
     }
 
-    private Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
-        // floating point inaccuracy for player exposure is handled see
-        // `GeneralUtils.formatDecimal`
-        return switch (order.type) {
-            case Buy -> Utils.getFirst(product.getSellSummary()).map(summary -> {
-                double bestPrice = summary.getPricePerUnit();
-                if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1
-                        ? this.matchedOrGhostTop(order, summary)
-                        : new Top();
-                }
-                if (order.pricePerUnit > bestPrice) {
-                    return new Top();
-                }
-                return new Undercut(bestPrice - order.pricePerUnit);
-            });
-            case Sell -> Utils.getFirst(product.getBuySummary()).map(summary -> {
-                double bestPrice = summary.getPricePerUnit();
-                if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1
-                        ? this.matchedOrGhostTop(order, summary)
-                        : new Top();
-                }
-                if (order.pricePerUnit < bestPrice) {
-                    return new Top();
-                }
-                return new Undercut(order.pricePerUnit - bestPrice);
-            });
-        };
+    private Optional<OrderStatus> getStatus(TrackedOrder order, List<Summary> summaries) {
+        return Utils.getFirst(summaries).map(summary -> {
+            double bestPrice = summary.getPricePerUnit();
+            if (order.pricePerUnit == bestPrice) {
+                return summary.getOrders() > 1
+                    ? this.matchedOrGhostTop(order, summary)
+                    : new Top();
+            }
+
+            return switch (order.type) {
+                case Buy -> order.pricePerUnit > bestPrice
+                    ? new Top()
+                    : new Undercut(bestPrice - order.pricePerUnit);
+                case Sell -> order.pricePerUnit < bestPrice
+                    ? new Top()
+                    : new Undercut(order.pricePerUnit - bestPrice);
+            };
+        });
     }
 
     /**
@@ -506,7 +495,7 @@ public class TrackedOrderManager {
      * (or is less than) the player's own volume, meaning there is no real competition.
      * In that case the order is effectively {@link Top}, not {@link Matched}.
      */
-    private @NotNull OrderStatus matchedOrGhostTop(TrackedOrder order, Product.Summary summary) {
+    private @NotNull OrderStatus matchedOrGhostTop(TrackedOrder order, Summary summary) {
         int itemsAhead = Math.max(0, (int) summary.getAmount() - order.volume);
         if (itemsAhead == 0) {
             log.debug(
@@ -524,7 +513,7 @@ public class TrackedOrderManager {
 
     public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) { }
 
-    private void resolveSelfUndercutStates(Map<String, Product> products) {
+    private void resolveSelfUndercutStates(MarketSnapshot snapshot) {
         var keys = this.trackedOrders.stream()
             .map(SelfUndercutKey::from)
             .distinct()
@@ -534,7 +523,7 @@ public class TrackedOrderManager {
         var cfg = ConfigManager.get().trackedOrders;
 
         for (var key : keys) {
-            var result = this.computeSelfUndercutState(key.product(), key.type(), products);
+            var result = this.computeSelfUndercutState(key.product(), key.type(), snapshot);
             var existing = this.selfUndercutState.get(key);
 
             if (result instanceof SelfUndercutResult.Undercut undercut) {
@@ -570,7 +559,7 @@ public class TrackedOrderManager {
     private SelfUndercutResult computeSelfUndercutState(
         ProductIdentity productIdentity,
         OrderType type, 
-        Map<String, Product> products
+        MarketSnapshot snapshot
     ) {
         var matchingOrders = this.trackedOrders.stream()
             .filter(order -> order.product.equals(productIdentity) && order.type == type)
@@ -596,16 +585,12 @@ public class TrackedOrderManager {
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var product = products.get(productRef.productId());
-        if (product == null) {
-            log.debug("Product {} not found in products map", productRef);
+        if (!snapshot.contains(productRef)) {
+            log.debug("Product {} not found in market snapshot", productRef);
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var summaries = switch (type) {
-            case Buy -> product.getSellSummary();
-            case Sell -> product.getBuySummary();
-        };
+        var summaries = snapshot.summariesForOrderType(productRef, type);
 
         if (summaries == null || summaries.size() < 2) {
             return new SelfUndercutResult.NotUndercut();

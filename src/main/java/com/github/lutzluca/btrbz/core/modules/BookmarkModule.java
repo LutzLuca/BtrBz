@@ -413,20 +413,43 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 Type typeOfT,
                 JsonDeserializationContext context
             ) throws JsonParseException {
+                if (!json.isJsonObject()) {
+                    log.warn("Skipping malformed bookmark entry");
+                    return null;
+                }
                 var obj = json.getAsJsonObject();
 
+                var productId = optionalString(obj, "productId");
+                if (productId.isEmpty()) {
+                    log.warn("Skipping bookmark without productId");
+                    return null;
+                }
+                var displayName = optionalString(obj, "displayName");
+                if (displayName.isEmpty()) {
+                    log.warn("Skipping bookmark {} without displayName", productId.get());
+                    return null;
+                }
                 var product = new ProductRef(
-                    obj.get("productId").getAsString(),
-                    obj.get("displayName").getAsString()
+                    productId.get(),
+                    displayName.get()
                 );
+
+                if (!obj.has("itemStack") || !obj.get("itemStack").isJsonObject()) {
+                    log.warn("Skipping bookmark {} without itemStack", product);
+                    return null;
+                }
                 var itemData = obj.getAsJsonObject("itemStack");
-                var itemIdString = itemData.get("id").getAsString();
-                var itemId = Identifier.tryParse(itemIdString);
+                var itemIdString = optionalString(itemData, "id");
+                if (itemIdString.isEmpty()) {
+                    log.warn("Skipping bookmark {} without item id", product);
+                    return null;
+                }
+                var itemId = Identifier.tryParse(itemIdString.get());
                 if (itemId == null) {
                     log.warn(
                         "Skipping bookmark {} with invalid item id {}",
                         product,
-                        itemIdString
+                        itemIdString.get()
                     );
                     return null;
                 }
@@ -455,6 +478,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 var template = new ItemStackTemplate(item, components);
                 return new BookmarkedItem(product, template);
+            }
+
+            private static Optional<String> optionalString(JsonObject obj, String name) {
+                if (obj == null || !obj.has(name) || obj.get(name).isJsonNull()) {
+                    return Optional.empty();
+                }
+                var value = obj.get(name).getAsString();
+                return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
             }
         }
 

@@ -66,7 +66,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             }
         });
 
-        this.context().bazaarData().addBazaarListener(products -> {
+        this.context().bazaarData().addListener(snapshot -> {
             var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
             if (this.isDisplayed() && productNameInfo != null) {
                 this.rebuildList();
