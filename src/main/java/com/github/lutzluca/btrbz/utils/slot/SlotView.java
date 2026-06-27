@@ -14,8 +14,7 @@ public class SlotView {
      private Slot slot;
      private ItemStack rawStack;
 
-    public SlotView() {}
-
+    private SlotView() {}
 
     public SlotView (
         @NotNull ScreenInfo currInfo,
@@ -27,6 +26,12 @@ public class SlotView {
         this.prevInfo = prevInfo;
         this.slot = slot;
         this.rawStack = rawStack;
+    }
+
+    //creates an uninitialized SlotView for use in the render-path instance
+    //must be populated via update() before use.
+    public static SlotView createUnitialized() {
+        return new SlotView();
     }
 
     public void update (

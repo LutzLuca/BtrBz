@@ -17,7 +17,7 @@ import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
 public abstract class SlotItemProjectionMixin {
 
     @Unique
-    private static final SlotView btrbz$SHARED_VIEW = new SlotView();
+    private static final SlotView btrbz$SHARED_VIEW = SlotView.createUnitialized();
     @Unique
     private static final SlotRenderContext btrbz$SHARED_CONTEXT = new SlotRenderContext(btrbz$SHARED_VIEW);
 
