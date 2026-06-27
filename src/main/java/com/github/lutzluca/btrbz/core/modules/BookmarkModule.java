@@ -240,8 +240,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return SlotClickResult.Pass;
             }
 
-            String productName = rawStack.getHoverName().getString();
-            var isBookmarked = BookmarkModule.this.toggleBookmark(productName, rawStack.copy());
+            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
+            if (productNameInfo == null) {
+                return SlotClickResult.Pass;
+            }
+
+            var isBookmarked = BookmarkModule.this.toggleBookmark(productNameInfo.productName(), rawStack.copy());
             rawStack.set(BtrBz.BOOKMARKED, isBookmarked);
             return SlotClickResult.Consume;
         }
