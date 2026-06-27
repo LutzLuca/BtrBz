@@ -61,17 +61,17 @@ public class AlertManager {
             var now = System.currentTimeMillis();
             var duration = now - curr.createdAt;
 
+            if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
+                Notifier.notifyOutdatedAlert(curr, "over a month");
+                curr.remindedAfter = duration;
+                changed = true;
+            }
+
             if (duration > Utils.WEEK_DURATION_MS && curr.remindedAfter < Utils.WEEK_DURATION_MS) {
                 Notifier.notifyOutdatedAlert(curr, "over a week");
                 curr.remindedAfter = duration;
                 changed = true;
                 continue;
-            }
-
-            if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, "over a month");
-                curr.remindedAfter = duration;
-                changed = true;
             }
         }
 
