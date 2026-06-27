@@ -27,7 +27,7 @@ public final class VirtualSlotProjection {
         }
     }
 
-    public static ItemStack project(Slot slot, ItemStack raw, SlotView sharedView, SlotRenderContext sharedContext) {
+    public static ItemStack project(Slot slot, ItemStack raw, SlotView view, SlotRenderContext ctx) {
         if (SUPPRESSION_DEPTH.get() > 0) {
             return raw;
         }
@@ -37,8 +37,8 @@ public final class VirtualSlotProjection {
 
         try {
             var helper = ScreenInfoHelper.get();
-            sharedView.update(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw);
-            var proj = SlotHookRegistry.getDisplayStack(sharedContext);
+            view.update(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw);
+            var proj = SlotHookRegistry.getDisplayStack(ctx);
             return proj == raw ? raw : CatharsisSupport.disableCatharsisModifications(proj);
         } finally {
             SUPPRESSION_DEPTH.set(prevDepth);

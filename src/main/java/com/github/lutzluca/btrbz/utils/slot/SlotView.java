@@ -16,7 +16,8 @@ public class SlotView {
 
     public SlotView() {}
 
-    public SlotView update(
+
+    public SlotView (
         @NotNull ScreenInfo currInfo,
         @NotNull ScreenInfo prevInfo,
         @NotNull Slot slot,
@@ -26,7 +27,18 @@ public class SlotView {
         this.prevInfo = prevInfo;
         this.slot = slot;
         this.rawStack = rawStack;
-        return this;
+    }
+
+    public void update (
+        @NotNull ScreenInfo currInfo,
+        @NotNull ScreenInfo prevInfo,
+        @NotNull Slot slot,
+        @NotNull ItemStack rawStack
+    ) {
+        this.currInfo = currInfo;
+        this.prevInfo = prevInfo;
+        this.slot = slot;
+        this.rawStack = rawStack;
     }
 
 

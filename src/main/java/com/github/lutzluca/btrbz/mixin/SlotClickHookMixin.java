@@ -46,7 +46,7 @@ public abstract class SlotClickHookMixin {
         var helper = ScreenInfoHelper.get();
 
         var ctx = new SlotClickContext(
-            new SlotView().update(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw),
+            new SlotView(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw),
             type,
             button,
             SlotInputModifiers.from(Minecraft.getInstance())
