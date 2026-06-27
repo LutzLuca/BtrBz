@@ -64,9 +64,8 @@ public final class Utils {
                 ? Files.createTempFile(parent, "btrbz-", ".tmp")
                 : Files.createTempFile("btrbz-", ".tmp");
 
-            Files.writeString(tmp, content);
-
             try {
+                Files.writeString(tmp, content);
                 return Files.move(
                     tmp,
                     target,

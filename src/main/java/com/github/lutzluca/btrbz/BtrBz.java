@@ -25,9 +25,12 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.BazaarPoller;
+import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.MessageQueue;
+import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -63,6 +66,7 @@ public class BtrBz implements ClientModInitializer {
     private AlertManager alertManager;
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
+    private boolean automaticConversionFailureNotified;
 
     public static TrackedOrderManager orderManager() {
         return instance.orderManager;
@@ -96,6 +100,7 @@ public class BtrBz implements ClientModInitializer {
 
         ConfigManager.load();
         Commands.registerAll(BAZAAR_DATA);
+        BAZAAR_DATA.addConversionEventListener(this::handleConversionEvent);
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> BAZAAR_DATA.loadConversions());
 
         this.highlightManager = new OrderHighlightManager();
@@ -153,10 +158,10 @@ public class BtrBz implements ClientModInitializer {
             orderActions.setReopenBazaar();
         });
 
-        BAZAAR_DATA.addBazaarListener(this.alertManager::onBazaarUpdate);
-        BAZAAR_DATA.addBazaarListener(this.orderManager::onBazaarUpdate);
+        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
+        BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
-        new BazaarPoller(BAZAAR_DATA::notifyBazaarListeners);
+        new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(BAZAAR_DATA);
 
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
@@ -212,5 +217,46 @@ public class BtrBz implements ClientModInitializer {
                 this.orderManager.syncOrders(parsed);
             }
         );
+    }
+
+    private void handleConversionEvent(ConversionEvent event) {
+        switch (event.kind()) {
+            case LoadFailure -> MessageQueue.sendOrQueue(
+                "Failed to load Bazaar conversions; some features may not work as expected. Try /btrbz conversions refresh.",
+                Level.Error
+            );
+            case RefreshAlreadyRunning -> {
+                if (event.manual()) {
+                    MessageQueue.sendOrQueue("Bazaar conversion refresh is already running", Level.Info);
+                }
+            }
+            case RefreshSuccess -> {
+                if (event.manual()) {
+                    MessageQueue.sendOrQueue("Updated Bazaar conversion index", Level.Info);
+                }
+            }
+            case PersistFailure -> {
+                if (event.manual()) {
+                    MessageQueue.sendOrQueue("Updated Bazaar conversions, but failed to cache them locally", Level.Warn);
+                }
+            }
+            case RefreshFailure -> {
+                if (event.manual()) {
+                    MessageQueue.sendOrQueue(
+                        "Failed to refresh Bazaar conversions: " + event.message(),
+                        Level.Warn
+                    );
+                    return;
+                }
+
+                if (!this.automaticConversionFailureNotified) {
+                    this.automaticConversionFailureNotified = true;
+                    MessageQueue.sendOrQueue(
+                        "BtrBz could not refresh Bazaar conversions; using bundled/cache data. Run /btrbz conversions status for details.",
+                        Level.Warn
+                    );
+                }
+            }
+        }
     }
 }
