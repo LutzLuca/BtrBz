@@ -397,7 +397,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         log.debug("Handle preset click: {}", preset);
 
         int volume = switch (preset) {
-            case OrderPreset.Max ignored -> {
+            case OrderPreset.Max _ -> {
                 var product = this.getCurrentProduct();
                 if (product == null) {
                     log.debug("Cannot calculate MAX: product unavailable");

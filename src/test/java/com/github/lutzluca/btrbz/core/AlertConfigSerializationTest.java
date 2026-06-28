@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.DisplayName;

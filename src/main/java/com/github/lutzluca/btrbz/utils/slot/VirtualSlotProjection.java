@@ -2,8 +2,6 @@ package com.github.lutzluca.btrbz.utils.slot;
 
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.NotNull;
-
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.compat.CatharsisSupport;
