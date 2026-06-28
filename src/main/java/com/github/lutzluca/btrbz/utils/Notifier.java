@@ -51,7 +51,7 @@ public class Notifier {
         var status = update.curr();
 
         MutableComponent msg = switch (status) {
-            case Top ignored -> {
+            case Top _ -> {
                 SoundUtil.playSoundIf(cfg.soundBest, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
 
                 yield update.prev() instanceof OrderStatus.Unknown
@@ -60,7 +60,7 @@ public class Notifier {
                     : singleMsg(order, cfg, Component.literal("has ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("REGAINED BEST Order!").withStyle(ChatFormatting.GREEN)));
             }
-            case Matched ignored -> {
+            case Matched _ -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 var matchedMsg = singleMsg(order, cfg, Component.literal("was ").withStyle(ChatFormatting.GRAY)
                     .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
@@ -126,7 +126,7 @@ public class Notifier {
                 
                 yield undercutMsg;
             }
-            case GroupStatus.Matched ignored -> {
+            case GroupStatus.Matched _ -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 var matchedMsg = groupMsg(key, groupSize, totalVolume, cfg,
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
@@ -143,7 +143,7 @@ public class Notifier {
                 
                 yield matchedMsg;
             }
-            case GroupStatus.SelfMatched ignored -> {
+            case GroupStatus.SelfMatched _ -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 
                 yield groupMsg(key, groupSize, totalVolume, cfg,

@@ -247,7 +247,7 @@ public class FlipHelper {
             return ConfigManager.get().flipHelper.enabled
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_HELPER_ITEM_SLOT_IDX
-                && view.currInfo().inMenu(BazaarMenuType.OrderOptions)
+                && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
                 && FlipHelper.this.potentialFlipProduct != null;
         }
 
@@ -259,7 +259,7 @@ public class FlipHelper {
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var client = Minecraft.getInstance();
-            var gcsOpt = ctx.view().currInfo().getGenericContainerScreen();
+            var gcsOpt = ctx.view().getCurrInfo().getGenericContainerScreen();
             if (gcsOpt.isEmpty()) {
                 return SlotClickResult.Pass;
             }
@@ -301,14 +301,14 @@ public class FlipHelper {
         @Override
         public boolean matches(SlotView view) {
             return ConfigManager.get().flipHelper.enabled
-                && view.currInfo().inMenu(BazaarMenuType.Orders)
+                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var orderInfo = OrderInfoParser.parseOrderInfo(
-                ctx.view().rawStack(),
+                ctx.view().getRawStack(),
                 ctx.view().slotIdx()
             );
             if (orderInfo.isSuccess()) {

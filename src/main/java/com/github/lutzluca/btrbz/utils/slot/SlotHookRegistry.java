@@ -28,7 +28,7 @@ public final class SlotHookRegistry {
             }
         }
 
-        return view.rawStack();
+        return view.getRawStack();
     }
 
     public static boolean handleClick(SlotClickContext ctx) {

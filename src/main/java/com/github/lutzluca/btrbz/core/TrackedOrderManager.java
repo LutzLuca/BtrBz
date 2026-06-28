@@ -224,9 +224,9 @@ public class TrackedOrderManager {
         }
 
         boolean shouldNotify = switch (curr) {
-            case GroupStatus.Undercut ignored -> cfg.notifyUndercut;
-            case GroupStatus.Matched ignored -> cfg.notifyMatched;
-            case GroupStatus.SelfMatched ignored -> cfg.notifyMatched;
+            case GroupStatus.Undercut _ -> cfg.notifyUndercut;
+            case GroupStatus.Matched _ -> cfg.notifyMatched;
+            case GroupStatus.SelfMatched _ -> cfg.notifyMatched;
         };
 
         if (!shouldNotify) {
@@ -377,7 +377,7 @@ public class TrackedOrderManager {
         var cfg = ConfigManager.get().trackedOrders;
 
         return cfg.enabled && switch (update.curr) {
-            case OrderStatus.Top ignored -> {
+            case OrderStatus.Top _ -> {
                 if (!cfg.notifyBest) {
                     yield false;
                 }
@@ -388,9 +388,9 @@ public class TrackedOrderManager {
 
                 yield true;
             }
-            case OrderStatus.Matched ignored -> cfg.notifyMatched;
-            case OrderStatus.Undercut ignored -> cfg.notifyUndercut;
-            case OrderStatus.Unknown ignored -> false;
+            case OrderStatus.Matched _ -> cfg.notifyMatched;
+            case OrderStatus.Undercut _ -> cfg.notifyUndercut;
+            case OrderStatus.Unknown _ -> false;
         };
     }
 

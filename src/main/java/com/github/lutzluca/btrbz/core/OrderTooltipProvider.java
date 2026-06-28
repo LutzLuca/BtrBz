@@ -238,13 +238,13 @@ public class OrderTooltipProvider {
 
     private static Component statusLine(TrackedOrder order) {
         return switch (order.status) {
-            case OrderStatus.Top ignored -> Component.literal("Best Price!")
+            case OrderStatus.Top _ -> Component.literal("Best Price!")
                     .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
-            case OrderStatus.Matched ignored -> Component.literal("Matched!")
+            case OrderStatus.Matched _ -> Component.literal("Matched!")
                     .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
-            case OrderStatus.Undercut ignored -> Component.literal("Undercut!")
+            case OrderStatus.Undercut _ -> Component.literal("Undercut!")
                     .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
-            case OrderStatus.Unknown ignored -> Component.literal("Status Unknown")
+            case OrderStatus.Unknown _ -> Component.literal("Status Unknown")
                     .withStyle(ChatFormatting.GRAY);
         };
     }

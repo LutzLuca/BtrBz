@@ -76,10 +76,10 @@ public final class OrderModels {
         @Override
         public final String toString() {
             return switch (this) {
-                case Unknown ignored -> "Unknown";
-                case Top ignored -> "Top";
-                case Matched ignored -> "Matched";
-                case Undercut ignored -> "Undercut";
+                case Unknown _ -> "Unknown";
+                case Top _ -> "Top";
+                case Matched _ -> "Matched";
+                case Undercut _ -> "Undercut";
             };
         }
 

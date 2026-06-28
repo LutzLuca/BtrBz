@@ -204,7 +204,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         Optional<Double> purse
     ) {
         return switch (preset) {
-            case OrderPreset.Max ignored -> this.createMaxEntry(preset, priceAvailable, pricePerUnit, purse);
+            case OrderPreset.Max _ -> this.createMaxEntry(preset, priceAvailable, pricePerUnit, purse);
             case OrderPreset.Clipboard clipboardPreset -> this.createAmountEntry(
                 preset,
                 clipboardPreset.amount(),
@@ -393,7 +393,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         log.debug("Handle preset click: {}", preset);
 
         int volume = switch (preset) {
-            case OrderPreset.Max ignored -> {
+            case OrderPreset.Max _ -> {
                 var productId = this.getCurrentProductId();
                 if (productId == null) {
                     log.debug("Cannot calculate MAX: product ID unavailable");

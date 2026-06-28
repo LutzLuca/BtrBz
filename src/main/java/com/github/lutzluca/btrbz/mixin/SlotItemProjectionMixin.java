@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,6 +16,11 @@ import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
 @Mixin(Slot.class)
 public abstract class SlotItemProjectionMixin {
 
+    @Unique
+    private static final SlotView btrbz$SHARED_VIEW = SlotView.createUnitialized();
+    @Unique
+    private static final SlotRenderContext btrbz$SHARED_CONTEXT = new SlotRenderContext(btrbz$SHARED_VIEW);
+
     @Inject(method = "getItem", at = @At("RETURN"), cancellable = true)
     private void projectItem(CallbackInfoReturnable<ItemStack> cir) {
         if (!Minecraft.getInstance().isSameThread()) {
@@ -26,7 +33,7 @@ public abstract class SlotItemProjectionMixin {
         }
 
         var raw = cir.getReturnValue();
-        var proj = VirtualSlotProjection.project(slot, raw);
+        var proj =  VirtualSlotProjection.project(slot, raw, btrbz$SHARED_VIEW, btrbz$SHARED_CONTEXT);
 
         if (proj != raw) {
             cir.setReturnValue(proj);

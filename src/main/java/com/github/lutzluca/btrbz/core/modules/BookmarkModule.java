@@ -189,9 +189,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     public boolean isBookmarked(String productName) {
-        return this.configState.bookmarkedItems
-            .stream()
-            .anyMatch(item -> item.productName().equals(productName));
+        for (var item : this.configState.bookmarkedItems) {
+            if (item.productName().equals(productName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public final class BookmarkedItemHook implements SlotHook {
@@ -202,7 +205,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public boolean matches(SlotView view) {
             return BookmarkModule.this.configState.enabled
                 && view.slotIdx() == PRODUCT_SLOT_IDX
-                && view.currInfo().inMenu(BazaarMenuType.Item);
+                && view.getCurrInfo().inMenu(BazaarMenuType.Item);
         }
 
         @Override
@@ -211,17 +214,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return null;
             }
 
-            var rawStack = ctx.view().rawStack();
+            var rawStack = ctx.view().getRawStack();
             if (ctx.view().playerInventorySlot() || rawStack.isEmpty()) {
                 return null;
             }
 
-            String productName = rawStack.getHoverName().getString();
-            if (BookmarkModule.this.context().bazaarData().nameToId(productName).isEmpty()) {
+            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
+            if (productNameInfo == null) {
                 return null;
             }
 
-            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(productName));
+            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(productNameInfo.productName()));
             return rawStack;
         }
 
@@ -231,14 +234,18 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return SlotClickResult.Pass;
             }
 
-            var rawStack = ctx.view().rawStack();
+            var rawStack = ctx.view().getRawStack();
             var bookmarked = rawStack.get(BtrBz.BOOKMARKED);
             if (bookmarked == null) {
                 return SlotClickResult.Pass;
             }
 
-            String productName = rawStack.getHoverName().getString();
-            var isBookmarked = BookmarkModule.this.toggleBookmark(productName, rawStack.copy());
+            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
+            if (productNameInfo == null) {
+                return SlotClickResult.Pass;
+            }
+
+            var isBookmarked = BookmarkModule.this.toggleBookmark(productNameInfo.productName(), rawStack.copy());
             rawStack.set(BtrBz.BOOKMARKED, isBookmarked);
             return SlotClickResult.Consume;
         }
