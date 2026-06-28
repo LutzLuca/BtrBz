@@ -41,8 +41,10 @@ public class BazaarOrderActions {
     private boolean shouldReopenBazaar = false;
     private @Nullable Integer remainingOrderAmount = null;
 
-    @Nullable private CancelledOrderContext activeBuyOrderContext = null;
-    @Nullable private CancelledOrderContext lastCancelledBuyOrder = null;
+    @Nullable
+    private CancelledOrderContext activeBuyOrderContext = null;
+    @Nullable
+    private CancelledOrderContext lastCancelledBuyOrder = null;
 
     private boolean hideCancelledOrderButton = false;
 
@@ -58,10 +60,16 @@ public class BazaarOrderActions {
             display.set(
                 DataComponents.CUSTOM_NAME,
                 Component.literal("Reopen: ")
-                    .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.YELLOW))
+                    .withStyle(
+                        style -> style.withItalic(false)
+                            .withColor(ChatFormatting.YELLOW)
+                    )
                     .append(
                         Component.literal(productName)
-                            .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GOLD))
+                            .withStyle(
+                                style -> style.withItalic(false)
+                                    .withColor(ChatFormatting.GOLD)
+                            )
                     )
             );
 
@@ -73,7 +81,7 @@ public class BazaarOrderActions {
                     .withStyle(style -> style.withItalic(false))
             );
             display.set(DataComponents.LORE, new ItemLore(loreLines));
-            
+
             return new CancelledOrderContext(display, productName);
         }
     }
@@ -86,10 +94,7 @@ public class BazaarOrderActions {
 
     private void registerCloseHandlers() {
         ScreenInfoHelper.registerOnClose(
-            info -> info.inMenu(
-                BazaarMenuType.SellOfferConfirmation,
-                BazaarMenuType.BuyOrderConfirmation
-            ),
+            info -> info.inMenu(BazaarMenuType.SellOfferConfirmation, BazaarMenuType.BuyOrderConfirmation),
             info -> {
                 if (ConfigManager.get().orderActions.reopenBazaar && BazaarOrderActions.this.shouldReopenBazaar) {
                     GameUtils.runCommand("bz");
@@ -98,13 +103,10 @@ public class BazaarOrderActions {
             }
         );
 
-        ScreenInfoHelper.registerOnClose(
-            info -> info.inMenu(BazaarMenuType.OrderOptions),
-            _ -> {
-                BazaarOrderActions.this.remainingOrderAmount = null;
-                BazaarOrderActions.this.activeBuyOrderContext = null;
-            }
-        );
+        ScreenInfoHelper.registerOnClose(info -> info.inMenu(BazaarMenuType.OrderOptions), _ -> {
+            BazaarOrderActions.this.remainingOrderAmount = null;
+            BazaarOrderActions.this.activeBuyOrderContext = null;
+        });
     }
 
     private void registerReopenCloseHandler() {
@@ -121,13 +123,17 @@ public class BazaarOrderActions {
                 return;
             }
 
-            var screenInfo = ScreenInfoHelper.get().getCurrInfo();
+            var screenInfo = ScreenInfoHelper.get()
+                .getCurrInfo();
             if (!screenInfo.inMenu(BazaarMenuType.OrderOptions)) {
                 return;
             }
 
             var isCancelOrderSlot = screenInfo.getGenericContainerScreen()
-                .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor ? accessor.getHoveredSlot() : null)
+                .map(
+                    screen -> screen instanceof AbstractContainerScreenAccessor accessor
+                        ? accessor.getHoveredSlot() : null
+                )
                 .filter(BazaarOrderActions.this::isCancelOrderSlot)
                 .isPresent();
 
@@ -136,7 +142,10 @@ public class BazaarOrderActions {
             }
 
             lines.add(Component.empty());
-            lines.add(Component.literal("[BtrBz]").withStyle(ChatFormatting.AQUA));
+            lines.add(
+                Component.literal("[BtrBz]")
+                    .withStyle(ChatFormatting.AQUA)
+            );
             var modifier = cfg.copyRemainingModifier;
             var keyName = switch (modifier) {
                 case Ctrl -> "Ctrl";
@@ -145,10 +154,12 @@ public class BazaarOrderActions {
             };
 
             var hint = keyName != null
-                ? String.format("Hold %s to copy the remaining amount.", keyName)
-                : "Copies the remaining amount.";
+                ? String.format("Hold %s to copy the remaining amount.", keyName) : "Copies the remaining amount.";
 
-            lines.add(Component.literal(hint).withStyle(ChatFormatting.GRAY));
+            lines.add(
+                Component.literal(hint)
+                    .withStyle(ChatFormatting.GRAY)
+            );
         });
     }
 
@@ -174,11 +185,7 @@ public class BazaarOrderActions {
         );
 
         this.remainingOrderAmount = info.volume() - info.filledAmountSnapshot();
-        log.debug(
-            "Setting remainingOrderAmount to {} from order info {}",
-            this.remainingOrderAmount,
-            info
-        );
+        log.debug("Setting remainingOrderAmount to {} from order info {}", this.remainingOrderAmount, info);
     }
 
     public void setReopenBazaar() {
@@ -188,29 +195,34 @@ public class BazaarOrderActions {
     private int getReopenTargetSlotIdx(SlotView slot) {
         return slot.getCurrInfo()
             .getGenericContainerScreen()
-            .map(gcs -> gcs.getMenu().getContainer().getContainerSize() - 6)
+            .map(
+                gcs -> gcs.getMenu()
+                    .getContainer()
+                    .getContainerSize() - 6
+            )
             .orElse(-1);
     }
 
     private boolean isCancelOrderSlot(@Nullable net.minecraft.world.inventory.Slot slot) {
-        return slot != null && slot.getContainerSlot() == CANCEL_ORDER_SLOT && slot
-            .getItem()
-            .getHoverName()
-            .getString()
-            .equals("Cancel Order");
+        return slot != null && slot.getContainerSlot() == CANCEL_ORDER_SLOT
+            && slot.getItem()
+                .getHoverName()
+                .getString()
+                .equals("Cancel Order");
     }
 
     public final class CancelOrderHook implements SlotHook {
 
-        private CancelOrderHook() { }
+        private CancelOrderHook() {}
 
         @Override
         public boolean matches(SlotView view) {
             var cfg = ConfigManager.get().orderActions;
-            return cfg.enabled
-                && !view.playerInventorySlot()
-                && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
-                && view.getPrevInfo().inMenu(BazaarMenuType.Orders)
+            return cfg.enabled && !view.playerInventorySlot()
+                && view.getCurrInfo()
+                    .inMenu(BazaarMenuType.OrderOptions)
+                && view.getPrevInfo()
+                    .inMenu(BazaarMenuType.Orders)
                 && BazaarOrderActions.this.isCancelOrderSlot(view.getSlot());
         }
 
@@ -227,8 +239,12 @@ public class BazaarOrderActions {
             BazaarOrderActions.this.activeBuyOrderContext = null;
 
             var cfg = ConfigManager.get().orderActions;
-            if (cfg.copyRemaining && cfg.copyRemainingModifier.isDown() && BazaarOrderActions.this.remainingOrderAmount != null) {
-                log.debug("Copying remaining order amount '{}' to clipboard", BazaarOrderActions.this.remainingOrderAmount);
+            if (cfg.copyRemaining && cfg.copyRemainingModifier.isDown()
+                && BazaarOrderActions.this.remainingOrderAmount != null) {
+                log.debug(
+                    "Copying remaining order amount '{}' to clipboard",
+                    BazaarOrderActions.this.remainingOrderAmount
+                );
                 GameUtils.copyToClipboard(BazaarOrderActions.this.remainingOrderAmount);
                 BazaarOrderActions.this.remainingOrderAmount = null;
             }
@@ -246,24 +262,28 @@ public class BazaarOrderActions {
         @Override
         public boolean matches(SlotView view) {
             var cfg = ConfigManager.get().orderActions;
-            
-            return cfg.enabled
-                && cfg.reopenLastBuyOrderEnabled
+
+            return cfg.enabled && cfg.reopenLastBuyOrderEnabled
                 && (!cfg.clearOnClose || !BazaarOrderActions.this.hideCancelledOrderButton)
                 && BazaarOrderActions.this.lastCancelledBuyOrder != null
                 && !view.playerInventorySlot()
-                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
+                && view.getCurrInfo()
+                    .inMenu(BazaarMenuType.Orders)
                 && view.slotIdx() == BazaarOrderActions.this.getReopenTargetSlotIdx(view);
         }
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
-            return BazaarOrderActions.this.lastCancelledBuyOrder.displayItem().copy();
+            return BazaarOrderActions.this.lastCancelledBuyOrder.displayItem()
+                .copy();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            log.debug("Reopening bazaar page for product '{}'", BazaarOrderActions.this.lastCancelledBuyOrder.productName());
+            log.debug(
+                "Reopening bazaar page for product '{}'",
+                BazaarOrderActions.this.lastCancelledBuyOrder.productName()
+            );
             GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.productName());
             return SlotClickResult.Consume;
         }
@@ -271,22 +291,18 @@ public class BazaarOrderActions {
 
     public final class OrdersObserverHook implements SlotHook {
 
-        private OrdersObserverHook() { }
+        private OrdersObserverHook() {}
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().orderActions.enabled
-                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
-                && !view.playerInventorySlot();
+            return ConfigManager.get().orderActions.enabled && view.getCurrInfo()
+                .inMenu(BazaarMenuType.Orders) && !view.playerInventorySlot();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var slot = ctx.view();
-            var orderInfo = OrderInfoParser.parseOrderInfo(
-                slot.getRawStack(),
-                slot.slotIdx()
-            );
+            var orderInfo = OrderInfoParser.parseOrderInfo(slot.getRawStack(), slot.slotIdx());
             if (orderInfo.isSuccess()) {
                 BazaarOrderActions.this.onOrderClick(orderInfo.get(), slot.getRawStack());
             }
@@ -305,13 +321,10 @@ public class BazaarOrderActions {
         public boolean clearOnClose = true;
 
         public enum Modifier {
-            None,
-            Ctrl,
-            Alt;
+            None, Ctrl, Alt;
 
             public static EnumControllerBuilder<Modifier> controller(Option<Modifier> option) {
-                return EnumControllerBuilder
-                    .create(option)
+                return EnumControllerBuilder.create(option)
                     .enumClass(Modifier.class)
                     .formatValue(modifier -> switch (modifier) {
                         case None -> Component.literal("None");
@@ -331,76 +344,90 @@ public class BazaarOrderActions {
         }
 
         public Option.Builder<Boolean> createReopenBazaarOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Return to Bazaar After Order Setup"))
                 .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
-                .description(OptionDescription.of(GameUtils.join(
-                    List.of(
-                        Component.literal(
-                            "Automatically reopens the main Bazaar menu after placing a buy/sell order."),
-                        Component.literal(
-                            "\nNote: This executes '/bz' which requires a server round-trip."),
-                        Component.literal(
-                            "You may experience brief mouse unlock during the transition, which may feel a bit clunky.")
-                    ), " "
-                )))
+                .description(
+                    OptionDescription.of(
+                        GameUtils.join(
+                            List.of(
+                                Component.literal(
+                                    "Automatically reopens the main Bazaar menu after placing a buy/sell order."
+                                ),
+                                Component.literal("\nNote: This executes '/bz' which requires a server round-trip."),
+                                Component.literal(
+                                    "You may experience brief mouse unlock during the transition, which may feel a bit clunky."
+                                )
+                            ),
+                            " "
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createCopyRemainingOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Copy Remaining "))
                 .binding(true, () -> this.copyRemaining, enabled -> this.copyRemaining = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Automatically copies the remaining amount of items from a cancelled order")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Automatically copies the remaining amount of items from a cancelled order")
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Modifier> createCopyRemainingModifierOption() {
-            return Option
-                .<Modifier>createBuilder()
+            return Option.<Modifier>createBuilder()
                 .name(Component.literal("Copy Remaining Modifier"))
                 .binding(
                     Modifier.Ctrl,
                     () -> this.copyRemainingModifier != null ? this.copyRemainingModifier : Modifier.Ctrl,
                     val -> this.copyRemainingModifier = val
                 )
-                .description(OptionDescription.of(Component.literal(
-                    "The modifier key that must be held down to copy the remaining amount")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("The modifier key that must be held down to copy the remaining amount"))
+                )
                 .controller(Modifier::controller);
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Order Actions Toggle"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Master switch for actions on order cancel")))
+                .description(OptionDescription.of(Component.literal("Master switch for actions on order cancel")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createReopenLastBuyOrderEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Reopen Last Cancelled Buy Order"))
                 .binding(true, () -> this.reopenLastBuyOrderEnabled, val -> this.reopenLastBuyOrderEnabled = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Show a button in the Manage Orders screen to quickly reopen the Bazaar page "
-                    + "of the last cancelled buy order.")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Show a button in the Manage Orders screen to quickly reopen the Bazaar page "
+                                + "of the last cancelled buy order."
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createClearOnCloseOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Hide Button After Closing Orders"))
                 .binding(true, () -> this.clearOnClose, val -> this.clearOnClose = val)
-                .description(OptionDescription.of(Component.literal(
-                    "When enabled, the reopen button is hidden after you close the Manage Orders screen. "
-                    + "It reappears automatically the next time you cancel a buy order.")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "When enabled, the reopen button is hidden after you close the Manage Orders screen. "
+                                + "It reappears automatically the next time you cancel a buy order."
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -411,15 +438,12 @@ public class BazaarOrderActions {
             var reopenGroup = new OptionGrouping(this.createReopenLastBuyOrderEnabledOption())
                 .addOptions(this.createClearOnCloseOption());
 
-            var rootGroup = new OptionGrouping(this.createEnabledOption())
-                .addOptions(this.createReopenBazaarOption())
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createReopenBazaarOption())
                 .addSubgroups(copyGroup, reopenGroup);
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order Cancel Actions"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for actions after canceling an order")))
+                .description(OptionDescription.of(Component.literal("Settings for actions after canceling an order")))
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

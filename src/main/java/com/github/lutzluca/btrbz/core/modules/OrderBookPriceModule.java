@@ -37,11 +37,12 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     private OrderBookPriceWidget widget;
 
     private static final BazaarMenuType[] PRICE_SETUP_MENUS = {
-        BazaarMenuType.BuyOrderSetupPrice,
-        BazaarMenuType.SellOfferSetup
+            BazaarMenuType.BuyOrderSetupPrice,
+            BazaarMenuType.SellOfferSetup
     };
 
-    @Nullable private OrderType currentOrderType;
+    @Nullable
+    private OrderType currentOrderType;
 
     @Override
     public void onLoad() {
@@ -50,32 +51,35 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 return;
             }
 
-            var prev = ScreenInfoHelper.get().getPrevInfo();
+            var prev = ScreenInfoHelper.get()
+                .getPrevInfo();
             this.refreshCurrentOrderType(curr, prev);
 
             if (!this.isEnterPriceScreen(curr, prev)) {
                 if (this.currentOrderType != null) {
-                    log.debug(
-                        "Clearing stale overlay state: prev={}, curr={}",
-                        prev.getMenuType(),
-                        curr.getMenuType()
-                    );
+                    log.debug("Clearing stale overlay state: prev={}, curr={}", prev.getMenuType(), curr.getMenuType());
                 }
 
                 this.currentOrderType = null;
             }
         });
 
-        this.context().bazaarData().addBazaarListener(products -> {
-            var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
-            if (this.isDisplayed() && productNameInfo != null) {
-                this.rebuildList();
-            }
-        });
+        this.context()
+            .bazaarData()
+            .addBazaarListener(products -> {
+                var productNameInfo = this.context()
+                    .productInfoProvider()
+                    .getOpenedProductNameInfo();
+                if (this.isDisplayed() && productNameInfo != null) {
+                    this.rebuildList();
+                }
+            });
     }
 
     private boolean isEnterPriceScreen(ScreenInfo curr, ScreenInfo prev) {
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
+        var productNameInfo = this.context()
+            .productInfoProvider()
+            .getOpenedProductNameInfo();
         if (!(curr.getScreen() instanceof SignEditScreen) || productNameInfo == null) {
             return false;
         }
@@ -98,7 +102,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private void refreshCurrentOrderType(ScreenInfo curr, ScreenInfo prev) {
-        this.resolveCurrentOrderType(curr, prev).ifPresent(orderType -> this.currentOrderType = orderType);
+        this.resolveCurrentOrderType(curr, prev)
+            .ifPresent(orderType -> this.currentOrderType = orderType);
     }
 
     @Override
@@ -107,8 +112,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return false;
         }
 
-        var prev = ScreenInfoHelper.get().getPrevInfo();
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
+        var prev = ScreenInfoHelper.get()
+            .getPrevInfo();
+        var productNameInfo = this.context()
+            .productInfoProvider()
+            .getOpenedProductNameInfo();
         return productNameInfo != null && this.isEnterPriceScreen(info, prev);
     }
 
@@ -117,7 +125,9 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
+        var productNameInfo = this.context()
+            .productInfoProvider()
+            .getOpenedProductNameInfo();
         if (productNameInfo == null) {
             return;
         }
@@ -128,7 +138,9 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var orders = this.context().bazaarData().getOrderLists(productNameInfo.productId());
+        var orders = this.context()
+            .bazaarData()
+            .getOrderLists(productNameInfo.productId());
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();
@@ -147,11 +159,13 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
     @Override
     public Optional<DraggableWidget> createWidget(ScreenInfo info) {
-        var prev = ScreenInfoHelper.get().getPrevInfo();
+        var prev = ScreenInfoHelper.get()
+            .getPrevInfo();
         if (!this.isEnterPriceScreen(info, prev)) {
             return Optional.empty();
         }
-        this.resolveCurrentOrderType(info, prev).ifPresent(orderType -> this.currentOrderType = orderType);
+        this.resolveCurrentOrderType(info, prev)
+            .ifPresent(orderType -> this.currentOrderType = orderType);
 
         if (this.currentOrderType == null) {
             return Optional.empty();
@@ -160,8 +174,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         var position = this.getPosition();
         if (this.widget == null) {
             this.widget = new OrderBookPriceWidget(
-                position.map(Position::x).orElse(20),
-                position.map(Position::y).orElse(20),
+                position.map(Position::x)
+                    .orElse(20),
+                position.map(Position::y)
+                    .orElse(20),
                 this::handlePriceClick
             );
 
@@ -179,14 +195,19 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
+        var productNameInfo = this.context()
+            .productInfoProvider()
+            .getOpenedProductNameInfo();
         if (productNameInfo == null) {
             return;
         }
 
-        var currInfo = ScreenInfoHelper.get().getCurrInfo();
-        var prevInfo = ScreenInfoHelper.get().getPrevInfo();
-        var orderType = this.resolveCurrentOrderType(currInfo, prevInfo).orElse(this.currentOrderType);
+        var currInfo = ScreenInfoHelper.get()
+            .getCurrInfo();
+        var prevInfo = ScreenInfoHelper.get()
+            .getPrevInfo();
+        var orderType = this.resolveCurrentOrderType(currInfo, prevInfo)
+            .orElse(this.currentOrderType);
         if (orderType == null) {
             return;
         }
@@ -196,11 +217,21 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         if (copyOnly) {
             String formattedPrice = Utils.formatDecimal(rawPrice, 1, false);
             GameUtils.copyToClipboard(formattedPrice);
-            Notifier.notifyPlayer(Notifier
-                .prefix()
-                .append(Component.literal("Copied price ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(formattedPrice).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                .append(Component.literal(" to clipboard").withStyle(ChatFormatting.GRAY)));
+            Notifier.notifyPlayer(
+                Notifier.prefix()
+                    .append(
+                        Component.literal("Copied price ")
+                            .withStyle(ChatFormatting.GRAY)
+                    )
+                    .append(
+                        Component.literal(formattedPrice)
+                            .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                    )
+                    .append(
+                        Component.literal(" to clipboard")
+                            .withStyle(ChatFormatting.GRAY)
+                    )
+            );
             return;
         }
 
@@ -225,11 +256,12 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         public boolean enabled = true;
 
         public Option.Builder<Boolean> createEnableOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.nullToEmpty("Order Book Price Overlay: Master Switch"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the Order Book overlay on price sign screens.")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Enable or disable the Order Book overlay on price sign screens."))
+                )
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -237,11 +269,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnableOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.nullToEmpty("Order Book Price Overlay"))
-                .description(OptionDescription.of(Component.literal(
-                    "Displays order book data next to the price entry sign.")))
+                .description(
+                    OptionDescription.of(Component.literal("Displays order book data next to the price entry sign."))
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();
@@ -271,19 +303,27 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
             String cumulativeVolumeStr = Utils.formatDecimal(accumulatedVolume, 0, true);
             this.tooltip = List.of(
-                Component.literal("Price: " + Utils.formatDecimal(summary.getPricePerUnit(), 1, true)).withStyle(ChatFormatting.GOLD),
-                Component.literal("Level Volume: " + volumeStr).withStyle(ChatFormatting.GRAY),
-                Component.literal("Orders: " + orders).withStyle(ChatFormatting.GRAY),
-                Component.literal("Cumulative Volume: " + cumulativeVolumeStr).withStyle(ChatFormatting.AQUA)
+                Component.literal("Price: " + Utils.formatDecimal(summary.getPricePerUnit(), 1, true))
+                    .withStyle(ChatFormatting.GOLD),
+                Component.literal("Level Volume: " + volumeStr)
+                    .withStyle(ChatFormatting.GRAY),
+                Component.literal("Orders: " + orders)
+                    .withStyle(ChatFormatting.GRAY),
+                Component.literal("Cumulative Volume: " + cumulativeVolumeStr)
+                    .withStyle(ChatFormatting.AQUA)
             );
         }
 
         @Override
         public void render(
             GuiGraphicsExtractor graphics,
-            int x, int y,
-            int width, int height,
-            int mouseX, int mouseY, float delta,
+            int x,
+            int y,
+            int width,
+            int height,
+            int mouseX,
+            int mouseY,
+            float delta,
             boolean hovered
         ) {
             var font = Minecraft.getInstance().font;
@@ -336,11 +376,13 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             super(defaultX, defaultY, DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
             this.list = new ListWidget(0, LIST_Y_OFFSET, DEFAULT_WIDTH, DEFAULT_HEIGHT - LIST_Y_OFFSET, "Order Book");
-            this.list.setStatic().setDraggable(false);
+            this.list.setStatic()
+                .setDraggable(false);
             this.list.setItemHeight(ITEM_HEIGHT);
             this.list.onItemClick((self, renderable, index) -> {
                 if (renderable instanceof OrderBookEntry entry) {
-                    boolean copyOnly = Minecraft.getInstance().hasControlDown();
+                    boolean copyOnly = Minecraft.getInstance()
+                        .hasControlDown();
                     onClickHandler.onClick(entry.getPricePerUnit(), copyOnly);
                 }
             });
@@ -351,15 +393,33 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         @Override
-        protected void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+        protected void renderContent(
+            GuiGraphicsExtractor graphics,
+            int mouseX,
+            int mouseY,
+            float delta,
+            RenderContext ctx
+        ) {
             this.renderHeader(graphics);
             this.renderInstruction(graphics);
             this.renderList(graphics, mouseX, mouseY, delta);
         }
 
         private void renderHeader(GuiGraphicsExtractor graphics) {
-            graphics.fill(this.getX(), this.getY(), this.getX() + this.width, this.getY() + HEADER_HEIGHT, HEADER_BACKGROUND_COLOR);
-            graphics.centeredText(Minecraft.getInstance().font, "Order Book", this.getX() + this.width / 2, this.getY() + 4, TITLE_COLOR);
+            graphics.fill(
+                this.getX(),
+                this.getY(),
+                this.getX() + this.width,
+                this.getY() + HEADER_HEIGHT,
+                HEADER_BACKGROUND_COLOR
+            );
+            graphics.centeredText(
+                Minecraft.getInstance().font,
+                "Order Book",
+                this.getX() + this.width / 2,
+                this.getY() + 4,
+                TITLE_COLOR
+            );
         }
 
         private void renderInstruction(GuiGraphicsExtractor graphics) {
@@ -368,13 +428,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             int width = this.width;
             int height = LIST_Y_OFFSET - HEADER_HEIGHT;
 
-            graphics.fill(
-                x,
-                y,
-                x + width,
-                y + height,
-                INSTRUCTION_BACKGROUND_COLOR
-            );
+            graphics.fill(x, y, x + width, y + height, INSTRUCTION_BACKGROUND_COLOR);
             graphics.centeredText(
                 Minecraft.getInstance().font,
                 INSTRUCTION_TEXT,
@@ -423,7 +477,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
         @Override
         public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-            if (this.list.isMouseOver(mouseX, mouseY) && this.list.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
+            if (this.list.isMouseOver(mouseX, mouseY)
+                && this.list.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
                 return true;
             }
             return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);

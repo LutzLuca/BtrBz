@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-
 public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max, OrderPreset.Clipboard {
 
     record Volume(int amount) implements OrderPreset {
@@ -30,7 +29,7 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
     }
 
     record Max() implements OrderPreset {
-        
+
         @Override
         public @NotNull String toString() {
             return "Max";
@@ -61,8 +60,13 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
         @Override
         public void render(
             GuiGraphicsExtractor graphics,
-            int x, int y, int width, int height,
-            int mouseX, int mouseY, float delta,
+            int x,
+            int y,
+            int width,
+            int height,
+            int mouseX,
+            int mouseY,
+            float delta,
             boolean hovered
         ) {
             var font = Minecraft.getInstance().font;

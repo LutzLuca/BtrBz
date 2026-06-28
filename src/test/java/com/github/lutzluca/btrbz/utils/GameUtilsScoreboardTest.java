@@ -16,11 +16,18 @@ class GameUtilsScoreboardTest {
         void removesNonstandardOwnerFormattingToken() {
             var line = "Purse: \u00a761,395,2\u00a7j\u00a7639,458";
             var stripped = GameUtils.stripScoreboardFormattingCodes(line);
-            var parsed = Utils.parseUsFormattedNumber(stripped.replace("Purse:", "").trim());
+            var parsed = Utils.parseUsFormattedNumber(
+                stripped.replace("Purse:", "")
+                    .trim()
+            );
 
             assertEquals("Purse: 1,395,239,458", stripped);
             assertTrue(parsed.isSuccess());
-            assertEquals(1_395_239_458L, parsed.get().longValue());
+            assertEquals(
+                1_395_239_458L,
+                parsed.get()
+                    .longValue()
+            );
         }
     }
 }

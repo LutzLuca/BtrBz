@@ -21,26 +21,21 @@ public class ConfigScreen {
 
     public static void open() {
         var client = Minecraft.getInstance();
-        client.schedule(() -> client.setScreen(ConfigScreen.create(
-            client.screen,
-            ConfigManager.get()
-        )));
+        client.schedule(() -> client.setScreen(ConfigScreen.create(client.screen, ConfigManager.get())));
     }
 
     public static Screen create(Screen parent, Config config) {
-        return YetAnotherConfigLib.create(
-            ConfigManager.HANDLER, (defaults, cfg, builder) -> {
-                builder.title(Component.literal(BtrBz.MOD_ID));
-                buildGeneralConfig(builder, config);
+        return YetAnotherConfigLib.create(ConfigManager.HANDLER, (defaults, cfg, builder) -> {
+            builder.title(Component.literal(BtrBz.MOD_ID));
+            buildGeneralConfig(builder, config);
 
-                return builder;
-            }
-        ).generateScreen(parent);
+            return builder;
+        })
+            .generateScreen(parent);
     }
 
     private static void buildGeneralConfig(Builder builder, Config config) {
-        var general = ConfigCategory
-            .createBuilder()
+        var general = ConfigCategory.createBuilder()
             .name(Component.literal("General"))
             .group(config.trackedOrders.createGroup())
             .group(config.alert.createGroup())
@@ -66,7 +61,9 @@ public class ConfigScreen {
     }
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
-        return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
+        return BooleanControllerBuilder.create(option)
+            .onOffFormatter()
+            .coloured(true);
     }
 
     public static final class OptionGrouping {
@@ -81,8 +78,7 @@ public class ConfigScreen {
         }
 
         public OptionGrouping addOptions(Option.Builder<?>... optBuilders) {
-            Arrays
-                .stream(optBuilders)
+            Arrays.stream(optBuilders)
                 .map(Option.Builder::build)
                 .map(GroupChild.SingleOption::new)
                 .forEach(children::add);
@@ -90,7 +86,9 @@ public class ConfigScreen {
         }
 
         public OptionGrouping addSubgroups(OptionGrouping... subgroups) {
-            Arrays.stream(subgroups).map(GroupChild.Subgroup::new).forEach(children::add);
+            Arrays.stream(subgroups)
+                .map(GroupChild.Subgroup::new)
+                .forEach(children::add);
             return this;
         }
 
@@ -99,9 +97,11 @@ public class ConfigScreen {
                 throw new IllegalStateException("OptionGrouping already built");
             }
 
-            var opts = this.children
-                .stream()
-                .flatMap(child -> child.build().stream())
+            var opts = this.children.stream()
+                .flatMap(
+                    child -> child.build()
+                        .stream()
+                )
                 .collect(Collectors.toList());
 
             this.controllerBuilder.addListener((option, event) -> {
@@ -125,7 +125,9 @@ public class ConfigScreen {
         }
 
         private void propagateAvailability() {
-            if (this.controllerOption == null) { return; }
+            if (this.controllerOption == null) {
+                return;
+            }
 
             boolean childAvailable = this.controllerOption.available() && this.controllerOption.pendingValue();
             this.children.forEach(child -> child.setAvailable(childAvailable));

@@ -29,7 +29,7 @@ public final class ScreenInfoHelper {
     private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
     private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
     private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
-    
+
     @Getter
     private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
     @Getter
@@ -55,18 +55,12 @@ public final class ScreenInfoHelper {
         INSTANCE.switchListeners.add(listener);
     }
 
-    public static void registerOnLoaded(
-        Predicate<ScreenInfo> matcher,
-        BiConsumer<ScreenInfo, Inventory> listener
-    ) {
+    public static void registerOnLoaded(Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, Inventory> listener) {
         var info = new ScreenLoadListenerEntry(matcher, listener);
         INSTANCE.screenLoadListenerEntries.add(info);
     }
 
-    public static void registerOnClose(
-        Predicate<ScreenInfo> matcher,
-        Consumer<ScreenInfo> listener
-    ) {
+    public static void registerOnClose(Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener) {
         var info = new ScreenCloseListenerEntry(matcher, listener);
         INSTANCE.screenCloseListenerEntries.add(info);
     }
@@ -78,17 +72,21 @@ public final class ScreenInfoHelper {
             screenInfo.markInventoryLoaded();
             log.trace("Inventory loaded: '{}'", inventory.title);
 
-            this.screenLoadListenerEntries.forEach(entry ->
-                Try.run(() -> {
-                    if (entry.matcher.test(screenInfo)) {
-                        entry.listener.accept(screenInfo, inventory);
-                    }
-                }).onFailure(err -> log.error(
-                    "Screen load listener failed for screen '{}' and listener '{}'",
-                    screenInfo.containerName().orElse("<unknown>"),
-                    entry.listener.getClass().getName(),
-                    err
-                ))
+            this.screenLoadListenerEntries.forEach(entry -> Try.run(() -> {
+                if (entry.matcher.test(screenInfo)) {
+                    entry.listener.accept(screenInfo, inventory);
+                }
+            })
+                .onFailure(
+                    err -> log.error(
+                        "Screen load listener failed for screen '{}' and listener '{}'",
+                        screenInfo.containerName()
+                            .orElse("<unknown>"),
+                        entry.listener.getClass()
+                            .getName(),
+                        err
+                    )
+                )
             );
         });
 
@@ -97,17 +95,21 @@ public final class ScreenInfoHelper {
 
             log.trace("Inventory closed: '{}'", title);
 
-            this.screenCloseListenerEntries.forEach(entry ->
-                Try.run(() -> {
-                    if (entry.matcher.test(screenInfo)) {
-                        entry.listener.accept(screenInfo);
-                    }
-                }).onFailure(err -> log.error(
-                    "Screen close listener failed for screen '{}' and listener '{}'",
-                    screenInfo.containerName().orElse("<unknown>"),
-                    entry.listener.getClass().getName(),
-                    err
-                ))
+            this.screenCloseListenerEntries.forEach(entry -> Try.run(() -> {
+                if (entry.matcher.test(screenInfo)) {
+                    entry.listener.accept(screenInfo);
+                }
+            })
+                .onFailure(
+                    err -> log.error(
+                        "Screen close listener failed for screen '{}' and listener '{}'",
+                        screenInfo.containerName()
+                            .orElse("<unknown>"),
+                        entry.listener.getClass()
+                            .getName(),
+                        err
+                    )
+                )
             );
         });
     }
@@ -128,22 +130,23 @@ public final class ScreenInfoHelper {
     public void fireScreenSwitchCallbacks() {
         var screenInfo = this.currInfo;
 
-        this.switchListeners.forEach(listener ->
-            Try.run(() -> listener.accept(screenInfo)).onFailure(err -> log.error(
-                "Screen switch listener failed for screen '{}' and listener '{}'",
-                screenInfo.containerName().orElse("<unknown>"),
-                listener.getClass().getName(),
-                err
-            ))
+        this.switchListeners.forEach(
+            listener -> Try.run(() -> listener.accept(screenInfo))
+                .onFailure(
+                    err -> log.error(
+                        "Screen switch listener failed for screen '{}' and listener '{}'",
+                        screenInfo.containerName()
+                            .orElse("<unknown>"),
+                        listener.getClass()
+                            .getName(),
+                        err
+                    )
+                )
         );
     }
 
     private enum BazaarCategory {
-        Farming,
-        Mining,
-        Combat,
-        WoodsAndFishes,
-        Oddities;
+        Farming, Mining, Combat, WoodsAndFishes, Oddities;
 
         private static Try<BazaarCategory> tryFrom(String value) {
             return switch (value) {
@@ -180,7 +183,6 @@ public final class ScreenInfoHelper {
 
         public static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
-
         // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
         // after the UI has been populated. Calling Item/ItemGroup.matches(info)
         // before the UI is populated, for example after `setScreen` has been called on the
@@ -198,8 +200,10 @@ public final class ScreenInfoHelper {
                     if (!title.startsWith("Bazaar ➜ ")) {
                         yield false;
                     }
-                    var str = title.substring("Bazaar ➜ ".length()).trim();
-                    yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
+                    var str = title.substring("Bazaar ➜ ".length())
+                        .trim();
+                    yield BazaarCategory.tryFrom(str.trim())
+                        .isSuccess() || str.startsWith("\"");
                 }
                 case Orders -> (title.equals("Your Bazaar Orders") || title.equals("Co-op Bazaar Orders"));
                 case InstaBuy -> title.endsWith("➜ Instant") || title.endsWith("➜ Instant Buy");  // some item's name are too long for the title to include the "Buy" suffix
@@ -216,45 +220,56 @@ public final class ScreenInfoHelper {
                         yield false;
                     }
 
-                    yield info.getGenericContainerScreen().map((gcs) -> {
-                        final int GRAPH_PAPER_IDX = 33;
-                        var handler = gcs.getMenu();
-                        var inventory = handler.getContainer();
+                    yield info.getGenericContainerScreen()
+                        .map((gcs) -> {
+                            final int GRAPH_PAPER_IDX = 33;
+                            var handler = gcs.getMenu();
+                            var inventory = handler.getContainer();
 
-                        if (inventory.getContainerSize() < GRAPH_PAPER_IDX) {
-                            return false;
-                        }
+                            if (inventory.getContainerSize() < GRAPH_PAPER_IDX) {
+                                return false;
+                            }
 
-                        var slot = inventory.getItem(GRAPH_PAPER_IDX);
-                        return slot.getItem().equals(Items.PAPER) && slot
-                            .getHoverName()
-                            .getString()
-                            .equals("View Graphs");
-                    }).orElse(false);
+                            var slot = inventory.getItem(GRAPH_PAPER_IDX);
+                            return slot.getItem()
+                                .equals(Items.PAPER)
+                                && slot.getHoverName()
+                                    .getString()
+                                    .equals("View Graphs");
+                        })
+                        .orElse(false);
                 }
                 case ItemGroup -> {
-                    if (!title.contains("➜") || title.endsWith("Graphs") || title.endsWith(
-                        "Settings")) {
+                    if (!title.contains("➜") || title.endsWith("Graphs") || title.endsWith("Settings")) {
                         yield false;
                     }
 
-                    yield info.getGenericContainerScreen().map(gcs -> {
-                        var handler = gcs.getMenu();
-                        var inventory = handler.getContainer();
-                        var slot = inventory.getContainerSize() - 4;
+                    yield info.getGenericContainerScreen()
+                        .map(gcs -> {
+                            var handler = gcs.getMenu();
+                            var inventory = handler.getContainer();
+                            var slot = inventory.getContainerSize() - 4;
 
-                        return Try
-                            .of(() -> inventory.getItem(slot))
-                            .map((itemStack) -> itemStack.getItem().equals(Items.BOOK) && itemStack.getHoverName().getString().equals("Manage Orders"))
-                            .getOrElse(false);
-                    }).orElse(false);
+                            return Try.of(() -> inventory.getItem(slot))
+                                .map(
+                                    (itemStack) -> itemStack.getItem()
+                                        .equals(Items.BOOK)
+                                        && itemStack.getHoverName()
+                                            .getString()
+                                            .equals("Manage Orders")
+                                )
+                                .getOrElse(false);
+                        })
+                        .orElse(false);
                 }
                 case InstaSellIgnoreList -> title.equals("Instasell Ignore List");
                 case InventorySellConfirmation -> title.equals("Are you sure?");
                 case OrderOptions -> title.equals("Order options");
                 case Graphs -> title.endsWith("➜ Graphs");
                 case Settings -> title.equals("Bazaar ➜ Settings");
-                case Confirm -> title.equals("Confirm") && ScreenInfoHelper.get().getPrevInfo().inBazaar();
+                case Confirm -> title.equals("Confirm") && ScreenInfoHelper.get()
+                    .getPrevInfo()
+                    .inBazaar();
             };
         }
     }
@@ -298,12 +313,13 @@ public final class ScreenInfoHelper {
         }
 
         public Optional<ItemStack> getItemStack(int idx) {
-            return this.getGenericContainerScreen().flatMap(gcs -> {
-                var handler = gcs.getMenu();
-                var inventory = handler.getContainer();
-                var slot = inventory.getItem(idx);
-                return slot == ItemStack.EMPTY ? Optional.empty() : Optional.of(slot);
-            });
+            return this.getGenericContainerScreen()
+                .flatMap(gcs -> {
+                    var handler = gcs.getMenu();
+                    var inventory = handler.getContainer();
+                    var slot = inventory.getItem(idx);
+                    return slot == ItemStack.EMPTY ? Optional.empty() : Optional.of(slot);
+                });
         }
 
         public Optional<ContainerScreen> getGenericContainerScreen() {
@@ -311,7 +327,9 @@ public final class ScreenInfoHelper {
         }
 
         public Optional<String> containerName() {
-            return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Component::getString);
+            return Optional.ofNullable(this.screen)
+                .map(Screen::getTitle)
+                .map(Component::getString);
         }
 
         public Optional<HandledScreenBounds> getHandledScreenBounds() {
@@ -319,12 +337,14 @@ public final class ScreenInfoHelper {
                 return Optional.empty();
             }
 
-            return Optional.of(new HandledScreenBounds(
-                accessor.getLeftPos(),
-                accessor.getTopPos(),
-                accessor.getImageWidth(),
-                accessor.getImageHeight()
-            ));
+            return Optional.of(
+                new HandledScreenBounds(
+                    accessor.getLeftPos(),
+                    accessor.getTopPos(),
+                    accessor.getImageWidth(),
+                    accessor.getImageHeight()
+                )
+            );
         }
 
         private void markInventoryLoaded() {
@@ -336,16 +356,11 @@ public final class ScreenInfoHelper {
         }
     }
 
-    private record ScreenLoadListenerEntry(
-        Predicate<ScreenInfo> matcher,
-        BiConsumer<ScreenInfo, Inventory> listener
-    ) { }
+    private record ScreenLoadListenerEntry(Predicate<ScreenInfo> matcher, BiConsumer<ScreenInfo, Inventory> listener) {}
 
-    private record ScreenCloseListenerEntry(
-        Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
-    ) { }
+    private record ScreenCloseListenerEntry(Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener) {}
 
-    public record HandledScreenBounds(int x, int y, int width, int height) { }
+    public record HandledScreenBounds(int x, int y, int width, int height) {}
 
     private static final class MenuState {
 

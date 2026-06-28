@@ -26,7 +26,7 @@ import net.minecraft.network.chat.MutableComponent;
 @Slf4j
 public class AlertManager {
 
-    public AlertManager() { }
+    public AlertManager() {}
 
     public void onBazaarUpdate(Map<String, Product> products) {
         var cfg = ConfigManager.get().alert;
@@ -49,7 +49,8 @@ public class AlertManager {
             var reached = price.map(marketPrice -> switch (curr.type) {
                 case SellOffer, InstaSell -> marketPrice >= curr.price;
                 case BuyOrder, InstaBuy -> marketPrice <= curr.price;
-            }).orElse(true);
+            })
+                .orElse(true);
 
             if (reached) {
                 it.remove();
@@ -82,7 +83,8 @@ public class AlertManager {
 
     public boolean addAlert(ResolvedAlertArgs args) {
         var alerts = ConfigManager.get().alert.alerts;
-        var exist = alerts.stream().anyMatch(alert -> alert.matches(args));
+        var exist = alerts.stream()
+            .anyMatch(alert -> alert.matches(args));
 
         if (!exist) {
             ConfigManager.withConfig(cfg -> cfg.alert.alerts.add(new Alert(args)));
@@ -92,37 +94,51 @@ public class AlertManager {
     }
 
     public void removeAlert(UUID id) {
-        var removed = ConfigManager.compute(cfg -> Utils.removeIfAndReturn(
-            cfg.alert.alerts,
-            alert -> alert.id.equals(id)
-        ));
+        var removed = ConfigManager
+            .compute(cfg -> Utils.removeIfAndReturn(cfg.alert.alerts, alert -> alert.id.equals(id)));
 
         if (removed.isEmpty()) {
-            Notifier.notifyPlayer(Notifier
-                .prefix()
-                .append(Component
-                    .literal("Failed to find an alert associated with " + id + " - it may have already been removed")
-                    .withStyle(ChatFormatting.GRAY)));
+            Notifier.notifyPlayer(
+                Notifier.prefix()
+                    .append(
+                        Component
+                            .literal(
+                                "Failed to find an alert associated with " + id + " - it may have already been removed"
+                            )
+                            .withStyle(ChatFormatting.GRAY)
+                    )
+            );
             return;
         }
         if (removed.size() > 1) {
-            Notifier.notifyPlayer(Notifier
-                .prefix()
-                .append(Component
-                    .literal("Wait, what? Multiple alerts with the same ID? ")
-                    .withStyle(ChatFormatting.GRAY))
-                .append(Component
-                    .literal("You're either 1 in 5.3 undecillion (that's a 1 with 36 zeros) lucky, or you've been messin' with the config. ")
-                    .withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.ITALIC))
-                .append(Component
-                    .literal("Either way, they're all history now!")
-                    .withStyle(ChatFormatting.GRAY)));
+            Notifier.notifyPlayer(
+                Notifier.prefix()
+                    .append(
+                        Component.literal("Wait, what? Multiple alerts with the same ID? ")
+                            .withStyle(ChatFormatting.GRAY)
+                    )
+                    .append(
+                        Component.literal(
+                            "You're either 1 in 5.3 undecillion (that's a 1 with 36 zeros) lucky, or you've been messin' with the config. "
+                        )
+                            .withStyle(ChatFormatting.GOLD)
+                            .withStyle(ChatFormatting.ITALIC)
+                    )
+                    .append(
+                        Component.literal("Either way, they're all history now!")
+                            .withStyle(ChatFormatting.GRAY)
+                    )
+            );
             log.warn("Multiple alerts found with identical UUID: {}", id);
         }
 
-        Notifier.notifyPlayer(Notifier
-            .prefix()
-            .append(Component.literal("Alert removed successfully!").withStyle(ChatFormatting.GRAY)));
+        Notifier.notifyPlayer(
+            Notifier.prefix()
+                .append(
+                    Component.literal("Alert removed successfully!")
+                        .withStyle(ChatFormatting.GRAY)
+                )
+        );
 
     }
 
@@ -149,7 +165,9 @@ public class AlertManager {
         public Try<Optional<Double>> getAssociatedPrice(Map<String, Product> products) {
             var prod = products.get(this.productId);
             if (prod == null) {
-                return Try.failure(new Exception("The product \"" + this.productName + "\" could not be found in the bazaar data"));
+                return Try.failure(
+                    new Exception("The product \"" + this.productName + "\" could not be found in the bazaar data")
+                );
             }
 
             var price = switch (this.type) {
@@ -160,14 +178,23 @@ public class AlertManager {
         }
 
         public MutableComponent format() {
-            return Component
-                .empty()
-                .append(Component.literal(productName).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" @ ").withStyle(ChatFormatting.GRAY))
-                .append(Component
-                    .literal(Utils.formatDecimal(this.price, 1, true) + "coins")
-                    .withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" (" + type.format() + ")").withStyle(ChatFormatting.DARK_GRAY));
+            return Component.empty()
+                .append(
+                    Component.literal(productName)
+                        .withStyle(ChatFormatting.GOLD)
+                )
+                .append(
+                    Component.literal(" @ ")
+                        .withStyle(ChatFormatting.GRAY)
+                )
+                .append(
+                    Component.literal(Utils.formatDecimal(this.price, 1, true) + "coins")
+                        .withStyle(ChatFormatting.YELLOW)
+                )
+                .append(
+                    Component.literal(" (" + type.format() + ")")
+                        .withStyle(ChatFormatting.DARK_GRAY)
+                );
         }
 
         public boolean matches(ResolvedAlertArgs args) {
@@ -187,21 +214,25 @@ public class AlertManager {
         public List<Alert> alerts = new ArrayList<>();
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Price Alerts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable price alerts. When disabled alerts will not be fired; when re-enabled any alerts whose price is already reached will fire immediately.")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Enable or disable price alerts. When disabled alerts will not be fired; when re-enabled any alerts whose price is already reached will fire immediately."
+                        )
+                    )
+                )
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createSoundOnAlertOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Sound - Price Alert"))
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a price alert target is reached.")))
+                .description(
+                    OptionDescription.of(Component.literal("Play a sound when a price alert target is reached."))
+                )
                 .binding(true, () -> this.soundOnAlert, val -> this.soundOnAlert = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -209,11 +240,12 @@ public class AlertManager {
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createSoundOnAlertOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Price Alerts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Configure price alerting behavior and manage active alerts")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Configure price alerting behavior and manage active alerts"))
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

@@ -28,7 +28,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
-
 @Slf4j
 public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
@@ -74,13 +73,15 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         this.currentHoverSlot = slotIdx;
-        BtrBz.highlightManager().setHighlightOverride(slotIdx, 0xCC00FFFF /* 0xAAFFFFFF */);
+        BtrBz.highlightManager()
+            .setHighlightOverride(slotIdx, 0xCC00FFFF /* 0xAAFFFFFF */);
     }
 
     private void onWidgetHoverExit(int slotIdx) {
         if (this.currentHoverSlot != null && this.currentHoverSlot == slotIdx) {
             this.currentHoverSlot = null;
-            BtrBz.highlightManager().clearHighlightOverride();
+            BtrBz.highlightManager()
+                .clearHighlightOverride();
         }
     }
 
@@ -120,7 +121,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return this.configState.enabled && (info.inMenu(BazaarMenuType.Orders) || this.configState.showInBazaar && info.inBazaar());
+        return this.configState.enabled
+            && (info.inMenu(BazaarMenuType.Orders) || this.configState.showInBazaar && info.inBazaar());
     }
 
     @Override
@@ -131,13 +133,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         var position = this.getWidgetPosition(info);
 
-        this.list = new ListWidget(
-            position.x(),
-            position.y(),
-            175,
-            250,
-            "Tracked Orders"
-        );
+        this.list = new ListWidget(position.x(), position.y(), 175, 250, "Tracked Orders");
         this.list.setItemHeight(14)
             .setItemSpacing(1)
             .setRemovable(false)
@@ -161,8 +157,12 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             newEntry.ifPresent(entry -> this.onWidgetHoverEnter(entry.getSlotIdx()));
 
             if (oldEntry.isEmpty() && newEntry.isEmpty() && (oldIdx >= 0 || newIdx >= 0)) {
-                log.warn("Hover change callback could not resolve items at indices: oldIdx={}, newIdx={}, items.size()={}",
-                    oldIdx, newIdx, self.size());
+                log.warn(
+                    "Hover change callback could not resolve items at indices: oldIdx={}, newIdx={}, items.size()={}",
+                    oldIdx,
+                    newIdx,
+                    self.size()
+                );
             }
         });
 
@@ -172,7 +172,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
     }
 
     private Position getWidgetPosition(ScreenInfo info) {
-        return Optional.ofNullable(this.configState.position).orElse(new Position(150, 100));
+        return Optional.ofNullable(this.configState.position)
+            .orElse(new Position(150, 100));
     }
 
     public static class OrderListConfig {
@@ -184,54 +185,60 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public int maxVisibleChildren = 8;
 
         public Option.Builder<Boolean> createInBazaarOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("In Bazaar"))
-                .description(OptionDescription.of(Component.literal(
-                    "Whether to display the tracked orders list in the Bazaar and not only in the orders screen")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Whether to display the tracked orders list in the Bazaar and not only in the orders screen"
+                        )
+                    )
+                )
                 .binding(true, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Integer> createMaxVisibleOption() {
-            return Option
-                .<Integer>createBuilder()
+            return Option.<Integer>createBuilder()
                 .name(Component.literal("Max Visible Items"))
-                .description(OptionDescription.of(Component.literal(
-                    "Maximum number of orders visible at once before scrolling")))
-                .binding(
-                    8, () -> this.maxVisibleChildren, val -> {
-                        this.maxVisibleChildren = val;
-                        ModuleManager
-                            .getInstance()
-                            .getModule(TrackedOrdersListModule.class)
-                            .updateChildrenCount();
-                    }
+                .description(
+                    OptionDescription.of(Component.literal("Maximum number of orders visible at once before scrolling"))
                 )
-                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(5, 10).step(1));
+                .binding(8, () -> this.maxVisibleChildren, val -> {
+                    this.maxVisibleChildren = val;
+                    ModuleManager.getInstance()
+                        .getModule(TrackedOrdersListModule.class)
+                        .updateChildrenCount();
+                })
+                .controller(
+                    opt -> IntegerSliderControllerBuilder.create(opt)
+                        .range(5, 10)
+                        .step(1)
+                );
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Order List Module"))
-                .description(OptionDescription.of(Component.literal(
-                    "Compact list of tracked orders. Hover an entry to highlight its slot.")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Compact list of tracked orders. Hover an entry to highlight its slot."))
+                )
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup getGroup() {
-            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
-                this.createInBazaarOption(),
-                this.createMaxVisibleOption()
-            );
+            var rootGroup = new OptionGrouping(this.createEnabledOption())
+                .addOptions(this.createInBazaarOption(), this.createMaxVisibleOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order List"))
-                .description(OptionDescription.of(Component.literal(
-                    "Shows your tracked bazaar orders in a compact, hover-highlightable list.")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Shows your tracked bazaar orders in a compact, hover-highlightable list.")
+                    )
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();
@@ -255,11 +262,22 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 return null;
             }
 
-            return BtrBz.tooltipProvider().getCachedTooltip(this.order, cfg);
+            return BtrBz.tooltipProvider()
+                .getCachedTooltip(this.order, cfg);
         }
 
         @Override
-        public void render(GuiGraphicsExtractor context, int x, int y, int w, int h, int mouseX, int mouseY, float delta, boolean hovered) {
+        public void render(
+            GuiGraphicsExtractor context,
+            int x,
+            int y,
+            int w,
+            int h,
+            int mouseX,
+            int mouseY,
+            float delta,
+            boolean hovered
+        ) {
             var textRenderer = Minecraft.getInstance().font;
 
             String typeText = order.type == OrderType.Sell ? "Sell" : "Buy";

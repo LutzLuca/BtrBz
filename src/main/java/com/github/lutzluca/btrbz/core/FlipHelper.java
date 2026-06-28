@@ -36,7 +36,6 @@ import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-
 @Slf4j
 public class FlipHelper {
 
@@ -87,11 +86,16 @@ public class FlipHelper {
         var customHelperItem = new ItemStack(Items.NETHER_STAR);
         customHelperItem.set(
             DataComponents.CUSTOM_NAME,
-            Component
-                .literal("Flip for ")
+            Component.literal("Flip for ")
                 .withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" coins each").withStyle(ChatFormatting.GRAY))
+                .append(
+                    Component.literal(formatted)
+                        .withStyle(ChatFormatting.GOLD)
+                )
+                .append(
+                    Component.literal(" coins each")
+                        .withStyle(ChatFormatting.GRAY)
+                )
                 .withStyle(style -> style.withItalic(false))
         );
         return customHelperItem;
@@ -113,10 +117,10 @@ public class FlipHelper {
         var productName = this.potentialFlipProduct.getProductName();
         var displayPrice = cachedPrice.get();
 
-        if (this.cachedHelperDisplay != null
-            && this.cachedHelperDisplay.productName().equals(productName)
-            && Double.compare(this.cachedHelperDisplay.displayPrice(), displayPrice) == 0) {
-            return this.cachedHelperDisplay.display().copy();
+        if (this.cachedHelperDisplay != null && this.cachedHelperDisplay.productName()
+            .equals(productName) && Double.compare(this.cachedHelperDisplay.displayPrice(), displayPrice) == 0) {
+            return this.cachedHelperDisplay.display()
+                .copy();
         }
 
         var display = this.createHelperDisplayStack(displayPrice);
@@ -129,15 +133,15 @@ public class FlipHelper {
             if (!ConfigManager.get().flipHelper.enabled) {
                 return;
             }
-            var prev = ScreenInfoHelper.get().getPrevInfo();
+            var prev = ScreenInfoHelper.get()
+                .getPrevInfo();
             if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
                 pendingFlip = false;
                 return;
             }
 
             if (!this.pendingFlip) {
-                log.debug(
-                    "Screen transition from OrderOption without a pendingFlip -> resetting flip state");
+                log.debug("Screen transition from OrderOption without a pendingFlip -> resetting flip state");
                 this.clearPendingFlipState();
                 return;
             }
@@ -152,21 +156,16 @@ public class FlipHelper {
             }
 
             if (this.potentialFlipProduct == null) {
-                log.warn(
-                    "Expected `potentialFlipProduct` to be non-null to proceed with entering the flipPrice");
+                log.warn("Expected `potentialFlipProduct` to be non-null to proceed with entering the flipPrice");
                 this.clearPendingFlipState();
                 return;
             }
 
-            var flipPrice = this.potentialFlipProduct
-                .getSellOfferPrice()
+            var flipPrice = this.potentialFlipProduct.getSellOfferPrice()
                 .map(price -> Math.max(price - .1, 0.1));
 
             if (flipPrice.isEmpty()) {
-                log.warn(
-                    "Could not resolve price for product '{}'",
-                    this.potentialFlipProduct.getProductName()
-                );
+                log.warn("Could not resolve price for product '{}'", this.potentialFlipProduct.getProductName());
                 this.clearPendingFlipState();
                 return;
             }
@@ -174,19 +173,17 @@ public class FlipHelper {
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
             GameUtils.submitSignValue(signEditScreen, formatted);
 
-            this.pendingFlips.add(new FlipEntry(
-                potentialFlipProduct.getProductName(),
-                flipPrice.get()
-            ));
+            this.pendingFlips.add(new FlipEntry(potentialFlipProduct.getProductName(), flipPrice.get()));
 
             this.clearPendingFlipState();
         });
     }
 
     public void handleFlipped(BazaarMessage.OrderFlipped flipped) {
-        var match = this.pendingFlips.removeFirstMatch(entry -> entry
-            .productName()
-            .equalsIgnoreCase(flipped.productName()));
+        var match = this.pendingFlips.removeFirstMatch(
+            entry -> entry.productName()
+                .equalsIgnoreCase(flipped.productName())
+        );
 
         // this may be unnecessary as after entering the price in the sign, it opens the orders
         // menu, might as well leave it atm
@@ -215,7 +212,8 @@ public class FlipHelper {
             0,
             -1
         );
-        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo));
+        BtrBz.orderManager()
+            .addTrackedOrder(new TrackedOrder(orderInfo));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
@@ -227,10 +225,7 @@ public class FlipHelper {
 
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
-            log.debug(
-                "Destroying `potentialFlipProduct` '{}'",
-                this.potentialFlipProduct.getProductName()
-            );
+            log.debug("Destroying `potentialFlipProduct` '{}'", this.potentialFlipProduct.getProductName());
             this.potentialFlipProduct.destroy();
         }
         this.cachedHelperDisplay = null;
@@ -240,14 +235,14 @@ public class FlipHelper {
 
     public final class OrderFlipHook implements SlotHook {
 
-        private OrderFlipHook() { }
+        private OrderFlipHook() {}
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().flipHelper.enabled
-                && !view.playerInventorySlot()
+            return ConfigManager.get().flipHelper.enabled && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_HELPER_ITEM_SLOT_IDX
-                && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
+                && view.getCurrInfo()
+                    .inMenu(BazaarMenuType.OrderOptions)
                 && FlipHelper.this.potentialFlipProduct != null;
         }
 
@@ -259,20 +254,22 @@ public class FlipHelper {
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var client = Minecraft.getInstance();
-            var gcsOpt = ctx.view().getCurrInfo().getGenericContainerScreen();
+            var gcsOpt = ctx.view()
+                .getCurrInfo()
+                .getGenericContainerScreen();
             if (gcsOpt.isEmpty()) {
                 return SlotClickResult.Pass;
             }
 
-            var handler = gcsOpt.get().getMenu();
+            var handler = gcsOpt.get()
+                .getMenu();
             var player = client.player;
             var interactionManager = client.gameMode;
             if (player == null || interactionManager == null) {
                 return SlotClickResult.Pass;
             }
 
-            if (FlipHelper.this.potentialFlipProduct == null || FlipHelper.this.potentialFlipProduct
-                .getSellOfferPrice()
+            if (FlipHelper.this.potentialFlipProduct == null || FlipHelper.this.potentialFlipProduct.getSellOfferPrice()
                 .isEmpty()) {
 
                 log.debug(
@@ -296,20 +293,21 @@ public class FlipHelper {
 
     public final class OrderProductObserverHook implements SlotHook {
 
-        private OrderProductObserverHook() { }
+        private OrderProductObserverHook() {}
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().flipHelper.enabled
-                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
-                && !view.playerInventorySlot();
+            return ConfigManager.get().flipHelper.enabled && view.getCurrInfo()
+                .inMenu(BazaarMenuType.Orders) && !view.playerInventorySlot();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var orderInfo = OrderInfoParser.parseOrderInfo(
-                ctx.view().getRawStack(),
-                ctx.view().slotIdx()
+                ctx.view()
+                    .getRawStack(),
+                ctx.view()
+                    .slotIdx()
             );
             if (orderInfo.isSuccess()) {
                 FlipHelper.this.onOrderClick(orderInfo.get());
@@ -319,32 +317,36 @@ public class FlipHelper {
         }
     }
 
-    private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) { }
+    private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) {}
 
-    private record FlipEntry(String productName, double pricePerUnit) { }
+    private record FlipEntry(String productName, double pricePerUnit) {}
 
     public static class FlipHelperConfig {
 
         public boolean enabled = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Enable or disable the flip helper features (quick flip UI interactions)")
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Flip Helper"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Enable or disable the flip helper features (quick flip UI interactions)")
+                    )
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

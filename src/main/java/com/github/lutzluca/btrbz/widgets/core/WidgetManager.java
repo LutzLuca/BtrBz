@@ -92,7 +92,8 @@ public class WidgetManager {
     public boolean mouseReleased(MouseButtonEvent event) {
         boolean handled = false;
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
-            if (this.widgets.get(i).mouseReleased(event)) {
+            if (this.widgets.get(i)
+                .mouseReleased(event)) {
                 handled = true;
             }
         }
@@ -139,7 +140,8 @@ public class WidgetManager {
         }
 
         for (int i = this.widgets.size() - 1; i >= 0; i--) {
-            if (this.widgets.get(i).keyPressed(event)) {
+            if (this.widgets.get(i)
+                .keyPressed(event)) {
                 return true;
             }
         }

@@ -38,39 +38,46 @@ public class BazaarData {
             return Optional.empty();
         }
 
-        return Try.of(summaries::getFirst).map(Summary::getPricePerUnit).toJavaOptional();
+        return Try.of(summaries::getFirst)
+            .map(Summary::getPricePerUnit)
+            .toJavaOptional();
     }
 
     public void loadConversions() {
         log.info("Loading bazaar conversions");
 
-        ConversionLoader.load().thenAccept(result ->
-            result
-                .onSuccess(loadResult -> {
-                    Minecraft.getInstance().execute(() -> {
+        ConversionLoader.load()
+            .thenAccept(result -> result.onSuccess(loadResult -> {
+                Minecraft.getInstance()
+                    .execute(() -> {
                         this.idToName = loadResult.conversions();
                         this.notifyConversionListeners();
                     });
-                    log.debug("Conversions applied ({} entries)", loadResult.conversions().size());
+                log.debug(
+                    "Conversions applied ({} entries)",
+                    loadResult.conversions()
+                        .size()
+                );
 
-                    ConversionLoader.checkForConversionUpdates(loadResult.contentHash())
-                        .thenAccept(updateResult ->
-                            updateResult
-                                .onSuccess(maybeNew ->
-                                    maybeNew.ifPresent(newResult -> {
-                                        Minecraft.getInstance().execute(() -> {
-                                            this.idToName = newResult.conversions();
-                                            this.notifyConversionListeners();
-                                        });
-                                        log.debug("Updated conversions applied ({} entries)", newResult.conversions().size());
-                                    })
-                                )
-                                .onFailure(err -> {
-                                    log.error("Failed to refresh conversions, stale data may be used", err);
-                                    log.debug("Conversions remain stale until next successful refresh");
-                                })
+                ConversionLoader.checkForConversionUpdates(loadResult.contentHash())
+                    .thenAccept(updateResult -> updateResult.onSuccess(maybeNew -> maybeNew.ifPresent(newResult -> {
+                        Minecraft.getInstance()
+                            .execute(() -> {
+                                this.idToName = newResult.conversions();
+                                this.notifyConversionListeners();
+                            });
+                        log.debug(
+                            "Updated conversions applied ({} entries)",
+                            newResult.conversions()
+                                .size()
                         );
-                })
+                    }))
+                        .onFailure(err -> {
+                            log.error("Failed to refresh conversions, stale data may be used", err);
+                            log.debug("Conversions remain stale until next successful refresh");
+                        })
+                    );
+            })
                 .onFailure(err -> {
                     log.error("Failed to load bazaar conversions", err);
                     MessageQueue.sendOrQueue(
@@ -78,16 +85,20 @@ public class BazaarData {
                         Level.Error
                     );
                 })
-        );
+            );
     }
 
     private void notifyConversionListeners() {
         for (var listener : this.conversionListeners) {
-            Try.run(listener::run).onFailure(err -> log.error(
-                "Conversion update listener '{}' failed",
-                listener.getClass().getName(),
-                err
-            ));
+            Try.run(listener::run)
+                .onFailure(
+                    err -> log.error(
+                        "Conversion update listener '{}' failed",
+                        listener.getClass()
+                            .getName(),
+                        err
+                    )
+                );
         }
     }
 
@@ -113,12 +124,16 @@ public class BazaarData {
         var snapshotProducts = Collections.unmodifiableMap(this.lastProducts);
 
         for (var bazaarListener : this.bazaarListeners) {
-            Try.run(() -> bazaarListener.accept(snapshotProducts)).onFailure(err -> log.error(
-                "Bazaar update listener '{}' failed while processing {} products",
-                bazaarListener.getClass().getName(),
-                snapshotProducts.size(),
-                err
-            ));
+            Try.run(() -> bazaarListener.accept(snapshotProducts))
+                .onFailure(
+                    err -> log.error(
+                        "Bazaar update listener '{}' failed while processing {} products",
+                        bazaarListener.getClass()
+                            .getName(),
+                        snapshotProducts.size(),
+                        err
+                    )
+                );
         }
     }
 
@@ -144,12 +159,18 @@ public class BazaarData {
     }
 
     public Optional<Double> lowestSellPrice(String productId) {
-        var product = Optional.ofNullable(this.getProducts().get(productId));
+        var product = Optional.ofNullable(
+            this.getProducts()
+                .get(productId)
+        );
         return product.flatMap(prod -> firstSummaryPrice(prod.getBuySummary()));
     }
 
     public Optional<Double> highestBuyPrice(String productId) {
-        var product = Optional.ofNullable(this.getProducts().get(productId));
+        var product = Optional.ofNullable(
+            this.getProducts()
+                .get(productId)
+        );
         return product.flatMap(prod -> firstSummaryPrice(prod.getSellSummary()));
     }
 
@@ -157,7 +178,10 @@ public class BazaarData {
         if (this.idToName == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(this.idToName.inverse().get(name));
+        return Optional.ofNullable(
+            this.idToName.inverse()
+                .get(name)
+        );
     }
 
     public OrderPriceInfo getOrderPrices(String productId) {
@@ -169,24 +193,34 @@ public class BazaarData {
 
     public OrderLists getOrderLists(String productId) {
         // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
-        return Optional.ofNullable(this.getProducts().get(productId))
-            .map(prod -> new OrderLists(
-                Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
-                Optional.ofNullable(prod.getBuySummary()).orElse(List.of())
-            ))
+        return Optional.ofNullable(
+            this.getProducts()
+                .get(productId)
+        )
+            .map(
+                prod -> new OrderLists(
+                    Optional.ofNullable(prod.getSellSummary())
+                        .orElse(List.of()),
+                    Optional.ofNullable(prod.getBuySummary())
+                        .orElse(List.of())
+                )
+            )
             .orElse(OrderLists.empty());
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        String productName, OrderType orderType,
+        String productName,
+        OrderType orderType,
         double pricePerUnit
     ) {
         return calculateQueuePosition(productName, orderType, pricePerUnit, false);
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        String productName, OrderType orderType,
-        double pricePerUnit, boolean includeAtPrice
+        String productName,
+        OrderType orderType,
+        double pricePerUnit,
+        boolean includeAtPrice
     ) {
         var productId = this.nameToId(productName);
 
@@ -269,12 +303,9 @@ public class BazaarData {
         public int itemsAhead;
     }
 
-    public record OrderPriceInfo(
-        Optional<@Nullable Double> buyOrderPrice,
-        Optional<@Nullable Double> sellOfferPrice
-    ) { }
+    public record OrderPriceInfo(Optional<@Nullable Double> buyOrderPrice, Optional<@Nullable Double> sellOfferPrice) {}
 
-    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) { 
+    public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) {
         public static OrderLists empty() {
             return new OrderLists(List.of(), List.of());
         }
@@ -296,10 +327,9 @@ public class BazaarData {
             this.productName = productName;
             this.product = Optional.empty();
 
-            this.updater = products ->
-                this.data.nameToId(productName)
-                        .flatMap(id -> Optional.ofNullable(products.get(id)))
-                        .ifPresent(updated -> this.product = Optional.of(updated));
+            this.updater = products -> this.data.nameToId(productName)
+                .flatMap(id -> Optional.ofNullable(products.get(id)))
+                .ifPresent(updated -> this.product = Optional.of(updated));
         }
 
         private void ensureInitialized() {
@@ -307,9 +337,13 @@ public class BazaarData {
                 return;
             }
 
-            this.data
-                .nameToId(productName)
-                .flatMap(id -> Optional.ofNullable(data.getProducts().get(id)))
+            this.data.nameToId(productName)
+                .flatMap(
+                    id -> Optional.ofNullable(
+                        data.getProducts()
+                            .get(id)
+                    )
+                )
                 .ifPresent(prod -> {
                     this.product = Optional.of(prod);
 
@@ -322,7 +356,8 @@ public class BazaarData {
             this.ensureInitialized();
 
             return this.product.flatMap(
-                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit)
+                prod -> Utils.getFirst(prod.getBuySummary())
+                    .map(Summary::getPricePerUnit)
             );
         }
 
@@ -330,7 +365,8 @@ public class BazaarData {
             this.ensureInitialized();
 
             return this.product.flatMap(
-                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit)
+                prod -> Utils.getFirst(prod.getSellSummary())
+                    .map(Summary::getPricePerUnit)
             );
         }
 

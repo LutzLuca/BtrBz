@@ -22,58 +22,63 @@ public class OrderPresetsConfig {
     public List<Integer> presets = List.of();
 
     public Builder<Boolean> createEnableOption() {
-        return Option
-            .<Boolean>createBuilder()
+        return Option.<Boolean>createBuilder()
             .name(Component.nullToEmpty("Order Presets: Master Switch"))
-            .description(OptionDescription.of(Component.literal(
-                "Master switch to enable or disable the Order Presets module.")))
+            .description(
+                OptionDescription.of(Component.literal("Master switch to enable or disable the Order Presets module."))
+            )
             .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
 
     public Builder<Boolean> createEnableContainerOption() {
-        return Option
-            .<Boolean>createBuilder()
+        return Option.<Boolean>createBuilder()
             .name(Component.nullToEmpty("Enable in Bazaar Menu"))
-            .description(OptionDescription.of(Component.literal(
-                "Show presets when setting up an order volume in the buy order volume setup menu.")))
+            .description(
+                OptionDescription.of(
+                    Component
+                        .literal("Show presets when setting up an order volume in the buy order volume setup menu.")
+                )
+            )
             .binding(true, () -> this.enableOnContainer, enabled -> this.enableOnContainer = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
 
     public Builder<Boolean> createEnableSignOption() {
-        return Option
-            .<Boolean>createBuilder()
+        return Option.<Boolean>createBuilder()
             .name(Component.nullToEmpty("Enable in Sign Screen"))
-            .description(OptionDescription.of(Component.literal(
-                "Show presets when editing the enter volume amount sign in the order setup flow.")))
+            .description(
+                OptionDescription.of(
+                    Component.literal("Show presets when editing the enter volume amount sign in the order setup flow.")
+                )
+            )
             .binding(true, () -> this.enableOnSign, enabled -> this.enableOnSign = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
 
     public Builder<Boolean> createHideUnaffordablePresetsOption() {
-        return Option
-            .<Boolean>createBuilder()
+        return Option.<Boolean>createBuilder()
             .name(Component.nullToEmpty("Hide Unaffordable Presets"))
-            .description(OptionDescription.of(Component.literal(
-                "Hide presets that cannot currently be purchased due to insufficient coins.")))
+            .description(
+                OptionDescription
+                    .of(Component.literal("Hide presets that cannot currently be purchased due to insufficient coins."))
+            )
             .binding(false, () -> this.hideUnaffordablePresets, hide -> this.hideUnaffordablePresets = hide)
             .controller(ConfigScreen::createBooleanController);
     }
 
     public OptionGroup createGroup() {
-        var rootGroup = new OptionGrouping(this.createEnableOption())
-            .addOptions(
-                this.createEnableContainerOption(),
-                this.createEnableSignOption(),
-                this.createHideUnaffordablePresetsOption()
-            );
+        var rootGroup = new OptionGrouping(this.createEnableOption()).addOptions(
+            this.createEnableContainerOption(),
+            this.createEnableSignOption(),
+            this.createHideUnaffordablePresetsOption()
+        );
 
-        return OptionGroup
-            .createBuilder()
+        return OptionGroup.createBuilder()
             .name(Component.nullToEmpty("Order Presets"))
-            .description(OptionDescription.of(Component.literal(
-                "Lets you have predefined order volume for quick access")))
+            .description(
+                OptionDescription.of(Component.literal("Lets you have predefined order volume for quick access"))
+            )
             .options(rootGroup.build())
             .collapsed(false)
             .build();

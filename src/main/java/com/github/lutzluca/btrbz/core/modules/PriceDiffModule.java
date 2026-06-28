@@ -42,9 +42,12 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         var handler = screen.getMenu();
         var inv = handler.getContainer();
 
-        String productName = inv.getItem(PRODUCT_SLOT).getHoverName().getString();
+        String productName = inv.getItem(PRODUCT_SLOT)
+            .getHoverName()
+            .getString();
 
-        int listedCount = this.parseListedCount(inv.getItem(SELL_INSTANTLY_SLOT)).orElse(0);
+        int listedCount = this.parseListedCount(inv.getItem(SELL_INSTANTLY_SLOT))
+            .orElse(0);
         if (listedCount <= 0) {
             return Optional.empty();
         }
@@ -58,12 +61,11 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         double totalDiff = perItemDiff * listedCount;
 
         List<Component> lines = List.of(
-            Component.literal(productName).withStyle(ChatFormatting.AQUA),
-            Component
-                .literal("Per-item diff: " + Utils.formatCompact(perItemDiff, 1) + " coins")
+            Component.literal(productName)
+                .withStyle(ChatFormatting.AQUA),
+            Component.literal("Per-item diff: " + Utils.formatCompact(perItemDiff, 1) + " coins")
                 .withStyle(ChatFormatting.GOLD),
-            Component
-                .literal("Total diff: " + Utils.formatCompact(totalDiff, 1) + " coins")
+            Component.literal("Total diff: " + Utils.formatCompact(totalDiff, 1) + " coins")
                 .withStyle(ChatFormatting.YELLOW)
         );
 
@@ -76,43 +78,53 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             return Optional.empty();
         }
 
-        widget.setPosition(position.get().x(), position.get().y());
+        widget.setPosition(
+            position.get()
+                .x(),
+            position.get()
+                .y()
+        );
         widget.onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         return Optional.of(widget);
     }
 
     private Optional<Integer> parseListedCount(ItemStack sellStack) {
-        return OrderInfoParser
-            .getLore(sellStack)
+        return OrderInfoParser.getLore(sellStack)
             .stream()
             .filter(line -> line.startsWith("Inventory"))
             .findFirst()
-            .flatMap(line -> Utils
-                .parseUsFormattedNumber(line.replace("Inventory:", "").replace("items", "").trim())
-                .toJavaOptional())
+            .flatMap(
+                line -> Utils.parseUsFormattedNumber(
+                    line.replace("Inventory:", "")
+                        .replace("items", "")
+                        .trim()
+                )
+                    .toJavaOptional()
+            )
             .map(Number::intValue);
     }
 
     private Optional<Double> computePriceDiff(String productName) {
         // TODO maybe respect "filling orders" when one would sell it instantly
-        var bazaarData = this.context().bazaarData();
+        var bazaarData = this.context()
+            .bazaarData();
 
-        return bazaarData
-            .nameToId(productName)
-            .flatMap(id -> Utils.zipOptionals(
-                bazaarData.lowestSellPrice(id),
-                bazaarData.highestBuyPrice(id)
-            ))
+        return bazaarData.nameToId(productName)
+            .flatMap(id -> Utils.zipOptionals(bazaarData.lowestSellPrice(id), bazaarData.highestBuyPrice(id)))
             .map(pair -> pair.getLeft() - pair.getRight());
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
-        return Optional.ofNullable(this.configState.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
-            int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
-            int y = bounds.y() - widget.getHeight() - 15;
-            return new Position(x, y);
-        }));
+        return Optional.ofNullable(this.configState.position)
+            .or(
+                () -> info.getHandledScreenBounds()
+                    .map(bounds -> {
+                        int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
+                        int y = bounds.y() - widget.getHeight() - 15;
+                        return new Position(x, y);
+                    })
+            );
     }
 
     public static class PriceDiffConfig {
@@ -121,11 +133,14 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         public Position position;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Price Diff Module"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show per-item and total price difference for the currently selected bazaar item")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Show per-item and total price difference for the currently selected bazaar item")
+                    )
+                )
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -133,11 +148,12 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Price Diff"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show per-item and total price difference for selected item")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Show per-item and total price difference for selected item"))
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

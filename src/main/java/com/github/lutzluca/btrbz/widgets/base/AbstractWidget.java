@@ -61,7 +61,8 @@ public abstract class AbstractWidget implements LayoutElement, GuiEventListener,
     protected abstract void renderWidget(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta);
 
     protected boolean isMouseHovered() {
-        double guiScale = this.client.getWindow().getGuiScale();
+        double guiScale = this.client.getWindow()
+            .getGuiScale();
         double scaledX = this.client.mouseHandler.xpos() / guiScale;
         double scaledY = this.client.mouseHandler.ypos() / guiScale;
         return this.isMouseOver(scaledX, scaledY);

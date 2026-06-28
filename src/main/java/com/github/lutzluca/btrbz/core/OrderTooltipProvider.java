@@ -77,7 +77,10 @@ public class OrderTooltipProvider {
                 return;
             }
 
-            var screen = ScreenInfoHelper.get().getCurrInfo().getGenericContainerScreen().orElse(null);
+            var screen = ScreenInfoHelper.get()
+                .getCurrInfo()
+                .getGenericContainerScreen()
+                .orElse(null);
             if (screen == null) {
                 return;
             }
@@ -88,7 +91,8 @@ public class OrderTooltipProvider {
             }
 
             int idx = slot.getContainerSlot();
-            var order = BtrBz.highlightManager().getTrackedOrder(idx);
+            var order = BtrBz.highlightManager()
+                .getTrackedOrder(idx);
             if (order == null) {
                 return;
             }
@@ -115,7 +119,10 @@ public class OrderTooltipProvider {
         var productId = this.bazaarData.nameToId(order.productName);
 
         if (productId.isEmpty()) {
-            return List.of(Component.literal("Unknown Product").withStyle(ChatFormatting.RED));
+            return List.of(
+                Component.literal("Unknown Product")
+                    .withStyle(ChatFormatting.RED)
+            );
         }
 
         List<Component> lines = new ArrayList<>();
@@ -128,20 +135,21 @@ public class OrderTooltipProvider {
         }
 
         if (cfg.showQueue && order.status instanceof OrderStatus.Undercut) {
-            var queueInfo = this.bazaarData.calculateQueuePosition(
-                order.productName,
-                order.type,
-                order.pricePerUnit
-            );
+            var queueInfo = this.bazaarData.calculateQueuePosition(order.productName, order.type, order.pricePerUnit);
 
-            queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
-                    .literal("Queue: ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(GameUtils.buildQueueComponent(
-                        orderQueueInfo.ordersAhead, 
-                        orderQueueInfo.itemsAhead,
-                        ConfigManager.get().trackedOrders.queueDisplayMode
-                    ))));
+            queueInfo.ifPresent(
+                orderQueueInfo -> lines.add(
+                    Component.literal("Queue: ")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(
+                            GameUtils.buildQueueComponent(
+                                orderQueueInfo.ordersAhead,
+                                orderQueueInfo.itemsAhead,
+                                ConfigManager.get().trackedOrders.queueDisplayMode
+                            )
+                        )
+                )
+            );
         }
 
         lines.add(Component.empty());
@@ -159,7 +167,10 @@ public class OrderTooltipProvider {
         var productId = this.bazaarData.nameToId(order.productName);
 
         if (productId.isEmpty()) {
-            return List.of(Component.literal("Unknown Product").withStyle(ChatFormatting.RED));
+            return List.of(
+                Component.literal("Unknown Product")
+                    .withStyle(ChatFormatting.RED)
+            );
         }
 
         List<Component> lines = new ArrayList<>();
@@ -170,11 +181,15 @@ public class OrderTooltipProvider {
             if (cfg.showEstimatedTime && order.status instanceof OrderStatus.Top) {
                 int remainingVolume = order.volume - order.fillAmountSnapshot;
 
-                this.bazaarData.getEstimatedFillTimeMinutes(order.productName, order.type, remainingVolume).ifPresent(minutes -> {
-                    var time = Component.literal(Utils.formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
-                    var line = Component.literal("Estimated fill time: ").withStyle(ChatFormatting.GRAY).append(time);
-                    lines.add(line);
-                });
+                this.bazaarData.getEstimatedFillTimeMinutes(order.productName, order.type, remainingVolume)
+                    .ifPresent(minutes -> {
+                        var time = Component.literal(Utils.formatDuration(minutes))
+                            .withStyle(ChatFormatting.YELLOW);
+                        var line = Component.literal("Estimated fill time: ")
+                            .withStyle(ChatFormatting.GRAY)
+                            .append(time);
+                        lines.add(line);
+                    });
             }
 
             if (order.status instanceof OrderStatus.Undercut undercut) {
@@ -183,20 +198,21 @@ public class OrderTooltipProvider {
         }
 
         if (cfg.showQueue && order.status instanceof OrderStatus.Undercut) {
-            var queueInfo = this.bazaarData.calculateQueuePosition(
-                order.productName,
-                order.type,
-                order.pricePerUnit
-            );
+            var queueInfo = this.bazaarData.calculateQueuePosition(order.productName, order.type, order.pricePerUnit);
 
-            queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
-                    .literal("Queue: ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(GameUtils.buildQueueComponent(
-                        orderQueueInfo.ordersAhead, 
-                        orderQueueInfo.itemsAhead,
-                        ConfigManager.get().trackedOrders.queueDisplayMode
-                    ))));
+            queueInfo.ifPresent(
+                orderQueueInfo -> lines.add(
+                    Component.literal("Queue: ")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(
+                            GameUtils.buildQueueComponent(
+                                orderQueueInfo.ordersAhead,
+                                orderQueueInfo.itemsAhead,
+                                ConfigManager.get().trackedOrders.queueDisplayMode
+                            )
+                        )
+                )
+            );
         }
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
@@ -219,19 +235,22 @@ public class OrderTooltipProvider {
     }
 
     private static List<Component> currOrderLines(TrackedOrder order) {
-        var header = Component.literal("Your Order").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        var header = Component.literal("Your Order")
+            .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 
-        var priceLine = Component
-            .literal("Price: ")
+        var priceLine = Component.literal("Price: ")
             .withStyle(ChatFormatting.GRAY)
-            .append(Component
-                .literal(Utils.formatDecimal(order.pricePerUnit, 1, true))
-                .withStyle(ChatFormatting.WHITE));
+            .append(
+                Component.literal(Utils.formatDecimal(order.pricePerUnit, 1, true))
+                    .withStyle(ChatFormatting.WHITE)
+            );
 
-        var volumeLine = Component
-            .literal("Volume: ")
+        var volumeLine = Component.literal("Volume: ")
             .withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(String.valueOf(order.volume)).withStyle(ChatFormatting.WHITE));
+            .append(
+                Component.literal(String.valueOf(order.volume))
+                    .withStyle(ChatFormatting.WHITE)
+            );
 
         return List.of(header, priceLine, volumeLine);
     }
@@ -239,49 +258,58 @@ public class OrderTooltipProvider {
     private static Component statusLine(TrackedOrder order) {
         return switch (order.status) {
             case OrderStatus.Top _ -> Component.literal("Best Price!")
-                    .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+                .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
             case OrderStatus.Matched _ -> Component.literal("Matched!")
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
             case OrderStatus.Undercut _ -> Component.literal("Undercut!")
-                    .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
             case OrderStatus.Unknown _ -> Component.literal("Status Unknown")
-                    .withStyle(ChatFormatting.GRAY);
+                .withStyle(ChatFormatting.GRAY);
         };
     }
 
     private static Component undercutAmountLine(double amount) {
-        return Component
-            .literal("By: ")
+        return Component.literal("By: ")
             .withStyle(ChatFormatting.GRAY)
-            .append(Component
-                .literal(Utils.formatDecimal(Math.abs(amount), 1, true))
-                .withStyle(ChatFormatting.GOLD));
+            .append(
+                Component.literal(Utils.formatDecimal(Math.abs(amount), 1, true))
+                    .withStyle(ChatFormatting.GOLD)
+            );
     }
 
     private static List<Component> priceLines(BazaarData data, String productId) {
         var priceInfo = data.getOrderPrices(productId);
 
-        var header = Component.literal("Current Prices").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        var header = Component.literal("Current Prices")
+            .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
 
-        var buyOrderLine = Component
-            .literal("Buy Orders: ")
+        var buyOrderLine = Component.literal("Buy Orders: ")
             .withStyle(ChatFormatting.YELLOW)
-            .append(priceInfo
-                .buyOrderPrice()
-                .map(price -> Component
-                    .literal(Utils.formatDecimal(price, 1, true))
-                    .withStyle(ChatFormatting.WHITE))
-                .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
+            .append(
+                priceInfo.buyOrderPrice()
+                    .map(
+                        price -> Component.literal(Utils.formatDecimal(price, 1, true))
+                            .withStyle(ChatFormatting.WHITE)
+                    )
+                    .orElse(
+                        Component.literal("N/A")
+                            .withStyle(ChatFormatting.DARK_GRAY)
+                    )
+            );
 
-        var sellOfferLine = Component
-            .literal("Sell Offers: ")
+        var sellOfferLine = Component.literal("Sell Offers: ")
             .withStyle(ChatFormatting.YELLOW)
-            .append(priceInfo
-                .sellOfferPrice()
-                .map(price -> Component
-                    .literal(Utils.formatDecimal(price, 1, true))
-                    .withStyle(ChatFormatting.WHITE))
-                .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
+            .append(
+                priceInfo.sellOfferPrice()
+                    .map(
+                        price -> Component.literal(Utils.formatDecimal(price, 1, true))
+                            .withStyle(ChatFormatting.WHITE)
+                    )
+                    .orElse(
+                        Component.literal("N/A")
+                            .withStyle(ChatFormatting.DARK_GRAY)
+                    )
+            );
 
         return List.of(header, buyOrderLine, sellOfferLine);
     }
@@ -294,7 +322,8 @@ public class OrderTooltipProvider {
         public boolean showOnlyWhenUndercut = false;
 
         private static void invalidateCache() {
-            BtrBz.tooltipProvider().clearCache();
+            BtrBz.tooltipProvider()
+                .clearCache();
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
@@ -304,7 +333,10 @@ public class OrderTooltipProvider {
                     this.enabled = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal("Enable custom tooltips for order list entries in the sidebar.")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Enable custom tooltips for order list entries in the sidebar."))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -348,7 +380,9 @@ public class OrderTooltipProvider {
                     this.showOnlyWhenUndercut = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal("Only show prices when your order has been undercut.")))
+                .description(
+                    OptionDescription.of(Component.literal("Only show prices when your order has been undercut."))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -357,15 +391,18 @@ public class OrderTooltipProvider {
                 .addOptions(this.createOnlyWhenUndercutOption());
 
             var root = new OptionGrouping(this.createEnabledOption())
-                .addOptions(
-                    this.createStatusOption(),
-                    this.createQueueOption()
-                )
+                .addOptions(this.createStatusOption(), this.createQueueOption())
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order List Tooltips"))
-                .description(OptionDescription.of(Component.literal("Settings for tooltips shown when hovering order entries in the tracked orders list.")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Settings for tooltips shown when hovering order entries in the tracked orders list."
+                        )
+                    )
+                )
                 .options(root.build())
                 .collapsed(false)
                 .build();
@@ -381,7 +418,8 @@ public class OrderTooltipProvider {
         public boolean showEstimatedTime = false;
 
         private static void invalidateCache() {
-            BtrBz.tooltipProvider().clearCache();
+            BtrBz.tooltipProvider()
+                .clearCache();
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
@@ -391,7 +429,10 @@ public class OrderTooltipProvider {
                     this.enabled = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal("Enable custom tooltips for order items in the Bazaar orders menu.")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Enable custom tooltips for order items in the Bazaar orders menu."))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -435,7 +476,9 @@ public class OrderTooltipProvider {
                     this.showOnlyWhenUndercut = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal("Only show prices when your order has been undercut.")))
+                .description(
+                    OptionDescription.of(Component.literal("Only show prices when your order has been undercut."))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -446,13 +489,17 @@ public class OrderTooltipProvider {
                     this.showEstimatedTime = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal(
-                    "Show a rough, opt-in estimate of how long a top-priority order might take to fill. " +
-                    "Calculated as: Remaining Volume / (Weekly Moving Volume / 10,080 minutes). " +
-                    "This time may be significantly off, as it uses a weekly volume average that won't reflect recent market shifts, " +
-                    "and the filled amount is a UI snapshot that may lag behind the actual server state. " +
-                    "Only shown for top orders. Treat this as a ballpark guess, not a reliable countdown."
-                )))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Show a rough, opt-in estimate of how long a top-priority order might take to fill. "
+                                + "Calculated as: Remaining Volume / (Weekly Moving Volume / 10,080 minutes). "
+                                + "This time may be significantly off, as it uses a weekly volume average that won't reflect recent market shifts, "
+                                + "and the filled amount is a UI snapshot that may lag behind the actual server state. "
+                                + "Only shown for top orders. Treat this as a ballpark guess, not a reliable countdown."
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -461,16 +508,17 @@ public class OrderTooltipProvider {
                 .addOptions(this.createOnlyWhenUndercutOption());
 
             var root = new OptionGrouping(this.createEnabledOption())
-                .addOptions(
-                    this.createStatusOption(),
-                    this.createQueueOption(),
-                    this.createEstimatedTimeOption()
-                )
+                .addOptions(this.createStatusOption(), this.createQueueOption(), this.createEstimatedTimeOption())
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order Item Tooltips"))
-                .description(OptionDescription.of(Component.literal("Settings for tooltips shown when hovering order items in the Bazaar orders menu.")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Settings for tooltips shown when hovering order items in the Bazaar orders menu.")
+                    )
+                )
                 .options(root.build())
                 .collapsed(false)
                 .build();

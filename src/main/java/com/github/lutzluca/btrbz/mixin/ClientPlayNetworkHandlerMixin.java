@@ -15,19 +15,22 @@ public class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "handleOpenScreen", at = @At("RETURN"))
     private void onOpenScreen(ClientboundOpenScreenPacket packet, CallbackInfo ci) {
-        ScreenInfoHelper.get().getInventoryWatcher().onPacketReceived(packet);
+        ScreenInfoHelper.get()
+            .getInventoryWatcher()
+            .onPacketReceived(packet);
     }
 
     @Inject(method = "handleContainerSetSlot", at = @At("RETURN"))
-    private void onScreenHandlerSlotUpdate(
-        ClientboundContainerSetSlotPacket packet,
-        CallbackInfo ci
-    ) {
-        ScreenInfoHelper.get().getInventoryWatcher().onPacketReceived(packet);
+    private void onScreenHandlerSlotUpdate(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
+        ScreenInfoHelper.get()
+            .getInventoryWatcher()
+            .onPacketReceived(packet);
     }
 
     @Inject(method = "handleContainerClose", at = @At("RETURN"))
     private void onCloseScreen(ClientboundContainerClosePacket packet, CallbackInfo ci) {
-        ScreenInfoHelper.get().getInventoryWatcher().onPacketReceived(packet);
+        ScreenInfoHelper.get()
+            .getInventoryWatcher()
+            .onPacketReceived(packet);
     }
 }

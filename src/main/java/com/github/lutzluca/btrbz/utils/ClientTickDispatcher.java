@@ -21,19 +21,18 @@ public final class ClientTickDispatcher {
         ClientTickEvents.END_CLIENT_TICK.register(ClientTickDispatcher::onEndTick);
     }
 
-
     private static void onEndTick(Minecraft client) {
-        LISTENERS.forEach(listener -> Try
-            .run(() -> listener.onEndTick(client))
-            .onFailure(err -> log.warn("Exception in client end tick listener", err)));
+        LISTENERS.forEach(
+            listener -> Try.run(() -> listener.onEndTick(client))
+                .onFailure(err -> log.warn("Exception in client end tick listener", err))
+        );
 
         var it = TASKS.iterator();
         while (it.hasNext()) {
             var task = it.next();
             if (--task.ticks <= 0) {
                 it.remove();
-                Try
-                    .run(() -> task.callback.accept(client))
+                Try.run(() -> task.callback.accept(client))
                     .onFailure(err -> log.warn("Exception in client tick task", err));
             }
         }
@@ -54,7 +53,6 @@ public final class ClientTickDispatcher {
     public static void submit(Consumer<Minecraft> task, int ticks) {
         TASKS.add(new ScheduledTask(ticks, task));
     }
-
 
     @AllArgsConstructor
     private static class ScheduledTask {

@@ -35,7 +35,7 @@ public class ModuleManager {
     private @Nullable WidgetManager widgetManager;
     private @Nullable ModuleContext context;
 
-    public record ModuleContext(@NotNull BazaarData bazaarData, @NotNull ProductInfoProvider productInfoProvider) { }
+    public record ModuleContext(@NotNull BazaarData bazaarData, @NotNull ProductInfoProvider productInfoProvider) {}
 
     @Setter
     private boolean isDirty = false;
@@ -49,10 +49,7 @@ public class ModuleManager {
             instance = new ModuleManager();
             ScreenInfoHelper.registerOnSwitch(instance::renderModules);
 
-            ScreenInfoHelper.registerOnLoaded(
-                info -> true,
-                (info, _) -> instance.revalidateModules(info)
-            );
+            ScreenInfoHelper.registerOnLoaded(info -> true, (info, _) -> instance.revalidateModules(info));
         }
 
         return instance;
@@ -71,14 +68,17 @@ public class ModuleManager {
     }
 
     private void renderModules(ScreenInfo info) {
-        this.modules.values().forEach(module -> module.setDisplayed(false));
+        this.modules.values()
+            .forEach(module -> module.setDisplayed(false));
 
-        List<DraggableWidget> widgets = this.modules
-            .values()
+        List<DraggableWidget> widgets = this.modules.values()
             .stream()
             .filter(module -> module.shouldDisplay(info))
             .peek(module -> module.setDisplayed(true))
-            .flatMap(module -> module.createWidget(info).stream())
+            .flatMap(
+                module -> module.createWidget(info)
+                    .stream()
+            )
             .toList();
 
         this.widgetManager = new WidgetManager(widgets);
@@ -87,18 +87,21 @@ public class ModuleManager {
     }
 
     private void revalidateModules(ScreenInfo info) {
-        var newWidgets = this.modules
-            .values()
+        var newWidgets = this.modules.values()
             .stream()
             .filter(module -> !module.isDisplayed() && module.shouldDisplay(info))
             .peek(module -> {
                 log.trace(
                     "Module {} now displays after inventory load",
-                    module.getClass().getSimpleName()
+                    module.getClass()
+                        .getSimpleName()
                 );
                 module.setDisplayed(true);
             })
-            .flatMap(module -> module.createWidget(info).stream())
+            .flatMap(
+                module -> module.createWidget(info)
+                    .stream()
+            )
             .toList();
 
         if (!newWidgets.isEmpty() && this.widgetManager != null) {
@@ -109,7 +112,8 @@ public class ModuleManager {
 
     public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
         try {
-            M module = moduleClass.getDeclaredConstructor().newInstance();
+            M module = moduleClass.getDeclaredConstructor()
+                .newInstance();
             module.initContext(Objects.requireNonNull(this.context, "ModuleManager context not initialized"));
             this.modules.put(moduleClass, module);
             this.applyConfigToModule(module);
@@ -117,10 +121,7 @@ public class ModuleManager {
             log.info("Registered module: {}", moduleClass.getName());
             return module;
         } catch (Exception err) {
-            throw new RuntimeException(
-                "Failed to instantiate module: " + moduleClass.getName(),
-                err
-            );
+            throw new RuntimeException("Failed to instantiate module: " + moduleClass.getName(), err);
         }
     }
 
@@ -129,14 +130,19 @@ public class ModuleManager {
         try {
             Object value = field.get(ConfigManager.get());
             if (value == null) {
-                throw new IllegalStateException("Config field '" + field.getName() + "' is null. " + "Ensure the field is initialized in the Config class");
+                throw new IllegalStateException(
+                    "Config field '" + field.getName() + "' is null. "
+                        + "Ensure the field is initialized in the Config class"
+                );
             }
 
-            this.castModule(module).applyConfigState(value);
+            this.castModule(module)
+                .applyConfigState(value);
             log.debug(
                 "Applied config value '{}' to module: {}",
                 value,
-                module.getClass().getName()
+                module.getClass()
+                    .getName()
             );
         } catch (IllegalAccessException err) {
             throw new RuntimeException("Failed to access config field: " + field.getName(), err);
@@ -153,7 +159,8 @@ public class ModuleManager {
                 log.debug(
                     "Validating `@BindModule` annotation for config field '{}' with type '{}' for module '{}'",
                     field.getName(),
-                    field.getType().getSimpleName(),
+                    field.getType()
+                        .getSimpleName(),
                     moduleClass.getName()
                 );
 
@@ -173,18 +180,20 @@ public class ModuleManager {
         Class<?> stateClass = (Class<?>) moduleStateType;
 
         if (!fieldType.equals(stateClass)) {
-            throw new IllegalStateException(String.format(
-                """
-                    Type mismatch for @BindModule on field '%s':
-                    Expected: %s (from Module<%s>)
-                    Found: %s
-                    Module: %s""",
-                field.getName(),
-                stateClass.getSimpleName(),
-                stateClass.getSimpleName(),
-                fieldType.getSimpleName(),
-                moduleClass.getName()
-            ));
+            throw new IllegalStateException(
+                String.format(
+                    """
+                        Type mismatch for @BindModule on field '%s':
+                        Expected: %s (from Module<%s>)
+                        Found: %s
+                        Module: %s""",
+                    field.getName(),
+                    stateClass.getSimpleName(),
+                    stateClass.getSimpleName(),
+                    fieldType.getSimpleName(),
+                    moduleClass.getName()
+                )
+            );
         }
     }
 
@@ -192,7 +201,8 @@ public class ModuleManager {
         Type superclass = moduleClass.getGenericSuperclass();
 
         if (superclass instanceof ParameterizedType paramType) {
-            if (paramType.getRawType().equals(Module.class)) {
+            if (paramType.getRawType()
+                .equals(Module.class)) {
                 return paramType.getActualTypeArguments()[0];
             }
         }

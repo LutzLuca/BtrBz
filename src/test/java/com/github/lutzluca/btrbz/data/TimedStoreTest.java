@@ -108,7 +108,10 @@ class TimedStoreTest {
 
                 this.now.set(101L);
 
-                assertTrue(store.items().isEmpty());
+                assertTrue(
+                    store.items()
+                        .isEmpty()
+                );
             }
         }
 
@@ -122,7 +125,10 @@ class TimedStoreTest {
                 var removed = store.removeFirstMatch(value -> true);
 
                 assertEquals(Optional.of("fresh"), removed);
-                assertTrue(store.items().isEmpty());
+                assertTrue(
+                    store.items()
+                        .isEmpty()
+                );
             }
         }
 

@@ -28,13 +28,10 @@ public final class Utils {
 
     public static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
     public static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
-    private static final Pattern ROMAN_NUMERAL_PATTERN =
-        Pattern.compile(
-            "^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$",
-            Pattern.CASE_INSENSITIVE
-        );
+    private static final Pattern ROMAN_NUMERAL_PATTERN = Pattern
+        .compile("^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$", Pattern.CASE_INSENSITIVE);
 
-    private Utils() { }
+    private Utils() {}
 
     public static String formatUtcTimestampMillis(long utcMillis) {
         Instant instant = Instant.ofEpochMilli(utcMillis);
@@ -61,12 +58,7 @@ public final class Utils {
             Files.writeString(tmp.toPath(), content);
             tmp.deleteOnExit();
 
-            return Files.move(
-                tmp.toPath(),
-                path,
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            return Files.move(tmp.toPath(), path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         });
     }
 
@@ -102,7 +94,8 @@ public final class Utils {
     }
 
     public static <T> Optional<T> getFirst(List<T> list) {
-        return Try.of(list::getFirst).toJavaOptional();
+        return Try.of(list::getFirst)
+            .toJavaOptional();
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -113,7 +106,10 @@ public final class Utils {
         return Optional.of(Pair.of(first.get(), second.get()));
     }
 
-    public static <T, U> @NotNull Optional<@NotNull Pair<@NotNull T, @NotNull U>> zipNullables(@Nullable T first, @Nullable U second) {
+    public static <T, U> @NotNull Optional<@NotNull Pair<@NotNull T, @NotNull U>> zipNullables(
+        @Nullable T first,
+        @Nullable U second
+    ) {
         if (first == null || second == null) {
             return Optional.empty();
         }
@@ -150,12 +146,13 @@ public final class Utils {
             pattern.append("0".repeat(places));
         }
 
-        return new DecimalFormat(pattern.toString(), DecimalFormatSymbols.getInstance(Locale.US)).format(scaled) + suffix;
+        return new DecimalFormat(pattern.toString(), DecimalFormatSymbols.getInstance(Locale.US)).format(scaled)
+            + suffix;
     }
 
-
     public static boolean isValidRomanNumeral(String roman) {
-        return ROMAN_NUMERAL_PATTERN.matcher(roman).matches();
+        return ROMAN_NUMERAL_PATTERN.matcher(roman)
+            .matches();
     }
 
     public static String intToRoman(int num) {
@@ -163,9 +160,9 @@ public final class Utils {
             throw new IllegalArgumentException("Input out of bounds valid range of [1; 3999]");
         }
 
-        final int[] vals = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
-        final String[] symbols = {
-            "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"
+        final int[] vals = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1
+        };
+        final String[] symbols = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"
         };
 
         var ret = new StringBuilder();

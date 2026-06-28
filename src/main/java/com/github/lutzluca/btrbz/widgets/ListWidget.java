@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-
 public class ListWidget extends DraggableWidget {
     private final List<Renderable> items = new ArrayList<>();
     private final Component title;
@@ -49,7 +48,10 @@ public class ListWidget extends DraggableWidget {
     private static final int AUTO_SCROLL_MARGIN = 20;
     private static final float AUTO_SCROLL_SPEED = 20.0f;
 
-    private enum AutoScrollDirection { NONE, UP, DOWN }
+    private enum AutoScrollDirection {
+        NONE, UP, DOWN
+    }
+
     private AutoScrollDirection autoScrollDirection = AutoScrollDirection.NONE;
 
     private TriConsumer<ListWidget, Integer, Integer> itemReorderedCallback;
@@ -85,11 +87,7 @@ public class ListWidget extends DraggableWidget {
         void accept(T t, U u, V v);
     }
 
-    public ListWidget(
-        int initialX, int initialY,
-        int width, int height,
-        String title
-    ) {
+    public ListWidget(int initialX, int initialY, int width, int height, String title) {
         super(initialX, initialY, width, height);
         this.title = Component.literal(title);
     }
@@ -106,6 +104,7 @@ public class ListWidget extends DraggableWidget {
         this.updateScrollLimits();
 
     }
+
     public List<Renderable> getItems() {
         return new ArrayList<>(this.items);
     }
@@ -129,13 +128,19 @@ public class ListWidget extends DraggableWidget {
     }
 
     @Override
-    protected void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+    protected void renderContent(
+        GuiGraphicsExtractor graphics,
+        int mouseX,
+        int mouseY,
+        float delta,
+        RenderContext ctx
+    ) {
         if (this.draggingItem && this.autoScrollDirection != AutoScrollDirection.NONE) {
             float scrollAmount = AUTO_SCROLL_SPEED * delta;
             if (this.autoScrollDirection == AutoScrollDirection.UP) {
-                this.scrollOffset = Math.max(0, this.scrollOffset - (int)scrollAmount);
+                this.scrollOffset = Math.max(0, this.scrollOffset - (int) scrollAmount);
             } else {
-                this.scrollOffset = Math.min(this.maxScrollOffset, this.scrollOffset + (int)scrollAmount);
+                this.scrollOffset = Math.min(this.maxScrollOffset, this.scrollOffset + (int) scrollAmount);
             }
         }
 
@@ -151,16 +156,16 @@ public class ListWidget extends DraggableWidget {
         graphics.fill(x, y, x + this.width, y + this.height, COLOR_BACKGROUND);
 
         // Title bar
-        graphics.fill(x, y, x + this.width, y + TITLE_BAR_HEIGHT, ctx.isTopWidget() ? COLOR_TITLE_BG : COLOR_NON_ACTIVE_TITLE_BG);
+        graphics.fill(
+            x,
+            y,
+            x + this.width,
+            y + TITLE_BAR_HEIGHT,
+            ctx.isTopWidget() ? COLOR_TITLE_BG : COLOR_NON_ACTIVE_TITLE_BG
+        );
         graphics.fill(x, y + TITLE_BAR_HEIGHT, x + this.width, y + CONTENT_START_Y, COLOR_BORDER); // Title separator
 
-        graphics.text(
-            this.client.font,
-            this.title,
-            x + 4, y + 6,
-            COLOR_TITLE_TEXT,
-            true
-        );
+        graphics.text(this.client.font, this.title, x + 4, y + 6, COLOR_TITLE_TEXT, true);
 
         // Content area
         int contentX = x + CONTENT_MARGIN_X;
@@ -215,7 +220,10 @@ public class ListWidget extends DraggableWidget {
         // Guard: Don't show tooltips when dragging the entire list widget or when another widget is dragging
         boolean canShowTooltips = ctx.canShowTooltips();
         boolean hoverDelayMet = this.tooltipHoverTicks >= TOOLTIP_DELAY_TICKS;
-        boolean shouldRenderTooltip = this.hoveredItemIndex >= 0 && this.hoveredItemIndex < this.items.size() && !this.isDragging() && canShowTooltips && hoverDelayMet;
+        boolean shouldRenderTooltip = this.hoveredItemIndex >= 0 && this.hoveredItemIndex < this.items.size()
+            && !this.isDragging()
+            && canShowTooltips
+            && hoverDelayMet;
 
         if (shouldRenderTooltip) {
             Renderable hoveredItem = this.items.get(this.hoveredItemIndex);
@@ -230,10 +238,19 @@ public class ListWidget extends DraggableWidget {
         }
     }
 
-    private void renderItems(GuiGraphicsExtractor graphics, int x, int y, int width, int mouseX, int mouseY, float delta) {
+    private void renderItems(
+        GuiGraphicsExtractor graphics,
+        int x,
+        int y,
+        int width,
+        int mouseX,
+        int mouseY,
+        float delta
+    ) {
         int visibleHeight = this.height - CONTENT_START_Y;
         int firstVisible = Math.max(0, this.scrollOffset / (this.itemHeight + this.itemSpacing));
-        int lastVisible = Math.min(this.items.size() - 1, (this.scrollOffset + visibleHeight) / (this.itemHeight + this.itemSpacing) + 1);
+        int lastVisible = Math
+            .min(this.items.size() - 1, (this.scrollOffset + visibleHeight) / (this.itemHeight + this.itemSpacing) + 1);
 
         for (int idx = firstVisible; idx <= lastVisible; idx++) {
             if (idx >= this.items.size()) {
@@ -250,11 +267,8 @@ public class ListWidget extends DraggableWidget {
 
             // Render insertion indicator after this item (which is before the next item)
             if (this.draggingItem && this.dragInsertIndex == idx + 1) {
-                graphics.fill(
-                    x, itemY + this.itemHeight,
-                    x + width, itemY + this.itemHeight + 2,
-                    COLOR_INSERT_INDICATOR
-                );
+                graphics
+                    .fill(x, itemY + this.itemHeight, x + width, itemY + this.itemHeight + 2, COLOR_INSERT_INDICATOR);
             }
 
             // Render item
@@ -264,7 +278,7 @@ public class ListWidget extends DraggableWidget {
 
         // Render dragged item at mouse position
         if (this.draggingItem && this.draggedItem != null) {
-            int draggedY = (int)(mouseY - this.dragOffsetY);
+            int draggedY = (int) (mouseY - this.dragOffsetY);
             // Semi-transparent background as dragging indicator
             graphics.fill(x, draggedY, x + width, draggedY + this.itemHeight, 0x40FFFFFF);
             this.draggedItem.render(graphics, x, draggedY, width, this.itemHeight, mouseX, mouseY, delta, false);
@@ -307,18 +321,18 @@ public class ListWidget extends DraggableWidget {
     private int calculateScrollbarThumbHeight(int trackHeight) {
         int totalHeight = this.items.size() * (this.itemHeight + this.itemSpacing);
         int visibleHeight = this.height - CONTENT_START_Y;
-        return Math.max(SCROLLBAR_MIN_THUMB_HEIGHT, (int)((double)visibleHeight / totalHeight * trackHeight));
+        return Math.max(SCROLLBAR_MIN_THUMB_HEIGHT, (int) ((double) visibleHeight / totalHeight * trackHeight));
     }
 
     private int calculateScrollbarThumbY(int trackY, int trackHeight, int thumbHeight) {
-        if (this.maxScrollOffset == 0) return trackY;
-        double scrollPercent = (double)this.scrollOffset / this.maxScrollOffset;
-        return trackY + (int)(scrollPercent * (trackHeight - thumbHeight));
+        if (this.maxScrollOffset == 0)
+            return trackY;
+        double scrollPercent = (double) this.scrollOffset / this.maxScrollOffset;
+        return trackY + (int) (scrollPercent * (trackHeight - thumbHeight));
     }
 
     private boolean isMouseOverScrollbar(double mouseX, double mouseY, int scrollbarX, int thumbY, int thumbHeight) {
-        return mouseX >= scrollbarX && mouseX < scrollbarX + 8 &&
-               mouseY >= thumbY && mouseY < thumbY + thumbHeight;
+        return mouseX >= scrollbarX && mouseX < scrollbarX + 8 && mouseY >= thumbY && mouseY < thumbY + thumbHeight;
     }
 
     @Override
@@ -331,9 +345,10 @@ public class ListWidget extends DraggableWidget {
         if (this.draggingScrollbar) {
             int trackHeight = this.height - 21;
             int thumbHeight = this.calculateScrollbarThumbHeight(trackHeight);
-            int dragDelta = (int)(event.y() - this.scrollbarDragStartY);
-            double scrollDelta = (double)dragDelta / (trackHeight - thumbHeight) * this.maxScrollOffset;
-            this.scrollOffset = Math.max(0, Math.min(this.scrollbarStartOffset + (int)scrollDelta, this.maxScrollOffset));
+            int dragDelta = (int) (event.y() - this.scrollbarDragStartY);
+            double scrollDelta = (double) dragDelta / (trackHeight - thumbHeight) * this.maxScrollOffset;
+            this.scrollOffset = Math
+                .max(0, Math.min(this.scrollbarStartOffset + (int) scrollDelta, this.maxScrollOffset));
             return true;
         }
 
@@ -341,7 +356,9 @@ public class ListWidget extends DraggableWidget {
         if (this.reorderable && this.draggedItemIndex >= 0) {
             // Check if drag threshold has been exceeded
             if (!this.draggingItem) {
-                double distance = Math.sqrt(Math.pow(event.x() - this.dragStartMouseX, 2) + Math.pow(event.y() - this.dragStartMouseY, 2));
+                double distance = Math.sqrt(
+                    Math.pow(event.x() - this.dragStartMouseX, 2) + Math.pow(event.y() - this.dragStartMouseY, 2)
+                );
                 if (distance < ITEM_DRAG_THRESHOLD) {
                     return true;
                 }
@@ -351,16 +368,18 @@ public class ListWidget extends DraggableWidget {
 
             // Calculate insertion index based on mouse Y
             int contentY = this.getY() + CONTENT_START_Y - this.scrollOffset;
-            int relativeY = (int)event.y() - contentY;
-            this.dragInsertIndex = Math.max(0, Math.min(this.items.size(), relativeY / (this.itemHeight + this.itemSpacing)));
+            int relativeY = (int) event.y() - contentY;
+            this.dragInsertIndex = Math
+                .max(0, Math.min(this.items.size(), relativeY / (this.itemHeight + this.itemSpacing)));
 
             // Detect auto-scroll zone during drag
             int contentHeight = this.height - CONTENT_START_Y;
-            int relativeMouseY = (int)event.y() - (this.getY() + CONTENT_START_Y);
+            int relativeMouseY = (int) event.y() - (this.getY() + CONTENT_START_Y);
 
             if (relativeMouseY < AUTO_SCROLL_MARGIN && this.scrollOffset > 0) {
                 this.autoScrollDirection = AutoScrollDirection.UP;
-            } else if (relativeMouseY > contentHeight - AUTO_SCROLL_MARGIN && this.scrollOffset < this.maxScrollOffset) {
+            } else if (relativeMouseY > contentHeight - AUTO_SCROLL_MARGIN
+                && this.scrollOffset < this.maxScrollOffset) {
                 this.autoScrollDirection = AutoScrollDirection.DOWN;
             } else {
                 this.autoScrollDirection = AutoScrollDirection.NONE;
@@ -398,7 +417,7 @@ public class ListWidget extends DraggableWidget {
 
             if (this.isMouseOverScrollbar(event.x(), event.y(), scrollbarX, thumbY, thumbHeight)) {
                 this.draggingScrollbar = true;
-                this.scrollbarDragStartY = (int)event.y();
+                this.scrollbarDragStartY = (int) event.y();
                 this.scrollbarStartOffset = this.scrollOffset;
 
                 return true;
@@ -416,7 +435,8 @@ public class ListWidget extends DraggableWidget {
                     this.dragStartMouseX = event.x();
                     this.dragStartMouseY = event.y();
 
-                    int itemY = this.getY() + CONTENT_START_Y + idx * (this.itemHeight + this.itemSpacing) - this.scrollOffset;
+                    int itemY = this.getY() + CONTENT_START_Y + idx * (this.itemHeight + this.itemSpacing)
+                        - this.scrollOffset;
                     this.dragOffsetY = event.y() - itemY;
 
                 } else {
@@ -470,7 +490,7 @@ public class ListWidget extends DraggableWidget {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (this.isMouseOver(mouseX, mouseY) && this.needsScrollbar()) {
-            int scrollDelta = (int)(-verticalAmount * this.scrollSpeed);
+            int scrollDelta = (int) (-verticalAmount * this.scrollSpeed);
             this.scrollOffset = Math.max(0, Math.min(this.scrollOffset + scrollDelta, this.maxScrollOffset));
             return true;
         }
@@ -536,7 +556,7 @@ public class ListWidget extends DraggableWidget {
         }
 
         // Calculate item index
-        int relativeY = (int)mouseY - contentY + this.scrollOffset;
+        int relativeY = (int) mouseY - contentY + this.scrollOffset;
         int idx = relativeY / (this.itemHeight + this.itemSpacing);
 
         // Validate index
@@ -727,13 +747,10 @@ public class ListWidget extends DraggableWidget {
      * Create a static list widget with fixed position and non-interactive items.
      * Items cannot be reordered or removed, and the widget itself cannot be dragged.
      */
-    public static ListWidget createStatic(
-            int defaultX, int defaultY,
-            int width, int height,
-            String title
-    ) {
+    public static ListWidget createStatic(int defaultX, int defaultY, int width, int height, String title) {
         ListWidget widget = new ListWidget(defaultX, defaultY, width, height, title);
-        widget.setStatic().setDraggable(false);
+        widget.setStatic()
+            .setDraggable(false);
         return widget;
     }
 

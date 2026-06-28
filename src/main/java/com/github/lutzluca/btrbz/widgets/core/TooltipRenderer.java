@@ -16,9 +16,9 @@ import java.util.stream.Collectors;
  */
 public final class TooltipRenderer {
     private static final Minecraft CLIENT = Minecraft.getInstance();
-    
+
     private TooltipRenderer() {}
-    
+
     /**
      * Render tooltip immediately at the given position.
      */
@@ -26,18 +26,11 @@ public final class TooltipRenderer {
         if (lines == null || lines.isEmpty()) {
             return;
         }
-        
+
         List<ClientTooltipComponent> components = toClientComponents(lines);
-        graphics.tooltip(
-            CLIENT.font,
-            components,
-            mouseX,
-            mouseY,
-            DefaultTooltipPositioner.INSTANCE,
-            null
-        );
+        graphics.tooltip(CLIENT.font, components, mouseX, mouseY, DefaultTooltipPositioner.INSTANCE, null);
     }
-    
+
     /**
      * Queue tooltip to be rendered on the next frame.
      * Use this when tooltip should render above other elements.
@@ -46,10 +39,10 @@ public final class TooltipRenderer {
         if (lines == null || lines.isEmpty()) {
             return;
         }
-        
+
         graphics.setTooltipForNextFrame(CLIENT.font, lines, java.util.Optional.empty(), mouseX, mouseY);
     }
-    
+
     /**
      * Convert Component list to ClientTooltipComponent list.
      */

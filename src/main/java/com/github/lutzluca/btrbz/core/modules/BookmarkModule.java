@@ -70,12 +70,14 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.orderBuySet.clear();
         this.orderSellSet.clear();
 
-        BtrBz.orderManager().getTrackedOrders().forEach(order -> {
-            switch (order.type) {
-                case Buy -> this.orderBuySet.add(order.productName);
-                case Sell -> this.orderSellSet.add(order.productName);
-            }
-        });
+        BtrBz.orderManager()
+            .getTrackedOrders()
+            .forEach(order -> {
+                switch (order.type) {
+                    case Buy -> this.orderBuySet.add(order.productName);
+                    case Sell -> this.orderSellSet.add(order.productName);
+                }
+            });
     }
 
     @Override
@@ -109,7 +111,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             var it = cfg.bookmarkedItems.listIterator();
             while (it.hasNext()) {
                 var item = it.next();
-                if (item.productName().equals(productName)) {
+                if (item.productName()
+                    .equals(productName)) {
                     it.remove();
                     tag.bookmarked = false;
                     return;
@@ -125,38 +128,34 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         }
 
         if (tag.bookmarked) {
-            this.list.addItem(new BookmarkedItemRenderable(productName, itemStack, this.orderBuySet, this.orderSellSet));
+            this.list
+                .addItem(new BookmarkedItemRenderable(productName, itemStack, this.orderBuySet, this.orderSellSet));
             return tag.bookmarked;
         }
 
-        this.list
-            .getItems()
+        this.list.getItems()
             .stream()
-            .filter(widget ->((BookmarkedItemRenderable) widget).getProductName().equals(productName))
+            .filter(
+                widget -> ((BookmarkedItemRenderable) widget).getProductName()
+                    .equals(productName)
+            )
             .findFirst()
-            .ifPresentOrElse(
-                widget -> {
-                    int index = this.list.getItems().indexOf(widget);
-                    if (index >= 0) {
-                        this.list.removeItem(index);
-                    }
-                },
-                () -> log.warn(
-                    "Tried to remove bookmark widget for {}, but it was not found",
-                    productName
-                )
-            );
+            .ifPresentOrElse(widget -> {
+                int index = this.list.getItems()
+                    .indexOf(widget);
+                if (index >= 0) {
+                    this.list.removeItem(index);
+                }
+            }, () -> log.warn("Tried to remove bookmark widget for {}, but it was not found", productName));
 
         return tag.bookmarked;
     }
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return this.configState.enabled && (info.inMenu(
-            BazaarMenuType.Main,
-            BazaarMenuType.Orders,
-            BazaarMenuType.Item,
-            BazaarMenuType.ItemGroup) || this.configState.showEverywhere && info.inBazaar());
+        return this.configState.enabled
+            && (info.inMenu(BazaarMenuType.Main, BazaarMenuType.Orders, BazaarMenuType.Item, BazaarMenuType.ItemGroup)
+                || this.configState.showEverywhere && info.inBazaar());
     }
 
     @Override
@@ -165,7 +164,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return Optional.of(this.list);
         }
 
-        var position = Optional.ofNullable(this.configState.position).orElse(new Position(150, 275));
+        var position = Optional.ofNullable(this.configState.position)
+            .orElse(new Position(150, 275));
 
         var widget = this.list = new ListWidget(position.x(), position.y(), 175, 200, "Bookmarked Items");
 
@@ -175,13 +175,23 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .setRemovable(true)
             .setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
 
-        widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
+        widget
+            .onItemClick(
+                (self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName())
+            )
             .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         List<Renderable> items = this.configState.bookmarkedItems.stream()
-            .map(item -> new BookmarkedItemRenderable(item.productName(), item.itemStack(), this.orderBuySet, this.orderSellSet))
+            .map(
+                item -> new BookmarkedItemRenderable(
+                    item.productName(),
+                    item.itemStack(),
+                    this.orderBuySet,
+                    this.orderSellSet
+                )
+            )
             .collect(Collectors.toList());
         widget.setItems(items);
 
@@ -190,7 +200,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public boolean isBookmarked(String productName) {
         for (var item : this.configState.bookmarkedItems) {
-            if (item.productName().equals(productName)) {
+            if (item.productName()
+                .equals(productName)) {
                 return true;
             }
         }
@@ -199,13 +210,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public final class BookmarkedItemHook implements SlotHook {
 
-        private BookmarkedItemHook() { }
+        private BookmarkedItemHook() {}
 
         @Override
         public boolean matches(SlotView view) {
-            return BookmarkModule.this.configState.enabled
-                && view.slotIdx() == PRODUCT_SLOT_IDX
-                && view.getCurrInfo().inMenu(BazaarMenuType.Item);
+            return BookmarkModule.this.configState.enabled && view.slotIdx() == PRODUCT_SLOT_IDX
+                && view.getCurrInfo()
+                    .inMenu(BazaarMenuType.Item);
         }
 
         @Override
@@ -214,12 +225,16 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return null;
             }
 
-            var rawStack = ctx.view().getRawStack();
-            if (ctx.view().playerInventorySlot() || rawStack.isEmpty()) {
+            var rawStack = ctx.view()
+                .getRawStack();
+            if (ctx.view()
+                .playerInventorySlot() || rawStack.isEmpty()) {
                 return null;
             }
 
-            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
+            var productNameInfo = BookmarkModule.this.context()
+                .productInfoProvider()
+                .getOpenedProductNameInfo();
             if (productNameInfo == null) {
                 return null;
             }
@@ -234,13 +249,16 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return SlotClickResult.Pass;
             }
 
-            var rawStack = ctx.view().getRawStack();
+            var rawStack = ctx.view()
+                .getRawStack();
             var bookmarked = rawStack.get(BtrBz.BOOKMARKED);
             if (bookmarked == null) {
                 return SlotClickResult.Pass;
             }
 
-            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
+            var productNameInfo = BookmarkModule.this.context()
+                .productInfoProvider()
+                .getOpenedProductNameInfo();
             if (productNameInfo == null) {
                 return SlotClickResult.Pass;
             }
@@ -254,10 +272,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     private void syncBookmarksFromList(List<Renderable> items) {
         log.debug("Syncing bookmarks from widget list to config");
 
-        this.updateConfig(cfg -> cfg.bookmarkedItems = items.stream()
-            .map(BookmarkedItemRenderable.class::cast)
-            .map(item -> new BookmarkedItem(item.getProductName(), item.getItemStack()))
-            .collect(Collectors.toList()));
+        this.updateConfig(
+            cfg -> cfg.bookmarkedItems = items.stream()
+                .map(BookmarkedItemRenderable.class::cast)
+                .map(item -> new BookmarkedItem(item.getProductName(), item.getItemStack()))
+                .collect(Collectors.toList())
+        );
     }
 
     public static class BookmarkedItemRenderable implements Renderable {
@@ -272,16 +292,25 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         private final Set<String> orderBuySet;
         private final Set<String> orderSellSet;
 
-        public BookmarkedItemRenderable(String productName, ItemStack itemStack,
-                Set<String> orderBuySet, Set<String> orderSellSet) {
+        public BookmarkedItemRenderable(
+            String productName,
+            ItemStack itemStack,
+            Set<String> orderBuySet,
+            Set<String> orderSellSet
+        ) {
             this.productName = productName;
             this.itemStack = itemStack;
             this.orderBuySet = orderBuySet;
             this.orderSellSet = orderSellSet;
 
-            this.color = (0xFF << 24) | Try
-                .of(() -> itemStack.getHoverName().getSiblings().getFirst()
-                    .getStyle().getColor().getValue())
+            this.color = (0xFF << 24) | Try.of(
+                () -> itemStack.getHoverName()
+                    .getSiblings()
+                    .getFirst()
+                    .getStyle()
+                    .getColor()
+                    .getValue()
+            )
                 .getOrElse(0xD3D3D3);
             this.displayText = Component.literal(productName);
         }
@@ -289,8 +318,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         @Override
         public void render(
             GuiGraphicsExtractor graphics,
-            int x, int y, int width, int height,
-            int mouseX, int mouseY, float delta,
+            int x,
+            int y,
+            int width,
+            int height,
+            int mouseX,
+            int mouseY,
+            float delta,
             boolean hovered
         ) {
             var font = Minecraft.getInstance().font;
@@ -370,28 +404,25 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return this.itemTemplate.create();
         }
 
-        public static class GsonAdapter implements JsonSerializer<BookmarkedItem>,
-            JsonDeserializer<BookmarkedItem> {
+        public static class GsonAdapter implements JsonSerializer<BookmarkedItem>, JsonDeserializer<BookmarkedItem> {
 
             @Override
-            public JsonElement serialize(
-                BookmarkedItem src,
-                Type typeOfSrc,
-                JsonSerializationContext context
-            ) {
+            public JsonElement serialize(BookmarkedItem src, Type typeOfSrc, JsonSerializationContext context) {
                 var obj = new JsonObject();
                 obj.addProperty("productName", src.productName());
 
                 var itemData = new JsonObject();
                 var template = src.itemTemplate();
 
-                var itemId = BuiltInRegistries.ITEM.getKey(template.item().value());
+                var itemId = BuiltInRegistries.ITEM.getKey(
+                    template.item()
+                        .value()
+                );
                 itemData.addProperty("id", itemId.toString());
 
                 var components = template.components();
                 if (!components.isEmpty()) {
-                    var nbt = DataComponentPatch.CODEC
-                        .encodeStart(NbtOps.INSTANCE, components)
+                    var nbt = DataComponentPatch.CODEC.encodeStart(NbtOps.INSTANCE, components)
                         .getOrThrow();
 
                     itemData.addProperty("components", nbt.toString());
@@ -402,23 +433,18 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             }
 
             @Override
-            public BookmarkedItem deserialize(
-                JsonElement json,
-                Type typeOfT,
-                JsonDeserializationContext context
-            ) throws JsonParseException {
+            public BookmarkedItem deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+                throws JsonParseException {
                 var obj = json.getAsJsonObject();
 
-                var productName = obj.get("productName").getAsString();
+                var productName = obj.get("productName")
+                    .getAsString();
                 var itemData = obj.getAsJsonObject("itemStack");
-                var itemIdString = itemData.get("id").getAsString();
+                var itemIdString = itemData.get("id")
+                    .getAsString();
                 var itemId = Identifier.tryParse(itemIdString);
                 if (itemId == null) {
-                    log.warn(
-                        "Skipping bookmark {} with invalid item id {}",
-                        productName,
-                        itemIdString
-                    );
+                    log.warn("Skipping bookmark {} with invalid item id {}", productName, itemIdString);
                     return null;
                 }
 
@@ -430,12 +456,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
                 var components = DataComponentPatch.EMPTY;
                 if (itemData.has("components")) {
-                    String componentString = itemData.get("components").getAsString();
+                    String componentString = itemData.get("components")
+                        .getAsString();
 
                     try {
                         var componentNbt = TagParser.parseCompoundFully(componentString);
-                        components = DataComponentPatch.CODEC
-                            .parse(new Dynamic<>(NbtOps.INSTANCE, componentNbt))
+                        components = DataComponentPatch.CODEC.parse(new Dynamic<>(NbtOps.INSTANCE, componentNbt))
                             .getOrThrow();
                     } catch (CommandSyntaxException err) {
                         log.warn("Ignoring invalid components for bookmark {}", productName, err);
@@ -463,50 +489,57 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public boolean showOrderIndicators = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Bookmarked Items Module"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display a list of bookmarked bazaar items for quick access")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Display a list of bookmarked bazaar items for quick access"))
+                )
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
-
         public Option.Builder<Boolean> createShowEverywhereOption() {
-            return Option
-                    .<Boolean>createBuilder()
-                    .name(Component.literal("Display everywhere in Bazaar"))
-                    .description(OptionDescription.of(Component.literal(
-                            "Whether to display the bookmarked list everywhere in the bazaar and not only in the item menus")))
-                    .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
-                    .controller(ConfigScreen::createBooleanController);
+            return Option.<Boolean>createBuilder()
+                .name(Component.literal("Display everywhere in Bazaar"))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Whether to display the bookmarked list everywhere in the bazaar and not only in the item menus"
+                        )
+                    )
+                )
+                .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Integer> createMaxVisibleOption() {
-            return Option
-                .<Integer>createBuilder()
+            return Option.<Integer>createBuilder()
                 .name(Component.literal("Max Visible Items"))
-                .description(OptionDescription.of(Component.literal(
-                    "Maximum number of bookmarks visible at once before scrolling")))
-                .binding(
-                    8, () -> this.maxVisibleChildren, val -> {
-                        this.maxVisibleChildren = val;
-                        ModuleManager
-                            .getInstance()
-                            .getModule(BookmarkModule.class)
-                            .updateChildrenCount();
-                    }
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Maximum number of bookmarks visible at once before scrolling"))
                 )
-                .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 14).step(1));
+                .binding(8, () -> this.maxVisibleChildren, val -> {
+                    this.maxVisibleChildren = val;
+                    ModuleManager.getInstance()
+                        .getModule(BookmarkModule.class)
+                        .updateChildrenCount();
+                })
+                .controller(
+                    opt -> IntegerSliderControllerBuilder.create(opt)
+                        .range(3, 14)
+                        .step(1)
+                );
         }
 
         public Option.Builder<Boolean> createShowOrderIndicatorsOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Order Indicators"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show colored dots on bookmarked items that have active tracked orders")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Show colored dots on bookmarked items that have active tracked orders"))
+                )
                 .binding(true, () -> this.showOrderIndicators, val -> this.showOrderIndicators = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -518,11 +551,11 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 this.createShowOrderIndicatorsOption()
             );
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Bookmarked Items"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for the bookmarked items quick-access list")))
+                .description(
+                    OptionDescription.of(Component.literal("Settings for the bookmarked items quick-access list"))
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

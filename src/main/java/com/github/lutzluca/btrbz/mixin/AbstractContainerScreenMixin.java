@@ -21,8 +21,11 @@ public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        ScreenInfoHelper.get()
+            .getInventoryWatcher()
+            .onCloseScreen();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null) {
             wm.cleanup();
         }
@@ -30,7 +33,8 @@ public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null) {
             wm.render(graphics, mouseX, mouseY, delta);
         }
@@ -43,8 +47,7 @@ public abstract class AbstractContainerScreenMixin {
         int mouseX,
         int mouseY,
         CallbackInfo ci
-    )
-    {
+    ) {
         if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
             return;
         }
@@ -58,23 +61,30 @@ public abstract class AbstractContainerScreenMixin {
         var y = slot.y;
         var idx = slot.getContainerSlot();
 
-        BtrBz
-            .highlightManager()
+        BtrBz.highlightManager()
             .getHighlight(idx)
             .ifPresent(color -> context.fill(x, y, x + 16, y + 16, color));
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null && wm.keyPressed(event)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+    private void onMouseScrolled(
+        double mouseX,
+        double mouseY,
+        double hAmt,
+        double vAmt,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
         }
@@ -82,7 +92,8 @@ public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null && wm.mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
         }
@@ -90,15 +101,22 @@ public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null && wm.mouseReleased(event)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
-    private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+    private void onMouseDragged(
+        MouseButtonEvent event,
+        double deltaX,
+        double deltaY,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }

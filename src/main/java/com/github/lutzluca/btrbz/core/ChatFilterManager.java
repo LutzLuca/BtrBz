@@ -30,7 +30,8 @@ public class ChatFilterManager {
             }
 
             String content = GameUtils.stripFormattingCodes(message.getString());
-            return TRANSIENT_MESSAGES.stream().noneMatch(content::startsWith);
+            return TRANSIENT_MESSAGES.stream()
+                .noneMatch(content::startsWith);
         });
     }
 
@@ -39,24 +40,27 @@ public class ChatFilterManager {
         public boolean enabled = true;
 
         public OptionGroup createGroup() {
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Chat Filter"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for filtering useless Bazaar messages from chat")))
-                .options(List.of(
-                    Option.<Boolean>createBuilder()
-                          .name(Component.literal("Filter Transient Messages"))
-                          .description(OptionDescription.of(Component.literal(
-                              "Filters out [Bazaar] messages such as 'Submitting order...' or 'Claiming orders...'")))
-                          .binding(
-                              true,
-                              () -> this.enabled,
-                              val -> this.enabled = val
-                          )
-                          .controller(ConfigScreen::createBooleanController)
-                          .build()
-                ))
+                .description(
+                    OptionDescription.of(Component.literal("Settings for filtering useless Bazaar messages from chat"))
+                )
+                .options(
+                    List.of(
+                        Option.<Boolean>createBuilder()
+                            .name(Component.literal("Filter Transient Messages"))
+                            .description(
+                                OptionDescription.of(
+                                    Component.literal(
+                                        "Filters out [Bazaar] messages such as 'Submitting order...' or 'Claiming orders...'"
+                                    )
+                                )
+                            )
+                            .binding(true, () -> this.enabled, val -> this.enabled = val)
+                            .controller(ConfigScreen::createBooleanController)
+                            .build()
+                    )
+                )
                 .collapsed(false)
                 .build();
         }

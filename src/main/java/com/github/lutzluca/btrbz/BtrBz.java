@@ -52,10 +52,10 @@ public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
     public static DataComponentType<Boolean> BOOKMARKED;
-    
+
     public static final BazaarMessageDispatcher MESSAGE_DISPATCHER = new BazaarMessageDispatcher();
     private static final BazaarData BAZAAR_DATA = new BazaarData(HashBiMap.create());
-    
+
     private static BtrBz instance;
 
     private TrackedOrderManager orderManager;
@@ -91,7 +91,9 @@ public class BtrBz implements ClientModInitializer {
         BOOKMARKED = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE,
             Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
+            DataComponentType.<Boolean>builder()
+                .persistent(Codec.BOOL)
+                .build()
         );
 
         ConfigManager.load();
@@ -132,17 +134,13 @@ public class BtrBz implements ClientModInitializer {
 
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {
             this.orderManager.addOutstandingOrder(setOrderInfo);
-            log.trace(
-                "Stored outstanding order for {}x {}", setOrderInfo.volume(),
-                setOrderInfo.productName()
-            );
+            log.trace("Stored outstanding order for {}x {}", setOrderInfo.volume(), setOrderInfo.productName());
         };
 
         orderProtectionManager.onSetOrder((stack, pendingOrderData) -> {
             pendingOrderData.ifPresentOrElse(
                 data -> addOutstanding.accept(data.orderInfo()),
-                () -> OrderInfoParser
-                    .parseSetOrderItem(stack)
+                () -> OrderInfoParser.parseSetOrderItem(stack)
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err))
             );
@@ -159,21 +157,16 @@ public class BtrBz implements ClientModInitializer {
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
 
+        MESSAGE_DISPATCHER.on(BazaarMessage.InstaBuy.class, info -> orderLimitModule.onTransaction(info.total()));
         MESSAGE_DISPATCHER.on(
-            BazaarMessage.InstaBuy.class,
-            info -> orderLimitModule.onTransaction(info.total())
+            BazaarMessage.InstaSell.class,
+            info -> orderLimitModule.onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
         );
-        MESSAGE_DISPATCHER.on(
-            BazaarMessage.InstaSell.class, info -> orderLimitModule
-                .onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
-        );
-        MESSAGE_DISPATCHER.on(
-            BazaarMessage.OrderSetup.class,
-            info -> orderLimitModule.onTransaction(info.total())
-        );
+        MESSAGE_DISPATCHER.on(BazaarMessage.OrderSetup.class, info -> orderLimitModule.onTransaction(info.total()));
 
-        ClientReceiveMessageEvents.GAME.register((message, overlay) ->
-            MESSAGE_DISPATCHER.handleChatMessage(GameUtils.stripFormattingCodes(message.getString()))
+        ClientReceiveMessageEvents.GAME.register(
+            (message, overlay) -> MESSAGE_DISPATCHER
+                .handleChatMessage(GameUtils.stripFormattingCodes(message.getString()))
         );
 
         ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
@@ -184,29 +177,28 @@ public class BtrBz implements ClientModInitializer {
 
             // TODO: make this optional (config flag)
             return message.copy()
-                .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/managebazaarorders"))
-                    .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))))
-                .append(Component.literal(" [Go To Orders]")
-                    .withStyle(ChatFormatting.DARK_AQUA));
+                .withStyle(
+                    style -> style.withClickEvent(new RunCommand("/managebazaarorders"))
+                        .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen")))
+                )
+                .append(
+                    Component.literal(" [Go To Orders]")
+                        .withStyle(ChatFormatting.DARK_AQUA)
+                );
         });
 
-        ScreenInfoHelper.registerOnLoaded(
-            info -> info.inMenu(BazaarMenuType.Orders),
-            (info, inv) -> {
-                var parsed = inv.items
-                    .entrySet()
-                    .stream()
-                    .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
-                    .map(entry -> OrderInfoParser
-                        .parseOrderInfo(entry.getValue(), entry.getKey())
+        ScreenInfoHelper.registerOnLoaded(info -> info.inMenu(BazaarMenuType.Orders), (info, inv) -> {
+            var parsed = inv.items.entrySet()
+                .stream()
+                .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
+                .map(
+                    entry -> OrderInfoParser.parseOrderInfo(entry.getValue(), entry.getKey())
                         .toJavaOptional()
-                    )
-                    .flatMap(Optional::stream)
-                    .toList();
+                )
+                .flatMap(Optional::stream)
+                .toList();
 
-                this.orderManager.syncOrders(parsed);
-            }
-        );
+            this.orderManager.syncOrders(parsed);
+        });
     }
 }

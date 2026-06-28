@@ -40,10 +40,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         return this.configState.enabled && info.inMenu(BazaarMenuType.Orders);
     }
 
-    public void sync(
-        List<UnfilledOrderInfo> unfilledOrders,
-        List<FilledOrderInfo> filledOrders
-    ) {
+    public void sync(List<UnfilledOrderInfo> unfilledOrders, List<FilledOrderInfo> filledOrders) {
         log.debug("Syncing values with updated order information");
         this.unfilledOrders = unfilledOrders;
         this.filledOrders = filledOrders;
@@ -70,17 +67,18 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
             return Optional.empty();
         }
 
-        this.widget.setPosition(position.get().x(), position.get().y());
+        this.widget.setPosition(
+            position.get()
+                .x(),
+            position.get()
+                .y()
+        );
 
         return Optional.of(this.widget);
     }
 
     private List<Component> getLines() {
-        log.debug(
-            "Getting lines with unfilled lines: {} - filled lines: {}",
-            this.unfilledOrders,
-            this.filledOrders
-        );
+        log.debug("Getting lines with unfilled lines: {} - filled lines: {}", this.unfilledOrders, this.filledOrders);
         double lockedInBuyOrders = 0.0;
         double itemsFromBuyOrders = 0.0;
         double coinsFromSellOffers = 0.0;
@@ -114,43 +112,31 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         var total = lockedInBuyOrders + itemsFromBuyOrders + coinsFromSellOffers + pendingSellOffers;
 
         return List.of(
-            Component.literal("Bazaar Overview").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
-            Component
-                .literal("Buy Orders (Locked): " + Utils.formatCompact(
-                    lockedInBuyOrders,
-                    1
-                ) + " coins")
+            Component.literal("Bazaar Overview")
+                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+            Component.literal("Buy Orders (Locked): " + Utils.formatCompact(lockedInBuyOrders, 1) + " coins")
                 .withStyle(ChatFormatting.YELLOW),
-            Component
-                .literal("Buy Orders (Items): " + Utils.formatCompact(
-                    itemsFromBuyOrders,
-                    1
-                ) + " coins")
+            Component.literal("Buy Orders (Items): " + Utils.formatCompact(itemsFromBuyOrders, 1) + " coins")
                 .withStyle(ChatFormatting.AQUA),
-            Component
-                .literal("Sell Offers (Claimable): " + Utils.formatCompact(
-                    coinsFromSellOffers,
-                    1
-                ) + " coins")
+            Component.literal("Sell Offers (Claimable): " + Utils.formatCompact(coinsFromSellOffers, 1) + " coins")
                 .withStyle(ChatFormatting.GREEN),
-            Component
-                .literal("Sell Offers (Pending): " + Utils.formatCompact(
-                    pendingSellOffers,
-                    1
-                ) + " coins")
+            Component.literal("Sell Offers (Pending): " + Utils.formatCompact(pendingSellOffers, 1) + " coins")
                 .withStyle(ChatFormatting.YELLOW),
-            Component
-                .literal("Total Worth: " + Utils.formatCompact(total, 1) + " coins")
+            Component.literal("Total Worth: " + Utils.formatCompact(total, 1) + " coins")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
         );
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
-        return Optional.ofNullable(this.configState.position).or(() -> info.getHandledScreenBounds().map(bounds -> {
-            int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
-            int y = bounds.y() - widget.getHeight() - 15;
-            return new Position(x, y);
-        }));
+        return Optional.ofNullable(this.configState.position)
+            .or(
+                () -> info.getHandledScreenBounds()
+                    .map(bounds -> {
+                        int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
+                        int y = bounds.y() - widget.getHeight() - 15;
+                        return new Position(x, y);
+                    })
+            );
     }
 
     public static class OrderValueOverlayConfig {
@@ -160,20 +146,23 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         public boolean enabled = false;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Order Value Overlay"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the overlay that displays how much money your orders in the bazaar are worth")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Enable or disable the overlay that displays how much money your orders in the bazaar are worth"
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order Value Overlay"))
                 .options(rootGroup.build())
                 .collapsed(false)

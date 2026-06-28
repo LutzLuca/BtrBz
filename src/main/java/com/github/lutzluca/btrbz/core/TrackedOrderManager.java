@@ -49,7 +49,9 @@ public class TrackedOrderManager {
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
+
     private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) {}
+
     private final Map<SelfUndercutKey, SelfUndercutPricePair> selfUndercutState = new HashMap<>();
 
     public record SelfUndercutKey(String productName, OrderType type) {
@@ -61,8 +63,11 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
-    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
-        (unfilledOrders, filledOrders) -> { };
+    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = (
+        unfilledOrders,
+        filledOrders
+    ) -> {
+    };
 
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -108,26 +113,23 @@ public class TrackedOrderManager {
         var unfilledCopy = new ArrayList<>(unfilledOrders);
 
         for (var tracked : this.trackedOrders) {
-            var match = unfilledCopy.stream().filter(tracked::matches).findFirst();
+            var match = unfilledCopy.stream()
+                .filter(tracked::matches)
+                .findFirst();
 
-            match.ifPresentOrElse(
-                info -> {
-                    unfilledCopy.remove(info);
-                    tracked.slot = info.slotIdx();
-                    tracked.fillAmountSnapshot = info.filledAmountSnapshot();
-                }, () -> toRemove.add(tracked)
-            );
+            match.ifPresentOrElse(info -> {
+                unfilledCopy.remove(info);
+                tracked.slot = info.slotIdx();
+                tracked.fillAmountSnapshot = info.filledAmountSnapshot();
+            }, () -> toRemove.add(tracked));
         }
 
-        log.debug(
-            "Tracked orders: {}, toRemove: {}, toAdd: {}",
-            this.trackedOrders,
-            toRemove,
-            unfilledOrders
-        );
+        log.debug("Tracked orders: {}, toRemove: {}, toAdd: {}", this.trackedOrders, toRemove, unfilledOrders);
 
         toRemove.forEach(this::removeTrackedOrder);
-        unfilledCopy.stream().map(TrackedOrder::new).forEach(this::addTrackedOrder);
+        unfilledCopy.stream()
+            .map(TrackedOrder::new)
+            .forEach(this::addTrackedOrder);
 
         this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
     }
@@ -153,14 +155,18 @@ public class TrackedOrderManager {
 
     public sealed interface GroupStatus {
         record Undercut(double amount) implements GroupStatus {}
+
         record Matched() implements GroupStatus {}
+
         record SelfMatched() implements GroupStatus {}
     }
 
     public void onBazaarUpdate(Map<String, Product> products) {
-        var updates = this.computeStatusUpdates(products).peek(update -> {
-            update.order().status = update.curr;
-        }).collect(Collectors.toList());
+        var updates = this.computeStatusUpdates(products)
+            .peek(update -> {
+                update.order().status = update.curr;
+            })
+            .collect(Collectors.toList());
 
         this.sendNotifications(updates, products);
         this.resolveSelfUndercutStates(products);
@@ -175,7 +181,7 @@ public class TrackedOrderManager {
     // Accepted as a known limitation (for now).
     private void sendNotifications(List<StatusUpdate> statusUpdates, Map<String, Product> products) {
         var cfg = ConfigManager.get().trackedOrders;
-        if(!cfg.enabled) {
+        if (!cfg.enabled) {
             return;
         }
 
@@ -184,14 +190,14 @@ public class TrackedOrderManager {
         Map<GroupKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
             .collect(Collectors.groupingBy(update -> GroupKey.from(update.order())));
 
-        for(var entry : statusGroups.entrySet()) {
+        for (var entry : statusGroups.entrySet()) {
             var key = entry.getKey();
             var updates = entry.getValue();
             var orders = orderGroups.get(key);
-            
-            if(orders.size() == 1) {
+
+            if (orders.size() == 1) {
                 var statusUpdate = updates.getFirst();
-                if(this.shouldNotify(statusUpdate)) {
+                if (this.shouldNotify(statusUpdate)) {
                     Notifier.notifyOrderStatus(statusUpdate, bazaarData);
                 }
                 continue;
@@ -205,20 +211,20 @@ public class TrackedOrderManager {
         GroupKey key,
         List<TrackedOrder> orders,
         List<StatusUpdate> updates,
-        Map<String,Product> products
+        Map<String, Product> products
     ) {
         var cfg = ConfigManager.get().trackedOrders;
-        
-        if(!cfg.groupOrders) {
+
+        if (!cfg.groupOrders) {
             updates.stream()
                 .filter(this::shouldNotify)
                 .forEach(update -> Notifier.notifyOrderStatus(update, bazaarData));
-            return;   
+            return;
         }
 
         GroupStatus curr = this.getCurrentGroupStatus(key, orders, products);
-        
-        if(curr == null) {
+
+        if (curr == null) {
             log.warn("Group ({}) has no settled status, skipping group notification", key);
             return;
         }
@@ -237,22 +243,35 @@ public class TrackedOrderManager {
         Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
     }
 
-    private @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, Map<String,Product> products) {
-        boolean hasMatched = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Matched);
-        boolean hasUndercut = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
-        boolean hasUnknown = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Unknown);
+    private @Nullable GroupStatus getCurrentGroupStatus(
+        GroupKey key,
+        List<TrackedOrder> orders,
+        Map<String, Product> products
+    ) {
+        boolean hasMatched = orders.stream()
+            .anyMatch(order -> order.status instanceof OrderStatus.Matched);
+        boolean hasUndercut = orders.stream()
+            .anyMatch(order -> order.status instanceof OrderStatus.Undercut);
+        boolean hasUnknown = orders.stream()
+            .anyMatch(order -> order.status instanceof OrderStatus.Unknown);
 
-        if(hasUnknown) {
-            log.warn("Group ({}) has Unknown-status order after poll. Likely unresolved product name, skipping group notification", key);
+        if (hasUnknown) {
+            log.warn(
+                "Group ({}) has Unknown-status order after poll. Likely unresolved product name, skipping group notification",
+                key
+            );
             return null;
         }
 
-        if(hasMatched && hasUndercut) {
-            log.warn("Group ({}) has both Matched and Undercut orders. This must be a logic error, skipping group notification", key);
+        if (hasMatched && hasUndercut) {
+            log.warn(
+                "Group ({}) has both Matched and Undercut orders. This must be a logic error, skipping group notification",
+                key
+            );
             return null;
         }
 
-        if(hasUndercut) {
+        if (hasUndercut) {
             // per definition all the orders within the `orders` list must have undercut status
             // as well as the same (product name, type, price per unit)
             var representativeOrder = orders.getFirst();
@@ -261,7 +280,7 @@ public class TrackedOrderManager {
         }
 
         int bucketOrderCount = this.countOrdersAtBestPrice(key, this.bazaarData);
-        if(bucketOrderCount == -1) {
+        if (bucketOrderCount == -1) {
             log.warn("Group ({}) has no orders at the given price per unit, skipping group notification", key);
             return null;
         }
@@ -269,15 +288,19 @@ public class TrackedOrderManager {
         return orders.size() == bucketOrderCount ? new GroupStatus.SelfMatched() : new GroupStatus.Matched();
     }
 
-   // Reconstruct the previous group status from two sources:
-   // - Orders that did NOT change this poll are absent from `updates`, meaning their current
-   //   status IS their previous status (nothing moved for them).
-   // - Orders that DID change this poll have an explicit `prev` field in their `StatusUpdate`,
-   //   which overrides the default.
-   // Building a full `prevStatuses` map across all orders gives us a complete picture of where
-   // the entire group stood before this poll, which we then reduce to a single `GroupStatus`
-   // using the same precedence as `getCurrentGroupStatus`: `Undercut` > `Matched` > everything else.
-    private @Nullable GroupStatus getPreviousGroupStatus(GroupKey key, List<TrackedOrder> orders, List<StatusUpdate> updates) {
+    // Reconstruct the previous group status from two sources:
+    // - Orders that did NOT change this poll are absent from `updates`, meaning their current
+    //   status IS their previous status (nothing moved for them).
+    // - Orders that DID change this poll have an explicit `prev` field in their `StatusUpdate`,
+    //   which overrides the default.
+    // Building a full `prevStatuses` map across all orders gives us a complete picture of where
+    // the entire group stood before this poll, which we then reduce to a single `GroupStatus`
+    // using the same precedence as `getCurrentGroupStatus`: `Undercut` > `Matched` > everything else.
+    private @Nullable GroupStatus getPreviousGroupStatus(
+        GroupKey key,
+        List<TrackedOrder> orders,
+        List<StatusUpdate> updates
+    ) {
         Map<TrackedOrder, OrderStatus> prevStatuses = orders.stream()
             .collect(Collectors.toMap(order -> order, order -> order.status));
 
@@ -285,7 +308,8 @@ public class TrackedOrderManager {
 
         var values = prevStatuses.values();
 
-        if (values.stream().anyMatch(status -> status instanceof OrderStatus.Undercut)) {
+        if (values.stream()
+            .anyMatch(status -> status instanceof OrderStatus.Undercut)) {
             // `amount` MUST be identical across all orders in the group
             double amount = values.stream()
                 .filter(status -> status instanceof OrderStatus.Undercut)
@@ -295,30 +319,36 @@ public class TrackedOrderManager {
             return new GroupStatus.Undercut(amount);
         }
 
-        if (values.stream().anyMatch(status -> status instanceof OrderStatus.Matched)) {
+        if (values.stream()
+            .anyMatch(status -> status instanceof OrderStatus.Matched)) {
             return new GroupStatus.Matched();
         }
 
         // Top, Unknown, or mix of both -> group had no settled matched state before
-        log.debug("Group ({}) had no prior matched group state. currently tracked orders: {} | updates: {}", 
-            key, orders, updates);
+        log.debug(
+            "Group ({}) had no prior matched group state. currently tracked orders: {} | updates: {}",
+            key,
+            orders,
+            updates
+        );
         return null;
     }
 
     private int countOrdersAtBestPrice(GroupKey key, BazaarData bazaarData) {
-        var productId = bazaarData.nameToId(key.productName).orElse(null);
+        var productId = bazaarData.nameToId(key.productName)
+            .orElse(null);
         if (productId == null) {
             log.warn("Group ({}) has no name -> id mapping, skipping group notification", key);
             return -1;
         }
-        
+
         var lists = bazaarData.getOrderLists(productId);
-        
+
         var relevantSummaries = switch (key.type) {
             case Buy -> lists.buyOrders();
             case Sell -> lists.sellOffers();
         };
-    
+
         return relevantSummaries.stream()
             .filter(summary -> summary.getPricePerUnit() == key.pricePerUnit)
             .findFirst()
@@ -327,51 +357,40 @@ public class TrackedOrderManager {
     }
 
     public Stream<StatusUpdate> computeStatusUpdates(Map<String, Product> products) {
-        return this.trackedOrders
-            .stream()
+        return this.trackedOrders.stream()
             .map(order -> this.getTrackedStatus(order, products))
             .flatMap(Optional::stream)
             .filter(trackedStatus -> !trackedStatus.order().status.sameVariant(trackedStatus.status()))
-            .map(trackedStatus -> new StatusUpdate(
-                trackedStatus.order(),
-                trackedStatus.status(),
-                trackedStatus.order().status
-            ));
+            .map(
+                trackedStatus -> new StatusUpdate(
+                    trackedStatus.order(),
+                    trackedStatus.status(),
+                    trackedStatus.order().status
+                )
+            );
     }
 
     private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
         var id = bazaarData.nameToId(order.productName);
         if (id.isEmpty()) {
-            log.warn(
-                "No name -> id mapping found for product with name: '{}'",
-                order.productName
-            );
+            log.warn("No name -> id mapping found for product with name: '{}'", order.productName);
             return Optional.empty();
         }
 
         var product = Optional.ofNullable(products.get(id.get()));
         if (product.isEmpty()) {
-            log.warn(
-                "No product found for item with name '{}' and mapped id '{}'",
-                order.productName,
-                id.get()
-            );
+            log.warn("No product found for item with name '{}' and mapped id '{}'", order.productName, id.get());
             return Optional.empty();
         }
 
         var status = this.getStatus(order, product.get());
         if (status.isEmpty()) {
-            log.debug(
-                "Unable to determine curr for product '{}' with id '{}'",
-                order.productName,
-                id.get()
-            );
+            log.debug("Unable to determine curr for product '{}' with id '{}'", order.productName, id.get());
             return Optional.empty();
         }
 
         return Optional.of(new TrackedStatus(order, status.get()));
     }
-
 
     private boolean shouldNotify(StatusUpdate update) {
         var cfg = ConfigManager.get().trackedOrders;
@@ -416,13 +435,16 @@ public class TrackedOrderManager {
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
         // noinspection SimplifyStreamApiCallChains
-        this.trackedOrders
-            .stream()
-            .filter(order -> order.productName.equals(info.productName()) && order.type == info.type() && order.volume == info.volume())
+        this.trackedOrders.stream()
+            .filter(
+                order -> order.productName.equals(info.productName()) && order.type == info.type()
+                    && order.volume == info.volume()
+            )
             .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
             .findFirst()
             .ifPresentOrElse(
-                this::removeTrackedOrder, () -> Notifier.notifyChatCommand(
+                this::removeTrackedOrder,
+                () -> Notifier.notifyChatCommand(
                     "No matching tracked order found for filled order message. Resync orders",
                     "managebazaarorders"
                 )
@@ -434,54 +456,50 @@ public class TrackedOrderManager {
     }
 
     public void confirmOutstanding(OrderSetup info) {
-        this.outstandingOrderStore
-            .removeFirstMatch(curr -> curr.matches(info))
+        this.outstandingOrderStore.removeFirstMatch(curr -> curr.matches(info))
             .map(TrackedOrder::new)
-            .ifPresentOrElse(
-                this::addTrackedOrder, () -> {
-                    log.info("Failed to find a matching outstanding order for: {}", info);
+            .ifPresentOrElse(this::addTrackedOrder, () -> {
+                log.info("Failed to find a matching outstanding order for: {}", info);
 
-                    Notifier.notifyChatCommand(
-                        String.format(
-                            "Failed to find a matching outstanding order for: %s for %sx %s totalling %s | click to resync tracked orders",
-                            info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
-                            info.volume(),
-                            info.productName(),
-                            Utils.formatDecimal(info.total(), 1, true)
-                        ), "managebazaarorders"
-                    );
-                }
-            );
+                Notifier.notifyChatCommand(
+                    String.format(
+                        "Failed to find a matching outstanding order for: %s for %sx %s totalling %s | click to resync tracked orders",
+                        info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
+                        info.volume(),
+                        info.productName(),
+                        Utils.formatDecimal(info.total(), 1, true)
+                    ),
+                    "managebazaarorders"
+                );
+            });
     }
 
     private Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
         // floating point inaccuracy for player exposure is handled see
         // `GeneralUtils.formatDecimal`
         return switch (order.type) {
-            case Buy -> Utils.getFirst(product.getSellSummary()).map(summary -> {
-                double bestPrice = summary.getPricePerUnit();
-                if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1
-                        ? this.matchedOrGhostTop(order, summary)
-                        : new Top();
-                }
-                if (order.pricePerUnit > bestPrice) {
-                    return new Top();
-                }
-                return new Undercut(bestPrice - order.pricePerUnit);
-            });
-            case Sell -> Utils.getFirst(product.getBuySummary()).map(summary -> {
-                double bestPrice = summary.getPricePerUnit();
-                if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1
-                        ? this.matchedOrGhostTop(order, summary)
-                        : new Top();
-                }
-                if (order.pricePerUnit < bestPrice) {
-                    return new Top();
-                }
-                return new Undercut(order.pricePerUnit - bestPrice);
-            });
+            case Buy -> Utils.getFirst(product.getSellSummary())
+                .map(summary -> {
+                    double bestPrice = summary.getPricePerUnit();
+                    if (order.pricePerUnit == bestPrice) {
+                        return summary.getOrders() > 1 ? this.matchedOrGhostTop(order, summary) : new Top();
+                    }
+                    if (order.pricePerUnit > bestPrice) {
+                        return new Top();
+                    }
+                    return new Undercut(bestPrice - order.pricePerUnit);
+                });
+            case Sell -> Utils.getFirst(product.getBuySummary())
+                .map(summary -> {
+                    double bestPrice = summary.getPricePerUnit();
+                    if (order.pricePerUnit == bestPrice) {
+                        return summary.getOrders() > 1 ? this.matchedOrGhostTop(order, summary) : new Top();
+                    }
+                    if (order.pricePerUnit < bestPrice) {
+                        return new Top();
+                    }
+                    return new Undercut(order.pricePerUnit - bestPrice);
+                });
         };
     }
 
@@ -497,16 +515,18 @@ public class TrackedOrderManager {
         if (itemsAhead == 0) {
             log.debug(
                 "Ghost order detected for {}: bucket has {} orders but 0 items ahead of player volume ({}), treating as Top",
-                order.productName, (int) summary.getOrders(), order.volume
+                order.productName,
+                (int) summary.getOrders(),
+                order.volume
             );
             return new Top();
         }
         return new Matched();
     }
 
-    private record TrackedStatus(TrackedOrder order, OrderStatus status) { }
+    private record TrackedStatus(TrackedOrder order, OrderStatus status) {}
 
-    public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) { }
+    public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) {}
 
     private void resolveSelfUndercutStates(Map<String, Product> products) {
         var keys = this.trackedOrders.stream()
@@ -514,7 +534,8 @@ public class TrackedOrderManager {
             .distinct()
             .toList();
 
-        this.selfUndercutState.keySet().retainAll(keys);
+        this.selfUndercutState.keySet()
+            .retainAll(keys);
         var cfg = ConfigManager.get().trackedOrders;
 
         for (var key : keys) {
@@ -525,11 +546,12 @@ public class TrackedOrderManager {
                 boolean pricesChanged = existing == null
                     || Double.compare(existing.bestPrice(), undercut.bestPrice()) != 0
                     || Double.compare(existing.secondBestPrice(), undercut.secondBestPrice()) != 0;
-                if(!pricesChanged) {
+                if (!pricesChanged) {
                     continue;
                 }
 
-                this.selfUndercutState.put(key, new SelfUndercutPricePair(undercut.bestPrice(), undercut.secondBestPrice()));
+                this.selfUndercutState
+                    .put(key, new SelfUndercutPricePair(undercut.bestPrice(), undercut.secondBestPrice()));
                 if (cfg.enabled && cfg.notifySelfUndercut) {
                     Notifier.notifySelfUndercut(key, undercut.bestPrice(), undercut.secondBestPrice());
                 }
@@ -544,6 +566,7 @@ public class TrackedOrderManager {
 
     private sealed interface SelfUndercutResult {
         record Undercut(double bestPrice, double secondBestPrice) implements SelfUndercutResult {}
+
         record NotUndercut() implements SelfUndercutResult {}
 
         default boolean isSelfUndercut() {
@@ -552,17 +575,15 @@ public class TrackedOrderManager {
     }
 
     private SelfUndercutResult computeSelfUndercutState(
-        String productName, 
-        OrderType type, 
+        String productName,
+        OrderType type,
         Map<String, Product> products
     ) {
         var matchingOrders = this.trackedOrders.stream()
             .filter(order -> order.productName.equals(productName) && order.type == type)
             .toList();
 
-        Comparator<Double> bestFirst = type == OrderType.Buy
-            ? Comparator.reverseOrder()
-            : Comparator.naturalOrder();
+        Comparator<Double> bestFirst = type == OrderType.Buy ? Comparator.reverseOrder() : Comparator.naturalOrder();
 
         var playerPrices = matchingOrders.stream()
             .map(order -> order.pricePerUnit)
@@ -574,7 +595,8 @@ public class TrackedOrderManager {
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var productId = this.bazaarData.nameToId(productName).orElse(null);
+        var productId = this.bazaarData.nameToId(productName)
+            .orElse(null);
         if (productId == null) {
             log.debug("Product '{}' not found in bazaar data", productName);
             return new SelfUndercutResult.NotUndercut();
@@ -609,7 +631,12 @@ public class TrackedOrderManager {
             .count();
 
         if (topBucket.getOrders() != playerCountAtBest) {
-            log.trace("Top bucket count mismatch for {}: API orders={}, local tracked={}", productName, topBucket.getOrders(), playerCountAtBest);
+            log.trace(
+                "Top bucket count mismatch for {}: API orders={}, local tracked={}",
+                productName,
+                topBucket.getOrders(),
+                playerCountAtBest
+            );
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -622,7 +649,12 @@ public class TrackedOrderManager {
             .count();
 
         if (secondBucket.getOrders() != playerCountAtSecondBest) {
-            log.trace("Second bucket count mismatch for {}: API orders={}, local tracked={}", productName, secondBucket.getOrders(), playerCountAtSecondBest);
+            log.trace(
+                "Second bucket count mismatch for {}: API orders={}, local tracked={}",
+                productName,
+                secondBucket.getOrders(),
+                playerCountAtSecondBest
+            );
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -655,10 +687,7 @@ public class TrackedOrderManager {
 
         public OptionGroup createGroup() {
             var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption())
-                .addOptions(
-                    this.createNotifyBestOnPriorityRegain(),
-                    this.createSoundBestOption()
-                );
+                .addOptions(this.createNotifyBestOnPriorityRegain(), this.createSoundBestOption());
 
             var queueGroup = new OptionGrouping(this.createShowQueueInfoOption())
                 .addOptions(this.createQueueDisplayModeOption());
@@ -677,22 +706,22 @@ public class TrackedOrderManager {
                 )
                 .addSubgroups(notifyBestGroup, queueGroup);
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order Notification"))
-                .description(OptionDescription.of(Component.literal(
-                    "Tracked order notification settings")))
+                .description(OptionDescription.of(Component.literal("Tracked order notification settings")))
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();
         }
 
         private Option.Builder<Action> createGotoMatchedOption() {
-            return Option
-                .<Action>createBuilder()
+            return Option.<Action>createBuilder()
                 .name(Component.literal("Go To - Matched"))
-                .description(OptionDescription.of(Component.literal(
-                    "Where to jump shortcut to when one of your tracked orders becomes matched")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Where to jump shortcut to when one of your tracked orders becomes matched")
+                    )
+                )
                 .binding(
                     Action.Order,
                     () -> this.gotoOnMatched != null ? this.gotoOnMatched : Action.Order,
@@ -702,11 +731,12 @@ public class TrackedOrderManager {
         }
 
         private Option.Builder<Action> createGotoUndercutOption() {
-            return Option
-                .<Action>createBuilder()
+            return Option.<Action>createBuilder()
                 .name(Component.literal("Go To - Undercut"))
-                .description(OptionDescription.of(Component.literal(
-                    "Where to jump shortcut to when one of your tracked orders is undercut")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Where to jump shortcut to when one of your tracked orders is undercut"))
+                )
                 .binding(
                     Action.Order,
                     () -> this.gotoOnUndercut != null ? this.gotoOnUndercut : Action.Order,
@@ -716,154 +746,175 @@ public class TrackedOrderManager {
         }
 
         private Option.Builder<Boolean> createShowQueueInfoOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Queue Info"))
                 .binding(true, () -> this.showQueueInfo, val -> this.showQueueInfo = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Display how many orders/items are ahead of your matched or undercut order")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Display how many orders/items are ahead of your matched or undercut order")
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<QueueDisplayMode> createQueueDisplayModeOption() {
-            return Option
-                .<QueueDisplayMode>createBuilder()
+            return Option.<QueueDisplayMode>createBuilder()
                 .name(Component.literal("Queue Display Mode"))
                 .binding(
                     QueueDisplayMode.Both,
                     () -> this.queueDisplayMode != null ? this.queueDisplayMode : QueueDisplayMode.Both,
                     mode -> {
                         this.queueDisplayMode = mode;
-                        BtrBz.tooltipProvider().clearCache();
+                        BtrBz.tooltipProvider()
+                            .clearCache();
                     }
                 )
-                .description(OptionDescription.of(Component.literal(
-                    "Whether to display the number of orders and items, or just the number of items")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Whether to display the number of orders and items, or just the number of items")
+                    )
+                )
                 .controller(QueueDisplayMode::controller);
         }
 
         private Option.Builder<Boolean> createNotifyBestOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Notify - Best"))
                 .binding(true, () -> this.notifyBest, val -> this.notifyBest = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Send a notification when a tracked order becomes the best/top order in the Bazaar"
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyBestOnPriorityRegain() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.nullToEmpty("Only On Priority Regain"))
-                .binding(
-                    true,
-                    () -> this.onlyOnPriorityRegain,
-                    val -> this.onlyOnPriorityRegain = val
+                .binding(true, () -> this.onlyOnPriorityRegain, val -> this.onlyOnPriorityRegain = val)
+                .description(
+                    OptionDescription.of(
+                        Component.nullToEmpty("Only sends a notification when a tracked order regains it best/top curr")
+                    )
                 )
-                .description(OptionDescription.of(Component.nullToEmpty(
-                    "Only sends a notification when a tracked order regains it best/top curr")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyMatchedOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Notify - Matched"))
                 .binding(true, () -> this.notifyMatched, val -> this.notifyMatched = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a tracked order is matched (multiple orders at the same best price)")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Send a notification when a tracked order is matched (multiple orders at the same best price)"
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyUndercutOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Notify - Undercut"))
                 .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a tracked order is undercut / outbid by another order")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Send a notification when a tracked order is undercut / outbid by another order")
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createSoundBestOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Sound - Best"))
                 .binding(false, () -> this.soundBest, val -> this.soundBest = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a best/top order notification is triggered")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Play a sound when a best/top order notification is triggered"))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createSoundMatchedOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Sound - Matched"))
                 .binding(true, () -> this.soundMatched, val -> this.soundMatched = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a matched notification is triggered")))
+                .description(
+                    OptionDescription.of(Component.literal("Play a sound when a matched notification is triggered"))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createSoundUndercutOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Sound - Undercut"))
                 .binding(true, () -> this.soundUndercut, val -> this.soundUndercut = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when an undercut notification is triggered")))
+                .description(
+                    OptionDescription.of(Component.literal("Play a sound when an undercut notification is triggered"))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createGroupOrdersOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Group Orders"))
                 .binding(false, () -> this.groupOrders, val -> this.groupOrders = val)
-                .description(OptionDescription.of(Component.literal(
-                    "(Experimental) Group multiple orders at the same price into a single notification. Not yet fully tested, use with caution")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "(Experimental) Group multiple orders at the same price into a single notification. Not yet fully tested, use with caution"
+                        )
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifySelfUndercutOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Notify - Self Undercut"))
                 .binding(true, () -> this.notifySelfUndercut, val -> this.notifySelfUndercut = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a previously placed order is detected to be undercut")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Send a notification when a previously placed order is detected to be undercut")
+                    )
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createIncludePricePerUnitOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Include Price Per Unit"))
                 .binding(false, () -> this.includePricePerUnit, val -> this.includePricePerUnit = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Include the price per unit in the notification message")))
+                .description(
+                    OptionDescription.of(Component.literal("Include the price per unit in the notification message"))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Tracked Orders"))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the notifications when the curr of an order changes")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Enable or disable the notifications when the curr of an order changes"))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public enum Action {
-            None,
-            Item,
-            Order;
+            None, Item, Order;
 
             public static EnumControllerBuilder<Action> controller(Option<Action> option) {
-                return EnumControllerBuilder
-                    .create(option)
+                return EnumControllerBuilder.create(option)
                     .enumClass(Action.class)
                     .formatValue(action -> switch (action) {
                         case None -> Component.literal("No action");
@@ -874,12 +925,10 @@ public class TrackedOrderManager {
         }
 
         public enum QueueDisplayMode {
-            Both,
-            ItemsOnly;
+            Both, ItemsOnly;
 
             public static EnumControllerBuilder<QueueDisplayMode> controller(Option<QueueDisplayMode> option) {
-                return EnumControllerBuilder
-                    .create(option)
+                return EnumControllerBuilder.create(option)
                     .enumClass(QueueDisplayMode.class)
                     .formatValue(mode -> switch (mode) {
                         case Both -> Component.literal("Orders and Items");

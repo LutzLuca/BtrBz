@@ -16,8 +16,11 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        ScreenInfoHelper.get()
+            .getInventoryWatcher()
+            .onCloseScreen();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null) {
             wm.cleanup();
         }
@@ -25,7 +28,8 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null) {
             wm.render(graphics, mouseX, mouseY, delta);
         }
@@ -33,7 +37,8 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
+        var wm = ModuleManager.getInstance()
+            .getWidgetManager();
         if (wm != null && wm.keyPressed(event)) {
             cir.setReturnValue(true);
         }

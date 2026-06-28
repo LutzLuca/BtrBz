@@ -12,51 +12,66 @@ import net.minecraft.network.chat.Component;
 public class TrackedOrderCommand {
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("orders")
-            .then(ClientCommands.literal("list").executes(ctx -> {
-                var orders = BtrBz.orderManager().getTrackedOrders();
+        return Commands.rootCommand.then(
+            ClientCommands.literal("orders")
+                .then(
+                    ClientCommands.literal("list")
+                        .executes(ctx -> {
+                            var orders = BtrBz.orderManager()
+                                .getTrackedOrders();
 
-                var builder = Notifier.prefix();
-                if (orders.isEmpty()) {
-                    builder.append(Component.literal("No tracked orders").withStyle(ChatFormatting.GRAY));
-                    Notifier.notifyPlayer(builder);
-                    return 1;
-                }
+                            var builder = Notifier.prefix();
+                            if (orders.isEmpty()) {
+                                builder.append(
+                                    Component.literal("No tracked orders")
+                                        .withStyle(ChatFormatting.GRAY)
+                                );
+                                Notifier.notifyPlayer(builder);
+                                return 1;
+                            }
 
-                var newline = Component.literal("\n");
+                            var newline = Component.literal("\n");
 
-                builder = builder
-                    .append(Component
-                        .literal("Tracked Orders (" + orders.size() + "):")
-                        .withStyle(ChatFormatting.GOLD))
-                    .append(newline);
+                            builder = builder.append(
+                                Component.literal("Tracked Orders (" + orders.size() + "):")
+                                    .withStyle(ChatFormatting.GOLD)
+                            )
+                                .append(newline);
 
-                var first = true;
-                for (var order : orders) {
-                    if (!first) {
-                        builder.append(newline);
-                    }
-                    first = false;
-                    builder.append(order.format());
-                }
+                            var first = true;
+                            for (var order : orders) {
+                                if (!first) {
+                                    builder.append(newline);
+                                }
+                                first = false;
+                                builder.append(order.format());
+                            }
 
-                Notifier.notifyPlayer(builder);
+                            Notifier.notifyPlayer(builder);
 
-                return 1;
-            }))
+                            return 1;
+                        })
+                )
 
-            .then(ClientCommands.literal("reset").executes(ctx -> {
-                Minecraft.getInstance().execute(() -> {
-                    BtrBz.orderManager().resetTrackedOrders();
-                    Notifier.notifyPlayer(Notifier
-                        .prefix()
-                        .append(Component
-                            .literal("Tracked Bazaar orders have been reset.")
-                            .withStyle(ChatFormatting.GRAY)));
-                });
+                .then(
+                    ClientCommands.literal("reset")
+                        .executes(ctx -> {
+                            Minecraft.getInstance()
+                                .execute(() -> {
+                                    BtrBz.orderManager()
+                                        .resetTrackedOrders();
+                                    Notifier.notifyPlayer(
+                                        Notifier.prefix()
+                                            .append(
+                                                Component.literal("Tracked Bazaar orders have been reset.")
+                                                    .withStyle(ChatFormatting.GRAY)
+                                            )
+                                    );
+                                });
 
-                return 1;
-            })));
+                            return 1;
+                        })
+                )
+        );
     }
 }

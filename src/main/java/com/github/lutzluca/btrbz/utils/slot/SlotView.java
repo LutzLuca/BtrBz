@@ -9,14 +9,14 @@ import lombok.Getter;
 
 @Getter
 public class SlotView {
-     private ScreenInfo currInfo;
-     private ScreenInfo prevInfo;
-     private Slot slot;
-     private ItemStack rawStack;
+    private ScreenInfo currInfo;
+    private ScreenInfo prevInfo;
+    private Slot slot;
+    private ItemStack rawStack;
 
     private SlotView() {}
 
-    public SlotView (
+    public SlotView(
         @NotNull ScreenInfo currInfo,
         @NotNull ScreenInfo prevInfo,
         @NotNull Slot slot,
@@ -34,7 +34,7 @@ public class SlotView {
         return new SlotView();
     }
 
-    public void update (
+    public void update(
         @NotNull ScreenInfo currInfo,
         @NotNull ScreenInfo prevInfo,
         @NotNull Slot slot,
@@ -46,7 +46,11 @@ public class SlotView {
         this.rawStack = rawStack;
     }
 
+    public int slotIdx() {
+        return this.slot.getContainerSlot();
+    }
 
-    public int slotIdx() { return this.slot.getContainerSlot(); }
-    public boolean playerInventorySlot() { return GameUtils.isPlayerInventorySlot(this.slot); }
+    public boolean playerInventorySlot() {
+        return GameUtils.isPlayerInventorySlot(this.slot);
+    }
 }

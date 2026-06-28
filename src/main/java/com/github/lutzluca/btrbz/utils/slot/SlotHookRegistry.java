@@ -8,7 +8,7 @@ public final class SlotHookRegistry {
 
     private static final List<SlotHook> HOOKS = new ArrayList<>();
 
-    private SlotHookRegistry() { }
+    private SlotHookRegistry() {}
 
     public static void register(SlotHook hook) {
         HOOKS.add(hook);
@@ -16,7 +16,7 @@ public final class SlotHookRegistry {
 
     public static ItemStack getDisplayStack(SlotRenderContext ctx) {
         var view = ctx.view();
-        
+
         for (SlotHook hook : HOOKS) {
             if (!hook.matches(view)) {
                 continue;

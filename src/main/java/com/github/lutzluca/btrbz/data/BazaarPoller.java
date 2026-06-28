@@ -59,8 +59,7 @@ public class BazaarPoller {
     }
 
     private static UUID getApiKey() {
-        return Optional
-            .ofNullable(System.getenv("HYPIXEL_API_KEY"))
+        return Optional.ofNullable(System.getenv("HYPIXEL_API_KEY"))
             .map(UUID::fromString)
             .orElseGet(UUID::randomUUID);
     }
@@ -98,29 +97,28 @@ public class BazaarPoller {
     }
 
     private void processBazaarReply(SkyBlockBazaarReply reply) {
-        Try.of(() -> (SkyBlockBazaarReplyAccessor) reply).onSuccess((accessor) -> {
-            long currentUpdateTime = accessor.getLastUpdated();
-            boolean changed = currentUpdateTime != this.lastKnownUpdateTime;
+        Try.of(() -> (SkyBlockBazaarReplyAccessor) reply)
+            .onSuccess((accessor) -> {
+                long currentUpdateTime = accessor.getLastUpdated();
+                boolean changed = currentUpdateTime != this.lastKnownUpdateTime;
 
-            if (changed) {
-                this.handleChangedData(currentUpdateTime, reply.getProducts());
-            } else {
-                this.handleUnchangedData();
-            }
+                if (changed) {
+                    this.handleChangedData(currentUpdateTime, reply.getProducts());
+                } else {
+                    this.handleUnchangedData();
+                }
 
-            this.lastKnownUpdateTime = currentUpdateTime;
-            log.trace(
-                "Bazaar data fetched successfully - Data {}, Last Updated: {}",
-                changed ? "changed" : "unchanged",
-                Utils.formatUtcTimestampMillis(currentUpdateTime)
-            );
-        }).onFailure(err -> {
-            log.warn("Reply does not implement expected accessor.", err);
-            this.scheduleFetch(
-                ERROR_BACKOFF_MS,
-                "Error recovery - SkyBlockBazaarReplyAccessor cast failed"
-            );
-        });
+                this.lastKnownUpdateTime = currentUpdateTime;
+                log.trace(
+                    "Bazaar data fetched successfully - Data {}, Last Updated: {}",
+                    changed ? "changed" : "unchanged",
+                    Utils.formatUtcTimestampMillis(currentUpdateTime)
+                );
+            })
+            .onFailure(err -> {
+                log.warn("Reply does not implement expected accessor.", err);
+                this.scheduleFetch(ERROR_BACKOFF_MS, "Error recovery - SkyBlockBazaarReplyAccessor cast failed");
+            });
     }
 
     private void handleChangedData(long currentUpdateTime, Map<String, Product> products) {
@@ -131,9 +129,11 @@ public class BazaarPoller {
             log.trace("Bazaar data updated after {}s", diffMs / 1000.0);
         }
 
-        Minecraft.getInstance().execute(() -> onReply.accept(products));
+        Minecraft.getInstance()
+            .execute(() -> onReply.accept(products));
 
-        long jitter = ThreadLocalRandom.current().nextLong(200, 400);
+        long jitter = ThreadLocalRandom.current()
+            .nextLong(200, 400);
         this.scheduleFetch(BAZAAR_UPDATE_TIME_MS + jitter, "Regular interval fetch");
     }
 
@@ -159,7 +159,8 @@ public class BazaarPoller {
             );
 
             this.unchangedDataRetries = 0;
-            long jitter = ThreadLocalRandom.current().nextLong(200, 400);
+            long jitter = ThreadLocalRandom.current()
+                .nextLong(200, 400);
             this.scheduleFetch(BAZAAR_UPDATE_TIME_MS + jitter, "Post-unchanged-limit normal fetch");
         }
     }

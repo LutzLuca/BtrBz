@@ -24,54 +24,89 @@ public class TaxCommand {
     };
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("tax")
-            .then(ClientCommands
-                .literal("set")
-                .then(ClientCommands
-                    .argument("rate", FloatArgumentType.floatArg())
-                    .suggests(RATE_SUGGESTIONS)
-                    .executes(ctx -> {
-                        var rate = FloatArgumentType.getFloat(ctx, "rate");
+        return Commands.rootCommand.then(
+            ClientCommands.literal("tax")
+                .then(
+                    ClientCommands.literal("set")
+                        .then(
+                            ClientCommands.argument("rate", FloatArgumentType.floatArg())
+                                .suggests(RATE_SUGGESTIONS)
+                                .executes(ctx -> {
+                                    var rate = FloatArgumentType.getFloat(ctx, "rate");
 
-                        if (!List.of(1.25F, 1.125F, 1.0F).contains(rate)) {
-                            var msg = Notifier
-                                .prefix()
-                                .append(Component.literal("Invalid rate").withStyle(ChatFormatting.RED))
-                                .append(Component
-                                    .literal(" (" + rate + ")")
-                                    .withStyle(ChatFormatting.DARK_GRAY))
-                                .append(Component.literal(": must be ").withStyle(ChatFormatting.GRAY))
-                                .append(Component.literal("1, 1.125").withStyle(ChatFormatting.AQUA))
-                                .append(Component.literal(", or ").withStyle(ChatFormatting.GRAY))
-                                .append(Component.literal("1.25").withStyle(ChatFormatting.AQUA))
-                                .append(Component
-                                    .literal(
-                                        " depending on your Bazaar Flipper level in the Community Shop")
-                                    .withStyle(ChatFormatting.GRAY));
+                                    if (!List.of(1.25F, 1.125F, 1.0F)
+                                        .contains(rate)) {
+                                        var msg = Notifier.prefix()
+                                            .append(
+                                                Component.literal("Invalid rate")
+                                                    .withStyle(ChatFormatting.RED)
+                                            )
+                                            .append(
+                                                Component.literal(" (" + rate + ")")
+                                                    .withStyle(ChatFormatting.DARK_GRAY)
+                                            )
+                                            .append(
+                                                Component.literal(": must be ")
+                                                    .withStyle(ChatFormatting.GRAY)
+                                            )
+                                            .append(
+                                                Component.literal("1, 1.125")
+                                                    .withStyle(ChatFormatting.AQUA)
+                                            )
+                                            .append(
+                                                Component.literal(", or ")
+                                                    .withStyle(ChatFormatting.GRAY)
+                                            )
+                                            .append(
+                                                Component.literal("1.25")
+                                                    .withStyle(ChatFormatting.AQUA)
+                                            )
+                                            .append(
+                                                Component
+                                                    .literal(
+                                                        " depending on your Bazaar Flipper level in the Community Shop"
+                                                    )
+                                                    .withStyle(ChatFormatting.GRAY)
+                                            );
 
-                            Notifier.notifyPlayer(msg);
+                                        Notifier.notifyPlayer(msg);
+                                        return 1;
+                                    }
+
+                                    ConfigManager.withConfig(cfg -> cfg.tax = rate);
+                                    Notifier.notifyPlayer(
+                                        Notifier.prefix()
+                                            .append(
+                                                Component.literal("Successfully set tax rate to ")
+                                                    .withStyle(ChatFormatting.GRAY)
+                                            )
+                                            .append(
+                                                Component.literal(rate + "%")
+                                                    .withStyle(ChatFormatting.AQUA)
+                                            )
+                                    );
+                                    return 1;
+                                })
+                        )
+                )
+
+                .then(
+                    ClientCommands.literal("show")
+                        .executes(ctx -> {
+                            Notifier.notifyPlayer(
+                                Notifier.prefix()
+                                    .append(
+                                        Component.literal("Your tax rate is ")
+                                            .withStyle(ChatFormatting.GRAY)
+                                    )
+                                    .append(
+                                        Component.literal(ConfigManager.get().tax + "%")
+                                            .withStyle(ChatFormatting.AQUA)
+                                    )
+                            );
                             return 1;
-                        }
-
-                        ConfigManager.withConfig(cfg -> cfg.tax = rate);
-                        Notifier.notifyPlayer(Notifier
-                            .prefix()
-                            .append(Component
-                                .literal("Successfully set tax rate to ")
-                                .withStyle(ChatFormatting.GRAY))
-                            .append(Component.literal(rate + "%").withStyle(ChatFormatting.AQUA)));
-                        return 1;
-                    })))
-
-            .then(ClientCommands.literal("show").executes(ctx -> {
-                Notifier.notifyPlayer(Notifier
-                    .prefix()
-                    .append(Component.literal("Your tax rate is ").withStyle(ChatFormatting.GRAY))
-                    .append(Component
-                        .literal(ConfigManager.get().tax + "%")
-                        .withStyle(ChatFormatting.AQUA)));
-                return 1;
-            })));
+                        })
+                )
+        );
     }
 }

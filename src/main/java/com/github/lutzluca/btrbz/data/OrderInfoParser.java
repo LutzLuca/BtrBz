@@ -26,47 +26,30 @@ import net.minecraft.world.item.component.ItemLore;
 @Slf4j
 public final class OrderInfoParser {
 
-    private OrderInfoParser() { }
+    private OrderInfoParser() {}
 
     public static Try<BazaarMessage> parseBazaarMessage(String bazaarMsg) {
         if (!bazaarMsg.startsWith("[Bazaar]")) {
-            return Try.failure(new IllegalArgumentException(
-                "Unhandled bazaar message format: " + bazaarMsg
-            ));
+            return Try.failure(new IllegalArgumentException("Unhandled bazaar message format: " + bazaarMsg));
         }
 
-        var msg = bazaarMsg.replace("[Bazaar]", "").trim();
+        var msg = bazaarMsg.replace("[Bazaar]", "")
+            .trim();
 
         if (msg.endsWith("was filled!") || msg.endsWith("was filled! [Go To Orders]")) {
-            return parseFilledOrderMessage(msg).onFailure(err -> logParseError(
-                "filled order",
-                msg,
-                err
-            ));
+            return parseFilledOrderMessage(msg).onFailure(err -> logParseError("filled order", msg, err));
         }
 
         if (msg.contains("Setup!")) {
-            return parseSetupOrderMessage(msg).onFailure(err -> logParseError(
-                "setup order",
-                msg,
-                err
-            ));
+            return parseSetupOrderMessage(msg).onFailure(err -> logParseError("setup order", msg, err));
         }
 
         if (msg.startsWith("Bought") || msg.startsWith("Sold")) {
-            return parseInstaOrderMessage(msg).onFailure(err -> logParseError(
-                "insta order",
-                msg,
-                err
-            ));
+            return parseInstaOrderMessage(msg).onFailure(err -> logParseError("insta order", msg, err));
         }
 
         if (msg.startsWith("Order Flipped!")) {
-            return parseFlippedOrderMessage(msg).onFailure(err -> logParseError(
-                "flipped order",
-                msg,
-                err
-            ));
+            return parseFlippedOrderMessage(msg).onFailure(err -> logParseError("flipped order", msg, err));
         }
 
         log.trace("Unhandled bazaar message format: '{}'", msg);
@@ -85,16 +68,14 @@ public final class OrderInfoParser {
         }
 
         var volumeAndName = parts[0].trim();
-        var pricePart = parts[1]
-            .trim()
+        var pricePart = parts[1].trim()
             .replace("coins.", "")
             .replace("coins!", "")
             .replace("coins of total expected profit.", "")
             .trim();
 
         var parsedVolume = parseVolume(volumeAndName, ctx);
-        var price = Utils
-            .parseUsFormattedNumber(pricePart)
+        var price = Utils.parseUsFormattedNumber(pricePart)
             .getOrElseThrow(() -> new IllegalArgumentException(ctx + ": invalid price in '" + fragment + "'"));
 
         return new ParsedItem(parsedVolume.volume, parsedVolume.productName, price.doubleValue());
@@ -107,8 +88,7 @@ public final class OrderInfoParser {
             throw new IllegalArgumentException(ctx + ": missing 'x' in '" + fragment + "'");
         }
 
-        var volume = Utils
-            .parseUsFormattedNumber(xSplit[0].trim())
+        var volume = Utils.parseUsFormattedNumber(xSplit[0].trim())
             .getOrElseThrow(() -> new IllegalArgumentException(ctx + ": invalid volume in '" + fragment + "'"));
 
         var product = xSplit[1].trim();
@@ -129,8 +109,7 @@ public final class OrderInfoParser {
             var type = switch (header) {
                 case "Buy Order Setup" -> OrderType.Buy;
                 case "Sell Offer Setup" -> OrderType.Sell;
-                default ->
-                    throw new IllegalArgumentException("Setup message: unknown type '" + header + "'");
+                default -> throw new IllegalArgumentException("Setup message: unknown type '" + header + "'");
             };
 
             var parsed = parseItemWithValue(body, "Setup message");
@@ -150,11 +129,11 @@ public final class OrderInfoParser {
             var orderType = switch (typePart) {
                 case "Your Buy Order" -> OrderType.Buy;
                 case "Your Sell Offer" -> OrderType.Sell;
-                default ->
-                    throw new IllegalArgumentException("Filled order: unknown type '" + typePart + "'");
+                default -> throw new IllegalArgumentException("Filled order: unknown type '" + typePart + "'");
             };
 
-            var fragment = forSplit[1].replaceFirst("was filled!.*", "").trim();
+            var fragment = forSplit[1].replaceFirst("was filled!.*", "")
+                .trim();
             var parsed = parseVolume(fragment, "Filled order");
 
             return new OrderFilled(orderType, parsed.volume, parsed.productName);
@@ -166,10 +145,12 @@ public final class OrderInfoParser {
         return Try.of(() -> {
             var isBuy = msg.startsWith("Bought");
             var action = isBuy ? "Bought" : "Sold";
-            var fragment = msg.substring(action.length()).trim();
+            var fragment = msg.substring(action.length())
+                .trim();
 
             var parsed = parseItemWithValue(fragment, "Insta " + action);
-            return isBuy ? new InstaBuy(parsed.volume, parsed.productName, parsed.value)
+            return isBuy
+                ? new InstaBuy(parsed.volume, parsed.productName, parsed.value)
                 : new InstaSell(parsed.volume, parsed.productName, parsed.value);
         });
     }
@@ -190,7 +171,12 @@ public final class OrderInfoParser {
     }
 
     public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx) {
-        return parseOrderInfo(item.getHoverName().getString(), getLore(item), slotIdx);
+        return parseOrderInfo(
+            item.getHoverName()
+                .getString(),
+            getLore(item),
+            slotIdx
+        );
     }
 
     static Try<OrderInfo> parseOrderInfo(String title, List<String> lore, int slotIdx) {
@@ -206,17 +192,20 @@ public final class OrderInfoParser {
         // You have {unclaimed} of ... to claim
         // ...
         return Try.of(() -> {
-            var orderInfo = GameUtils.stripFormattingCodes(title).split(" ", 2);
+            var orderInfo = GameUtils.stripFormattingCodes(title)
+                .split(" ", 2);
             if (orderInfo.length != 2) {
                 throw new IllegalArgumentException(
-                    "Title line of item does not follow the pattern '<type> <productName>'");
+                    "Title line of item does not follow the pattern '<type> <productName>'"
+                );
             }
 
             var orderTypeResult = OrderType.tryFrom(orderInfo[0]);
             if (orderTypeResult.isFailure()) {
-                throw new IllegalArgumentException("Failed to parse Order type: " + orderTypeResult
-                    .getCause()
-                    .getMessage());
+                throw new IllegalArgumentException(
+                    "Failed to parse Order type: " + orderTypeResult.getCause()
+                        .getMessage()
+                );
             }
 
             var productName = orderInfo[1];
@@ -262,64 +251,59 @@ public final class OrderInfoParser {
             int unclaimed = 0;
 
             for (String rawLine : lore) {
-                String line = GameUtils.stripFormattingCodes(rawLine).trim();
+                String line = GameUtils.stripFormattingCodes(rawLine)
+                    .trim();
                 if (line.isEmpty()) {
                     continue;
                 }
 
                 if (pricePerUnit == null && line.startsWith("Price per unit:")) {
-                    var parsed = Utils.parseUsFormattedNumber(line
-                        .replace("Price per unit:", "")
-                        .replace("coins", "")
-                        .trim());
+                    var parsed = Utils.parseUsFormattedNumber(
+                        line.replace("Price per unit:", "")
+                            .replace("coins", "")
+                            .trim()
+                    );
                     pricePerUnit = parsed
-                        .getOrElseThrow(() -> new IllegalArgumentException(
-                            "Failed to parse pricePerUnit"))
+                        .getOrElseThrow(() -> new IllegalArgumentException("Failed to parse pricePerUnit"))
                         .doubleValue();
-                } else if (volume == null && (line.startsWith("Order amount:") || line.startsWith(
-                    "Offer amount:"))) {
-                    var parsed = Utils.parseUsFormattedNumber(line
-                        .replace("Order amount:", "")
-                        .replace("Offer amount:", "")
-                        .replaceAll("x.*", "")
-                        .trim());
-                    volume = parsed
-                        .getOrElseThrow(() -> new IllegalArgumentException("Failed to parse volume"))
+                } else if (volume == null && (line.startsWith("Order amount:") || line.startsWith("Offer amount:"))) {
+                    var parsed = Utils.parseUsFormattedNumber(
+                        line.replace("Order amount:", "")
+                            .replace("Offer amount:", "")
+                            .replaceAll("x.*", "")
+                            .trim()
+                    );
+                    volume = parsed.getOrElseThrow(() -> new IllegalArgumentException("Failed to parse volume"))
                         .intValue();
                 } else if (filled == null && line.startsWith("Filled") && line.contains("%")) {
                     filled = line.contains("100%");
                     var first = line.indexOf(' ');
                     var last = line.lastIndexOf(' ');
 
-                    var parts = line.substring(first, last).trim().split("/", 2);
-                    filledAmount = Utils
-                        .parseUsFormattedNumber(parts[0])
-                        .getOrElseThrow(() -> new IllegalArgumentException(
-                            "Failed to parse filledAmound"))
+                    var parts = line.substring(first, last)
+                        .trim()
+                        .split("/", 2);
+                    filledAmount = Utils.parseUsFormattedNumber(parts[0])
+                        .getOrElseThrow(() -> new IllegalArgumentException("Failed to parse filledAmound"))
                         .intValue();
                 } else if (line.startsWith("You have")) {
-                    var trimmed = line.replaceFirst("You have", "").trim();
+                    var trimmed = line.replaceFirst("You have", "")
+                        .trim();
                     var spaceIdx = trimmed.indexOf(' ');
-                    unclaimed = Utils
-                        .parseUsFormattedNumber(trimmed.substring(0, spaceIdx).trim())
-                        .getOrElseThrow(() -> new IllegalArgumentException(
-                            "Failed to parse unclaimed amount"))
+                    unclaimed = Utils.parseUsFormattedNumber(
+                        trimmed.substring(0, spaceIdx)
+                            .trim()
+                    )
+                        .getOrElseThrow(() -> new IllegalArgumentException("Failed to parse unclaimed amount"))
                         .intValue();
                 }
             }
 
             if (pricePerUnit == null || volume == null) {
-                throw new IllegalArgumentException(
-                    "Missing required fields (pricePerUnit or volume) in lore");
+                throw new IllegalArgumentException("Missing required fields (pricePerUnit or volume) in lore");
             }
 
-            return new OrderDetails(
-                pricePerUnit,
-                volume,
-                filledAmount,
-                unclaimed,
-                filled != null && filled
-            );
+            return new OrderDetails(pricePerUnit, volume, filledAmount, unclaimed, filled != null && filled);
         });
     }
 
@@ -328,7 +312,11 @@ public final class OrderInfoParser {
             return Try.failure(new IllegalArgumentException("Empty item"));
         }
 
-        return parseSetOrderItem(item.getHoverName().getString(), getLore(item));
+        return parseSetOrderItem(
+            item.getHoverName()
+                .getString(),
+            getLore(item)
+        );
     }
 
     static Try<OutstandingOrderInfo> parseSetOrderItem(String title, List<String> lore) {
@@ -354,57 +342,66 @@ public final class OrderInfoParser {
             Double total = null;
 
             for (String rawLine : lore) {
-                String line = GameUtils.stripFormattingCodes(rawLine).trim();
+                String line = GameUtils.stripFormattingCodes(rawLine)
+                    .trim();
                 if (line.isEmpty()) {
                     continue;
                 }
 
                 if (pricePerUnit == null && line.startsWith("Price per unit:")) {
-                    var parsed = Utils.parseUsFormattedNumber(line
-                        .replace("Price per unit:", "")
-                        .replace("coins", "")
-                        .trim());
+                    var parsed = Utils.parseUsFormattedNumber(
+                        line.replace("Price per unit:", "")
+                            .replace("coins", "")
+                            .trim()
+                    );
                     if (parsed.isFailure()) {
-                        throw new IllegalArgumentException("Failed to parse pricePerUnit: " + parsed
-                            .getCause()
-                            .getMessage());
+                        throw new IllegalArgumentException(
+                            "Failed to parse pricePerUnit: " + parsed.getCause()
+                                .getMessage()
+                        );
                     }
-                    pricePerUnit = parsed.get().doubleValue();
-                } else if (volume == null && (line.startsWith("Order:") || line.startsWith(
-                    "Selling:"))) {
-                    var part = line.substring(line.indexOf(":") + 1).trim();
+                    pricePerUnit = parsed.get()
+                        .doubleValue();
+                } else if (volume == null && (line.startsWith("Order:") || line.startsWith("Selling:"))) {
+                    var part = line.substring(line.indexOf(":") + 1)
+                        .trim();
                     int xIdx = part.indexOf('x');
                     if (xIdx <= 0) {
                         throw new IllegalArgumentException("Invalid volume line: " + line);
                     }
-                    var volStr = part.substring(0, xIdx).trim();
+                    var volStr = part.substring(0, xIdx)
+                        .trim();
                     var parsed = Utils.parseUsFormattedNumber(volStr);
                     if (parsed.isFailure()) {
-                        throw new IllegalArgumentException("Failed to parse volume: " + parsed
-                            .getCause()
-                            .getMessage());
+                        throw new IllegalArgumentException(
+                            "Failed to parse volume: " + parsed.getCause()
+                                .getMessage()
+                        );
                     }
-                    volume = parsed.get().intValue();
-                    productName = part.substring(xIdx + 1).trim();
-                } else if (total == null && (line.startsWith("Total price:") || line.startsWith(
-                    "You earn:"))) {
-                    var parsed = Utils.parseUsFormattedNumber(line
-                        .replace("Total price:", "")
-                        .replace("You earn:", "")
-                        .replace("coins", "")
-                        .trim());
+                    volume = parsed.get()
+                        .intValue();
+                    productName = part.substring(xIdx + 1)
+                        .trim();
+                } else if (total == null && (line.startsWith("Total price:") || line.startsWith("You earn:"))) {
+                    var parsed = Utils.parseUsFormattedNumber(
+                        line.replace("Total price:", "")
+                            .replace("You earn:", "")
+                            .replace("coins", "")
+                            .trim()
+                    );
                     if (parsed.isFailure()) {
-                        throw new IllegalArgumentException("Failed to parse total: " + parsed
-                            .getCause()
-                            .getMessage());
+                        throw new IllegalArgumentException(
+                            "Failed to parse total: " + parsed.getCause()
+                                .getMessage()
+                        );
                     }
-                    total = parsed.get().doubleValue();
+                    total = parsed.get()
+                        .doubleValue();
                 }
             }
 
             if (pricePerUnit == null || volume == null || productName == null || total == null) {
-                throw new IllegalArgumentException(
-                    "Could not extract all required fields from confirm item");
+                throw new IllegalArgumentException("Could not extract all required fields from confirm item");
             }
 
             return new OutstandingOrderInfo(productName, type, volume, pricePerUnit, total);
@@ -412,8 +409,7 @@ public final class OrderInfoParser {
     }
 
     public static List<String> getLore(ItemStack item) {
-        return Optional
-            .ofNullable(item.get(DataComponents.LORE))
+        return Optional.ofNullable(item.get(DataComponents.LORE))
             .map(ItemLore::lines)
             .orElseGet(ArrayList::new)
             .stream()
@@ -421,11 +417,9 @@ public final class OrderInfoParser {
             .toList();
     }
 
-    private record ParsedItem(int volume, String productName, double value) { }
+    private record ParsedItem(int volume, String productName, double value) {}
 
-    private record ParsedVolume(int volume, String productName) { }
+    private record ParsedVolume(int volume, String productName) {}
 
-    private record OrderDetails(
-        double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled
-    ) { }
+    private record OrderDetails(double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled) {}
 }

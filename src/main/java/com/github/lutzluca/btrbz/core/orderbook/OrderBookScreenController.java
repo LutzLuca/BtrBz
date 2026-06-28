@@ -28,10 +28,10 @@ public class OrderBookScreenController {
     private final BazaarData bazaarData;
     private final ProductInfoProvider productInfoProvider;
     private static final BazaarMenuType[] ORDER_BOOK_MENUS = {
-        BazaarMenuType.Item,
-        BazaarMenuType.BuyOrderSetupVolume,
-        BazaarMenuType.BuyOrderSetupPrice,
-        BazaarMenuType.SellOfferSetup
+            BazaarMenuType.Item,
+            BazaarMenuType.BuyOrderSetupVolume,
+            BazaarMenuType.BuyOrderSetupPrice,
+            BazaarMenuType.SellOfferSetup
     };
 
     public OrderBookScreenController(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
@@ -43,14 +43,14 @@ public class OrderBookScreenController {
     public final class OrderBookButtonHook implements SlotHook {
         private @Nullable ItemStack cachedDisplayStack = null;
 
-        private OrderBookButtonHook() { }
+        private OrderBookButtonHook() {}
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().orderBook.enabled
-                && !view.playerInventorySlot()
+            return ConfigManager.get().orderBook.enabled && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_ORDER_BOOK_IDX
-                && view.getCurrInfo().inMenu(ORDER_BOOK_MENUS);
+                && view.getCurrInfo()
+                    .inMenu(ORDER_BOOK_MENUS);
         }
 
         @Override
@@ -62,7 +62,8 @@ public class OrderBookScreenController {
             var book = new ItemStack(Items.BOOK);
             book.set(
                 DataComponents.CUSTOM_NAME,
-                Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
+                Component.literal("Open Order Book")
+                    .withStyle(style -> style.withItalic(false))
             );
 
             this.cachedDisplayStack = book;
@@ -73,19 +74,23 @@ public class OrderBookScreenController {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var productNameInfo = OrderBookScreenController.this.productInfoProvider.getOpenedProductNameInfo();
             if (productNameInfo == null) {
-                Notifier.notifyPlayer(Notifier
-                    .prefix()
-                    .append(Component.literal("Failed to determine the opened product name")));
+                Notifier.notifyPlayer(
+                    Notifier.prefix()
+                        .append(Component.literal("Failed to determine the opened product name"))
+                );
                 return SlotClickResult.Consume;
             }
 
             var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
             var orderBookScreen = new OrderBookScreen(
-                ctx.view().getCurrInfo().getScreen(),
+                ctx.view()
+                    .getCurrInfo()
+                    .getScreen(),
                 productNameInfo.productName(),
                 orders
             );
-            Minecraft.getInstance().setScreen(orderBookScreen);
+            Minecraft.getInstance()
+                .setScreen(orderBookScreen);
             return SlotClickResult.Consume;
         }
     }
@@ -95,8 +100,7 @@ public class OrderBookScreenController {
         public boolean enabled = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.nullToEmpty("Order Book"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
@@ -105,8 +109,7 @@ public class OrderBookScreenController {
         public OptionGroup createGroup() {
             var root = new OptionGrouping(this.createEnabledOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.nullToEmpty("Order Book"))
                 .options(root.build())
                 .collapsed(false)

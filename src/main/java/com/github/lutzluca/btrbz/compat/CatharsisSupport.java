@@ -10,9 +10,10 @@ public final class CatharsisSupport {
     // implementation stripped version based on https://github.com/meowdding/catharsis/blob/development/docs/mod_compatibility/imc.md
     // only methods actually used here are implemented. if other IMC methods are needed, refer to the doc.
 
-    private static BiConsumer<ItemStack, Boolean> disabledConsumer = (stack, disabled) -> {};
+    private static BiConsumer<ItemStack, Boolean> disabledConsumer = (stack, disabled) -> {
+    };
 
-    private CatharsisSupport() { }
+    private CatharsisSupport() {}
 
     public static void disabled(BiConsumer<ItemStack, Boolean> consumer) {
         log.info("[BtrBz] Catharsis IMC connected");

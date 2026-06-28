@@ -33,16 +33,12 @@ public class OrderHighlightManager {
         };
     }
 
-    public void sync(
-        List<TrackedOrder> trackedOrders,
-        List<OrderInfo.FilledOrderInfo> filledOrders
-    ) {
+    public void sync(List<TrackedOrder> trackedOrders, List<OrderInfo.FilledOrderInfo> filledOrders) {
         log.debug("Synchronizing highlights from ui orders");
         this.slotToTrackedOrder.clear();
         this.filledOrderSlots.clear();
 
-        trackedOrders
-            .stream()
+        trackedOrders.stream()
             .filter(order -> order.slot != -1)
             .forEach(order -> this.slotToTrackedOrder.put(order.slot, order));
 
@@ -85,23 +81,23 @@ public class OrderHighlightManager {
         public boolean enabled = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable order highlights in the Order screen")))
+                .description(
+                    OptionDescription.of(Component.literal("Enable or disable order highlights in the Order screen"))
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order Highlighting"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable order highlights in the Order screen")))
+                .description(
+                    OptionDescription.of(Component.literal("Enable or disable order highlights in the Order screen"))
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

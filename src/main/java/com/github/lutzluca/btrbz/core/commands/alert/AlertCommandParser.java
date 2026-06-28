@@ -22,7 +22,9 @@ public class AlertCommandParser {
             throw new ParseException("Missing command arguments");
         }
 
-        String[] tokens = args.toLowerCase().trim().split("\\s+");
+        String[] tokens = args.toLowerCase()
+            .trim()
+            .split("\\s+");
 
         int orderTypeIndex = -1;
         AlertType orderType = null;
@@ -62,17 +64,20 @@ public class AlertCommandParser {
     }
 
     private String normalizeProductName(String[] tokens) throws ParseException {
-        var titleCaseTokens = Arrays
-            .stream(tokens)
-            .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
+        var titleCaseTokens = Arrays.stream(tokens)
+            .map(
+                word -> Character.toUpperCase(word.charAt(0)) + word.substring(1)
+                    .toLowerCase()
+            )
             .collect(Collectors.toList());
 
         var lastToken = titleCaseTokens.getLast();
         var number = Try.of(() -> Integer.parseInt(lastToken));
         if (number.isSuccess()) {
-            var roman = number
-                .map(Utils::intToRoman)
-                .getOrElseThrow(err -> new ParseException("Invalid product name number format: " + '"' + lastToken + '"'));
+            var roman = number.map(Utils::intToRoman)
+                .getOrElseThrow(
+                    err -> new ParseException("Invalid product name number format: " + '"' + lastToken + '"')
+                );
 
             titleCaseTokens.set(titleCaseTokens.size() - 1, roman);
         } else if (Utils.isValidRomanNumeral(lastToken)) {
@@ -148,75 +153,81 @@ public class AlertCommandParser {
 
         if (token.equals("(")) {
             PriceExpression expr = this.parseAdditive(tokenizer);
-            if (!tokenizer.hasNext() || !tokenizer.next().equals(")")) {
+            if (!tokenizer.hasNext() || !tokenizer.next()
+                .equals(")")) {
                 throw new ParseException("Unmatched opening parenthesis.");
             }
 
             return expr;
         }
 
-        return ReferenceType
-            .fromIdentifier(token)
+        return ReferenceType.fromIdentifier(token)
             .<PriceExpression>map(Reference::new)
-            .orElse(() -> this.parseNumber(token).map(Literal::new))
+            .orElse(
+                () -> this.parseNumber(token)
+                    .map(Literal::new)
+            )
             .getOrElseThrow(err -> new ParseException(err.getMessage()));
     }
 
     private Try<Double> parseNumber(String token) {
-        return Try
-            .of(() -> {
-                String cleaned = token.replace(",", "").replace("_", "");
-                var lastChar = cleaned.charAt(cleaned.length() - 1);
+        return Try.of(() -> {
+            String cleaned = token.replace(",", "")
+                .replace("_", "");
+            var lastChar = cleaned.charAt(cleaned.length() - 1);
 
-                return switch (lastChar) {
-                    case 'k' -> {
-                        cleaned = cleaned.substring(0, cleaned.length() - 1);
-                        yield Double.parseDouble(cleaned) * 1_000.0;
-                    }
-                    case 'm' -> {
-                        cleaned = cleaned.substring(0, cleaned.length() - 1);
-                        yield Double.parseDouble(cleaned) * 1_000_000.0;
-                    }
-                    case 'b' -> {
-                        cleaned = cleaned.substring(0, cleaned.length() - 1);
-                        yield Double.parseDouble(cleaned) * 1_000_000_000.0;
-                    }
-                    default -> Double.parseDouble(cleaned);
-                };
-            })
+            return switch (lastChar) {
+                case 'k' -> {
+                    cleaned = cleaned.substring(0, cleaned.length() - 1);
+                    yield Double.parseDouble(cleaned) * 1_000.0;
+                }
+                case 'm' -> {
+                    cleaned = cleaned.substring(0, cleaned.length() - 1);
+                    yield Double.parseDouble(cleaned) * 1_000_000.0;
+                }
+                case 'b' -> {
+                    cleaned = cleaned.substring(0, cleaned.length() - 1);
+                    yield Double.parseDouble(cleaned) * 1_000_000_000.0;
+                }
+                default -> Double.parseDouble(cleaned);
+            };
+        })
             .map(val -> Math.round(val * 10.0) / 10.0)
             .recoverWith(err -> Try.failure(new ParseException("Malformed number format: " + token)));
     }
 
-    public record AlertCommand(
-        long timestamp, String productName, AlertType type, PriceExpression expr
-    ) {
+    public record AlertCommand(long timestamp, String productName, AlertType type, PriceExpression expr) {
 
         public Try<ResolvedAlertArgs> resolve(BazaarData data) {
-            return this.expr
-                .resolve(this.productName, this.type, data)
-                .map(price -> new ResolvedAlertArgs(
-                    this.timestamp,
-                    this.productName,
-                    data.nameToId(this.productName).get(),
-                    this.type,
-                    price
-                ));
+            return this.expr.resolve(this.productName, this.type, data)
+                .map(
+                    price -> new ResolvedAlertArgs(
+                        this.timestamp,
+                        this.productName,
+                        data.nameToId(this.productName)
+                            .get(),
+                        this.type,
+                        price
+                    )
+                );
         }
     }
 
     public record ResolvedAlertArgs(
-        long timestamp, String productName, String productId, AlertType type, double price
-    ) {
+        long timestamp,
+        String productName,
+        String productId,
+        AlertType type,
+        double price) {
 
         public Try<ResolvedAlertArgs> validate() {
             if (this.price <= 0.0) {
-                return Try.failure(new IllegalArgumentException(
-                    "Price Expression evaluates to an invalid price of " + '"' + Utils.formatDecimal(
-                        this.price,
-                        1,
-                        true
-                    ) + '"' + ". Expected a positive price"));
+                return Try.failure(
+                    new IllegalArgumentException(
+                        "Price Expression evaluates to an invalid price of " + '"'
+                            + Utils.formatDecimal(this.price, 1, true) + '"' + ". Expected a positive price"
+                    )
+                );
             }
 
             return Try.success(this);

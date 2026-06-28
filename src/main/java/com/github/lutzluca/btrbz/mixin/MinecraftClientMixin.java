@@ -31,11 +31,13 @@ public abstract class MinecraftClientMixin {
     // @formatter:on
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"))
     private void onSetScreenHead(@Nullable Screen screen, CallbackInfo ci) {
-        ScreenInfoHelper.get().setScreen(screen);
+        ScreenInfoHelper.get()
+            .setScreen(screen);
     }
 
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("TAIL"))
     private void onSetScreenTail(@Nullable Screen screen, CallbackInfo ci) {
-        ScreenInfoHelper.get().fireScreenSwitchCallbacks();
+        ScreenInfoHelper.get()
+            .fireScreenSwitchCallbacks();
     }
 }

@@ -22,15 +22,8 @@ public abstract class SlotClickHookMixin {
     @Inject(
         method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V",
         at = @At("HEAD"),
-        cancellable = true
-    )
-    private void onSlotClicked(
-        Slot slot,
-        int slotId,
-        int button,
-        ContainerInput type,
-        CallbackInfo ci
-    ) {
+        cancellable = true)
+    private void onSlotClicked(Slot slot, int slotId, int button, ContainerInput type, CallbackInfo ci) {
         if (slot == null) {
             return;
         }

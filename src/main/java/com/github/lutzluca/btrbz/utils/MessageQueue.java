@@ -18,10 +18,16 @@ public class MessageQueue {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> MessageQueue.flush(client));
     }
 
-    public static void sendOrQueue(String message) { sendOrQueue(message, Level.Info); }
+    public static void sendOrQueue(String message) {
+        sendOrQueue(message, Level.Info);
+    }
 
     public static void sendOrQueue(String message, Level level) {
-        var msg = Notifier.prefix().append(Component.literal(message).withStyle(level.color));
+        var msg = Notifier.prefix()
+            .append(
+                Component.literal(message)
+                    .withStyle(level.color)
+            );
 
         if (Notifier.notifyPlayer(msg)) {
             return;
@@ -46,9 +52,11 @@ public class MessageQueue {
             }
 
             MESSAGES.forEach(entry -> {
-                var msg = Notifier
-                    .prefix()
-                    .append(Component.literal(entry.msg).withStyle(entry.level.color));
+                var msg = Notifier.prefix()
+                    .append(
+                        Component.literal(entry.msg)
+                            .withStyle(entry.level.color)
+                    );
 
                 client.player.sendSystemMessage(msg);
             });
@@ -60,12 +68,10 @@ public class MessageQueue {
 
     @AllArgsConstructor
     public enum Level {
-        Info(ChatFormatting.WHITE),
-        Warn(ChatFormatting.YELLOW),
-        Error(ChatFormatting.RED);
+        Info(ChatFormatting.WHITE), Warn(ChatFormatting.YELLOW), Error(ChatFormatting.RED);
 
         public final ChatFormatting color;
     }
 
-    private record Entry(String msg, Level level) { }
+    private record Entry(String msg, Level level) {}
 }

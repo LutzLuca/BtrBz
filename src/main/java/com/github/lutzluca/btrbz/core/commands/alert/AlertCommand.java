@@ -20,97 +20,120 @@ public class AlertCommand {
     private static final AlertCommandParser PARSER = new AlertCommandParser();
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("alert")
-            .then(ClientCommands
-                .literal("remove")
-                .then(ClientCommands
-                    .argument("id", StringArgumentType.string())
-                    .executes(ctx -> {
-                        String id = StringArgumentType.getString(ctx, "id");
+        return Commands.rootCommand.then(
+            ClientCommands.literal("alert")
+                .then(
+                    ClientCommands.literal("remove")
+                        .then(
+                            ClientCommands.argument("id", StringArgumentType.string())
+                                .executes(ctx -> {
+                                    String id = StringArgumentType.getString(ctx, "id");
 
-                        Try
-                            .of(() -> UUID.fromString(id))
-                            .onSuccess(BtrBz.alertManager()::removeAlert)
-                            .onFailure(err -> Notifier.notifyPlayer(Notifier
-                                .prefix()
-                                .append(Component.literal("Invalid input ").withStyle(ChatFormatting.GRAY))
-                                .append(Component.literal(id).withStyle(ChatFormatting.RED))
-                                .append(Component
-                                    .literal(" is not a valid UUID")
-                                    .withStyle(ChatFormatting.GRAY))));
+                                    Try.of(() -> UUID.fromString(id))
+                                        .onSuccess(BtrBz.alertManager()::removeAlert)
+                                        .onFailure(
+                                            err -> Notifier.notifyPlayer(
+                                                Notifier.prefix()
+                                                    .append(
+                                                        Component.literal("Invalid input ")
+                                                            .withStyle(ChatFormatting.GRAY)
+                                                    )
+                                                    .append(
+                                                        Component.literal(id)
+                                                            .withStyle(ChatFormatting.RED)
+                                                    )
+                                                    .append(
+                                                        Component.literal(" is not a valid UUID")
+                                                            .withStyle(ChatFormatting.GRAY)
+                                                    )
+                                            )
+                                        );
 
-                        return 1;
-                    })))
+                                    return 1;
+                                })
+                        )
+                )
 
-            .then(ClientCommands.literal("list").executes(ctx -> {
-                var alerts = ConfigManager.get().alert.alerts;
-                if (alerts.isEmpty()) {
-                    Notifier.notifyPlayer(Notifier
-                        .prefix()
-                        .append(Component.literal("No active alerts.").withStyle(ChatFormatting.GRAY)));
-                    return 1;
-                }
+                .then(
+                    ClientCommands.literal("list")
+                        .executes(ctx -> {
+                            var alerts = ConfigManager.get().alert.alerts;
+                            if (alerts.isEmpty()) {
+                                Notifier.notifyPlayer(
+                                    Notifier.prefix()
+                                        .append(
+                                            Component.literal("No active alerts.")
+                                                .withStyle(ChatFormatting.GRAY)
+                                        )
+                                );
+                                return 1;
+                            }
 
-                final var newline = Component.literal("\n");
-                var builder = Notifier
-                    .prefix()
-                    .append(Component
-                        .literal("Active Alerts (" + alerts.size() + "):")
-                        .withStyle(ChatFormatting.GOLD))
-                    .append(newline);
+                            final var newline = Component.literal("\n");
+                            var builder = Notifier.prefix()
+                                .append(
+                                    Component.literal("Active Alerts (" + alerts.size() + "):")
+                                        .withStyle(ChatFormatting.GOLD)
+                                )
+                                .append(newline);
 
-                var first = true;
-                for (var alert : alerts) {
-                    if (!first) {
-                        builder.append(newline);
-                    }
-
-                    builder.append(alert
-                        .format()
-                        .append(Component.literal(" "))
-                        .append(Notifier.clickToRemoveAlert(alert.id, "Remove this alert")));
-                    first = false;
-                }
-
-                Notifier.notifyPlayer(builder);
-                return 1;
-            }))
-
-            .then(ClientCommands
-                .literal("add")
-                .then(ClientCommands
-                    .argument("args", StringArgumentType.greedyString())
-                    .executes(ctx -> {
-                        var args = StringArgumentType.getString(ctx, "args");
-                        var result = Try
-                            .of(() -> PARSER.parse(args))
-                            .flatMap(alertCmd -> alertCmd.resolve(bazaarData))
-                            .flatMap(ResolvedAlertArgs::validate)
-                            .onSuccess(resolved -> {
-                                var registered = BtrBz.alertManager().addAlert(resolved);
-                                if (registered) {
-                                    Notifier.notifyAlertRegistered(resolved);
-                                    return;
+                            var first = true;
+                            for (var alert : alerts) {
+                                if (!first) {
+                                    builder.append(newline);
                                 }
 
-                                Notifier.notifyAlertAlreadyPresent(resolved);
-                            })
-                            .onFailure(err -> {
-                                var msg = Notifier
-                                    .prefix()
-                                    .append(Component
-                                        .literal("Alert setup failed: ")
-                                        .withStyle(ChatFormatting.RED))
-                                    .append(Component
-                                        .literal(err.getMessage())
-                                        .withStyle(ChatFormatting.GRAY));
+                                builder.append(
+                                    alert.format()
+                                        .append(Component.literal(" "))
+                                        .append(Notifier.clickToRemoveAlert(alert.id, "Remove this alert"))
+                                );
+                                first = false;
+                            }
 
-                                Notifier.notifyPlayer(msg);
-                            });
+                            Notifier.notifyPlayer(builder);
+                            return 1;
+                        })
+                )
 
-                        return result.isSuccess() ? 1 : -1;
-                    }))));
+                .then(
+                    ClientCommands.literal("add")
+                        .then(
+                            ClientCommands.argument("args", StringArgumentType.greedyString())
+                                .executes(ctx -> {
+                                    var args = StringArgumentType.getString(ctx, "args");
+                                    var result = Try.of(() -> PARSER.parse(args))
+                                        .flatMap(alertCmd -> alertCmd.resolve(bazaarData))
+                                        .flatMap(ResolvedAlertArgs::validate)
+                                        .onSuccess(resolved -> {
+                                            var registered = BtrBz.alertManager()
+                                                .addAlert(resolved);
+                                            if (registered) {
+                                                Notifier.notifyAlertRegistered(resolved);
+                                                return;
+                                            }
+
+                                            Notifier.notifyAlertAlreadyPresent(resolved);
+                                        })
+                                        .onFailure(err -> {
+                                            var msg = Notifier.prefix()
+                                                .append(
+                                                    Component.literal("Alert setup failed: ")
+                                                        .withStyle(ChatFormatting.RED)
+                                                )
+                                                .append(
+                                                    Component.literal(err.getMessage())
+                                                        .withStyle(ChatFormatting.GRAY)
+                                                );
+
+                                            Notifier.notifyPlayer(msg);
+                                        });
+
+                                    return result.isSuccess() ? 1 : -1;
+                                })
+                        )
+                )
+        );
 
     }
 }

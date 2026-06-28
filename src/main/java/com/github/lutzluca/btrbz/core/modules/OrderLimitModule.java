@@ -36,33 +36,41 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     @Override
     public Optional<DraggableWidget> createWidget(ScreenInfo info) {
         List<Component> lines = List.of(
-            Component.literal("Daily Limit:").withStyle(ChatFormatting.GOLD),
+            Component.literal("Daily Limit:")
+                .withStyle(ChatFormatting.GOLD),
             Component
-                .literal(this.formatAmount(this.configState.usedToday) + " / " + Utils.formatCompact(
-                    this.configState.dailyLimit,
-                    0
-                ))
+                .literal(
+                    this.formatAmount(this.configState.usedToday) + " / "
+                        + Utils.formatCompact(this.configState.dailyLimit, 0)
+                )
                 .withStyle(ChatFormatting.GREEN)
         );
 
-        var widget = new LabelWidget(0, 0, lines)
-            .setAutoSize(true)
+        var widget = new LabelWidget(0, 0, lines).setAutoSize(true)
             .setAlignment(LabelWidget.Alignment.CENTER)
             .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         var position = Optional.ofNullable(this.configState.position)
-            .or(() -> info.getHandledScreenBounds().map(bounds -> {
-                int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
-                int y = bounds.y() - widget.getHeight() - 25;
-                return new Position(x, y);
-            }));
+            .or(
+                () -> info.getHandledScreenBounds()
+                    .map(bounds -> {
+                        int x = bounds.x() + (bounds.width() - widget.getWidth()) / 2;
+                        int y = bounds.y() - widget.getHeight() - 25;
+                        return new Position(x, y);
+                    })
+            );
 
         if (position.isEmpty()) {
             log.warn("Could not determine position for OrderLimitModule widget");
             return Optional.empty();
         }
 
-        widget.setPosition(position.get().x(), position.get().y());
+        widget.setPosition(
+            position.get()
+                .x(),
+            position.get()
+                .y()
+        );
 
         return Optional.of(widget);
     }
@@ -72,15 +80,12 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
         // TODO have a option to cap at limit
         this.updateConfig(cfg -> cfg.usedToday += transactionAmount);
-        log.debug(
-            "Added {} coins to daily limit usage (now {})",
-            transactionAmount,
-            this.configState.usedToday
-        );
+        log.debug("Added {} coins to daily limit usage (now {})", transactionAmount, this.configState.usedToday);
     }
 
     private void resetOrderLimitOnNewDay() {
-        long today = LocalDate.now(ZoneOffset.UTC).toEpochDay();
+        long today = LocalDate.now(ZoneOffset.UTC)
+            .toEpochDay();
 
         if (this.configState.lastResetEpochDay != today) {
             log.info("Resetting daily order limit usage");
@@ -125,21 +130,27 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public boolean useCompact = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Order Limit Module"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the Order Limit module that tracks your daily coin spending limit")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Enable or disable the Order Limit module that tracks your daily coin spending limit"
+                        )
+                    )
+                )
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createCompactOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Use Compact Display"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display the order limit in a compact format that takes up less screen space")))
+                .description(
+                    OptionDescription.of(
+                        Component.literal("Display the order limit in a compact format that takes up less screen space")
+                    )
+                )
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -147,11 +158,11 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public OptionGroup createGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createCompactOption());
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order Limit"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display and behaviour settings for the Order Limit module")))
+                .description(
+                    OptionDescription.of(Component.literal("Display and behaviour settings for the Order Limit module"))
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

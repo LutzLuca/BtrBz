@@ -19,8 +19,7 @@ import org.junit.jupiter.api.Test;
 
 class PositionConfigTest {
 
-    private final Gson gson = new GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+    private final Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
         .registerTypeAdapter(Position.class, new Position.GsonAdapter())
         .create();
 
@@ -33,10 +32,21 @@ class PositionConfigTest {
             OrderLimitConfig config = new OrderLimitConfig();
             config.position = new Position(12, 34);
 
-            JsonObject json = gson.toJsonTree(config).getAsJsonObject();
+            JsonObject json = gson.toJsonTree(config)
+                .getAsJsonObject();
 
-            assertEquals(12, json.getAsJsonObject("position").get("x").getAsInt());
-            assertEquals(34, json.getAsJsonObject("position").get("y").getAsInt());
+            assertEquals(
+                12,
+                json.getAsJsonObject("position")
+                    .get("x")
+                    .getAsInt()
+            );
+            assertEquals(
+                34,
+                json.getAsJsonObject("position")
+                    .get("y")
+                    .getAsInt()
+            );
             assertFalse(json.has("x"));
             assertFalse(json.has("y"));
         }
@@ -76,10 +86,21 @@ class PositionConfigTest {
             OrderBookPriceConfig config = new OrderBookPriceConfig();
             config.signPosition = new Position(90, 91);
 
-            JsonObject json = gson.toJsonTree(config).getAsJsonObject();
+            JsonObject json = gson.toJsonTree(config)
+                .getAsJsonObject();
 
-            assertEquals(90, json.getAsJsonObject("sign_position").get("x").getAsInt());
-            assertEquals(91, json.getAsJsonObject("sign_position").get("y").getAsInt());
+            assertEquals(
+                90,
+                json.getAsJsonObject("sign_position")
+                    .get("x")
+                    .getAsInt()
+            );
+            assertEquals(
+                91,
+                json.getAsJsonObject("sign_position")
+                    .get("y")
+                    .getAsInt()
+            );
             assertFalse(json.has("sign_x"));
             assertFalse(json.has("sign_y"));
         }
@@ -89,7 +110,8 @@ class PositionConfigTest {
             OrderLimitConfig orderLimitConfig = new OrderLimitConfig();
             orderLimitConfig.position = null;
 
-            JsonObject orderLimitJson = gson.toJsonTree(orderLimitConfig).getAsJsonObject();
+            JsonObject orderLimitJson = gson.toJsonTree(orderLimitConfig)
+                .getAsJsonObject();
 
             assertFalse(orderLimitJson.has("position"));
             assertNull(gson.fromJson(orderLimitJson, OrderLimitConfig.class).position);
@@ -97,7 +119,8 @@ class PositionConfigTest {
             OrderBookPriceConfig orderBookPriceConfig = new OrderBookPriceConfig();
             orderBookPriceConfig.signPosition = null;
 
-            JsonObject orderBookPriceJson = gson.toJsonTree(orderBookPriceConfig).getAsJsonObject();
+            JsonObject orderBookPriceJson = gson.toJsonTree(orderBookPriceConfig)
+                .getAsJsonObject();
 
             assertFalse(orderBookPriceJson.has("sign_position"));
             assertNull(gson.fromJson(orderBookPriceJson, OrderBookPriceConfig.class).signPosition);

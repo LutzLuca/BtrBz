@@ -14,7 +14,7 @@ public final class VirtualSlotProjection {
     // Thread-local reentrancy guard for slot projection
     private static final ThreadLocal<Integer> SUPPRESSION_DEPTH = ThreadLocal.withInitial(() -> 0);
 
-    private VirtualSlotProjection() { }
+    private VirtualSlotProjection() {}
 
     public static <T> T withProjectionSuppressed(Supplier<T> supplier) {
         int prevDepth = SUPPRESSION_DEPTH.get();

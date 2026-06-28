@@ -13,25 +13,22 @@ import net.minecraft.network.chat.Style;
 
 public final class OrderModels {
 
-    private OrderModels() { }
+    private OrderModels() {}
 
     public enum OrderType {
-        Sell,
-        Buy;
+        Sell, Buy;
 
         public static Try<OrderType> tryFrom(String value) {
             return switch (value) {
                 case "BUY" -> Try.success(OrderType.Buy);
                 case "SELL" -> Try.success(OrderType.Sell);
-                default ->
-                    Try.failure(new IllegalArgumentException("Unknown order type: " + value));
+                default -> Try.failure(new IllegalArgumentException("Unknown order type: " + value));
             };
         }
     }
 
     // Note: `unclaimed` when type == OrderType.Buy in items; when type == OrderType.Sell in coins
-    public sealed interface OrderInfo permits OrderInfo.UnfilledOrderInfo,
-        OrderInfo.FilledOrderInfo {
+    public sealed interface OrderInfo permits OrderInfo.UnfilledOrderInfo, OrderInfo.FilledOrderInfo {
 
         String productName();
 
@@ -54,8 +51,7 @@ public final class OrderModels {
             double pricePerUnit,
             int filledAmountSnapshot,
             int unclaimed,
-            int slotIdx
-        ) implements OrderInfo { }
+            int slotIdx) implements OrderInfo {}
 
         record FilledOrderInfo(
             String productName,
@@ -64,14 +60,11 @@ public final class OrderModels {
             double pricePerUnit,
             int filledAmountSnapshot,
             int unclaimed,
-            int slotIdx
-        ) implements OrderInfo { }
+            int slotIdx) implements OrderInfo {}
     }
 
-    public sealed abstract static class OrderStatus permits OrderStatus.Unknown,
-        OrderStatus.Top,
-        OrderStatus.Matched,
-        OrderStatus.Undercut {
+    public sealed abstract static class OrderStatus
+        permits OrderStatus.Unknown, OrderStatus.Top, OrderStatus.Matched, OrderStatus.Undercut {
 
         @Override
         public final String toString() {
@@ -87,11 +80,14 @@ public final class OrderModels {
             return other != null && this.getClass() == other.getClass();
         }
 
-        public static final class Unknown extends OrderStatus { }
+        public static final class Unknown extends OrderStatus {
+        }
 
-        public static final class Top extends OrderStatus { }
+        public static final class Top extends OrderStatus {
+        }
 
-        public static final class Matched extends OrderStatus { }
+        public static final class Matched extends OrderStatus {
+        }
 
         @AllArgsConstructor
         public static final class Undercut extends OrderStatus {
@@ -152,25 +148,44 @@ public final class OrderModels {
                 case Sell -> "Sell Offer";
             };
 
-            return Component
-                .empty()
-                .append(Component
-                    .literal("[" + this.status.toString() + "] ")
-                    .withStyle(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status))))
-                .append(Component.literal(typeStr).withStyle(ChatFormatting.AQUA))
-                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(this.volume + "x ").withStyle(ChatFormatting.LIGHT_PURPLE))
-                .append(Component.literal(this.productName).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-                .append(Component
-                    .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
-                    .withStyle(ChatFormatting.YELLOW));
+            return Component.empty()
+                .append(
+                    Component.literal("[" + this.status.toString() + "] ")
+                        .withStyle(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status)))
+                )
+                .append(
+                    Component.literal(typeStr)
+                        .withStyle(ChatFormatting.AQUA)
+                )
+                .append(
+                    Component.literal(" for ")
+                        .withStyle(ChatFormatting.GRAY)
+                )
+                .append(
+                    Component.literal(this.volume + "x ")
+                        .withStyle(ChatFormatting.LIGHT_PURPLE)
+                )
+                .append(
+                    Component.literal(this.productName)
+                        .withStyle(ChatFormatting.GOLD)
+                )
+                .append(
+                    Component.literal(" at ")
+                        .withStyle(ChatFormatting.GRAY)
+                )
+                .append(
+                    Component.literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
+                        .withStyle(ChatFormatting.YELLOW)
+                );
         }
     }
 
     public record OutstandingOrderInfo(
-        String productName, OrderType type, int volume, double pricePerUnit, double total
-    ) {
+        String productName,
+        OrderType type,
+        int volume,
+        double pricePerUnit,
+        double total) {
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {
             // @formatter:off

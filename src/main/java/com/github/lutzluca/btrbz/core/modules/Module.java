@@ -25,11 +25,14 @@ public abstract class Module<T> {
         this.configState = state;
     }
 
-    public void onLoad() { }
+    public void onLoad() {}
 
     public final void initContext(@NotNull ModuleContext context) {
         if (this.context != null) {
-            throw new IllegalStateException(this.getClass().getSimpleName() + " context has already been initialized");
+            throw new IllegalStateException(
+                this.getClass()
+                    .getSimpleName() + " context has already been initialized"
+            );
         }
 
         this.context = context;
@@ -37,7 +40,10 @@ public abstract class Module<T> {
 
     protected final @NotNull ModuleContext context() {
         if (this.context == null) {
-            throw new IllegalStateException(this.getClass().getSimpleName() + " context has not been initialized");
+            throw new IllegalStateException(
+                this.getClass()
+                    .getSimpleName() + " context has not been initialized"
+            );
         }
 
         return this.context;
@@ -52,6 +58,7 @@ public abstract class Module<T> {
      */
     protected void updateConfig(Consumer<T> updater) {
         updater.accept(this.configState);
-        ModuleManager.getInstance().setDirty(true);
+        ModuleManager.getInstance()
+            .setDirty(true);
     }
 }

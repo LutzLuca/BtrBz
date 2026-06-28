@@ -32,7 +32,8 @@ public record Position(int x, int y) {
         }
 
         @Override
-        public Position deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        public Position deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+            throws JsonParseException {
             if (json == null || json.isJsonNull()) {
                 return null;
             }

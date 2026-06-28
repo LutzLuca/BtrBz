@@ -29,19 +29,22 @@ public final class GameUtils {
      * Submits a value to a {@link SignEditScreen} by setting line 0 to the given value
      * and closing the screen.
      *
-     * <p>Note: {@code signEditScreen.onClose()} is intentionally avoided because it gets
-     * broken by Skyblocker; {@code setScreen(null)} is used instead.</p>
+     * <p>
+     * Note: {@code signEditScreen.onClose()} is intentionally avoided because it gets
+     * broken by Skyblocker; {@code setScreen(null)} is used instead.
+     * </p>
      */
     public static void submitSignValue(SignEditScreen signEditScreen, String value) {
         var accessor = (com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor) signEditScreen;
         accessor.setLine(0);
         accessor.invokeSetMessage(value);
-        Minecraft.getInstance().setScreen(null);
+        Minecraft.getInstance()
+            .setScreen(null);
     }
 
     public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
 
-    private GameUtils() { }
+    private GameUtils() {}
 
     public static String stripFormattingCodes(String text) {
         if (text == null) {
@@ -53,13 +56,17 @@ public final class GameUtils {
     }
 
     public static boolean orderScreenNonOrderItemsFilter(@Nullable ItemStack stack) {
-        if (stack == null || stack.isEmpty()) { return true; }
+        if (stack == null || stack.isEmpty()) {
+            return true;
+        }
 
         return switch (stack.getItem()) {
-            case Item item when item == Items.ARROW ->
-                !stack.getHoverName().getString().equals("Go Back");
-            case Item item when item == Items.HOPPER ->
-                !stack.getHoverName().getString().equals("Claim All Coins");
+            case Item item when item == Items.ARROW -> !stack.getHoverName()
+                .getString()
+                .equals("Go Back");
+            case Item item when item == Items.HOPPER -> !stack.getHoverName()
+                .getString()
+                .equals("Claim All Coins");
             default -> true;
         };
     }
@@ -67,11 +74,15 @@ public final class GameUtils {
     public static List<String> getScoreboardLines() {
         var client = Minecraft.getInstance();
         var world = client.level;
-        if (world == null) { return List.of(); }
+        if (world == null) {
+            return List.of();
+        }
 
         Scoreboard scoreboard = world.getScoreboard();
         Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
-        if (objective == null) { return List.of(); }
+        if (objective == null) {
+            return List.of();
+        }
 
         var entries = scoreboard.listPlayerScores(objective);
 
@@ -82,8 +93,10 @@ public final class GameUtils {
 
             String text;
             if (team != null) {
-                var prefix = team.getPlayerPrefix().getString();
-                var suffix = team.getPlayerSuffix().getString();
+                var prefix = team.getPlayerPrefix()
+                    .getString();
+                var suffix = team.getPlayerSuffix()
+                    .getString();
                 text = prefix + owner + suffix;
             } else {
                 text = owner;
@@ -91,7 +104,9 @@ public final class GameUtils {
 
             text = stripScoreboardFormattingCodes(text);
 
-            if (!text.isBlank()) { lines.add(text); }
+            if (!text.isBlank()) {
+                lines.add(text);
+            }
         }
 
         return lines;
@@ -103,7 +118,8 @@ public final class GameUtils {
          * uses nonstandard raw formatting-like owner tokens such as "§j", so remove
          * leftover section-code pairs here.
          */
-        return stripFormattingCodes(text).replaceAll("§.", "").trim();
+        return stripFormattingCodes(text).replaceAll("§.", "")
+            .trim();
     }
 
     public static void runCommand(String command) {
@@ -144,23 +160,25 @@ public final class GameUtils {
     }
 
     public static Optional<Double> getPurse() {
-        return GameUtils
-            .getScoreboardLines()
+        return GameUtils.getScoreboardLines()
             .stream()
             .filter(line -> line.startsWith("Purse") || line.startsWith("Piggy"))
             .findFirst()
             .flatMap(line -> {
-                var remainder = line.replaceFirst("Purse:|Piggy:", "").trim();
+                var remainder = line.replaceFirst("Purse:|Piggy:", "")
+                    .trim();
                 var spaceIdx = remainder.indexOf(' ');
                 var amountToken = spaceIdx == -1 ? remainder : remainder.substring(0, spaceIdx);
 
-                return Utils
-                    .parseUsFormattedNumber(amountToken)
-                    .onSuccess(purse -> log.debug(
-                        "Parsed purse scoreboard line: line='{}', amountToken='{}', purse={}",
-                        line,
-                        amountToken,
-                        purse))
+                return Utils.parseUsFormattedNumber(amountToken)
+                    .onSuccess(
+                        purse -> log.debug(
+                            "Parsed purse scoreboard line: line='{}', amountToken='{}', purse={}",
+                            line,
+                            amountToken,
+                            purse
+                        )
+                    )
                     .map(Number::doubleValue)
                     .toJavaOptional();
             });
@@ -172,15 +190,27 @@ public final class GameUtils {
         if (mode == QueueDisplayMode.ItemsOnly) {
             return Component.literal(Utils.formatDecimal(items, 0, true))
                 .withStyle(ChatFormatting.YELLOW)
-                .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
+                .append(
+                    Component.literal(itemsLabel)
+                        .withStyle(ChatFormatting.GRAY)
+                );
         }
 
         String ordersLabel = orders == 1 ? " order" : " orders";
 
         return Component.literal(String.valueOf(orders))
             .withStyle(ChatFormatting.YELLOW)
-            .append(Component.literal(ordersLabel + " / ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
+            .append(
+                Component.literal(ordersLabel + " / ")
+                    .withStyle(ChatFormatting.GRAY)
+            )
+            .append(
+                Component.literal(Utils.formatDecimal(items, 0, true))
+                    .withStyle(ChatFormatting.YELLOW)
+            )
+            .append(
+                Component.literal(itemsLabel)
+                    .withStyle(ChatFormatting.GRAY)
+            );
     }
 }

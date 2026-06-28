@@ -24,7 +24,6 @@ public class OrderBookScreen extends Screen {
 
     private WidgetManager widgetManager;
 
-
     public OrderBookScreen(Screen parent, String productName, OrderLists orders) {
         super(Component.literal(productName + " Order Book"));
         this.parent = parent;
@@ -49,13 +48,7 @@ public class OrderBookScreen extends Screen {
         int buyX = panelX + 10;
         int listY = panelY + 40;
 
-        ListWidget buyOrderList = new ListWidget(
-            buyX,
-            listY,
-            listWidth,
-            listHeight,
-            "Buy Orders"
-        );
+        ListWidget buyOrderList = new ListWidget(buyX, listY, listWidth, listHeight, "Buy Orders");
         buyOrderList.setReorderable(false)
             .setRemovable(false)
             .setItemHeight(14)
@@ -68,13 +61,7 @@ public class OrderBookScreen extends Screen {
 
         int sellX = buyX + listWidth + 10;
 
-        ListWidget sellOfferList = new ListWidget(
-            sellX,
-            listY,
-            listWidth,
-            listHeight,
-            "Sell Offers"
-        );
+        ListWidget sellOfferList = new ListWidget(sellX, listY, listWidth, listHeight, "Sell Offers");
         sellOfferList.setReorderable(false)
             .setRemovable(false)
             .setItemHeight(14)
@@ -120,7 +107,8 @@ public class OrderBookScreen extends Screen {
 
     @Override
     public void onClose() {
-        Minecraft.getInstance().setScreen(parent);
+        Minecraft.getInstance()
+            .setScreen(parent);
     }
 
     @Override
@@ -136,29 +124,18 @@ public class OrderBookScreen extends Screen {
 
         int listY = (this.height - (int) (this.height * 0.8)) / 2 + 40;
 
-        context.centeredText(
-            this.font,
-            this.title,
-            this.width / 2,
-            listY - 30,
-            0xFFFFFFFF
-        );
+        context.centeredText(this.font, this.title, this.width / 2, listY - 30, 0xFFFFFFFF);
 
         Component subtitle = Component.literal("Click an order to copy its price");
-        context.centeredText(
-            this.font,
-            subtitle,
-            this.width / 2,
-            listY - 15,
-            0xFFAAAAAA
-        );
+        context.centeredText(this.font, subtitle, this.width / 2, listY - 15, 0xFFAAAAAA);
 
         this.widgetManager.render(context, mouseX, mouseY, delta);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (this.widgetManager.mouseClicked(event, doubleClick)) return true;
+        if (this.widgetManager.mouseClicked(event, doubleClick))
+            return true;
         return super.mouseClicked(event, doubleClick);
     }
 
@@ -176,7 +153,8 @@ public class OrderBookScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.widgetManager.mouseDragged(event, dragX, dragY)) return true;
+        if (this.widgetManager.mouseDragged(event, dragX, dragY))
+            return true;
         return super.mouseDragged(event, dragX, dragY);
     }
 
@@ -203,8 +181,13 @@ public class OrderBookScreen extends Screen {
         @Override
         public void render(
             GuiGraphicsExtractor ctx,
-            int x, int y, int width, int height,
-            int mouseX, int mouseY, float delta,
+            int x,
+            int y,
+            int width,
+            int height,
+            int mouseX,
+            int mouseY,
+            float delta,
             boolean hovered
         ) {
             var font = Minecraft.getInstance().font;

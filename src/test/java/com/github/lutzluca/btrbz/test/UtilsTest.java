@@ -103,7 +103,11 @@ class UtilsTest {
             var parsed = Utils.parseUsFormattedNumber("1234");
 
             assertTrue(parsed.isSuccess());
-            assertEquals(1234L, parsed.get().longValue());
+            assertEquals(
+                1234L,
+                parsed.get()
+                    .longValue()
+            );
         }
 
         @Test
@@ -111,7 +115,12 @@ class UtilsTest {
             var parsed = Utils.parseUsFormattedNumber("12.75");
 
             assertTrue(parsed.isSuccess());
-            assertEquals(12.75d, parsed.get().doubleValue(), 0.000001d);
+            assertEquals(
+                12.75d,
+                parsed.get()
+                    .doubleValue(),
+                0.000001d
+            );
         }
 
         @Test
@@ -119,17 +128,28 @@ class UtilsTest {
             var parsed = Utils.parseUsFormattedNumber("1,234,567.89");
 
             assertTrue(parsed.isSuccess());
-            assertEquals(1_234_567.89d, parsed.get().doubleValue(), 0.000001d);
+            assertEquals(
+                1_234_567.89d,
+                parsed.get()
+                    .doubleValue(),
+                0.000001d
+            );
         }
 
         @Test
         void failsForInvalidStrings() {
-            assertTrue(Utils.parseUsFormattedNumber("abc").isFailure());
+            assertTrue(
+                Utils.parseUsFormattedNumber("abc")
+                    .isFailure()
+            );
         }
 
         @Test
         void failsForEmptyString() {
-            assertTrue(Utils.parseUsFormattedNumber("").isFailure());
+            assertTrue(
+                Utils.parseUsFormattedNumber("")
+                    .isFailure()
+            );
         }
     }
 
@@ -223,13 +243,22 @@ class UtilsTest {
 
         @Test
         void returnsEmptyWhenEitherIsNull() {
-            assertTrue(Utils.zipNullables(null, 1).isEmpty());
-            assertTrue(Utils.zipNullables("left", null).isEmpty());
+            assertTrue(
+                Utils.zipNullables(null, 1)
+                    .isEmpty()
+            );
+            assertTrue(
+                Utils.zipNullables("left", null)
+                    .isEmpty()
+            );
         }
 
         @Test
         void returnsEmptyWhenBothAreNull() {
-            assertTrue(Utils.zipNullables(null, null).isEmpty());
+            assertTrue(
+                Utils.zipNullables(null, null)
+                    .isEmpty()
+            );
         }
     }
 
@@ -244,13 +273,22 @@ class UtilsTest {
 
         @Test
         void returnsEmptyWhenEitherOptionalIsEmpty() {
-            assertTrue(Utils.zipOptionals(Optional.empty(), Optional.of(1)).isEmpty());
-            assertTrue(Utils.zipOptionals(Optional.of("left"), Optional.empty()).isEmpty());
+            assertTrue(
+                Utils.zipOptionals(Optional.empty(), Optional.of(1))
+                    .isEmpty()
+            );
+            assertTrue(
+                Utils.zipOptionals(Optional.of("left"), Optional.empty())
+                    .isEmpty()
+            );
         }
 
         @Test
         void returnsEmptyWhenBothOptionalsAreEmpty() {
-            assertTrue(Utils.zipOptionals(Optional.empty(), Optional.empty()).isEmpty());
+            assertTrue(
+                Utils.zipOptionals(Optional.empty(), Optional.empty())
+                    .isEmpty()
+            );
         }
     }
 
@@ -265,7 +303,10 @@ class UtilsTest {
 
         @Test
         void returnsEmptyOptionalForEmptyList() {
-            assertTrue(Utils.getFirst(List.<String>of()).isEmpty());
+            assertTrue(
+                Utils.getFirst(List.<String>of())
+                    .isEmpty()
+            );
         }
     }
 

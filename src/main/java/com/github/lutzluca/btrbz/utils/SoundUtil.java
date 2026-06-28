@@ -33,7 +33,8 @@ public class SoundUtil {
 
         long now = System.currentTimeMillis();
         lastPlayedTimes.compute(sound, (key, lastTime) -> {
-            long last = Optional.ofNullable(lastTime).orElse(0L);
+            long last = Optional.ofNullable(lastTime)
+                .orElse(0L);
             if (now - last > SOUND_COOLDOWN_MS) {
                 log.trace("Requesting sound: {} (volume={}, repeats={})", sound.location(), volume, repeatCount);
                 for (int i = 0; i < repeatCount; i++) {
@@ -79,6 +80,7 @@ public class SoundUtil {
 
         log.debug("Dispatching sound {} to SoundManager (volume: {})", sound.location(), volume);
         SimpleSoundInstance soundInstance = SimpleSoundInstance.forUI(sound, 1f, volume);
-        client.getSoundManager().play(soundInstance);
+        client.getSoundManager()
+            .play(soundInstance);
     }
 }

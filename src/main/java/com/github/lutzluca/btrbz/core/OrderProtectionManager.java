@@ -42,8 +42,8 @@ public class OrderProtectionManager {
     private static final String VALIDATION_FAILURE_REASON = "Could not validate this order.";
     private static final String VALIDATION_UNAVAILABLE_REASON = "Order validation unavailable.";
     private static final BazaarMenuType[] CONFIRMATION_MENUS = {
-        BazaarMenuType.BuyOrderConfirmation,
-        BazaarMenuType.SellOfferConfirmation
+            BazaarMenuType.BuyOrderConfirmation,
+            BazaarMenuType.SellOfferConfirmation
     };
 
     private final BazaarData bazaarData;
@@ -61,58 +61,99 @@ public class OrderProtectionManager {
                 return;
             }
 
-            var validation = this.getValidationResult(stack).orElse(null);
+            var validation = this.getValidationResult(stack)
+                .orElse(null);
             if (validation == null) {
                 return;
             }
 
             boolean blocked = validation.protect();
-            boolean ctrlHeld = Minecraft.getInstance().hasControlDown();
+            boolean ctrlHeld = Minecraft.getInstance()
+                .hasControlDown();
 
             lines.add(Component.empty());
 
             if (!blocked) {
-                lines.add(Component
-                    .literal("✓ ")
-                    .withStyle(ChatFormatting.GREEN)
-                    .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal("Safe").withStyle(ChatFormatting.GREEN)));
+                lines.add(
+                    Component.literal("✓ ")
+                        .withStyle(ChatFormatting.GREEN)
+                        .append(
+                            Component.literal("Order Protection: ")
+                                .withStyle(ChatFormatting.GRAY)
+                        )
+                        .append(
+                            Component.literal("Safe")
+                                .withStyle(ChatFormatting.GREEN)
+                        )
+                );
                 return;
             }
 
             if (ctrlHeld) {
-                lines.add(Component
-                    .literal("⚠ ")
-                    .withStyle(ChatFormatting.GOLD)
-                    .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal("Overridden").withStyle(ChatFormatting.GOLD)));
+                lines.add(
+                    Component.literal("⚠ ")
+                        .withStyle(ChatFormatting.GOLD)
+                        .append(
+                            Component.literal("Order Protection: ")
+                                .withStyle(ChatFormatting.GRAY)
+                        )
+                        .append(
+                            Component.literal("Overridden")
+                                .withStyle(ChatFormatting.GOLD)
+                        )
+                );
 
                 if (validation.reason() != null) {
-                    lines.add(Component.literal("Reason:").withStyle(ChatFormatting.GRAY));
-                    Arrays
-                        .stream(validation.reason().split("\n"))
-                        .map(line -> Component.literal("  " + line).withStyle(ChatFormatting.YELLOW))
+                    lines.add(
+                        Component.literal("Reason:")
+                            .withStyle(ChatFormatting.GRAY)
+                    );
+                    Arrays.stream(
+                        validation.reason()
+                            .split("\n")
+                    )
+                        .map(
+                            line -> Component.literal("  " + line)
+                                .withStyle(ChatFormatting.YELLOW)
+                        )
                         .forEach(lines::add);
                 }
 
-                lines.add(Component
-                    .literal("Release Ctrl to cancel override")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+                lines.add(
+                    Component.literal("Release Ctrl to cancel override")
+                        .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC)
+                );
                 return;
             }
 
-            lines.add(Component
-                .literal("✗ ")
-                .withStyle(ChatFormatting.RED)
-                .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Blocked").withStyle(ChatFormatting.RED)));
+            lines.add(
+                Component.literal("✗ ")
+                    .withStyle(ChatFormatting.RED)
+                    .append(
+                        Component.literal("Order Protection: ")
+                            .withStyle(ChatFormatting.GRAY)
+                    )
+                    .append(
+                        Component.literal("Blocked")
+                            .withStyle(ChatFormatting.RED)
+                    )
+            );
 
             if (validation.reason() != null) {
-                lines.add(Component.literal("Reason:").withStyle(ChatFormatting.GRAY));
-                lines.add(Component.literal("  " + validation.reason()).withStyle(ChatFormatting.YELLOW));
+                lines.add(
+                    Component.literal("Reason:")
+                        .withStyle(ChatFormatting.GRAY)
+                );
+                lines.add(
+                    Component.literal("  " + validation.reason())
+                        .withStyle(ChatFormatting.YELLOW)
+                );
             }
 
-            lines.add(Component.literal("Hold Ctrl to override").withStyle(ChatFormatting.DARK_GRAY));
+            lines.add(
+                Component.literal("Hold Ctrl to override")
+                    .withStyle(ChatFormatting.DARK_GRAY)
+            );
         });
     }
 
@@ -121,8 +162,7 @@ public class OrderProtectionManager {
     }
 
     private Optional<ValidationResult> getValidationResult(ItemStack stack) {
-        return Optional
-            .ofNullable(this.validationCache.get(stack))
+        return Optional.ofNullable(this.validationCache.get(stack))
             .map(PendingOrderData::validationResult)
             .or(() -> Optional.ofNullable(this.validationFailureCache.get(stack)));
     }
@@ -142,32 +182,27 @@ public class OrderProtectionManager {
             return;
         }
 
-        OrderInfoParser
-            .parseSetOrderItem(rawStack)
-            .map(orderInfo -> OrderValidator.validate(
-                orderInfo,
-                this.bazaarData,
-                ConfigManager.get().orderProtection
-            ))
+        OrderInfoParser.parseSetOrderItem(rawStack)
+            .map(orderInfo -> OrderValidator.validate(orderInfo, this.bazaarData, ConfigManager.get().orderProtection))
             .onSuccess(pendingOrder -> {
                 this.validationCache.put(rawStack, pendingOrder);
                 this.validationFailureCache.remove(rawStack);
 
                 log.trace(
                     "Validated: {} - {}",
-                    pendingOrder.orderInfo().productName(),
-                    pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
+                    pendingOrder.orderInfo()
+                        .productName(),
+                    pendingOrder.validationResult()
+                        .protect() ? "BLOCKED" : "ALLOWED"
                 );
             })
             .onFailure(err -> {
                 this.validationCache.remove(rawStack);
-                this.validationFailureCache.put(
-                    rawStack,
-                    ValidationResult.blocked(VALIDATION_FAILURE_REASON)
-                );
+                this.validationFailureCache.put(rawStack, ValidationResult.blocked(VALIDATION_FAILURE_REASON));
                 log.warn(
                     "Failed to parse or validate confirmation item '{}'",
-                    rawStack.getHoverName().getString(),
+                    rawStack.getHoverName()
+                        .getString(),
                     err
                 );
             });
@@ -178,32 +213,38 @@ public class OrderProtectionManager {
             return Optional.empty();
         }
 
-        return this.getValidationResult(stack).map(data -> Pair.of(data, false));
+        return this.getValidationResult(stack)
+            .map(data -> Pair.of(data, false));
     }
 
     public final class ConfirmationHook implements SlotHook {
 
-        private ConfirmationHook() { }
+        private ConfirmationHook() {}
 
         @Override
         public boolean matches(SlotView view) {
-            return !view.playerInventorySlot()
-                && view.slotIdx() == CONFIRMATION_SLOT_INDEX
-                && view.getCurrInfo().inMenu(CONFIRMATION_MENUS);
+            return !view.playerInventorySlot() && view.slotIdx() == CONFIRMATION_SLOT_INDEX
+                && view.getCurrInfo()
+                    .inMenu(CONFIRMATION_MENUS);
         }
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
             if (ConfigManager.get().orderProtection.enabled) {
-                OrderProtectionManager.this.validateConfirmationStack(ctx.view().getRawStack());
+                OrderProtectionManager.this.validateConfirmationStack(
+                    ctx.view()
+                        .getRawStack()
+                );
             }
 
-            return ctx.view().getRawStack();
+            return ctx.view()
+                .getRawStack();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var stack = ctx.view().getRawStack();
+            var stack = ctx.view()
+                .getRawStack();
             var cfg = ConfigManager.get().orderProtection;
             var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)
@@ -218,7 +259,8 @@ public class OrderProtectionManager {
             }
 
             boolean isBlocked = validation.protect();
-            if (isBlocked && !ctx.modifiers().controlDown()) {
+            if (isBlocked && !ctx.modifiers()
+                .controlDown()) {
                 if (cfg.showChatMessage) {
                     Notifier.sendBlockedOrderMessage(validation);
                 }
@@ -236,13 +278,15 @@ public class OrderProtectionManager {
         }
     }
 
-    public record PendingOrderData(
-        OutstandingOrderInfo orderInfo, ValidationResult validationResult
-    ) { }
+    public record PendingOrderData(OutstandingOrderInfo orderInfo, ValidationResult validationResult) {}
 
     private static final class OrderValidator {
 
-        public static PendingOrderData validate(OutstandingOrderInfo info, BazaarData bazaarData, OrderProtectionConfig cfg) {
+        public static PendingOrderData validate(
+            OutstandingOrderInfo info,
+            BazaarData bazaarData,
+            OrderProtectionConfig cfg
+        ) {
             if (!cfg.enabled || (!cfg.blockUndercutPercentage && !cfg.blockUndercutOfOpposing)) {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
@@ -280,21 +324,25 @@ public class OrderProtectionManager {
             OrderProtectionConfig cfg
         ) {
             if (bestBuy.isPresent() && info.pricePerUnit() <= bestBuy.get() && cfg.blockUndercutOfOpposing) {
-                return ValidationResult.blocked(String.format(
-                    "Your Sell Offer price of (%s) is \nbelow the insta sell price of (%s)",
-                    Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestBuy.get(), 1, true)
-                ));
+                return ValidationResult.blocked(
+                    String.format(
+                        "Your Sell Offer price of (%s) is \nbelow the insta sell price of (%s)",
+                        Utils.formatDecimal(info.pricePerUnit(), 1, true),
+                        Utils.formatDecimal(bestBuy.get(), 1, true)
+                    )
+                );
             }
 
             if (bestSell.isPresent() && cfg.blockUndercutPercentage) {
                 double undercut = (bestSell.get() - info.pricePerUnit()) / bestSell.get() * 100;
                 if (undercut >= cfg.maxSellOfferUndercut) {
-                    return ValidationResult.blocked(String.format(
-                        "Undercuts by %s%% (max %s%%)",
-                        Utils.formatDecimal(undercut, 1, true),
-                        Utils.formatDecimal(cfg.maxSellOfferUndercut, 1, true)
-                    ));
+                    return ValidationResult.blocked(
+                        String.format(
+                            "Undercuts by %s%% (max %s%%)",
+                            Utils.formatDecimal(undercut, 1, true),
+                            Utils.formatDecimal(cfg.maxSellOfferUndercut, 1, true)
+                        )
+                    );
                 }
             }
 
@@ -309,22 +357,26 @@ public class OrderProtectionManager {
             OrderProtectionConfig cfg
         ) {
             if (bestSell.isPresent() && info.pricePerUnit() >= bestSell.get() && cfg.blockUndercutOfOpposing) {
-                return ValidationResult.blocked(String.format(
-                    "Your Buy Order price of (%s) is \nabove the insta buy price of (%s)",
-                    Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestSell.get(), 1, true)
-                ));
+                return ValidationResult.blocked(
+                    String.format(
+                        "Your Buy Order price of (%s) is \nabove the insta buy price of (%s)",
+                        Utils.formatDecimal(info.pricePerUnit(), 1, true),
+                        Utils.formatDecimal(bestSell.get(), 1, true)
+                    )
+                );
             }
 
             if (bestBuy.isPresent() && cfg.blockUndercutPercentage) {
                 double undercut = (info.pricePerUnit() - bestBuy.get()) / bestBuy.get() * 100;
 
                 if (undercut >= cfg.maxBuyOrderUndercut) {
-                    return ValidationResult.blocked(String.format(
-                        "Undercuts by %s%% (max %s%%)",
-                        Utils.formatDecimal(undercut, 1, true),
-                        Utils.formatDecimal(cfg.maxBuyOrderUndercut, 1, true)
-                    ));
+                    return ValidationResult.blocked(
+                        String.format(
+                            "Undercuts by %s%% (max %s%%)",
+                            Utils.formatDecimal(undercut, 1, true),
+                            Utils.formatDecimal(cfg.maxBuyOrderUndercut, 1, true)
+                        )
+                    );
                 }
             }
 
@@ -356,102 +408,107 @@ public class OrderProtectionManager {
         public boolean blockUndercutOfOpposing = true;
 
         public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Protection"))
-                .description(OptionDescription.of(Component.literal(
-                    "Master switch to enable or disable protection against accidental order mistakes.")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Master switch to enable or disable protection against accidental order mistakes.")
+                    )
+                )
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createShowChatMessageOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Chat Messages"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show system chat messages when protections are triggered.")))
+                .description(
+                    OptionDescription.of(Component.literal("Show system chat messages when protections are triggered."))
+                )
                 .binding(true, () -> this.showChatMessage, val -> this.showChatMessage = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createSoundOnBlockedOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Sound - Order Blocked"))
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when an order is blocked by protection.")))
+                .description(
+                    OptionDescription.of(Component.literal("Play a sound when an order is blocked by protection."))
+                )
                 .binding(true, () -> this.soundOnBlocked, val -> this.soundOnBlocked = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createBlockUndercutPercentageOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Block Percentage Undercut"))
-                .description(OptionDescription.of(Component.literal(
-                    "Blocks creating orders that undercut existing ones by more than a specified percentage.")))
-                .binding(
-                    true,
-                    () -> this.blockUndercutPercentage,
-                    val -> this.blockUndercutPercentage = val
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Blocks creating orders that undercut existing ones by more than a specified percentage."
+                        )
+                    )
                 )
+                .binding(true, () -> this.blockUndercutPercentage, val -> this.blockUndercutPercentage = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Double> createMaxBuyOrderUndercutOption() {
-            return Option
-                .<Double>createBuilder()
+            return Option.<Double>createBuilder()
                 .name(Component.literal("Max Buy Order Undercut (%)"))
-                .description(OptionDescription.of(Component.literal(
-                    "Maximum allowed undercut percentage for creating Buy Orders.")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Maximum allowed undercut percentage for creating Buy Orders."))
+                )
                 .binding(
                     this.maxBuyOrderUndercut,
                     () -> this.maxBuyOrderUndercut,
                     val -> this.maxBuyOrderUndercut = val
                 )
-                .controller(opt -> DoubleSliderControllerBuilder
-                    .create(opt)
-                    .range(0.0, 100.0)
-                    .step(0.5));
+                .controller(
+                    opt -> DoubleSliderControllerBuilder.create(opt)
+                        .range(0.0, 100.0)
+                        .step(0.5)
+                );
         }
 
         public Option.Builder<Double> createMaxSellOfferUndercutOption() {
-            return Option
-                .<Double>createBuilder()
+            return Option.<Double>createBuilder()
                 .name(Component.literal("Max Sell Offer Undercut (%)"))
-                .description(OptionDescription.of(Component.literal(
-                    "Maximum allowed undercut percentage for creating Sell Offers.")))
+                .description(
+                    OptionDescription
+                        .of(Component.literal("Maximum allowed undercut percentage for creating Sell Offers."))
+                )
                 .binding(
                     this.maxSellOfferUndercut,
                     () -> this.maxSellOfferUndercut,
                     val -> this.maxSellOfferUndercut = val
                 )
-                .controller(opt -> DoubleSliderControllerBuilder
-                    .create(opt)
-                    .range(0.0, 100.0)
-                    .step(0.5));
+                .controller(
+                    opt -> DoubleSliderControllerBuilder.create(opt)
+                        .range(0.0, 100.0)
+                        .step(0.5)
+                );
         }
 
         public Option.Builder<Boolean> createBlockUndercutOfOpposingOption() {
-            return Option
-                .<Boolean>createBuilder()
+            return Option.<Boolean>createBuilder()
                 .name(Component.literal("Block Opposing Order Undercuts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Prevents creating Sell Offers below existing Buy Orders, and Buy Orders above existing Sell Offers")))
-                .binding(
-                    true,
-                    () -> this.blockUndercutOfOpposing,
-                    val -> this.blockUndercutOfOpposing = val
+                .description(
+                    OptionDescription.of(
+                        Component.literal(
+                            "Prevents creating Sell Offers below existing Buy Orders, and Buy Orders above existing Sell Offers"
+                        )
+                    )
                 )
+                .binding(true, () -> this.blockUndercutOfOpposing, val -> this.blockUndercutOfOpposing = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
-            var undercutGroup = new OptionGrouping(this.createBlockUndercutPercentageOption()).addOptions(
-                this.createMaxSellOfferUndercutOption(),
-                this.createMaxBuyOrderUndercutOption()
-            );
+            var undercutGroup = new OptionGrouping(this.createBlockUndercutPercentageOption())
+                .addOptions(this.createMaxSellOfferUndercutOption(), this.createMaxBuyOrderUndercutOption());
 
             var rootGroup = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
@@ -461,11 +518,14 @@ public class OrderProtectionManager {
                 )
                 .addSubgroups(undercutGroup);
 
-            return OptionGroup
-                .createBuilder()
+            return OptionGroup.createBuilder()
                 .name(Component.literal("Order Protection"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings that guard against creating orders with unsafe or unintended pricing")))
+                .description(
+                    OptionDescription.of(
+                        Component
+                            .literal("Settings that guard against creating orders with unsafe or unintended pricing")
+                    )
+                )
                 .options(rootGroup.build())
                 .collapsed(false)
                 .build();

@@ -78,21 +78,20 @@ public class ScreenInventoryTracker {
             case ClientboundOpenScreenPacket openPacket -> this.handleOpenScreen(openPacket);
             case ClientboundContainerSetSlotPacket slotPacket -> this.handleSlotUpdate(slotPacket);
             case ClientboundContainerClosePacket _ -> this.close();
-            default -> { }
+            default -> {
+            }
         }
     }
 
     private void handleOpenScreen(ClientboundOpenScreenPacket packet) {
-        var title = packet.getTitle().getString();
+        var title = packet.getTitle()
+            .getString();
         int syncId = packet.getContainerId();
         var handlerType = packet.getType();
 
         var slotCount = SLOT_COUNT_MAP.get(handlerType);
         if (slotCount == null) {
-            log.error(
-                "Unknown screen handler type for inventory '{}'. Ignoring this inventory.",
-                title
-            );
+            log.error("Unknown screen handler type for inventory '{}'. Ignoring this inventory.", title);
             return;
         }
 

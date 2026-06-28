@@ -21,18 +21,32 @@ class OrderModelsTest {
 
         @Test
         void parsesKnownValues() {
-            assertEquals(OrderType.Buy, OrderType.tryFrom("BUY").get());
-            assertEquals(OrderType.Sell, OrderType.tryFrom("SELL").get());
+            assertEquals(
+                OrderType.Buy,
+                OrderType.tryFrom("BUY")
+                    .get()
+            );
+            assertEquals(
+                OrderType.Sell,
+                OrderType.tryFrom("SELL")
+                    .get()
+            );
         }
 
         @Test
         void rejectsUnknownValue() {
-            assertTrue(OrderType.tryFrom("UNKNOWN").isFailure());
+            assertTrue(
+                OrderType.tryFrom("UNKNOWN")
+                    .isFailure()
+            );
         }
 
         @Test
         void isCaseSensitive() {
-            assertTrue(OrderType.tryFrom("buy").isFailure());
+            assertTrue(
+                OrderType.tryFrom("buy")
+                    .isFailure()
+            );
         }
     }
 
@@ -74,15 +88,9 @@ class OrderModelsTest {
     @DisplayName("TrackedOrder.matches")
     class TrackedOrderMatches {
 
-        private final TrackedOrder trackedOrder = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
-            "Enchanted Hopper",
-            OrderType.Buy,
-            64,
-            1234.5,
-            12,
-            0,
-            3
-        ));
+        private final TrackedOrder trackedOrder = new TrackedOrder(
+            new OrderInfo.UnfilledOrderInfo("Enchanted Hopper", OrderType.Buy, 64, 1234.5, 12, 0, 3)
+        );
 
         @Test
         void matchesEquivalentOrderInfo() {
@@ -111,15 +119,9 @@ class OrderModelsTest {
 
         @Test
         void treatsPositiveAndNegativeZeroAsDifferentPrices() {
-            var zeroTrackedOrder = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
-                "Heat Core",
-                OrderType.Sell,
-                1,
-                0.0,
-                0,
-                0,
-                7
-            ));
+            var zeroTrackedOrder = new TrackedOrder(
+                new OrderInfo.UnfilledOrderInfo("Heat Core", OrderType.Sell, 1, 0.0, 0, 0, 7)
+            );
 
             assertFalse(zeroTrackedOrder.matches(unfilledInfo("Heat Core", OrderType.Sell, 1, -0.0)));
         }
@@ -171,12 +173,7 @@ class OrderModelsTest {
             assertFalse(this.outstandingOrder.matches(setup(OrderType.Sell, 12, "Summoning Eye", 9_900_001.0)));
         }
 
-        private static BazaarMessage.OrderSetup setup(
-            OrderType type,
-            int volume,
-            String productName,
-            double total
-        ) {
+        private static BazaarMessage.OrderSetup setup(OrderType type, int volume, String productName, double total) {
             return new BazaarMessage.OrderSetup(type, volume, productName, total);
         }
     }

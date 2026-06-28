@@ -18,60 +18,42 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class DrawContextMixin {
 
     @Unique
-    private static final Identifier BOOKMARK_ICON = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/bookmark.png"
-    );
+    private static final Identifier BOOKMARK_ICON = Identifier
+        .fromNamespaceAndPath(BtrBz.MOD_ID, "textures/bookmark.png");
     @Unique
-    private static final Identifier BOOKMARK_STAR = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/bookmark-star.png"
-    );
+    private static final Identifier BOOKMARK_STAR = Identifier
+        .fromNamespaceAndPath(BtrBz.MOD_ID, "textures/bookmark-star.png");
 
     @Unique
-    private static final Identifier GREEN_CHECK = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/green-check.png"
-    );
+    private static final Identifier GREEN_CHECK = Identifier
+        .fromNamespaceAndPath(BtrBz.MOD_ID, "textures/green-check.png");
     @Unique
-    private static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/red-cross.png"
-    );
+    private static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "textures/red-cross.png");
 
     @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;III)V", at = @At("TAIL"))
     private void drawIndicator(ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
-        @Nullable var isBookmarked = stack.get(BtrBz.BOOKMARKED);
+        @Nullable
+        var isBookmarked = stack.get(BtrBz.BOOKMARKED);
 
         GuiGraphicsExtractor context = (GuiGraphicsExtractor) (Object) this;
         int iconSize = 8;
 
         if (isBookmarked != null && ConfigManager.get().bookmark.enabled) {
             var texture = isBookmarked ? BOOKMARK_STAR : BOOKMARK_ICON;
-            context.blit(
-                RenderPipelines.GUI_TEXTURED,
-                texture,
-                x,
-                y,
-                0,
-                0,
-                iconSize,
-                iconSize,
-                iconSize,
-                iconSize
-            );
+            context.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0, 0, iconSize, iconSize, iconSize, iconSize);
         }
 
-        var info = BtrBz.orderProtectionManager().getVisualOrderInfo(stack);
+        var info = BtrBz.orderProtectionManager()
+            .getVisualOrderInfo(stack);
         if (info.isPresent()) {
             var pending = info.get();
             var overridden = pending.getRight();
-            var blocked = pending.getLeft().protect();
+            var blocked = pending.getLeft()
+                .protect();
 
             var texture = !blocked || overridden ? GREEN_CHECK : RED_CROSS;
             int iconX = x + 16 - iconSize;
             int iconY = y;
-
 
             context.blit(
                 RenderPipelines.GUI_TEXTURED,

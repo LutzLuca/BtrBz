@@ -10,8 +10,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 public class Commands {
 
-    public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands
-        .literal("btrbz")
+    public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands.literal("btrbz")
         .executes((ctx) -> {
             ConfigScreen.open();
             return 1;
