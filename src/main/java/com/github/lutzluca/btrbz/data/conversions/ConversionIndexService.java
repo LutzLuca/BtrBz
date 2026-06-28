@@ -7,10 +7,12 @@ import io.vavr.control.Try;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -22,9 +24,11 @@ public final class ConversionIndexService {
     private final List<Runnable> indexChangeListeners = new ArrayList<>();
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
+    private final Map<ItemStack, ProductIdentity> resolvedStackCache = new WeakHashMap<>();
 
     private volatile ConversionIndex currentIndex;
     private volatile IndexLoadSource activeLoadSource;
+    private volatile long indexRevision;
     private volatile @Nullable String lastSuccessfulRefreshAt;
     private volatile Optional<ConversionRefreshException> lastFailure = Optional.empty();
 
@@ -110,7 +114,21 @@ public final class ConversionIndexService {
     }
 
     public ProductIdentity resolveProduct(ItemStack stack) {
-        return this.resolver.resolveProduct(stack);
+        var revision = this.indexRevision;
+        synchronized (this.resolvedStackCache) {
+            var cached = this.resolvedStackCache.get(stack);
+            if (cached != null && revision == this.indexRevision) {
+                return cached;
+            }
+        }
+
+        var resolved = this.resolver.resolveProduct(stack);
+        synchronized (this.resolvedStackCache) {
+            if (revision == this.indexRevision) {
+                this.resolvedStackCache.put(stack, resolved);
+            }
+        }
+        return resolved;
     }
 
     public ProductIdentity resolveProduct(@Nullable String rawProductId, String displayName) {
@@ -171,9 +189,19 @@ public final class ConversionIndexService {
         var normalized = ConversionIndexNormalizer.normalizeDerivedEntries(index);
         this.currentIndex = normalized;
         this.activeLoadSource = source;
+        this.clearResolvedStackCache();
         this.logIndexSummary(source, normalized);
         this.notifyIndexChanged();
         return normalized;
+    }
+
+    private void clearResolvedStackCache() {
+        synchronized (this.resolvedStackCache) {
+            var size = this.resolvedStackCache.size();
+            this.resolvedStackCache.clear();
+            this.indexRevision++;
+            log.trace("Cleared product identity cache with {} mappings", size);
+        }
     }
 
     private void logIndexSummary(IndexLoadSource source, ConversionIndex index) {
