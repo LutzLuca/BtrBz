@@ -4,8 +4,11 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -35,6 +38,7 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -59,11 +63,6 @@ public final class ProductInfoProvider {
         BazaarMenuType.SellOfferSetup,
         BazaarMenuType.SellOfferConfirmation
     };
-    private static final BazaarMenuType[] CTRL_SHIFT_MENUS = {
-        BazaarMenuType.Main,
-        BazaarMenuType.Item
-    };
-
     private final BazaarData bazaarData;
     private final PriceCache priceCache;
 
@@ -274,25 +273,81 @@ public final class ProductInfoProvider {
     }
 
     private boolean shouldApplyCtrlShiftClick(ItemStack stack) {
+        if (!this.isCtrlShiftContextEnabled(stack)) {
+            return false;
+        }
+
+        return this.resolveProductForLookup(stack)
+            .resolvedProduct()
+            .isPresent();
+    }
+
+    private boolean shouldApplyCtrlShiftClick(SlotView view) {
+        var stack = view.getRawStack();
+        if (!this.isCtrlShiftContextEnabled(stack)) {
+            return false;
+        }
+
+        return this.resolveProductForLookup(view)
+            .resolvedProduct()
+            .isPresent();
+    }
+
+    private boolean isCtrlShiftContextEnabled(ItemStack stack) {
         var cfg = ConfigManager.get().productInfo;
         if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
             return false;
         }
 
-        boolean inBazaarMainOrItem = ScreenInfoHelper.inMenu(CTRL_SHIFT_MENUS);
-        if (!inBazaarMainOrItem && !cfg.showOutsideBazaar && !ScreenInfoHelper.inBazaar()) {
-            return false;
+        if (ScreenInfoHelper.inBazaar()) {
+            if (this.isStackInPlayerInventory(stack)) {
+                return true;
+            }
+
+            return cfg.ctrlShiftOnBazaarItems;
         }
 
-        if (this.resolveProduct(stack).resolvedProduct().isEmpty()) {
-            return false;
+        return cfg.showOutsideBazaar;
+    }
+
+    private ProductIdentity resolveProductForLookup(SlotView view) {
+        var stack = view.getRawStack();
+        if (this.isOrderScreenProductRow(stack) && !view.playerInventorySlot()) {
+            return OrderInfoParser
+                .parseOrderInfo(stack, view.slotIdx(), this.bazaarData)
+                .map(order -> order.product())
+                .getOrElse(() -> this.resolveProduct(stack));
         }
 
-        if (inBazaarMainOrItem) {
-            return this.isStackInPlayerInventory(stack);
+        return this.resolveProduct(stack);
+    }
+
+    private ProductIdentity resolveProductForLookup(ItemStack stack) {
+        var hoveredSlot = this.hoveredNonPlayerSlot(stack);
+        if (this.isOrderScreenProductRow(stack) && hoveredSlot.isPresent()) {
+            return OrderInfoParser
+                .parseOrderInfo(stack, hoveredSlot.get().getContainerSlot(), this.bazaarData)
+                .map(order -> order.product())
+                .getOrElse(() -> this.resolveProduct(stack));
         }
 
-        return true;
+        return this.resolveProduct(stack);
+    }
+
+    private boolean isOrderScreenProductRow(ItemStack stack) {
+        return ScreenInfoHelper.inMenu(BazaarMenuType.Orders)
+            && GameUtils.orderScreenNonOrderItemsFilter(stack);
+    }
+
+    private Optional<Slot> hoveredNonPlayerSlot(ItemStack stack) {
+        return ScreenInfoHelper
+            .get()
+            .getCurrInfo()
+            .getGenericContainerScreen()
+            .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor
+                ? accessor.getHoveredSlot()
+                : null)
+            .filter(slot -> slot != null && !GameUtils.isPlayerInventorySlot(slot) && slot.getItem() == stack);
     }
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
@@ -426,7 +481,7 @@ public final class ProductInfoProvider {
 
         @Override
         public boolean matches(SlotView view) {
-            return !view.getRawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view.getRawStack());
+            return !view.getRawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view);
         }
 
         @Override
@@ -437,7 +492,7 @@ public final class ProductInfoProvider {
 
             var cfg = ConfigManager.get().productInfo;
             var stack = ctx.view().getRawStack();
-            var product = ProductInfoProvider.this.resolveProduct(stack).resolvedProduct();
+            var product = ProductInfoProvider.this.resolveProductForLookup(ctx.view()).resolvedProduct();
             if (product.isEmpty()) {
                 log.warn("No product id found for {}", stack.getHoverName().getString());
                 return SlotClickResult.Pass;
@@ -453,6 +508,7 @@ public final class ProductInfoProvider {
         public boolean enabled = true;
         public boolean itemClickEnabled = true;
         public boolean ctrlShiftEnabled = true;
+        public boolean ctrlShiftOnBazaarItems = true;
         public boolean showOutsideBazaar = false;
         public boolean priceTooltipEnabled = true;
         public InfoProviderSite site = InfoProviderSite.SkyblockBz;
@@ -482,8 +538,22 @@ public final class ProductInfoProvider {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable CTRL+SHIFT Click Shortcut"))
                 .description(OptionDescription.of(Component.literal(
-                    "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking the item.\n" + "Disabled in the Bazaar Item menu to avoid conflicts with bookmarks.")))
+                    "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking resolved Bazaar items.")))
                 .binding(true, () -> this.ctrlShiftEnabled, val -> this.ctrlShiftEnabled = val)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Builder<Boolean> createCtrlShiftOnBazaarItemsOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("CTRL+SHIFT on Bazaar Items"))
+                .description(OptionDescription.of(Component.literal(
+                    "Allows CTRL+SHIFT Click on resolved Bazaar UI items. Plain clicks still use the normal Bazaar/bookmark behavior.")))
+                .binding(
+                    true,
+                    () -> this.ctrlShiftOnBazaarItems,
+                    val -> this.ctrlShiftOnBazaarItems = val
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -531,6 +601,7 @@ public final class ProductInfoProvider {
             var rootGroup = new OptionGrouping(enabledBuilder).addOptions(
                 this.createItemClickOption(),
                 this.createCtrlShiftOption(),
+                this.createCtrlShiftOnBazaarItemsOption(),
                 this.createShowOutsideBazaarOption(),
                 this.createPriceTooltipOption(),
                 this.createSiteOption()

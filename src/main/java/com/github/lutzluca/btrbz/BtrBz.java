@@ -33,7 +33,6 @@ import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -109,12 +108,13 @@ public class BtrBz implements ClientModInitializer {
         ScreenInfoHelper.registerOnSwitch(info -> this.highlightManager.clearHighlightOverride());
 
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
+        this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
         this.alertManager = new AlertManager();
         new ChatFilterManager();
         this.orderProtectionManager = new OrderProtectionManager(BAZAAR_DATA);
 
         var productInfoProvider = new ProductInfoProvider(BAZAAR_DATA);
-        var orderActions = new BazaarOrderActions();
+        var orderActions = new BazaarOrderActions(BAZAAR_DATA);
         new OrderBookScreenController(BAZAAR_DATA, productInfoProvider);
 
         var moduleManager = ModuleManager.getInstance();
@@ -147,11 +147,7 @@ public class BtrBz implements ClientModInitializer {
             pendingOrderData.ifPresentOrElse(
                 data -> addOutstanding.accept(data.orderInfo()),
                 () -> OrderInfoParser
-                    .parseSetOrderItem(stack)
-                    .map(info -> info.withProduct(BAZAAR_DATA.resolveProduct(
-                        Utils.customDataId(stack).orElse(null),
-                        info.productName()
-                    )))
+                    .parseSetOrderItem(stack, BAZAAR_DATA)
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err))
             );
@@ -208,7 +204,7 @@ public class BtrBz implements ClientModInitializer {
                     .stream()
                     .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
                     .map(entry -> OrderInfoParser
-                        .parseOrderInfo(entry.getValue(), entry.getKey())
+                        .parseOrderInfo(entry.getValue(), entry.getKey(), BAZAAR_DATA)
                         .toJavaOptional()
                     )
                     .flatMap(Optional::stream)

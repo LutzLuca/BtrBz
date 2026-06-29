@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -95,6 +96,33 @@ class OrderModelsTest {
         }
 
         @Test
+        void matchesResolvedProductsById() {
+            var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
+                new ProductRef("ENCHANTED_HOPPER", "Old Display"),
+                "Enchanted Hopper",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            ));
+
+            var parsed = new OrderInfo.UnfilledOrderInfo(
+                new ProductRef("ENCHANTED_HOPPER", "New Display"),
+                "Different UI Name",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            );
+
+            assertTrue(tracked.matches(parsed));
+        }
+
+        @Test
         void rejectsDifferentOrderType() {
             assertFalse(this.trackedOrder.matches(unfilledInfo("Enchanted Hopper", OrderType.Sell, 64, 1234.5)));
         }
@@ -149,6 +177,20 @@ class OrderModelsTest {
         @Test
         void matchesEquivalentSetupMessage() {
             assertTrue(this.outstandingOrder.matches(setup(OrderType.Sell, 12, "Summoning Eye", 9_900_000.0)));
+        }
+
+        @Test
+        void matchesSetupMessageByUiProductName() {
+            var outstanding = new OutstandingOrderInfo(
+                new ProductRef("AOTE_STONE", "Warped Stone"),
+                "Warped Stone",
+                OrderType.Sell,
+                2,
+                5_649_851.4,
+                11_299_702.8
+            );
+
+            assertTrue(outstanding.matches(setup(OrderType.Sell, 2, "Warped Stone", 11_299_702.8)));
         }
 
         @Test

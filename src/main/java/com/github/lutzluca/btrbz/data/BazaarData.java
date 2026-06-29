@@ -62,8 +62,16 @@ public class BazaarData {
         return this.conversionIndexService.productById(productId);
     }
 
+    public ProductRef currentProduct(ProductRef product) {
+        return this.productById(product.productId()).orElse(product);
+    }
+
     public ProductIdentity resolveProduct(ItemStack stack) {
         return this.conversionIndexService.resolveProduct(stack);
+    }
+
+    public ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
+        return this.conversionIndexService.resolveProduct(stack, displayNameEvidence);
     }
 
     public ProductIdentity resolveProduct(@Nullable String rawProductId, String displayName) {
