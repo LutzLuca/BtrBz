@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -38,6 +39,8 @@ import net.minecraft.world.item.component.ItemLore;
 public class BazaarOrderActions {
     public static final int CANCEL_ORDER_SLOT = 11;
 
+    private final BazaarData bazaarData;
+
     private boolean shouldReopenBazaar = false;
     private @Nullable Integer remainingOrderAmount = null;
 
@@ -46,7 +49,8 @@ public class BazaarOrderActions {
 
     private boolean hideCancelledOrderButton = false;
 
-    public BazaarOrderActions() {
+    public BazaarOrderActions(BazaarData bazaarData) {
+        this.bazaarData = bazaarData;
         this.registerCloseHandlers();
         this.registerSlotHooks();
         this.registerTooltipCallback();
@@ -285,7 +289,8 @@ public class BazaarOrderActions {
             var slot = ctx.view();
             var orderInfo = OrderInfoParser.parseOrderInfo(
                 slot.getRawStack(),
-                slot.slotIdx()
+                slot.slotIdx(),
+                BazaarOrderActions.this.bazaarData
             );
             if (orderInfo.isSuccess()) {
                 BazaarOrderActions.this.onOrderClick(orderInfo.get(), slot.getRawStack());

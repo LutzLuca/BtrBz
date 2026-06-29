@@ -143,11 +143,7 @@ public class OrderProtectionManager {
         }
 
         OrderInfoParser
-            .parseSetOrderItem(rawStack)
-            .map(orderInfo -> orderInfo.withProduct(this.bazaarData.resolveProduct(
-                Utils.customDataId(rawStack).orElse(null),
-                orderInfo.productName()
-            )))
+            .parseSetOrderItem(rawStack, this.bazaarData)
             .map(orderInfo -> OrderValidator.validate(
                 orderInfo,
                 this.bazaarData,

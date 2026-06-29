@@ -193,6 +193,20 @@ public final class OrderInfoParser {
         return parseOrderInfo(item.getHoverName().getString(), getLore(item), slotIdx);
     }
 
+    public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx, BazaarData bazaarData) {
+        return parseOrderInfo(item, slotIdx)
+            .map(info -> switch (info) {
+                case UnfilledOrderInfo unfilled -> unfilled.withProduct(bazaarData.resolveProduct(
+                    item,
+                    unfilled.uiProductName()
+                ));
+                case FilledOrderInfo filled -> filled.withProduct(bazaarData.resolveProduct(
+                    item,
+                    filled.uiProductName()
+                ));
+            });
+    }
+
     static Try<OrderInfo> parseOrderInfo(String title, List<String> lore, int slotIdx) {
         // name: {type} {productName}
         // lore lines:
@@ -231,6 +245,7 @@ public final class OrderInfoParser {
             var details = additionalInfo.get();
             if (details.filled) {
                 return new FilledOrderInfo(
+                    new UnresolvedProduct(productName.trim(), null),
                     productName.trim(),
                     orderTypeResult.get(),
                     details.volume,
@@ -242,6 +257,7 @@ public final class OrderInfoParser {
             }
 
             return new UnfilledOrderInfo(
+                new UnresolvedProduct(productName.trim(), null),
                 productName.trim(),
                 orderTypeResult.get(),
                 details.volume,
@@ -329,6 +345,18 @@ public final class OrderInfoParser {
         }
 
         return parseSetOrderItem(item.getHoverName().getString(), getLore(item));
+    }
+
+    public static Try<OutstandingOrderInfo> parseSetOrderItem(ItemStack item, BazaarData bazaarData) {
+        if (item == null || item.isEmpty()) {
+            return Try.failure(new IllegalArgumentException("Empty item"));
+        }
+
+        return parseSetOrderItem(item)
+            .map(info -> info.withProduct(bazaarData.resolveProduct(
+                item,
+                info.uiProductName()
+            )));
     }
 
     static Try<OutstandingOrderInfo> parseSetOrderItem(String title, List<String> lore) {

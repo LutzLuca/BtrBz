@@ -19,7 +19,9 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.data.TimedStore;
+import com.github.lutzluca.btrbz.data.UnresolvedProduct;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
@@ -42,6 +44,7 @@ import org.jetbrains.annotations.Nullable;
 
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
@@ -52,20 +55,28 @@ public class TrackedOrderManager {
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
     private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) {}
-    private final Map<SelfUndercutKey, SelfUndercutPricePair> selfUndercutState = new HashMap<>();
+    private final Map<SelfUndercutMatchKey, SelfUndercutPricePair> selfUndercutState = new HashMap<>();
 
-    public record SelfUndercutKey(ProductIdentity product, OrderType type) {
-        public static SelfUndercutKey from(TrackedOrder order) {
-            return new SelfUndercutKey(order.product, order.type);
+    private record SelfUndercutMatchKey(String productKey, OrderType type) {
+
+        static SelfUndercutMatchKey from(TrackedOrder order) {
+            return new SelfUndercutMatchKey(
+                TrackedOrderManager.productKey(order.product, order.uiProductName),
+                order.type
+            );
         }
+    }
 
-        public String productName() {
-            return this.product.displayName();
+    public record SelfUndercutKey(String productName, OrderType type) {
+
+        public static SelfUndercutKey from(TrackedOrder order) {
+            return new SelfUndercutKey(order.productName, order.type);
         }
     }
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
+    private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
         (unfilledOrders, filledOrders) -> { };
@@ -73,6 +84,98 @@ public class TrackedOrderManager {
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
         this.outstandingOrderStore = new TimedStore<>(15_000L);
+        this.bazaarData.addIndexChangeListener(() ->
+            Minecraft.getInstance().execute(this::refreshTrackedOrderProducts)
+        );
+    }
+
+    private static String productKey(ProductIdentity product, String uiProductName) {
+        return product
+            .resolvedProduct()
+            .map(ref -> "id:" + ref.productId())
+            .orElseGet(() -> "name:" + Utils.normalizeDisplayName(uiProductName));
+    }
+
+    private void refreshTrackedOrderProducts() {
+        this.trackedOrders.forEach(order ->
+            this.resolveCurrentProduct(order).ifPresent(product -> this.updateTrackedProduct(order, product))
+        );
+    }
+
+    private Optional<ProductIdentity> resolveCurrentProduct(TrackedOrder order) {
+        var resolved = order.product.resolvedProduct();
+        if (resolved.isPresent()) {
+            return Optional.of(this.bazaarData.currentProduct(resolved.get()));
+        }
+
+        if (order.product instanceof UnresolvedProduct unresolved && unresolved.rawProductId() != null) {
+            return Optional.of(this.bazaarData.resolveProduct(
+                unresolved.rawProductId(),
+                order.uiProductName
+            ));
+        }
+
+        return Optional.of(this.bazaarData.resolveProductName(order.uiProductName));
+    }
+
+    private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
+        var mergedProduct = strongerProduct(order.product, product);
+        var oldKey = productKey(order.product, order.uiProductName);
+        var oldProductName = order.productName;
+        var newKey = productKey(mergedProduct, order.uiProductName);
+        if (oldKey.equals(newKey)
+            && oldProductName.equals(mergedProduct.displayName())
+            && order.product.equals(mergedProduct)) {
+            return;
+        }
+
+        var oldSelfUndercutKey = SelfUndercutMatchKey.from(order);
+        order.applyProduct(mergedProduct);
+
+        if (oldKey.equals(newKey)) {
+            log.debug(
+                "Updated tracked order display name for {} from '{}' to '{}'",
+                newKey,
+                oldProductName,
+                order.productName
+            );
+            this.notifyOrderUpdated(order);
+            return;
+        }
+
+        order.status = new OrderStatus.Unknown();
+        this.selfUndercutState.remove(oldSelfUndercutKey);
+        this.selfUndercutState.remove(SelfUndercutMatchKey.from(order));
+        log.debug(
+            "Updated tracked order identity from {} to {} using UI product '{}'",
+            oldKey,
+            newKey,
+            order.uiProductName
+        );
+        this.notifyOrderUpdated(order);
+    }
+
+    private static ProductIdentity strongerProduct(ProductIdentity current, ProductIdentity incoming) {
+        if (incoming.resolvedProduct().isPresent()) {
+            return incoming;
+        }
+
+        if (current.resolvedProduct().isPresent()) {
+            return current;
+        }
+
+        if (current instanceof UnresolvedProduct currentUnresolved
+            && incoming instanceof UnresolvedProduct incomingUnresolved
+            && currentUnresolved.rawProductId() == null
+            && incomingUnresolved.rawProductId() != null) {
+            return incoming;
+        }
+
+        return current;
+    }
+
+    private void notifyOrderUpdated(TrackedOrder order) {
+        this.onOrderUpdatedListeners.forEach(listener -> listener.accept(order));
     }
 
     public void addOnOrderAddedListener(Consumer<TrackedOrder> listener) {
@@ -87,6 +190,10 @@ public class TrackedOrderManager {
      */
     public void addOnOrderRemovedListener(Consumer<TrackedOrder> listener) {
         this.onOrderRemovedListeners.add(listener);
+    }
+
+    public void addOnOrderUpdatedListener(Consumer<TrackedOrder> listener) {
+        this.onOrderUpdatedListeners.add(listener);
     }
 
     public void addOnOrdersResetListener(Runnable listener) {
@@ -119,6 +226,7 @@ public class TrackedOrderManager {
             match.ifPresentOrElse(
                 info -> {
                     unfilledCopy.remove(info);
+                    this.updateTrackedProduct(tracked, info.product());
                     tracked.slot = info.slotIdx();
                     tracked.fillAmountSnapshot = info.filledAmountSnapshot();
                 }, () -> toRemove.add(tracked)
@@ -135,7 +243,7 @@ public class TrackedOrderManager {
         toRemove.forEach(this::removeTrackedOrder);
         unfilledCopy
             .stream()
-            .map(info -> new TrackedOrder(info, this.bazaarData.resolveProductName(info.productName())))
+            .map(TrackedOrder::new)
             .forEach(this::addTrackedOrder);
 
         this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
@@ -143,9 +251,9 @@ public class TrackedOrderManager {
 
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
-            var key = new SelfUndercutKey(order.product, order.type);
+            var key = SelfUndercutMatchKey.from(order);
             boolean removedLastOrder = this.trackedOrders.stream()
-                .noneMatch(curr -> curr.product.equals(order.product) && curr.type == order.type);
+                .noneMatch(curr -> SelfUndercutMatchKey.from(curr).equals(key));
             log.debug(
                 "Removed last order for {}: {}",
                 order.product.resolvedProduct().map(Object::toString).orElse(order.productName),
@@ -158,13 +266,36 @@ public class TrackedOrderManager {
         }
     }
 
-    public record GroupKey(ProductIdentity product, OrderType type, double pricePerUnit) {
+    private record GroupMatchKey(String productKey, OrderType type, double pricePerUnit) {
+
+        static GroupMatchKey from(TrackedOrder order) {
+            return new GroupMatchKey(
+                TrackedOrderManager.productKey(order.product, order.uiProductName),
+                order.type,
+                order.pricePerUnit
+            );
+        }
+    }
+
+    public record GroupKey(String productName, @Nullable ProductRef productRef, OrderType type, double pricePerUnit) {
+
         public static GroupKey from(TrackedOrder order) {
-            return new GroupKey(order.product, order.type, order.pricePerUnit);
+            return new GroupKey(
+                order.productName,
+                order.product.resolvedProduct().orElse(null),
+                order.type,
+                order.pricePerUnit
+            );
         }
 
-        public String productName() {
-            return this.product.displayName();
+        public ProductIdentity product() {
+            return this.productRef != null
+                ? this.productRef
+                : new UnresolvedProduct(this.productName, null);
+        }
+
+        public Optional<ProductRef> resolvedProduct() {
+            return Optional.ofNullable(this.productRef);
         }
     }
 
@@ -196,15 +327,14 @@ public class TrackedOrderManager {
             return;
         }
 
-        Map<GroupKey, List<TrackedOrder>> orderGroups = this.trackedOrders.stream()
-            .collect(Collectors.groupingBy(GroupKey::from));
-        Map<GroupKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
-            .collect(Collectors.groupingBy(update -> GroupKey.from(update.order())));
+        Map<GroupMatchKey, List<TrackedOrder>> orderGroups = this.trackedOrders.stream()
+            .collect(Collectors.groupingBy(GroupMatchKey::from));
+        Map<GroupMatchKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
+            .collect(Collectors.groupingBy(update -> GroupMatchKey.from(update.order())));
 
         for(var entry : statusGroups.entrySet()) {
-            var key = entry.getKey();
             var updates = entry.getValue();
-            var orders = orderGroups.get(key);
+            var orders = orderGroups.get(entry.getKey());
             
             if(orders.size() == 1) {
                 var statusUpdate = updates.getFirst();
@@ -214,6 +344,7 @@ public class TrackedOrderManager {
                 continue;
             }
 
+            var key = GroupKey.from(orders.getFirst());
             this.processGroupNotification(key, orders, updates, snapshot);
         }
     }
@@ -323,7 +454,7 @@ public class TrackedOrderManager {
     }
 
     private int countOrdersAtBestPrice(GroupKey key, MarketSnapshot snapshot) {
-        var product = key.product().resolvedProduct().orElse(null);
+        var product = key.resolvedProduct().orElse(null);
         if (product == null) {
             log.warn("Group ({}) has unresolved product, skipping group notification", key);
             return -1;
@@ -432,7 +563,11 @@ public class TrackedOrderManager {
         // noinspection SimplifyStreamApiCallChains
         this.trackedOrders
             .stream()
-            .filter(order -> order.productName.equals(info.productName()) && order.type == info.type() && order.volume == info.volume())
+            .filter(order -> Utils
+                .normalizeDisplayName(order.uiProductName)
+                .equals(Utils.normalizeDisplayName(info.productName()))
+                && order.type == info.type()
+                && order.volume == info.volume())
             .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
             .findFirst()
             .ifPresentOrElse(
@@ -515,7 +650,7 @@ public class TrackedOrderManager {
 
     private void resolveSelfUndercutStates(MarketSnapshot snapshot) {
         var keys = this.trackedOrders.stream()
-            .map(SelfUndercutKey::from)
+            .map(SelfUndercutMatchKey::from)
             .distinct()
             .toList();
 
@@ -523,7 +658,7 @@ public class TrackedOrderManager {
         var cfg = ConfigManager.get().trackedOrders;
 
         for (var key : keys) {
-            var result = this.computeSelfUndercutState(key.product(), key.type(), snapshot);
+            var result = this.computeSelfUndercutState(key, snapshot);
             var existing = this.selfUndercutState.get(key);
 
             if (result instanceof SelfUndercutResult.Undercut undercut) {
@@ -536,7 +671,9 @@ public class TrackedOrderManager {
 
                 this.selfUndercutState.put(key, new SelfUndercutPricePair(undercut.bestPrice(), undercut.secondBestPrice()));
                 if (cfg.enabled && cfg.notifySelfUndercut) {
-                    Notifier.notifySelfUndercut(key, undercut.bestPrice(), undercut.secondBestPrice());
+                    this.selfUndercutDisplayKey(key).ifPresent(displayKey ->
+                        Notifier.notifySelfUndercut(displayKey, undercut.bestPrice(), undercut.secondBestPrice())
+                    );
                 }
                 continue;
             }
@@ -545,6 +682,14 @@ public class TrackedOrderManager {
                 this.selfUndercutState.remove(key);
             }
         }
+    }
+
+    private Optional<SelfUndercutKey> selfUndercutDisplayKey(SelfUndercutMatchKey key) {
+        return this.trackedOrders
+            .stream()
+            .filter(order -> SelfUndercutMatchKey.from(order).equals(key))
+            .findFirst()
+            .map(SelfUndercutKey::from);
     }
 
     private sealed interface SelfUndercutResult {
@@ -556,16 +701,12 @@ public class TrackedOrderManager {
         }
     }
 
-    private SelfUndercutResult computeSelfUndercutState(
-        ProductIdentity productIdentity,
-        OrderType type, 
-        MarketSnapshot snapshot
-    ) {
+    private SelfUndercutResult computeSelfUndercutState(SelfUndercutMatchKey key, MarketSnapshot snapshot) {
         var matchingOrders = this.trackedOrders.stream()
-            .filter(order -> order.product.equals(productIdentity) && order.type == type)
+            .filter(order -> SelfUndercutMatchKey.from(order).equals(key))
             .toList();
 
-        Comparator<Double> bestFirst = type == OrderType.Buy
+        Comparator<Double> bestFirst = key.type() == OrderType.Buy
             ? Comparator.reverseOrder()
             : Comparator.naturalOrder();
 
@@ -579,9 +720,13 @@ public class TrackedOrderManager {
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var productRef = productIdentity.resolvedProduct().orElse(null);
+        var productRef = matchingOrders
+            .getFirst()
+            .product
+            .resolvedProduct()
+            .orElse(null);
         if (productRef == null) {
-            log.debug("Product '{}' is unresolved", productIdentity.displayName());
+            log.debug("Product '{}' is unresolved", matchingOrders.getFirst().productName);
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -590,7 +735,7 @@ public class TrackedOrderManager {
             return new SelfUndercutResult.NotUndercut();
         }
 
-        var summaries = snapshot.summariesForOrderType(productRef, type);
+        var summaries = snapshot.summariesForOrderType(productRef, key.type());
 
         if (summaries == null || summaries.size() < 2) {
             return new SelfUndercutResult.NotUndercut();

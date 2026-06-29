@@ -87,6 +87,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.rebuildOrderCache();
         orderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
+        orderManager.addOnOrderUpdatedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
 
         SlotHookRegistry.register(new BookmarkedItemHook());

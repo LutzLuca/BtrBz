@@ -20,7 +20,7 @@ final class ResolutionDiagnostics {
     }
 
     void nameMismatch(String rawProductId, String parsedName, ProductRef resolved) {
-        this.logDebugOnce(
+        this.logWarnOnce(
             "MISMATCH|%s|%s|%s|%s".formatted(
                 rawProductId,
                 parsedName,
@@ -53,6 +53,12 @@ final class ResolutionDiagnostics {
     private void logDebugOnce(String key, String message, Object... args) {
         if (this.loggedKeys.add(key) && log.isDebugEnabled()) {
             log.debug(message, args);
+        }
+    }
+
+    private void logWarnOnce(String key, String message, Object... args) {
+        if (this.loggedKeys.add(key)) {
+            log.warn(message, args);
         }
     }
 }

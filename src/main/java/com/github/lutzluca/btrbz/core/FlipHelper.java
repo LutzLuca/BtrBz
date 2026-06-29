@@ -73,10 +73,10 @@ public class FlipHelper {
         }
 
         this.cachedHelperDisplay = null;
-        var product = this.bazaarData.resolveProductName(info.productName()).resolvedProduct();
+        var product = info.product().resolvedProduct();
         if (product.isEmpty()) {
             this.clearPendingFlipState();
-            log.warn("Could not resolve flip product '{}'", info.productName());
+            log.warn("Could not resolve flip product '{}'", info.uiProductName());
             return;
         }
 
@@ -218,7 +218,8 @@ public class FlipHelper {
         double pricePerUnit = entry.pricePerUnit();
 
         var orderInfo = new OrderInfo.UnfilledOrderInfo(
-            entry.product().displayName(),
+            entry.product(),
+            flipped.productName(),
             OrderType.Sell,
             flipped.volume(),
             pricePerUnit,
@@ -320,7 +321,8 @@ public class FlipHelper {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var orderInfo = OrderInfoParser.parseOrderInfo(
                 ctx.view().getRawStack(),
-                ctx.view().slotIdx()
+                ctx.view().slotIdx(),
+                FlipHelper.this.bazaarData
             );
             if (orderInfo.isSuccess()) {
                 FlipHelper.this.onOrderClick(orderInfo.get());

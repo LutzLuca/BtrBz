@@ -3,9 +3,11 @@ package com.github.lutzluca.btrbz.data.conversions;
 import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -14,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +27,7 @@ public final class ConversionIndexService {
     private final List<Runnable> indexChangeListeners = new ArrayList<>();
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
-    private final Map<ItemStack, ProductIdentity> resolvedStackCache = new WeakHashMap<>();
+    private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
 
     private volatile ConversionIndex currentIndex;
     private volatile IndexLoadSource activeLoadSource;
@@ -114,18 +117,27 @@ public final class ConversionIndexService {
     }
 
     public ProductIdentity resolveProduct(ItemStack stack) {
+        return this.resolveProduct(stack, Utils.cleanDisplayName(stack.getHoverName().getString()));
+    }
+
+    public ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
         var revision = this.indexRevision;
+        var evidenceKey = Utils.cleanDisplayName(displayNameEvidence);
         synchronized (this.resolvedStackCache) {
-            var cached = this.resolvedStackCache.get(stack);
+            var cached = this.resolvedStackCache
+                .getOrDefault(stack, Map.of())
+                .get(evidenceKey);
             if (cached != null && revision == this.indexRevision) {
                 return cached;
             }
         }
 
-        var resolved = this.resolver.resolveProduct(stack);
+        var resolved = this.resolver.resolveProduct(stack, evidenceKey);
         synchronized (this.resolvedStackCache) {
             if (revision == this.indexRevision) {
-                this.resolvedStackCache.put(stack, resolved);
+                this.resolvedStackCache
+                    .computeIfAbsent(stack, ignored -> new HashMap<>())
+                    .put(evidenceKey, resolved);
             }
         }
         return resolved;

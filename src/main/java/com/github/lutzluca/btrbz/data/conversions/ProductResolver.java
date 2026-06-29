@@ -21,7 +21,11 @@ final class ProductResolver {
     }
 
     ProductIdentity resolveProduct(ItemStack stack) {
-        var displayName = Utils.cleanDisplayName(stack.getHoverName().getString());
+        return this.resolveProduct(stack, stack.getHoverName().getString());
+    }
+
+    ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
+        var displayName = Utils.cleanDisplayName(displayNameEvidence);
         var rawProductId = Utils.customDataId(stack).orElse(null);
         if (rawProductId != null) {
             var product = this.resolveKnownProductId(rawProductId, displayName);
@@ -41,7 +45,7 @@ final class ProductResolver {
         }
 
         var resolvedName = this.resolveProductName(displayName);
-        return resolvedName.isResolved() ? resolvedName : this.resolveStackFallback(stack, rawProductId);
+        return resolvedName.isResolved() ? resolvedName : this.resolveStackFallback(stack, rawProductId, displayName);
     }
 
     ProductIdentity resolveProduct(String rawProductId, String displayName) {
@@ -119,8 +123,7 @@ final class ProductResolver {
                 .flatMap(this.service::productById));
     }
 
-    private ProductIdentity resolveStackFallback(ItemStack stack, String rawProductId) {
-        var displayName = Utils.cleanDisplayName(stack.getHoverName().getString());
+    private ProductIdentity resolveStackFallback(ItemStack stack, String rawProductId, String displayName) {
         if (!"Enchanted Book".equals(displayName)) {
             return new UnresolvedProduct(displayName, rawProductId);
         }
