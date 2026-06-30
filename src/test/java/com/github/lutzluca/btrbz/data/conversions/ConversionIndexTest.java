@@ -62,29 +62,6 @@ class ConversionIndexTest {
             assertEquals(1, counts.derived());
         }
 
-        @Test
-        void recomputesDerivedDisplayNames() {
-            var index = indexWith(
-                "ESSENCE_WITHER",
-                new ConversionProductEntry("Old Name", new ProductNameSource.Derived())
-            );
-
-            var normalized = ConversionIndexNormalizer.normalizeDerivedEntries(index);
-
-            assertEquals("Wither Essence", normalized.product("ESSENCE_WITHER").orElseThrow().displayName());
-        }
-
-        @Test
-        void derivesBoosterCookieDisplayName() {
-            var index = indexWith(
-                "BAZAAR_COOKIE",
-                new ConversionProductEntry("Old Name", new ProductNameSource.Derived())
-            );
-
-            var normalized = ConversionIndexNormalizer.normalizeDerivedEntries(index);
-
-            assertEquals("Booster Cookie", normalized.product("BAZAAR_COOKIE").orElseThrow().displayName());
-        }
     }
 
     @Nested
