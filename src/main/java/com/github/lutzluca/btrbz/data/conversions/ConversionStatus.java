@@ -14,6 +14,13 @@ public record ConversionStatus(
     boolean refreshInFlight
 ) {
 
+    public enum IndexLoadSource {
+        LocalCache,
+        BundledSeed,
+        RemoteRefresh,
+        Unavailable
+    }
+
     static ConversionStatus from(
         IndexLoadSource source,
         ConversionIndex index,

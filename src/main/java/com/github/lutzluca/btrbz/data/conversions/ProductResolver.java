@@ -1,23 +1,27 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
-import java.util.Optional;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.data.UnresolvedProduct;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
+@Slf4j
 final class ProductResolver {
 
     private final ConversionIndexService service;
-    private final ResolutionDiagnostics diagnostics;
+    private final Diagnostics diagnostics;
 
-    ProductResolver(ConversionIndexService service, ResolutionDiagnostics diagnostics) {
+    ProductResolver(ConversionIndexService service) {
         this.service = service;
-        this.diagnostics = diagnostics;
+        this.diagnostics = new Diagnostics();
     }
 
     ProductIdentity resolveProduct(ItemStack stack) {
@@ -56,10 +60,10 @@ final class ProductResolver {
                 return product.get();
             }
 
-            var enchantmentProduct = EnchantedBookProductIds
+            var enchantmentProduct = EnchantedBookIdParser
                 .fromRawProductId(rawProductId)
                 .flatMap(this.service::productById)
-                .or(() -> EnchantedBookProductIds.isGenericBookId(rawProductId)
+                .or(() -> EnchantedBookIdParser.isGenericBookId(rawProductId)
                     ? this.resolveEnchantedBookDisplayName(cleanedName)
                     : Optional.empty());
             if (enchantmentProduct.isPresent()) {
@@ -102,23 +106,23 @@ final class ProductResolver {
         return Optional
             .ofNullable(stack.get(DataComponents.CUSTOM_DATA))
             .map(data -> data.copyTag())
-            .flatMap(EnchantedBookProductIds::fromCustomData)
+            .flatMap(EnchantedBookIdParser::fromCustomData)
             .flatMap(this.service::productById)
-            .or(() -> EnchantedBookProductIds
+            .or(() -> EnchantedBookIdParser
                 .fromRawProductId(rawProductId)
                 .flatMap(this.service::productById))
             .or(() -> this.resolveEnchantedBookDisplayName(displayName));
     }
 
     private Optional<ProductRef> resolveEnchantedBookDisplayName(String displayName) {
-        var bookName = EnchantedBookProductIds.stripActionPrefix(displayName);
+        var bookName = EnchantedBookIdParser.stripActionPrefix(displayName);
         return this.service
             .currentIndex()
             .uniqueProductByName(bookName)
-            .or(() -> EnchantedBookProductIds
+            .or(() -> EnchantedBookIdParser
                 .canonicalDisplayName(bookName)
                 .flatMap(canonicalName -> this.service.currentIndex().uniqueProductByName(canonicalName)))
-            .or(() -> EnchantedBookProductIds
+            .or(() -> EnchantedBookIdParser
                 .fromDisplayName(bookName)
                 .flatMap(this.service::productById));
     }
@@ -128,7 +132,7 @@ final class ProductResolver {
             return new UnresolvedProduct(displayName, rawProductId);
         }
 
-        var matches = OrderInfoParser
+        var matches = GameUtils
             .getLore(stack)
             .stream()
             .map(this::resolveProductName)
@@ -150,5 +154,62 @@ final class ProductResolver {
             return;
         }
         this.diagnostics.nameMismatch(rawProductId, displayName, resolved);
+    }
+
+    private static final class Diagnostics {
+
+        private final Set<String> loggedKeys = ConcurrentHashMap.newKeySet();
+
+        void unknownCustomDataId(String productId, String displayName) {
+            this.logDebugOnce(
+                "UNKNOWN_ID|%s|%s".formatted(productId, displayName),
+                "Ignoring custom_data id '{}' for display name '{}' because it is not a known Bazaar product",
+                productId,
+                displayName
+            );
+        }
+
+        void nameMismatch(String rawProductId, String parsedName, ProductRef resolved) {
+            this.logWarnOnce(
+                "MISMATCH|%s|%s|%s|%s".formatted(
+                    rawProductId,
+                    parsedName,
+                    resolved.productId(),
+                    resolved.displayName()
+                ),
+                "Resolved Bazaar product id '{}' as {}, but parsed/display name was '{}'",
+                rawProductId,
+                resolved,
+                parsedName
+            );
+        }
+
+        void ambiguousName(String displayName) {
+            this.logDebugOnce(
+                "AMBIGUOUS|%s".formatted(displayName),
+                "Ambiguous Bazaar product display name '{}'; refusing to choose a product id",
+                displayName
+            );
+        }
+
+        void unresolvedName(String displayName) {
+            this.logDebugOnce(
+                "UNRESOLVED|%s".formatted(displayName),
+                "Could not resolve Bazaar product '{}'",
+                displayName
+            );
+        }
+
+        private void logDebugOnce(String key, String message, Object... args) {
+            if (this.loggedKeys.add(key) && log.isDebugEnabled()) {
+                log.debug(message, args);
+            }
+        }
+
+        private void logWarnOnce(String key, String message, Object... args) {
+            if (this.loggedKeys.add(key)) {
+                log.warn(message, args);
+            }
+        }
     }
 }

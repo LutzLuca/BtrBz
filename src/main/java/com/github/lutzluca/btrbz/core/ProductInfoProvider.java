@@ -42,7 +42,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -70,7 +69,7 @@ public final class ProductInfoProvider {
     private @Nullable InfoProviderSite cachedProductInfoSite = null;
 
     @Getter
-    private @Nullable ProductNameInfo openedProductNameInfo;
+    private @Nullable ProductRef openedProduct;
 
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -117,11 +116,11 @@ public final class ProductInfoProvider {
 
                 product.ifPresentOrElse(
                     resolved -> {
-                        this.openedProductNameInfo = new ProductNameInfo(resolved);
+                        this.openedProduct = resolved;
                         log.debug("Opened product: {}", resolved);
                     },
                     () -> {
-                        this.openedProductNameInfo = null;
+                        this.openedProduct = null;
                         log.warn("No product resolved for Bazaar item screen");
                     }
                 );
@@ -129,7 +128,7 @@ public final class ProductInfoProvider {
         );
 
         ScreenInfoHelper.registerOnSwitch(curr -> {
-            if (this.openedProductNameInfo == null) {
+            if (this.openedProduct == null) {
                 return;
             }
 
@@ -147,7 +146,7 @@ public final class ProductInfoProvider {
             if (transientFlowClose) {
                 log.debug(
                     "Preserving product context on transient flow close: {}",
-                    this.openedProductNameInfo.product()
+                    this.openedProduct
                 );
                 return;
             }
@@ -155,9 +154,9 @@ public final class ProductInfoProvider {
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
                     "Leaving product flow, clearing product: {}",
-                    this.openedProductNameInfo.product()
+                    this.openedProduct
                 );
-                this.openedProductNameInfo = null;
+                this.openedProduct = null;
             }
         });
     }
@@ -429,16 +428,6 @@ public final class ProductInfoProvider {
         }
     }
 
-    public record ProductNameInfo(@NotNull ProductRef product) {
-        public String productId() {
-            return this.product.productId();
-        }
-
-        public String productName() {
-            return this.product.displayName();
-        }
-    }
-
     private record CachedPrice(
         ProductIdentity product,
         @Nullable Double sellOfferPrice,
@@ -454,7 +443,7 @@ public final class ProductInfoProvider {
             var cfg = ConfigManager.get().productInfo;
             return cfg.enabled
                 && cfg.itemClickEnabled
-                && ProductInfoProvider.this.openedProductNameInfo != null
+                && ProductInfoProvider.this.openedProduct != null
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_ITEM_IDX
                 && view.getCurrInfo().inMenu(BazaarMenuType.Item);
@@ -469,7 +458,7 @@ public final class ProductInfoProvider {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var cfg = ConfigManager.get().productInfo;
             ProductInfoProvider.this.confirmAndOpen(
-                cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId())
+                cfg.site.format(ProductInfoProvider.this.openedProduct.productId())
             );
             return SlotClickResult.Consume;
         }

@@ -207,6 +207,34 @@ public final class Utils {
         return ROMAN_NUMERAL_PATTERN.matcher(roman).matches();
     }
 
+    public static Optional<Integer> parseRomanNumeral(String roman) {
+        if (roman == null || roman.isBlank()) {
+            return Optional.empty();
+        }
+
+        var normalized = roman.trim().toUpperCase(Locale.US);
+        if (!isValidRomanNumeral(normalized)) {
+            return Optional.empty();
+        }
+
+        var result = 0;
+        var previous = 0;
+        for (var i = normalized.length() - 1; i >= 0; i--) {
+            var value = romanValue(normalized.charAt(i));
+            if (value < previous) {
+                result -= value;
+            } else {
+                result += value;
+                previous = value;
+            }
+        }
+
+        if (result <= 0 || result > 3999 || !intToRoman(result).equals(normalized)) {
+            return Optional.empty();
+        }
+        return Optional.of(result);
+    }
+
     public static String intToRoman(int num) {
         if (num <= 0 || num > 3999) {
             throw new IllegalArgumentException("Input out of bounds valid range of [1; 3999]");
@@ -231,6 +259,19 @@ public final class Utils {
         }
 
         return ret.toString();
+    }
+
+    private static int romanValue(char c) {
+        return switch (c) {
+            case 'I' -> 1;
+            case 'V' -> 5;
+            case 'X' -> 10;
+            case 'L' -> 50;
+            case 'C' -> 100;
+            case 'D' -> 500;
+            case 'M' -> 1000;
+            default -> 0;
+        };
     }
 
     public static String formatDuration(double totalMinutes) {

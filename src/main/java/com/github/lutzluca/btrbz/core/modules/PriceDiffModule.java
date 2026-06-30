@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.modules;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
@@ -83,7 +83,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     private Optional<Integer> parseListedCount(ItemStack sellStack) {
-        return OrderInfoParser
+        return GameUtils
             .getLore(sellStack)
             .stream()
             .filter(line -> line.startsWith("Inventory"))

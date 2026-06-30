@@ -13,6 +13,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -80,11 +81,11 @@ final class RemoteConversionIndexBuilder {
             var derived = ConversionNameDeriver.deriveDisplayName(productId);
             if (derived.displayName().isBlank()) {
                 throw new ConversionRefreshException(
-                    ConversionFailurePhase.Validate,
+                    ConversionRefreshException.Phase.Validate,
                     "Could not derive a display name for active Bazaar product " + productId
                 );
             }
-            if (derived.fallback() && derivedFallbackExamples.size() < 20) {
+            if (derived.genericFallback() && derivedFallbackExamples.size() < 20) {
                 derivedFallbackExamples.add("%s -> %s".formatted(productId, derived.displayName()));
             }
             products.put(
@@ -95,7 +96,7 @@ final class RemoteConversionIndexBuilder {
 
         if (products.size() != productIds.size()) {
             throw new ConversionRefreshException(
-                ConversionFailurePhase.Validate,
+                ConversionRefreshException.Phase.Validate,
                 "Built conversion index is incomplete: " + products.size() + " / " + productIds.size()
             );
         }
@@ -142,20 +143,20 @@ final class RemoteConversionIndexBuilder {
 
     private static Set<String> fetchBazaarProductIds() throws ConversionRefreshException {
         try {
-            var body = fetchString(HYPIXEL_BAZAAR_URI, ConversionFailurePhase.HypixelBazaar);
+            var body = fetchString(HYPIXEL_BAZAAR_URI, ConversionRefreshException.Phase.HypixelBazaar);
             var root = GSON.fromJson(body, JsonObject.class);
             if (root == null || !root.has("products") || !root.get("products").isJsonObject()) {
                 throw new IOException("Invalid Hypixel Bazaar response");
             }
             return new HashSet<>(root.getAsJsonObject("products").keySet());
         } catch (IOException err) {
-            throw new ConversionRefreshException(ConversionFailurePhase.HypixelBazaar, err.getMessage(), err);
+            throw new ConversionRefreshException(ConversionRefreshException.Phase.HypixelBazaar, err.getMessage(), err);
         }
     }
 
     private static Map<String, String> fetchHypixelItemNames() throws ConversionRefreshException {
         try {
-            var body = fetchString(HYPIXEL_ITEMS_URI, ConversionFailurePhase.HypixelItems);
+            var body = fetchString(HYPIXEL_ITEMS_URI, ConversionRefreshException.Phase.HypixelItems);
             var root = GSON.fromJson(body, JsonObject.class);
             if (root == null || !root.has("items") || !root.get("items").isJsonArray()) {
                 throw new IOException("Invalid Hypixel items response");
@@ -174,20 +175,20 @@ final class RemoteConversionIndexBuilder {
             }
             return names;
         } catch (IOException err) {
-            throw new ConversionRefreshException(ConversionFailurePhase.HypixelItems, err.getMessage(), err);
+            throw new ConversionRefreshException(ConversionRefreshException.Phase.HypixelItems, err.getMessage(), err);
         }
     }
 
     private static String fetchNeuCommit() throws ConversionRefreshException {
         try {
-            var body = fetchString(NEU_COMMIT_URI, ConversionFailurePhase.NeuCommit);
+            var body = fetchString(NEU_COMMIT_URI, ConversionRefreshException.Phase.NeuCommit);
             var root = GSON.fromJson(body, JsonObject.class);
             if (root == null || !root.has("sha")) {
                 throw new IOException("Invalid NEU commit response");
             }
             return root.get("sha").getAsString();
         } catch (IOException err) {
-            throw new ConversionRefreshException(ConversionFailurePhase.NeuCommit, err.getMessage(), err);
+            throw new ConversionRefreshException(ConversionRefreshException.Phase.NeuCommit, err.getMessage(), err);
         }
     }
 
@@ -204,7 +205,17 @@ final class RemoteConversionIndexBuilder {
 
     private static Map<String, ConversionProductEntry> fetchNeuEntries(String commit, Set<String> productIds)
         throws ConversionRefreshException {
-        var zipPath = TryFiles.createTempFile("btrbz-neu-", ".zip");
+        Path zipPath;
+        try {
+            zipPath = Files.createTempFile("btrbz-neu-", ".zip");
+        } catch (IOException err) {
+            throw new ConversionRefreshException(
+                ConversionRefreshException.Phase.NeuZip,
+                "Failed to create temporary NEU zip file",
+                err
+            );
+        }
+
         try {
             var req = baseRequest(URI.create(String.format(NEU_ZIP_URL, commit)))
                 .timeout(ZIP_REQUEST_TIMEOUT)
@@ -245,12 +256,16 @@ final class RemoteConversionIndexBuilder {
                 return productEntries;
             }
         } catch (IOException err) {
-            throw new ConversionRefreshException(ConversionFailurePhase.NeuZip, err.getMessage(), err);
+            throw new ConversionRefreshException(ConversionRefreshException.Phase.NeuZip, err.getMessage(), err);
         } catch (InterruptedException err) {
             Thread.currentThread().interrupt();
-            throw new ConversionRefreshException(ConversionFailurePhase.NeuZip, err.getMessage(), err);
+            throw new ConversionRefreshException(ConversionRefreshException.Phase.NeuZip, err.getMessage(), err);
         } finally {
-            TryFiles.deleteIfExists(zipPath);
+            try {
+                Files.deleteIfExists(zipPath);
+            } catch (IOException err) {
+                log.warn("Failed to delete temporary NEU zip {}", zipPath, err);
+            }
         }
     }
 
@@ -309,7 +324,7 @@ final class RemoteConversionIndexBuilder {
         }
     }
 
-    private static String fetchString(URI uri, ConversionFailurePhase phase) throws IOException {
+    private static String fetchString(URI uri, ConversionRefreshException.Phase phase) throws IOException {
         try {
             var req = baseRequest(uri).GET().build();
             var resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
@@ -331,31 +346,6 @@ final class RemoteConversionIndexBuilder {
             .timeout(JSON_REQUEST_TIMEOUT)
             .header("Accept", "application/json")
             .header("User-Agent", "BtrBz conversion-index updater");
-    }
-
-    private static final class TryFiles {
-
-        private TryFiles() { }
-
-        static java.nio.file.Path createTempFile(String prefix, String suffix) throws ConversionRefreshException {
-            try {
-                return Files.createTempFile(prefix, suffix);
-            } catch (IOException err) {
-                throw new ConversionRefreshException(
-                    ConversionFailurePhase.NeuZip,
-                    "Failed to create temporary NEU zip file",
-                    err
-                );
-            }
-        }
-
-        static void deleteIfExists(java.nio.file.Path path) {
-            try {
-                Files.deleteIfExists(path);
-            } catch (IOException err) {
-                log.warn("Failed to delete temporary NEU zip {}", path, err);
-            }
-        }
     }
 
     private static final class BazaarStock {

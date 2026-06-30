@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import net.minecraft.nbt.CompoundTag;
 
-class EnchantedBookProductIdsTest {
+class EnchantedBookIdParserTest {
 
     @Nested
     @DisplayName("custom data")
@@ -23,7 +23,7 @@ class EnchantedBookProductIdsTest {
 
             assertEquals(
                 "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookProductIds.fromCustomData(customData).orElseThrow()
+                EnchantedBookIdParser.fromCustomData(customData).orElseThrow()
             );
         }
 
@@ -32,7 +32,7 @@ class EnchantedBookProductIdsTest {
             var customData = new CompoundTag();
             customData.put("enchantments", new CompoundTag());
 
-            assertTrue(EnchantedBookProductIds.fromCustomData(customData).isEmpty());
+            assertTrue(EnchantedBookIdParser.fromCustomData(customData).isEmpty());
         }
 
         @Test
@@ -43,7 +43,7 @@ class EnchantedBookProductIdsTest {
             enchantments.putInt("protection", 6);
             customData.put("enchantments", enchantments);
 
-            assertTrue(EnchantedBookProductIds.fromCustomData(customData).isEmpty());
+            assertTrue(EnchantedBookIdParser.fromCustomData(customData).isEmpty());
         }
     }
 
@@ -55,7 +55,7 @@ class EnchantedBookProductIdsTest {
         void derivesIdFromRomanLevel() {
             assertEquals(
                 "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookProductIds.fromDisplayName("Quick Bite V").orElseThrow()
+                EnchantedBookIdParser.fromDisplayName("Quick Bite V").orElseThrow()
             );
         }
 
@@ -63,7 +63,7 @@ class EnchantedBookProductIdsTest {
         void stripsBazaarActionPrefix() {
             assertEquals(
                 "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookProductIds.fromDisplayName("SELL Quick Bite V").orElseThrow()
+                EnchantedBookIdParser.fromDisplayName("SELL Quick Bite V").orElseThrow()
             );
         }
 
@@ -71,7 +71,7 @@ class EnchantedBookProductIdsTest {
         void derivesIdFromArabicLevel() {
             assertEquals(
                 "ENCHANTMENT_COUNTER_STRIKE_5",
-                EnchantedBookProductIds.fromDisplayName("Counter-Strike 5").orElseThrow()
+                EnchantedBookIdParser.fromDisplayName("Counter-Strike 5").orElseThrow()
             );
         }
 
@@ -79,13 +79,13 @@ class EnchantedBookProductIdsTest {
         void derivesCanonicalNameFromArabicLevel() {
             assertEquals(
                 "Turbo-Cacti V",
-                EnchantedBookProductIds.canonicalDisplayName("Turbo-Cacti 5").orElseThrow()
+                EnchantedBookIdParser.canonicalDisplayName("Turbo-Cacti 5").orElseThrow()
             );
         }
 
         @Test
         void rejectsLevelRanges() {
-            assertTrue(EnchantedBookProductIds.fromDisplayName("Growth 6-7").isEmpty());
+            assertTrue(EnchantedBookIdParser.fromDisplayName("Growth 6-7").isEmpty());
         }
     }
 
@@ -97,7 +97,7 @@ class EnchantedBookProductIdsTest {
         void derivesIdFromNeuStyleRawId() {
             assertEquals(
                 "ENCHANTMENT_COUNTER_STRIKE_5",
-                EnchantedBookProductIds.fromRawProductId("COUNTER_STRIKE;5").orElseThrow()
+                EnchantedBookIdParser.fromRawProductId("COUNTER_STRIKE;5").orElseThrow()
             );
         }
     }
