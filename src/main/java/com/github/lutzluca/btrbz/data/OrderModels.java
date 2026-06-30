@@ -240,15 +240,12 @@ public final class OrderModels {
         }
 
         private boolean productsMatch(OrderInfo info) {
-            var trackedRef = this.product.resolvedProduct();
-            var infoRef = info.product().resolvedProduct();
-            if (trackedRef.isPresent() && infoRef.isPresent()) {
-                return trackedRef.get().productId().equals(infoRef.get().productId());
-            }
-
-            return Utils
-                .normalizeDisplayName(this.uiProductName)
-                .equals(Utils.normalizeDisplayName(info.uiProductName()));
+            return ProductIdentity.matches(
+                this.product,
+                this.uiProductName,
+                info.product(),
+                info.uiProductName()
+            );
         }
 
         public MutableComponent format() {

@@ -8,11 +8,14 @@ import io.vavr.control.Try;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,7 @@ public final class ConversionIndexService {
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
     private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
+    private static final Set<String> LOGGED_GENERIC_FALLBACKS = ConcurrentHashMap.newKeySet();
 
     private volatile ConversionIndex currentIndex;
     private volatile ConversionStatus.IndexLoadSource activeLoadSource;
@@ -190,13 +194,58 @@ public final class ConversionIndexService {
     }
 
     private ConversionIndex applyIndex(ConversionIndex index, ConversionStatus.IndexLoadSource source) {
-        var normalized = ConversionIndexNormalizer.normalizeDerivedEntries(index);
+        var normalized = normalizeDerivedEntries(index);
         this.currentIndex = normalized;
         this.activeLoadSource = source;
         this.clearResolvedStackCache();
         this.logIndexSummary(source, normalized);
         this.notifyIndexChanged();
         return normalized;
+    }
+
+    private static ConversionIndex normalizeDerivedEntries(ConversionIndex index) {
+        var changedExamples = new ArrayList<String>();
+        var fallbackExamples = new ArrayList<String>();
+        var products = new LinkedHashMap<String, ConversionProductEntry>();
+
+        index.products().forEach((productId, entry) -> {
+            if (!(entry.source() instanceof ProductNameSource.Derived)) {
+                products.put(productId, entry);
+                return;
+            }
+
+            var derived = ConversionNameDeriver.deriveDisplayName(productId);
+            var normalized = new ConversionProductEntry(derived.displayName(), entry.source());
+            products.put(productId, normalized);
+
+            if (!entry.displayName().equals(normalized.displayName()) && changedExamples.size() < 20) {
+                changedExamples.add("%s: '%s' -> '%s'".formatted(
+                    productId,
+                    entry.displayName(),
+                    normalized.displayName()
+                ));
+            }
+
+            if (derived.genericFallback()
+                && fallbackExamples.size() < 20
+                && LOGGED_GENERIC_FALLBACKS.add(productId)) {
+                fallbackExamples.add("%s -> %s".formatted(productId, normalized.displayName()));
+            }
+        });
+
+        if (!changedExamples.isEmpty()) {
+            log.debug("Recomputed derived conversion names from current rules; sample: {}", changedExamples);
+        }
+        if (!fallbackExamples.isEmpty()) {
+            log.warn("Generic title-case conversion fallback used; sample: {}", fallbackExamples);
+        }
+
+        return new ConversionIndex(
+            index.schemaVersion(),
+            index.generatedAt(),
+            index.neuCommit().orElse(null),
+            products
+        );
     }
 
     private void clearResolvedStackCache() {
