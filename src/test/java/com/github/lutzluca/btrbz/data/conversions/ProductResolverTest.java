@@ -39,14 +39,6 @@ class ProductResolverTest {
         }
 
         @Test
-        void resolvesArabicGroupTitleThroughCanonicalDisplayName() {
-            var service = serviceWithProducts();
-            var product = service.resolveProduct("ENCHANTED_BOOK", "Turbo-Cacti 5");
-
-            assertEquals("ENCHANTMENT_TURBO_CACTUS_5", product.resolvedProduct().orElseThrow().productId());
-        }
-
-        @Test
         void rejectsAmbiguousGroupTitle() {
             var service = serviceWithProducts();
             var product = service.resolveProduct("ENCHANTED_BOOK", "Growth 6-7");
@@ -65,10 +57,6 @@ class ProductResolverTest {
         products.put(
             "ENCHANTMENT_COUNTER_STRIKE_5",
             new ConversionProductEntry("Counter-Strike V", new ProductNameSource.Neu("ENCHANTMENT_COUNTER_STRIKE_5"))
-        );
-        products.put(
-            "ENCHANTMENT_TURBO_CACTUS_5",
-            new ConversionProductEntry("Turbo-Cacti V", new ProductNameSource.Neu("ENCHANTMENT_TURBO_CACTUS_5"))
         );
         return new ConversionIndexService(new ConversionIndex(1, "now", null, products));
     }

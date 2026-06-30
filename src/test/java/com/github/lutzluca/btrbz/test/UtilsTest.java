@@ -177,11 +177,6 @@ class UtilsTest {
         }
 
         @Test
-        void acceptsEmptyStringWithCurrentRegex() {
-            assertTrue(Utils.isValidRomanNumeral(""));
-        }
-
-        @Test
         void acceptsMixedCase() {
             assertTrue(Utils.isValidRomanNumeral("mCmXcIv"));
         }

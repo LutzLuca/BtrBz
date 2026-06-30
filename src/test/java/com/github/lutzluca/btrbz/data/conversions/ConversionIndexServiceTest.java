@@ -19,18 +19,23 @@ class ConversionIndexServiceTest {
                 ConversionIndex.SCHEMA_VERSION,
                 "now",
                 null,
-                Map.of("ESSENCE_WITHER", new ConversionProductEntry(
-                    "Old Name",
-                    new ProductNameSource.Derived()
-                ))
+                Map.of(
+                    "ESSENCE_WITHER", new ConversionProductEntry(
+                        "Old Name",
+                        new ProductNameSource.Derived()
+                    ),
+                    "BAZAAR_COOKIE", new ConversionProductEntry(
+                        "Old Name",
+                        new ProductNameSource.Derived()
+                    )
+                )
             );
 
             var service = new ConversionIndexService(rawIndex);
 
-            assertEquals(
-                "Wither Essence",
-                service.currentIndex().product("ESSENCE_WITHER").orElseThrow().displayName()
-            );
+            var index = service.currentIndex();
+            assertEquals("Wither Essence", index.product("ESSENCE_WITHER").orElseThrow().displayName());
+            assertEquals("Booster Cookie", index.product("BAZAAR_COOKIE").orElseThrow().displayName());
         }
     }
 }
