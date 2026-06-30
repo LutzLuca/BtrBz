@@ -61,7 +61,7 @@ public class TrackedOrderManager {
 
         static SelfUndercutMatchKey from(TrackedOrder order) {
             return new SelfUndercutMatchKey(
-                TrackedOrderManager.productKey(order.product, order.uiProductName),
+                order.product.matchKey(order.uiProductName),
                 order.type
             );
         }
@@ -89,13 +89,6 @@ public class TrackedOrderManager {
         );
     }
 
-    private static String productKey(ProductIdentity product, String uiProductName) {
-        return product
-            .resolvedProduct()
-            .map(ref -> "id:" + ref.productId())
-            .orElseGet(() -> "name:" + Utils.normalizeDisplayName(uiProductName));
-    }
-
     private void refreshTrackedOrderProducts() {
         this.trackedOrders.forEach(order ->
             this.resolveCurrentProduct(order).ifPresent(product -> this.updateTrackedProduct(order, product))
@@ -120,9 +113,9 @@ public class TrackedOrderManager {
 
     private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
         var mergedProduct = strongerProduct(order.product, product);
-        var oldKey = productKey(order.product, order.uiProductName);
+        var oldKey = order.product.matchKey(order.uiProductName);
         var oldProductName = order.productName;
-        var newKey = productKey(mergedProduct, order.uiProductName);
+        var newKey = mergedProduct.matchKey(order.uiProductName);
         if (oldKey.equals(newKey)
             && oldProductName.equals(mergedProduct.displayName())
             && order.product.equals(mergedProduct)) {
@@ -270,7 +263,7 @@ public class TrackedOrderManager {
 
         static GroupMatchKey from(TrackedOrder order) {
             return new GroupMatchKey(
-                TrackedOrderManager.productKey(order.product, order.uiProductName),
+                order.product.matchKey(order.uiProductName),
                 order.type,
                 order.pricePerUnit
             );

@@ -123,6 +123,22 @@ class OrderModelsTest {
         }
 
         @Test
+        void fallsBackToUiNameWhenOnlyOneProductIsResolved() {
+            var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
+                new ProductRef("ENCHANTED_HOPPER", "Enchanted Hopper"),
+                "Enchanted Hopper",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            ));
+
+            assertTrue(tracked.matches(unfilledInfo("Enchanted Hopper", OrderType.Buy, 64, 1234.5)));
+        }
+
+        @Test
         void rejectsDifferentOrderType() {
             assertFalse(this.trackedOrder.matches(unfilledInfo("Enchanted Hopper", OrderType.Sell, 64, 1234.5)));
         }

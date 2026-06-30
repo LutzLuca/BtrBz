@@ -75,8 +75,8 @@ class ConversionIndexTest {
                 new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))
             );
 
-            var json = ConversionLoader.GSON.toJson(ConversionIndexSnapshot.fromIndex(index));
-            var parsed = ConversionLoader.GSON.fromJson(json, ConversionIndexSnapshot.class).toIndex();
+            var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
+            var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
             var source = parsed.products().get("ENCHANTMENT_SHARPNESS_5").source();
 
             assertEquals("Sharpness V", parsed.product("ENCHANTMENT_SHARPNESS_5").orElseThrow().displayName());
