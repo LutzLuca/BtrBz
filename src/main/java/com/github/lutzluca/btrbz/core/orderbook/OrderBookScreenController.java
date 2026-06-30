@@ -71,18 +71,18 @@ public class OrderBookScreenController {
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var productNameInfo = OrderBookScreenController.this.productInfoProvider.getOpenedProductNameInfo();
-            if (productNameInfo == null) {
+            var product = OrderBookScreenController.this.productInfoProvider.getOpenedProduct();
+            if (product == null) {
                 Notifier.notifyPlayer(Notifier
                     .prefix()
                     .append(Component.literal("Failed to determine the opened product name")));
                 return SlotClickResult.Consume;
             }
 
-            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.product());
+            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(product);
             var orderBookScreen = new OrderBookScreen(
                 ctx.view().getCurrInfo().getScreen(),
-                productNameInfo.productName(),
+                product.displayName(),
                 orders
             );
             Minecraft.getInstance().setScreen(orderBookScreen);

@@ -119,9 +119,9 @@ public final class ConversionIndex {
 
         for (var entry : this.products.values()) {
             switch (entry.source()) {
-                case ProductNameSource.HypixelItem ignored -> hypixelItem++;
-                case ProductNameSource.Neu ignored -> neu++;
-                case ProductNameSource.Derived ignored -> derived++;
+                case ProductNameSource.HypixelItem _ -> hypixelItem++;
+                case ProductNameSource.Neu _ -> neu++;
+                case ProductNameSource.Derived _ -> derived++;
             }
         }
 

@@ -188,6 +188,30 @@ class UtilsTest {
     }
 
     @Nested
+    @DisplayName("parseRomanNumeral")
+    class ParseRomanNumeral {
+
+        @Test
+        void parsesRepresentativeValues() {
+            assertEquals(Optional.of(4), Utils.parseRomanNumeral("IV"));
+            assertEquals(Optional.of(58), Utils.parseRomanNumeral("LVIII"));
+            assertEquals(Optional.of(1994), Utils.parseRomanNumeral("MCMXCIV"));
+        }
+
+        @Test
+        void parsesMixedCase() {
+            assertEquals(Optional.of(1994), Utils.parseRomanNumeral("mCmXcIv"));
+        }
+
+        @Test
+        void rejectsBlankOrInvalidValues() {
+            assertTrue(Utils.parseRomanNumeral("").isEmpty());
+            assertTrue(Utils.parseRomanNumeral("IIII").isEmpty());
+            assertTrue(Utils.parseRomanNumeral("VX").isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("formatDuration")
     class FormatDuration {
 

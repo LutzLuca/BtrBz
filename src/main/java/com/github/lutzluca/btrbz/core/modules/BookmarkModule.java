@@ -218,12 +218,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return null;
             }
 
-            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
-            if (productNameInfo == null) {
+            var product = BookmarkModule.this.context().productInfoProvider().getOpenedProduct();
+            if (product == null) {
                 return null;
             }
 
-            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(productNameInfo.product()));
+            rawStack.set(BtrBz.BOOKMARKED, BookmarkModule.this.isBookmarked(product));
             return rawStack;
         }
 
@@ -239,12 +239,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return SlotClickResult.Pass;
             }
 
-            var productNameInfo = BookmarkModule.this.context().productInfoProvider().getOpenedProductNameInfo();
-            if (productNameInfo == null) {
+            var product = BookmarkModule.this.context().productInfoProvider().getOpenedProduct();
+            if (product == null) {
                 return SlotClickResult.Pass;
             }
 
-            var isBookmarked = BookmarkModule.this.toggleBookmark(productNameInfo.product(), rawStack.copy());
+            var isBookmarked = BookmarkModule.this.toggleBookmark(product, rawStack.copy());
             rawStack.set(BtrBz.BOOKMARKED, isBookmarked);
             return SlotClickResult.Consume;
         }

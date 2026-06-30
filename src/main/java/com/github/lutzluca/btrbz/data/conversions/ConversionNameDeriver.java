@@ -52,4 +52,6 @@ final class ConversionNameDeriver {
             default -> new DerivedDisplayName(Utils.titleCase(productId.replace('_', ' ')), true);
         };
     }
+
+    record DerivedDisplayName(String displayName, boolean genericFallback) { }
 }

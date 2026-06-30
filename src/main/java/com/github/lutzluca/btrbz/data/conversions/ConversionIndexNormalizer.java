@@ -36,7 +36,7 @@ final class ConversionIndexNormalizer {
                 ));
             }
 
-            if (derived.fallback()
+            if (derived.genericFallback()
                 && fallbackExamples.size() < 20
                 && LOGGED_GENERIC_FALLBACKS.add(productId)) {
                 fallbackExamples.add("%s -> %s".formatted(productId, normalized.displayName()));

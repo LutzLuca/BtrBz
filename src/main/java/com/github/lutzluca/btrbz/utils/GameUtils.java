@@ -7,12 +7,14 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerScoreEntry;
@@ -50,6 +52,16 @@ public final class GameUtils {
 
         var stripped = ChatFormatting.stripFormatting(text);
         return stripped == null ? "" : stripped;
+    }
+
+    public static List<String> getLore(ItemStack item) {
+        return Optional
+            .ofNullable(item.get(DataComponents.LORE))
+            .map(ItemLore::lines)
+            .orElseGet(ArrayList::new)
+            .stream()
+            .map(Component::getString)
+            .toList();
     }
 
     public static boolean orderScreenNonOrderItemsFilter(@Nullable ItemStack stack) {

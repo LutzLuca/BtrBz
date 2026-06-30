@@ -1,20 +1,26 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
+import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import net.minecraft.nbt.CompoundTag;
-import com.github.lutzluca.btrbz.utils.Utils;
 
-final class EnchantedBookProductIds {
+final class EnchantedBookIdParser {
 
     static final String GENERIC_BOOK_ID = "ENCHANTED_BOOK";
 
+    /*
+     * Accepted formats:
+     * - BUY|SELL <enchantment name> <roman-or-arabic-level>
+     * - <enchantment name> <roman-or-arabic-level>
+     * - <raw enchantment id>;<arabic level>
+     */
     private static final Pattern ACTION_PREFIX = Pattern.compile("^(BUY|SELL)\\s+", Pattern.CASE_INSENSITIVE);
     private static final Pattern DISPLAY_NAME = Pattern.compile("^(.+?)\\s+([IVXLCDM]+|\\d+)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern RAW_ENCHANTMENT_ID = Pattern.compile("^([A-Z0-9_\\-]+);(\\d+)$", Pattern.CASE_INSENSITIVE);
 
-    private EnchantedBookProductIds() { }
+    private EnchantedBookIdParser() { }
 
     static boolean isGenericBookId(String rawProductId) {
         return GENERIC_BOOK_ID.equals(normalizeToken(rawProductId));
@@ -106,23 +112,7 @@ final class EnchantedBookProductIds {
             return parseArabicLevel(level);
         }
 
-        var roman = level.toUpperCase(Locale.US);
-        if (!Utils.isValidRomanNumeral(roman)) {
-            return Optional.empty();
-        }
-
-        var result = 0;
-        var previous = 0;
-        for (var i = roman.length() - 1; i >= 0; i--) {
-            var value = romanValue(roman.charAt(i));
-            if (value < previous) {
-                result -= value;
-            } else {
-                result += value;
-                previous = value;
-            }
-        }
-        return Optional.of(result);
+        return Utils.parseRomanNumeral(level);
     }
 
     private static Optional<Integer> parseArabicLevel(String level) {
@@ -131,19 +121,6 @@ final class EnchantedBookProductIds {
         } catch (NumberFormatException ignored) {
             return Optional.empty();
         }
-    }
-
-    private static int romanValue(char c) {
-        return switch (c) {
-            case 'I' -> 1;
-            case 'V' -> 5;
-            case 'X' -> 10;
-            case 'L' -> 50;
-            case 'C' -> 100;
-            case 'D' -> 500;
-            case 'M' -> 1000;
-            default -> 0;
-        };
     }
 
     private static String normalizeToken(String value) {

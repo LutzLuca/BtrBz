@@ -16,7 +16,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,23 +29,23 @@ public final class ConversionIndexService {
     private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
 
     private volatile ConversionIndex currentIndex;
-    private volatile IndexLoadSource activeLoadSource;
+    private volatile ConversionStatus.IndexLoadSource activeLoadSource;
     private volatile long indexRevision;
     private volatile @Nullable String lastSuccessfulRefreshAt;
     private volatile Optional<ConversionRefreshException> lastFailure = Optional.empty();
 
     public ConversionIndexService() {
-        this(ConversionIndex.empty(), IndexLoadSource.Unavailable);
+        this(ConversionIndex.empty(), ConversionStatus.IndexLoadSource.Unavailable);
     }
 
     public ConversionIndexService(ConversionIndex initialIndex) {
-        this(initialIndex, IndexLoadSource.Unavailable);
+        this(initialIndex, ConversionStatus.IndexLoadSource.Unavailable);
     }
 
-    private ConversionIndexService(ConversionIndex initialIndex, IndexLoadSource source) {
+    private ConversionIndexService(ConversionIndex initialIndex, ConversionStatus.IndexLoadSource source) {
         this.currentIndex = ConversionIndex.empty();
-        this.activeLoadSource = IndexLoadSource.Unavailable;
-        this.resolver = new ProductResolver(this, new ResolutionDiagnostics());
+        this.activeLoadSource = ConversionStatus.IndexLoadSource.Unavailable;
+        this.resolver = new ProductResolver(this);
         this.applyIndex(initialIndex, source);
     }
 
@@ -60,49 +59,45 @@ public final class ConversionIndexService {
         }
 
         var failure = new ConversionRefreshException(
-            ConversionFailurePhase.LoadBundledSeed,
-            result.getCause().getMessage(),
-            result.getCause()
-        );
+                ConversionRefreshException.Phase.LoadBundledSeed,
+                result.getCause().getMessage(),
+                result.getCause());
         this.lastFailure = Optional.of(failure);
-        this.applyIndex(ConversionIndex.empty(), IndexLoadSource.Unavailable);
+        this.applyIndex(ConversionIndex.empty(), ConversionStatus.IndexLoadSource.Unavailable);
         log.error("Failed to load any Bazaar conversion index", result.getCause());
         this.emitConversionEvent(new ConversionEvent(
-            ConversionEvent.Kind.LoadFailure,
-            false,
-            failure.shortMessage()
-        ));
+                ConversionEvent.Kind.LoadFailure,
+                false,
+                failure.shortMessage()));
     }
 
     public boolean refreshConversionIndex(boolean manual) {
         if (!this.refreshInFlight.compareAndSet(false, true)) {
             this.emitConversionEvent(new ConversionEvent(
-                ConversionEvent.Kind.RefreshAlreadyRunning,
-                manual,
-                ""
-            ));
+                    ConversionEvent.Kind.RefreshAlreadyRunning,
+                    manual,
+                    ""));
             return false;
         }
 
         CompletableFuture
-            .supplyAsync(() -> Try.of(() -> RemoteConversionIndexBuilder.build(this.currentIndex)))
-            .thenAccept(result -> {
-                this.refreshInFlight.set(false);
-                result
-                    .onSuccess(index -> this.applyRemoteRefresh(index, manual))
-                    .onFailure(err -> this.handleRefreshFailure(toRefreshException(err), manual));
-            });
+                .supplyAsync(() -> Try.of(() -> RemoteConversionIndexBuilder.build(this.currentIndex)))
+                .thenAccept(result -> {
+                    this.refreshInFlight.set(false);
+                    result
+                            .onSuccess(index -> this.applyRemoteRefresh(index, manual))
+                            .onFailure(err -> this.handleRefreshFailure(toRefreshException(err), manual));
+                });
         return true;
     }
 
     public ConversionStatus status() {
         return ConversionStatus.from(
-            this.activeLoadSource,
-            this.currentIndex,
-            this.lastSuccessfulRefreshAt,
-            this.lastFailure,
-            this.refreshInFlight.get()
-        );
+                this.activeLoadSource,
+                this.currentIndex,
+                this.lastSuccessfulRefreshAt,
+                this.lastFailure,
+                this.refreshInFlight.get());
     }
 
     public ConversionIndex currentIndex() {
@@ -125,8 +120,8 @@ public final class ConversionIndexService {
         var evidenceKey = Utils.cleanDisplayName(displayNameEvidence);
         synchronized (this.resolvedStackCache) {
             var cached = this.resolvedStackCache
-                .getOrDefault(stack, Map.of())
-                .get(evidenceKey);
+                    .getOrDefault(stack, Map.of())
+                    .get(evidenceKey);
             if (cached != null && revision == this.indexRevision) {
                 return cached;
             }
@@ -136,8 +131,8 @@ public final class ConversionIndexService {
         synchronized (this.resolvedStackCache) {
             if (revision == this.indexRevision) {
                 this.resolvedStackCache
-                    .computeIfAbsent(stack, ignored -> new HashMap<>())
-                    .put(evidenceKey, resolved);
+                        .computeIfAbsent(stack, ignored -> new HashMap<>())
+                        .put(evidenceKey, resolved);
             }
         }
         return resolved;
@@ -168,36 +163,33 @@ public final class ConversionIndexService {
     }
 
     private void applyRemoteRefresh(ConversionIndex index, boolean manual) {
-        var appliedIndex = this.applyIndex(index, IndexLoadSource.RemoteRefresh);
+        var appliedIndex = this.applyIndex(index, ConversionStatus.IndexLoadSource.RemoteRefresh);
         this.lastSuccessfulRefreshAt = Instant.now().toString();
         this.lastFailure = Optional.empty();
 
         ConversionLoader.persistIndex(appliedIndex)
-            .onFailure(err -> {
-                var failure = new ConversionRefreshException(
-                    ConversionFailurePhase.Persist,
-                    err.getMessage(),
-                    err
-                );
-                this.lastFailure = Optional.of(failure);
-                log.warn("Refreshed Bazaar conversion index but failed to persist local cache", err);
-                this.emitConversionEvent(new ConversionEvent(
-                    ConversionEvent.Kind.PersistFailure,
-                    manual,
-                    failure.shortMessage()
-                ));
-            });
+                .onFailure(err -> {
+                    var failure = new ConversionRefreshException(
+                            ConversionRefreshException.Phase.Persist,
+                            err.getMessage(),
+                            err);
+                    this.lastFailure = Optional.of(failure);
+                    log.warn("Refreshed Bazaar conversion index but failed to persist local cache", err);
+                    this.emitConversionEvent(new ConversionEvent(
+                            ConversionEvent.Kind.PersistFailure,
+                            manual,
+                            failure.shortMessage()));
+                });
 
         if (this.lastFailure.isEmpty()) {
             this.emitConversionEvent(new ConversionEvent(
-                ConversionEvent.Kind.RefreshSuccess,
-                manual,
-                ""
-            ));
+                    ConversionEvent.Kind.RefreshSuccess,
+                    manual,
+                    ""));
         }
     }
 
-    private ConversionIndex applyIndex(ConversionIndex index, IndexLoadSource source) {
+    private ConversionIndex applyIndex(ConversionIndex index, ConversionStatus.IndexLoadSource source) {
         var normalized = ConversionIndexNormalizer.normalizeDerivedEntries(index);
         this.currentIndex = normalized;
         this.activeLoadSource = source;
@@ -216,16 +208,15 @@ public final class ConversionIndexService {
         }
     }
 
-    private void logIndexSummary(IndexLoadSource source, ConversionIndex index) {
+    private void logIndexSummary(ConversionStatus.IndexLoadSource source, ConversionIndex index) {
         var counts = index.sourceCounts();
         log.debug(
-            "Applied conversion index from {} ({} products, source counts: hypixelItem={}, neu={}, derived={})",
-            source,
-            index.size(),
-            counts.hypixelItem(),
-            counts.neu(),
-            counts.derived()
-        );
+                "Applied conversion index from {} ({} products, source counts: hypixelItem={}, neu={}, derived={})",
+                source,
+                index.size(),
+                counts.hypixelItem(),
+                counts.neu(),
+                counts.derived());
         this.logDerivedMappings(index);
     }
 
@@ -236,46 +227,40 @@ public final class ConversionIndexService {
 
         log.debug("Derived conversion mappings ({} entries):", index.sourceCounts().derived());
         index
-            .products()
-            .entrySet()
-            .stream()
-            .filter(entry -> entry.getValue().source() instanceof ProductNameSource.Derived)
-            .sorted((first, second) -> first.getKey().compareTo(second.getKey()))
-            .forEach(entry -> log.debug(
-                "Derived conversion mapping: {} -> {}",
-                entry.getKey(),
-                entry.getValue().displayName()
-            ));
+                .products()
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().source() instanceof ProductNameSource.Derived)
+                .sorted((first, second) -> first.getKey().compareTo(second.getKey()))
+                .forEach(entry -> log.debug(
+                        "Derived conversion mapping: {} -> {}",
+                        entry.getKey(),
+                        entry.getValue().displayName()));
     }
 
     private void handleRefreshFailure(ConversionRefreshException failure, boolean manual) {
         this.lastFailure = Optional.of(failure);
         log.error("Failed to refresh Bazaar conversion index; active index remains unchanged", failure);
         this.emitConversionEvent(new ConversionEvent(
-            ConversionEvent.Kind.RefreshFailure,
-            manual,
-            failure.shortMessage()
-        ));
+                ConversionEvent.Kind.RefreshFailure,
+                manual,
+                failure.shortMessage()));
     }
 
     private void notifyIndexChanged() {
-        List.copyOf(this.indexChangeListeners).forEach(listener ->
-            Try.run(listener::run)
-                .onFailure(err -> log.error("Conversion index listener failed", err))
-        );
+        List.copyOf(this.indexChangeListeners).forEach(listener -> Try.run(listener::run)
+                .onFailure(err -> log.error("Conversion index listener failed", err)));
     }
 
     private void emitConversionEvent(ConversionEvent event) {
-        List.copyOf(this.conversionEventListeners).forEach(listener ->
-            Try.run(() -> listener.accept(event))
-                .onFailure(err -> log.error("Conversion event listener failed", err))
-        );
+        List.copyOf(this.conversionEventListeners).forEach(listener -> Try.run(() -> listener.accept(event))
+                .onFailure(err -> log.error("Conversion event listener failed", err)));
     }
 
     private static ConversionRefreshException toRefreshException(Throwable err) {
         if (err instanceof ConversionRefreshException refreshException) {
             return refreshException;
         }
-        return new ConversionRefreshException(ConversionFailurePhase.Parse, err.getMessage(), err);
+        return new ConversionRefreshException(ConversionRefreshException.Phase.Parse, err.getMessage(), err);
     }
 }

@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.data.ProductRef;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -144,8 +143,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private @Nullable ProductRef getCurrentProduct() {
-        var info = this.context().productInfoProvider().getOpenedProductNameInfo();
-        return info != null ? info.product() : null;
+        return this.context().productInfoProvider().getOpenedProduct();
     }
 
     private boolean isOrderFlowSignScreen(ScreenInfo curr, ScreenInfo prev) {
@@ -271,7 +269,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private Optional<Integer> getMaxVolume(@NotNull ItemStack item) {
-        return OrderInfoParser
+        return GameUtils
             .getLore(item)
             .stream()
             .filter(line -> line.startsWith("Buy up to"))

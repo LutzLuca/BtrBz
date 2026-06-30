@@ -16,12 +16,12 @@ final class ProductNameSourceAdapter
     public JsonElement serialize(ProductNameSource src, Type typeOfSrc, JsonSerializationContext context) {
         var json = new JsonObject();
         switch (src) {
-            case ProductNameSource.HypixelItem ignored -> json.addProperty("type", "hypixel-item");
+            case ProductNameSource.HypixelItem _ -> json.addProperty("type", "hypixel-item");
             case ProductNameSource.Neu neu -> {
                 json.addProperty("type", "neu");
                 json.addProperty("neuId", neu.neuId());
             }
-            case ProductNameSource.Derived ignored -> json.addProperty("type", "derived");
+            case ProductNameSource.Derived _ -> json.addProperty("type", "derived");
         }
         return json;
     }
