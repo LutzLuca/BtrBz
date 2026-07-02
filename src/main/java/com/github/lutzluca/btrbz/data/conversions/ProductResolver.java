@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
 
 @Slf4j
 final class ProductResolver {
@@ -60,9 +61,7 @@ final class ProductResolver {
                 return product.get();
             }
 
-            var enchantmentProduct = EnchantedBookIdParser
-                .fromRawProductId(rawProductId)
-                .flatMap(this.service::productById)
+            var enchantmentProduct = this.resolveEnchantedBookFromRawId(rawProductId)
                 .or(() -> EnchantedBookIdParser.isGenericBookId(rawProductId)
                     ? this.resolveEnchantedBookDisplayName(cleanedName)
                     : Optional.empty());
@@ -103,28 +102,45 @@ final class ProductResolver {
         String rawProductId,
         String displayName
     ) {
+        return this.resolveEnchantedBookFromCustomData(stack)
+            .or(() -> this.resolveEnchantedBookFromRawId(rawProductId))
+            .or(() -> this.resolveEnchantedBookDisplayName(displayName));
+    }
+
+    private Optional<ProductRef> resolveEnchantedBookFromCustomData(ItemStack stack) {
         return Optional
             .ofNullable(stack.get(DataComponents.CUSTOM_DATA))
-            .map(data -> data.copyTag())
+            .map(CustomData::copyTag)
             .flatMap(EnchantedBookIdParser::fromCustomData)
-            .flatMap(this.service::productById)
-            .or(() -> EnchantedBookIdParser
-                .fromRawProductId(rawProductId)
-                .flatMap(this.service::productById))
-            .or(() -> this.resolveEnchantedBookDisplayName(displayName));
+            .flatMap(this.service::productById);
+    }
+
+    private Optional<ProductRef> resolveEnchantedBookFromRawId(String rawProductId) {
+        return EnchantedBookIdParser
+            .fromRawProductId(rawProductId)
+            .flatMap(productId -> {
+                var product = this.service.productById(productId);
+                product.ifPresent(resolved -> this.diagnostics.rawEnchantedBookId(rawProductId, resolved));
+                return product;
+            });
     }
 
     private Optional<ProductRef> resolveEnchantedBookDisplayName(String displayName) {
         var bookName = EnchantedBookIdParser.stripActionPrefix(displayName);
+
         return this.service
             .currentIndex()
             .uniqueProductByName(bookName)
-            .or(() -> EnchantedBookIdParser
-                .canonicalDisplayName(bookName)
-                .flatMap(canonicalName -> this.service.currentIndex().uniqueProductByName(canonicalName)))
-            .or(() -> EnchantedBookIdParser
-                .fromDisplayName(bookName)
-                .flatMap(this.service::productById));
+            .or(() -> {
+                return EnchantedBookIdParser
+                    .canonicalDisplayName(bookName)
+                    .flatMap(canonicalName -> this.service.currentIndex().uniqueProductByName(canonicalName));
+            })
+            .or(() -> {
+                return EnchantedBookIdParser
+                    .fromDisplayName(bookName)
+                    .flatMap(this.service::productById);
+            });
     }
 
     private ProductIdentity resolveStackFallback(ItemStack stack, String rawProductId, String displayName) {
@@ -181,6 +197,15 @@ final class ProductResolver {
                 rawProductId,
                 resolved,
                 parsedName
+            );
+        }
+
+        void rawEnchantedBookId(String rawProductId, ProductRef resolved) {
+            this.logDebugOnce(
+                "RAW_ENCHANTED_BOOK|%s|%s".formatted(rawProductId, resolved.productId()),
+                "Resolved NEU-style enchanted book id '{}' as {}",
+                rawProductId,
+                resolved
             );
         }
 

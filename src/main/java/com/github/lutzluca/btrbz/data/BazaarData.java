@@ -58,12 +58,13 @@ public class BazaarData {
         return this.conversionIndexService.status();
     }
 
-    public Optional<ProductRef> productById(String productId) {
+    public Optional<ProductRef> resolveProductId(String productId) {
         return this.conversionIndexService.productById(productId);
     }
 
-    public ProductRef currentProduct(ProductRef product) {
-        return this.productById(product.productId()).orElse(product);
+    public ProductRef refreshProductRef(ProductRef product) {
+        // Keep stale display metadata if the active conversion index no longer contains this id.
+        return this.resolveProductId(product.productId()).orElse(product);
     }
 
     public ProductIdentity resolveProduct(ItemStack stack) {
@@ -86,16 +87,8 @@ public class BazaarData {
         this.conversionIndexService.addIndexChangeListener(listener);
     }
 
-    public void removeIndexChangeListener(Runnable listener) {
-        this.conversionIndexService.removeIndexChangeListener(listener);
-    }
-
     public void addConversionEventListener(Consumer<ConversionEvent> listener) {
         this.conversionIndexService.addConversionEventListener(listener);
-    }
-
-    public void removeConversionEventListener(Consumer<ConversionEvent> listener) {
-        this.conversionIndexService.removeConversionEventListener(listener);
     }
 
     public void onUpdate(Map<String, Product> products) {

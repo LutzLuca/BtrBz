@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
@@ -383,11 +384,10 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             public JsonElement serialize(
                 BookmarkedItem src,
                 Type typeOfSrc,
-                JsonSerializationContext context
+                JsonSerializationContext ctx
             ) {
                 var obj = new JsonObject();
-                obj.addProperty("productId", src.product.productId());
-                obj.addProperty("displayName", src.product.displayName());
+                obj.add("product", ctx.serialize(src.product, ProductRef.class));
 
                 var itemData = new JsonObject();
                 var template = src.itemTemplate();
@@ -412,7 +412,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             public BookmarkedItem deserialize(
                 JsonElement json,
                 Type typeOfT,
-                JsonDeserializationContext context
+                JsonDeserializationContext ctx
             ) throws JsonParseException {
                 if (!json.isJsonObject()) {
                     log.warn("Skipping malformed bookmark entry");
@@ -420,27 +420,17 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 }
                 var obj = json.getAsJsonObject();
 
-                var productId = optionalString(obj, "productId");
-                if (productId.isEmpty()) {
-                    log.warn("Skipping bookmark without productId");
+                var product = product(obj, ctx).orElse(null);
+                if (product == null) {
                     return null;
                 }
-                var displayName = optionalString(obj, "displayName");
-                if (displayName.isEmpty()) {
-                    log.warn("Skipping bookmark {} without displayName", productId.get());
-                    return null;
-                }
-                var product = new ProductRef(
-                    productId.get(),
-                    displayName.get()
-                );
 
                 if (!obj.has("itemStack") || !obj.get("itemStack").isJsonObject()) {
                     log.warn("Skipping bookmark {} without itemStack", product);
                     return null;
                 }
                 var itemData = obj.getAsJsonObject("itemStack");
-                var itemIdString = optionalString(itemData, "id");
+                var itemIdString = GsonUtils.optionalString(itemData, "id");
                 if (itemIdString.isEmpty()) {
                     log.warn("Skipping bookmark {} without item id", product);
                     return null;
@@ -481,15 +471,18 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return new BookmarkedItem(product, template);
             }
 
-            private static Optional<String> optionalString(JsonObject obj, String name) {
-                if (obj == null || !obj.has(name) || obj.get(name).isJsonNull()) {
+            private static Optional<ProductRef> product(JsonObject obj, JsonDeserializationContext ctx) {
+                try {
+                    return Optional.of(ctx.deserialize(
+                        GsonUtils.required(obj, "product", "Bookmark"),
+                        ProductRef.class
+                    ));
+                } catch (RuntimeException err) {
+                    log.warn("Skipping bookmark with invalid product", err);
                     return Optional.empty();
                 }
-                var value = obj.get(name).getAsString();
-                return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
             }
         }
-
     }
 
     public static class BookMarkConfig {

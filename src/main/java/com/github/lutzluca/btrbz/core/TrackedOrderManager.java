@@ -57,11 +57,25 @@ public class TrackedOrderManager {
     private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) {}
     private final Map<SelfUndercutMatchKey, SelfUndercutPricePair> selfUndercutState = new HashMap<>();
 
-    private record SelfUndercutMatchKey(String productKey, OrderType type) {
+    private sealed interface ProductGroupKey permits ResolvedProductKey, UnresolvedProductKey {
+
+        static ProductGroupKey from(ProductIdentity product, String fallbackName) {
+            return product
+                .resolvedProduct()
+                .<ProductGroupKey>map(ref -> new ResolvedProductKey(ref.productId()))
+                .orElseGet(() -> new UnresolvedProductKey(Utils.normalizeDisplayName(fallbackName)));
+        }
+    }
+
+    private record ResolvedProductKey(String productId) implements ProductGroupKey { }
+
+    private record UnresolvedProductKey(String normalizedName) implements ProductGroupKey { }
+
+    private record SelfUndercutMatchKey(ProductGroupKey product, OrderType type) {
 
         static SelfUndercutMatchKey from(TrackedOrder order) {
             return new SelfUndercutMatchKey(
-                order.product.matchKey(order.uiProductName),
+                ProductGroupKey.from(order.product, order.uiProductName),
                 order.type
             );
         }
@@ -98,7 +112,7 @@ public class TrackedOrderManager {
     private Optional<ProductIdentity> resolveCurrentProduct(TrackedOrder order) {
         var resolved = order.product.resolvedProduct();
         if (resolved.isPresent()) {
-            return Optional.of(this.bazaarData.currentProduct(resolved.get()));
+            return Optional.of(this.bazaarData.refreshProductRef(resolved.get()));
         }
 
         if (order.product instanceof UnresolvedProduct unresolved && unresolved.rawProductId() != null) {
@@ -112,10 +126,19 @@ public class TrackedOrderManager {
     }
 
     private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
+        if (isWeakerProduct(order.product, product)) {
+            log.warn(
+                "Ignoring weaker tracked order identity update for UI product '{}': current={}, incoming={}",
+                order.uiProductName,
+                order.product,
+                product
+            );
+        }
+
         var mergedProduct = strongerProduct(order.product, product);
-        var oldKey = order.product.matchKey(order.uiProductName);
+        var oldKey = ProductGroupKey.from(order.product, order.uiProductName);
         var oldProductName = order.productName;
-        var newKey = mergedProduct.matchKey(order.uiProductName);
+        var newKey = ProductGroupKey.from(mergedProduct, order.uiProductName);
         if (oldKey.equals(newKey)
             && oldProductName.equals(mergedProduct.displayName())
             && order.product.equals(mergedProduct)) {
@@ -165,6 +188,19 @@ public class TrackedOrderManager {
         }
 
         return current;
+    }
+
+    private static boolean isWeakerProduct(ProductIdentity current, ProductIdentity incoming) {
+        if (current.resolvedProduct().isPresent() && incoming.resolvedProduct().isEmpty()) {
+            return true;
+        }
+
+        if (current instanceof UnresolvedProduct currentUnresolved
+            && incoming instanceof UnresolvedProduct incomingUnresolved) {
+            return currentUnresolved.rawProductId() != null && incomingUnresolved.rawProductId() == null;
+        }
+
+        return false;
     }
 
     private void notifyOrderUpdated(TrackedOrder order) {
@@ -259,11 +295,11 @@ public class TrackedOrderManager {
         }
     }
 
-    private record GroupMatchKey(String productKey, OrderType type, double pricePerUnit) {
+    private record GroupMatchKey(ProductGroupKey product, OrderType type, double pricePerUnit) {
 
         static GroupMatchKey from(TrackedOrder order) {
             return new GroupMatchKey(
-                order.product.matchKey(order.uiProductName),
+                ProductGroupKey.from(order.product, order.uiProductName),
                 order.type,
                 order.pricePerUnit
             );

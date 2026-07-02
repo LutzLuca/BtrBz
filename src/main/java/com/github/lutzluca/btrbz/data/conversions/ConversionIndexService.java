@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,6 +38,11 @@ public final class ConversionIndexService {
     private volatile long indexRevision;
     private volatile @Nullable String lastSuccessfulRefreshAt;
     private volatile Optional<ConversionRefreshException> lastFailure = Optional.empty();
+
+    private record RemoteRefreshResult(
+        ConversionIndex index,
+        Optional<ConversionRefreshException> persistFailure
+    ) { }
 
     public ConversionIndexService() {
         this(ConversionIndex.empty(), ConversionStatus.IndexLoadSource.Unavailable);
@@ -85,13 +91,20 @@ public final class ConversionIndexService {
         }
 
         CompletableFuture
-                .supplyAsync(() -> Try.of(() -> RemoteConversionIndexBuilder.build(this.currentIndex)))
-                .thenAccept(result -> {
-                    this.refreshInFlight.set(false);
-                    result
-                            .onSuccess(index -> this.applyRemoteRefresh(index, manual))
-                            .onFailure(err -> this.handleRefreshFailure(toRefreshException(err), manual));
-                });
+                .supplyAsync(() -> Try.of(this::prepareRemoteRefresh))
+                .thenAccept(result -> Minecraft.getInstance().execute(() -> {
+                    try {
+                        result
+                                .onSuccess(refresh -> this.applyRemoteRefresh(refresh, manual))
+                                .onFailure(err -> this.handleRefreshFailure(toRefreshException(err), manual));
+                    } finally {
+                        this.refreshInFlight.set(false);
+                        log.info(
+                                "Finished Bazaar conversion refresh (manual={}, result={})",
+                                manual,
+                                result.isSuccess() ? "success" : "failure");
+                    }
+                }));
         return true;
     }
 
@@ -154,38 +167,38 @@ public final class ConversionIndexService {
         this.indexChangeListeners.add(listener);
     }
 
-    public void removeIndexChangeListener(Runnable listener) {
-        this.indexChangeListeners.remove(listener);
-    }
-
     public void addConversionEventListener(Consumer<ConversionEvent> listener) {
         this.conversionEventListeners.add(listener);
     }
 
-    public void removeConversionEventListener(Consumer<ConversionEvent> listener) {
-        this.conversionEventListeners.remove(listener);
+    private RemoteRefreshResult prepareRemoteRefresh() throws ConversionRefreshException {
+        var index = normalizeDerivedEntries(RemoteConversionIndexBuilder.build(this.currentIndex));
+        var persistResult = ConversionLoader.persistIndex(index);
+        var persistFailure = persistResult
+            .failed()
+            .map(err -> new ConversionRefreshException(
+                ConversionRefreshException.Phase.Persist,
+                err.getMessage(),
+                err
+            ))
+            .toJavaOptional();
+
+        return new RemoteRefreshResult(index, persistFailure);
     }
 
-    private void applyRemoteRefresh(ConversionIndex index, boolean manual) {
-        var appliedIndex = this.applyIndex(index, ConversionStatus.IndexLoadSource.RemoteRefresh);
+    private void applyRemoteRefresh(RemoteRefreshResult result, boolean manual) {
         this.lastSuccessfulRefreshAt = Instant.now().toString();
-        this.lastFailure = Optional.empty();
+        this.lastFailure = result.persistFailure();
+        this.applyNormalizedIndex(result.index(), ConversionStatus.IndexLoadSource.RemoteRefresh);
 
-        ConversionLoader.persistIndex(appliedIndex)
-                .onFailure(err -> {
-                    var failure = new ConversionRefreshException(
-                            ConversionRefreshException.Phase.Persist,
-                            err.getMessage(),
-                            err);
-                    this.lastFailure = Optional.of(failure);
-                    log.warn("Refreshed Bazaar conversion index but failed to persist local cache", err);
-                    this.emitConversionEvent(new ConversionEvent(
-                            ConversionEvent.Kind.PersistFailure,
-                            manual,
-                            failure.shortMessage()));
-                });
-
-        if (this.lastFailure.isEmpty()) {
+        if (result.persistFailure().isPresent()) {
+            var failure = result.persistFailure().get();
+            log.warn("Refreshed Bazaar conversion index but failed to persist local cache", failure);
+            this.emitConversionEvent(new ConversionEvent(
+                    ConversionEvent.Kind.PersistFailure,
+                    manual,
+                    failure.shortMessage()));
+        } else {
             this.emitConversionEvent(new ConversionEvent(
                     ConversionEvent.Kind.RefreshSuccess,
                     manual,
@@ -195,6 +208,10 @@ public final class ConversionIndexService {
 
     private ConversionIndex applyIndex(ConversionIndex index, ConversionStatus.IndexLoadSource source) {
         var normalized = normalizeDerivedEntries(index);
+        return this.applyNormalizedIndex(normalized, source);
+    }
+
+    private ConversionIndex applyNormalizedIndex(ConversionIndex normalized, ConversionStatus.IndexLoadSource source) {
         this.currentIndex = normalized;
         this.activeLoadSource = source;
         this.clearResolvedStackCache();

@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -166,22 +167,16 @@ final class ConversionLoader {
             }
 
             var obj = json.getAsJsonObject();
-            if (!obj.has("type")) {
-                throw new JsonParseException("Product name source is missing type");
-            }
+            var type = GsonUtils.requiredString(obj, "type", "Product name source");
 
-            return switch (obj.get("type").getAsString()) {
+            return switch (type) {
                 case "hypixel-item" -> new ProductNameSource.HypixelItem();
                 case "neu" -> {
-                    if (!obj.has("neuId") || obj.get("neuId").getAsString().isBlank()) {
-                        throw new JsonParseException("NEU product name source is missing neuId");
-                    }
-                    yield new ProductNameSource.Neu(obj.get("neuId").getAsString());
+                    var neuId = GsonUtils.requiredString(obj, "neuId", "NEU product name source");
+                    yield new ProductNameSource.Neu(neuId);
                 }
                 case "derived" -> new ProductNameSource.Derived();
-                default -> throw new JsonParseException(
-                    "Unknown product name source type: " + obj.get("type").getAsString()
-                );
+                default -> throw new JsonParseException("Unknown product name source type: " + type);
             };
         }
     }

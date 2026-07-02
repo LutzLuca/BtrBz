@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.gson.JsonDeserializationContext;
@@ -213,14 +214,13 @@ public class AlertManager {
             public JsonElement serialize(
                 Alert src,
                 Type typeOfSrc,
-                JsonSerializationContext context
+                JsonSerializationContext ctx
             ) {
                 var obj = new JsonObject();
                 obj.addProperty("id", src.id.toString());
                 obj.addProperty("createdAt", src.createdAt);
-                obj.addProperty("productId", src.productId());
-                obj.addProperty("displayName", src.productName());
-                obj.add("type", context.serialize(src.type));
+                obj.add("product", ctx.serialize(src.product, ProductRef.class));
+                obj.add("type", ctx.serialize(src.type));
                 obj.addProperty("price", src.price);
                 obj.addProperty("remindedAfter", src.remindedAfter);
                 return obj;
@@ -230,35 +230,18 @@ public class AlertManager {
             public Alert deserialize(
                 JsonElement json,
                 Type typeOfT,
-                JsonDeserializationContext context
+                JsonDeserializationContext ctx
             ) throws JsonParseException {
                 var obj = json.getAsJsonObject();
 
                 return new Alert(
-                    UUID.fromString(required(obj, "id").getAsString()),
-                    required(obj, "createdAt").getAsLong(),
-                    new ProductRef(
-                        required(obj, "productId").getAsString(),
-                        required(obj, "displayName").getAsString()
-                    ),
-                    context.deserialize(required(obj, "type"), AlertType.class),
-                    required(obj, "price").getAsDouble(),
-                    optionalLong(obj, "remindedAfter").orElse(-1L)
+                    UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
+                    GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
+                    ctx.deserialize(GsonUtils.required(obj, "product", "Alert"), ProductRef.class),
+                    ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class),
+                    GsonUtils.required(obj, "price", "Alert").getAsDouble(),
+                    GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L)
                 );
-            }
-
-            private static JsonElement required(JsonObject obj, String name) {
-                if (!obj.has(name) || obj.get(name).isJsonNull()) {
-                    throw new JsonParseException("Alert is missing required field '" + name + "'");
-                }
-                return obj.get(name);
-            }
-
-            private static Optional<Long> optionalLong(JsonObject obj, String name) {
-                if (obj == null || !obj.has(name) || obj.get(name).isJsonNull()) {
-                    return Optional.empty();
-                }
-                return Optional.of(obj.get(name).getAsLong());
             }
         }
     }
