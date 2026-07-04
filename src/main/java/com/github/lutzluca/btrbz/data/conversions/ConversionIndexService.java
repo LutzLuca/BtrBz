@@ -32,7 +32,7 @@ public final class ConversionIndexService {
     private volatile ConversionIndex currentIndex;
     private volatile ConversionStatus.IndexLoadSource activeLoadSource;
     private volatile long indexRevision;
-    private volatile @Nullable String lastSuccessfulRefreshAt;
+    private volatile Optional<String> lastSuccessfulRefreshAt = Optional.empty();
     private volatile Optional<ConversionRefreshException> lastFailure = Optional.empty();
 
     private record RemoteRefreshResult(
@@ -189,7 +189,7 @@ public final class ConversionIndexService {
     }
 
     private void applyRemoteRefresh(RemoteRefreshResult result, boolean manual) {
-        this.lastSuccessfulRefreshAt = Instant.now().toString();
+        this.lastSuccessfulRefreshAt = Optional.of(Instant.now().toString());
         this.lastFailure = result.persistFailure();
         this.applyIndex(result.index(), ConversionStatus.IndexLoadSource.RemoteRefresh);
 
@@ -208,13 +208,12 @@ public final class ConversionIndexService {
         }
     }
 
-    private ConversionIndex applyIndex(ConversionIndex index, ConversionStatus.IndexLoadSource source) {
+    private void applyIndex(ConversionIndex index, ConversionStatus.IndexLoadSource source) {
         this.currentIndex = index;
         this.activeLoadSource = source;
         this.clearResolvedStackCache();
         this.logIndexSummary(source, index);
         this.notifyIndexChanged();
-        return index;
     }
 
     private void clearResolvedStackCache() {

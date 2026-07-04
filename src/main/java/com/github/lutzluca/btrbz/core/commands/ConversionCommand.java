@@ -51,7 +51,7 @@ public final class ConversionCommand {
             .prefix()
             .append(Component.literal("Bazaar conversions").withStyle(ChatFormatting.GOLD))
             .append(Component.literal("\nSource: " + status.activeLoadSource()).withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("\nProducts: " + status.productCount()).withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("\nProducts: " + counts.total()).withStyle(ChatFormatting.GRAY))
             .append(Component
                 .literal("\nSources: neu=" + counts.neu()
                     + ", derived=" + counts.derived())
@@ -61,9 +61,7 @@ public final class ConversionCommand {
                 .literal("\nNEU commit: " + status.neuCommit().orElse("<none>"))
                 .withStyle(ChatFormatting.GRAY))
             .append(Component
-                .literal("\nLast refresh: " + (status.lastSuccessfulRefreshAt() == null
-                    ? "<never>"
-                    : status.lastSuccessfulRefreshAt()))
+                .literal("\nLast refresh: " + status.lastSuccessfulRefreshAt().orElse("<never>"))
                 .withStyle(ChatFormatting.GRAY))
             .append(Component
                 .literal("\nRefresh running: " + status.refreshInFlight())

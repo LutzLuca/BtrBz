@@ -204,7 +204,9 @@ public final class Utils {
 
 
     public static boolean isValidRomanNumeral(String roman) {
-        return ROMAN_NUMERAL_PATTERN.matcher(roman).matches();
+        return roman != null
+            && !roman.isBlank()
+            && ROMAN_NUMERAL_PATTERN.matcher(roman.trim()).matches();
     }
 
     public static Optional<Integer> parseRomanNumeral(String roman) {

@@ -270,7 +270,7 @@ final class RemoteNeuConversionIndexBuilder {
     ) throws IOException {
         var directItem = entriesBySuffix.get("items/" + productId + ".json");
         if (directItem != null) {
-            return entryFromItem(zip, directItem, productId, productId)
+            return entryFromItem(zip, directItem, productId)
                 .or(() -> derivedEnchantmentEntry(productId));
         }
 
@@ -298,14 +298,13 @@ final class RemoteNeuConversionIndexBuilder {
             return derivedEnchantmentEntry(productId);
         }
 
-        return entryFromItem(zip, itemEntry, productId, neuId)
+        return entryFromItem(zip, itemEntry, neuId)
             .or(() -> derivedEnchantmentEntry(productId));
     }
 
     private static Optional<ConversionProductEntry> entryFromItem(
         ZipFile zip,
         ZipEntry itemEntry,
-        String productId,
         String neuId
     ) throws IOException {
         return readNeuFormattedName(zip, itemEntry)

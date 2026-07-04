@@ -281,17 +281,6 @@ public final class ProductInfoProvider {
             .isPresent();
     }
 
-    private boolean shouldApplyCtrlShiftClick(SlotView view) {
-        var stack = view.getRawStack();
-        if (!this.isCtrlShiftContextEnabled(stack)) {
-            return false;
-        }
-
-        return this.resolveProductForLookup(view)
-            .resolvedProduct()
-            .isPresent();
-    }
-
     private boolean isCtrlShiftContextEnabled(ItemStack stack) {
         var cfg = ConfigManager.get().productInfo;
         if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
@@ -429,7 +418,7 @@ public final class ProductInfoProvider {
     }
 
     private record CachedPrice(
-        ProductIdentity product,
+        ProductRef product,
         @Nullable Double sellOfferPrice,
         @Nullable Double buyOrderPrice
     ) { }
@@ -470,7 +459,8 @@ public final class ProductInfoProvider {
 
         @Override
         public boolean matches(SlotView view) {
-            return !view.getRawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view);
+            // Keep matching cheap; ctrl-shift eligibility may inspect inventory and only matters on click.
+            return !view.getRawStack().isEmpty();
         }
 
         @Override
@@ -479,14 +469,18 @@ public final class ProductInfoProvider {
                 return SlotClickResult.Pass;
             }
 
-            var cfg = ConfigManager.get().productInfo;
             var stack = ctx.view().getRawStack();
+            if (!ProductInfoProvider.this.isCtrlShiftContextEnabled(stack)) {
+                return SlotClickResult.Pass;
+            }
+
             var product = ProductInfoProvider.this.resolveProductForLookup(ctx.view()).resolvedProduct();
             if (product.isEmpty()) {
                 log.warn("No product id found for {}", stack.getHoverName().getString());
                 return SlotClickResult.Pass;
             }
 
+            var cfg = ConfigManager.get().productInfo;
             ProductInfoProvider.this.confirmAndOpen(cfg.site.format(product.get().productId()));
             return SlotClickResult.Consume;
         }
@@ -609,7 +603,7 @@ public final class ProductInfoProvider {
 
     private class PriceCache {
 
-        private final WeakHashMap<ItemStack, CachedPrice> cache = new WeakHashMap<>();
+        private final WeakHashMap<ItemStack, @Nullable CachedPrice> cache = new WeakHashMap<>();
 
         PriceCache() {
             log.debug("Initializing Price Cache");
@@ -633,30 +627,28 @@ public final class ProductInfoProvider {
 
         Optional<CachedPrice> get(ItemStack stack) {
             if (this.cache.containsKey(stack)) {
-                var cached = this.cache.get(stack);
-                return cached.product().resolvedProduct().isPresent()
-                    ? Optional.of(cached)
-                    : Optional.empty();
+                return Optional.ofNullable(this.cache.get(stack));
             }
-            var product = ProductInfoProvider.this.resolveProduct(stack);
-            var productRef = product.resolvedProduct();
+            var identity = ProductInfoProvider.this.resolveProduct(stack);
+            var productRef = identity.resolvedProduct();
 
             if (productRef.isEmpty()) {
-                this.cache.put(stack, new CachedPrice(product, null, null));
+                this.cache.put(stack, null);
                 return Optional.empty();
             }
 
             var data = ProductInfoProvider.this.bazaarData;
+            var product = productRef.get();
 
-            var sellOfferPrice = data.lowestSellOfferPrice(productRef.get()).orElse(null);
-            var buyOrderPrice = data.highestBuyOrderPrice(productRef.get()).orElse(null);
+            var sellOfferPrice = data.lowestSellOfferPrice(product).orElse(null);
+            var buyOrderPrice = data.highestBuyOrderPrice(product).orElse(null);
 
             var cached = new CachedPrice(product, sellOfferPrice, buyOrderPrice);
             this.cache.put(stack, cached);
 
             log.trace(
                 "Cached price for {}: buy={}, sell={}",
-                productRef.get(),
+                product,
                 buyOrderPrice,
                 sellOfferPrice
             );

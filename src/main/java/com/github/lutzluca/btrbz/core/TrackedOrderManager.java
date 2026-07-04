@@ -115,37 +115,28 @@ public class TrackedOrderManager {
 
     private void refreshTrackedOrderProducts() {
         this.trackedOrders.forEach(order ->
-            this.resolveCurrentProduct(order).ifPresent(product -> this.updateTrackedProduct(order, product))
+            this.updateTrackedProduct(order, this.resolveCurrentProduct(order))
         );
     }
 
-    private Optional<ProductIdentity> resolveCurrentProduct(TrackedOrder order) {
+    private ProductIdentity resolveCurrentProduct(TrackedOrder order) {
         var resolved = order.product.resolvedProduct();
         if (resolved.isPresent()) {
-            return Optional.of(this.bazaarData.refreshProductRef(resolved.get()));
+            return this.bazaarData.refreshProductRef(resolved.get());
         }
 
         if (order.product instanceof UnresolvedProduct unresolved && unresolved.rawProductId() != null) {
-            return Optional.of(this.bazaarData.resolveProduct(
+            return this.bazaarData.resolveProduct(
                 unresolved.rawProductId(),
                 order.uiProductName
-            ));
-        }
-
-        return Optional.of(this.bazaarData.resolveProductName(order.uiProductName));
-    }
-
-    private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
-        if (isWeakerProduct(order.product, product)) {
-            log.warn(
-                "Ignoring weaker tracked order identity update for UI product '{}': current={}, incoming={}",
-                order.uiProductName,
-                order.product,
-                product
             );
         }
 
-        var mergedProduct = strongerProduct(order.product, product);
+        return this.bazaarData.resolveProductName(order.uiProductName);
+    }
+
+    private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
+        var mergedProduct = strongestProduct(order.product, product, order.uiProductName);
         var oldKey = ProductGroupKey.from(order.product, order.uiProductName);
         var oldProductName = order.productName;
         var newKey = ProductGroupKey.from(mergedProduct, order.uiProductName);
@@ -181,12 +172,22 @@ public class TrackedOrderManager {
         this.notifyOrderUpdated(order);
     }
 
-    private static ProductIdentity strongerProduct(ProductIdentity current, ProductIdentity incoming) {
+    private static ProductIdentity strongestProduct(
+        ProductIdentity current,
+        ProductIdentity incoming,
+        String uiProductName
+    ) {
         if (incoming.isResolved()) {
             return incoming;
         }
 
         if (current.isResolved()) {
+            log.warn(
+                "Ignoring weaker tracked order identity update for UI product '{}': current={}, incoming={}",
+                uiProductName,
+                current,
+                incoming
+            );
             return current;
         }
 
@@ -197,20 +198,19 @@ public class TrackedOrderManager {
             return incoming;
         }
 
-        return current;
-    }
-
-    private static boolean isWeakerProduct(ProductIdentity current, ProductIdentity incoming) {
-        if (current.isResolved() && !incoming.isResolved()) {
-            return true;
-        }
-
         if (current instanceof UnresolvedProduct currentUnresolved
-            && incoming instanceof UnresolvedProduct incomingUnresolved) {
-            return currentUnresolved.rawProductId() != null && incomingUnresolved.rawProductId() == null;
+            && incoming instanceof UnresolvedProduct incomingUnresolved
+            && currentUnresolved.rawProductId() != null
+            && incomingUnresolved.rawProductId() == null) {
+            log.warn(
+                "Ignoring weaker tracked order identity update for UI product '{}': current={}, incoming={}",
+                uiProductName,
+                current,
+                incoming
+            );
         }
 
-        return false;
+        return current;
     }
 
     private void notifyOrderUpdated(TrackedOrder order) {

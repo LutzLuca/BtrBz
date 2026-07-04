@@ -171,6 +171,9 @@ class UtilsTest {
 
         @Test
         void rejectsInvalidStrings() {
+            assertFalse(Utils.isValidRomanNumeral(null));
+            assertFalse(Utils.isValidRomanNumeral(""));
+            assertFalse(Utils.isValidRomanNumeral("   "));
             assertFalse(Utils.isValidRomanNumeral("IIII"));
             assertFalse(Utils.isValidRomanNumeral("VX"));
             assertFalse(Utils.isValidRomanNumeral("ABC"));
