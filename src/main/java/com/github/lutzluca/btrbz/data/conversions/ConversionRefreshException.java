@@ -26,7 +26,6 @@ public class ConversionRefreshException extends Exception {
         LoadLocalCache,
         LoadBundledSeed,
         HypixelBazaar,
-        HypixelItems,
         NeuCommit,
         NeuZip,
         Parse,

@@ -81,10 +81,20 @@ public class TrackedOrderManager {
         }
     }
 
-    public record SelfUndercutKey(String productName, OrderType type) {
+    public record SelfUndercutKey(String productName, @Nullable ProductRef productRef, OrderType type) {
 
         public static SelfUndercutKey from(TrackedOrder order) {
-            return new SelfUndercutKey(order.productName, order.type);
+            return new SelfUndercutKey(
+                order.productName,
+                order.product.resolvedProduct().orElse(null),
+                order.type
+            );
+        }
+
+        public ProductIdentity product() {
+            return this.productRef != null
+                ? this.productRef
+                : new UnresolvedProduct(this.productName, null);
         }
     }
 
@@ -140,7 +150,7 @@ public class TrackedOrderManager {
         var oldProductName = order.productName;
         var newKey = ProductGroupKey.from(mergedProduct, order.uiProductName);
         if (oldKey.equals(newKey)
-            && oldProductName.equals(mergedProduct.displayName())
+            && oldProductName.equals(mergedProduct.strippedName())
             && order.product.equals(mergedProduct)) {
             return;
         }
@@ -172,11 +182,11 @@ public class TrackedOrderManager {
     }
 
     private static ProductIdentity strongerProduct(ProductIdentity current, ProductIdentity incoming) {
-        if (incoming.resolvedProduct().isPresent()) {
+        if (incoming.isResolved()) {
             return incoming;
         }
 
-        if (current.resolvedProduct().isPresent()) {
+        if (current.isResolved()) {
             return current;
         }
 
@@ -191,7 +201,7 @@ public class TrackedOrderManager {
     }
 
     private static boolean isWeakerProduct(ProductIdentity current, ProductIdentity incoming) {
-        if (current.resolvedProduct().isPresent() && incoming.resolvedProduct().isEmpty()) {
+        if (current.isResolved() && !incoming.isResolved()) {
             return true;
         }
 
@@ -701,7 +711,12 @@ public class TrackedOrderManager {
                 this.selfUndercutState.put(key, new SelfUndercutPricePair(undercut.bestPrice(), undercut.secondBestPrice()));
                 if (cfg.enabled && cfg.notifySelfUndercut) {
                     this.selfUndercutDisplayKey(key).ifPresent(displayKey ->
-                        Notifier.notifySelfUndercut(displayKey, undercut.bestPrice(), undercut.secondBestPrice())
+                        Notifier.notifySelfUndercut(
+                            displayKey,
+                            undercut.bestPrice(),
+                            undercut.secondBestPrice(),
+                            this.bazaarData
+                        )
                     );
                 }
                 continue;

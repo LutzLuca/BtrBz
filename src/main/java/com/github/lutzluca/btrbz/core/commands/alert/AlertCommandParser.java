@@ -11,76 +11,48 @@ import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
 
 public class AlertCommandParser {
 
     public AlertCommand parse(String args) throws ParseException {
-        var now = System.currentTimeMillis();
-        if (args.isEmpty()) {
-            throw new ParseException("Missing command arguments");
+        var tokens = args == null ? new String[0] : args.trim().split("\\s+", 3);
+        if (tokens.length < 1 || tokens[0].isBlank()) {
+            throw new ParseException("Missing product id");
         }
-
-        String[] tokens = args.toLowerCase().trim().split("\\s+");
-
-        int orderTypeIndex = -1;
-        AlertType orderType = null;
-
-        for (int i = tokens.length - 1; i >= 0; i--) {
-            var type = AlertType.fromIdentifier(tokens[i]);
-            if (type.isFailure()) {
-                continue;
-            }
-
-            orderTypeIndex = i;
-            orderType = type.get();
-            break;
+        if (tokens.length < 2 || tokens[1].isBlank()) {
+            throw new ParseException("Missing order type");
         }
-
-        if (orderType == null) {
-            throw new ParseException("Unrecognized or missing order type");
-        }
-
-        if (orderTypeIndex == 0) {
-            throw new ParseException("Missing product name");
-        }
-
-        if (orderTypeIndex >= tokens.length - 1) {
+        if (tokens.length < 3 || tokens[2].isBlank()) {
             throw new ParseException("Missing price expression");
         }
 
-        String[] productTokens = Arrays.copyOfRange(tokens, 0, orderTypeIndex);
-        String productName = this.normalizeProductName(productTokens);
-
-        String[] priceTokens = Arrays.copyOfRange(tokens, orderTypeIndex + 1, tokens.length);
-        String priceExprString = String.join(" ", priceTokens);
-
-        PriceExpression priceExpression = this.parsePriceExpression(priceExprString);
-
-        return new AlertCommand(now, productName, orderType, priceExpression);
+        return this.parse(tokens[0], tokens[1], tokens[2]);
     }
 
-    private String normalizeProductName(String[] tokens) throws ParseException {
-        var titleCaseTokens = Arrays
-            .stream(tokens)
-            .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
-            .collect(Collectors.toList());
-
-        var lastToken = titleCaseTokens.getLast();
-        var number = Try.of(() -> Integer.parseInt(lastToken));
-        if (number.isSuccess()) {
-            var roman = number
-                .map(Utils::intToRoman)
-                .getOrElseThrow(err -> new ParseException("Invalid product name number format: " + '"' + lastToken + '"'));
-
-            titleCaseTokens.set(titleCaseTokens.size() - 1, roman);
-        } else if (Utils.isValidRomanNumeral(lastToken)) {
-            titleCaseTokens.set(titleCaseTokens.size() - 1, lastToken.toUpperCase());
+    public AlertCommand parse(String productId, String type, String priceExpression) throws ParseException {
+        var now = System.currentTimeMillis();
+        if (productId == null || productId.isBlank()) {
+            throw new ParseException("Missing product id");
+        }
+        if (type == null || type.isBlank()) {
+            throw new ParseException("Missing order type");
+        }
+        if (priceExpression == null || priceExpression.isBlank()) {
+            throw new ParseException("Missing price expression");
         }
 
-        return String.join(" ", titleCaseTokens);
+        var alertType = AlertType
+            .fromIdentifier(type.toLowerCase(Locale.US))
+            .getOrElseThrow(err -> new ParseException(err.getMessage()));
+
+        return new AlertCommand(
+            now,
+            productId.toUpperCase(Locale.US),
+            alertType,
+            this.parsePriceExpression(priceExpression.toLowerCase(Locale.US))
+        );
     }
 
     private PriceExpression parsePriceExpression(String expression) throws ParseException {
@@ -190,16 +162,15 @@ public class AlertCommandParser {
     }
 
     public record AlertCommand(
-        long timestamp, String productName, AlertType type, PriceExpression expr
+        long timestamp, String productId, AlertType type, PriceExpression expr
     ) {
 
         public Try<ResolvedAlertArgs> resolve(BazaarData data) {
             return Try
                 .of(() -> data
-                    .resolveProductName(this.productName)
-                    .resolvedProduct()
+                    .resolveProductId(this.productId)
                     .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid or unrecognized name " + '"' + this.productName + '"'
+                        "Invalid or unrecognized product id " + '"' + this.productId + '"'
                     )))
                 .flatMap(product -> this.expr
                     .resolve(product, this.type, data)
@@ -217,7 +188,11 @@ public class AlertCommandParser {
     ) {
 
         public String productName() {
-            return this.product.displayName();
+            return this.product.strippedName();
+        }
+
+        public String visualName() {
+            return this.product.visualName();
         }
 
         public String productId() {

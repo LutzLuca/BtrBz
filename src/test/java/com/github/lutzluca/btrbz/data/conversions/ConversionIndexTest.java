@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,7 +20,7 @@ class ConversionIndexTest {
         void resolvesProductByIdAndUniqueName() {
             var index = indexWith(
                 "ENCHANTED_DIAMOND",
-                new ConversionProductEntry("Enchanted Diamond", new ProductNameSource.HypixelItem())
+                new ConversionProductEntry("§aEnchanted Diamond", new ProductNameSource.Neu("ENCHANTED_DIAMOND"))
             );
 
             var byId = index.product("ENCHANTED_DIAMOND");
@@ -34,7 +35,7 @@ class ConversionIndexTest {
         @Test
         void doesNotResolveAmbiguousNamesAsUnique() {
             var products = new LinkedHashMap<String, ConversionProductEntry>();
-            products.put("ONE", new ConversionProductEntry("Duplicate", new ProductNameSource.HypixelItem()));
+            products.put("ONE", new ConversionProductEntry("Duplicate", new ProductNameSource.Neu("ONE")));
             products.put("TWO", new ConversionProductEntry("duplicate", new ProductNameSource.Neu("TWO")));
 
             var index = new ConversionIndex(1, "now", null, products);
@@ -51,13 +52,11 @@ class ConversionIndexTest {
         @Test
         void countsTypedSources() {
             var products = new LinkedHashMap<String, ConversionProductEntry>();
-            products.put("ITEM", new ConversionProductEntry("Item", new ProductNameSource.HypixelItem()));
             products.put("NEU_ITEM", new ConversionProductEntry("Neu Item", new ProductNameSource.Neu("NEU_ITEM")));
             products.put("DERIVED_ITEM", new ConversionProductEntry("Derived Item", new ProductNameSource.Derived()));
 
             var counts = new ConversionIndex(1, "now", null, products).sourceCounts();
 
-            assertEquals(1, counts.hypixelItem());
             assertEquals(1, counts.neu());
             assertEquals(1, counts.derived());
         }
@@ -70,16 +69,24 @@ class ConversionIndexTest {
 
         @Test
         void roundTripsTypedSourceSchema() throws Exception {
-            var index = indexWith(
-                "ENCHANTMENT_SHARPNESS_5",
-                new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))
+            var index = new ConversionIndex(
+                ConversionIndex.SCHEMA_VERSION,
+                7,
+                "now",
+                null,
+                java.util.Map.of(
+                    "ENCHANTMENT_SHARPNESS_5",
+                    new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))
+                )
             );
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
             var source = parsed.products().get("ENCHANTMENT_SHARPNESS_5").source();
 
-            assertEquals("Sharpness V", parsed.product("ENCHANTMENT_SHARPNESS_5").orElseThrow().displayName());
+            assertFalse(json.contains("\"strippedName\""));
+            assertEquals(7, parsed.builderVersion());
+            assertEquals("Sharpness V", parsed.product("ENCHANTMENT_SHARPNESS_5").orElseThrow().strippedName());
             var neu = assertInstanceOf(ProductNameSource.Neu.class, source);
             assertEquals("SHARPNESS;5", neu.neuId());
         }

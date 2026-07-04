@@ -1,10 +1,6 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
-public sealed interface ProductNameSource permits ProductNameSource.HypixelItem,
-    ProductNameSource.Neu,
-    ProductNameSource.Derived {
-
-    record HypixelItem() implements ProductNameSource { }
+public sealed interface ProductNameSource permits ProductNameSource.Neu, ProductNameSource.Derived {
 
     record Neu(String neuId) implements ProductNameSource {
         public Neu {

@@ -31,32 +31,32 @@ class ProductResolverTest {
         }
 
         @Test
-        void resolvesNeuStyleBookId() {
-            var service = serviceWithProducts();
-            var product = service.resolveProduct("COUNTER_STRIKE;5", "Enchanted Book");
-
-            assertEquals("ENCHANTMENT_COUNTER_STRIKE_5", product.resolvedProduct().orElseThrow().productId());
-        }
-
-        @Test
         void rejectsAmbiguousGroupTitle() {
             var service = serviceWithProducts();
             var product = service.resolveProduct("ENCHANTED_BOOK", "Growth 6-7");
 
             assertTrue(product.resolvedProduct().isEmpty());
         }
+
+        @Test
+        void resolvesCanonicalDisplayNameBeforeParsedEnchantmentId() {
+            var service = serviceWithProducts();
+            var product = service.resolveProduct("ENCHANTED_BOOK", "Turbo-Cacti 5");
+
+            assertEquals("ENCHANTMENT_TURBO_CACTUS_5", product.resolvedProduct().orElseThrow().productId());
+        }
     }
 
     private static ConversionIndexService serviceWithProducts() {
         var products = new LinkedHashMap<String, ConversionProductEntry>();
-        products.put("REDSTONE", new ConversionProductEntry("Redstone", new ProductNameSource.HypixelItem()));
+        products.put("REDSTONE", new ConversionProductEntry("Redstone", new ProductNameSource.Neu("REDSTONE")));
         products.put(
             "ENCHANTMENT_QUICK_BITE_5",
             new ConversionProductEntry("Quick Bite V", new ProductNameSource.Neu("ENCHANTMENT_QUICK_BITE_5"))
         );
         products.put(
-            "ENCHANTMENT_COUNTER_STRIKE_5",
-            new ConversionProductEntry("Counter-Strike V", new ProductNameSource.Neu("ENCHANTMENT_COUNTER_STRIKE_5"))
+            "ENCHANTMENT_TURBO_CACTUS_5",
+            new ConversionProductEntry("Turbo-Cacti V", new ProductNameSource.Neu("TURBO_CACTUS;5"))
         );
         return new ConversionIndexService(new ConversionIndex(1, "now", null, products));
     }

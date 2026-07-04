@@ -4,7 +4,11 @@ import java.util.Optional;
 
 public sealed interface ProductIdentity permits ProductRef, UnresolvedProduct {
 
-    String displayName();
+    String strippedName();
+
+    default String visualName() {
+        return this instanceof ProductRef product ? product.formattedName() : this.strippedName();
+    }
 
     default Optional<ProductRef> resolvedProduct() {
         return this instanceof ProductRef product ? Optional.of(product) : Optional.empty();

@@ -31,7 +31,7 @@ class AlertConfigSerializationTest {
                   "createdAt": 1700000000000,
                   "product": {
                     "productId": "ENCHANTED_DIAMOND",
-                    "displayName": "Enchanted Diamond"
+                    "formattedName": "§aEnchanted Diamond"
                   },
                   "type": "SellOffer",
                   "price": 123.4,
@@ -48,15 +48,17 @@ class AlertConfigSerializationTest {
 
             assertTrue(serialized.has("product"));
             assertFalse(serialized.has("productId"));
-            assertFalse(serialized.has("displayName"));
+            assertFalse(serialized.has("formattedName"));
+            assertFalse(serialized.has("strippedName"));
             assertEquals(
                 "ENCHANTED_DIAMOND",
                 serialized.getAsJsonObject("product").get("productId").getAsString()
             );
             assertEquals(
-                "Enchanted Diamond",
-                serialized.getAsJsonObject("product").get("displayName").getAsString()
+                "§aEnchanted Diamond",
+                serialized.getAsJsonObject("product").get("formattedName").getAsString()
             );
+            assertFalse(serialized.getAsJsonObject("product").has("strippedName"));
             assertEquals(alert.id, reparsed.id);
             assertEquals(alert.createdAt, reparsed.createdAt);
             assertEquals(alert.productId(), reparsed.productId());

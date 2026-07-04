@@ -53,8 +53,7 @@ public final class ConversionCommand {
             .append(Component.literal("\nSource: " + status.activeLoadSource()).withStyle(ChatFormatting.GRAY))
             .append(Component.literal("\nProducts: " + status.productCount()).withStyle(ChatFormatting.GRAY))
             .append(Component
-                .literal("\nSources: hypixel-item=" + counts.hypixelItem()
-                    + ", neu=" + counts.neu()
+                .literal("\nSources: neu=" + counts.neu()
                     + ", derived=" + counts.derived())
                 .withStyle(ChatFormatting.GRAY))
             .append(Component.literal("\nGenerated: " + status.generatedAt()).withStyle(ChatFormatting.GRAY))

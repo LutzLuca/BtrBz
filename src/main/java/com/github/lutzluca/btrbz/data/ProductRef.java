@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.utils.GsonUtils;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -10,16 +11,28 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
 
-public record ProductRef(String productId, String displayName) implements ProductIdentity {
+public record ProductRef(String productId, String formattedName) implements ProductIdentity {
 
     public ProductRef {
         if (productId == null || productId.isBlank()) {
             throw new IllegalArgumentException("productId must not be blank");
         }
 
-        if (displayName == null || displayName.isBlank()) {
-            displayName = productId;
+        if (formattedName == null || formattedName.isBlank()) {
+            formattedName = productId;
         }
+        formattedName = formattedName.trim();
+    }
+
+    @Override
+    public String toString() {
+        return "ProductRef[productId=" + this.productId + ", strippedName=" + this.strippedName() + "]";
+    }
+
+    @Override
+    public String strippedName() {
+        var stripped = Utils.cleanDisplayName(this.formattedName);
+        return stripped.isBlank() ? this.productId : stripped;
     }
 
     public static final class GsonAdapter implements JsonSerializer<ProductRef>, JsonDeserializer<ProductRef> {
@@ -32,7 +45,7 @@ public record ProductRef(String productId, String displayName) implements Produc
         ) {
             var obj = new JsonObject();
             obj.addProperty("productId", src.productId());
-            obj.addProperty("displayName", src.displayName());
+            obj.addProperty("formattedName", src.formattedName());
             return obj;
         }
 
@@ -48,8 +61,8 @@ public record ProductRef(String productId, String displayName) implements Produc
 
             var obj = json.getAsJsonObject();
             var productId = GsonUtils.requiredString(obj, "productId", "ProductRef");
-            var displayName = GsonUtils.optionalString(obj, "displayName").orElse(productId);
-            return new ProductRef(productId, displayName);
+            var formattedName = GsonUtils.requiredString(obj, "formattedName", "ProductRef");
+            return new ProductRef(productId, formattedName);
         }
     }
 }

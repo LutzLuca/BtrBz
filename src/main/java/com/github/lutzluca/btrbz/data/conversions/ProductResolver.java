@@ -25,10 +25,6 @@ final class ProductResolver {
         this.diagnostics = new Diagnostics();
     }
 
-    ProductIdentity resolveProduct(ItemStack stack) {
-        return this.resolveProduct(stack, stack.getHoverName().getString());
-    }
-
     ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
         var displayName = Utils.cleanDisplayName(displayNameEvidence);
         var rawProductId = Utils.customDataId(stack).orElse(null);
@@ -40,7 +36,7 @@ final class ProductResolver {
         }
 
         if (this.isEnchantedBook(stack)) {
-            var product = this.resolveEnchantedBook(stack, rawProductId, displayName);
+            var product = this.resolveEnchantedBook(stack, displayName);
             if (product.isPresent()) {
                 return product.get();
             }
@@ -61,10 +57,10 @@ final class ProductResolver {
                 return product.get();
             }
 
-            var enchantmentProduct = this.resolveEnchantedBookFromRawId(rawProductId)
-                .or(() -> EnchantedBookIdParser.isGenericBookId(rawProductId)
-                    ? this.resolveEnchantedBookDisplayName(cleanedName)
-                    : Optional.empty());
+            // ENCHANTED_BOOK is only the generic stack id; the enchantment identity comes from name/lore evidence.
+            var enchantmentProduct = EnchantedBookIdParser.isGenericBookId(rawProductId)
+                ? this.resolveEnchantedBookDisplayName(cleanedName)
+                : Optional.<ProductRef>empty();
             if (enchantmentProduct.isPresent()) {
                 return enchantmentProduct.get();
             }
@@ -78,12 +74,13 @@ final class ProductResolver {
 
     ProductIdentity resolveProductName(String displayName) {
         var cleanedName = Utils.cleanDisplayName(displayName);
-        var product = this.service.currentIndex().uniqueProductByName(cleanedName);
+        var index = this.service.currentIndex();
+        var product = index.uniqueProductByName(cleanedName);
         if (product.isPresent()) {
             return product.get();
         }
 
-        if (this.service.currentIndex().hasAmbiguousName(cleanedName)) {
+        if (index.hasAmbiguousName(cleanedName)) {
             this.diagnostics.ambiguousName(cleanedName);
         } else {
             this.diagnostics.unresolvedName(cleanedName);
@@ -99,11 +96,9 @@ final class ProductResolver {
 
     private Optional<ProductRef> resolveEnchantedBook(
         ItemStack stack,
-        String rawProductId,
         String displayName
     ) {
         return this.resolveEnchantedBookFromCustomData(stack)
-            .or(() -> this.resolveEnchantedBookFromRawId(rawProductId))
             .or(() -> this.resolveEnchantedBookDisplayName(displayName));
     }
 
@@ -115,32 +110,24 @@ final class ProductResolver {
             .flatMap(this.service::productById);
     }
 
-    private Optional<ProductRef> resolveEnchantedBookFromRawId(String rawProductId) {
-        return EnchantedBookIdParser
-            .fromRawProductId(rawProductId)
-            .flatMap(productId -> {
-                var product = this.service.productById(productId);
-                product.ifPresent(resolved -> this.diagnostics.rawEnchantedBookId(rawProductId, resolved));
-                return product;
-            });
-    }
-
     private Optional<ProductRef> resolveEnchantedBookDisplayName(String displayName) {
+        var index = this.service.currentIndex();
         var bookName = EnchantedBookIdParser.stripActionPrefix(displayName);
+        var exactName = index.uniqueProductByName(bookName);
+        if (exactName.isPresent()) {
+            return exactName;
+        }
 
-        return this.service
-            .currentIndex()
-            .uniqueProductByName(bookName)
-            .or(() -> {
-                return EnchantedBookIdParser
-                    .canonicalDisplayName(bookName)
-                    .flatMap(canonicalName -> this.service.currentIndex().uniqueProductByName(canonicalName));
-            })
-            .or(() -> {
-                return EnchantedBookIdParser
-                    .fromDisplayName(bookName)
-                    .flatMap(this.service::productById);
-            });
+        var canonicalName = EnchantedBookIdParser
+            .canonicalDisplayName(bookName)
+            .flatMap(index::uniqueProductByName);
+        if (canonicalName.isPresent()) {
+            return canonicalName;
+        }
+
+        return EnchantedBookIdParser
+            .fromDisplayName(bookName)
+            .flatMap(this.service::productById);
     }
 
     private ProductIdentity resolveStackFallback(ItemStack stack, String rawProductId, String displayName) {
@@ -166,7 +153,7 @@ final class ProductResolver {
     }
 
     private void logNameMismatch(String rawProductId, String displayName, ProductRef resolved) {
-        if (Utils.normalizeDisplayName(displayName).equals(Utils.normalizeDisplayName(resolved.displayName()))) {
+        if (Utils.normalizeDisplayName(displayName).equals(Utils.normalizeDisplayName(resolved.strippedName()))) {
             return;
         }
         this.diagnostics.nameMismatch(rawProductId, displayName, resolved);
@@ -174,10 +161,14 @@ final class ProductResolver {
 
     private static final class Diagnostics {
 
+        private static final boolean LOG_UNKNOWN_RUNTIME_EVIDENCE = Boolean.getBoolean(
+            "btrbz.conversions.logUnknownRuntimeEvidence"
+        );
+
         private final Set<String> loggedKeys = ConcurrentHashMap.newKeySet();
 
         void unknownCustomDataId(String productId, String displayName) {
-            this.logDebugOnce(
+            this.logUnknownRuntimeEvidenceOnce(
                 "UNKNOWN_ID|%s|%s".formatted(productId, displayName),
                 "Ignoring custom_data id '{}' for display name '{}' because it is not a known Bazaar product",
                 productId,
@@ -191,21 +182,12 @@ final class ProductResolver {
                     rawProductId,
                     parsedName,
                     resolved.productId(),
-                    resolved.displayName()
+                    resolved.strippedName()
                 ),
                 "Resolved Bazaar product id '{}' as {}, but parsed/display name was '{}'",
                 rawProductId,
                 resolved,
                 parsedName
-            );
-        }
-
-        void rawEnchantedBookId(String rawProductId, ProductRef resolved) {
-            this.logDebugOnce(
-                "RAW_ENCHANTED_BOOK|%s|%s".formatted(rawProductId, resolved.productId()),
-                "Resolved NEU-style enchanted book id '{}' as {}",
-                rawProductId,
-                resolved
             );
         }
 
@@ -218,11 +200,19 @@ final class ProductResolver {
         }
 
         void unresolvedName(String displayName) {
-            this.logDebugOnce(
+            this.logUnknownRuntimeEvidenceOnce(
                 "UNRESOLVED|%s".formatted(displayName),
                 "Could not resolve Bazaar product '{}'",
                 displayName
             );
+        }
+
+        private void logUnknownRuntimeEvidenceOnce(String key, String message, Object... args) {
+            if (!LOG_UNKNOWN_RUNTIME_EVIDENCE) {
+                return;
+            }
+
+            this.logDebugOnce(key, message, args);
         }
 
         private void logDebugOnce(String key, String message, Object... args) {

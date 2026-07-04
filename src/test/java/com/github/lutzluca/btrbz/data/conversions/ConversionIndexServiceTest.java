@@ -14,18 +14,14 @@ class ConversionIndexServiceTest {
     class ApplyBoundary {
 
         @Test
-        void normalizesDerivedEntriesWhenIndexIsApplied() {
+        void appliesDerivedEntriesWithoutRewritingThem() {
             var rawIndex = new ConversionIndex(
                 ConversionIndex.SCHEMA_VERSION,
                 "now",
                 null,
                 Map.of(
-                    "ESSENCE_WITHER", new ConversionProductEntry(
-                        "Old Name",
-                        new ProductNameSource.Derived()
-                    ),
-                    "BAZAAR_COOKIE", new ConversionProductEntry(
-                        "Old Name",
+                    "ENCHANTMENT_HECATOMB_10", new ConversionProductEntry(
+                        "Custom Fallback",
                         new ProductNameSource.Derived()
                     )
                 )
@@ -34,8 +30,7 @@ class ConversionIndexServiceTest {
             var service = new ConversionIndexService(rawIndex);
 
             var index = service.currentIndex();
-            assertEquals("Wither Essence", index.product("ESSENCE_WITHER").orElseThrow().displayName());
-            assertEquals("Booster Cookie", index.product("BAZAAR_COOKIE").orElseThrow().displayName());
+            assertEquals("Custom Fallback", index.product("ENCHANTMENT_HECATOMB_10").orElseThrow().strippedName());
         }
     }
 }

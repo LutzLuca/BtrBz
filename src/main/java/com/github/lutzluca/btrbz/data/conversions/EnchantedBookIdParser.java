@@ -14,11 +14,9 @@ final class EnchantedBookIdParser {
      * Accepted formats:
      * - BUY|SELL <enchantment name> <roman-or-arabic-level>
      * - <enchantment name> <roman-or-arabic-level>
-     * - <raw enchantment id>;<arabic level>
      */
     private static final Pattern ACTION_PREFIX = Pattern.compile("^(BUY|SELL)\\s+", Pattern.CASE_INSENSITIVE);
     private static final Pattern DISPLAY_NAME = Pattern.compile("^(.+?)\\s+([IVXLCDM]+|\\d+)$", Pattern.CASE_INSENSITIVE);
-    private static final Pattern RAW_ENCHANTMENT_ID = Pattern.compile("^([A-Z0-9_\\-]+);(\\d+)$", Pattern.CASE_INSENSITIVE);
 
     private EnchantedBookIdParser() { }
 
@@ -40,16 +38,6 @@ final class EnchantedBookIdParser {
                     .getInt(enchantment)
                     .flatMap(level -> toProductId(enchantment, level));
             });
-    }
-
-    static Optional<String> fromRawProductId(String rawProductId) {
-        var matcher = RAW_ENCHANTMENT_ID.matcher(rawProductId == null ? "" : rawProductId.trim());
-        if (!matcher.matches()) {
-            return Optional.empty();
-        }
-
-        return parseArabicLevel(matcher.group(2))
-            .flatMap(level -> toProductId(matcher.group(1), level));
     }
 
     static Optional<String> fromDisplayName(String displayName) {

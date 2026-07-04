@@ -19,12 +19,14 @@ public final class ConversionIndex {
 
     private static final ConversionIndex EMPTY = new ConversionIndex(
         SCHEMA_VERSION,
+        0,
         Instant.EPOCH.toString(),
         null,
         Map.of()
     );
 
     private final int schemaVersion;
+    private final int builderVersion;
     private final String generatedAt;
     private final String neuCommit;
     private final Map<String, ConversionProductEntry> products;
@@ -36,11 +38,22 @@ public final class ConversionIndex {
         String neuCommit,
         Map<String, ConversionProductEntry> products
     ) {
+        this(schemaVersion, 0, generatedAt, neuCommit, products);
+    }
+
+    public ConversionIndex(
+        int schemaVersion,
+        int builderVersion,
+        String generatedAt,
+        String neuCommit,
+        Map<String, ConversionProductEntry> products
+    ) {
         if (schemaVersion != SCHEMA_VERSION) {
             throw new IllegalArgumentException("Unsupported conversion index schema version: " + schemaVersion);
         }
 
         this.schemaVersion = schemaVersion;
+        this.builderVersion = Math.max(0, builderVersion);
         this.generatedAt = generatedAt == null || generatedAt.isBlank()
             ? Instant.now().toString()
             : generatedAt;
@@ -57,6 +70,10 @@ public final class ConversionIndex {
 
     public int schemaVersion() {
         return this.schemaVersion;
+    }
+
+    public int builderVersion() {
+        return this.builderVersion;
     }
 
     public String generatedAt() {
@@ -82,7 +99,15 @@ public final class ConversionIndex {
     public Optional<ProductRef> product(String productId) {
         return Optional
             .ofNullable(this.products.get(productId))
-            .map(entry -> new ProductRef(productId, entry.displayName()));
+            .map(entry -> toProductRef(productId, entry));
+    }
+
+    public List<ProductRef> allProducts() {
+        return this.products
+            .entrySet()
+            .stream()
+            .map(entry -> toProductRef(entry.getKey(), entry.getValue()))
+            .toList();
     }
 
     public Optional<ProductRef> uniqueProductByName(String displayName) {
@@ -113,19 +138,17 @@ public final class ConversionIndex {
     }
 
     public ConversionSourceCounts sourceCounts() {
-        var hypixelItem = 0;
         var neu = 0;
         var derived = 0;
 
         for (var entry : this.products.values()) {
             switch (entry.source()) {
-                case ProductNameSource.HypixelItem _ -> hypixelItem++;
                 case ProductNameSource.Neu _ -> neu++;
                 case ProductNameSource.Derived _ -> derived++;
             }
         }
 
-        return new ConversionSourceCounts(hypixelItem, neu, derived);
+        return new ConversionSourceCounts(neu, derived);
     }
 
     private static Map<String, List<ProductRef>> buildNameIndex(
@@ -133,14 +156,18 @@ public final class ConversionIndex {
     ) {
         var index = new HashMap<String, List<ProductRef>>();
         products.forEach((productId, entry) -> {
-            var normalized = Utils.normalizeDisplayName(entry.displayName());
+            var normalized = Utils.normalizeDisplayName(entry.strippedName());
             if (normalized.isEmpty()) {
                 return;
             }
             index.computeIfAbsent(normalized, ignored -> new ArrayList<>())
-                .add(new ProductRef(productId, entry.displayName()));
+                .add(toProductRef(productId, entry));
         });
         index.replaceAll((ignored, refs) -> Collections.unmodifiableList(refs));
         return Collections.unmodifiableMap(index);
+    }
+
+    private static ProductRef toProductRef(String productId, ConversionProductEntry entry) {
+        return new ProductRef(productId, entry.formattedName());
     }
 }

@@ -8,14 +8,11 @@ import io.vavr.control.Try;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +28,6 @@ public final class ConversionIndexService {
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
     private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
-    private static final Set<String> LOGGED_GENERIC_FALLBACKS = ConcurrentHashMap.newKeySet();
 
     private volatile ConversionIndex currentIndex;
     private volatile ConversionStatus.IndexLoadSource activeLoadSource;
@@ -128,13 +124,19 @@ public final class ConversionIndexService {
         return this.currentIndex.product(productId);
     }
 
+    public List<ProductRef> allProducts() {
+        return this.currentIndex.allProducts();
+    }
+
     public ProductIdentity resolveProduct(ItemStack stack) {
-        return this.resolveProduct(stack, Utils.cleanDisplayName(stack.getHoverName().getString()));
+        return this.resolveProduct(stack, stack.getHoverName().getString());
     }
 
     public ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
         var revision = this.indexRevision;
         var evidenceKey = Utils.cleanDisplayName(displayNameEvidence);
+        // ItemStack identity is stable for current call sites. If reused stacks start mutating
+        // custom data or lore in place, key this cache by an identity fingerprint instead.
         synchronized (this.resolvedStackCache) {
             var cached = this.resolvedStackCache
                     .getOrDefault(stack, Map.of())
@@ -172,7 +174,7 @@ public final class ConversionIndexService {
     }
 
     private RemoteRefreshResult prepareRemoteRefresh() throws ConversionRefreshException {
-        var index = normalizeDerivedEntries(RemoteConversionIndexBuilder.build(this.currentIndex));
+        var index = RemoteNeuConversionIndexBuilder.build(this.currentIndex);
         var persistResult = ConversionLoader.persistIndex(index);
         var persistFailure = persistResult
             .failed()
@@ -189,7 +191,7 @@ public final class ConversionIndexService {
     private void applyRemoteRefresh(RemoteRefreshResult result, boolean manual) {
         this.lastSuccessfulRefreshAt = Instant.now().toString();
         this.lastFailure = result.persistFailure();
-        this.applyNormalizedIndex(result.index(), ConversionStatus.IndexLoadSource.RemoteRefresh);
+        this.applyIndex(result.index(), ConversionStatus.IndexLoadSource.RemoteRefresh);
 
         if (result.persistFailure().isPresent()) {
             var failure = result.persistFailure().get();
@@ -207,62 +209,12 @@ public final class ConversionIndexService {
     }
 
     private ConversionIndex applyIndex(ConversionIndex index, ConversionStatus.IndexLoadSource source) {
-        var normalized = normalizeDerivedEntries(index);
-        return this.applyNormalizedIndex(normalized, source);
-    }
-
-    private ConversionIndex applyNormalizedIndex(ConversionIndex normalized, ConversionStatus.IndexLoadSource source) {
-        this.currentIndex = normalized;
+        this.currentIndex = index;
         this.activeLoadSource = source;
         this.clearResolvedStackCache();
-        this.logIndexSummary(source, normalized);
+        this.logIndexSummary(source, index);
         this.notifyIndexChanged();
-        return normalized;
-    }
-
-    private static ConversionIndex normalizeDerivedEntries(ConversionIndex index) {
-        var changedExamples = new ArrayList<String>();
-        var fallbackExamples = new ArrayList<String>();
-        var products = new LinkedHashMap<String, ConversionProductEntry>();
-
-        index.products().forEach((productId, entry) -> {
-            if (!(entry.source() instanceof ProductNameSource.Derived)) {
-                products.put(productId, entry);
-                return;
-            }
-
-            var derived = ConversionNameDeriver.deriveDisplayName(productId);
-            var normalized = new ConversionProductEntry(derived.displayName(), entry.source());
-            products.put(productId, normalized);
-
-            if (!entry.displayName().equals(normalized.displayName()) && changedExamples.size() < 20) {
-                changedExamples.add("%s: '%s' -> '%s'".formatted(
-                    productId,
-                    entry.displayName(),
-                    normalized.displayName()
-                ));
-            }
-
-            if (derived.genericFallback()
-                && fallbackExamples.size() < 20
-                && LOGGED_GENERIC_FALLBACKS.add(productId)) {
-                fallbackExamples.add("%s -> %s".formatted(productId, normalized.displayName()));
-            }
-        });
-
-        if (!changedExamples.isEmpty()) {
-            log.debug("Recomputed derived conversion names from current rules; sample: {}", changedExamples);
-        }
-        if (!fallbackExamples.isEmpty()) {
-            log.warn("Generic title-case conversion fallback used; sample: {}", fallbackExamples);
-        }
-
-        return new ConversionIndex(
-            index.schemaVersion(),
-            index.generatedAt(),
-            index.neuCommit().orElse(null),
-            products
-        );
+        return index;
     }
 
     private void clearResolvedStackCache() {
@@ -277,10 +229,9 @@ public final class ConversionIndexService {
     private void logIndexSummary(ConversionStatus.IndexLoadSource source, ConversionIndex index) {
         var counts = index.sourceCounts();
         log.debug(
-                "Applied conversion index from {} ({} products, source counts: hypixelItem={}, neu={}, derived={})",
+                "Applied conversion index from {} ({} products, source counts: neu={}, derived={})",
                 source,
                 index.size(),
-                counts.hypixelItem(),
                 counts.neu(),
                 counts.derived());
         this.logDerivedMappings(index);
@@ -301,7 +252,7 @@ public final class ConversionIndexService {
                 .forEach(entry -> log.debug(
                         "Derived conversion mapping: {} -> {}",
                         entry.getKey(),
-                        entry.getValue().displayName()));
+                        entry.getValue().strippedName()));
     }
 
     private void handleRefreshFailure(ConversionRefreshException failure, boolean manual) {

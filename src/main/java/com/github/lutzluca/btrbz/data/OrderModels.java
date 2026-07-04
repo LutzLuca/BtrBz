@@ -38,7 +38,7 @@ public final class OrderModels {
         String uiProductName();
 
         default String productName() {
-            return this.product().displayName();
+            return this.product().strippedName();
         }
 
         OrderType type();
@@ -203,7 +203,7 @@ public final class OrderModels {
 
         public TrackedOrder(OrderInfo.UnfilledOrderInfo info, ProductIdentity product) {
             this.product = product;
-            this.productName = product.displayName();
+            this.productName = product.strippedName();
             this.uiProductName = info.uiProductName();
             this.type = info.type;
             this.volume = info.volume;
@@ -214,7 +214,7 @@ public final class OrderModels {
 
         public TrackedOrder(OutstandingOrderInfo info) {
             this.product = info.product();
-            this.productName = this.product.displayName();
+            this.productName = this.product.strippedName();
             this.uiProductName = info.uiProductName();
             this.type = info.type;
             this.volume = info.volume;
@@ -236,7 +236,7 @@ public final class OrderModels {
 
         public void applyProduct(ProductIdentity product) {
             this.product = product;
-            this.productName = product.displayName();
+            this.productName = product.strippedName();
         }
 
         private boolean productsMatch(OrderInfo info) {
@@ -256,6 +256,8 @@ public final class OrderModels {
                 case Buy -> "Buy Order";
                 case Sell -> "Sell Offer";
             };
+            var visualName = this.product.visualName();
+            var productNameComponent = Component.literal(visualName);
 
             return Component
                 .empty()
@@ -265,7 +267,7 @@ public final class OrderModels {
                 .append(Component.literal(typeStr).withStyle(ChatFormatting.AQUA))
                 .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(this.volume + "x ").withStyle(ChatFormatting.LIGHT_PURPLE))
-                .append(Component.literal(this.productName).withStyle(ChatFormatting.GOLD))
+                .append(productNameComponent)
                 .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
                 .append(Component
                     .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
@@ -298,7 +300,7 @@ public final class OrderModels {
         }
 
         public String productName() {
-            return this.product.displayName();
+            return this.product.strippedName();
         }
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {

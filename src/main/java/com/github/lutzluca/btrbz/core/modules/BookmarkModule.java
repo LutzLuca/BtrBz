@@ -90,6 +90,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrderUpdatedListener(order -> this.rebuildOrderCache());
         orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
+        this.context().bazaarData().addIndexChangeListener(this::refreshBookmarkedProducts);
 
         SlotHookRegistry.register(new BookmarkedItemHook());
     }
@@ -153,6 +154,50 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         return tag.bookmarked;
     }
 
+    private void refreshBookmarkedProducts() {
+        var refreshedItems = new ArrayList<BookmarkedItem>();
+        var changed = false;
+
+        for (var item : this.configState.bookmarkedItems) {
+            var refreshedProduct = this.context().bazaarData().refreshProductRef(item.product());
+            if (refreshedProduct.equals(item.product())) {
+                refreshedItems.add(item);
+                continue;
+            }
+
+            refreshedItems.add(new BookmarkedItem(refreshedProduct, item.itemTemplate()));
+            changed = true;
+        }
+
+        if (!changed) {
+            return;
+        }
+
+        this.updateConfig(cfg -> cfg.bookmarkedItems = refreshedItems);
+        this.rebuildBookmarkList();
+        log.debug("Refreshed {} bookmarked product references after conversion index update", refreshedItems.size());
+    }
+
+    private void rebuildBookmarkList() {
+        if (this.list == null) {
+            return;
+        }
+
+        this.list.setItems(this.bookmarkRenderables());
+    }
+
+    private List<Renderable> bookmarkRenderables() {
+        return this.configState.bookmarkedItems
+            .stream()
+            .map(item -> new BookmarkedItemRenderable(
+                item.product(),
+                item.itemStack(),
+                this.orderBuySet,
+                this.orderSellSet
+            ))
+            .collect(Collectors.toList());
+    }
+
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
         return this.configState.enabled && (info.inMenu(
@@ -183,10 +228,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
             .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
-        List<Renderable> items = this.configState.bookmarkedItems.stream()
-            .map(item -> new BookmarkedItemRenderable(item.product(), item.itemStack(), this.orderBuySet, this.orderSellSet))
-            .collect(Collectors.toList());
-        widget.setItems(items);
+        widget.setItems(this.bookmarkRenderables());
 
         return Optional.of(widget);
     }
@@ -277,7 +319,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public BookmarkedItemRenderable(ProductRef product, ItemStack itemStack,
                 Set<String> orderBuySet, Set<String> orderSellSet) {
             this.product = product;
-            this.productName = product.displayName();
+            this.productName = product.strippedName();
             this.itemStack = itemStack;
             this.orderBuySet = orderBuySet;
             this.orderSellSet = orderSellSet;
@@ -286,7 +328,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .of(() -> itemStack.getHoverName().getSiblings().getFirst()
                     .getStyle().getColor().getValue())
                 .getOrElse(0xD3D3D3);
-            this.displayText = Component.literal(productName);
+            this.displayText = Component.literal(product.visualName());
         }
 
         @Override
@@ -370,7 +412,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         }
 
         public String productName() {
-            return this.product.displayName();
+            return this.product.strippedName();
         }
 
         public ItemStack itemStack() {

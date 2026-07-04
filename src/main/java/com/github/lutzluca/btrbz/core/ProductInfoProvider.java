@@ -242,7 +242,7 @@ public final class ProductInfoProvider {
             }
 
             var cached = priceInfo.get();
-            var count = stack.getCount();
+            var count = stack.getItem() == Items.ENCHANTED_BOOK ? 1 : stack.getCount();
             var isShiftHeld = Minecraft.getInstance().hasShiftDown();
 
             lines.add(Component.empty());

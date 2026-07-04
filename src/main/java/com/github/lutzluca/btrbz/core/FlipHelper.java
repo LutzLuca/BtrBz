@@ -197,7 +197,7 @@ public class FlipHelper {
             .product()
             .productId()
             .equals(flippedProduct.map(ProductRef::productId).orElse(""))
-            || entry.product().displayName().equalsIgnoreCase(flipped.productName()));
+            || entry.product().strippedName().equalsIgnoreCase(flipped.productName()));
 
         // this may be unnecessary as after entering the price in the sign, it opens the orders
         // menu, might as well leave it atm

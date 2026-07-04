@@ -44,6 +44,7 @@ final class ConversionLoader {
 
     record IndexSnapshot(
         int schemaVersion,
+        int builderVersion,
         String generatedAt,
         String neuCommit,
         Map<String, ConversionProductEntry> products
@@ -52,6 +53,7 @@ final class ConversionLoader {
         static IndexSnapshot fromIndex(ConversionIndex index) {
             return new IndexSnapshot(
                 index.schemaVersion(),
+                index.builderVersion(),
                 index.generatedAt(),
                 index.neuCommit().orElse(null),
                 index.products()
@@ -69,6 +71,7 @@ final class ConversionLoader {
             try {
                 return new ConversionIndex(
                     this.schemaVersion,
+                    this.builderVersion,
                     this.generatedAt,
                     this.neuCommit,
                     this.products
@@ -146,7 +149,6 @@ final class ConversionLoader {
         public JsonElement serialize(ProductNameSource src, Type typeOfSrc, JsonSerializationContext context) {
             var json = new JsonObject();
             switch (src) {
-                case ProductNameSource.HypixelItem _ -> json.addProperty("type", "hypixel-item");
                 case ProductNameSource.Neu neu -> {
                     json.addProperty("type", "neu");
                     json.addProperty("neuId", neu.neuId());
@@ -170,7 +172,6 @@ final class ConversionLoader {
             var type = GsonUtils.requiredString(obj, "type", "Product name source");
 
             return switch (type) {
-                case "hypixel-item" -> new ProductNameSource.HypixelItem();
                 case "neu" -> {
                     var neuId = GsonUtils.requiredString(obj, "neuId", "NEU product name source");
                     yield new ProductNameSource.Neu(neuId);

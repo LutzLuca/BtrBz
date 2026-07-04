@@ -2,15 +2,22 @@ package com.github.lutzluca.btrbz.data.conversions;
 
 import com.github.lutzluca.btrbz.utils.Utils;
 
-public record ConversionProductEntry(String displayName, ProductNameSource source) {
+public record ConversionProductEntry(String formattedName, ProductNameSource source) {
 
     public ConversionProductEntry {
-        displayName = Utils.cleanDisplayName(displayName);
-        if (displayName.isBlank()) {
-            throw new IllegalArgumentException("displayName must not be blank");
+        if (formattedName == null || formattedName.isBlank()) {
+            throw new IllegalArgumentException("formattedName must not be blank");
+        }
+        formattedName = formattedName.trim();
+        if (Utils.cleanDisplayName(formattedName).isBlank()) {
+            throw new IllegalArgumentException("formattedName must contain a visible name");
         }
         if (source == null) {
             throw new IllegalArgumentException("source must not be null");
         }
+    }
+
+    public String strippedName() {
+        return Utils.cleanDisplayName(this.formattedName);
     }
 }

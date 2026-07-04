@@ -80,9 +80,12 @@ public class OrderBookScreenController {
             }
 
             var orders = OrderBookScreenController.this.bazaarData.getOrderLists(product);
+            var title = Component.empty()
+                .append(Component.literal(product.formattedName()))
+                .append(Component.literal(" Order Book"));
             var orderBookScreen = new OrderBookScreen(
                 ctx.view().getCurrInfo().getScreen(),
-                product.displayName(),
+                title,
                 orders
             );
             Minecraft.getInstance().setScreen(orderBookScreen);

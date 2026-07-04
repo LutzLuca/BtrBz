@@ -108,7 +108,7 @@ public sealed interface PriceExpression permits Literal,
 
             return price
                 .map(Try::success)
-                .orElseGet(() -> Try.failure(new IllegalStateException("The price of " + '"' + product.displayName() + '"' + " could not be determined")));
+                .orElseGet(() -> Try.failure(new IllegalStateException("The price of " + '"' + product.strippedName() + '"' + " could not be determined")));
         }
     }
 

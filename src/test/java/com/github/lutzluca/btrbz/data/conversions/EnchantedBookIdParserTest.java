@@ -88,17 +88,4 @@ class EnchantedBookIdParserTest {
             assertTrue(EnchantedBookIdParser.fromDisplayName("Growth 6-7").isEmpty());
         }
     }
-
-    @Nested
-    @DisplayName("raw ids")
-    class RawIds {
-
-        @Test
-        void derivesIdFromNeuStyleRawId() {
-            assertEquals(
-                "ENCHANTMENT_COUNTER_STRIKE_5",
-                EnchantedBookIdParser.fromRawProductId("COUNTER_STRIKE;5").orElseThrow()
-            );
-        }
-    }
 }

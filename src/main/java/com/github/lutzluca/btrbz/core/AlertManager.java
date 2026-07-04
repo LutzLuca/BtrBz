@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.ProductRef;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
@@ -34,7 +35,11 @@ import net.minecraft.network.chat.MutableComponent;
 @Slf4j
 public class AlertManager {
 
-    public AlertManager() { }
+    private final BazaarData bazaarData;
+
+    public AlertManager(BazaarData bazaarData) {
+        this.bazaarData = bazaarData;
+    }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
         var cfg = ConfigManager.get().alert;
@@ -49,7 +54,7 @@ public class AlertManager {
             var curr = it.next();
             var priceResult = curr.getAssociatedPrice(snapshot);
             if (priceResult.isFailure()) {
-                Notifier.notifyInvalidProduct(curr);
+                Notifier.notifyInvalidProduct(curr, this.bazaarData);
                 continue;
             }
 
@@ -62,7 +67,7 @@ public class AlertManager {
             if (reached) {
                 it.remove();
                 changed = true;
-                Notifier.notifyPriceReached(curr, price);
+                Notifier.notifyPriceReached(curr, price, this.bazaarData);
                 continue;
             }
 
@@ -70,13 +75,13 @@ public class AlertManager {
             var duration = now - curr.createdAt;
 
             if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, "over a month");
+                Notifier.notifyOutdatedAlert(curr, "over a month", this.bazaarData);
                 curr.remindedAfter = duration;
                 changed = true;
             }
 
             if (duration > Utils.WEEK_DURATION_MS && curr.remindedAfter < Utils.WEEK_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, "over a week");
+                Notifier.notifyOutdatedAlert(curr, "over a week", this.bazaarData);
                 curr.remindedAfter = duration;
                 changed = true;
                 continue;
@@ -169,7 +174,7 @@ public class AlertManager {
         }
 
         public String productName() {
-            return this.product.displayName();
+            return this.product.strippedName();
         }
 
         public String productId() {
@@ -189,10 +194,12 @@ public class AlertManager {
             return Try.success(price);
         }
 
-        public MutableComponent format() {
+        public MutableComponent format(BazaarData bazaarData) {
+            var refreshedProduct = bazaarData.refreshProductRef(this.product);
+            var productName = Component.literal(refreshedProduct.formattedName());
             return Component
                 .empty()
-                .append(Component.literal(this.productName()).withStyle(ChatFormatting.GOLD))
+                .append(productName)
                 .append(Component.literal(" @ ").withStyle(ChatFormatting.GRAY))
                 .append(Component
                     .literal(Utils.formatDecimal(this.price, 1, true) + "coins")

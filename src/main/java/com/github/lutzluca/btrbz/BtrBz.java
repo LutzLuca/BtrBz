@@ -109,7 +109,7 @@ public class BtrBz implements ClientModInitializer {
 
         this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
-        this.alertManager = new AlertManager();
+        this.alertManager = new AlertManager(BAZAAR_DATA);
         new ChatFilterManager();
         this.orderProtectionManager = new OrderProtectionManager(BAZAAR_DATA);
 

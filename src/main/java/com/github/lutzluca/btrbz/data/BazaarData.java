@@ -62,6 +62,10 @@ public class BazaarData {
         return this.conversionIndexService.productById(productId);
     }
 
+    public List<ProductRef> allProducts() {
+        return this.conversionIndexService.allProducts();
+    }
+
     public ProductRef refreshProductRef(ProductRef product) {
         // Keep stale display metadata if the active conversion index no longer contains this id.
         return this.resolveProductId(product.productId()).orElse(product);
@@ -300,7 +304,7 @@ public class BazaarData {
         }
 
         public String getProductName() {
-            return this.product.displayName();
+            return this.product.strippedName();
         }
 
         private void ensureInitialized() {
