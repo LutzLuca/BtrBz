@@ -36,7 +36,7 @@ final class RemoteNeuConversionIndexBuilder {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration JSON_REQUEST_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration ZIP_REQUEST_TIMEOUT = Duration.ofSeconds(60);
-    private static final int LOG_SAMPLE_LIMIT = Integer.getInteger("btrbz.conversions.logSampleLimit", 20);
+    private static final int LOG_SAMPLE_LIMIT = Integer.getInteger("btrbz.conversions.logSampleLimit", 0);
     static final int BUILDER_VERSION = 1;
     private static final HttpClient HTTP_CLIENT = HttpClient
         .newBuilder()
