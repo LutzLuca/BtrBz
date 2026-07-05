@@ -91,6 +91,10 @@ public class BazaarData {
         this.conversionIndexService.addIndexChangeListener(listener);
     }
 
+    public void removeIndexChangeListener(Runnable listener) {
+        this.conversionIndexService.removeIndexChangeListener(listener);
+    }
+
     public void addConversionEventListener(Consumer<ConversionEvent> listener) {
         this.conversionIndexService.addConversionEventListener(listener);
     }
@@ -287,9 +291,10 @@ public class BazaarData {
     public static final class TrackedProduct {
 
         @Getter
-        private final ProductRef product;
+        private ProductRef product;
         private final BazaarData data;
         private final Consumer<MarketSnapshot> updater;
+        private final Runnable indexUpdater;
         @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
         @Getter
         private Optional<Product> bazaarProduct;
@@ -300,10 +305,12 @@ public class BazaarData {
             this.product = product;
             this.bazaarProduct = Optional.empty();
 
-            this.updater = snapshot -> this.bazaarProduct = snapshot.rawProduct(product);
+            this.updater = snapshot -> this.bazaarProduct = snapshot.rawProduct(this.product);
+            this.indexUpdater = this::refreshProduct;
         }
 
         public String getProductName() {
+            this.product = this.data.refreshProductRef(this.product);
             return this.product.strippedName();
         }
 
@@ -312,8 +319,9 @@ public class BazaarData {
                 return;
             }
 
-            this.bazaarProduct = this.data.currentSnapshot().rawProduct(this.product);
+            this.refreshProduct();
             this.data.addListener(this.updater);
+            this.data.addIndexChangeListener(this.indexUpdater);
             this.listenerRegistered = true;
         }
 
@@ -336,7 +344,13 @@ public class BazaarData {
         public void destroy() {
             this.bazaarProduct = Optional.empty();
             this.data.removeListener(this.updater);
+            this.data.removeIndexChangeListener(this.indexUpdater);
             this.listenerRegistered = false;
+        }
+
+        private void refreshProduct() {
+            this.product = this.data.refreshProductRef(this.product);
+            this.bazaarProduct = this.data.currentSnapshot().rawProduct(this.product);
         }
     }
 }

@@ -37,6 +37,7 @@ public final class ConversionIndexService {
 
     private record RemoteRefreshResult(
         ConversionIndex index,
+        boolean changed,
         Optional<ConversionRefreshException> persistFailure
     ) { }
 
@@ -169,13 +170,21 @@ public final class ConversionIndexService {
         this.indexChangeListeners.add(listener);
     }
 
+    public void removeIndexChangeListener(Runnable listener) {
+        this.indexChangeListeners.remove(listener);
+    }
+
     public void addConversionEventListener(Consumer<ConversionEvent> listener) {
         this.conversionEventListeners.add(listener);
     }
 
     private RemoteRefreshResult prepareRemoteRefresh() throws ConversionRefreshException {
-        var index = RemoteNeuConversionIndexBuilder.build(this.currentIndex);
-        var persistResult = ConversionLoader.persistIndex(index);
+        var build = RemoteNeuConversionIndexBuilder.build(this.currentIndex);
+        if (!build.changed()) {
+            return new RemoteRefreshResult(build.index(), false, Optional.empty());
+        }
+
+        var persistResult = ConversionLoader.persistIndex(build.index());
         var persistFailure = persistResult
             .failed()
             .map(err -> new ConversionRefreshException(
@@ -185,13 +194,17 @@ public final class ConversionIndexService {
             ))
             .toJavaOptional();
 
-        return new RemoteRefreshResult(index, persistFailure);
+        return new RemoteRefreshResult(build.index(), true, persistFailure);
     }
 
     private void applyRemoteRefresh(RemoteRefreshResult result, boolean manual) {
         this.lastSuccessfulRefreshAt = Optional.of(Instant.now().toString());
         this.lastFailure = result.persistFailure();
-        this.applyIndex(result.index(), ConversionStatus.IndexLoadSource.RemoteRefresh);
+        if (result.changed()) {
+            this.applyIndex(result.index(), ConversionStatus.IndexLoadSource.RemoteRefresh);
+        } else {
+            log.debug("Remote conversion refresh unchanged; keeping active conversion index");
+        }
 
         if (result.persistFailure().isPresent()) {
             var failure = result.persistFailure().get();

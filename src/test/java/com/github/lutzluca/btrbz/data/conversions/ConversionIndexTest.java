@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.data.conversions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -89,6 +90,47 @@ class ConversionIndexTest {
             assertEquals("Sharpness V", parsed.product("ENCHANTMENT_SHARPNESS_5").orElseThrow().strippedName());
             var neu = assertInstanceOf(ProductNameSource.Neu.class, source);
             assertEquals("SHARPNESS;5", neu.neuId());
+        }
+
+        @Test
+        void rejectsInvalidProductEntriesDuringJsonRead() {
+            var json = """
+                {
+                  "schemaVersion": 1,
+                  "builderVersion": 1,
+                  "generatedAt": "now",
+                  "products": {
+                    "BAD": {
+                      "formattedName": "\\u00a77",
+                      "source": { "type": "derived" }
+                    }
+                  }
+                }
+                """;
+
+            assertThrows(
+                RuntimeException.class,
+                () -> ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class)
+            );
+        }
+    }
+
+    @Nested
+    @DisplayName("validation")
+    class Validation {
+
+        @Test
+        void rejectsNegativeBuilderVersion() {
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> new ConversionIndex(
+                    ConversionIndex.SCHEMA_VERSION,
+                    -1,
+                    "now",
+                    null,
+                    java.util.Map.of()
+                )
+            );
         }
     }
 

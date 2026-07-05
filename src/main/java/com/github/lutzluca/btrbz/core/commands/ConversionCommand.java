@@ -40,6 +40,12 @@ public final class ConversionCommand {
                             .append(Component
                                 .literal("Started Bazaar conversion refresh")
                                 .withStyle(ChatFormatting.GRAY)));
+                    } else {
+                        Notifier.notifyPlayer(Notifier
+                            .prefix()
+                            .append(Component
+                                .literal("Bazaar conversion refresh is already running")
+                                .withStyle(ChatFormatting.GRAY)));
                     }
                     return 1;
                 }));

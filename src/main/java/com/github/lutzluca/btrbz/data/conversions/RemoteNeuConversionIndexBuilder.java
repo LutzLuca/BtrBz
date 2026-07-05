@@ -37,6 +37,7 @@ final class RemoteNeuConversionIndexBuilder {
     private static final Duration JSON_REQUEST_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration ZIP_REQUEST_TIMEOUT = Duration.ofSeconds(60);
     private static final int LOG_SAMPLE_LIMIT = Integer.getInteger("btrbz.conversions.logSampleLimit", 0);
+    private static final int MAX_ROMAN_LEVEL = 3999;
     static final int BUILDER_VERSION = 1;
     private static final HttpClient HTTP_CLIENT = HttpClient
         .newBuilder()
@@ -70,10 +71,21 @@ final class RemoteNeuConversionIndexBuilder {
 
     private RemoteNeuConversionIndexBuilder() { }
 
-    static ConversionIndex build(ConversionIndex current) throws ConversionRefreshException {
+    record BuildResult(ConversionIndex index, boolean changed) { }
+
+    static BuildResult build(ConversionIndex current) throws ConversionRefreshException {
         var productIds = fetchBazaarProductIds();
         var neuCommit = fetchNeuCommit();
-        var products = shouldReuseNeuEntries(current, neuCommit, productIds)
+        var canReuseEntries = shouldReuseNeuEntries(current, neuCommit, productIds);
+        if (canReuseEntries && current.products().keySet().equals(productIds)) {
+            log.debug(
+                "NEU commit and Bazaar product list unchanged; keeping current conversion index with {} products",
+                current.size()
+            );
+            return new BuildResult(current, false);
+        }
+
+        var products = canReuseEntries
             ? reusableEntries(current, productIds)
             : fetchNeuEntries(neuCommit, productIds);
 
@@ -94,7 +106,7 @@ final class RemoteNeuConversionIndexBuilder {
             counts.derived(),
             neuCommit
         );
-        return index;
+        return new BuildResult(index, true);
     }
 
     static boolean shouldReuseNeuEntries(
@@ -342,7 +354,7 @@ final class RemoteNeuConversionIndexBuilder {
             return Optional.empty();
         }
 
-        if (level < 0 || level > 3999) {
+        if (level < 0 || level > MAX_ROMAN_LEVEL) {
             return Optional.empty();
         }
 

@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
@@ -66,6 +67,27 @@ class AlertConfigSerializationTest {
             assertEquals(alert.type, reparsed.type);
             assertEquals(alert.price, reparsed.price);
             assertEquals(alert.remindedAfter, reparsed.remindedAfter);
+        }
+    }
+
+    @Nested
+    @DisplayName("legacy alert config")
+    class LegacyAlertConfig {
+
+        @Test
+        void skipsFlatProductFields() {
+            var json = """
+                {
+                  "id": "29f2d47e-f09f-4c68-901f-f41a547d4145",
+                  "createdAt": 1700000000000,
+                  "productName": "Enchanted Diamond",
+                  "productId": "ENCHANTED_DIAMOND",
+                  "type": "SellOffer",
+                  "price": 123.4
+                }
+                """;
+
+            assertNull(AlertConfigSerializationTest.this.gson.fromJson(json, Alert.class));
         }
     }
 }

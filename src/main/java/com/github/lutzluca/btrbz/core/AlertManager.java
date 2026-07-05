@@ -25,6 +25,7 @@ import io.vavr.control.Try;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class AlertManager {
 
     public AlertManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
+        ConfigManager.get().alert.alerts.removeIf(Objects::isNull);
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
@@ -239,16 +241,36 @@ public class AlertManager {
                 Type typeOfT,
                 JsonDeserializationContext ctx
             ) throws JsonParseException {
+                if (json == null || !json.isJsonObject()) {
+                    log.warn("Skipping malformed alert entry");
+                    return null;
+                }
                 var obj = json.getAsJsonObject();
+                var product = product(obj, ctx).orElse(null);
+                if (product == null) {
+                    return null;
+                }
 
                 return new Alert(
                     UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
                     GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
-                    ctx.deserialize(GsonUtils.required(obj, "product", "Alert"), ProductRef.class),
+                    product,
                     ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class),
                     GsonUtils.required(obj, "price", "Alert").getAsDouble(),
                     GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L)
                 );
+            }
+
+            private static Optional<ProductRef> product(JsonObject obj, JsonDeserializationContext ctx) {
+                try {
+                    return Optional.of(ctx.deserialize(
+                        GsonUtils.required(obj, "product", "Alert"),
+                        ProductRef.class
+                    ));
+                } catch (RuntimeException err) {
+                    log.warn("Skipping alert with invalid product", err);
+                    return Optional.empty();
+                }
             }
         }
     }

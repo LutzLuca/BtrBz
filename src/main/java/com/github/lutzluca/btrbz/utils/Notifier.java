@@ -174,19 +174,17 @@ public class Notifier {
         BazaarData bazaarData,
         Component statusPart
     ) {
-        var orderString = order.type == OrderType.Buy ? "Buy order" : "Sell offer";
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(orderTypeComponent(order.type, false))
             .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(order.volume + "x").withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(quantityComponent(order.volume))
             .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(order.product, bazaarData, ChatFormatting.YELLOW));
 
         if (cfg.includePricePerUnit) {
             msg.append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(Utils.formatDecimal(order.pricePerUnit, 1, true)).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+                .append(coinComponent(order.pricePerUnit));
         }
 
         return msg.append(Component.literal(" ").withStyle(ChatFormatting.GRAY)).append(statusPart);
@@ -200,21 +198,20 @@ public class Notifier {
         BazaarData bazaarData,
         Component statusPart
     ) {
-        var orderString = key.type() == OrderType.Buy ? "Buy orders" : "Sell offers";
-        
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(groupSize + "x ").withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(quantityComponent(groupSize))
+            .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+            .append(orderTypeComponent(key.type(), true))
             .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(totalVolume + "x total").withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(quantityComponent(totalVolume))
+            .append(Component.literal(" total").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(key.product(), bazaarData, ChatFormatting.YELLOW));
 
         if (cfg.includePricePerUnit) {
             msg.append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(Utils.formatDecimal(key.pricePerUnit(), 1, true)).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+                .append(coinComponent(key.pricePerUnit()));
         }
 
         return msg.append(Component.literal(" ").withStyle(ChatFormatting.GRAY)).append(statusPart);
@@ -254,19 +251,17 @@ public class Notifier {
         double secondBestPrice,
         BazaarData bazaarData
     ) {
-        var orderString = key.type() == OrderType.Buy ? "Buy Order" : "Sell Offer";
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(orderTypeComponent(key.type(), false))
             .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(key.product(), bazaarData, ChatFormatting.YELLOW))
             .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("SELF-UNDERCUT").withStyle(ChatFormatting.RED))
             .append(Component.literal(" from ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(bestPrice, 1, true)).withStyle(ChatFormatting.GOLD))
+            .append(coinComponent(bestPrice))
             .append(Component.literal(" to ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(secondBestPrice, 1, true)).withStyle(ChatFormatting.GOLD))
-            .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+            .append(coinComponent(secondBestPrice));
 
         notifyPlayer(msg);
     }
@@ -279,9 +274,7 @@ public class Notifier {
             .append(Component.literal(" price of ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(cmd.product(), bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" reaches ").withStyle(ChatFormatting.GRAY))
-            .append(Component
-                .literal(Utils.formatDecimal(cmd.price(), 1, true) + " coins")
-                .withStyle(ChatFormatting.YELLOW));
+            .append(coinComponent(cmd.price()));
 
         notifyPlayer(msg);
     }
@@ -298,9 +291,7 @@ public class Notifier {
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(product, bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component
-                .literal(Utils.formatDecimal(alert.price, 1, true) + "coins")
-                .withStyle(ChatFormatting.YELLOW))
+            .append(coinComponent(alert.price))
             .append(Component.literal(" (" + alert.type.format() + ") ").withStyle(ChatFormatting.DARK_GRAY))
             .append(Component.literal("has been reached").withStyle(ChatFormatting.GREEN))
             .append(Component.literal(" and is ").withStyle(ChatFormatting.GRAY))
@@ -323,9 +314,7 @@ public class Notifier {
             .append(Component.literal("You already have an alert for ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(args.product(), bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component
-                .literal(Utils.formatDecimal(args.price(), 1, true))
-                .withStyle(ChatFormatting.YELLOW))
+            .append(coinComponent(args.price()))
             .append(Component
                 .literal(" (" + args.type().name().toLowerCase() + ")")
                 .withStyle(ChatFormatting.DARK_GRAY))
@@ -350,7 +339,7 @@ public class Notifier {
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(alert.product, bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(alert.price, 1, true)).withStyle(ChatFormatting.YELLOW))
+            .append(coinComponent(alert.price))
             .append(Component
                 .literal(" has not been reached for " + durationText + ". ")
                 .withStyle(ChatFormatting.GRAY))
@@ -384,6 +373,34 @@ public class Notifier {
     ) {
         var refreshed = bazaarData.refreshProductRef(product);
         return Component.literal(refreshed.formattedName());
+    }
+
+    private static MutableComponent quantityComponent(int count) {
+        return Component
+            .literal(String.valueOf(count))
+            .withStyle(ChatFormatting.GREEN)
+            .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    private static MutableComponent orderTypeComponent(OrderType type, boolean plural) {
+        var label = switch (type) {
+            case Buy -> plural ? "Buy Orders" : "Buy Order";
+            case Sell -> plural ? "Sell Offers" : "Sell Offer";
+        };
+        return Component.literal(label).withStyle(orderTypeStyle(type));
+    }
+
+    private static MutableComponent coinComponent(double amount) {
+        return Component
+            .literal(Utils.formatDecimal(amount, 1, true) + " coins")
+            .withStyle(ChatFormatting.GOLD);
+    }
+
+    private static ChatFormatting orderTypeStyle(OrderType type) {
+        return switch (type) {
+            case Buy -> ChatFormatting.GREEN;
+            case Sell -> ChatFormatting.GOLD;
+        };
     }
 
     public static void notifyChatCommand(String displayText, String cmd) {

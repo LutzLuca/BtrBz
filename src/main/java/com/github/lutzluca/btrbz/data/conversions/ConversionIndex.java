@@ -49,9 +49,12 @@ public final class ConversionIndex {
         if (schemaVersion != SCHEMA_VERSION) {
             throw new IllegalArgumentException("Unsupported conversion index schema version: " + schemaVersion);
         }
+        if (builderVersion < 0) {
+            throw new IllegalArgumentException("builderVersion must not be negative");
+        }
 
         this.schemaVersion = schemaVersion;
-        this.builderVersion = Math.max(0, builderVersion);
+        this.builderVersion = builderVersion;
         this.generatedAt = generatedAt == null || generatedAt.isBlank()
             ? Instant.now().toString()
             : generatedAt;

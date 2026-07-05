@@ -507,7 +507,7 @@ public class TrackedOrderManager {
         };
     
         return relevantSummaries.stream()
-            .filter(summary -> summary.getPricePerUnit() == key.pricePerUnit)
+            .filter(summary -> Double.compare(summary.getPricePerUnit(), key.pricePerUnit) == 0)
             .findFirst()
             .map(summary -> (int) summary.getOrders())
             .orElse(-1);
@@ -645,7 +645,7 @@ public class TrackedOrderManager {
     private Optional<OrderStatus> getStatus(TrackedOrder order, List<Summary> summaries) {
         return Utils.getFirst(summaries).map(summary -> {
             double bestPrice = summary.getPricePerUnit();
-            if (order.pricePerUnit == bestPrice) {
+            if (Double.compare(order.pricePerUnit, bestPrice) == 0) {
                 return summary.getOrders() > 1
                     ? this.matchedOrGhostTop(order, summary)
                     : new Top();
