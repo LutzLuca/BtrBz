@@ -134,7 +134,7 @@ public class OrderProtectionManager {
     }
 
     private void validateConfirmationStack(ItemStack rawStack) {
-        if (rawStack.isEmpty()) {
+        if (rawStack.isEmpty() || OrderInfoParser.getLore(rawStack).isEmpty()) {
             return;
         }
 
