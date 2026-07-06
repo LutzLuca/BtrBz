@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
@@ -134,7 +135,7 @@ public class OrderProtectionManager {
     }
 
     private void validateConfirmationStack(ItemStack rawStack) {
-        if (rawStack.isEmpty() || OrderInfoParser.getLore(rawStack).isEmpty()) {
+        if (rawStack.isEmpty() || GameUtils.getLore(rawStack).isEmpty()) {
             return;
         }
 
