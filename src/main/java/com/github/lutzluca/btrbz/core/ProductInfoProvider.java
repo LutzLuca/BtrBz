@@ -419,7 +419,6 @@ public final class ProductInfoProvider {
     }
 
     private record CachedPrice(
-        IndexedProduct product,
         @Nullable Double sellOfferPrice,
         @Nullable Double buyOrderPrice
     ) { }
@@ -632,26 +631,22 @@ public final class ProductInfoProvider {
                 return Optional.ofNullable(this.cache.get(stack));
             }
             var identity = ProductInfoProvider.this.resolveProduct(stack);
-            var indexedProduct = ProductInfoProvider.this.bazaarData.resolveIndexedProduct(identity);
-
-            if (indexedProduct.isEmpty()) {
+            if (identity.bazaarProductId().isEmpty()) {
                 this.cache.put(stack, null);
                 return Optional.empty();
             }
 
             var data = ProductInfoProvider.this.bazaarData;
-            var product = indexedProduct.get();
-            var marketIdentity = ProductIdentity.fromIndex(product);
 
-            var sellOfferPrice = data.lowestSellOfferPrice(marketIdentity).orElse(null);
-            var buyOrderPrice = data.highestBuyOrderPrice(marketIdentity).orElse(null);
+            var sellOfferPrice = data.lowestSellOfferPrice(identity).orElse(null);
+            var buyOrderPrice = data.highestBuyOrderPrice(identity).orElse(null);
 
-            var cached = new CachedPrice(product, sellOfferPrice, buyOrderPrice);
+            var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
             this.cache.put(stack, cached);
 
             log.trace(
                 "Cached price for {}: buy={}, sell={}",
-                product,
+                identity,
                 buyOrderPrice,
                 sellOfferPrice
             );

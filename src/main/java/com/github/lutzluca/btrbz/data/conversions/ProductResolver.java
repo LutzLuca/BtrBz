@@ -142,7 +142,10 @@ final class ProductResolver {
 
         return EnchantedBookIdParser
             .fromDisplayName(bookName)
-            .map(id -> this.bookIdentity(id, bookName, formattedNameEvidence, "display name"));
+            .map(id -> this.service
+                .productById(id)
+                .map(ProductIdentity::fromIndex)
+                .orElseGet(() -> this.runtime(bookName, null, formattedNameEvidence)));
     }
 
     private ProductIdentity resolveStackFallback(

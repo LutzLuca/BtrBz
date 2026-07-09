@@ -42,11 +42,11 @@ class ProductResolverTest {
         }
 
         @Test
-        void genericBookDerivedIdMissingFromIndexReturnsRuntimeIdentityWithBazaarProductId() {
+        void displayNameDerivedBookIdMissingFromIndexReturnsNameOnlyIdentity() {
             var service = serviceWithProducts();
             var product = service.resolveProduct("ENCHANTED_BOOK", "Habanero Tactics V");
 
-            assertEquals("ENCHANTMENT_HABANERO_TACTICS_5", product.bazaarProductId().orElseThrow());
+            assertTrue(product.bazaarProductId().isEmpty());
             assertEquals("Habanero Tactics V", product.visualName());
         }
 

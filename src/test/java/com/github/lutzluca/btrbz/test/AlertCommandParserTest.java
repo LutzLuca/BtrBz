@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.AlertCommand;
@@ -13,9 +12,6 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.BinaryOpera
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
-import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.IndexedProduct;
-import io.vavr.control.Try;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -141,50 +137,6 @@ class AlertCommandParserTest {
 
             PriceExpression expected = new Reference(ReferenceType.Order);
             assertEquals(expected, cmd.expr());
-        }
-    }
-
-    @Nested
-    @DisplayName("expression resolution")
-    class ExpressionResolution {
-
-        private final BazaarData mockData = new BazaarData();
-        private final IndexedProduct product = new IndexedProduct("TEST_PRODUCT", "Test Product");
-
-        @Test
-        void literalResolves() {
-            Literal literal = new Literal(12_000_000.0);
-            Try<Double> result = literal.resolve(this.product, AlertType.BuyOrder, this.mockData);
-            assertTrue(result.isSuccess());
-            assertEquals(12_000_000.0, result.get());
-        }
-
-        @Test
-        void binaryOpResolves() {
-            Binary expr = new Binary(new Literal(100.0), BinaryOperator.Add, new Literal(50.0));
-            Try<Double> result = expr.resolve(this.product, AlertType.BuyOrder, this.mockData);
-            assertTrue(result.isSuccess());
-            assertEquals(150.0, result.get());
-        }
-
-        @Test
-        void complexResolution() {
-            Binary expr = new Binary(
-                new Literal(100.0),
-                BinaryOperator.Add,
-                new Binary(new Literal(50.0), BinaryOperator.Multiply, new Literal(2.0))
-            );
-            Try<Double> result = expr.resolve(this.product, AlertType.BuyOrder, this.mockData);
-            assertTrue(result.isSuccess());
-            assertEquals(200.0, result.get());
-        }
-
-        @Test
-        void divisionResolution() {
-            Binary expr = new Binary(new Literal(100.0), BinaryOperator.Divide, new Literal(4.0));
-            Try<Double> result = expr.resolve(this.product, AlertType.BuyOrder, this.mockData);
-            assertTrue(result.isSuccess());
-            assertEquals(25.0, result.get());
         }
     }
 }

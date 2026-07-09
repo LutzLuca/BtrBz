@@ -108,10 +108,12 @@ class ConversionIndexTest {
                 }
                 """;
 
-            assertThrows(
+            var error = assertThrows(
                 RuntimeException.class,
                 () -> ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class)
             );
+            var cause = assertInstanceOf(IllegalArgumentException.class, error.getCause());
+            assertEquals("formattedName must contain a visible name", cause.getMessage());
         }
     }
 
