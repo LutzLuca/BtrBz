@@ -7,7 +7,8 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -145,7 +146,7 @@ public class AlertManager {
 
         public final UUID id;
         public final long createdAt;
-        public final ProductRef product;
+        public final IndexedProduct product;
         public final AlertType type;
         public final double price;
 
@@ -162,7 +163,7 @@ public class AlertManager {
         private Alert(
             UUID id,
             long createdAt,
-            ProductRef product,
+            IndexedProduct product,
             AlertType type,
             double price,
             long remindedAfter
@@ -184,11 +185,12 @@ public class AlertManager {
         }
 
         public Try<Optional<Double>> getAssociatedPrice(MarketSnapshot snapshot) {
-            if (!snapshot.contains(this.product)) {
+            var identity = ProductIdentity.fromIndex(this.product);
+            if (!snapshot.contains(identity)) {
                 return Try.failure(new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
             }
 
-            var prices = snapshot.getMarketPrices(this.product);
+            var prices = snapshot.getMarketPrices(identity);
             var price = switch (this.type) {
                 case BuyOrder, InstaSell -> prices.highestBuyOrderPrice();
                 case SellOffer, InstaBuy -> prices.lowestSellOfferPrice();
@@ -197,7 +199,7 @@ public class AlertManager {
         }
 
         public MutableComponent format(BazaarData bazaarData) {
-            var refreshedProduct = bazaarData.refreshProductRef(this.product);
+            var refreshedProduct = bazaarData.refreshIndexedProduct(this.product);
             var productName = Component.literal(refreshedProduct.formattedName());
             return Component
                 .empty()
@@ -228,7 +230,7 @@ public class AlertManager {
                 var obj = new JsonObject();
                 obj.addProperty("id", src.id.toString());
                 obj.addProperty("createdAt", src.createdAt);
-                obj.add("product", ctx.serialize(src.product, ProductRef.class));
+                obj.add("product", ctx.serialize(src.product, IndexedProduct.class));
                 obj.add("type", ctx.serialize(src.type));
                 obj.addProperty("price", src.price);
                 obj.addProperty("remindedAfter", src.remindedAfter);
@@ -261,11 +263,11 @@ public class AlertManager {
                 );
             }
 
-            private static Optional<ProductRef> product(JsonObject obj, JsonDeserializationContext ctx) {
+            private static Optional<IndexedProduct> product(JsonObject obj, JsonDeserializationContext ctx) {
                 try {
                     return Optional.of(ctx.deserialize(
                         GsonUtils.required(obj, "product", "Alert"),
-                        ProductRef.class
+                        IndexedProduct.class
                     ));
                 } catch (RuntimeException err) {
                     log.warn("Skipping alert with invalid product", err);

@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.data.conversions;
 
 import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.time.Instant;
@@ -118,14 +118,14 @@ public final class ConversionIndexService {
         return this.currentIndex;
     }
 
-    public Optional<ProductRef> productById(String productId) {
+    public Optional<IndexedProduct> productById(String productId) {
         if (productId == null || productId.isBlank()) {
             return Optional.empty();
         }
         return this.currentIndex.product(productId);
     }
 
-    public List<ProductRef> allProducts() {
+    public List<IndexedProduct> allProducts() {
         return this.currentIndex.allProducts();
     }
 
@@ -134,8 +134,22 @@ public final class ConversionIndexService {
     }
 
     public ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
+        return this.resolveProduct(
+            stack,
+            displayNameEvidence,
+            Utils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null)
+        );
+    }
+
+    public ProductIdentity resolveProduct(
+        ItemStack stack,
+        String displayNameEvidence,
+        @Nullable String formattedNameEvidence
+    ) {
         var revision = this.indexRevision;
-        var evidenceKey = Utils.cleanDisplayName(displayNameEvidence);
+        var evidenceKey = Utils.cleanDisplayName(displayNameEvidence)
+            + "|"
+            + Optional.ofNullable(formattedNameEvidence).orElse("");
         // ItemStack identity is stable for current call sites. If reused stacks start mutating
         // custom data or lore in place, key this cache by an identity fingerprint instead.
         synchronized (this.resolvedStackCache) {
@@ -147,7 +161,11 @@ public final class ConversionIndexService {
             }
         }
 
-        var resolved = this.resolver.resolveProduct(stack, evidenceKey);
+        var resolved = this.resolver.resolveProduct(
+            stack,
+            Utils.cleanDisplayName(displayNameEvidence),
+            formattedNameEvidence
+        );
         synchronized (this.resolvedStackCache) {
             if (revision == this.indexRevision) {
                 this.resolvedStackCache

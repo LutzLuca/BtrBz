@@ -9,6 +9,8 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -231,6 +233,44 @@ class UtilsTest {
         @Test
         void formatsZero() {
             assertEquals("< 1m", Utils.formatDuration(0));
+        }
+    }
+
+    @Nested
+    @DisplayName("legacyFormattedText")
+    class LegacyFormattedText {
+
+        @Test
+        void preservesNamedColors() {
+            var text = Component.literal("Troubled Bubble").withStyle(ChatFormatting.GOLD);
+
+            assertEquals(ChatFormatting.GOLD + "Troubled Bubble", Utils.legacyFormattedText(text));
+        }
+
+        @Test
+        void preservesBasicStyles() {
+            var text = Component.literal("Habanero Tactics")
+                .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD, ChatFormatting.ITALIC);
+
+            assertEquals(
+                ChatFormatting.LIGHT_PURPLE
+                    + ChatFormatting.BOLD.toString()
+                    + ChatFormatting.ITALIC
+                    + "Habanero Tactics",
+                Utils.legacyFormattedText(text)
+            );
+        }
+
+        @Test
+        void extractsMatchingFormattedSuffix() {
+            var text = Component.empty()
+                .append(Component.literal("BUY ").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal("Bank III").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+
+            assertEquals(
+                Optional.of(ChatFormatting.LIGHT_PURPLE + ChatFormatting.BOLD.toString() + "Bank III"),
+                Utils.matchingLegacySuffix(text, "Bank III")
+            );
         }
     }
 

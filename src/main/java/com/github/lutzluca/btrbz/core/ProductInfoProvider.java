@@ -6,7 +6,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -69,7 +69,7 @@ public final class ProductInfoProvider {
     private @Nullable InfoProviderSite cachedProductInfoSite = null;
 
     @Getter
-    private @Nullable ProductRef openedProduct;
+    private @Nullable IndexedProduct openedProduct;
 
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -112,7 +112,7 @@ public final class ProductInfoProvider {
                 var product = inv
                     .getItem(PRODUCT_IDX)
                     .map(this.bazaarData::resolveProduct)
-                    .flatMap(ProductIdentity::resolvedProduct);
+                    .flatMap(this.bazaarData::resolveIndexedProduct);
 
                 product.ifPresentOrElse(
                     resolved -> {
@@ -277,7 +277,8 @@ public final class ProductInfoProvider {
         }
 
         return this.resolveProductForLookup(stack)
-            .resolvedProduct()
+            .bazaarProductId()
+            .flatMap(this.bazaarData::resolveProductId)
             .isPresent();
     }
 
@@ -418,7 +419,7 @@ public final class ProductInfoProvider {
     }
 
     private record CachedPrice(
-        ProductRef product,
+        IndexedProduct product,
         @Nullable Double sellOfferPrice,
         @Nullable Double buyOrderPrice
     ) { }
@@ -474,7 +475,8 @@ public final class ProductInfoProvider {
                 return SlotClickResult.Pass;
             }
 
-            var product = ProductInfoProvider.this.resolveProductForLookup(ctx.view()).resolvedProduct();
+            var identity = ProductInfoProvider.this.resolveProductForLookup(ctx.view());
+            var product = ProductInfoProvider.this.bazaarData.resolveIndexedProduct(identity);
             if (product.isEmpty()) {
                 log.warn("No product id found for {}", stack.getHoverName().getString());
                 return SlotClickResult.Pass;
@@ -630,18 +632,19 @@ public final class ProductInfoProvider {
                 return Optional.ofNullable(this.cache.get(stack));
             }
             var identity = ProductInfoProvider.this.resolveProduct(stack);
-            var productRef = identity.resolvedProduct();
+            var indexedProduct = ProductInfoProvider.this.bazaarData.resolveIndexedProduct(identity);
 
-            if (productRef.isEmpty()) {
+            if (indexedProduct.isEmpty()) {
                 this.cache.put(stack, null);
                 return Optional.empty();
             }
 
             var data = ProductInfoProvider.this.bazaarData;
-            var product = productRef.get();
+            var product = indexedProduct.get();
+            var marketIdentity = ProductIdentity.fromIndex(product);
 
-            var sellOfferPrice = data.lowestSellOfferPrice(product).orElse(null);
-            var buyOrderPrice = data.highestBuyOrderPrice(product).orElse(null);
+            var sellOfferPrice = data.lowestSellOfferPrice(marketIdentity).orElse(null);
+            var buyOrderPrice = data.highestBuyOrderPrice(marketIdentity).orElse(null);
 
             var cached = new CachedPrice(product, sellOfferPrice, buyOrderPrice);
             this.cache.put(stack, cached);

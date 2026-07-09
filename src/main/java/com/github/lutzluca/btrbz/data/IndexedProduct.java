@@ -11,9 +11,13 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
 
-public record ProductRef(String productId, String formattedName) implements ProductIdentity {
+/**
+ * Canonical product metadata from the conversion index.
+ * Store this in index-backed config features; convert to ProductIdentity only at runtime market lookup boundaries.
+ */
+public record IndexedProduct(String productId, String formattedName) {
 
-    public ProductRef {
+    public IndexedProduct {
         if (productId == null || productId.isBlank()) {
             throw new IllegalArgumentException("productId must not be blank");
         }
@@ -26,20 +30,19 @@ public record ProductRef(String productId, String formattedName) implements Prod
 
     @Override
     public String toString() {
-        return "ProductRef[productId=" + this.productId + ", strippedName=" + this.strippedName() + "]";
+        return "IndexedProduct[productId=" + this.productId + ", strippedName=" + this.strippedName() + "]";
     }
 
-    @Override
     public String strippedName() {
         var stripped = Utils.cleanDisplayName(this.formattedName);
         return stripped.isBlank() ? this.productId : stripped;
     }
 
-    public static final class GsonAdapter implements JsonSerializer<ProductRef>, JsonDeserializer<ProductRef> {
+    public static final class GsonAdapter implements JsonSerializer<IndexedProduct>, JsonDeserializer<IndexedProduct> {
 
         @Override
         public JsonElement serialize(
-            ProductRef src,
+            IndexedProduct src,
             Type typeOfSrc,
             JsonSerializationContext ctx
         ) {
@@ -50,19 +53,19 @@ public record ProductRef(String productId, String formattedName) implements Prod
         }
 
         @Override
-        public ProductRef deserialize(
+        public IndexedProduct deserialize(
             JsonElement json,
             Type typeOfT,
             JsonDeserializationContext ctx
         ) throws JsonParseException {
             if (json == null || !json.isJsonObject()) {
-                throw new JsonParseException("ProductRef must be an object");
+                throw new JsonParseException("IndexedProduct must be an object");
             }
 
             var obj = json.getAsJsonObject();
-            var productId = GsonUtils.requiredString(obj, "productId", "ProductRef");
-            var formattedName = GsonUtils.requiredString(obj, "formattedName", "ProductRef");
-            return new ProductRef(productId, formattedName);
+            var productId = GsonUtils.requiredString(obj, "productId", "IndexedProduct");
+            var formattedName = GsonUtils.requiredString(obj, "formattedName", "IndexedProduct");
+            return new IndexedProduct(productId, formattedName);
         }
     }
 }

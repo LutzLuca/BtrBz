@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public final class ConversionIndex {
     private final String generatedAt;
     private final String neuCommit;
     private final Map<String, ConversionProductEntry> products;
-    private final Map<String, List<ProductRef>> normalizedNameIndex;
+    private final Map<String, List<IndexedProduct>> normalizedNameIndex;
 
     public ConversionIndex(
         int schemaVersion,
@@ -97,21 +97,21 @@ public final class ConversionIndex {
         return this.products.isEmpty();
     }
 
-    public Optional<ProductRef> product(String productId) {
+    public Optional<IndexedProduct> product(String productId) {
         return Optional
             .ofNullable(this.products.get(productId))
-            .map(entry -> toProductRef(productId, entry));
+            .map(entry -> toIndexedProduct(productId, entry));
     }
 
-    public List<ProductRef> allProducts() {
+    public List<IndexedProduct> allProducts() {
         return this.products
             .entrySet()
             .stream()
-            .map(entry -> toProductRef(entry.getKey(), entry.getValue()))
+            .map(entry -> toIndexedProduct(entry.getKey(), entry.getValue()))
             .toList();
     }
 
-    public Optional<ProductRef> uniqueProductByName(String displayName) {
+    public Optional<IndexedProduct> uniqueProductByName(String displayName) {
         var normalized = Utils.normalizeDisplayName(displayName);
         if (normalized.isEmpty()) {
             return Optional.empty();
@@ -142,23 +142,23 @@ public final class ConversionIndex {
         return new ConversionSourceCounts(neu, derived);
     }
 
-    private static Map<String, List<ProductRef>> buildNameIndex(
+    private static Map<String, List<IndexedProduct>> buildNameIndex(
         Map<String, ConversionProductEntry> products
     ) {
-        var index = new HashMap<String, List<ProductRef>>();
+        var index = new HashMap<String, List<IndexedProduct>>();
         products.forEach((productId, entry) -> {
             var normalized = Utils.normalizeDisplayName(entry.strippedName());
             if (normalized.isEmpty()) {
                 return;
             }
             index.computeIfAbsent(normalized, ignored -> new ArrayList<>())
-                .add(toProductRef(productId, entry));
+                .add(toIndexedProduct(productId, entry));
         });
         index.replaceAll((ignored, refs) -> Collections.unmodifiableList(refs));
         return Collections.unmodifiableMap(index);
     }
 
-    private static ProductRef toProductRef(String productId, ConversionProductEntry entry) {
-        return new ProductRef(productId, entry.formattedName());
+    private static IndexedProduct toIndexedProduct(String productId, ConversionProductEntry entry) {
+        return new IndexedProduct(productId, entry.formattedName());
     }
 }

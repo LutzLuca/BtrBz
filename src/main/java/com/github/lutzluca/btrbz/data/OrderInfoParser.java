@@ -15,7 +15,9 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 @Slf4j
@@ -193,11 +195,13 @@ public final class OrderInfoParser {
             .map(info -> switch (info) {
                 case UnfilledOrderInfo unfilled -> unfilled.withProduct(bazaarData.resolveProduct(
                     item,
-                    unfilled.uiProductName()
+                    unfilled.uiProductName(),
+                    formattedProductNameFromOrderTitle(item.getHoverName(), unfilled.uiProductName()).orElse(null)
                 ));
                 case FilledOrderInfo filled -> filled.withProduct(bazaarData.resolveProduct(
                     item,
-                    filled.uiProductName()
+                    filled.uiProductName(),
+                    formattedProductNameFromOrderTitle(item.getHoverName(), filled.uiProductName()).orElse(null)
                 ));
             });
     }
@@ -240,7 +244,7 @@ public final class OrderInfoParser {
             var details = additionalInfo.get();
             if (details.filled) {
                 return new FilledOrderInfo(
-                    new UnresolvedProduct(productName.trim(), null),
+                    ProductIdentity.fromName(productName.trim()),
                     productName.trim(),
                     orderTypeResult.get(),
                     details.volume,
@@ -252,7 +256,7 @@ public final class OrderInfoParser {
             }
 
             return new UnfilledOrderInfo(
-                new UnresolvedProduct(productName.trim(), null),
+                ProductIdentity.fromName(productName.trim()),
                 productName.trim(),
                 orderTypeResult.get(),
                 details.volume,
@@ -350,8 +354,30 @@ public final class OrderInfoParser {
         return parseSetOrderItem(item)
             .map(info -> info.withProduct(bazaarData.resolveProduct(
                 item,
-                info.uiProductName()
+                info.uiProductName(),
+                formattedProductNameFromConfirmationLore(
+                    GameUtils.getLoreComponents(item),
+                    info.uiProductName()
+                ).orElse(null)
             )));
+    }
+
+    static Optional<String> formattedProductNameFromOrderTitle(Component title, String productName) {
+        return Utils.matchingLegacySuffix(title, productName);
+    }
+
+    static Optional<String> formattedProductNameFromConfirmationLore(List<Component> lore, String productName) {
+        return lore
+            .stream()
+            .filter(OrderInfoParser::isConfirmationProductLine)
+            .map(line -> Utils.matchingLegacySuffix(line, productName))
+            .flatMap(Optional::stream)
+            .findFirst();
+    }
+
+    private static boolean isConfirmationProductLine(Component line) {
+        var strippedLine = GameUtils.stripFormattingCodes(line.getString()).trim();
+        return strippedLine.startsWith("Order:") || strippedLine.startsWith("Selling:");
     }
 
     static Try<OutstandingOrderInfo> parseSetOrderItem(String title, List<String> lore) {

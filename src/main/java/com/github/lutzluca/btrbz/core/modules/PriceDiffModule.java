@@ -98,14 +98,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         // TODO maybe respect "filling orders" when one would sell it instantly
         var bazaarData = this.context().bazaarData();
 
-        return bazaarData
-            .resolveProduct(productStack)
-            .resolvedProduct()
-            .flatMap(product -> Utils.zipOptionals(
-                bazaarData.lowestSellOfferPrice(product),
-                bazaarData.highestBuyOrderPrice(product)
-            ))
-            .map(pair -> pair.getLeft() - pair.getRight());
+        return bazaarData.productSpread(bazaarData.resolveProduct(productStack));
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {

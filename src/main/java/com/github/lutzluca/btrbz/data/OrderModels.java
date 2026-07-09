@@ -74,7 +74,7 @@ public final class OrderModels {
                 int slotIdx
             ) {
                 this(
-                    new UnresolvedProduct(productName, null),
+                    ProductIdentity.fromName(productName),
                     productName,
                     type,
                     volume,
@@ -120,7 +120,7 @@ public final class OrderModels {
                 int slotIdx
             ) {
                 this(
-                    new UnresolvedProduct(productName, null),
+                    ProductIdentity.fromName(productName),
                     productName,
                     type,
                     volume,
@@ -240,10 +240,10 @@ public final class OrderModels {
         }
 
         private boolean productsMatch(OrderInfo info) {
-            var currentRef = this.product.resolvedProduct();
-            var incomingRef = info.product().resolvedProduct();
-            if (currentRef.isPresent() && incomingRef.isPresent()) {
-                return currentRef.get().productId().equals(incomingRef.get().productId());
+            var currentId = this.product.bazaarProductId();
+            var incomingId = info.product().bazaarProductId();
+            if (currentId.isPresent() && incomingId.isPresent()) {
+                return currentId.get().equals(incomingId.get());
             }
 
             return Utils
@@ -285,7 +285,7 @@ public final class OrderModels {
     ) {
 
         public OutstandingOrderInfo(String productName, OrderType type, int volume, double pricePerUnit, double total) {
-            this(new UnresolvedProduct(productName, null), productName, type, volume, pricePerUnit, total);
+            this(ProductIdentity.fromName(productName), productName, type, volume, pricePerUnit, total);
         }
 
         public OutstandingOrderInfo withProduct(ProductIdentity product) {

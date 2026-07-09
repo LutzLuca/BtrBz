@@ -7,6 +7,8 @@ import java.util.List;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -354,6 +356,20 @@ class OrderInfoParserTest {
                 "Bazaar",
                 "Price per unit: 35,926.9 coins"
             )).isFailure());
+        }
+
+        @Test
+        void extractsFormattedProductNameFromConfirmationLoreWithoutCount() {
+            var formattedName = OrderInfoParser.formattedProductNameFromConfirmationLore(
+                List.of(Component.empty()
+                    .append(Component.literal("Order: ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal("160").withStyle(ChatFormatting.GREEN))
+                    .append(Component.literal("x ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal("Enchanted Gold Ingot").withStyle(ChatFormatting.GREEN))),
+                "Enchanted Gold Ingot"
+            );
+
+            assertEquals(ChatFormatting.GREEN + "Enchanted Gold Ingot", formattedName.orElseThrow());
         }
     }
 

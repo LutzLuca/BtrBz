@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.modules;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -128,7 +129,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var orders = this.context().bazaarData().getOrderLists(product);
+        var orders = this.context().bazaarData().getOrderLists(ProductIdentity.fromIndex(product));
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();

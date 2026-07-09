@@ -16,14 +16,14 @@ import net.minecraft.sounds.SoundEvents;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupKey;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupStatus;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.SelfUndercutKey;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
+import com.github.lutzluca.btrbz.core.trackedorders.GroupStatus;
+import com.github.lutzluca.btrbz.core.trackedorders.SelfUndercutKey;
+import com.github.lutzluca.btrbz.core.trackedorders.StatusUpdate;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
@@ -32,7 +32,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 
 @Slf4j
 public class Notifier {
@@ -68,8 +68,8 @@ public class Notifier {
                     .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo && !(update.prev() instanceof OrderStatus.Top)) {
-                    order.product.resolvedProduct()
-                        .flatMap(product -> bazaarData.calculateQueuePosition(product, order.type, order.pricePerUnit, true))
+                    bazaarData
+                        .calculateQueuePosition(order.product, order.type, order.pricePerUnit, true)
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - 1),
                             Math.max(0, info.itemsAhead - order.volume),
@@ -86,8 +86,8 @@ public class Notifier {
                     .append(Component.literal(Utils.formatDecimal(undercut.amount, 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
-                    order.product.resolvedProduct()
-                        .flatMap(product -> bazaarData.calculateQueuePosition(product, order.type, order.pricePerUnit))
+                    bazaarData
+                        .calculateQueuePosition(order.product, order.type, order.pricePerUnit)
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
                 yield undercutMsg;
@@ -124,8 +124,8 @@ public class Notifier {
                         .append(Component.literal(Utils.formatDecimal(undercut.amount(), 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
-                    key.product().resolvedProduct()
-                        .flatMap(product -> bazaarData.calculateQueuePosition(product, key.type(), key.pricePerUnit()))
+                    bazaarData
+                        .calculateQueuePosition(key.product(), key.type(), key.pricePerUnit())
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
                 
@@ -138,8 +138,8 @@ public class Notifier {
                         .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo) {
-                    key.product().resolvedProduct()
-                        .flatMap(product -> bazaarData.calculateQueuePosition(product, key.type(), key.pricePerUnit(), true))
+                    bazaarData
+                        .calculateQueuePosition(key.product(), key.type(), key.pricePerUnit(), true)
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - groupSize),
                             Math.max(0, info.itemsAhead - totalVolume),
@@ -149,10 +149,10 @@ public class Notifier {
                 
                 yield matchedMsg;
             }
-            case GroupStatus.SelfMatched _ -> {
+            case GroupStatus.SelfMatched selfMatched -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 
-                yield groupMsg(key, groupSize, totalVolume, cfg, bazaarData,
+                yield groupMsg(key, selfMatched.orderCount(), totalVolume, cfg, bazaarData,
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("SELF-MATCHED!").withStyle(ChatFormatting.BLUE)));
             }
@@ -285,7 +285,7 @@ public class Notifier {
         String priceText = price
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
             .orElse("currently has no listed price. ");
-        var product = bazaarData.refreshProductRef(alert.product);
+        var product = bazaarData.refreshIndexedProduct(alert.product);
 
         Component msg = prefix()
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
@@ -361,17 +361,25 @@ public class Notifier {
         BazaarData bazaarData,
         ChatFormatting fallbackStyle
     ) {
-        return product
-            .resolvedProduct()
+        return bazaarData
+            .resolveIndexedProduct(product)
             .<MutableComponent>map(ref -> productNameComponent(ref, bazaarData))
-            .orElseGet(() -> Component.literal(product.strippedName()).withStyle(fallbackStyle));
+            .orElseGet(() -> Component.literal(product.visualName()).withStyle(fallbackStyle));
     }
 
     private static MutableComponent productNameComponent(
-        ProductRef product,
+        IndexedProduct product,
+        BazaarData bazaarData,
+        ChatFormatting fallbackStyle
+    ) {
+        return productNameComponent(product, bazaarData);
+    }
+
+    private static MutableComponent productNameComponent(
+        IndexedProduct product,
         BazaarData bazaarData
     ) {
-        var refreshed = bazaarData.refreshProductRef(product);
+        var refreshed = bazaarData.refreshIndexedProduct(product);
         return Component.literal(refreshed.formattedName());
     }
 

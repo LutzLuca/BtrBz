@@ -1,20 +1,57 @@
 package com.github.lutzluca.btrbz.data;
 
 import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
-public sealed interface ProductIdentity permits ProductRef, UnresolvedProduct {
+/**
+ * Runtime product evidence from stacks, chat, and order UI.
+ * Use this for Bazaar market lookup because it can carry a raw Bazaar id even when the conversion index has no name yet.
+ */
+public record ProductIdentity(
+    String strippedName,
+    Optional<String> bazaarProductId,
+    @Nullable String formattedName
+) {
 
-    String strippedName();
+    public ProductIdentity {
+        if (strippedName == null || strippedName.isBlank()) {
+            strippedName = "Unknown Product";
+        } else {
+            strippedName = strippedName.trim();
+        }
 
-    default String visualName() {
-        return this instanceof ProductRef product ? product.formattedName() : this.strippedName();
+        bazaarProductId = Optional
+            .ofNullable(bazaarProductId)
+            .flatMap(id -> id)
+            .map(String::trim)
+            .filter(id -> !id.isEmpty())
+            .filter(id -> !"ENCHANTED_BOOK".equalsIgnoreCase(id));
+
+        if (formattedName != null) {
+            formattedName = formattedName.trim();
+            if (formattedName.isEmpty()) {
+                formattedName = null;
+            }
+        }
     }
 
-    default Optional<ProductRef> resolvedProduct() {
-        return this instanceof ProductRef product ? Optional.of(product) : Optional.empty();
+    public static ProductIdentity fromIndex(IndexedProduct product) {
+        return new ProductIdentity(product.strippedName(), Optional.of(product.productId()), product.formattedName());
     }
 
-    default boolean isResolved() {
-        return this instanceof ProductRef;
+    public static ProductIdentity fromRuntime(
+        String strippedName,
+        @Nullable String bazaarProductId,
+        @Nullable String formattedName
+    ) {
+        return new ProductIdentity(strippedName, Optional.ofNullable(bazaarProductId), formattedName);
+    }
+
+    public static ProductIdentity fromName(String strippedName) {
+        return new ProductIdentity(strippedName, Optional.empty(), null);
+    }
+
+    public String visualName() {
+        return this.formattedName != null ? this.formattedName : this.strippedName;
     }
 }

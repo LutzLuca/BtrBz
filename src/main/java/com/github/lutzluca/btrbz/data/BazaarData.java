@@ -58,15 +58,19 @@ public class BazaarData {
         return this.conversionIndexService.status();
     }
 
-    public Optional<ProductRef> resolveProductId(String productId) {
+    public Optional<IndexedProduct> resolveProductId(String productId) {
         return this.conversionIndexService.productById(productId);
     }
 
-    public List<ProductRef> allProducts() {
+    public Optional<IndexedProduct> resolveIndexedProduct(ProductIdentity identity) {
+        return identity.bazaarProductId().flatMap(this::resolveProductId);
+    }
+
+    public List<IndexedProduct> allProducts() {
         return this.conversionIndexService.allProducts();
     }
 
-    public ProductRef refreshProductRef(ProductRef product) {
+    public IndexedProduct refreshIndexedProduct(IndexedProduct product) {
         // Keep stale display metadata if the active conversion index no longer contains this id.
         return this.resolveProductId(product.productId()).orElse(product);
     }
@@ -77,6 +81,14 @@ public class BazaarData {
 
     public ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
         return this.conversionIndexService.resolveProduct(stack, displayNameEvidence);
+    }
+
+    public ProductIdentity resolveProduct(
+        ItemStack stack,
+        String displayNameEvidence,
+        @Nullable String formattedNameEvidence
+    ) {
+        return this.conversionIndexService.resolveProduct(stack, displayNameEvidence, formattedNameEvidence);
     }
 
     public ProductIdentity resolveProduct(@Nullable String rawProductId, String displayName) {
@@ -136,31 +148,35 @@ public class BazaarData {
         return new MarketSnapshot(this.lastProducts);
     }
 
-    public Optional<Double> lowestSellOfferPrice(ProductRef product) {
+    public Optional<Double> lowestSellOfferPrice(ProductIdentity product) {
         return this.currentSnapshot().lowestSellOfferPrice(product);
     }
 
-    public Optional<Double> highestBuyOrderPrice(ProductRef product) {
+    public Optional<Double> highestBuyOrderPrice(ProductIdentity product) {
         return this.currentSnapshot().highestBuyOrderPrice(product);
     }
 
-    public MarketPrices getMarketPrices(ProductRef product) {
+    public MarketPrices getMarketPrices(ProductIdentity product) {
         return this.currentSnapshot().getMarketPrices(product);
     }
 
-    public OrderLists getOrderLists(ProductRef product) {
+    public Optional<Double> productSpread(ProductIdentity product) {
+        return this.currentSnapshot().productSpread(product);
+    }
+
+    public OrderLists getOrderLists(ProductIdentity product) {
         return this.currentSnapshot().getOrderLists(product);
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        ProductRef product, OrderType orderType,
+        ProductIdentity product, OrderType orderType,
         double pricePerUnit
     ) {
         return this.calculateQueuePosition(product, orderType, pricePerUnit, false);
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        ProductRef product, OrderType orderType,
+        ProductIdentity product, OrderType orderType,
         double pricePerUnit, boolean includeAtPrice
     ) {
         var summaries = this.currentSnapshot().summariesForOrderType(product, orderType);
@@ -186,7 +202,11 @@ public class BazaarData {
         return queueInfo.ordersAhead > 0 ? Optional.of(queueInfo) : Optional.empty();
     }
 
-    public Optional<Double> getEstimatedFillTimeMinutes(ProductRef product, OrderType orderType, int remainingVolume) {
+    public Optional<Double> getEstimatedFillTimeMinutes(
+        ProductIdentity product,
+        OrderType orderType,
+        int remainingVolume
+    ) {
         if (remainingVolume <= 0) {
             return Optional.of(0.0);
         }
@@ -244,28 +264,35 @@ public class BazaarData {
             return this.products.size();
         }
 
-        public boolean contains(ProductRef product) {
-            return this.products.containsKey(product.productId());
+        public boolean contains(ProductIdentity product) {
+            return this.rawProduct(product).isPresent();
         }
 
-        public Optional<Double> lowestSellOfferPrice(ProductRef product) {
+        public Optional<Double> lowestSellOfferPrice(ProductIdentity product) {
             return this.rawProduct(product)
                 .flatMap(prod -> firstSummaryPrice(prod.getBuySummary()));
         }
 
-        public Optional<Double> highestBuyOrderPrice(ProductRef product) {
+        public Optional<Double> highestBuyOrderPrice(ProductIdentity product) {
             return this.rawProduct(product)
                 .flatMap(prod -> firstSummaryPrice(prod.getSellSummary()));
         }
 
-        public MarketPrices getMarketPrices(ProductRef product) {
+        public MarketPrices getMarketPrices(ProductIdentity product) {
             return new MarketPrices(
                 this.highestBuyOrderPrice(product),
                 this.lowestSellOfferPrice(product)
             );
         }
 
-        public OrderLists getOrderLists(ProductRef product) {
+        public Optional<Double> productSpread(ProductIdentity product) {
+            return Utils.zipOptionals(
+                this.lowestSellOfferPrice(product),
+                this.highestBuyOrderPrice(product)
+            ).map(pair -> pair.getLeft() - pair.getRight());
+        }
+
+        public OrderLists getOrderLists(ProductIdentity product) {
             // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
             return this.rawProduct(product)
                 .map(prod -> new OrderLists(
@@ -275,7 +302,7 @@ public class BazaarData {
                 .orElse(OrderLists.empty());
         }
 
-        public List<Summary> summariesForOrderType(ProductRef product, OrderType orderType) {
+        public List<Summary> summariesForOrderType(ProductIdentity product, OrderType orderType) {
             var lists = this.getOrderLists(product);
             return switch (orderType) {
                 case Buy -> lists.buyOrders();
@@ -283,15 +310,15 @@ public class BazaarData {
             };
         }
 
-        private Optional<Product> rawProduct(ProductRef product) {
-            return Optional.ofNullable(this.products.get(product.productId()));
+        private Optional<Product> rawProduct(ProductIdentity product) {
+            return product.bazaarProductId().map(this.products::get);
         }
     }
 
     public static final class TrackedProduct {
 
         @Getter
-        private ProductRef product;
+        private IndexedProduct product;
         private final BazaarData data;
         private final Consumer<MarketSnapshot> updater;
         private final Runnable indexUpdater;
@@ -300,17 +327,17 @@ public class BazaarData {
         private Optional<Product> bazaarProduct;
         private boolean listenerRegistered = false;
 
-        public TrackedProduct(BazaarData data, ProductRef product) {
+        public TrackedProduct(BazaarData data, IndexedProduct product) {
             this.data = data;
             this.product = product;
             this.bazaarProduct = Optional.empty();
 
-            this.updater = snapshot -> this.bazaarProduct = snapshot.rawProduct(this.product);
+            this.updater = snapshot -> this.bazaarProduct = snapshot.rawProduct(ProductIdentity.fromIndex(this.product));
             this.indexUpdater = this::refreshProduct;
         }
 
         public String getProductName() {
-            this.product = this.data.refreshProductRef(this.product);
+            this.product = this.data.refreshIndexedProduct(this.product);
             return this.product.strippedName();
         }
 
@@ -349,8 +376,8 @@ public class BazaarData {
         }
 
         private void refreshProduct() {
-            this.product = this.data.refreshProductRef(this.product);
-            this.bazaarProduct = this.data.currentSnapshot().rawProduct(this.product);
+            this.product = this.data.refreshIndexedProduct(this.product);
+            this.bazaarProduct = this.data.currentSnapshot().rawProduct(ProductIdentity.fromIndex(this.product));
         }
     }
 }

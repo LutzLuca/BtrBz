@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -79,7 +80,7 @@ public class OrderBookScreenController {
                 return SlotClickResult.Consume;
             }
 
-            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(product);
+            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(ProductIdentity.fromIndex(product));
             var title = Component.empty()
                 .append(Component.literal(product.formattedName()))
                 .append(Component.literal(" Order Book"));

@@ -19,7 +19,17 @@ class ProductResolverTest {
             var service = serviceWithProducts();
             var product = service.resolveProduct("REDSTONE", "Growth 6-7");
 
-            assertEquals("REDSTONE", product.resolvedProduct().orElseThrow().productId());
+            assertEquals("REDSTONE", product.bazaarProductId().orElseThrow());
+            assertEquals("Redstone", product.visualName());
+        }
+
+        @Test
+        void unknownNonBookRawIdReturnsRuntimeIdentityWithBazaarProductId() {
+            var service = serviceWithProducts();
+            var product = service.resolveProduct("TROUBLED_BUBBLE", "Troubled Bubble");
+
+            assertEquals("TROUBLED_BUBBLE", product.bazaarProductId().orElseThrow());
+            assertEquals("Troubled Bubble", product.visualName());
         }
 
         @Test
@@ -27,7 +37,17 @@ class ProductResolverTest {
             var service = serviceWithProducts();
             var product = service.resolveProduct("ENCHANTED_BOOK", "SELL Quick Bite V");
 
-            assertEquals("ENCHANTMENT_QUICK_BITE_5", product.resolvedProduct().orElseThrow().productId());
+            assertEquals("ENCHANTMENT_QUICK_BITE_5", product.bazaarProductId().orElseThrow());
+            assertEquals("Quick Bite V", product.visualName());
+        }
+
+        @Test
+        void genericBookDerivedIdMissingFromIndexReturnsRuntimeIdentityWithBazaarProductId() {
+            var service = serviceWithProducts();
+            var product = service.resolveProduct("ENCHANTED_BOOK", "Habanero Tactics V");
+
+            assertEquals("ENCHANTMENT_HABANERO_TACTICS_5", product.bazaarProductId().orElseThrow());
+            assertEquals("Habanero Tactics V", product.visualName());
         }
 
         @Test
@@ -35,7 +55,16 @@ class ProductResolverTest {
             var service = serviceWithProducts();
             var product = service.resolveProduct("ENCHANTED_BOOK", "Growth 6-7");
 
-            assertTrue(product.resolvedProduct().isEmpty());
+            assertTrue(product.bazaarProductId().isEmpty());
+        }
+
+        @Test
+        void genericBookWithoutDerivedIdReturnsNameOnlyIdentity() {
+            var service = serviceWithProducts();
+            var product = service.resolveProduct("ENCHANTED_BOOK", "Enchanted Book");
+
+            assertTrue(product.bazaarProductId().isEmpty());
+            assertEquals("Enchanted Book", product.visualName());
         }
 
         @Test
@@ -43,7 +72,8 @@ class ProductResolverTest {
             var service = serviceWithProducts();
             var product = service.resolveProduct("ENCHANTED_BOOK", "Turbo-Cacti 5");
 
-            assertEquals("ENCHANTMENT_TURBO_CACTUS_5", product.resolvedProduct().orElseThrow().productId());
+            assertEquals("ENCHANTMENT_TURBO_CACTUS_5", product.bazaarProductId().orElseThrow());
+            assertEquals("Turbo-Cacti V", product.visualName());
         }
     }
 

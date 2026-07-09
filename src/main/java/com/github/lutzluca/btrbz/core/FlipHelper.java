@@ -11,7 +11,8 @@ import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -73,7 +74,7 @@ public class FlipHelper {
         }
 
         this.cachedHelperDisplay = null;
-        var product = info.product().resolvedProduct();
+        var product = this.bazaarData.resolveIndexedProduct(info.product());
         if (product.isEmpty()) {
             this.clearPendingFlipState();
             log.warn("Could not resolve flip product '{}'", info.uiProductName());
@@ -192,11 +193,13 @@ public class FlipHelper {
     }
 
     public void handleFlipped(BazaarMessage.OrderFlipped flipped) {
-        var flippedProduct = this.bazaarData.resolveProductName(flipped.productName()).resolvedProduct();
+        var flippedProduct = this.bazaarData.resolveIndexedProduct(
+            this.bazaarData.resolveProductName(flipped.productName())
+        );
         var match = this.pendingFlips.removeFirstMatch(entry -> entry
             .product()
             .productId()
-            .equals(flippedProduct.map(ProductRef::productId).orElse(""))
+            .equals(flippedProduct.map(IndexedProduct::productId).orElse(""))
             || entry.product().strippedName().equalsIgnoreCase(flipped.productName()));
 
         // this may be unnecessary as after entering the price in the sign, it opens the orders
@@ -218,7 +221,7 @@ public class FlipHelper {
         double pricePerUnit = entry.pricePerUnit();
 
         var orderInfo = new OrderInfo.UnfilledOrderInfo(
-            entry.product(),
+            ProductIdentity.fromIndex(entry.product()),
             flipped.productName(),
             OrderType.Sell,
             flipped.volume(),
@@ -227,7 +230,7 @@ public class FlipHelper {
             0,
             -1
         );
-        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, entry.product()));
+        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, ProductIdentity.fromIndex(entry.product())));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
@@ -334,7 +337,7 @@ public class FlipHelper {
 
     private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) { }
 
-    private record FlipEntry(ProductRef product, double pricePerUnit) { }
+    private record FlipEntry(IndexedProduct product, double pricePerUnit) { }
 
     public static class FlipHelperConfig {
 

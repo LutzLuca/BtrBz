@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +17,7 @@ class AlertConfigSerializationTest {
 
     private final Gson gson = new GsonBuilder()
         .registerTypeAdapter(Alert.class, new Alert.GsonAdapter())
-        .registerTypeAdapter(ProductRef.class, new ProductRef.GsonAdapter())
+        .registerTypeAdapter(IndexedProduct.class, new IndexedProduct.GsonAdapter())
         .create();
 
     @Nested
@@ -25,7 +25,7 @@ class AlertConfigSerializationTest {
     class CurrentAlertConfig {
 
         @Test
-        void roundTripsNestedProductRefShape() {
+        void roundTripsNestedIndexedProductShape() {
             var json = """
                 {
                   "id": "29f2d47e-f09f-4c68-901f-f41a547d4145",

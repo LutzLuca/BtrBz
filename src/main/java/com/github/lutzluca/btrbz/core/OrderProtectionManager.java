@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -156,12 +157,7 @@ public class OrderProtectionManager {
 
                 log.trace(
                     "Validated: {} - {}",
-                    pendingOrder
-                        .orderInfo()
-                        .product()
-                        .resolvedProduct()
-                        .map(Object::toString)
-                        .orElse(pendingOrder.orderInfo().productName()),
+                    pendingOrder.orderInfo().product().bazaarProductId().orElse(pendingOrder.orderInfo().productName()),
                     pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
                 );
             })
@@ -253,7 +249,7 @@ public class OrderProtectionManager {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            var product = info.product().resolvedProduct();
+            var product = bazaarData.resolveIndexedProduct(info.product());
             if (product.isEmpty()) {
                 log.warn("Order protection blocked unresolved product '{}'", info.productName());
                 return new PendingOrderData(
@@ -262,7 +258,7 @@ public class OrderProtectionManager {
                 );
             }
 
-            var prices = bazaarData.getMarketPrices(product.get());
+            var prices = bazaarData.getMarketPrices(ProductIdentity.fromIndex(product.get()));
             var validationResult = validateOrder(info, prices, cfg);
             return new PendingOrderData(info, validationResult);
         }

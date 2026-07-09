@@ -9,7 +9,8 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -98,7 +99,7 @@ class OrderModelsTest {
         @Test
         void matchesResolvedProductsById() {
             var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
-                new ProductRef("ENCHANTED_HOPPER", "Old Display"),
+                indexedIdentity("ENCHANTED_HOPPER", "Old Display"),
                 "Enchanted Hopper",
                 OrderType.Buy,
                 64,
@@ -109,7 +110,7 @@ class OrderModelsTest {
             ));
 
             var parsed = new OrderInfo.UnfilledOrderInfo(
-                new ProductRef("ENCHANTED_HOPPER", "New Display"),
+                indexedIdentity("ENCHANTED_HOPPER", "New Display"),
                 "Different UI Name",
                 OrderType.Buy,
                 64,
@@ -125,7 +126,7 @@ class OrderModelsTest {
         @Test
         void fallsBackToUiNameWhenOnlyOneProductIsResolved() {
             var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
-                new ProductRef("ENCHANTED_HOPPER", "Enchanted Hopper"),
+                indexedIdentity("ENCHANTED_HOPPER", "Enchanted Hopper"),
                 "Enchanted Hopper",
                 OrderType.Buy,
                 64,
@@ -198,7 +199,7 @@ class OrderModelsTest {
         @Test
         void matchesSetupMessageByUiProductName() {
             var outstanding = new OutstandingOrderInfo(
-                new ProductRef("AOTE_STONE", "Warped Stone"),
+                indexedIdentity("AOTE_STONE", "Warped Stone"),
                 "Warped Stone",
                 OrderType.Sell,
                 2,
@@ -237,5 +238,9 @@ class OrderModelsTest {
         ) {
             return new BazaarMessage.OrderSetup(type, volume, productName, total);
         }
+    }
+
+    private static ProductIdentity indexedIdentity(String productId, String formattedName) {
+        return ProductIdentity.fromIndex(new IndexedProduct(productId, formattedName));
     }
 }

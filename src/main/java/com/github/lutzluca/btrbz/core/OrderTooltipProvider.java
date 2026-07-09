@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
@@ -113,9 +113,9 @@ public class OrderTooltipProvider {
     }
 
     public List<Component> buildTooltipLines(TrackedOrder order, OrderListTooltipConfig cfg) {
-        var product = order.product.resolvedProduct();
+        var product = order.product;
 
-        if (product.isEmpty()) {
+        if (product.bazaarProductId().isEmpty()) {
             return List.of(Component.literal("Unknown Product: " + order.productName).withStyle(ChatFormatting.RED));
         }
 
@@ -130,7 +130,7 @@ public class OrderTooltipProvider {
 
         if (cfg.showQueue && order.status instanceof OrderStatus.Undercut) {
             var queueInfo = this.bazaarData.calculateQueuePosition(
-                product.get(),
+                product,
                 order.type,
                 order.pricePerUnit
             );
@@ -150,16 +150,16 @@ public class OrderTooltipProvider {
 
         if (OrderTooltipProvider.shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
             lines.add(Component.empty());
-            lines.addAll(OrderTooltipProvider.priceLines(this.bazaarData, product.get()));
+            lines.addAll(OrderTooltipProvider.priceLines(this.bazaarData, product));
         }
 
         return lines;
     }
 
     public List<Component> buildTooltipLines(TrackedOrder order, OrderItemTooltipConfig cfg) {
-        var product = order.product.resolvedProduct();
+        var product = order.product;
 
-        if (product.isEmpty()) {
+        if (product.bazaarProductId().isEmpty()) {
             return List.of(Component.literal("Unknown Product: " + order.productName).withStyle(ChatFormatting.RED));
         }
 
@@ -171,7 +171,7 @@ public class OrderTooltipProvider {
             if (cfg.showEstimatedTime && order.status instanceof OrderStatus.Top) {
                 int remainingVolume = order.volume - order.fillAmountSnapshot;
 
-                this.bazaarData.getEstimatedFillTimeMinutes(product.get(), order.type, remainingVolume).ifPresent(minutes -> {
+                this.bazaarData.getEstimatedFillTimeMinutes(product, order.type, remainingVolume).ifPresent(minutes -> {
                     var time = Component.literal(Utils.formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
                     var line = Component.literal("Estimated fill time: ").withStyle(ChatFormatting.GRAY).append(time);
                     lines.add(line);
@@ -185,7 +185,7 @@ public class OrderTooltipProvider {
 
         if (cfg.showQueue && order.status instanceof OrderStatus.Undercut) {
             var queueInfo = this.bazaarData.calculateQueuePosition(
-                product.get(),
+                product,
                 order.type,
                 order.pricePerUnit
             );
@@ -202,7 +202,7 @@ public class OrderTooltipProvider {
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
             lines.add(Component.empty());
-            lines.addAll(priceLines(this.bazaarData, product.get()));
+            lines.addAll(priceLines(this.bazaarData, product));
         }
 
         return lines;
@@ -259,7 +259,7 @@ public class OrderTooltipProvider {
                 .withStyle(ChatFormatting.GOLD));
     }
 
-    private static List<Component> priceLines(BazaarData data, ProductRef product) {
+    private static List<Component> priceLines(BazaarData data, ProductIdentity product) {
         var priceInfo = data.getMarketPrices(product);
 
         var header = Component.literal("Current Prices").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);

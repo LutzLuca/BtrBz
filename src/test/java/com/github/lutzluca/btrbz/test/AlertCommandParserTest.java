@@ -14,7 +14,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import io.vavr.control.Try;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -149,7 +149,7 @@ class AlertCommandParserTest {
     class ExpressionResolution {
 
         private final BazaarData mockData = new BazaarData();
-        private final ProductRef product = new ProductRef("TEST_PRODUCT", "Test Product");
+        private final IndexedProduct product = new IndexedProduct("TEST_PRODUCT", "Test Product");
 
         @Test
         void literalResolves() {

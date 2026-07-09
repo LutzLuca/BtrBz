@@ -6,7 +6,7 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -74,8 +74,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
         BtrBz.orderManager().getTrackedOrders().forEach(order -> {
             switch (order.type) {
-                case Buy -> order.product.resolvedProduct().ifPresent(product -> this.orderBuySet.add(product.productId()));
-                case Sell -> order.product.resolvedProduct().ifPresent(product -> this.orderSellSet.add(product.productId()));
+                case Buy -> order.product.bazaarProductId().ifPresent(this.orderBuySet::add);
+                case Sell -> order.product.bazaarProductId().ifPresent(this.orderSellSet::add);
             }
         });
     }
@@ -103,7 +103,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.list.setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
     }
 
-    private boolean toggleBookmark(ProductRef product, ItemStack itemStack) {
+    private boolean toggleBookmark(IndexedProduct product, ItemStack itemStack) {
         final class BookmarkTag {
             boolean bookmarked;
         }
@@ -159,7 +159,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         var changed = false;
 
         for (var item : this.configState.bookmarkedItems) {
-            var refreshedProduct = this.context().bazaarData().refreshProductRef(item.product());
+            var refreshedProduct = this.context().bazaarData().refreshIndexedProduct(item.product());
             if (refreshedProduct.equals(item.product())) {
                 refreshedItems.add(item);
                 continue;
@@ -233,7 +233,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         return Optional.of(widget);
     }
 
-    public boolean isBookmarked(ProductRef product) {
+    public boolean isBookmarked(IndexedProduct product) {
         return this.configState.bookmarkedItems
             .stream()
             .anyMatch(item -> item.product().productId().equals(product.productId()));
@@ -304,7 +304,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public static class BookmarkedItemRenderable implements Renderable {
         @Getter
-        private final ProductRef product;
+        private final IndexedProduct product;
         @Getter
         private final String productName;
         @Getter
@@ -316,7 +316,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         private final Set<String> orderBuySet;
         private final Set<String> orderSellSet;
 
-        public BookmarkedItemRenderable(ProductRef product, ItemStack itemStack,
+        public BookmarkedItemRenderable(IndexedProduct product, ItemStack itemStack,
                 Set<String> orderBuySet, Set<String> orderSellSet) {
             this.product = product;
             this.productName = product.strippedName();
@@ -328,7 +328,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .of(() -> itemStack.getHoverName().getSiblings().getFirst()
                     .getStyle().getColor().getValue())
                 .getOrElse(0xD3D3D3);
-            this.displayText = Component.literal(product.visualName());
+            this.displayText = Component.literal(product.formattedName());
         }
 
         @Override
@@ -396,7 +396,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     }
 
-    public record BookmarkedItem(ProductRef product, ItemStackTemplate itemTemplate) {
+    public record BookmarkedItem(IndexedProduct product, ItemStackTemplate itemTemplate) {
 
         public BookmarkedItem {
             if (product == null) {
@@ -407,7 +407,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             }
         }
 
-        public BookmarkedItem(ProductRef product, ItemStack itemStack) {
+        public BookmarkedItem(IndexedProduct product, ItemStack itemStack) {
             this(product, ItemStackTemplate.fromNonEmptyStack(itemStack));
         }
 
@@ -429,7 +429,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 JsonSerializationContext ctx
             ) {
                 var obj = new JsonObject();
-                obj.add("product", ctx.serialize(src.product, ProductRef.class));
+                obj.add("product", ctx.serialize(src.product, IndexedProduct.class));
 
                 var itemData = new JsonObject();
                 var template = src.itemTemplate();
@@ -513,11 +513,11 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return new BookmarkedItem(product, template);
             }
 
-            private static Optional<ProductRef> product(JsonObject obj, JsonDeserializationContext ctx) {
+            private static Optional<IndexedProduct> product(JsonObject obj, JsonDeserializationContext ctx) {
                 try {
                     return Optional.of(ctx.deserialize(
                         GsonUtils.required(obj, "product", "Bookmark"),
-                        ProductRef.class
+                        IndexedProduct.class
                     ));
                 } catch (RuntimeException err) {
                     log.warn("Skipping bookmark with invalid product", err);

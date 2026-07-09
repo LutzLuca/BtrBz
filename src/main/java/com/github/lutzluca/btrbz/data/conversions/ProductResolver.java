@@ -1,8 +1,7 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.data.ProductRef;
-import com.github.lutzluca.btrbz.data.UnresolvedProduct;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
@@ -13,6 +12,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 final class ProductResolver {
@@ -26,27 +26,36 @@ final class ProductResolver {
     }
 
     ProductIdentity resolveProduct(ItemStack stack, String displayNameEvidence) {
+        return this.resolveProduct(
+            stack,
+            displayNameEvidence,
+            Utils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null)
+        );
+    }
+
+    ProductIdentity resolveProduct(
+        ItemStack stack,
+        String displayNameEvidence,
+        @Nullable String formattedNameEvidence
+    ) {
         var displayName = Utils.cleanDisplayName(displayNameEvidence);
         var rawProductId = Utils.customDataId(stack).orElse(null);
-        if (rawProductId != null) {
+        if (rawProductId != null && !this.isEnchantedBook(stack)) {
             var product = this.resolveKnownProductId(rawProductId, displayName);
             if (product.isPresent()) {
-                return product.get();
+                return ProductIdentity.fromIndex(product.get());
             }
+
+            this.diagnostics.unknownCustomDataId(rawProductId, displayName);
+            return this.runtime(displayName, rawProductId, formattedNameEvidence);
         }
 
         if (this.isEnchantedBook(stack)) {
-            var product = this.resolveEnchantedBook(stack, displayName);
-            if (product.isPresent()) {
-                return product.get();
-            }
-        } else if (rawProductId != null) {
-            this.diagnostics.unknownCustomDataId(rawProductId, displayName);
-            return new UnresolvedProduct(displayName, rawProductId);
+            return this.resolveEnchantedBook(stack, displayName, formattedNameEvidence)
+                .orElseGet(() -> this.resolveStackFallback(stack, displayName, formattedNameEvidence));
         }
 
-        var resolvedName = this.resolveProductName(displayName);
-        return resolvedName.isResolved() ? resolvedName : this.resolveStackFallback(stack, rawProductId, displayName);
+        return this.resolveProductName(displayName);
     }
 
     ProductIdentity resolveProduct(String rawProductId, String displayName) {
@@ -54,19 +63,21 @@ final class ProductResolver {
         if (rawProductId != null && !rawProductId.isBlank()) {
             var product = this.resolveKnownProductId(rawProductId, cleanedName);
             if (product.isPresent()) {
-                return product.get();
+                return ProductIdentity.fromIndex(product.get());
             }
 
             // ENCHANTED_BOOK is only the generic stack id; the enchantment identity comes from name/lore evidence.
             var enchantmentProduct = EnchantedBookIdParser.isGenericBookId(rawProductId)
-                ? this.resolveEnchantedBookDisplayName(cleanedName)
-                : Optional.<ProductRef>empty();
+                ? this.resolveEnchantedBookDisplayName(cleanedName, null)
+                : Optional.<ProductIdentity>empty();
             if (enchantmentProduct.isPresent()) {
                 return enchantmentProduct.get();
             }
 
             this.diagnostics.unknownCustomDataId(rawProductId, cleanedName);
-            return new UnresolvedProduct(cleanedName, rawProductId);
+            return EnchantedBookIdParser.isGenericBookId(rawProductId)
+                ? ProductIdentity.fromName(cleanedName)
+                : this.runtime(cleanedName, rawProductId, null);
         }
 
         return this.resolveProductName(cleanedName);
@@ -77,7 +88,7 @@ final class ProductResolver {
         var index = this.service.currentIndex();
         var product = index.uniqueProductByName(cleanedName);
         if (product.isPresent()) {
-            return product.get();
+            return ProductIdentity.fromIndex(product.get());
         }
 
         if (index.hasAmbiguousName(cleanedName)) {
@@ -85,74 +96,110 @@ final class ProductResolver {
         } else {
             this.diagnostics.unresolvedName(cleanedName);
         }
-        return new UnresolvedProduct(cleanedName, null);
+        return ProductIdentity.fromName(cleanedName);
     }
 
-    private Optional<ProductRef> resolveKnownProductId(String rawProductId, String displayName) {
+    private Optional<IndexedProduct> resolveKnownProductId(String rawProductId, String displayName) {
         var product = this.service.productById(rawProductId);
         product.ifPresent(resolved -> this.logNameMismatch(rawProductId, displayName, resolved));
         return product;
     }
 
-    private Optional<ProductRef> resolveEnchantedBook(
+    private Optional<ProductIdentity> resolveEnchantedBook(
         ItemStack stack,
-        String displayName
+        String displayName,
+        @Nullable String formattedNameEvidence
     ) {
         return this.resolveEnchantedBookFromCustomData(stack)
-            .or(() -> this.resolveEnchantedBookDisplayName(displayName));
+            .map(id -> this.bookIdentity(id, displayName, formattedNameEvidence, "custom data"))
+            .or(() -> this.resolveEnchantedBookDisplayName(displayName, formattedNameEvidence));
     }
 
-    private Optional<ProductRef> resolveEnchantedBookFromCustomData(ItemStack stack) {
+    private Optional<String> resolveEnchantedBookFromCustomData(ItemStack stack) {
         return Optional
             .ofNullable(stack.get(DataComponents.CUSTOM_DATA))
             .map(CustomData::copyTag)
-            .flatMap(EnchantedBookIdParser::fromCustomData)
-            .flatMap(this.service::productById);
+            .flatMap(EnchantedBookIdParser::fromCustomData);
     }
 
-    private Optional<ProductRef> resolveEnchantedBookDisplayName(String displayName) {
+    private Optional<ProductIdentity> resolveEnchantedBookDisplayName(
+        String displayName,
+        @Nullable String formattedNameEvidence
+    ) {
         var index = this.service.currentIndex();
         var bookName = EnchantedBookIdParser.stripActionPrefix(displayName);
         var exactName = index.uniqueProductByName(bookName);
         if (exactName.isPresent()) {
-            return exactName;
+            return exactName.map(ProductIdentity::fromIndex);
         }
 
         var canonicalName = EnchantedBookIdParser
             .canonicalDisplayName(bookName)
             .flatMap(index::uniqueProductByName);
         if (canonicalName.isPresent()) {
-            return canonicalName;
+            return canonicalName.map(ProductIdentity::fromIndex);
         }
 
         return EnchantedBookIdParser
             .fromDisplayName(bookName)
-            .flatMap(this.service::productById);
+            .map(id -> this.bookIdentity(id, bookName, formattedNameEvidence, "display name"));
     }
 
-    private ProductIdentity resolveStackFallback(ItemStack stack, String rawProductId, String displayName) {
+    private ProductIdentity resolveStackFallback(
+        ItemStack stack,
+        String displayName,
+        @Nullable String formattedNameEvidence
+    ) {
         if (!"Enchanted Book".equals(displayName)) {
-            return new UnresolvedProduct(displayName, rawProductId);
+            return this.runtime(displayName, null, formattedNameEvidence);
         }
 
         var matches = GameUtils
             .getLore(stack)
             .stream()
-            .map(this::resolveProductName)
-            .flatMap(identity -> identity.resolvedProduct().stream())
+            .map(line -> this.resolveEnchantedBookDisplayName(line, formattedNameEvidence))
+            .flatMap(Optional::stream)
             .distinct()
             .toList();
 
         return matches.size() == 1
             ? matches.getFirst()
-            : new UnresolvedProduct(displayName, rawProductId);
+            : this.runtime(displayName, null, formattedNameEvidence);
     }
 
     private boolean isEnchantedBook(ItemStack stack) {
         return stack.getItem() == Items.ENCHANTED_BOOK;
     }
 
-    private void logNameMismatch(String rawProductId, String displayName, ProductRef resolved) {
+    private ProductIdentity bookIdentity(
+        String bazaarProductId,
+        String displayName,
+        @Nullable String formattedNameEvidence,
+        String source
+    ) {
+        return this.service.productById(bazaarProductId)
+            .map(ProductIdentity::fromIndex)
+            .orElseGet(() -> {
+                var cleanedName = Utils.cleanDisplayName(displayName);
+                this.diagnostics.derivedBookMissingIndex(bazaarProductId, cleanedName, source);
+                return this.runtime(cleanedName, bazaarProductId, formattedNameEvidence);
+            });
+    }
+
+    private ProductIdentity runtime(
+        String displayName,
+        @Nullable String bazaarProductId,
+        @Nullable String formattedNameEvidence
+    ) {
+        var cleanedName = Utils.cleanDisplayName(displayName);
+        var formattedName = Optional
+            .ofNullable(formattedNameEvidence)
+            .filter(evidence -> Utils.normalizeDisplayName(evidence).equals(Utils.normalizeDisplayName(cleanedName)))
+            .orElse(null);
+        return ProductIdentity.fromRuntime(cleanedName, bazaarProductId, formattedName);
+    }
+
+    private void logNameMismatch(String rawProductId, String displayName, IndexedProduct resolved) {
         if (Utils.normalizeDisplayName(displayName).equals(Utils.normalizeDisplayName(resolved.strippedName()))) {
             return;
         }
@@ -170,13 +217,13 @@ final class ProductResolver {
         void unknownCustomDataId(String productId, String displayName) {
             this.logUnknownRuntimeEvidenceOnce(
                 "UNKNOWN_ID|%s|%s".formatted(productId, displayName),
-                "Ignoring custom_data id '{}' for display name '{}' because it is not a known Bazaar product",
+                "Observed custom_data id '{}' for display name '{}', but it is not present in the conversion index",
                 productId,
                 displayName
             );
         }
 
-        void nameMismatch(String rawProductId, String parsedName, ProductRef resolved) {
+        void nameMismatch(String rawProductId, String parsedName, IndexedProduct resolved) {
             this.logWarnOnce(
                 "MISMATCH|%s|%s|%s|%s".formatted(
                     rawProductId,
@@ -188,6 +235,16 @@ final class ProductResolver {
                 rawProductId,
                 resolved,
                 parsedName
+            );
+        }
+
+        void derivedBookMissingIndex(String productId, String displayName, String source) {
+            this.logWarnOnce(
+                "DERIVED_BOOK_MISSING|%s|%s".formatted(productId, displayName),
+                "Derived enchanted book Bazaar id '{}' from {} for '{}', but it is not present in the conversion index",
+                productId,
+                source,
+                displayName
             );
         }
 

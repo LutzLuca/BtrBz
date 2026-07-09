@@ -1,7 +1,8 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.core.modules.Module;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -142,7 +143,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         this.currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
     }
 
-    private @Nullable ProductRef getCurrentProduct() {
+    private @Nullable IndexedProduct getCurrentProduct() {
         return this.context().productInfoProvider().getOpenedProduct();
     }
 
@@ -161,6 +162,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         var purse = GameUtils.getPurse();
         var pricePerUnit = Optional
             .ofNullable(this.getCurrentProduct())
+            .map(ProductIdentity::fromIndex)
             .flatMap(this.context().bazaarData()::highestBuyOrderPrice)
             .map(price -> price + .1);
         var priceAvailable = pricePerUnit.isPresent();
@@ -404,7 +406,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
                 var price = this.context()
                     .bazaarData()
-                    .highestBuyOrderPrice(product)
+                    .highestBuyOrderPrice(ProductIdentity.fromIndex(product))
                     .map(currPrice -> currPrice + 0.1);
 
                 if (price.isEmpty()) {

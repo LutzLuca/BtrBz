@@ -22,7 +22,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
 
 @Slf4j
 public final class GameUtils {
@@ -55,13 +55,17 @@ public final class GameUtils {
     }
 
     public static List<String> getLore(ItemStack item) {
-        return Optional
-            .ofNullable(item.get(DataComponents.LORE))
-            .map(ItemLore::lines)
-            .orElseGet(ArrayList::new)
+        return getLoreComponents(item)
             .stream()
             .map(Component::getString)
             .toList();
+    }
+
+    public static List<Component> getLoreComponents(ItemStack item) {
+        return Optional
+            .ofNullable(item.get(DataComponents.LORE))
+            .map(ItemLore::lines)
+            .orElseGet(ArrayList::new);
     }
 
     public static boolean orderScreenNonOrderItemsFilter(@Nullable ItemStack stack) {

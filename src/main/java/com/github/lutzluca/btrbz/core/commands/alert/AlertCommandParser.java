@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.ProductRef;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.ArrayList;
@@ -184,7 +184,7 @@ public class AlertCommandParser {
     }
 
     public record ResolvedAlertArgs(
-        long timestamp, ProductRef product, AlertType type, double price
+        long timestamp, IndexedProduct product, AlertType type, double price
     ) {
 
         public String productName() {
@@ -192,7 +192,7 @@ public class AlertCommandParser {
         }
 
         public String visualName() {
-            return this.product.visualName();
+            return this.product.formattedName();
         }
 
         public String productId() {
