@@ -55,7 +55,8 @@ final class ProductResolver {
                 .orElseGet(() -> this.resolveStackFallback(stack, displayName, formattedNameEvidence));
         }
 
-        return this.resolveProductName(displayName);
+        // Ordinary stacks need custom-data evidence before their name can identify a product.
+        return this.runtime(displayName, null, formattedNameEvidence);
     }
 
     ProductIdentity resolveProduct(String rawProductId, String displayName) {

@@ -156,6 +156,10 @@ public class BazaarData {
         return this.currentSnapshot().highestBuyOrderPrice(product);
     }
 
+    public boolean contains(ProductIdentity product) {
+        return this.currentSnapshot().contains(product);
+    }
+
     public MarketPrices getMarketPrices(ProductIdentity product) {
         return this.currentSnapshot().getMarketPrices(product);
     }

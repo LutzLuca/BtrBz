@@ -631,12 +631,11 @@ public final class ProductInfoProvider {
                 return Optional.ofNullable(this.cache.get(stack));
             }
             var identity = ProductInfoProvider.this.resolveProduct(stack);
-            if (identity.bazaarProductId().isEmpty()) {
+            var data = ProductInfoProvider.this.bazaarData;
+            if (identity.bazaarProductId().isEmpty() || !data.contains(identity)) {
                 this.cache.put(stack, null);
                 return Optional.empty();
             }
-
-            var data = ProductInfoProvider.this.bazaarData;
 
             var sellOfferPrice = data.lowestSellOfferPrice(identity).orElse(null);
             var buyOrderPrice = data.highestBuyOrderPrice(identity).orElse(null);
