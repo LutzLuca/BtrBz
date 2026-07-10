@@ -11,6 +11,24 @@ import org.junit.jupiter.api.Test;
 class ProductResolverTest {
 
     @Nested
+    @DisplayName("essence id parsing")
+    class EssenceIdParsing {
+
+        @Test
+        void derivesEssenceProductIdFromDisplayName() {
+            assertEquals(
+                "ESSENCE_WITHER",
+                ProductResolver.essenceProductId("Wither Essence").orElseThrow()
+            );
+        }
+
+        @Test
+        void rejectsNonEssenceDisplayName() {
+            assertTrue(ProductResolver.essenceProductId("Suspicious Scrap").isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("raw id resolution")
     class RawIdResolution {
 

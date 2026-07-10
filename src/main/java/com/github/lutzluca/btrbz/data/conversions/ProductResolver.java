@@ -4,9 +4,11 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
@@ -16,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 final class ProductResolver {
+
+    private static final Pattern ESSENCE_NAME = Pattern.compile("^(?<type>[A-Za-z]+) Essence(?: x\\d+)?$");
 
     private final ConversionIndexService service;
     private final Diagnostics diagnostics;
@@ -53,6 +57,13 @@ final class ProductResolver {
         if (this.isEnchantedBook(stack)) {
             return this.resolveEnchantedBook(stack, displayName, formattedNameEvidence)
                 .orElseGet(() -> this.resolveStackFallback(stack, displayName, formattedNameEvidence));
+        }
+
+        if (stack.getItem() == Items.PLAYER_HEAD) {
+            var essence = essenceProductId(displayName);
+            if (essence.isPresent()) {
+                return this.derivedProductIdentity(essence.get(), displayName, formattedNameEvidence, "essence name");
+            }
         }
 
         // Ordinary stacks need custom-data evidence before their name can identify a product.
@@ -112,7 +123,7 @@ final class ProductResolver {
         @Nullable String formattedNameEvidence
     ) {
         return this.resolveEnchantedBookFromCustomData(stack)
-            .map(id -> this.bookIdentity(id, displayName, formattedNameEvidence, "custom data"))
+            .map(id -> this.derivedProductIdentity(id, displayName, formattedNameEvidence, "custom data"))
             .or(() -> this.resolveEnchantedBookDisplayName(displayName, formattedNameEvidence));
     }
 
@@ -175,7 +186,7 @@ final class ProductResolver {
         return stack.getItem() == Items.ENCHANTED_BOOK;
     }
 
-    private ProductIdentity bookIdentity(
+    private ProductIdentity derivedProductIdentity(
         String bazaarProductId,
         String displayName,
         @Nullable String formattedNameEvidence,
@@ -185,9 +196,20 @@ final class ProductResolver {
             .map(ProductIdentity::fromIndex)
             .orElseGet(() -> {
                 var cleanedName = Utils.cleanDisplayName(displayName);
-                this.diagnostics.derivedBookMissingIndex(bazaarProductId, cleanedName, source);
+                this.diagnostics.derivedProductMissingIndex(bazaarProductId, cleanedName, source);
                 return this.runtime(cleanedName, bazaarProductId, formattedNameEvidence);
             });
+    }
+
+    static Optional<String> essenceProductId(String displayName) {
+        if (displayName == null) {
+            return Optional.empty();
+        }
+
+        var matcher = ESSENCE_NAME.matcher(Utils.cleanDisplayName(displayName));
+        return matcher.matches()
+            ? Optional.of("ESSENCE_" + matcher.group("type").toUpperCase(Locale.ROOT))
+            : Optional.empty();
     }
 
     private ProductIdentity runtime(
@@ -242,10 +264,10 @@ final class ProductResolver {
             );
         }
 
-        void derivedBookMissingIndex(String productId, String displayName, String source) {
+        void derivedProductMissingIndex(String productId, String displayName, String source) {
             this.logWarnOnce(
-                "DERIVED_BOOK_MISSING|%s|%s".formatted(productId, displayName),
-                "Derived enchanted book Bazaar id '{}' from {} for '{}', but it is not present in the conversion index",
+                "DERIVED_PRODUCT_MISSING|%s|%s".formatted(productId, displayName),
+                "Derived Bazaar product id '{}' from {} for '{}', but it is not present in the conversion index",
                 productId,
                 source,
                 displayName
