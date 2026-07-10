@@ -327,10 +327,9 @@ public class Notifier {
 
     public static void notifyInvalidProduct(Alert alert, BazaarData bazaarData) {
         Component msg = prefix()
-            .append(Component.literal("The price of ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("Removed alert for ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(alert.product, bazaarData, ChatFormatting.AQUA))
-            .append(Component.literal(" could not be determined. ").withStyle(ChatFormatting.GRAY))
-            .append(clickToRemoveAlert(alert.id, "Click to remove this alert"));
+            .append(Component.literal(" because it is not present in Bazaar data.").withStyle(ChatFormatting.GRAY));
         notifyPlayer(msg);
     }
 

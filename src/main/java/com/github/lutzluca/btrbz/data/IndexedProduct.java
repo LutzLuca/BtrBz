@@ -12,8 +12,8 @@ import com.google.gson.JsonSerializer;
 import java.lang.reflect.Type;
 
 /**
- * Canonical product metadata from the conversion index.
- * Store this in index-backed config features; convert to ProductIdentity only at runtime market lookup boundaries.
+ * Product metadata supplied by the conversion index.
+ * Use it for index-backed config features. Convert it to ProductIdentity for runtime Bazaar market lookups.
  */
 public record IndexedProduct(String productId, String formattedName) {
 

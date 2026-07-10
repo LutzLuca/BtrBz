@@ -124,7 +124,12 @@ public final class ConversionIndex {
     }
 
     public boolean hasAmbiguousName(String displayName) {
-        var matches = this.normalizedNameIndex.get(Utils.normalizeDisplayName(displayName));
+        var normalized = Utils.normalizeDisplayName(displayName);
+        if (normalized.isEmpty()) {
+            return false;
+        }
+
+        var matches = this.normalizedNameIndex.get(normalized);
         return matches != null && matches.size() > 1;
     }
 

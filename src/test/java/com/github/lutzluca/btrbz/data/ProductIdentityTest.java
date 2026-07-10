@@ -12,6 +12,25 @@ import org.junit.jupiter.api.Test;
 class ProductIdentityTest {
 
     @Nested
+    @DisplayName("strippedName")
+    class StrippedName {
+
+        @Test
+        void blankNameFallsBackToUnknownProduct() {
+            var product = ProductIdentity.fromRuntime("   ", "TROUBLED_BUBBLE", null);
+
+            assertEquals("Unknown Product", product.strippedName());
+        }
+
+        @Test
+        void nullNameFallsBackToUnknownProduct() {
+            var product = ProductIdentity.fromRuntime(null, "TROUBLED_BUBBLE", null);
+
+            assertEquals("Unknown Product", product.strippedName());
+        }
+    }
+
+    @Nested
     @DisplayName("visualName")
     class VisualName {
 

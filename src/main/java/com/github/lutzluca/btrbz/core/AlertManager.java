@@ -57,6 +57,8 @@ public class AlertManager {
             var curr = it.next();
             var priceResult = curr.getAssociatedPrice(snapshot);
             if (priceResult.isFailure()) {
+                it.remove();
+                changed = true;
                 Notifier.notifyInvalidProduct(curr, this.bazaarData);
                 continue;
             }
@@ -65,7 +67,7 @@ public class AlertManager {
             var reached = price.map(marketPrice -> switch (curr.type) {
                 case SellOffer, InstaSell -> marketPrice >= curr.price;
                 case BuyOrder, InstaBuy -> marketPrice <= curr.price;
-            }).orElse(true);
+            }).orElse(false);
 
             if (reached) {
                 it.remove();

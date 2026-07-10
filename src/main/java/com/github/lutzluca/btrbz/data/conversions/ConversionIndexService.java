@@ -92,14 +92,14 @@ public final class ConversionIndexService {
                 .thenAccept(result -> Minecraft.getInstance().execute(() -> {
                     try {
                         result
-                                .onSuccess(refresh -> this.applyRemoteRefresh(refresh, manual))
-                                .onFailure(err -> this.handleRefreshFailure(toRefreshException(err), manual));
+                            .onSuccess(refresh -> this.applyRemoteRefresh(refresh, manual))
+                            .onFailure(err -> this.handleRefreshFailure(toRefreshException(err), manual));
                     } finally {
                         this.refreshInFlight.set(false);
                         log.info(
-                                "Finished Bazaar conversion refresh (manual={}, result={})",
-                                manual,
-                                result.isSuccess() ? "success" : "failure");
+                            "Finished Bazaar conversion refresh (manual={}, result={})",
+                            manual,
+                            result.isSuccess() ? "success" : "failure");
                     }
                 }));
         return true;
@@ -305,8 +305,8 @@ public final class ConversionIndexService {
     }
 
     private static ConversionRefreshException toRefreshException(Throwable err) {
-        if (err instanceof ConversionRefreshException refreshException) {
-            return refreshException;
+        if (err instanceof ConversionRefreshException exc) {
+            return exc;
         }
         return new ConversionRefreshException(ConversionRefreshException.Phase.Parse, err.getMessage(), err);
     }

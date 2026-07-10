@@ -61,7 +61,6 @@ class ConversionIndexTest {
             assertEquals(1, counts.neu());
             assertEquals(1, counts.derived());
         }
-
     }
 
     @Nested

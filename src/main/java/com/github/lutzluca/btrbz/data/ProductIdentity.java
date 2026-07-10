@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Runtime product evidence from stacks, chat, and order UI.
- * Use this for Bazaar market lookup because it can carry a raw Bazaar id even when the conversion index has no name yet.
+ * Use it for Bazaar market lookups. It may carry a Bazaar id before the conversion index has a matching name.
  */
 public record ProductIdentity(
     String strippedName,
