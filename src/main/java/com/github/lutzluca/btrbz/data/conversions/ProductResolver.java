@@ -44,6 +44,10 @@ final class ProductResolver {
     ) {
         var displayName = Utils.cleanDisplayName(displayNameEvidence);
         var rawProductId = Utils.customDataId(stack).orElse(null);
+        if (isPossibleShardStack(rawProductId, displayName)) {
+            return this.resolveShardIdentity(displayName, formattedNameEvidence, rawProductId);
+        }
+
         if (rawProductId != null && !this.isEnchantedBook(stack)) {
             var product = this.resolveKnownProductId(rawProductId, displayName);
             if (product.isPresent()) {
@@ -186,6 +190,35 @@ final class ProductResolver {
         return stack.getItem() == Items.ENCHANTED_BOOK;
     }
 
+    static boolean isPossibleShardStack(@Nullable String rawProductId, String displayName) {
+        if (!displayName.endsWith(" Shard")) {
+            return false;
+        }
+
+        // Bazaar menu shards use different item types without custom_data.id, while owned shards carry a generic family id
+        // The specific Bazaar id therefore comes from the indexed display-name mapping
+        return rawProductId == null
+            || rawProductId.equals("ATTRIBUTE_SHARD")
+            || rawProductId.startsWith("ATTRIBUTE_SHARD_");
+    }
+
+    ProductIdentity resolveShardIdentity(
+        String displayName,
+        @Nullable String formattedNameEvidence,
+        @Nullable String rawProductId
+    ) {
+        var product = this.service
+            .currentIndex()
+            .uniqueProductByName(displayName)
+            .filter(indexed -> indexed.productId().startsWith("SHARD_"));
+        if (product.isPresent()) {
+            return ProductIdentity.fromIndex(product.get());
+        }
+
+        this.diagnostics.unresolvedShard(rawProductId, displayName);
+        return this.runtime(displayName, null, formattedNameEvidence);
+    }
+
     private ProductIdentity derivedProductIdentity(
         String bazaarProductId,
         String displayName,
@@ -287,6 +320,15 @@ final class ProductResolver {
                 "UNRESOLVED|%s".formatted(displayName),
                 "Could not resolve Bazaar product '{}'",
                 displayName
+            );
+        }
+
+        void unresolvedShard(@Nullable String rawProductId, String displayName) {
+            this.logWarnOnce(
+                "UNRESOLVED_SHARD|%s|%s".formatted(rawProductId, displayName),
+                "Could not resolve shard '{}' with stack id '{}' through the conversion index",
+                displayName,
+                rawProductId
             );
         }
 

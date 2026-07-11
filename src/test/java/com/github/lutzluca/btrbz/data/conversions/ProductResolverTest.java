@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -25,6 +26,39 @@ class ProductResolverTest {
         @Test
         void rejectsNonEssenceDisplayName() {
             assertTrue(ProductResolver.essenceProductId("Suspicious Scrap").isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("shard resolution")
+    class ShardResolution {
+
+        @Test
+        void acceptsIdlessMenuShard() {
+            assertTrue(ProductResolver.isPossibleShardStack(null, "Lapis Zombie Shard"));
+        }
+
+        @Test
+        void rejectsIdlessNonShard() {
+            assertFalse(ProductResolver.isPossibleShardStack(null, "Suspicious Scrap"));
+        }
+
+        @Test
+        void resolvesShardByIndexedDisplayName() {
+            var resolver = new ProductResolver(serviceWithProducts());
+            var product = resolver.resolveShardIdentity("Phanpyre Shard", null, "ATTRIBUTE_SHARD");
+
+            assertEquals("SHARD_PHANPYRE", product.bazaarProductId().orElseThrow());
+            assertEquals("Phanpyre Shard", product.visualName());
+        }
+
+        @Test
+        void keepsUnknownShardNameOnly() {
+            var resolver = new ProductResolver(serviceWithProducts());
+            var product = resolver.resolveShardIdentity("Unknown Shard", null, "ATTRIBUTE_SHARD");
+
+            assertTrue(product.bazaarProductId().isEmpty());
+            assertEquals("Unknown Shard", product.visualName());
         }
     }
 
@@ -105,6 +139,13 @@ class ProductResolverTest {
         products.put(
             "ENCHANTMENT_TURBO_CACTUS_5",
             new ConversionProductEntry("Turbo-Cacti V", new ProductNameSource.Neu("TURBO_CACTUS;5"))
+        );
+        products.put(
+            "SHARD_PHANPYRE",
+            new ConversionProductEntry(
+                "Phanpyre Shard",
+                new ProductNameSource.Neu("ATTRIBUTE_SHARD_NOCTURNAL_ANIMAL;1")
+            )
         );
         return new ConversionIndexService(new ConversionIndex(1, "now", null, products));
     }

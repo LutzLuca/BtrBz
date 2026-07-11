@@ -630,7 +630,7 @@ public final class ProductInfoProvider {
             if (this.cache.containsKey(stack)) {
                 return Optional.ofNullable(this.cache.get(stack));
             }
-            var identity = ProductInfoProvider.this.resolveProduct(stack);
+            var identity = ProductInfoProvider.this.resolveProductForLookup(stack);
             var data = ProductInfoProvider.this.bazaarData;
             if (identity.bazaarProductId().isEmpty() || !data.contains(identity)) {
                 this.cache.put(stack, null);
