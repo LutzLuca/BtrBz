@@ -2,6 +2,11 @@
 <Configuration name="BtrBz">
   <Loggers>
 
+    <Logger additivity="false" level="${sys:btrbz.productResolver.log.level:-warn}"
+      name="com.github.lutzluca.btrbz.data.conversions.ProductResolver">
+      <AppenderRef ref="SysOut"/>
+    </Logger>
+
     <Logger additivity="false" level="${sys:btrbz.log.level:-debug}"
       name="com.github.lutzluca.btrbz">
       <AppenderRef ref="SysOut"/>

@@ -33,7 +33,13 @@ public final class OrderModels {
     public sealed interface OrderInfo permits OrderInfo.UnfilledOrderInfo,
         OrderInfo.FilledOrderInfo {
 
-        String productName();
+        ProductIdentity product();
+
+        String uiProductName();
+
+        default String productName() {
+            return this.product().strippedName();
+        }
 
         OrderType type();
 
@@ -48,24 +54,96 @@ public final class OrderModels {
         int unclaimed();
 
         record UnfilledOrderInfo(
-            String productName,
+            ProductIdentity product,
+            String uiProductName,
             OrderType type,
             int volume,
             double pricePerUnit,
             int filledAmountSnapshot,
             int unclaimed,
             int slotIdx
-        ) implements OrderInfo { }
+        ) implements OrderInfo {
+
+            public UnfilledOrderInfo(
+                String productName,
+                OrderType type,
+                int volume,
+                double pricePerUnit,
+                int filledAmountSnapshot,
+                int unclaimed,
+                int slotIdx
+            ) {
+                this(
+                    ProductIdentity.fromName(productName),
+                    productName,
+                    type,
+                    volume,
+                    pricePerUnit,
+                    filledAmountSnapshot,
+                    unclaimed,
+                    slotIdx
+                );
+            }
+
+            public UnfilledOrderInfo withProduct(ProductIdentity product) {
+                return new UnfilledOrderInfo(
+                    product,
+                    this.uiProductName,
+                    this.type,
+                    this.volume,
+                    this.pricePerUnit,
+                    this.filledAmountSnapshot,
+                    this.unclaimed,
+                    this.slotIdx
+                );
+            }
+        }
 
         record FilledOrderInfo(
-            String productName,
+            ProductIdentity product,
+            String uiProductName,
             OrderType type,
             int volume,
             double pricePerUnit,
             int filledAmountSnapshot,
             int unclaimed,
             int slotIdx
-        ) implements OrderInfo { }
+        ) implements OrderInfo {
+
+            public FilledOrderInfo(
+                String productName,
+                OrderType type,
+                int volume,
+                double pricePerUnit,
+                int filledAmountSnapshot,
+                int unclaimed,
+                int slotIdx
+            ) {
+                this(
+                    ProductIdentity.fromName(productName),
+                    productName,
+                    type,
+                    volume,
+                    pricePerUnit,
+                    filledAmountSnapshot,
+                    unclaimed,
+                    slotIdx
+                );
+            }
+
+            public FilledOrderInfo withProduct(ProductIdentity product) {
+                return new FilledOrderInfo(
+                    product,
+                    this.uiProductName,
+                    this.type,
+                    this.volume,
+                    this.pricePerUnit,
+                    this.filledAmountSnapshot,
+                    this.unclaimed,
+                    this.slotIdx
+                );
+            }
+        }
     }
 
     public sealed abstract static class OrderStatus permits OrderStatus.Unknown,
@@ -103,7 +181,9 @@ public final class OrderModels {
     @ToString
     public static class TrackedOrder {
 
-        public final String productName;
+        public ProductIdentity product;
+        public String productName;
+        public final String uiProductName;
         public final OrderType type;
 
         public final int volume;
@@ -118,7 +198,13 @@ public final class OrderModels {
         public int fillAmountSnapshot;
 
         public TrackedOrder(OrderInfo.UnfilledOrderInfo info) {
-            this.productName = info.productName;
+            this(info, info.product());
+        }
+
+        public TrackedOrder(OrderInfo.UnfilledOrderInfo info, ProductIdentity product) {
+            this.product = product;
+            this.productName = product.strippedName();
+            this.uiProductName = info.uiProductName();
             this.type = info.type;
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
@@ -127,7 +213,9 @@ public final class OrderModels {
         }
 
         public TrackedOrder(OutstandingOrderInfo info) {
-            this.productName = info.productName;
+            this.product = info.product();
+            this.productName = this.product.strippedName();
+            this.uiProductName = info.uiProductName();
             this.type = info.type;
             this.volume = info.volume;
             this.pricePerUnit = info.pricePerUnit;
@@ -138,7 +226,7 @@ public final class OrderModels {
         public boolean matches(OrderInfo info) {
             // @formatter:off
             return (
-                this.productName.equals(info.productName())
+                this.productsMatch(info)
                 && this.type == info.type()
                 && this.volume == info.volume()
                 && Double.compare(this.pricePerUnit, info.pricePerUnit()) == 0
@@ -146,11 +234,30 @@ public final class OrderModels {
             // @formatter:on
         }
 
+        public void applyProduct(ProductIdentity product) {
+            this.product = product;
+            this.productName = product.strippedName();
+        }
+
+        private boolean productsMatch(OrderInfo info) {
+            var currentId = this.product.bazaarProductId();
+            var incomingId = info.product().bazaarProductId();
+            if (currentId.isPresent() && incomingId.isPresent()) {
+                return currentId.get().equals(incomingId.get());
+            }
+
+            return Utils
+                .normalizeDisplayName(this.uiProductName)
+                .equals(Utils.normalizeDisplayName(info.uiProductName()));
+        }
+
         public MutableComponent format() {
             var typeStr = switch (type) {
                 case Buy -> "Buy Order";
                 case Sell -> "Sell Offer";
             };
+            var visualName = this.product.visualName();
+            var productNameComponent = Component.literal(visualName);
 
             return Component
                 .empty()
@@ -160,7 +267,7 @@ public final class OrderModels {
                 .append(Component.literal(typeStr).withStyle(ChatFormatting.AQUA))
                 .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(this.volume + "x ").withStyle(ChatFormatting.LIGHT_PURPLE))
-                .append(Component.literal(this.productName).withStyle(ChatFormatting.GOLD))
+                .append(productNameComponent)
                 .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
                 .append(Component
                     .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
@@ -169,12 +276,36 @@ public final class OrderModels {
     }
 
     public record OutstandingOrderInfo(
-        String productName, OrderType type, int volume, double pricePerUnit, double total
+        ProductIdentity product,
+        String uiProductName,
+        OrderType type,
+        int volume,
+        double pricePerUnit,
+        double total
     ) {
+
+        public OutstandingOrderInfo(String productName, OrderType type, int volume, double pricePerUnit, double total) {
+            this(ProductIdentity.fromName(productName), productName, type, volume, pricePerUnit, total);
+        }
+
+        public OutstandingOrderInfo withProduct(ProductIdentity product) {
+            return new OutstandingOrderInfo(
+                product,
+                this.uiProductName,
+                this.type,
+                this.volume,
+                this.pricePerUnit,
+                this.total
+            );
+        }
+
+        public String productName() {
+            return this.product.strippedName();
+        }
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {
             // @formatter:off
-            return this.productName.equals(setupInfo.productName()) 
+            return Utils.normalizeDisplayName(this.uiProductName).equals(Utils.normalizeDisplayName(setupInfo.productName()))
                 && this.type == setupInfo.type() 
                 && this.volume == setupInfo.volume() 
                 && Double.compare(this.total,setupInfo.total()) == 0;

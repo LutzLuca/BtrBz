@@ -7,12 +7,14 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerScoreEntry;
@@ -20,7 +22,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
 
 @Slf4j
 public final class GameUtils {
@@ -50,6 +52,20 @@ public final class GameUtils {
 
         var stripped = ChatFormatting.stripFormatting(text);
         return stripped == null ? "" : stripped;
+    }
+
+    public static List<String> getLore(ItemStack item) {
+        return getLoreComponents(item)
+            .stream()
+            .map(Component::getString)
+            .toList();
+    }
+
+    public static List<Component> getLoreComponents(ItemStack item) {
+        return Optional
+            .ofNullable(item.get(DataComponents.LORE))
+            .map(ItemLore::lines)
+            .orElseGet(ArrayList::new);
     }
 
     public static boolean orderScreenNonOrderItemsFilter(@Nullable ItemStack stack) {

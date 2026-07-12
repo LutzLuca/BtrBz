@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -71,18 +72,21 @@ public class OrderBookScreenController {
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
-            var productNameInfo = OrderBookScreenController.this.productInfoProvider.getOpenedProductNameInfo();
-            if (productNameInfo == null) {
+            var product = OrderBookScreenController.this.productInfoProvider.getOpenedProduct();
+            if (product == null) {
                 Notifier.notifyPlayer(Notifier
                     .prefix()
                     .append(Component.literal("Failed to determine the opened product name")));
                 return SlotClickResult.Consume;
             }
 
-            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(productNameInfo.productId());
+            var orders = OrderBookScreenController.this.bazaarData.getOrderLists(ProductIdentity.fromIndex(product));
+            var title = Component.empty()
+                .append(Component.literal(product.formattedName()))
+                .append(Component.literal(" Order Book"));
             var orderBookScreen = new OrderBookScreen(
                 ctx.view().getCurrInfo().getScreen(),
-                productNameInfo.productName(),
+                title,
                 orders
             );
             Minecraft.getInstance().setScreen(orderBookScreen);

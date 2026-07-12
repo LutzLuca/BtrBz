@@ -16,14 +16,14 @@ import net.minecraft.sounds.SoundEvents;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupKey;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.GroupStatus;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.OrderManagerConfig.Action;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.SelfUndercutKey;
-import com.github.lutzluca.btrbz.core.TrackedOrderManager.StatusUpdate;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
+import com.github.lutzluca.btrbz.core.trackedorders.GroupStatus;
+import com.github.lutzluca.btrbz.core.trackedorders.SelfUndercutKey;
+import com.github.lutzluca.btrbz.core.trackedorders.StatusUpdate;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
@@ -31,6 +31,8 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 
 @Slf4j
 public class Notifier {
@@ -55,18 +57,19 @@ public class Notifier {
                 SoundUtil.playSoundIf(cfg.soundBest, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
 
                 yield update.prev() instanceof OrderStatus.Unknown
-                    ? singleMsg(order, cfg, Component.literal("is the ").withStyle(ChatFormatting.GRAY)
+                    ? singleMsg(order, cfg, bazaarData, Component.literal("is the ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("BEST Order!").withStyle(ChatFormatting.GREEN)))
-                    : singleMsg(order, cfg, Component.literal("has ").withStyle(ChatFormatting.GRAY)
+                    : singleMsg(order, cfg, bazaarData, Component.literal("has ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("REGAINED BEST Order!").withStyle(ChatFormatting.GREEN)));
             }
             case Matched _ -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-                var matchedMsg = singleMsg(order, cfg, Component.literal("was ").withStyle(ChatFormatting.GRAY)
+                var matchedMsg = singleMsg(order, cfg, bazaarData, Component.literal("was ").withStyle(ChatFormatting.GRAY)
                     .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo && !(update.prev() instanceof OrderStatus.Top)) {
-                    bazaarData.calculateQueuePosition(order.productName, order.type, order.pricePerUnit, true)
+                    bazaarData
+                        .calculateQueuePosition(order.product, order.type, order.pricePerUnit, true)
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - 1),
                             Math.max(0, info.itemsAhead - order.volume),
@@ -77,13 +80,14 @@ public class Notifier {
             }
             case Undercut undercut -> {
                 SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
-                var undercutMsg = singleMsg(order, cfg, Component.literal("was ").withStyle(ChatFormatting.GRAY)
+                var undercutMsg = singleMsg(order, cfg, bazaarData, Component.literal("was ").withStyle(ChatFormatting.GRAY)
                     .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
                     .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
                     .append(Component.literal(Utils.formatDecimal(undercut.amount, 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
-                    bazaarData.calculateQueuePosition(order.productName, order.type, order.pricePerUnit)
+                    bazaarData
+                        .calculateQueuePosition(order.product, order.type, order.pricePerUnit)
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
                 yield undercutMsg;
@@ -113,14 +117,15 @@ public class Notifier {
         MutableComponent msg = switch (curr) {
             case GroupStatus.Undercut undercut -> {
                 SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
-                var undercutMsg = groupMsg(key, groupSize, totalVolume, cfg,
+                var undercutMsg = groupMsg(key, groupSize, totalVolume, cfg, bazaarData,
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
                         .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
                         .append(Component.literal(Utils.formatDecimal(undercut.amount(), 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
-                    bazaarData.calculateQueuePosition(key.productName(), key.type(), key.pricePerUnit())
+                    bazaarData
+                        .calculateQueuePosition(key.product(), key.type(), key.pricePerUnit())
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
                 
@@ -128,12 +133,13 @@ public class Notifier {
             }
             case GroupStatus.Matched _ -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-                var matchedMsg = groupMsg(key, groupSize, totalVolume, cfg,
+                var matchedMsg = groupMsg(key, groupSize, totalVolume, cfg, bazaarData,
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo) {
-                    bazaarData.calculateQueuePosition(key.productName(), key.type(), key.pricePerUnit(), true)
+                    bazaarData
+                        .calculateQueuePosition(key.product(), key.type(), key.pricePerUnit(), true)
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - groupSize),
                             Math.max(0, info.itemsAhead - totalVolume),
@@ -143,10 +149,10 @@ public class Notifier {
                 
                 yield matchedMsg;
             }
-            case GroupStatus.SelfMatched _ -> {
+            case GroupStatus.SelfMatched selfMatched -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
                 
-                yield groupMsg(key, groupSize, totalVolume, cfg,
+                yield groupMsg(key, selfMatched.orderCount(), totalVolume, cfg, bazaarData,
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("SELF-MATCHED!").withStyle(ChatFormatting.BLUE)));
             }
@@ -162,41 +168,50 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    private static MutableComponent singleMsg(TrackedOrder order, OrderManagerConfig cfg, Component statusPart) {
-        var orderString = order.type == OrderType.Buy ? "Buy order" : "Sell offer";
+    private static MutableComponent singleMsg(
+        TrackedOrder order,
+        OrderManagerConfig cfg,
+        BazaarData bazaarData,
+        Component statusPart
+    ) {
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(orderTypeComponent(order.type, false))
             .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(order.volume + "x").withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(quantityComponent(order.volume))
             .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(order.productName).withStyle(ChatFormatting.YELLOW));
+            .append(productNameComponent(order.product, bazaarData, ChatFormatting.YELLOW));
 
         if (cfg.includePricePerUnit) {
             msg.append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(Utils.formatDecimal(order.pricePerUnit, 1, true)).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+                .append(coinComponent(order.pricePerUnit));
         }
 
         return msg.append(Component.literal(" ").withStyle(ChatFormatting.GRAY)).append(statusPart);
     }
 
-    private static MutableComponent groupMsg(GroupKey key, int groupSize, int totalVolume, OrderManagerConfig cfg, Component statusPart) {
-        var orderString = key.type() == OrderType.Buy ? "Buy orders" : "Sell offers";
-        
+    private static MutableComponent groupMsg(
+        GroupKey key,
+        int groupSize,
+        int totalVolume,
+        OrderManagerConfig cfg,
+        BazaarData bazaarData,
+        Component statusPart
+    ) {
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(groupSize + "x ").withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(totalVolume + "x total").withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(quantityComponent(groupSize))
             .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(key.productName()).withStyle(ChatFormatting.YELLOW));
+            .append(orderTypeComponent(key.type(), true))
+            .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+            .append(quantityComponent(totalVolume))
+            .append(Component.literal(" total").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+            .append(productNameComponent(key.product(), bazaarData, ChatFormatting.YELLOW));
 
         if (cfg.includePricePerUnit) {
             msg.append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(Utils.formatDecimal(key.pricePerUnit(), 1, true)).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+                .append(coinComponent(key.pricePerUnit()));
         }
 
         return msg.append(Component.literal(" ").withStyle(ChatFormatting.GRAY)).append(statusPart);
@@ -230,53 +245,53 @@ public class Notifier {
                 .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen")))));
     }
 
-    public static void notifySelfUndercut(SelfUndercutKey key, double bestPrice, double secondBestPrice) {
-        var orderString = key.type() == OrderType.Buy ? "Buy Order" : "Sell Offer";
+    public static void notifySelfUndercut(
+        SelfUndercutKey key,
+        double bestPrice,
+        double secondBestPrice,
+        BazaarData bazaarData
+    ) {
         var msg = prefix()
             .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(orderString).withStyle(ChatFormatting.AQUA))
+            .append(orderTypeComponent(key.type(), false))
             .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(key.productName()).withStyle(ChatFormatting.YELLOW))
+            .append(productNameComponent(key.product(), bazaarData, ChatFormatting.YELLOW))
             .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("SELF-UNDERCUT").withStyle(ChatFormatting.RED))
             .append(Component.literal(" from ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(bestPrice, 1, true)).withStyle(ChatFormatting.GOLD))
+            .append(coinComponent(bestPrice))
             .append(Component.literal(" to ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(secondBestPrice, 1, true)).withStyle(ChatFormatting.GOLD))
-            .append(Component.literal(" coins").withStyle(ChatFormatting.GRAY));
+            .append(coinComponent(secondBestPrice));
 
         notifyPlayer(msg);
     }
 
-    public static void notifyAlertRegistered(ResolvedAlertArgs cmd) {
+    public static void notifyAlertRegistered(ResolvedAlertArgs cmd, BazaarData bazaarData) {
         var msg = prefix()
             .append(Component.literal("Alert registered. ").withStyle(ChatFormatting.GREEN))
             .append(Component.literal("You will be informed once the ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(cmd.type().format()).withStyle(ChatFormatting.AQUA))
             .append(Component.literal(" price of ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(cmd.productName()).withStyle(ChatFormatting.GOLD))
+            .append(productNameComponent(cmd.product(), bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" reaches ").withStyle(ChatFormatting.GRAY))
-            .append(Component
-                .literal(Utils.formatDecimal(cmd.price(), 1, true) + " coins")
-                .withStyle(ChatFormatting.YELLOW));
+            .append(coinComponent(cmd.price()));
 
         notifyPlayer(msg);
     }
 
-    public static void notifyPriceReached(Alert alert, Optional<Double> price) {
+    public static void notifyPriceReached(Alert alert, Optional<Double> price, BazaarData bazaarData) {
         SoundUtil.playSoundIf(ConfigManager.get().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
 
         String priceText = price
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
             .orElse("currently has no listed price. ");
+        var product = bazaarData.refreshIndexedProduct(alert.product);
 
         Component msg = prefix()
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
+            .append(productNameComponent(product, bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component
-                .literal(Utils.formatDecimal(alert.price, 1, true) + "coins")
-                .withStyle(ChatFormatting.YELLOW))
+            .append(coinComponent(alert.price))
             .append(Component.literal(" (" + alert.type.format() + ") ").withStyle(ChatFormatting.DARK_GRAY))
             .append(Component.literal("has been reached").withStyle(ChatFormatting.GREEN))
             .append(Component.literal(" and is ").withStyle(ChatFormatting.GRAY))
@@ -284,21 +299,22 @@ public class Notifier {
             .append(Component
                 .literal("[Click to view]")
                 .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/bz " + alert.productName))
-                    .withHoverEvent(new ShowText(Component.literal("Click to go to " + alert.productName + " in the bazaar"))))
+                    .withClickEvent(new RunCommand("/bz " + product.strippedName()))
+                    .withHoverEvent(new ShowText(Component
+                        .literal("Click to go to ")
+                        .append(productNameComponent(product, bazaarData, ChatFormatting.AQUA))
+                        .append(Component.literal(" in the bazaar")))))
                 .withStyle(ChatFormatting.RED));
 
         notifyPlayer(msg);
     }
 
-    public static void notifyAlertAlreadyPresent(ResolvedAlertArgs args) {
+    public static void notifyAlertAlreadyPresent(ResolvedAlertArgs args, BazaarData bazaarData) {
         Component msg = prefix()
             .append(Component.literal("You already have an alert for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(args.productName()).withStyle(ChatFormatting.GOLD))
+            .append(productNameComponent(args.product(), bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component
-                .literal(Utils.formatDecimal(args.price(), 1, true))
-                .withStyle(ChatFormatting.YELLOW))
+            .append(coinComponent(args.price()))
             .append(Component
                 .literal(" (" + args.type().name().toLowerCase() + ")")
                 .withStyle(ChatFormatting.DARK_GRAY))
@@ -309,21 +325,20 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    public static void notifyInvalidProduct(Alert alert) {
+    public static void notifyInvalidProduct(Alert alert, BazaarData bazaarData) {
         Component msg = prefix()
-            .append(Component.literal("The price of ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(alert.productName).withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" could not be determined. ").withStyle(ChatFormatting.GRAY))
-            .append(clickToRemoveAlert(alert.id, "Click to remove this alert"));
+            .append(Component.literal("Removed alert for ").withStyle(ChatFormatting.GRAY))
+            .append(productNameComponent(alert.product, bazaarData, ChatFormatting.AQUA))
+            .append(Component.literal(" because it is not present in Bazaar data.").withStyle(ChatFormatting.GRAY));
         notifyPlayer(msg);
     }
 
-    public static void notifyOutdatedAlert(Alert alert, String durationText) {
+    public static void notifyOutdatedAlert(Alert alert, String durationText, BazaarData bazaarData) {
         Component msg = prefix()
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(alert.productName).withStyle(ChatFormatting.GOLD))
+            .append(productNameComponent(alert.product, bazaarData, ChatFormatting.GOLD))
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(alert.price, 1, true)).withStyle(ChatFormatting.YELLOW))
+            .append(coinComponent(alert.price))
             .append(Component
                 .literal(" has not been reached for " + durationText + ". ")
                 .withStyle(ChatFormatting.GRAY))
@@ -338,6 +353,61 @@ public class Notifier {
                 .withClickEvent(new RunCommand("/btrbz alert remove " + id))
                 .withHoverEvent(new ShowText(Component.literal(hoverText))))
             .withStyle(ChatFormatting.RED);
+    }
+
+    private static MutableComponent productNameComponent(
+        ProductIdentity product,
+        BazaarData bazaarData,
+        ChatFormatting fallbackStyle
+    ) {
+        return bazaarData
+            .resolveIndexedProduct(product)
+            .<MutableComponent>map(ref -> productNameComponent(ref, bazaarData))
+            .orElseGet(() -> Component.literal(product.visualName()).withStyle(fallbackStyle));
+    }
+
+    private static MutableComponent productNameComponent(
+        IndexedProduct product,
+        BazaarData bazaarData,
+        ChatFormatting fallbackStyle
+    ) {
+        return productNameComponent(product, bazaarData);
+    }
+
+    private static MutableComponent productNameComponent(
+        IndexedProduct product,
+        BazaarData bazaarData
+    ) {
+        var refreshed = bazaarData.refreshIndexedProduct(product);
+        return Component.literal(refreshed.formattedName());
+    }
+
+    private static MutableComponent quantityComponent(int count) {
+        return Component
+            .literal(String.valueOf(count))
+            .withStyle(ChatFormatting.GREEN)
+            .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    private static MutableComponent orderTypeComponent(OrderType type, boolean plural) {
+        var label = switch (type) {
+            case Buy -> plural ? "Buy Orders" : "Buy Order";
+            case Sell -> plural ? "Sell Offers" : "Sell Offer";
+        };
+        return Component.literal(label).withStyle(orderTypeStyle(type));
+    }
+
+    private static MutableComponent coinComponent(double amount) {
+        return Component
+            .literal(Utils.formatDecimal(amount, 1, true) + " coins")
+            .withStyle(ChatFormatting.GOLD);
+    }
+
+    private static ChatFormatting orderTypeStyle(OrderType type) {
+        return switch (type) {
+            case Buy -> ChatFormatting.GREEN;
+            case Sell -> ChatFormatting.GOLD;
+        };
     }
 
     public static void notifyChatCommand(String displayText, String cmd) {

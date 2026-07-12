@@ -1,22 +1,21 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.trackedorders;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Top;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Undercut;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -25,21 +24,12 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import lombok.extern.slf4j.Slf4j;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
@@ -49,24 +39,70 @@ public class TrackedOrderManager {
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
-    private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) {}
-    private final Map<SelfUndercutKey, SelfUndercutPricePair> selfUndercutState = new HashMap<>();
-
-    public record SelfUndercutKey(String productName, OrderType type) {
-        public static SelfUndercutKey from(TrackedOrder order) {
-            return new SelfUndercutKey(order.productName, order.type);
-        }
-    }
+    private final TrackedOrderProductUpdater productUpdater;
+    private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
+    private final SelfUndercutDetector selfUndercutDetector = new SelfUndercutDetector();
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
+    private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
         (unfilledOrders, filledOrders) -> { };
 
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
+        this.productUpdater = new TrackedOrderProductUpdater(bazaarData);
         this.outstandingOrderStore = new TimedStore<>(15_000L);
+        this.bazaarData.addIndexChangeListener(this::refreshTrackedOrderProducts);
+    }
+
+    private void refreshTrackedOrderProducts() {
+        this.trackedOrders.forEach(order ->
+            this.updateTrackedProduct(order, this.productUpdater.resolveCurrentProduct(order))
+        );
+    }
+
+    private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
+        var mergedProduct = this.productUpdater.strongestProduct(order.product, product, order.uiProductName);
+        var oldKey = TrackedOrderGrouping.productKey(order.product, order.uiProductName);
+        var oldProductName = order.productName;
+        var newKey = TrackedOrderGrouping.productKey(mergedProduct, order.uiProductName);
+        if (oldKey.equals(newKey)
+            && oldProductName.equals(mergedProduct.strippedName())
+            && order.product.equals(mergedProduct)) {
+            return;
+        }
+
+        var oldSelfUndercutKey = TrackedOrderGrouping.SelfUndercutMatchKey.from(order);
+        order.applyProduct(mergedProduct);
+
+        if (oldKey.equals(newKey)) {
+            log.debug(
+                "Updated tracked order display name for {} from '{}' to '{}'",
+                newKey,
+                oldProductName,
+                order.productName
+            );
+            this.notifyOrderUpdated(order);
+            return;
+        }
+
+        // The previous status belongs to the old grouping key; the next market poll recomputes it normally.
+        order.status = new OrderStatus.Unknown();
+        this.selfUndercutDetector.remove(oldSelfUndercutKey);
+        this.selfUndercutDetector.remove(TrackedOrderGrouping.SelfUndercutMatchKey.from(order));
+        log.debug(
+            "Updated tracked order identity from {} to {} using UI product '{}'",
+            oldKey,
+            newKey,
+            order.uiProductName
+        );
+        this.notifyOrderUpdated(order);
+    }
+
+    private void notifyOrderUpdated(TrackedOrder order) {
+        this.onOrderUpdatedListeners.forEach(listener -> listener.accept(order));
     }
 
     public void addOnOrderAddedListener(Consumer<TrackedOrder> listener) {
@@ -81,6 +117,10 @@ public class TrackedOrderManager {
      */
     public void addOnOrderRemovedListener(Consumer<TrackedOrder> listener) {
         this.onOrderRemovedListeners.add(listener);
+    }
+
+    public void addOnOrderUpdatedListener(Consumer<TrackedOrder> listener) {
+        this.onOrderUpdatedListeners.add(listener);
     }
 
     public void addOnOrdersResetListener(Runnable listener) {
@@ -113,6 +153,7 @@ public class TrackedOrderManager {
             match.ifPresentOrElse(
                 info -> {
                     unfilledCopy.remove(info);
+                    this.updateTrackedProduct(tracked, info.product());
                     tracked.slot = info.slotIdx();
                     tracked.fillAmountSnapshot = info.filledAmountSnapshot();
                 }, () -> toRemove.add(tracked)
@@ -127,43 +168,29 @@ public class TrackedOrderManager {
         );
 
         toRemove.forEach(this::removeTrackedOrder);
-        unfilledCopy.stream().map(TrackedOrder::new).forEach(this::addTrackedOrder);
+        unfilledCopy
+            .stream()
+            .map(TrackedOrder::new)
+            .forEach(this::addTrackedOrder);
 
         this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
     }
 
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
-            var key = new SelfUndercutKey(order.productName, order.type);
-            boolean removedLastOrder = this.trackedOrders.stream()
-                .noneMatch(curr -> curr.productName.equals(order.productName) && curr.type == order.type);
-            log.debug("Removed last order for {}: {}", order.productName, removedLastOrder);
-            if (removedLastOrder) {
-                this.selfUndercutState.remove(key);
-            }
+            this.selfUndercutDetector.removeIfLastOrder(order, this.trackedOrders);
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
     }
 
-    public record GroupKey(String productName, OrderType type, double pricePerUnit) {
-        public static GroupKey from(TrackedOrder order) {
-            return new GroupKey(order.productName, order.type, order.pricePerUnit);
-        }
-    }
+    public void onBazaarUpdate(MarketSnapshot snapshot) {
+        var updates = this.statusEvaluator
+            .computeStatusUpdates(this.trackedOrders, snapshot)
+            .peek(update -> update.order().status = update.curr())
+            .collect(Collectors.toList());
 
-    public sealed interface GroupStatus {
-        record Undercut(double amount) implements GroupStatus {}
-        record Matched() implements GroupStatus {}
-        record SelfMatched() implements GroupStatus {}
-    }
-
-    public void onBazaarUpdate(Map<String, Product> products) {
-        var updates = this.computeStatusUpdates(products).peek(update -> {
-            update.order().status = update.curr;
-        }).collect(Collectors.toList());
-
-        this.sendNotifications(updates, products);
-        this.resolveSelfUndercutStates(products);
+        this.sendNotifications(updates, snapshot);
+        this.resolveSelfUndercutStates(snapshot);
     }
 
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
@@ -173,21 +200,20 @@ public class TrackedOrderManager {
     // Fixing this would require a separate group-level status diff pass (tracking previous
     // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
     // Accepted as a known limitation (for now).
-    private void sendNotifications(List<StatusUpdate> statusUpdates, Map<String, Product> products) {
+    private void sendNotifications(List<StatusUpdate> statusUpdates, MarketSnapshot snapshot) {
         var cfg = ConfigManager.get().trackedOrders;
         if(!cfg.enabled) {
             return;
         }
 
-        Map<GroupKey, List<TrackedOrder>> orderGroups = this.trackedOrders.stream()
-            .collect(Collectors.groupingBy(GroupKey::from));
-        Map<GroupKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
-            .collect(Collectors.groupingBy(update -> GroupKey.from(update.order())));
+        Map<TrackedOrderGrouping.GroupMatchKey, List<TrackedOrder>> orderGroups = this.trackedOrders.stream()
+            .collect(Collectors.groupingBy(TrackedOrderGrouping.GroupMatchKey::from));
+        Map<TrackedOrderGrouping.GroupMatchKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
+            .collect(Collectors.groupingBy(update -> TrackedOrderGrouping.GroupMatchKey.from(update.order())));
 
         for(var entry : statusGroups.entrySet()) {
-            var key = entry.getKey();
             var updates = entry.getValue();
-            var orders = orderGroups.get(key);
+            var orders = orderGroups.get(entry.getKey());
             
             if(orders.size() == 1) {
                 var statusUpdate = updates.getFirst();
@@ -197,7 +223,8 @@ public class TrackedOrderManager {
                 continue;
             }
 
-            this.processGroupNotification(key, orders, updates, products);
+            var key = GroupKey.from(orders.getFirst());
+            this.processGroupNotification(key, orders, updates, snapshot);
         }
     }
 
@@ -205,7 +232,7 @@ public class TrackedOrderManager {
         GroupKey key,
         List<TrackedOrder> orders,
         List<StatusUpdate> updates,
-        Map<String,Product> products
+        MarketSnapshot snapshot
     ) {
         var cfg = ConfigManager.get().trackedOrders;
         
@@ -216,7 +243,7 @@ public class TrackedOrderManager {
             return;   
         }
 
-        GroupStatus curr = this.getCurrentGroupStatus(key, orders, products);
+        GroupStatus curr = this.statusEvaluator.getCurrentGroupStatus(key, orders, snapshot);
         
         if(curr == null) {
             log.warn("Group ({}) has no settled status, skipping group notification", key);
@@ -233,157 +260,21 @@ public class TrackedOrderManager {
             return;
         }
 
-        GroupStatus prev = this.getPreviousGroupStatus(key, orders, updates);
+        GroupStatus prev = this.statusEvaluator.getPreviousGroupStatus(key, orders, updates);
         Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
     }
-
-    private @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, Map<String,Product> products) {
-        boolean hasMatched = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Matched);
-        boolean hasUndercut = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
-        boolean hasUnknown = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Unknown);
-
-        if(hasUnknown) {
-            log.warn("Group ({}) has Unknown-status order after poll. Likely unresolved product name, skipping group notification", key);
-            return null;
-        }
-
-        if(hasMatched && hasUndercut) {
-            log.warn("Group ({}) has both Matched and Undercut orders. This must be a logic error, skipping group notification", key);
-            return null;
-        }
-
-        if(hasUndercut) {
-            // per definition all the orders within the `orders` list must have undercut status
-            // as well as the same (product name, type, price per unit)
-            var representativeOrder = orders.getFirst();
-            var undercutAmount = ((OrderStatus.Undercut) representativeOrder.status).amount;
-            return new GroupStatus.Undercut(undercutAmount);
-        }
-
-        int bucketOrderCount = this.countOrdersAtBestPrice(key, this.bazaarData);
-        if(bucketOrderCount == -1) {
-            log.warn("Group ({}) has no orders at the given price per unit, skipping group notification", key);
-            return null;
-        }
-
-        return orders.size() == bucketOrderCount ? new GroupStatus.SelfMatched() : new GroupStatus.Matched();
-    }
-
-   // Reconstruct the previous group status from two sources:
-   // - Orders that did NOT change this poll are absent from `updates`, meaning their current
-   //   status IS their previous status (nothing moved for them).
-   // - Orders that DID change this poll have an explicit `prev` field in their `StatusUpdate`,
-   //   which overrides the default.
-   // Building a full `prevStatuses` map across all orders gives us a complete picture of where
-   // the entire group stood before this poll, which we then reduce to a single `GroupStatus`
-   // using the same precedence as `getCurrentGroupStatus`: `Undercut` > `Matched` > everything else.
-    private @Nullable GroupStatus getPreviousGroupStatus(GroupKey key, List<TrackedOrder> orders, List<StatusUpdate> updates) {
-        Map<TrackedOrder, OrderStatus> prevStatuses = orders.stream()
-            .collect(Collectors.toMap(order -> order, order -> order.status));
-
-        updates.forEach(update -> prevStatuses.put(update.order(), update.prev()));
-
-        var values = prevStatuses.values();
-
-        if (values.stream().anyMatch(status -> status instanceof OrderStatus.Undercut)) {
-            // `amount` MUST be identical across all orders in the group
-            double amount = values.stream()
-                .filter(status -> status instanceof OrderStatus.Undercut)
-                .map(status -> ((OrderStatus.Undercut) status).amount)
-                .findFirst()
-                .orElseThrow();
-            return new GroupStatus.Undercut(amount);
-        }
-
-        if (values.stream().anyMatch(status -> status instanceof OrderStatus.Matched)) {
-            return new GroupStatus.Matched();
-        }
-
-        // Top, Unknown, or mix of both -> group had no settled matched state before
-        log.debug("Group ({}) had no prior matched group state. currently tracked orders: {} | updates: {}", 
-            key, orders, updates);
-        return null;
-    }
-
-    private int countOrdersAtBestPrice(GroupKey key, BazaarData bazaarData) {
-        var productId = bazaarData.nameToId(key.productName).orElse(null);
-        if (productId == null) {
-            log.warn("Group ({}) has no name -> id mapping, skipping group notification", key);
-            return -1;
-        }
-        
-        var lists = bazaarData.getOrderLists(productId);
-        
-        var relevantSummaries = switch (key.type) {
-            case Buy -> lists.buyOrders();
-            case Sell -> lists.sellOffers();
-        };
-    
-        return relevantSummaries.stream()
-            .filter(summary -> summary.getPricePerUnit() == key.pricePerUnit)
-            .findFirst()
-            .map(summary -> (int) summary.getOrders())
-            .orElse(-1);
-    }
-
-    public Stream<StatusUpdate> computeStatusUpdates(Map<String, Product> products) {
-        return this.trackedOrders
-            .stream()
-            .map(order -> this.getTrackedStatus(order, products))
-            .flatMap(Optional::stream)
-            .filter(trackedStatus -> !trackedStatus.order().status.sameVariant(trackedStatus.status()))
-            .map(trackedStatus -> new StatusUpdate(
-                trackedStatus.order(),
-                trackedStatus.status(),
-                trackedStatus.order().status
-            ));
-    }
-
-    private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, Map<String, Product> products) {
-        var id = bazaarData.nameToId(order.productName);
-        if (id.isEmpty()) {
-            log.warn(
-                "No name -> id mapping found for product with name: '{}'",
-                order.productName
-            );
-            return Optional.empty();
-        }
-
-        var product = Optional.ofNullable(products.get(id.get()));
-        if (product.isEmpty()) {
-            log.warn(
-                "No product found for item with name '{}' and mapped id '{}'",
-                order.productName,
-                id.get()
-            );
-            return Optional.empty();
-        }
-
-        var status = this.getStatus(order, product.get());
-        if (status.isEmpty()) {
-            log.debug(
-                "Unable to determine curr for product '{}' with id '{}'",
-                order.productName,
-                id.get()
-            );
-            return Optional.empty();
-        }
-
-        return Optional.of(new TrackedStatus(order, status.get()));
-    }
-
 
     private boolean shouldNotify(StatusUpdate update) {
         var cfg = ConfigManager.get().trackedOrders;
 
-        return cfg.enabled && switch (update.curr) {
+        return cfg.enabled && switch (update.curr()) {
             case OrderStatus.Top _ -> {
                 if (!cfg.notifyBest) {
                     yield false;
                 }
 
                 if (cfg.onlyOnPriorityRegain) {
-                    yield !(update.prev instanceof OrderStatus.Unknown);
+                    yield !(update.prev() instanceof OrderStatus.Unknown);
                 }
 
                 yield true;
@@ -397,7 +288,7 @@ public class TrackedOrderManager {
     public void resetTrackedOrders() {
         var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();
-        this.selfUndercutState.clear();
+        this.selfUndercutDetector.clear();
 
         log.info("Reset tracked orders (removed {})", removedSize);
         this.onOrdersResetListeners.forEach(Runnable::run);
@@ -418,7 +309,11 @@ public class TrackedOrderManager {
         // noinspection SimplifyStreamApiCallChains
         this.trackedOrders
             .stream()
-            .filter(order -> order.productName.equals(info.productName()) && order.type == info.type() && order.volume == info.volume())
+            .filter(order -> Utils
+                .normalizeDisplayName(order.uiProductName)
+                .equals(Utils.normalizeDisplayName(info.productName()))
+                && order.type == info.type()
+                && order.volume == info.volume())
             .sorted((t1, t2) -> orderingFactor * Double.compare(t1.pricePerUnit, t2.pricePerUnit))
             .findFirst()
             .ifPresentOrElse(
@@ -454,179 +349,21 @@ public class TrackedOrderManager {
             );
     }
 
-    private Optional<OrderStatus> getStatus(TrackedOrder order, Product product) {
-        // floating point inaccuracy for player exposure is handled see
-        // `GeneralUtils.formatDecimal`
-        return switch (order.type) {
-            case Buy -> Utils.getFirst(product.getSellSummary()).map(summary -> {
-                double bestPrice = summary.getPricePerUnit();
-                if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1
-                        ? this.matchedOrGhostTop(order, summary)
-                        : new Top();
-                }
-                if (order.pricePerUnit > bestPrice) {
-                    return new Top();
-                }
-                return new Undercut(bestPrice - order.pricePerUnit);
-            });
-            case Sell -> Utils.getFirst(product.getBuySummary()).map(summary -> {
-                double bestPrice = summary.getPricePerUnit();
-                if (order.pricePerUnit == bestPrice) {
-                    return summary.getOrders() > 1
-                        ? this.matchedOrGhostTop(order, summary)
-                        : new Top();
-                }
-                if (order.pricePerUnit < bestPrice) {
-                    return new Top();
-                }
-                return new Undercut(order.pricePerUnit - bestPrice);
-            });
-        };
-    }
-
-    /**
-     * The Hypixel API can contain "ghost orders", entries that report
-     * {@code orders > 1} at a price bucket but carry 0 actual items. When only ghost
-     * orders sit alongside the player's order, the bucket's total item amount equals
-     * (or is less than) the player's own volume, meaning there is no real competition.
-     * In that case the order is effectively {@link Top}, not {@link Matched}.
-     */
-    private @NotNull OrderStatus matchedOrGhostTop(TrackedOrder order, Product.Summary summary) {
-        int itemsAhead = Math.max(0, (int) summary.getAmount() - order.volume);
-        if (itemsAhead == 0) {
-            log.debug(
-                "Ghost order detected for {}: bucket has {} orders but 0 items ahead of player volume ({}), treating as Top",
-                order.productName, (int) summary.getOrders(), order.volume
-            );
-            return new Top();
-        }
-        return new Matched();
-    }
-
-    private record TrackedStatus(TrackedOrder order, OrderStatus status) { }
-
-    public record StatusUpdate(TrackedOrder order, OrderStatus curr, OrderStatus prev) { }
-
-    private void resolveSelfUndercutStates(Map<String, Product> products) {
-        var keys = this.trackedOrders.stream()
-            .map(SelfUndercutKey::from)
-            .distinct()
-            .toList();
-
-        this.selfUndercutState.keySet().retainAll(keys);
+    private void resolveSelfUndercutStates(MarketSnapshot snapshot) {
         var cfg = ConfigManager.get().trackedOrders;
-
-        for (var key : keys) {
-            var result = this.computeSelfUndercutState(key.productName(), key.type(), products);
-            var existing = this.selfUndercutState.get(key);
-
-            if (result instanceof SelfUndercutResult.Undercut undercut) {
-                boolean pricesChanged = existing == null
-                    || Double.compare(existing.bestPrice(), undercut.bestPrice()) != 0
-                    || Double.compare(existing.secondBestPrice(), undercut.secondBestPrice()) != 0;
-                if(!pricesChanged) {
-                    continue;
-                }
-
-                this.selfUndercutState.put(key, new SelfUndercutPricePair(undercut.bestPrice(), undercut.secondBestPrice()));
-                if (cfg.enabled && cfg.notifySelfUndercut) {
-                    Notifier.notifySelfUndercut(key, undercut.bestPrice(), undercut.secondBestPrice());
-                }
-                continue;
-            }
-
-            if (!result.isSelfUndercut()) {
-                this.selfUndercutState.remove(key);
-            }
-        }
-    }
-
-    private sealed interface SelfUndercutResult {
-        record Undercut(double bestPrice, double secondBestPrice) implements SelfUndercutResult {}
-        record NotUndercut() implements SelfUndercutResult {}
-
-        default boolean isSelfUndercut() {
-            return this instanceof Undercut;
-        }
-    }
-
-    private SelfUndercutResult computeSelfUndercutState(
-        String productName, 
-        OrderType type, 
-        Map<String, Product> products
-    ) {
-        var matchingOrders = this.trackedOrders.stream()
-            .filter(order -> order.productName.equals(productName) && order.type == type)
-            .toList();
-
-        Comparator<Double> bestFirst = type == OrderType.Buy
-            ? Comparator.reverseOrder()
-            : Comparator.naturalOrder();
-
-        var playerPrices = matchingOrders.stream()
-            .map(order -> order.pricePerUnit)
-            .distinct()
-            .sorted(bestFirst)
-            .toList();
-
-        if (playerPrices.size() < 2) {
-            return new SelfUndercutResult.NotUndercut();
+        var events = this.selfUndercutDetector.resolve(this.trackedOrders, snapshot);
+        if (!cfg.enabled || !cfg.notifySelfUndercut) {
+            return;
         }
 
-        var productId = this.bazaarData.nameToId(productName).orElse(null);
-        if (productId == null) {
-            log.debug("Product '{}' not found in bazaar data", productName);
-            return new SelfUndercutResult.NotUndercut();
+        for (var event : events) {
+            Notifier.notifySelfUndercut(
+                event.key(),
+                event.bestPrice(),
+                event.secondBestPrice(),
+                this.bazaarData
+            );
         }
-
-        var product = products.get(productId);
-        if (product == null) {
-            log.debug("Product '{}' not found in products map", productName);
-            return new SelfUndercutResult.NotUndercut();
-        }
-
-        var summaries = switch (type) {
-            case Buy -> product.getSellSummary();
-            case Sell -> product.getBuySummary();
-        };
-
-        if (summaries == null || summaries.size() < 2) {
-            return new SelfUndercutResult.NotUndercut();
-        }
-
-        var topBucket = summaries.getFirst();
-        var secondBucket = summaries.get(1);
-        double bestPlayerPrice = playerPrices.getFirst();
-        double secondBestPlayerPrice = playerPrices.get(1);
-
-        if (Double.compare(topBucket.getPricePerUnit(), bestPlayerPrice) != 0) {
-            return new SelfUndercutResult.NotUndercut();
-        }
-
-        long playerCountAtBest = matchingOrders.stream()
-            .filter(order -> Double.compare(order.pricePerUnit, bestPlayerPrice) == 0)
-            .count();
-
-        if (topBucket.getOrders() != playerCountAtBest) {
-            log.trace("Top bucket count mismatch for {}: API orders={}, local tracked={}", productName, topBucket.getOrders(), playerCountAtBest);
-            return new SelfUndercutResult.NotUndercut();
-        }
-
-        if (Double.compare(secondBucket.getPricePerUnit(), secondBestPlayerPrice) != 0) {
-            return new SelfUndercutResult.NotUndercut();
-        }
-
-        long playerCountAtSecondBest = matchingOrders.stream()
-            .filter(order -> Double.compare(order.pricePerUnit, secondBestPlayerPrice) == 0)
-            .count();
-
-        if (secondBucket.getOrders() != playerCountAtSecondBest) {
-            log.trace("Second bucket count mismatch for {}: API orders={}, local tracked={}", productName, secondBucket.getOrders(), playerCountAtSecondBest);
-            return new SelfUndercutResult.NotUndercut();
-        }
-
-        return new SelfUndercutResult.Undercut(bestPlayerPrice, secondBestPlayerPrice);
     }
 
     public static class OrderManagerConfig {

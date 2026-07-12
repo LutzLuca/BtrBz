@@ -5,6 +5,10 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -34,10 +38,10 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -58,25 +62,18 @@ public final class ProductInfoProvider {
         BazaarMenuType.SellOfferSetup,
         BazaarMenuType.SellOfferConfirmation
     };
-    private static final BazaarMenuType[] CTRL_SHIFT_MENUS = {
-        BazaarMenuType.Main,
-        BazaarMenuType.Item
-    };
-
     private final BazaarData bazaarData;
-    private final PriceCache priceCache;
-    private final ProductIdCache productIdCache;
+    private final ProductLookupCache productLookupCache;
 
     private @Nullable ItemStack cachedProductInfoItem = null;
     private @Nullable InfoProviderSite cachedProductInfoSite = null;
 
     @Getter
-    private @Nullable ProductNameInfo openedProductNameInfo;
+    private @Nullable IndexedProduct openedProduct;
 
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.priceCache = new PriceCache();
-        this.productIdCache = new ProductIdCache();
+        this.productLookupCache = new ProductLookupCache();
         this.registerProductInfoListener();
         this.registerSlotHooks();
         this.registerTooltipDisplay();
@@ -112,26 +109,27 @@ public final class ProductInfoProvider {
     private void registerProductInfoListener() {
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.Item), (info, inv) -> {
-                var productName = inv
+                var product = inv
                     .getItem(PRODUCT_IDX)
-                    .map(ItemStack::getHoverName)
-                    .map(Component::getString)
-                    .orElse("<empty>");
+                    .map(this.bazaarData::resolveProduct)
+                    .flatMap(this.bazaarData::resolveIndexedProduct);
 
-                this.bazaarData.nameToId(productName).ifPresentOrElse(
-                    productId -> {
-                        this.openedProductNameInfo = new ProductNameInfo(productId, productName);
-                        log.debug("Opened product: {} ({})", productName, productId);
-                    }, () -> {
-                        this.openedProductNameInfo = null;
-                        log.warn("No product id found for {}", productName);
+                product.ifPresentOrElse(
+                    resolved -> {
+                        this.openedProduct = resolved;
+                        log.debug("Opened product: {}", resolved);
+                    },
+                    () -> {
+                        this.openedProduct = null;
+                        log.warn("No product resolved for Bazaar item screen");
                     }
                 );
             }
         );
 
         ScreenInfoHelper.registerOnSwitch(curr -> {
-            if (this.openedProductNameInfo == null) {
+            this.productLookupCache.clear();
+            if (this.openedProduct == null) {
                 return;
             }
 
@@ -148,20 +146,18 @@ public final class ProductInfoProvider {
 
             if (transientFlowClose) {
                 log.debug(
-                    "Preserving product context on transient flow close: {} ({})",
-                    this.openedProductNameInfo.productName,
-                    this.openedProductNameInfo.productId
+                    "Preserving product context on transient flow close: {}",
+                    this.openedProduct
                 );
                 return;
             }
 
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
-                    "Leaving product flow, clearing product: {} ({})",
-                    this.openedProductNameInfo.productName,
-                    this.openedProductNameInfo.productId
+                    "Leaving product flow, clearing product: {}",
+                    this.openedProduct
                 );
-                this.openedProductNameInfo = null;
+                this.openedProduct = null;
             }
         });
     }
@@ -241,13 +237,12 @@ public final class ProductInfoProvider {
                 return;
             }
 
-            var priceInfo = this.priceCache.get(stack);
-            if (priceInfo.isEmpty()) {
+            var cached = this.productLookupCache.get(stack).prices();
+            if (cached == null) {
                 return;
             }
 
-            var cached = priceInfo.get();
-            var count = stack.getCount();
+            var count = stack.getItem() == Items.ENCHANTED_BOOK ? 1 : stack.getCount();
             var isShiftHeld = Minecraft.getInstance().hasShiftDown();
 
             lines.add(Component.empty());
@@ -277,25 +272,67 @@ public final class ProductInfoProvider {
     }
 
     private boolean shouldApplyCtrlShiftClick(ItemStack stack) {
+        if (!this.isCtrlShiftEnabled()) {
+            return false;
+        }
+
+        var lookup = this.productLookupCache.get(stack);
+        return this.isCtrlShiftContextEnabled(lookup.playerInventoryStack())
+            && lookup.marketProductId().isPresent();
+    }
+
+    private boolean isCtrlShiftEnabled() {
         var cfg = ConfigManager.get().productInfo;
-        if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
-            return false;
+        return cfg.enabled && cfg.ctrlShiftEnabled;
+    }
+
+    private boolean isCtrlShiftContextEnabled(boolean playerInventoryStack) {
+        var cfg = ConfigManager.get().productInfo;
+        if (ScreenInfoHelper.inBazaar()) {
+            return playerInventoryStack || cfg.ctrlShiftOnBazaarItems;
         }
 
-        boolean inBazaarMainOrItem = ScreenInfoHelper.inMenu(CTRL_SHIFT_MENUS);
-        if (!inBazaarMainOrItem && !cfg.showOutsideBazaar && !ScreenInfoHelper.inBazaar()) {
-            return false;
+        return cfg.showOutsideBazaar;
+    }
+
+    private ProductIdentity resolveProductForLookup(SlotView view) {
+        var stack = view.getRawStack();
+        if (this.isOrderScreenProductRow(stack) && !view.playerInventorySlot()) {
+            return OrderInfoParser
+                .parseOrderInfo(stack, view.slotIdx(), this.bazaarData)
+                .map(order -> order.product())
+                .getOrElse(() -> this.resolveProduct(stack));
         }
 
-        if (this.productIdCache.get(stack).isEmpty()) {
-            return false;
+        return this.resolveProduct(stack);
+    }
+
+    private ProductIdentity resolveProductForLookup(ItemStack stack) {
+        var hoveredSlot = this.hoveredNonPlayerSlot(stack);
+        if (this.isOrderScreenProductRow(stack) && hoveredSlot.isPresent()) {
+            return OrderInfoParser
+                .parseOrderInfo(stack, hoveredSlot.get().getContainerSlot(), this.bazaarData)
+                .map(order -> order.product())
+                .getOrElse(() -> this.resolveProduct(stack));
         }
 
-        if (inBazaarMainOrItem) {
-            return this.isStackInPlayerInventory(stack);
-        }
+        return this.resolveProduct(stack);
+    }
 
-        return true;
+    private boolean isOrderScreenProductRow(ItemStack stack) {
+        return ScreenInfoHelper.inMenu(BazaarMenuType.Orders)
+            && GameUtils.orderScreenNonOrderItemsFilter(stack);
+    }
+
+    private Optional<Slot> hoveredNonPlayerSlot(ItemStack stack) {
+        return ScreenInfoHelper
+            .get()
+            .getCurrInfo()
+            .getGenericContainerScreen()
+            .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor
+                ? accessor.getHoveredSlot()
+                : null)
+            .filter(slot -> slot != null && !GameUtils.isPlayerInventorySlot(slot) && slot.getItem() == stack);
     }
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
@@ -336,6 +373,10 @@ public final class ProductInfoProvider {
         ));
     }
 
+    private ProductIdentity resolveProduct(ItemStack stack) {
+        return this.bazaarData.resolveProduct(stack);
+    }
+
     public enum InfoProviderSite {
         Coflnet("https://sky.coflnet.com/item/%s?range=day"),
         SkyblockBz("https://skyblock.bz/product/%s"),
@@ -373,9 +414,21 @@ public final class ProductInfoProvider {
         }
     }
 
-    public record ProductNameInfo(@NotNull String productId, @NotNull String productName) { }
+    private record CachedPrice(
+        @Nullable Double sellOfferPrice,
+        @Nullable Double buyOrderPrice
+    ) { }
 
-    private record CachedPrice(@Nullable Double sellOfferPrice, @Nullable Double buyOrderPrice) { }
+    private record CachedProductLookup(
+        ProductIdentity product,
+        boolean playerInventoryStack,
+        @Nullable CachedPrice prices
+    ) {
+
+        Optional<String> marketProductId() {
+            return this.prices != null ? this.product.bazaarProductId() : Optional.empty();
+        }
+    }
 
     public final class InfoSiteButtonHook implements SlotHook {
 
@@ -386,7 +439,7 @@ public final class ProductInfoProvider {
             var cfg = ConfigManager.get().productInfo;
             return cfg.enabled
                 && cfg.itemClickEnabled
-                && ProductInfoProvider.this.openedProductNameInfo != null
+                && ProductInfoProvider.this.openedProduct != null
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_ITEM_IDX
                 && view.getCurrInfo().inMenu(BazaarMenuType.Item);
@@ -401,7 +454,7 @@ public final class ProductInfoProvider {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var cfg = ConfigManager.get().productInfo;
             ProductInfoProvider.this.confirmAndOpen(
-                cfg.site.format(ProductInfoProvider.this.openedProductNameInfo.productId)
+                cfg.site.format(ProductInfoProvider.this.openedProduct.productId())
             );
             return SlotClickResult.Consume;
         }
@@ -413,7 +466,8 @@ public final class ProductInfoProvider {
 
         @Override
         public boolean matches(SlotView view) {
-            return !view.getRawStack().isEmpty() && ProductInfoProvider.this.shouldApplyCtrlShiftClick(view.getRawStack());
+            // Keep matching cheap; ctrl-shift eligibility may inspect inventory and only matters on click.
+            return !view.getRawStack().isEmpty();
         }
 
         @Override
@@ -422,15 +476,23 @@ public final class ProductInfoProvider {
                 return SlotClickResult.Pass;
             }
 
-            var cfg = ConfigManager.get().productInfo;
-            var stack = ctx.view().getRawStack();
-            var id = ProductInfoProvider.this.productIdCache.get(stack);
-            if (id.isEmpty()) {
-                log.warn("No product id found for {}", stack.getHoverName().getString());
+            if (!ProductInfoProvider.this.isCtrlShiftEnabled()) {
                 return SlotClickResult.Pass;
             }
 
-            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(id.get()));
+            var lookup = ProductInfoProvider.this.productLookupCache.get(ctx.view());
+            if (!ProductInfoProvider.this.isCtrlShiftContextEnabled(lookup.playerInventoryStack())) {
+                return SlotClickResult.Pass;
+            }
+
+            var productId = lookup.marketProductId();
+            if (productId.isEmpty()) {
+                log.warn("No Bazaar product found for {}", ctx.view().getRawStack().getHoverName().getString());
+                return SlotClickResult.Pass;
+            }
+
+            var cfg = ConfigManager.get().productInfo;
+            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(productId.get()));
             return SlotClickResult.Consume;
         }
     }
@@ -440,6 +502,7 @@ public final class ProductInfoProvider {
         public boolean enabled = true;
         public boolean itemClickEnabled = true;
         public boolean ctrlShiftEnabled = true;
+        public boolean ctrlShiftOnBazaarItems = true;
         public boolean showOutsideBazaar = false;
         public boolean priceTooltipEnabled = true;
         public InfoProviderSite site = InfoProviderSite.SkyblockBz;
@@ -469,8 +532,22 @@ public final class ProductInfoProvider {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable CTRL+SHIFT Click Shortcut"))
                 .description(OptionDescription.of(Component.literal(
-                    "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking the item.\n" + "Disabled in the Bazaar Item menu to avoid conflicts with bookmarks.")))
+                    "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking resolved Bazaar items.")))
                 .binding(true, () -> this.ctrlShiftEnabled, val -> this.ctrlShiftEnabled = val)
+                .controller(ConfigScreen::createBooleanController);
+        }
+
+        public Builder<Boolean> createCtrlShiftOnBazaarItemsOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.literal("CTRL+SHIFT on Bazaar Items"))
+                .description(OptionDescription.of(Component.literal(
+                    "Allows CTRL+SHIFT Click on resolved Bazaar UI items. Plain clicks still use the normal Bazaar/bookmark behavior.")))
+                .binding(
+                    true,
+                    () -> this.ctrlShiftOnBazaarItems,
+                    val -> this.ctrlShiftOnBazaarItems = val
+                )
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -518,6 +595,7 @@ public final class ProductInfoProvider {
             var rootGroup = new OptionGrouping(enabledBuilder).addOptions(
                 this.createItemClickOption(),
                 this.createCtrlShiftOption(),
+                this.createCtrlShiftOnBazaarItemsOption(),
                 this.createShowOutsideBazaarOption(),
                 this.createPriceTooltipOption(),
                 this.createSiteOption()
@@ -534,110 +612,65 @@ public final class ProductInfoProvider {
         }
     }
 
-    private class ProductIdCache {
+    private class ProductLookupCache {
 
-        private final WeakHashMap<ItemStack, Optional<String>> cache = new WeakHashMap<>();
+        private final WeakHashMap<ItemStack, CachedProductLookup> cache = new WeakHashMap<>();
 
-        ProductIdCache() {
-            log.debug("Initializing Product ID Cache");
-            ProductInfoProvider.this.bazaarData.addConversionListener(() -> {
-                log.trace(
-                    "Conversions updated, clearing product id cache with {} mappings",
-                    this.cache.size()
-                );
-
-                this.cache.clear();
-            });
+        ProductLookupCache() {
+            log.debug("Initializing product lookup cache");
+            ProductInfoProvider.this.bazaarData.addListener(products -> this.clear());
+            ProductInfoProvider.this.bazaarData.addIndexChangeListener(this::clear);
         }
 
-        Optional<String> get(ItemStack stack) {
+        CachedProductLookup get(ItemStack stack) {
             var cached = this.cache.get(stack);
             if (cached != null) {
                 return cached;
             }
 
-            var name = stack.getHoverName().getString();
-
-            var direct = ProductInfoProvider.this.bazaarData.nameToId(name);
-            if (direct.isPresent()) {
-                this.cache.put(stack, direct);
-                return direct;
-            }
-
-            if ("Enchanted Book".equals(name)) {
-                var ids = OrderInfoParser
-                    .getLore(stack)
-                    .stream()
-                    .map(ProductInfoProvider.this.bazaarData::nameToId)
-                    .flatMap(Optional::stream)
-                    .distinct()
-                    .toList();
-
-                var result = ids.size() == 1 ? Optional.of(ids.getFirst()) : Optional.<String>empty();
-
-                this.cache.put(stack, result);
-                return result;
-            }
-
-            var delimiter = name.lastIndexOf(' ');
-            if (delimiter == -1 || !Utils.isValidRomanNumeral(name.substring(delimiter).trim())) {
-                this.cache.put(stack, Optional.empty());
-                return Optional.empty();
-            }
-
-            var result = ProductInfoProvider.this.bazaarData.nameToId(name.substring(0, delimiter).trim());
-
-            this.cache.put(stack, result);
-            return result;
-        }
-    }
-
-    private class PriceCache {
-
-        private final WeakHashMap<ItemStack, @Nullable CachedPrice> cache = new WeakHashMap<>();
-
-        PriceCache() {
-            log.debug("Initializing Price Cache");
-            ProductInfoProvider.this.bazaarData.addBazaarListener(products -> {
-                log.trace(
-                    "Bazaar data updated, clearing price cache with {} mappings",
-                    this.cache.size()
-                );
-
-                this.cache.clear();
-            });
-        }
-
-        Optional<CachedPrice> get(ItemStack stack) {
-            var existing = this.cache.get(stack);
-            if (existing != null || this.cache.containsKey(stack)) {
-                return Optional.ofNullable(existing);
-            }
-
-            var productId = ProductInfoProvider.this.productIdCache.get(stack);
-
-            if (productId.isEmpty()) {
-                this.cache.put(stack, null);
-                return Optional.empty();
-            }
-
-            var data = ProductInfoProvider.this.bazaarData;
-
-            var sellOfferPrice = data.lowestSellPrice(productId.get()).orElse(null);
-            var buyOrderPrice = data.highestBuyPrice(productId.get()).orElse(null);
-
-            var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
-            this.cache.put(stack, cached);
-
-            log.trace(
-                "Cached price for '{}' (id: {}): buy={}, sell={}",
-                stack.getHoverName().getString(),
-                productId.get(),
-                buyOrderPrice,
-                sellOfferPrice
+            return this.cache(
+                stack,
+                ProductInfoProvider.this.resolveProductForLookup(stack),
+                ProductInfoProvider.this.isStackInPlayerInventory(stack)
             );
+        }
 
-            return Optional.of(cached);
+        CachedProductLookup get(SlotView view) {
+            var stack = view.getRawStack();
+            var cached = this.cache.get(stack);
+            if (cached != null) {
+                return cached;
+            }
+
+            return this.cache(
+                stack,
+                ProductInfoProvider.this.resolveProductForLookup(view),
+                view.playerInventorySlot()
+            );
+        }
+
+        private CachedProductLookup cache(
+            ItemStack stack,
+            ProductIdentity product,
+            boolean playerInventoryStack
+        ) {
+            var data = ProductInfoProvider.this.bazaarData;
+            CachedPrice prices = null;
+            if (data.contains(product)) {
+                prices = new CachedPrice(
+                    data.lowestSellOfferPrice(product).orElse(null),
+                    data.highestBuyOrderPrice(product).orElse(null)
+                );
+            }
+
+            var cached = new CachedProductLookup(product, playerInventoryStack, prices);
+            this.cache.put(stack, cached);
+            return cached;
+        }
+
+        void clear() {
+            log.trace("Clearing product lookup cache with {} mappings", this.cache.size());
+            this.cache.clear();
         }
     }
 }

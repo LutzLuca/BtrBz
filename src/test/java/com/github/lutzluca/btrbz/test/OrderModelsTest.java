@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -9,32 +8,13 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class OrderModelsTest {
-
-    @Nested
-    @DisplayName("OrderType.tryFrom")
-    class OrderTypeTryFrom {
-
-        @Test
-        void parsesKnownValues() {
-            assertEquals(OrderType.Buy, OrderType.tryFrom("BUY").get());
-            assertEquals(OrderType.Sell, OrderType.tryFrom("SELL").get());
-        }
-
-        @Test
-        void rejectsUnknownValue() {
-            assertTrue(OrderType.tryFrom("UNKNOWN").isFailure());
-        }
-
-        @Test
-        void isCaseSensitive() {
-            assertTrue(OrderType.tryFrom("buy").isFailure());
-        }
-    }
 
     @Nested
     @DisplayName("OrderStatus.sameVariant")
@@ -54,19 +34,6 @@ class OrderModelsTest {
         @Test
         void returnsFalseForNull() {
             assertFalse(new OrderStatus.Unknown().sameVariant(null));
-        }
-    }
-
-    @Nested
-    @DisplayName("OrderStatus.toString")
-    class OrderStatusToString {
-
-        @Test
-        void rendersEachVariantName() {
-            assertEquals("Unknown", new OrderStatus.Unknown().toString());
-            assertEquals("Top", new OrderStatus.Top().toString());
-            assertEquals("Matched", new OrderStatus.Matched().toString());
-            assertEquals("Undercut", new OrderStatus.Undercut(3.5).toString());
         }
     }
 
@@ -92,6 +59,76 @@ class OrderModelsTest {
         @Test
         void rejectsDifferentProductName() {
             assertFalse(this.trackedOrder.matches(unfilledInfo("Wrong Item", OrderType.Buy, 64, 1234.5)));
+        }
+
+        @Test
+        void matchesResolvedProductsById() {
+            var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
+                indexedIdentity("ENCHANTED_HOPPER", "Old Display"),
+                "Enchanted Hopper",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            ));
+
+            var parsed = new OrderInfo.UnfilledOrderInfo(
+                indexedIdentity("ENCHANTED_HOPPER", "New Display"),
+                "Different UI Name",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            );
+
+            assertTrue(tracked.matches(parsed));
+        }
+
+        @Test
+        void rejectsDifferentProductIdsEvenWhenUiNamesMatch() {
+            var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
+                indexedIdentity("ENCHANTED_HOPPER", "Enchanted Hopper"),
+                "Enchanted Hopper",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            ));
+
+            var parsed = new OrderInfo.UnfilledOrderInfo(
+                indexedIdentity("OTHER_HOPPER", "Enchanted Hopper"),
+                "Enchanted Hopper",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            );
+
+            assertFalse(tracked.matches(parsed));
+        }
+
+        @Test
+        void fallsBackToUiNameWhenOnlyOneProductIsResolved() {
+            var tracked = new TrackedOrder(new OrderInfo.UnfilledOrderInfo(
+                indexedIdentity("ENCHANTED_HOPPER", "Enchanted Hopper"),
+                "Enchanted Hopper",
+                OrderType.Buy,
+                64,
+                1234.5,
+                0,
+                0,
+                3
+            ));
+
+            assertTrue(tracked.matches(unfilledInfo("Enchanted Hopper", OrderType.Buy, 64, 1234.5)));
         }
 
         @Test
@@ -152,6 +189,20 @@ class OrderModelsTest {
         }
 
         @Test
+        void matchesSetupMessageByUiProductName() {
+            var outstanding = new OutstandingOrderInfo(
+                indexedIdentity("AOTE_STONE", "Warped Stone"),
+                "Warped Stone",
+                OrderType.Sell,
+                2,
+                5_649_851.4,
+                11_299_702.8
+            );
+
+            assertTrue(outstanding.matches(setup(OrderType.Sell, 2, "Warped Stone", 11_299_702.8)));
+        }
+
+        @Test
         void rejectsDifferentProductName() {
             assertFalse(this.outstandingOrder.matches(setup(OrderType.Sell, 12, "Heat Core", 9_900_000.0)));
         }
@@ -179,5 +230,9 @@ class OrderModelsTest {
         ) {
             return new BazaarMessage.OrderSetup(type, volume, productName, total);
         }
+    }
+
+    private static ProductIdentity indexedIdentity(String productId, String formattedName) {
+        return ProductIdentity.fromIndex(new IndexedProduct(productId, formattedName));
     }
 }

@@ -25,8 +25,8 @@ public class OrderBookScreen extends Screen {
     private WidgetManager widgetManager;
 
 
-    public OrderBookScreen(Screen parent, String productName, OrderLists orders) {
-        super(Component.literal(productName + " Order Book"));
+    public OrderBookScreen(Screen parent, Component title, OrderLists orders) {
+        super(title);
         this.parent = parent;
         this.orders = orders;
     }

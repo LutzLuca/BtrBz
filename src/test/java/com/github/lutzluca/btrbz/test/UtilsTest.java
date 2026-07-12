@@ -2,14 +2,12 @@ package com.github.lutzluca.btrbz.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.lutzluca.btrbz.utils.Utils;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import org.apache.commons.lang3.tuple.Pair;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -171,19 +169,41 @@ class UtilsTest {
 
         @Test
         void rejectsInvalidStrings() {
+            assertFalse(Utils.isValidRomanNumeral(null));
+            assertFalse(Utils.isValidRomanNumeral(""));
+            assertFalse(Utils.isValidRomanNumeral("   "));
             assertFalse(Utils.isValidRomanNumeral("IIII"));
             assertFalse(Utils.isValidRomanNumeral("VX"));
             assertFalse(Utils.isValidRomanNumeral("ABC"));
         }
 
         @Test
-        void acceptsEmptyStringWithCurrentRegex() {
-            assertTrue(Utils.isValidRomanNumeral(""));
+        void acceptsMixedCase() {
+            assertTrue(Utils.isValidRomanNumeral("mCmXcIv"));
+        }
+    }
+
+    @Nested
+    @DisplayName("parseRomanNumeral")
+    class ParseRomanNumeral {
+
+        @Test
+        void parsesRepresentativeValues() {
+            assertEquals(Optional.of(4), Utils.parseRomanNumeral("IV"));
+            assertEquals(Optional.of(58), Utils.parseRomanNumeral("LVIII"));
+            assertEquals(Optional.of(1994), Utils.parseRomanNumeral("MCMXCIV"));
         }
 
         @Test
-        void acceptsMixedCase() {
-            assertTrue(Utils.isValidRomanNumeral("mCmXcIv"));
+        void parsesMixedCase() {
+            assertEquals(Optional.of(1994), Utils.parseRomanNumeral("mCmXcIv"));
+        }
+
+        @Test
+        void rejectsBlankOrInvalidValues() {
+            assertTrue(Utils.parseRomanNumeral("").isEmpty());
+            assertTrue(Utils.parseRomanNumeral("IIII").isEmpty());
+            assertTrue(Utils.parseRomanNumeral("VX").isEmpty());
         }
     }
 
@@ -213,94 +233,40 @@ class UtilsTest {
     }
 
     @Nested
-    @DisplayName("zipNullables")
-    class ZipNullables {
+    @DisplayName("legacyFormattedText")
+    class LegacyFormattedText {
 
         @Test
-        void returnsPairWhenBothPresent() {
-            assertEquals(Optional.of(Pair.of("left", 1)), Utils.zipNullables("left", 1));
+        void preservesNamedColors() {
+            var text = Component.literal("Troubled Bubble").withStyle(ChatFormatting.GOLD);
+
+            assertEquals(ChatFormatting.GOLD + "Troubled Bubble", Utils.legacyFormattedText(text));
         }
 
         @Test
-        void returnsEmptyWhenEitherIsNull() {
-            assertTrue(Utils.zipNullables(null, 1).isEmpty());
-            assertTrue(Utils.zipNullables("left", null).isEmpty());
+        void preservesBasicStyles() {
+            var text = Component.literal("Habanero Tactics")
+                .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD, ChatFormatting.ITALIC);
+
+            assertEquals(
+                ChatFormatting.LIGHT_PURPLE
+                    + ChatFormatting.BOLD.toString()
+                    + ChatFormatting.ITALIC
+                    + "Habanero Tactics",
+                Utils.legacyFormattedText(text)
+            );
         }
 
         @Test
-        void returnsEmptyWhenBothAreNull() {
-            assertTrue(Utils.zipNullables(null, null).isEmpty());
-        }
-    }
+        void extractsMatchingFormattedSuffix() {
+            var text = Component.empty()
+                .append(Component.literal("BUY ").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal("Bank III").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
 
-    @Nested
-    @DisplayName("zipOptionals")
-    class ZipOptionals {
-
-        @Test
-        void returnsPairWhenBothPresent() {
-            assertEquals(Optional.of(Pair.of("left", 1)), Utils.zipOptionals(Optional.of("left"), Optional.of(1)));
-        }
-
-        @Test
-        void returnsEmptyWhenEitherOptionalIsEmpty() {
-            assertTrue(Utils.zipOptionals(Optional.empty(), Optional.of(1)).isEmpty());
-            assertTrue(Utils.zipOptionals(Optional.of("left"), Optional.empty()).isEmpty());
-        }
-
-        @Test
-        void returnsEmptyWhenBothOptionalsAreEmpty() {
-            assertTrue(Utils.zipOptionals(Optional.empty(), Optional.empty()).isEmpty());
-        }
-    }
-
-    @Nested
-    @DisplayName("getFirst")
-    class GetFirst {
-
-        @Test
-        void returnsFirstElementForNonEmptyList() {
-            assertEquals(Optional.of("first"), Utils.getFirst(List.of("first", "second")));
-        }
-
-        @Test
-        void returnsEmptyOptionalForEmptyList() {
-            assertTrue(Utils.getFirst(List.<String>of()).isEmpty());
-        }
-    }
-
-    @Nested
-    @DisplayName("removeIfAndReturn")
-    class RemoveIfAndReturn {
-
-        @Test
-        void removesAndReturnsMatchingItems() {
-            var values = new ArrayList<>(List.of(1, 2, 3, 4));
-
-            var removed = Utils.removeIfAndReturn(values, value -> value % 2 == 0);
-
-            assertIterableEquals(List.of(2, 4), removed);
-            assertIterableEquals(List.of(1, 3), values);
-        }
-
-        @Test
-        void returnsEmptyWhenNothingMatches() {
-            var values = new ArrayList<>(List.of(1, 3, 5));
-
-            var removed = Utils.removeIfAndReturn(values, value -> value % 2 == 0);
-
-            assertTrue(removed.isEmpty());
-            assertIterableEquals(List.of(1, 3, 5), values);
-        }
-
-        @Test
-        void removesAllWhenEverythingMatches() {
-            var values = new ArrayList<>(List.of(2, 4, 6));
-
-            var removed = Utils.removeIfAndReturn(values, value -> value % 2 == 0);
-
-            assertIterableEquals(List.of(2, 4, 6), removed);
-            assertTrue(values.isEmpty());
+            assertEquals(
+                Optional.of(ChatFormatting.LIGHT_PURPLE + ChatFormatting.BOLD.toString() + "Bank III"),
+                Utils.matchingLegacySuffix(text, "Bank III")
+            );
         }
     }
 }

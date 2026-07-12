@@ -20,31 +20,28 @@ public record Position(int x, int y) {
     public static class GsonAdapter implements JsonSerializer<Position>, JsonDeserializer<Position> {
 
         @Override
-        public JsonElement serialize(Position src, Type typeOfSrc, JsonSerializationContext context) {
+        public JsonElement serialize(Position src, Type typeOfSrc, JsonSerializationContext ctx) {
             if (src == null) {
                 return JsonNull.INSTANCE;
             }
 
-            JsonObject object = new JsonObject();
-            object.addProperty("x", src.x());
-            object.addProperty("y", src.y());
-            return object;
+            JsonObject obj = new JsonObject();
+            obj.addProperty("x", src.x());
+            obj.addProperty("y", src.y());
+            return obj;
         }
 
         @Override
-        public Position deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        public Position deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx) throws JsonParseException {
             if (json == null || json.isJsonNull()) {
                 return null;
             }
 
             JsonObject object = json.getAsJsonObject();
-            JsonElement xElement = object.get("x");
-            JsonElement yElement = object.get("y");
-            if (xElement == null || yElement == null || xElement.isJsonNull() || yElement.isJsonNull()) {
-                throw new JsonParseException("Position requires both x and y properties");
-            }
-
-            return new Position(xElement.getAsInt(), yElement.getAsInt());
+            return new Position(
+                GsonUtils.required(object, "x", "Position").getAsInt(),
+                GsonUtils.required(object, "y", "Position").getAsInt()
+            );
         }
     }
 }

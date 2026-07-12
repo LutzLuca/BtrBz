@@ -4,9 +4,11 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.BazaarData.OrderPriceInfo;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
@@ -134,7 +136,7 @@ public class OrderProtectionManager {
     }
 
     private void validateConfirmationStack(ItemStack rawStack) {
-        if (rawStack.isEmpty() || OrderInfoParser.getLore(rawStack).isEmpty()) {
+        if (rawStack.isEmpty() || GameUtils.getLore(rawStack).isEmpty()) {
             return;
         }
 
@@ -143,7 +145,7 @@ public class OrderProtectionManager {
         }
 
         OrderInfoParser
-            .parseSetOrderItem(rawStack)
+            .parseSetOrderItem(rawStack, this.bazaarData)
             .map(orderInfo -> OrderValidator.validate(
                 orderInfo,
                 this.bazaarData,
@@ -155,7 +157,7 @@ public class OrderProtectionManager {
 
                 log.trace(
                     "Validated: {} - {}",
-                    pendingOrder.orderInfo().productName(),
+                    pendingOrder.orderInfo().product().bazaarProductId().orElse(pendingOrder.orderInfo().productName()),
                     pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
                 );
             })
@@ -247,24 +249,27 @@ public class OrderProtectionManager {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            var productId = bazaarData.nameToId(info.productName());
-            if (productId.isEmpty()) {
-                log.trace("No product ID found for {}, allowing order", info.productName());
-                return new PendingOrderData(info, ValidationResult.allowed());
+            var product = bazaarData.resolveIndexedProduct(info.product());
+            if (product.isEmpty()) {
+                log.warn("Order protection blocked unresolved product '{}'", info.productName());
+                return new PendingOrderData(
+                    info,
+                    ValidationResult.blocked("Unknown or unresolved product: " + info.productName())
+                );
             }
 
-            var prices = bazaarData.getOrderPrices(productId.get());
+            var prices = bazaarData.getMarketPrices(ProductIdentity.fromIndex(product.get()));
             var validationResult = validateOrder(info, prices, cfg);
             return new PendingOrderData(info, validationResult);
         }
 
         private static ValidationResult validateOrder(
             OutstandingOrderInfo info,
-            OrderPriceInfo prices,
+            MarketPrices prices,
             OrderProtectionConfig cfg
         ) {
-            var bestSell = prices.sellOfferPrice();
-            var bestBuy = prices.buyOrderPrice();
+            var bestSell = prices.lowestSellOfferPrice();
+            var bestBuy = prices.highestBuyOrderPrice();
 
             return switch (info.type()) {
                 case Sell -> validateSellOffer(info, bestSell, bestBuy, cfg);

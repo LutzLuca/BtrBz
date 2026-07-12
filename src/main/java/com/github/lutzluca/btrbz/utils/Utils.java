@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import io.vavr.control.Try;
-import java.io.File;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -19,10 +19,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.regex.Pattern;
 
 public final class Utils {
 
@@ -51,23 +57,156 @@ public final class Utils {
 
     public static Try<Path> atomicDumpToFile(Path path, String content) {
         return Try.of(() -> {
-            var parent = path.getParent();
+            var target = path.toAbsolutePath();
+            var parent = target.getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
             }
 
-            var tmp = File.createTempFile("btrbz-", ".tmp");
+            var tmp = parent != null
+                ? Files.createTempFile(parent, "btrbz-", ".tmp")
+                : Files.createTempFile("btrbz-", ".tmp");
 
-            Files.writeString(tmp.toPath(), content);
-            tmp.deleteOnExit();
-
-            return Files.move(
-                tmp.toPath(),
-                path,
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            try {
+                Files.writeString(tmp, content);
+                return Files.move(
+                    tmp,
+                    target,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (AtomicMoveNotSupportedException ignored) {
+                return Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+                Files.deleteIfExists(tmp);
+            }
         });
+    }
+
+    public static String cleanDisplayName(String displayName) {
+        if (displayName == null) {
+            return "";
+        }
+
+        return Optional
+            .ofNullable(ChatFormatting.stripFormatting(displayName))
+            .orElse(displayName)
+            .replaceAll("\\s+", " ")
+            .trim();
+    }
+
+    public static String normalizeDisplayName(String displayName) {
+        return cleanDisplayName(displayName).toLowerCase(Locale.US);
+    }
+
+    public static String titleCase(String value) {
+        var words = value.toLowerCase(Locale.US).split("\\s+");
+        var builder = new StringBuilder();
+        for (var word : words) {
+            if (word.isBlank()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return builder.toString();
+    }
+
+    public static Optional<String> customDataId(ItemStack stack) {
+        return Optional
+            .ofNullable(stack.get(DataComponents.CUSTOM_DATA))
+            .flatMap(data -> data.copyTag().getString("id"))
+            .map(String::trim)
+            .filter(id -> !id.isEmpty());
+    }
+
+    public static Optional<String> matchingCustomNameLegacy(ItemStack stack, String expectedName) {
+        return Optional
+            .ofNullable(stack.get(DataComponents.CUSTOM_NAME))
+            .filter(name -> normalizeDisplayName(name.getString()).equals(normalizeDisplayName(expectedName)))
+            .map(Utils::legacyFormattedText);
+    }
+
+    public static Optional<String> matchingLegacySuffix(Component component, String expectedSuffix) {
+        if (component == null || expectedSuffix == null || expectedSuffix.isBlank()) {
+            return Optional.empty();
+        }
+
+        var plainText = component.getString();
+        if (!plainText.endsWith(expectedSuffix)) {
+            return Optional.empty();
+        }
+
+        return legacyFormattedRange(component, plainText.length() - expectedSuffix.length(), plainText.length())
+            .filter(legacy -> normalizeDisplayName(legacy).equals(normalizeDisplayName(expectedSuffix)));
+    }
+
+    public static String legacyFormattedText(Component component) {
+        return legacyFormattedRange(component, 0, component.getString().length()).orElse("");
+    }
+
+    private static Optional<String> legacyFormattedRange(Component component, int startInclusive, int endExclusive) {
+        if (component == null || startInclusive < 0 || endExclusive < startInclusive) {
+            return Optional.empty();
+        }
+
+        var segments = new ArrayList<StyledTextSegment>();
+        component.visit((Style style, String content) -> {
+            segments.add(new StyledTextSegment(content, style));
+            return Optional.empty();
+        }, Style.EMPTY);
+
+        var out = new StringBuilder();
+        var cursor = 0;
+        for (var segment : segments) {
+            var content = segment.content();
+            if (content.isEmpty()) {
+                continue;
+            }
+
+            var segmentStart = cursor;
+            var segmentEnd = cursor + content.length();
+            cursor = segmentEnd;
+
+            var copyStart = Math.max(startInclusive, segmentStart);
+            var copyEnd = Math.min(endExclusive, segmentEnd);
+            if (copyStart >= copyEnd) {
+                continue;
+            }
+
+            appendLegacyStyle(out, segment.style());
+            out.append(content, copyStart - segmentStart, copyEnd - segmentStart);
+        }
+
+        return out.isEmpty() ? Optional.empty() : Optional.of(out.toString());
+    }
+
+    private static void appendLegacyStyle(StringBuilder out, Style style) {
+        TextColor color = style.getColor();
+        if (color != null) {
+            var formatting = ChatFormatting.getByName(color.serialize());
+            if (formatting != null && formatting.isColor()) {
+                out.append(formatting);
+            }
+        }
+
+        if (style.isObfuscated()) {
+            out.append(ChatFormatting.OBFUSCATED);
+        }
+        if (style.isBold()) {
+            out.append(ChatFormatting.BOLD);
+        }
+        if (style.isStrikethrough()) {
+            out.append(ChatFormatting.STRIKETHROUGH);
+        }
+        if (style.isUnderlined()) {
+            out.append(ChatFormatting.UNDERLINE);
+        }
+        if (style.isItalic()) {
+            out.append(ChatFormatting.ITALIC);
+        }
     }
 
     public static String formatDecimal(double value, int places, boolean groupings) {
@@ -155,7 +294,37 @@ public final class Utils {
 
 
     public static boolean isValidRomanNumeral(String roman) {
-        return ROMAN_NUMERAL_PATTERN.matcher(roman).matches();
+        return roman != null
+            && !roman.isBlank()
+            && ROMAN_NUMERAL_PATTERN.matcher(roman.trim()).matches();
+    }
+
+    public static Optional<Integer> parseRomanNumeral(String roman) {
+        if (roman == null || roman.isBlank()) {
+            return Optional.empty();
+        }
+
+        var normalized = roman.trim().toUpperCase(Locale.US);
+        if (!isValidRomanNumeral(normalized)) {
+            return Optional.empty();
+        }
+
+        var result = 0;
+        var previous = 0;
+        for (var i = normalized.length() - 1; i >= 0; i--) {
+            var value = romanValue(normalized.charAt(i));
+            if (value < previous) {
+                result -= value;
+            } else {
+                result += value;
+                previous = value;
+            }
+        }
+
+        if (result <= 0 || result > 3999 || !intToRoman(result).equals(normalized)) {
+            return Optional.empty();
+        }
+        return Optional.of(result);
     }
 
     public static String intToRoman(int num) {
@@ -184,6 +353,19 @@ public final class Utils {
         return ret.toString();
     }
 
+    private static int romanValue(char c) {
+        return switch (c) {
+            case 'I' -> 1;
+            case 'V' -> 5;
+            case 'X' -> 10;
+            case 'L' -> 50;
+            case 'C' -> 100;
+            case 'D' -> 500;
+            case 'M' -> 1000;
+            default -> 0;
+        };
+    }
+
     public static String formatDuration(double totalMinutes) {
         if (totalMinutes < 1) {
             return "< 1m";
@@ -202,4 +384,6 @@ public final class Utils {
 
         return String.format("%dm", minutes);
     }
+
+    private record StyledTextSegment(String content, Style style) { }
 }

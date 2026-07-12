@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.modules;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Position;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
@@ -49,7 +49,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             return Optional.empty();
         }
 
-        var priceDiffOpt = this.computePriceDiff(productName);
+        var priceDiffOpt = this.computePriceDiff(inv.getItem(PRODUCT_SLOT));
         if (priceDiffOpt.isEmpty()) {
             return Optional.empty();
         }
@@ -83,7 +83,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
     }
 
     private Optional<Integer> parseListedCount(ItemStack sellStack) {
-        return OrderInfoParser
+        return GameUtils
             .getLore(sellStack)
             .stream()
             .filter(line -> line.startsWith("Inventory"))
@@ -94,17 +94,11 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             .map(Number::intValue);
     }
 
-    private Optional<Double> computePriceDiff(String productName) {
+    private Optional<Double> computePriceDiff(ItemStack productStack) {
         // TODO maybe respect "filling orders" when one would sell it instantly
         var bazaarData = this.context().bazaarData();
 
-        return bazaarData
-            .nameToId(productName)
-            .flatMap(id -> Utils.zipOptionals(
-                bazaarData.lowestSellPrice(id),
-                bazaarData.highestBuyPrice(id)
-            ))
-            .map(pair -> pair.getLeft() - pair.getRight());
+        return bazaarData.productSpread(bazaarData.resolveProduct(productStack));
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {

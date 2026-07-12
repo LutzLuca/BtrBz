@@ -65,7 +65,7 @@ dependencies {
     implementation("io.vavr:vavr:0.10.7")
     include("io.vavr:vavr:0.10.7")
 
-    implementation("com.google.code.gson:gson:2.8.9")
+    implementation("com.google.code.gson:gson:2.14.0")
 
     compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok:1.18.42")

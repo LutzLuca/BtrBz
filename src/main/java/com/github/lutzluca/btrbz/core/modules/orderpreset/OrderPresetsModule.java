@@ -1,7 +1,8 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.core.modules.Module;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -55,8 +56,11 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
                 this.inTransaction = true;
                 log.debug(
-                    "Starting buy order transaction for product '{}' with maxVolume '{}'",
-                    this.getCurrentProductId(),
+                    "Starting buy order transaction for product {} with maxVolume '{}'",
+                    Optional
+                        .ofNullable(this.getCurrentProduct())
+                        .map(Object::toString)
+                        .orElse("<unknown>"),
                     this.currMaxVolume
                 );
 
@@ -139,9 +143,8 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         this.currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
     }
 
-    private @Nullable String getCurrentProductId() {
-        var info = this.context().productInfoProvider().getOpenedProductNameInfo();
-        return info != null ? info.productId() : null;
+    private @Nullable IndexedProduct getCurrentProduct() {
+        return this.context().productInfoProvider().getOpenedProduct();
     }
 
     private boolean isOrderFlowSignScreen(ScreenInfo curr, ScreenInfo prev) {
@@ -158,8 +161,9 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         var purse = GameUtils.getPurse();
         var pricePerUnit = Optional
-            .ofNullable(this.getCurrentProductId())
-            .flatMap(this.context().bazaarData()::highestBuyPrice)
+            .ofNullable(this.getCurrentProduct())
+            .map(ProductIdentity::fromIndex)
+            .flatMap(this.context().bazaarData()::highestBuyOrderPrice)
             .map(price -> price + .1);
         var priceAvailable = pricePerUnit.isPresent();
 
@@ -267,7 +271,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private Optional<Integer> getMaxVolume(@NotNull ItemStack item) {
-        return OrderInfoParser
+        return GameUtils
             .getLore(item)
             .stream()
             .filter(line -> line.startsWith("Buy up to"))
@@ -394,15 +398,15 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         int volume = switch (preset) {
             case OrderPreset.Max _ -> {
-                var productId = this.getCurrentProductId();
-                if (productId == null) {
-                    log.debug("Cannot calculate MAX: product ID unavailable");
+                var product = this.getCurrentProduct();
+                if (product == null) {
+                    log.debug("Cannot calculate MAX: product unavailable");
                     yield 0;
                 }
 
                 var price = this.context()
                     .bazaarData()
-                    .highestBuyPrice(productId)
+                    .highestBuyOrderPrice(ProductIdentity.fromIndex(product))
                     .map(currPrice -> currPrice + 0.1);
 
                 if (price.isEmpty()) {

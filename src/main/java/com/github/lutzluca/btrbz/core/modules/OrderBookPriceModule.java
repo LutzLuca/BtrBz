@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.modules;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -66,17 +67,17 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             }
         });
 
-        this.context().bazaarData().addBazaarListener(products -> {
-            var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
-            if (this.isDisplayed() && productNameInfo != null) {
+        this.context().bazaarData().addListener(snapshot -> {
+            var product = this.context().productInfoProvider().getOpenedProduct();
+            if (this.isDisplayed() && product != null) {
                 this.rebuildList();
             }
         });
     }
 
     private boolean isEnterPriceScreen(ScreenInfo curr, ScreenInfo prev) {
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
-        if (!(curr.getScreen() instanceof SignEditScreen) || productNameInfo == null) {
+        var product = this.context().productInfoProvider().getOpenedProduct();
+        if (!(curr.getScreen() instanceof SignEditScreen) || product == null) {
             return false;
         }
 
@@ -108,8 +109,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         var prev = ScreenInfoHelper.get().getPrevInfo();
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
-        return productNameInfo != null && this.isEnterPriceScreen(info, prev);
+        var product = this.context().productInfoProvider().getOpenedProduct();
+        return product != null && this.isEnterPriceScreen(info, prev);
     }
 
     public void rebuildList() {
@@ -117,18 +118,18 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
-        if (productNameInfo == null) {
+        var product = this.context().productInfoProvider().getOpenedProduct();
+        if (product == null) {
             return;
         }
 
         if (this.currentOrderType == null) {
-            log.debug("Current order type is null, clearing list for product {}", productNameInfo.productName());
+            log.debug("Current order type is null, clearing list for product {}", product);
             this.widget.updateList(List.of());
             return;
         }
 
-        var orders = this.context().bazaarData().getOrderLists(productNameInfo.productId());
+        var orders = this.context().bazaarData().getOrderLists(ProductIdentity.fromIndex(product));
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();
@@ -179,8 +180,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {
-        var productNameInfo = this.context().productInfoProvider().getOpenedProductNameInfo();
-        if (productNameInfo == null) {
+        var product = this.context().productInfoProvider().getOpenedProduct();
+        if (product == null) {
             return;
         }
 
