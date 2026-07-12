@@ -63,7 +63,7 @@ public final class ProductInfoProvider {
         BazaarMenuType.SellOfferConfirmation
     };
     private final BazaarData bazaarData;
-    private final PriceCache priceCache;
+    private final ProductLookupCache productLookupCache;
 
     private @Nullable ItemStack cachedProductInfoItem = null;
     private @Nullable InfoProviderSite cachedProductInfoSite = null;
@@ -73,7 +73,7 @@ public final class ProductInfoProvider {
 
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.priceCache = new PriceCache();
+        this.productLookupCache = new ProductLookupCache();
         this.registerProductInfoListener();
         this.registerSlotHooks();
         this.registerTooltipDisplay();
@@ -128,6 +128,7 @@ public final class ProductInfoProvider {
         );
 
         ScreenInfoHelper.registerOnSwitch(curr -> {
+            this.productLookupCache.clear();
             if (this.openedProduct == null) {
                 return;
             }
@@ -236,12 +237,11 @@ public final class ProductInfoProvider {
                 return;
             }
 
-            var priceInfo = this.priceCache.get(stack);
-            if (priceInfo.isEmpty()) {
+            var cached = this.productLookupCache.get(stack).prices();
+            if (cached == null) {
                 return;
             }
 
-            var cached = priceInfo.get();
             var count = stack.getItem() == Items.ENCHANTED_BOOK ? 1 : stack.getCount();
             var isShiftHeld = Minecraft.getInstance().hasShiftDown();
 
@@ -272,28 +272,24 @@ public final class ProductInfoProvider {
     }
 
     private boolean shouldApplyCtrlShiftClick(ItemStack stack) {
-        if (!this.isCtrlShiftContextEnabled(stack)) {
+        if (!this.isCtrlShiftEnabled()) {
             return false;
         }
 
-        return this.resolveProductForLookup(stack)
-            .bazaarProductId()
-            .flatMap(this.bazaarData::resolveProductId)
-            .isPresent();
+        var lookup = this.productLookupCache.get(stack);
+        return this.isCtrlShiftContextEnabled(lookup.playerInventoryStack())
+            && lookup.marketProductId().isPresent();
     }
 
-    private boolean isCtrlShiftContextEnabled(ItemStack stack) {
+    private boolean isCtrlShiftEnabled() {
         var cfg = ConfigManager.get().productInfo;
-        if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
-            return false;
-        }
+        return cfg.enabled && cfg.ctrlShiftEnabled;
+    }
 
+    private boolean isCtrlShiftContextEnabled(boolean playerInventoryStack) {
+        var cfg = ConfigManager.get().productInfo;
         if (ScreenInfoHelper.inBazaar()) {
-            if (this.isStackInPlayerInventory(stack)) {
-                return true;
-            }
-
-            return cfg.ctrlShiftOnBazaarItems;
+            return playerInventoryStack || cfg.ctrlShiftOnBazaarItems;
         }
 
         return cfg.showOutsideBazaar;
@@ -423,6 +419,17 @@ public final class ProductInfoProvider {
         @Nullable Double buyOrderPrice
     ) { }
 
+    private record CachedProductLookup(
+        ProductIdentity product,
+        boolean playerInventoryStack,
+        @Nullable CachedPrice prices
+    ) {
+
+        Optional<String> marketProductId() {
+            return this.prices != null ? this.product.bazaarProductId() : Optional.empty();
+        }
+    }
+
     public final class InfoSiteButtonHook implements SlotHook {
 
         private InfoSiteButtonHook() { }
@@ -469,20 +476,23 @@ public final class ProductInfoProvider {
                 return SlotClickResult.Pass;
             }
 
-            var stack = ctx.view().getRawStack();
-            if (!ProductInfoProvider.this.isCtrlShiftContextEnabled(stack)) {
+            if (!ProductInfoProvider.this.isCtrlShiftEnabled()) {
                 return SlotClickResult.Pass;
             }
 
-            var identity = ProductInfoProvider.this.resolveProductForLookup(ctx.view());
-            var product = ProductInfoProvider.this.bazaarData.resolveIndexedProduct(identity);
-            if (product.isEmpty()) {
-                log.warn("No product id found for {}", stack.getHoverName().getString());
+            var lookup = ProductInfoProvider.this.productLookupCache.get(ctx.view());
+            if (!ProductInfoProvider.this.isCtrlShiftContextEnabled(lookup.playerInventoryStack())) {
+                return SlotClickResult.Pass;
+            }
+
+            var productId = lookup.marketProductId();
+            if (productId.isEmpty()) {
+                log.warn("No Bazaar product found for {}", ctx.view().getRawStack().getHoverName().getString());
                 return SlotClickResult.Pass;
             }
 
             var cfg = ConfigManager.get().productInfo;
-            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(product.get().productId()));
+            ProductInfoProvider.this.confirmAndOpen(cfg.site.format(productId.get()));
             return SlotClickResult.Consume;
         }
     }
@@ -602,55 +612,65 @@ public final class ProductInfoProvider {
         }
     }
 
-    private class PriceCache {
+    private class ProductLookupCache {
 
-        private final WeakHashMap<ItemStack, @Nullable CachedPrice> cache = new WeakHashMap<>();
+        private final WeakHashMap<ItemStack, CachedProductLookup> cache = new WeakHashMap<>();
 
-        PriceCache() {
-            log.debug("Initializing Price Cache");
-            ProductInfoProvider.this.bazaarData.addListener(products -> {
-                log.trace(
-                    "Bazaar data updated, clearing price cache with {} mappings",
-                    this.cache.size()
-                );
-
-                this.cache.clear();
-            });
-            ProductInfoProvider.this.bazaarData.addIndexChangeListener(() -> {
-                log.trace(
-                    "Conversion index updated, clearing price cache with {} mappings",
-                    this.cache.size()
-                );
-
-                this.cache.clear();
-            });
+        ProductLookupCache() {
+            log.debug("Initializing product lookup cache");
+            ProductInfoProvider.this.bazaarData.addListener(products -> this.clear());
+            ProductInfoProvider.this.bazaarData.addIndexChangeListener(this::clear);
         }
 
-        Optional<CachedPrice> get(ItemStack stack) {
-            if (this.cache.containsKey(stack)) {
-                return Optional.ofNullable(this.cache.get(stack));
-            }
-            var identity = ProductInfoProvider.this.resolveProductForLookup(stack);
-            var data = ProductInfoProvider.this.bazaarData;
-            if (identity.bazaarProductId().isEmpty() || !data.contains(identity)) {
-                this.cache.put(stack, null);
-                return Optional.empty();
+        CachedProductLookup get(ItemStack stack) {
+            var cached = this.cache.get(stack);
+            if (cached != null) {
+                return cached;
             }
 
-            var sellOfferPrice = data.lowestSellOfferPrice(identity).orElse(null);
-            var buyOrderPrice = data.highestBuyOrderPrice(identity).orElse(null);
-
-            var cached = new CachedPrice(sellOfferPrice, buyOrderPrice);
-            this.cache.put(stack, cached);
-
-            log.trace(
-                "Cached price for {}: buy={}, sell={}",
-                identity,
-                buyOrderPrice,
-                sellOfferPrice
+            return this.cache(
+                stack,
+                ProductInfoProvider.this.resolveProductForLookup(stack),
+                ProductInfoProvider.this.isStackInPlayerInventory(stack)
             );
+        }
 
-            return Optional.of(cached);
+        CachedProductLookup get(SlotView view) {
+            var stack = view.getRawStack();
+            var cached = this.cache.get(stack);
+            if (cached != null) {
+                return cached;
+            }
+
+            return this.cache(
+                stack,
+                ProductInfoProvider.this.resolveProductForLookup(view),
+                view.playerInventorySlot()
+            );
+        }
+
+        private CachedProductLookup cache(
+            ItemStack stack,
+            ProductIdentity product,
+            boolean playerInventoryStack
+        ) {
+            var data = ProductInfoProvider.this.bazaarData;
+            CachedPrice prices = null;
+            if (data.contains(product)) {
+                prices = new CachedPrice(
+                    data.lowestSellOfferPrice(product).orElse(null),
+                    data.highestBuyOrderPrice(product).orElse(null)
+                );
+            }
+
+            var cached = new CachedProductLookup(product, playerInventoryStack, prices);
+            this.cache.put(stack, cached);
+            return cached;
+        }
+
+        void clear() {
+            log.trace("Clearing product lookup cache with {} mappings", this.cache.size());
+            this.cache.clear();
         }
     }
 }

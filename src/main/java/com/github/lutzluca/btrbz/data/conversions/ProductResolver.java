@@ -283,7 +283,7 @@ final class ProductResolver {
         }
 
         void nameMismatch(String rawProductId, String parsedName, IndexedProduct resolved) {
-            this.logWarnOnce(
+            this.logDebugOnce(
                 "MISMATCH|%s|%s|%s|%s".formatted(
                     rawProductId,
                     parsedName,
