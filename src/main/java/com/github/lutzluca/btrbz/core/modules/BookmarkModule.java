@@ -541,9 +541,9 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Bookmarked Items Module"))
+                .name(Component.literal("Enable Bookmarked Items"))
                 .description(OptionDescription.of(Component.literal(
-                    "Display a list of bookmarked bazaar items for quick access")))
+                    "Show a draggable list of bookmarked Bazaar products for quick access.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -552,9 +552,9 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Option.Builder<Boolean> createShowEverywhereOption() {
             return Option
                     .<Boolean>createBuilder()
-                    .name(Component.literal("Display everywhere in Bazaar"))
+                    .name(Component.literal("Show Throughout the Bazaar"))
                     .description(OptionDescription.of(Component.literal(
-                            "Whether to display the bookmarked list everywhere in the bazaar and not only in the item menus")))
+                            "Keep the bookmark list visible across Bazaar menus instead of showing it only on product pages.")))
                     .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
                     .controller(ConfigScreen::createBooleanController);
         }
@@ -564,7 +564,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .<Integer>createBuilder()
                 .name(Component.literal("Max Visible Items"))
                 .description(OptionDescription.of(Component.literal(
-                    "Maximum number of bookmarks visible at once before scrolling")))
+                    "Set how many bookmarks fit in the list before it becomes scrollable.")))
                 .binding(
                     8, () -> this.maxVisibleChildren, val -> {
                         this.maxVisibleChildren = val;
@@ -582,7 +582,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Order Indicators"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show colored dots on bookmarked items that have active tracked orders")))
+                    "Mark bookmarked products that currently have one or more tracked orders with a colored status dot.")))
                 .binding(true, () -> this.showOrderIndicators, val -> this.showOrderIndicators = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -597,10 +597,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Bookmarked Items"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for the bookmarked items quick-access list")))
+                .description(ConfigScreen.createDescription(
+                    "Keep frequently traded products in a draggable Bazaar sidebar and show their active-order status.",
+                    ConfigScreen.ConfigImage.BOOKMARKS
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

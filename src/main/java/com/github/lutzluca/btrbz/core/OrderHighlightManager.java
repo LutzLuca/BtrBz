@@ -87,10 +87,10 @@ public class OrderHighlightManager {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Highlighting"))
+                .name(Component.literal("Enable Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable order highlights in the Order screen")))
+                    "Draw status-colored backgrounds behind your orders in the Manage Orders screen.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -100,10 +100,12 @@ public class OrderHighlightManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Highlighting"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable order highlights in the Order screen")))
+                .description(ConfigScreen.createDescription(
+                    "Color-code your orders in Manage Orders so top, matched, and undercut orders are easier to distinguish.",
+                    ConfigScreen.ConfigImage.ORDER_STATUS
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

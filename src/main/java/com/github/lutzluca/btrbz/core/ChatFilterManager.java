@@ -41,14 +41,17 @@ public class ChatFilterManager {
         public OptionGroup createGroup() {
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Chat Filter"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for filtering useless Bazaar messages from chat")))
+                .name(Component.literal("Bazaar Chat Filter"))
+                .description(ConfigScreen.createDescription(
+                    "Hide temporary Bazaar progress messages while keeping confirmations, warnings, and errors visible.\n\n"
+                    + "Examples that are hidden:\n"
+                    + "• [Bazaar] Submitting buy order...\n"
+                    + "• [Bazaar] Claiming orders..."))
                 .options(List.of(
                     Option.<Boolean>createBuilder()
                           .name(Component.literal("Filter Transient Messages"))
                           .description(OptionDescription.of(Component.literal(
-                              "Filters out [Bazaar] messages such as 'Submitting order...' or 'Claiming orders...'")))
+                              "Hide short-lived progress messages that do not report a result. Completed-order messages, warnings, and errors remain visible.")))
                           .binding(
                               true,
                               () -> this.enabled,
@@ -57,7 +60,7 @@ public class ChatFilterManager {
                           .controller(ConfigScreen::createBooleanController)
                           .build()
                 ))
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

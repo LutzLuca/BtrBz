@@ -127,9 +127,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Limit Module"))
+                .name(Component.literal("Enable Daily Order Limit"))
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the Order Limit module that tracks your daily coin spending limit")))
+                    "Show your used and remaining daily Bazaar transaction allowance on the main Bazaar screen.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -139,7 +139,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
                 .<Boolean>createBuilder()
                 .name(Component.literal("Use Compact Display"))
                 .description(OptionDescription.of(Component.literal(
-                    "Display the order limit in a compact format that takes up less screen space")))
+                    "Use a smaller one-line overlay instead of the full daily-limit display.")))
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -149,11 +149,13 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Order Limit"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display and behaviour settings for the Order Limit module")))
+                .name(Component.literal("Daily Order Limit"))
+                .description(ConfigScreen.createDescription(
+                    "Keep track of Hypixel's daily Bazaar transaction limit directly on the main Bazaar screen.",
+                    ConfigScreen.ConfigImage.DAILY_LIMIT
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

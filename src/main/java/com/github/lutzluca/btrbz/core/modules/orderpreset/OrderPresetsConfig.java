@@ -24,9 +24,9 @@ public class OrderPresetsConfig {
     public Builder<Boolean> createEnableOption() {
         return Option
             .<Boolean>createBuilder()
-            .name(Component.nullToEmpty("Order Presets: Master Switch"))
+            .name(Component.nullToEmpty("Enable Order Presets"))
             .description(OptionDescription.of(Component.literal(
-                "Master switch to enable or disable the Order Presets module.")))
+                "Show reusable quantity buttons while choosing the amount for a new Bazaar order.")))
             .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -34,9 +34,9 @@ public class OrderPresetsConfig {
     public Builder<Boolean> createEnableContainerOption() {
         return Option
             .<Boolean>createBuilder()
-            .name(Component.nullToEmpty("Enable in Bazaar Menu"))
+            .name(Component.nullToEmpty("Show in Quantity Menu"))
             .description(OptionDescription.of(Component.literal(
-                "Show presets when setting up an order volume in the buy order volume setup menu.")))
+                "Show preset quantities beside the Bazaar menu used to choose an order amount.")))
             .binding(true, () -> this.enableOnContainer, enabled -> this.enableOnContainer = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -44,9 +44,9 @@ public class OrderPresetsConfig {
     public Builder<Boolean> createEnableSignOption() {
         return Option
             .<Boolean>createBuilder()
-            .name(Component.nullToEmpty("Enable in Sign Screen"))
+            .name(Component.nullToEmpty("Show Beside Quantity Sign"))
             .description(OptionDescription.of(Component.literal(
-                "Show presets when editing the enter volume amount sign in the order setup flow.")))
+                "Show preset quantities while manually entering an order amount on a sign.")))
             .binding(true, () -> this.enableOnSign, enabled -> this.enableOnSign = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -56,7 +56,7 @@ public class OrderPresetsConfig {
             .<Boolean>createBuilder()
             .name(Component.nullToEmpty("Hide Unaffordable Presets"))
             .description(OptionDescription.of(Component.literal(
-                "Hide presets that cannot currently be purchased due to insufficient coins.")))
+                "Hide quantity presets that cost more coins than are currently available in your purse.")))
             .binding(false, () -> this.hideUnaffordablePresets, hide -> this.hideUnaffordablePresets = hide)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -73,9 +73,9 @@ public class OrderPresetsConfig {
             .createBuilder()
             .name(Component.nullToEmpty("Order Presets"))
             .description(OptionDescription.of(Component.literal(
-                "Lets you have predefined order volume for quick access")))
+                "Choose common order quantities with one click while setting up a buy order or sell offer.")))
             .options(rootGroup.build())
-            .collapsed(false)
+            .collapsed(true)
             .build();
     }
 }

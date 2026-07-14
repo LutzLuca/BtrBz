@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.config;
 import com.github.lutzluca.btrbz.BtrBz;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.YetAnotherConfigLib.Builder;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,42 +33,114 @@ public class ConfigScreen {
         return YetAnotherConfigLib.create(
             ConfigManager.HANDLER, (defaults, cfg, builder) -> {
                 builder.title(Component.literal(BtrBz.MOD_ID));
-                buildGeneralConfig(builder, config);
+                buildCategories(builder, config);
 
                 return builder;
             }
         ).generateScreen(parent);
     }
 
-    private static void buildGeneralConfig(Builder builder, Config config) {
-        var general = ConfigCategory
+    private static void buildCategories(Builder builder, Config config) {
+        var trackingAndAlerts = ConfigCategory
             .createBuilder()
-            .name(Component.literal("General"))
+            .name(Component.literal("Tracking & Alerts"))
+            .tooltip(Component.literal(
+                "Choose how BtrBz tracks orders, reports market changes, and displays order status."))
             .group(config.trackedOrders.createGroup())
             .group(config.alert.createGroup())
-            .group(config.chatFilter.createGroup())
-            .group(config.orderLimit.createGroup())
-            .group(config.bookmark.createGroup())
-            .group(config.priceDiff.createGroup())
-            .group(config.productInfo.createGroup())
-            .group(config.orderActions.createGroup())
             .group(config.orderList.getGroup())
             .group(config.orderListTooltip.createGroup())
             .group(config.orderItemTooltip.createGroup())
             .group(config.orderHighlight.createGroup())
+            .build();
+
+        var bazaarDisplay = ConfigCategory
+            .createBuilder()
+            .name(Component.literal("Bazaar Display"))
+            .tooltip(Component.literal(
+                "Control Bazaar overlays, sidebars, item information, and chat cleanup."))
+            .group(config.bookmark.createGroup())
+            .group(config.productInfo.createGroup())
+            .group(config.priceDiff.createGroup())
+            .group(config.orderValueOverlay.createGroup())
+            .group(config.orderBookPrice.createGroup())
+            .group(config.chatFilter.createGroup())
+            .build();
+
+        var orderTools = ConfigCategory
+            .createBuilder()
+            .name(Component.literal("Order Tools"))
+            .tooltip(Component.literal(
+                "Configure shortcuts that speed up creating, cancelling, and flipping orders."))
+            .group(config.orderActions.createGroup())
             .group(config.flipHelper.createGroup())
             .group(config.orderPresets.createGroup())
-            .group(config.orderBookPrice.createGroup())
-            .group(config.orderValueOverlay.createGroup())
-            .group(config.orderProtection.createGroup())
             .group(config.orderBook.createGroup())
             .build();
 
-        builder.category(general);
+        var safetyAndLimits = ConfigCategory
+            .createBuilder()
+            .name(Component.literal("Safety & Limits"))
+            .tooltip(Component.literal(
+                "Prevent risky order prices and configure the daily transaction-limit display."))
+            .group(config.orderProtection.createGroup())
+            .group(config.orderLimit.createGroup())
+            .build();
+
+        builder
+            .category(trackingAndAlerts)
+            .category(bazaarDisplay)
+            .category(orderTools)
+            .category(safetyAndLimits);
+    }
+
+    public static OptionDescription createDescription(String text) {
+        return OptionDescription.of(Component.literal(text));
+    }
+
+    public static OptionDescription createDescription(String text, ConfigImage image) {
+        return OptionDescription
+            .createBuilder()
+            .text(Component.literal(text))
+            .image(image.identifier, image.width, image.height)
+            .build();
     }
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
         return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
+    }
+
+    public enum ConfigImage {
+        PRICE_ALERT("alert-registration-and-firing.png", 658, 202),
+        BOOKMARKS("bookmark-with-order-indicators.png", 497, 373),
+        ORDER_BOOK("custom-order-book-overlay.png", 1472, 828),
+        DAILY_LIMIT("daily-limit-overlay.png", 547, 410),
+        FLIP_HELPER("flip-helper.png", 994, 654),
+        ORDER_LIST_TOOLTIP("order-list-tooltips.png", 710, 399),
+        ORDER_NOTIFICATION("order-notifications.png", 661, 235),
+        ORDER_PROTECTION("order-protection-blocking.png", 1092, 614),
+        ORDER_STATUS("order-status-highlight.png", 423, 238),
+        ORDER_TOOLTIP("order-tooltip.png", 542, 305),
+        ORDER_VALUE("order-value-overlay.png", 550, 412),
+        PRICE_DIFFERENCE("price-diff-overlay.png", 687, 515),
+        PRICE_ENTRY_ORDER_BOOK("price-entry-order-book.png", 1212, 682),
+        PRODUCT_INFO_PAPER("product-info-paper.png", 622, 350),
+        PRODUCT_INFO("product-info.png", 588, 218),
+        REOPEN_LAST_ORDER("reopen-last-order.png", 578, 325),
+        TRACKED_ORDER_OVERLAY("tracked-order-overlay.png", 490, 368);
+
+        private final Identifier identifier;
+        private final int width;
+        private final int height;
+
+        ConfigImage(String fileName, int width, int height) {
+            this.identifier = Identifier.fromNamespaceAndPath(
+                BtrBz.MOD_ID,
+                "textures/gui/config/" + fileName
+            );
+            this.width = width;
+            this.height = height;
+        }
     }
 
     public static final class OptionGrouping {

@@ -288,9 +288,9 @@ public class AlertManager {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Price Alerts"))
+                .name(Component.literal("Enable Price Alerts"))
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable price alerts. When disabled alerts will not be fired; when re-enabled any alerts whose price is already reached will fire immediately.")))
+                    "Check configured price targets and notify you when a target is reached. Alerts that become valid while this is off may fire immediately when it is enabled again.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -298,9 +298,9 @@ public class AlertManager {
         public Option.Builder<Boolean> createSoundOnAlertOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Sound - Price Alert"))
+                .name(Component.literal("Play Alert Sound"))
                 .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a price alert target is reached.")))
+                    "Play a sound together with the chat notification when a price target is reached.")))
                 .binding(true, () -> this.soundOnAlert, val -> this.soundOnAlert = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -311,10 +311,12 @@ public class AlertManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Price Alerts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Configure price alerting behavior and manage active alerts")))
+                .description(ConfigScreen.createDescription(
+                    "Notify you when a Bazaar buy-order or sell-offer price reaches a target created with /btrbz alert.",
+                    ConfigScreen.ConfigImage.PRICE_ALERT
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

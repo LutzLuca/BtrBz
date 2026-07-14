@@ -365,7 +365,7 @@ public class OrderProtectionManager {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Protection"))
                 .description(OptionDescription.of(Component.literal(
-                    "Master switch to enable or disable protection against accidental order mistakes.")))
+                    "Check new order prices and stop submissions that match one of the enabled safety rules.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -375,7 +375,7 @@ public class OrderProtectionManager {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Chat Messages"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show system chat messages when protections are triggered.")))
+                    "Explain in chat which safety rule blocked an order and which price caused the warning.")))
                 .binding(true, () -> this.showChatMessage, val -> this.showChatMessage = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -383,9 +383,9 @@ public class OrderProtectionManager {
         public Option.Builder<Boolean> createSoundOnBlockedOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Sound - Order Blocked"))
+                .name(Component.literal("Play Blocked-Order Sound"))
                 .description(OptionDescription.of(Component.literal(
-                    "Play a sound when an order is blocked by protection.")))
+                    "Play a warning sound whenever Order Protection stops a submission.")))
                 .binding(true, () -> this.soundOnBlocked, val -> this.soundOnBlocked = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -393,9 +393,9 @@ public class OrderProtectionManager {
         public Option.Builder<Boolean> createBlockUndercutPercentageOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Block Percentage Undercut"))
+                .name(Component.literal("Limit Price Undercutting"))
                 .description(OptionDescription.of(Component.literal(
-                    "Blocks creating orders that undercut existing ones by more than a specified percentage.")))
+                    "Block prices that improve on the current best order by more than the allowed percentage. The buy-order and sell-offer limits below apply only while this is enabled.")))
                 .binding(
                     true,
                     () -> this.blockUndercutPercentage,
@@ -407,9 +407,9 @@ public class OrderProtectionManager {
         public Option.Builder<Double> createMaxBuyOrderUndercutOption() {
             return Option
                 .<Double>createBuilder()
-                .name(Component.literal("Max Buy Order Undercut (%)"))
+                .name(Component.literal("Maximum Buy-Order Increase (%)"))
                 .description(OptionDescription.of(Component.literal(
-                    "Maximum allowed undercut percentage for creating Buy Orders.")))
+                    "Maximum percentage by which a new buy order may exceed the current highest buy order.")))
                 .binding(
                     this.maxBuyOrderUndercut,
                     () -> this.maxBuyOrderUndercut,
@@ -424,9 +424,9 @@ public class OrderProtectionManager {
         public Option.Builder<Double> createMaxSellOfferUndercutOption() {
             return Option
                 .<Double>createBuilder()
-                .name(Component.literal("Max Sell Offer Undercut (%)"))
+                .name(Component.literal("Maximum Sell-Offer Reduction (%)"))
                 .description(OptionDescription.of(Component.literal(
-                    "Maximum allowed undercut percentage for creating Sell Offers.")))
+                    "Maximum percentage by which a new sell offer may fall below the current lowest sell offer.")))
                 .binding(
                     this.maxSellOfferUndercut,
                     () -> this.maxSellOfferUndercut,
@@ -441,9 +441,9 @@ public class OrderProtectionManager {
         public Option.Builder<Boolean> createBlockUndercutOfOpposingOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Block Opposing Order Undercuts"))
+                .name(Component.literal("Block Prices That Cross the Spread"))
                 .description(OptionDescription.of(Component.literal(
-                    "Prevents creating Sell Offers below existing Buy Orders, and Buy Orders above existing Sell Offers")))
+                    "Block a sell offer below the highest buy order or a buy order above the lowest sell offer. Such prices would normally be better handled as an instant trade.")))
                 .binding(
                     true,
                     () -> this.blockUndercutOfOpposing,
@@ -469,10 +469,12 @@ public class OrderProtectionManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Protection"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings that guard against creating orders with unsafe or unintended pricing")))
+                .description(ConfigScreen.createDescription(
+                    "Prevent accidental orders at unusually aggressive prices before they are submitted to the Bazaar.",
+                    ConfigScreen.ConfigImage.ORDER_PROTECTION
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

@@ -346,10 +346,10 @@ public class FlipHelper {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Flip Helper"))
+                .name(Component.literal("Enable Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                    "Add a quick-flip action to filled buy orders and prefill a competitive sell-offer price.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -359,10 +359,12 @@ public class FlipHelper {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Flip Helper"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .description(ConfigScreen.createDescription(
+                    "Turn a filled buy order into a sell offer with fewer clicks and an automatically suggested price.",
+                    ConfigScreen.ConfigImage.FLIP_HELPER
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

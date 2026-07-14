@@ -228,9 +228,9 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         public Option.Builder<Boolean> createEnableOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.nullToEmpty("Order Book Price Overlay: Master Switch"))
+                .name(Component.nullToEmpty("Enable Price Entry Order Book"))
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the Order Book overlay on price sign screens.")))
+                    "Show current buy orders and sell offers beside the sign while entering an order price.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -240,11 +240,13 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.nullToEmpty("Order Book Price Overlay"))
-                .description(OptionDescription.of(Component.literal(
-                    "Displays order book data next to the price entry sign.")))
+                .name(Component.nullToEmpty("Price Entry Order Book"))
+                .description(ConfigScreen.createDescription(
+                    "Compare the price you enter with the current order book without leaving the price-entry sign.",
+                    ConfigScreen.ConfigImage.PRICE_ENTRY_ORDER_BOOK
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

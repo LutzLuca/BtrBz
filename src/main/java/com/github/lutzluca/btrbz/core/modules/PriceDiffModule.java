@@ -117,9 +117,9 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Price Diff Module"))
+                .name(Component.literal("Enable Price Difference"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show per-item and total price difference for the currently selected bazaar item")))
+                    "Show the difference between the selected Bazaar item's reference price and the price you are entering, per item and in total.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -129,11 +129,13 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Price Diff"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show per-item and total price difference for selected item")))
+                .name(Component.literal("Price Difference"))
+                .description(ConfigScreen.createDescription(
+                    "Display per-item and total price differences while setting up a Bazaar order.",
+                    ConfigScreen.ConfigImage.PRICE_DIFFERENCE
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

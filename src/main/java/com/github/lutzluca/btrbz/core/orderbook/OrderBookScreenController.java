@@ -14,6 +14,7 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -101,7 +102,9 @@ public class OrderBookScreenController {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.nullToEmpty("Order Book"))
+                .name(Component.nullToEmpty("Enable Order Book"))
+                .description(OptionDescription.of(Component.literal(
+                    "Add access to BtrBz's detailed buy-order and sell-offer view from supported Bazaar screens.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -112,8 +115,12 @@ public class OrderBookScreenController {
             return OptionGroup
                 .createBuilder()
                 .name(Component.nullToEmpty("Order Book"))
+                .description(ConfigScreen.createDescription(
+                    "Open a detailed view of current buy orders and sell offers for the selected Bazaar product.",
+                    ConfigScreen.ConfigImage.ORDER_BOOK
+                ))
                 .options(root.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }
