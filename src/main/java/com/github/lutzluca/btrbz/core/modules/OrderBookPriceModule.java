@@ -91,11 +91,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return Optional.of(OrderType.Buy);
         }
 
-        if (isSign && prev.inMenu(BazaarMenuType.SellOfferSetup)) {
-            return Optional.of(OrderType.Sell);
-        }
-
-        if (isSign && prev.inMenu(BazaarMenuType.OrderOptions)) {
+        if (isSign && prev.inMenu(BazaarMenuType.SellOfferSetup, BazaarMenuType.OrderOptions)) {
             return Optional.of(OrderType.Sell);
         }
 
