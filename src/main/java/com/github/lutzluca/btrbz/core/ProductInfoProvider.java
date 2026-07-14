@@ -60,7 +60,8 @@ public final class ProductInfoProvider {
         BazaarMenuType.BuyOrderSetupPrice,
         BazaarMenuType.BuyOrderConfirmation,
         BazaarMenuType.SellOfferSetup,
-        BazaarMenuType.SellOfferConfirmation
+        BazaarMenuType.SellOfferConfirmation,
+        BazaarMenuType.OrderOptions
     };
     private final BazaarData bazaarData;
     private final ProductLookupCache productLookupCache;
@@ -78,6 +79,11 @@ public final class ProductInfoProvider {
         this.registerSlotHooks();
         this.registerTooltipDisplay();
         log.info("Initialized ProductInfoProvider");
+    }
+
+    public void setOpenedProduct(IndexedProduct product) {
+        this.openedProduct = product;
+        log.debug("Set opened product context: {}", product);
     }
 
     private Component createPriceText(

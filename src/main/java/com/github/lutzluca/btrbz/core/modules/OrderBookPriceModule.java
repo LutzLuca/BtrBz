@@ -38,7 +38,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
     private static final BazaarMenuType[] PRICE_SETUP_MENUS = {
         BazaarMenuType.BuyOrderSetupPrice,
-        BazaarMenuType.SellOfferSetup
+        BazaarMenuType.SellOfferSetup,
+        BazaarMenuType.OrderOptions
     };
 
     @Nullable private OrderType currentOrderType;
@@ -91,6 +92,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         if (isSign && prev.inMenu(BazaarMenuType.SellOfferSetup)) {
+            return Optional.of(OrderType.Sell);
+        }
+
+        if (isSign && prev.inMenu(BazaarMenuType.OrderOptions)) {
             return Optional.of(OrderType.Sell);
         }
 

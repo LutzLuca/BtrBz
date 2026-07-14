@@ -46,13 +46,15 @@ public class FlipHelper {
 
     private final TimedStore<FlipEntry> pendingFlips = new TimedStore<>(15_000L);
     private final BazaarData bazaarData;
+    private final ProductInfoProvider productInfoProvider;
 
     private TrackedProduct potentialFlipProduct = null;
     private boolean pendingFlip = false;
     private CachedHelperDisplay cachedHelperDisplay = null;
 
-    public FlipHelper(BazaarData bazaarData) {
+    public FlipHelper(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
+        this.productInfoProvider = productInfoProvider;
         this.registerSlotHooks();
         this.registerFlipPriceScreenHandler();
     }
@@ -77,6 +79,13 @@ public class FlipHelper {
         if (product.isEmpty()) {
             this.clearPendingFlipState();
             log.warn("Could not resolve flip product '{}'", info.uiProductName());
+            return;
+        }
+
+        this.productInfoProvider.setOpenedProduct(product.get());
+
+        if (!ConfigManager.get().flipHelper.enabled) {
+            this.clearPendingFlipState();
             return;
         }
 
@@ -314,7 +323,8 @@ public class FlipHelper {
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().flipHelper.enabled
+            var config = ConfigManager.get();
+            return (config.flipHelper.enabled || config.orderBookPrice.enabled)
                 && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }
