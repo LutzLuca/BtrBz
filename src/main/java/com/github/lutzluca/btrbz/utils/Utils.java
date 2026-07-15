@@ -200,7 +200,11 @@ public final class Utils {
                     out.append('§').append(c);
                 }
             } else {
-                out.append(ChatFormatting.valueOf(serialized.toUpperCase(ROOT)));
+                try {
+                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(ROOT)));
+                } catch (IllegalArgumentException ignored) {
+                    //ignore unknown color names
+                }
             }
             *///?}
         }
