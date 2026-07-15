@@ -353,7 +353,12 @@ public final class ProductInfoProvider {
     }
 
     private void confirmAndOpen(String link) {
+        //? if <26.2 {
         var client = Minecraft.getInstance();
+        //?} else {
+        /*var client = Minecraft.getInstance().gui;
+         *///?}
+
         client.setScreen(new ConfirmLinkScreen(
             confirmed -> {
                 if (confirmed) {

@@ -29,6 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import static java.util.Locale.ROOT;
 
 public final class Utils {
 
@@ -186,10 +187,22 @@ public final class Utils {
     private static void appendLegacyStyle(StringBuilder out, Style style) {
         TextColor color = style.getColor();
         if (color != null) {
+            //? if <26.2 {
             var formatting = ChatFormatting.getByName(color.serialize());
             if (formatting != null && formatting.isColor()) {
                 out.append(formatting);
             }
+            //?} else {
+            /*String serialized = color.serialize();
+            if (serialized.startsWith("#")) {
+                out.append("§x");
+                for (char c : serialized.substring(1).toCharArray()) {
+                    out.append('§').append(c);
+                }
+            } else {
+                out.append(ChatFormatting.valueOf(serialized.toUpperCase(ROOT)));
+            }
+            *///?}
         }
 
         if (style.isObfuscated()) {

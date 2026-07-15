@@ -89,7 +89,11 @@ public class OrderBookScreenController {
                 title,
                 orders
             );
+            //? if <26.2 {
             Minecraft.getInstance().setScreen(orderBookScreen);
+            //?} else {
+            /*Minecraft.getInstance().gui.setScreen(orderBookScreen);
+             *///?}
             return SlotClickResult.Consume;
         }
     }

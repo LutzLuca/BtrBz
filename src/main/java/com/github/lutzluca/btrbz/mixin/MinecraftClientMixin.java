@@ -8,8 +8,17 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+//? if <26.2 {
+import net.minecraft.client.Minecraft;
+//?} else {
+/*import net.minecraft.client.gui.Gui;
+ *///?}
 
+//? if <26.2 {
 @Mixin(Minecraft.class)
+//?} else {
+/*@Mixin(Gui.class)
+ *///?}
 public abstract class MinecraftClientMixin {
     // @formatter:off
     /**
