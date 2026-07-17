@@ -16,7 +16,6 @@ import com.github.lutzluca.btrbz.widgets.Renderable;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.base.RenderContext;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
@@ -228,9 +227,13 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         public Option.Builder<Boolean> createEnableOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.nullToEmpty("Enable Price Entry Order Book"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show current buy orders and sell offers beside the sign while entering an order price.")))
+                .name(Component.nullToEmpty("Enable Price Entry Order Book Overlay"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Show current buy orders and sell offers beside the price-entry sign."),
+                    ConfigScreen.note(
+                        "Click a price to enter 0.1 coins ahead of it, or Ctrl-click to copy the displayed price unchanged.")
+                )))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -240,9 +243,12 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.nullToEmpty("Price Entry Order Book"))
-                .description(ConfigScreen.createDescription(
-                    "Compare the price you enter with the current order book without leaving the price-entry sign.",
+                .name(Component.nullToEmpty("Price Entry Order Book Overlay"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Compare prices without leaving the price-entry sign."),
+                    ConfigScreen.example(
+                        "Clicking 100 enters 100.1 for a buy order or 99.9 for a sell offer. Ctrl-click copies 100 instead.")
+                ),
                     ConfigScreen.ConfigImage.PRICE_ENTRY_ORDER_BOOK
                 ))
                 .options(rootGroup.build())

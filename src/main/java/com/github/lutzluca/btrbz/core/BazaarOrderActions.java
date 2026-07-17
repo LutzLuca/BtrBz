@@ -340,15 +340,13 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Return to Bazaar After Placing an Order"))
                 .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
-                .description(OptionDescription.of(GameUtils.join(
-                    List.of(
-                        Component.literal(
-                            "Reopen the main Bazaar menu after placing a buy order or sell offer."),
-                        Component.literal(
-                            "\nNote: This executes '/bz' which requires a server round-trip."),
-                        Component.literal(
-                            "You may experience brief mouse unlock during the transition, which may feel a bit clunky.")
-                    ), " "
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    Component
+                        .literal("Run ")
+                        .append(ConfigScreen.command("/bz"))
+                        .append(Component.literal(" after placing a buy order or sell offer.")),
+                    ConfigScreen.note(
+                        "The menu may briefly close and unlock the mouse while the server reopens it.")
                 )))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -359,7 +357,7 @@ public class BazaarOrderActions {
                 .name(Component.literal("Copy Remaining Amount"))
                 .binding(true, () -> this.copyRemaining, enabled -> this.copyRemaining = enabled)
                 .description(OptionDescription.of(Component.literal(
-                    "Copy the unfilled item amount when you cancel an order, ready to paste into the next order.")))
+                    "Copy the unfilled amount when cancelling a buy order, ready to paste into the next order.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -372,8 +370,11 @@ public class BazaarOrderActions {
                     () -> this.copyRemainingModifier != null ? this.copyRemainingModifier : Modifier.Ctrl,
                     val -> this.copyRemainingModifier = val
                 )
-                .description(OptionDescription.of(Component.literal(
-                    "Choose which modifier key must be held while cancelling to copy the unfilled amount. Available only while Copy Remaining Amount is enabled.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Choose which modifier key must be held while cancelling to copy the unfilled amount."),
+                    ConfigScreen.requires("Copy Remaining Amount")
+                )))
                 .controller(Modifier::controller);
         }
 
@@ -383,7 +384,7 @@ public class BazaarOrderActions {
                 .name(Component.literal("Enable Cancelled Order Actions"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(OptionDescription.of(Component.literal(
-                    "Enable shortcuts that help you continue working with an order after cancelling it.")))
+                    "Enable shortcuts for cancelled buy orders.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -393,7 +394,7 @@ public class BazaarOrderActions {
                 .name(Component.literal("Reopen Last Cancelled Buy Order"))
                 .binding(true, () -> this.reopenLastBuyOrderEnabled, val -> this.reopenLastBuyOrderEnabled = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Show a button in Manage Orders that returns to the product page of the most recently cancelled buy order.")))
+                    "Show a shortcut on the Bazaar Orders page to reopen the product page of the last cancelled buy order.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -402,12 +403,15 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Hide Button After Closing Orders"))
                 .binding(true, () -> this.clearOnClose, val -> this.clearOnClose = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Hide the reopen button when you leave Manage Orders. It returns after another buy order is cancelled. Available only while Reopen Last Cancelled Buy Order is enabled.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Hide the reopen button when you leave the Bazaar Orders page. It returns after another buy order is cancelled."),
+                    ConfigScreen.requires("Reopen Last Cancelled Buy Order")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public OptionGroup createGroup() {
+        public List<OptionGroup> createGroups() {
             var copyGroup = new OptionGrouping(this.createCopyRemainingOption())
                 .addOptions(this.createCopyRemainingModifierOption());
 
@@ -415,19 +419,28 @@ public class BazaarOrderActions {
                 .addOptions(this.createClearOnCloseOption());
 
             var rootGroup = new OptionGrouping(this.createEnabledOption())
-                .addOptions(this.createReopenBazaarOption())
                 .addSubgroups(copyGroup, reopenGroup);
 
-            return OptionGroup
-                .createBuilder()
-                .name(Component.literal("Cancelled Order Actions"))
-                .description(ConfigScreen.createDescription(
-                    "Continue from a cancelled order by copying its remaining amount or reopening its product page.",
-                    ConfigScreen.ConfigImage.REOPEN_LAST_ORDER
-                ))
-                .options(rootGroup.build())
-                .collapsed(true)
-                .build();
+            return List.of(
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("After Placing an Order"))
+                    .description(ConfigScreen.createDescription(
+                        "Configure what happens after placing a buy order or sell offer."))
+                    .options(List.of(this.createReopenBazaarOption().build()))
+                    .collapsed(true)
+                    .build(),
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Cancelled Order Actions"))
+                    .description(ConfigScreen.createDescription(
+                        "Copy the remaining amount or reopen the product page of the last cancelled buy order.",
+                        ConfigScreen.ConfigImage.REOPEN_LAST_ORDER
+                    ))
+                    .options(rootGroup.build())
+                    .collapsed(true)
+                    .build()
+            );
         }
     }
 }

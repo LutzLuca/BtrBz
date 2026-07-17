@@ -23,11 +23,14 @@ public sealed interface PriceExpression permits Literal,
 
         public static Try<AlertType> fromIdentifier(String identifier) {
             return switch (identifier) {
-                case "buyorder", "buy", "b" -> Try.success(AlertType.BuyOrder);
-                case "selloffer", "sell", "s" -> Try.success(AlertType.SellOffer);
-                case "instabuy", "ibuy", "ib" -> Try.success(AlertType.InstaBuy);
-                case "instasell", "isell", "is" -> Try.success(AlertType.InstaSell);
-                default -> Try.failure(new ParseException("Unknown alert type: " + identifier));
+                case "buy-order", "buyorder", "b" -> Try.success(AlertType.BuyOrder);
+                case "sell-offer", "selloffer", "s" -> Try.success(AlertType.SellOffer);
+                case "insta-buy", "instabuy", "ibuy", "ib" -> Try.success(AlertType.InstaBuy);
+                case "insta-sell", "instasell", "isell", "is" -> Try.success(AlertType.InstaSell);
+                default -> Try.failure(new ParseException(
+                    "Unknown alert type: " + identifier
+                        + ". Use buy-order, sell-offer, insta-buy, or insta-sell."
+                ));
             };
         }
 

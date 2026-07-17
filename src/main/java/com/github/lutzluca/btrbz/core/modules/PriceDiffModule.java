@@ -117,9 +117,9 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable Price Difference"))
+                .name(Component.literal("Enable Price Difference Overlay"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show the difference between the selected Bazaar item's reference price and the price you are entering, per item and in total.")))
+                    "Show the current market spread (best sell-offer price minus best buy-order price) per item and for the sellable amount in your inventory.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -129,9 +129,9 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Price Difference"))
+                .name(Component.literal("Price Difference Overlay"))
                 .description(ConfigScreen.createDescription(
-                    "Display per-item and total price differences while setting up a Bazaar order.",
+                    "Display the current Bazaar spread per item and across the sellable amount in your inventory.",
                     ConfigScreen.ConfigImage.PRICE_DIFFERENCE
                 ))
                 .options(rootGroup.build())

@@ -165,7 +165,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
                 .name(Component.literal("Enable Order Value Overlay"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(OptionDescription.of(Component.literal(
-                    "Show the combined coin value of your active and filled orders in the Manage Orders screen.")))
+                    "Show the combined coin value of your active and filled orders on the Bazaar Orders page.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -175,8 +175,12 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Value Overlay"))
-                .description(ConfigScreen.createDescription(
-                    "Summarize how many coins are tied up in active orders and available from filled orders.",
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Summarize coins tied up in active orders and available from filled orders."),
+                    ConfigScreen.note(
+                        "Pending and claimable items are valued at their own order price, not the current market price.")
+                ),
                     ConfigScreen.ConfigImage.ORDER_VALUE
                 ))
                 .options(rootGroup.build())

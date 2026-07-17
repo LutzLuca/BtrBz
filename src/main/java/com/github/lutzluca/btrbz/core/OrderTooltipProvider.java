@@ -306,7 +306,7 @@ public class OrderTooltipProvider {
                     invalidateCache();
                 })
                 .description(OptionDescription.of(Component.literal(
-                    "Show detailed information when hovering an entry in the tracked-orders sidebar.")))
+                    "Show detailed information when hovering an entry in the tracked orders list.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -318,19 +318,22 @@ public class OrderTooltipProvider {
                     invalidateCache();
                 })
                 .description(OptionDescription.of(Component.literal(
-                    "Show whether the order is top, matched at the best price, undercut, or filled.")))
+                    "Show whether the order is top, matched at the best price, undercut, or currently unknown.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createQueueOption() {
             return Option.<Boolean>createBuilder()
-                .name(Component.literal("Show Queue Position"))
+                .name(Component.literal("Show Order Queue Estimate"))
                 .binding(true, () -> this.showQueue, val -> {
                     this.showQueue = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal(
-                    "Show the estimated number of competing orders and items ahead of yours.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "When an order is undercut, show estimated competing orders and items ahead of it."),
+                    ConfigScreen.note("This is an order-book estimate, not an exact queue position.")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -342,7 +345,7 @@ public class OrderTooltipProvider {
                     invalidateCache();
                 })
                 .description(OptionDescription.of(Component.literal(
-                    "Show the highest buy-order and lowest sell-offer prices for the product.")))
+                    "Show the best current buy-order and sell-offer prices for the product.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -353,8 +356,10 @@ public class OrderTooltipProvider {
                     this.showOnlyWhenUndercut = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal(
-                    "Hide current market prices until this order loses its top position. Available only while Show Current Prices is enabled.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Show current market prices only after this order is undercut."),
+                    ConfigScreen.requires("Show Current Prices")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -371,8 +376,11 @@ public class OrderTooltipProvider {
 
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order List Tooltips"))
-                .description(ConfigScreen.createDescription(
-                    "Choose which status, queue, and market details appear when hovering the tracked-orders sidebar.",
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Choose which status, estimated queue, and market details appear when hovering entries in the Tracked Orders Overlay."),
+                    ConfigScreen.requires("Enable Tracked Orders Overlay")
+                ),
                     ConfigScreen.ConfigImage.ORDER_LIST_TOOLTIP
                 ))
                 .options(root.build())
@@ -401,7 +409,7 @@ public class OrderTooltipProvider {
                     invalidateCache();
                 })
                 .description(OptionDescription.of(Component.literal(
-                    "Show detailed information when hovering an order item in Manage Orders.")))
+                    "Show detailed information when hovering an order item on the Bazaar Orders page.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -413,19 +421,22 @@ public class OrderTooltipProvider {
                     invalidateCache();
                 })
                 .description(OptionDescription.of(Component.literal(
-                    "Show whether the order is top, matched at the best price, undercut, or filled.")))
+                    "Show whether the order is top, matched at the best price, undercut, or currently unknown.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Boolean> createQueueOption() {
             return Option.<Boolean>createBuilder()
-                .name(Component.literal("Show Queue Position"))
+                .name(Component.literal("Show Order Queue Estimate"))
                 .binding(true, () -> this.showQueue, val -> {
                     this.showQueue = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal(
-                    "Show the estimated number of competing orders and items ahead of yours.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "When an order is undercut, show estimated competing orders and items ahead of it."),
+                    ConfigScreen.note("This is an order-book estimate, not an exact queue position.")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -437,7 +448,7 @@ public class OrderTooltipProvider {
                     invalidateCache();
                 })
                 .description(OptionDescription.of(Component.literal(
-                    "Show the highest buy-order and lowest sell-offer prices for the product.")))
+                    "Show the best current buy-order and sell-offer prices for the product.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -448,8 +459,10 @@ public class OrderTooltipProvider {
                     this.showOnlyWhenUndercut = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal(
-                    "Hide current market prices until this order loses its top position. Available only while Show Current Prices is enabled.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Show current market prices only after this order is undercut."),
+                    ConfigScreen.requires("Show Current Prices")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -460,9 +473,11 @@ public class OrderTooltipProvider {
                     this.showEstimatedTime = val;
                     invalidateCache();
                 })
-                .description(OptionDescription.of(Component.literal(
-                    "Estimate how long a top-position order may take to fill using its remaining volume and the product's weekly moving volume. " +
-                    "The estimate can be inaccurate after market changes or delayed UI updates, so treat it as a rough guide rather than a countdown."
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Estimate how long a top-position order may take to fill using its remaining volume and the product's weekly moving volume."),
+                    ConfigScreen.note(
+                        "Market changes and delayed UI updates can make this inaccurate. Treat it as a rough guide, not a countdown.")
                 )))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -482,7 +497,7 @@ public class OrderTooltipProvider {
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order Item Tooltips"))
                 .description(ConfigScreen.createDescription(
-                    "Choose which status, queue, market, and fill-time details appear on order items in Manage Orders.",
+                    "Choose which status, estimated queue, market, and fill-time details appear when hovering an order item on the Bazaar Orders page.",
                     ConfigScreen.ConfigImage.ORDER_TOOLTIP
                 ))
                 .options(root.build())

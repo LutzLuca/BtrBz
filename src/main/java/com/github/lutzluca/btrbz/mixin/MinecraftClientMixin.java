@@ -19,7 +19,7 @@ public abstract class MinecraftClientMixin {
      *
      * - @HEAD: Updates ScreenInfo early so widgets see the correct screen during init.
      *   • Example issue: When rendering a module based on the current screen's menu (e.g. BazaarMenuType.Main
-     *     in OrderLimitModule), injecting only at TAIL causes stale screen info — nothing renders in the main
+     *     in OrderLimitModule), injecting only at TAIL causes stale screen info, so nothing renders in the main
      *     menu, but switching to another screen and back makes it appear unexpectedly.
      *
      * - @TAIL: Fires callbacks after the screen is fully initialized.

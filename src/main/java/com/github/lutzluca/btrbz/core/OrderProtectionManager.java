@@ -364,8 +364,11 @@ public class OrderProtectionManager {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Protection"))
-                .description(OptionDescription.of(Component.literal(
-                    "Check new order prices and stop submissions that match one of the enabled safety rules.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Check new order prices and stop submissions that match an enabled safety rule."),
+                    ConfigScreen.note("Hold Ctrl while confirming to override a block.")
+                )))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -394,8 +397,14 @@ public class OrderProtectionManager {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Limit Price Undercutting"))
-                .description(OptionDescription.of(Component.literal(
-                    "Block prices that improve on the current best order by more than the allowed percentage. The buy-order and sell-offer limits below apply only while this is enabled.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Block prices that improve on the current best order by the allowed percentage or more. The buy-order and sell-offer limits below apply only while this is enabled."),
+                    ConfigScreen.example(
+                        "At a best price of 15M, a 100K change is about 0.67%. With a 15% limit, the blocked difference begins at 2.25M."),
+                    ConfigScreen.note(
+                        "Known limitation: fixed 0.1-coin price steps make percentage checks unreliable for very cheap items. Moving from 0.5 to 0.6 coins is already a 20% increase.")
+                )))
                 .binding(
                     true,
                     () -> this.blockUndercutPercentage,
@@ -408,8 +417,12 @@ public class OrderProtectionManager {
             return Option
                 .<Double>createBuilder()
                 .name(Component.literal("Maximum Buy-Order Increase (%)"))
-                .description(OptionDescription.of(Component.literal(
-                    "Maximum percentage by which a new buy order may exceed the current highest buy order.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Block a buy order when it is this percentage or more above the best current buy-order price."),
+                    ConfigScreen.example(
+                        "With a best price of 15M and a 5% limit, 15.75M or more is blocked.")
+                )))
                 .binding(
                     this.maxBuyOrderUndercut,
                     () -> this.maxBuyOrderUndercut,
@@ -425,8 +438,12 @@ public class OrderProtectionManager {
             return Option
                 .<Double>createBuilder()
                 .name(Component.literal("Maximum Sell-Offer Reduction (%)"))
-                .description(OptionDescription.of(Component.literal(
-                    "Maximum percentage by which a new sell offer may fall below the current lowest sell offer.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Block a sell offer when it is this percentage or more below the best current sell-offer price."),
+                    ConfigScreen.example(
+                        "With a best price of 15M and a 5% limit, 14.25M or less is blocked.")
+                )))
                 .binding(
                     this.maxSellOfferUndercut,
                     () -> this.maxSellOfferUndercut,
@@ -441,9 +458,13 @@ public class OrderProtectionManager {
         public Option.Builder<Boolean> createBlockUndercutOfOpposingOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Block Prices That Cross the Spread"))
-                .description(OptionDescription.of(Component.literal(
-                    "Block a sell offer below the highest buy order or a buy order above the lowest sell offer. Such prices would normally be better handled as an instant trade.")))
+                .name(Component.literal("Block Orders at Instant-Trade Prices"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Block buy orders priced at or above the best sell offer, and sell offers priced at or below the best buy order. Use an instant trade instead."),
+                    ConfigScreen.example(
+                        "If the best buy order is 100 and the best sell offer is 105, a sell offer of 100 or less and a buy order of 105 or more are blocked.")
+                )))
                 .binding(
                     true,
                     () -> this.blockUndercutOfOpposing,

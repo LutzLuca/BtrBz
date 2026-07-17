@@ -7,6 +7,7 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
+import net.minecraft.ChatFormatting;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.network.chat.Component;
 
@@ -42,11 +43,17 @@ public class ChatFilterManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Bazaar Chat Filter"))
-                .description(ConfigScreen.createDescription(
-                    "Hide temporary Bazaar progress messages while keeping confirmations, warnings, and errors visible.\n\n"
-                    + "Examples that are hidden:\n"
-                    + "• [Bazaar] Submitting buy order...\n"
-                    + "• [Bazaar] Claiming orders..."))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Hide temporary Bazaar progress messages while keeping confirmations, warnings, and errors visible."),
+                    Component
+                        .literal("Examples hidden:\n")
+                        .withStyle(ChatFormatting.GOLD)
+                        .append(Component
+                            .literal("• [Bazaar] Submitting buy order...\n"
+                                + "• [Bazaar] Claiming orders...")
+                            .withStyle(ChatFormatting.GRAY))
+                )))
                 .options(List.of(
                     Option.<Boolean>createBuilder()
                           .name(Component.literal("Filter Transient Messages"))

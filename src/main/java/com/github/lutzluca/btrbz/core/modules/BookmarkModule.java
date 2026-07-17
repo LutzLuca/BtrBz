@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.component.DataComponentPatch;
@@ -62,6 +63,8 @@ import net.minecraft.world.item.Items;
 public class BookmarkModule extends Module<BookMarkConfig> {
 
     public static final int PRODUCT_SLOT_IDX = 13;
+    private static final int BUY_ORDER_INDICATOR_COLOR = 0xFF55FF55;
+    private static final int SELL_OFFER_INDICATOR_COLOR = 0xFFFFD700;
 
     private ListWidget list;
 
@@ -375,10 +378,10 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     int radius = 2;
                     int leftDotX = x + width - 13;
                     int rightDotX = x + width - 6;
-                    drawDot(graphics, leftDotX, centerY, radius, 0xFF55FF55);
-                    drawDot(graphics, rightDotX, centerY, radius, 0xFFFFAA00);
+                    drawDot(graphics, leftDotX, centerY, radius, BUY_ORDER_INDICATOR_COLOR);
+                    drawDot(graphics, rightDotX, centerY, radius, SELL_OFFER_INDICATOR_COLOR);
                 } else {
-                    int dotColor = hasBuy ? 0xFF55FF55 : 0xFFFFAA00;
+                    int dotColor = hasBuy ? BUY_ORDER_INDICATOR_COLOR : SELL_OFFER_INDICATOR_COLOR;
                     drawDot(graphics, centerX, centerY, 3, dotColor);
                 }
             }
@@ -541,9 +544,9 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable Bookmarked Items"))
+                .name(Component.literal("Enable Bookmarked Items Overlay"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show a draggable list of bookmarked Bazaar products for quick access.")))
+                    "Show an overlay containing bookmarked Bazaar products for quick access.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -554,7 +557,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     .<Boolean>createBuilder()
                     .name(Component.literal("Show Throughout the Bazaar"))
                     .description(OptionDescription.of(Component.literal(
-                            "Keep the bookmark list visible across Bazaar menus instead of showing it only on product pages.")))
+                            "Show the bookmark list in every Bazaar menu. When off, it remains visible in the main Bazaar, Bazaar Orders page, product groups, and product pages.")))
                     .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
                     .controller(ConfigScreen::createBooleanController);
         }
@@ -562,7 +565,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         public Option.Builder<Integer> createMaxVisibleOption() {
             return Option
                 .<Integer>createBuilder()
-                .name(Component.literal("Max Visible Items"))
+                .name(Component.literal("Max Visible Bookmarks"))
                 .description(OptionDescription.of(Component.literal(
                     "Set how many bookmarks fit in the list before it becomes scrollable.")))
                 .binding(
@@ -581,8 +584,15 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Order Indicators"))
-                .description(OptionDescription.of(Component.literal(
-                    "Mark bookmarked products that currently have one or more tracked orders with a colored status dot.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    Component
+                        .literal("Show a ")
+                        .append(Component.literal("green").withStyle(ChatFormatting.GREEN))
+                        .append(Component.literal(" dot for tracked buy orders and a "))
+                        .append(Component.literal("gold").withStyle(ChatFormatting.GOLD))
+                        .append(Component.literal(" dot for tracked sell offers.")),
+                    ConfigScreen.note("Both dots appear when a product has both order types.")
+                )))
                 .binding(true, () -> this.showOrderIndicators, val -> this.showOrderIndicators = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -596,9 +606,15 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Bookmarked Items"))
-                .description(ConfigScreen.createDescription(
-                    "Keep frequently traded products in a draggable Bazaar sidebar and show their active-order status.",
+                .name(Component.literal("Bookmarked Items Overlay"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Keep frequently traded products in a Bazaar overlay."),
+                    ConfigScreen.text(
+                        "Click the product icon on its Bazaar page to toggle a bookmark."),
+                    ConfigScreen.text(
+                        "Click an overlay entry to open it, drag to reorder, or Ctrl+right-click to remove it."),
+                    ConfigScreen.note("Requires a Cookie Buff to open a bookmark.")
+                ),
                     ConfigScreen.ConfigImage.BOOKMARKS
                 ))
                 .options(rootGroup.build())

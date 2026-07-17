@@ -127,9 +127,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable Daily Order Limit"))
+                .name(Component.literal("Enable Daily Order Limit Overlay"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show your used and remaining daily Bazaar transaction allowance on the main Bazaar screen.")))
+                    "Show BtrBz's estimate of your daily Bazaar usage.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -138,8 +138,10 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Use Compact Display"))
-                .description(OptionDescription.of(Component.literal(
-                    "Use a smaller one-line overlay instead of the full daily-limit display.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Abbreviate large values in the overlay."),
+                    ConfigScreen.example("1,250,000 is displayed as 1.3M.")
+                )))
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -149,9 +151,16 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Daily Order Limit"))
-                .description(ConfigScreen.createDescription(
-                    "Keep track of Hypixel's daily Bazaar transaction limit directly on the main Bazaar screen.",
+                .name(Component.literal("Daily Order Limit Overlay"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Show BtrBz's estimate of your daily Bazaar usage."),
+                    ConfigScreen.note(
+                        "The counter resets at 00:00 UTC and may differ from Hypixel if transactions were not observed."),
+                    Component
+                        .literal("For accurate estimates, configure your Bazaar tax rate with ")
+                        .append(ConfigScreen.command("/btrbz tax set <rate>"))
+                        .append(Component.literal("."))
+                ),
                     ConfigScreen.ConfigImage.DAILY_LIMIT
                 ))
                 .options(rootGroup.build())

@@ -188,7 +188,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Throughout the Bazaar"))
                 .description(OptionDescription.of(Component.literal(
-                    "Keep the tracked-orders list visible across Bazaar menus instead of showing it only in Manage Orders.")))
+                    "Keep the tracked-orders list visible across Bazaar menus instead of showing it only on the Bazaar Orders page.")))
                 .binding(true, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -196,7 +196,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public Option.Builder<Integer> createMaxVisibleOption() {
             return Option
                 .<Integer>createBuilder()
-                .name(Component.literal("Max Visible Items"))
+                .name(Component.literal("Max Visible Orders"))
                 .description(OptionDescription.of(Component.literal(
                     "Set how many tracked orders fit in the list before it becomes scrollable.")))
                 .binding(
@@ -214,9 +214,9 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable Tracked Orders List"))
+                .name(Component.literal("Enable Tracked Orders Overlay"))
                 .description(OptionDescription.of(Component.literal(
-                    "Show a draggable sidebar containing your tracked orders. Hover an entry to locate the matching order in Manage Orders.")))
+                    "Show a list of tracked orders with additional information when hovering an entry.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -229,9 +229,9 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Tracked Orders List"))
+                .name(Component.literal("Tracked Orders Overlay"))
                 .description(ConfigScreen.createDescription(
-                    "Keep your active Bazaar orders visible in a compact sidebar and quickly locate them in Manage Orders.",
+                    "List your tracked orders and show additional information when hovering an entry. The same details can also appear when hovering order items on the Bazaar Orders page.",
                     ConfigScreen.ConfigImage.TRACKED_ORDER_OVERLAY
                 ))
                 .options(rootGroup.build())

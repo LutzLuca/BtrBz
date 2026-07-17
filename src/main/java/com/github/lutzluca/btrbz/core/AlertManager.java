@@ -289,8 +289,12 @@ public class AlertManager {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Price Alerts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Check configured price targets and notify you when a target is reached. Alerts that become valid while this is off may fire immediately when it is enabled again.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Check configured price targets and notify you when a target is reached."),
+                    ConfigScreen.note(
+                        "Alerts that become valid while this is off may fire immediately when it is enabled again.")
+                )))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -311,8 +315,22 @@ public class AlertManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Price Alerts"))
-                .description(ConfigScreen.createDescription(
-                    "Notify you when a Bazaar buy-order or sell-offer price reaches a target created with /btrbz alert.",
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Notify you when a Bazaar price reaches a configured target."),
+                    ConfigScreen.example(Component
+                        .empty()
+                        .append(ConfigScreen.command(
+                            "/btrbz alert add ENCHANTMENT_ULTIMATE_FLASH_1 buy-order 4m"))
+                        .append(Component
+                            .literal(" notifies when the best buy-order price for ")
+                            .withStyle(ChatFormatting.GRAY))
+                        .append(Component
+                            .literal("Flash I")
+                            .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                        .append(Component
+                            .literal(" reaches 4M coins or less.")
+                            .withStyle(ChatFormatting.GRAY)))
+                ),
                     ConfigScreen.ConfigImage.PRICE_ALERT
                 ))
                 .options(rootGroup.build())

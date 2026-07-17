@@ -104,7 +104,7 @@ public class OrderBookScreenController {
                 .<Boolean>createBuilder()
                 .name(Component.nullToEmpty("Enable Order Book"))
                 .description(OptionDescription.of(Component.literal(
-                    "Add access to BtrBz's detailed buy-order and sell-offer view from supported Bazaar screens.")))
+                    "Add an Open Order Book button to product, buy-order amount, buy-order price, and sell-offer screens.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -115,8 +115,12 @@ public class OrderBookScreenController {
             return OptionGroup
                 .createBuilder()
                 .name(Component.nullToEmpty("Order Book"))
-                .description(ConfigScreen.createDescription(
-                    "Open a detailed view of current buy orders and sell offers for the selected Bazaar product.",
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Open a detailed view of current buy orders and sell offers for the selected product."),
+                    ConfigScreen.note(
+                        "Click a listed price to copy it and return to the Bazaar screen.")
+                ),
                     ConfigScreen.ConfigImage.ORDER_BOOK
                 ))
                 .options(root.build())
