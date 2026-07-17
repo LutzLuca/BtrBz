@@ -36,10 +36,9 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
     private OrderBookPriceWidget widget;
 
-    private static final BazaarMenuType[] PRICE_SETUP_MENUS = {
+    private static final BazaarMenuType[] REGULAR_PRICE_SETUP_MENUS = {
         BazaarMenuType.BuyOrderSetupPrice,
-        BazaarMenuType.SellOfferSetup,
-        BazaarMenuType.OrderOptions
+        BazaarMenuType.SellOfferSetup
     };
 
     @Nullable private OrderType currentOrderType;
@@ -81,7 +80,8 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return false;
         }
 
-        return prev.inMenu(PRICE_SETUP_MENUS);
+        return prev.inMenu(REGULAR_PRICE_SETUP_MENUS)
+            || (this.configState.showOnFlipSign && prev.inMenu(BazaarMenuType.OrderOptions));
     }
 
     private Optional<OrderType> resolveCurrentOrderType(ScreenInfo curr, ScreenInfo prev) {
@@ -91,7 +91,13 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return Optional.of(OrderType.Buy);
         }
 
-        if (isSign && prev.inMenu(BazaarMenuType.SellOfferSetup, BazaarMenuType.OrderOptions)) {
+        if (isSign && prev.inMenu(BazaarMenuType.SellOfferSetup)) {
+            return Optional.of(OrderType.Sell);
+        }
+
+        if (isSign
+            && this.configState.showOnFlipSign
+            && prev.inMenu(BazaarMenuType.OrderOptions)) {
             return Optional.of(OrderType.Sell);
         }
 
@@ -224,6 +230,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     public static class OrderBookPriceConfig {
         public Position signPosition;
         public boolean enabled = true;
+        public boolean showOnFlipSign = true;
 
         public Option.Builder<Boolean> createEnableOption() {
             return Option
@@ -239,8 +246,27 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Option.Builder<Boolean> createShowOnFlipSignOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.nullToEmpty("Show on Flip Price Sign"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Show the sell-offer order book when entering a custom price for a filled buy order."),
+                    ConfigScreen.note(
+                        "Disable this to keep the overlay on regular buy-order and sell-offer price signs only.")
+                )))
+                .binding(
+                    true,
+                    () -> this.showOnFlipSign,
+                    val -> this.showOnFlipSign = val
+                )
+                .controller(ConfigScreen::createBooleanController);
+        }
+
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnableOption());
+            var rootGroup = new OptionGrouping(this.createEnableOption())
+                .addOptions(this.createShowOnFlipSignOption());
 
             return OptionGroup
                 .createBuilder()

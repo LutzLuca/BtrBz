@@ -324,7 +324,9 @@ public class FlipHelper {
         @Override
         public boolean matches(SlotView view) {
             var config = ConfigManager.get();
-            return (config.flipHelper.enabled || config.orderBookPrice.enabled)
+            boolean tracksFlipProduct = config.orderBookPrice.enabled
+                && config.orderBookPrice.showOnFlipSign;
+            return (config.flipHelper.enabled || tracksFlipProduct)
                 && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }
