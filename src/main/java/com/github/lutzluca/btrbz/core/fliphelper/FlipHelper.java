@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.fliphelper;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -43,7 +42,7 @@ public class FlipHelper {
     private static final int CUSTOM_HELPER_ITEM_SLOT_IDX = 16;
 
     private final BazaarData bazaarData;
-    private final ProductInfoProvider productInfoProvider;
+    private final FlipProductContext flipProductContext;
     private final FlipSubmissionTracker flipSubmissionTracker;
 
     private TrackedProduct potentialFlipProduct = null;
@@ -52,23 +51,26 @@ public class FlipHelper {
 
     public FlipHelper(
         BazaarData bazaarData,
-        ProductInfoProvider productInfoProvider,
+        FlipProductContext flipProductContext,
         FlipSubmissionTracker flipSubmissionTracker
     ) {
         this.bazaarData = bazaarData;
-        this.productInfoProvider = productInfoProvider;
+        this.flipProductContext = flipProductContext;
         this.flipSubmissionTracker = flipSubmissionTracker;
         this.registerSlotHooks();
+        this.registerFlipProductContextHandler();
         this.registerFlipPriceScreenHandler();
     }
 
     public void onOrderClick(OrderInfo info) {
         if (info.type() != OrderType.Buy) {
+            this.flipProductContext.clearProduct();
             this.clearPendingFlipState();
             return;
         }
 
         if (info instanceof OrderInfo.UnfilledOrderInfo) {
+            this.flipProductContext.clearProduct();
             this.clearPendingFlipState();
             return;
         }
@@ -80,12 +82,13 @@ public class FlipHelper {
         this.cachedHelperDisplay = null;
         var product = this.bazaarData.resolveIndexedProduct(info.product());
         if (product.isEmpty()) {
+            this.flipProductContext.clearProduct();
             this.clearPendingFlipState();
             log.warn("Could not resolve flip product '{}'", info.uiProductName());
             return;
         }
 
-        this.productInfoProvider.setOpenedProduct(product.get());
+        this.flipProductContext.selectProduct(product.get());
 
         if (!ConfigManager.get().flipHelper.enabled) {
             this.clearPendingFlipState();
@@ -99,6 +102,25 @@ public class FlipHelper {
     private void registerSlotHooks() {
         SlotHookRegistry.register(new OrderFlipHook());
         SlotHookRegistry.register(new OrderProductObserverHook());
+    }
+
+    private void registerFlipProductContextHandler() {
+        ScreenInfoHelper.registerOnSwitch(curr -> {
+            if (this.flipProductContext.getSelectedProduct().isEmpty()) {
+                return;
+            }
+
+            var prev = ScreenInfoHelper.get().getPrevInfo();
+            boolean inOrderOptions = curr.inMenu(BazaarMenuType.OrderOptions);
+            boolean inFlipPriceSign = curr.getScreen() instanceof SignEditScreen
+                && prev.inMenu(BazaarMenuType.OrderOptions);
+            if (inOrderOptions || inFlipPriceSign) {
+                return;
+            }
+
+            log.debug("Leaving flip flow, clearing selected product context");
+            this.flipProductContext.clearProduct();
+        });
     }
 
     private ItemStack createHelperDisplayStack(double price) {

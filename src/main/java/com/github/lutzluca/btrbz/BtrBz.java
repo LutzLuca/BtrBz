@@ -12,6 +12,7 @@ import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper;
+import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule;
@@ -119,10 +120,12 @@ public class BtrBz implements ClientModInitializer {
         new OrderBookScreenController(BAZAAR_DATA, productInfoProvider);
 
         var moduleManager = ModuleManager.getInstance();
+        var flipProductContext = new FlipProductContext();
         var flipSubmissionTracker = new FlipSubmissionTracker();
         moduleManager.initContext(new ModuleContext(
             BAZAAR_DATA,
             productInfoProvider,
+            flipProductContext,
             flipSubmissionTracker
         ));
 
@@ -166,7 +169,7 @@ public class BtrBz implements ClientModInitializer {
         new BazaarPoller(BAZAAR_DATA::onUpdate);
         var flipHelper = new FlipHelper(
             BAZAAR_DATA,
-            productInfoProvider,
+            flipProductContext,
             flipSubmissionTracker
         );
 
