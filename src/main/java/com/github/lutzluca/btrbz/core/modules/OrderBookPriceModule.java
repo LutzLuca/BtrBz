@@ -216,6 +216,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         log.debug("Price click processed: rawPrice={}, finalPrice={}", rawPrice, priceToUse);
 
         if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
+            if (prevInfo.inMenu(BazaarMenuType.OrderOptions)) {
+                this.context()
+                    .flipSubmissionTracker()
+                    .recordSubmittedFlip(ProductIdentity.fromIndex(product), priceToUse);
+            }
             GameUtils.submitSignValue(signEditScreen, Utils.formatDecimal(priceToUse, 1, false));
         }
     }

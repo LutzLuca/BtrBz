@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
-import com.github.lutzluca.btrbz.core.FlipHelper;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.ModuleManager.ModuleContext;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
@@ -12,6 +11,8 @@ import com.github.lutzluca.btrbz.core.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper;
+import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
 import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule;
 import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
@@ -118,7 +119,12 @@ public class BtrBz implements ClientModInitializer {
         new OrderBookScreenController(BAZAAR_DATA, productInfoProvider);
 
         var moduleManager = ModuleManager.getInstance();
-        moduleManager.initContext(new ModuleContext(BAZAAR_DATA, productInfoProvider));
+        var flipSubmissionTracker = new FlipSubmissionTracker();
+        moduleManager.initContext(new ModuleContext(
+            BAZAAR_DATA,
+            productInfoProvider,
+            flipSubmissionTracker
+        ));
 
         moduleManager.discoverBindings();
         moduleManager.registerModule(BookmarkModule.class);
@@ -158,7 +164,11 @@ public class BtrBz implements ClientModInitializer {
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
         new BazaarPoller(BAZAAR_DATA::onUpdate);
-        var flipHelper = new FlipHelper(BAZAAR_DATA, productInfoProvider);
+        var flipHelper = new FlipHelper(
+            BAZAAR_DATA,
+            productInfoProvider,
+            flipSubmissionTracker
+        );
 
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);

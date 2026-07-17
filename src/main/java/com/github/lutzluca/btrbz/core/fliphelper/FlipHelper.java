@@ -1,6 +1,7 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.fliphelper;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -11,11 +12,8 @@ import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
-import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -44,17 +42,22 @@ public class FlipHelper {
     private static final int FLIP_ORDER_ITEM_SLOT_IDX = 15;
     private static final int CUSTOM_HELPER_ITEM_SLOT_IDX = 16;
 
-    private final TimedStore<FlipEntry> pendingFlips = new TimedStore<>(15_000L);
     private final BazaarData bazaarData;
     private final ProductInfoProvider productInfoProvider;
+    private final FlipSubmissionTracker flipSubmissionTracker;
 
     private TrackedProduct potentialFlipProduct = null;
     private boolean pendingFlip = false;
     private CachedHelperDisplay cachedHelperDisplay = null;
 
-    public FlipHelper(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
+    public FlipHelper(
+        BazaarData bazaarData,
+        ProductInfoProvider productInfoProvider,
+        FlipSubmissionTracker flipSubmissionTracker
+    ) {
         this.bazaarData = bazaarData;
         this.productInfoProvider = productInfoProvider;
+        this.flipSubmissionTracker = flipSubmissionTracker;
         this.registerSlotHooks();
         this.registerFlipPriceScreenHandler();
     }
@@ -146,24 +149,25 @@ public class FlipHelper {
             if (!ConfigManager.get().flipHelper.enabled) {
                 return;
             }
+
             var prev = ScreenInfoHelper.get().getPrevInfo();
             if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
-                pendingFlip = false;
-                return;
-            }
-
-            if (!this.pendingFlip) {
-                log.debug(
-                    "Screen transition from OrderOption without a pendingFlip -> resetting flip state");
-                this.clearPendingFlipState();
+                this.pendingFlip = false;
                 return;
             }
 
             if (!(curr.getScreen() instanceof SignEditScreen signEditScreen)) {
-                log.warn("""
-                        Expected screen transition from OrderOptions to a SignEditScreen while pendingFlip is set,
-                        but switched to a non-SignEditScreen; resetting flip state
-                    """);
+                if (this.pendingFlip) {
+                    log.warn("""
+                            Expected screen transition from OrderOptions to a SignEditScreen while pendingFlip is set,
+                            but switched to a non-SignEditScreen; resetting flip state
+                        """);
+                }
+                this.clearPendingFlipState();
+                return;
+            }
+
+            if (!this.pendingFlip) {
                 this.clearPendingFlipState();
                 return;
             }
@@ -189,38 +193,24 @@ public class FlipHelper {
             }
 
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
-            GameUtils.submitSignValue(signEditScreen, formatted);
-
-            this.pendingFlips.add(new FlipEntry(
-                potentialFlipProduct.getProduct(),
+            this.flipSubmissionTracker.recordSubmittedFlip(
+                ProductIdentity.fromIndex(this.potentialFlipProduct.getProduct()),
                 flipPrice.get()
-            ));
+            );
+            GameUtils.submitSignValue(signEditScreen, formatted);
 
             this.clearPendingFlipState();
         });
     }
 
     public void handleFlipped(BazaarMessage.OrderFlipped flipped) {
-        var flippedProduct = this.bazaarData.resolveIndexedProduct(
-            this.bazaarData.resolveProductName(flipped.productName())
-        );
-        var match = this.pendingFlips.removeFirstMatch(entry -> entry
-            .product()
-            .productId()
-            .equals(flippedProduct.map(IndexedProduct::productId).orElse(""))
-            || entry.product().strippedName().equalsIgnoreCase(flipped.productName()));
+        var match = this.flipSubmissionTracker.consume(ProductIdentity.fromName(flipped.productName()));
 
-        // this may be unnecessary as after entering the price in the sign, it opens the orders
-        // menu, might as well leave it atm
         if (match.isEmpty()) {
-            log.warn(
-                "No matching pending flip for flipped order {}x {}. Orders may be out of sync",
+            log.debug(
+                "Flip completed without a recorded price for {}x {}; relying on Bazaar Orders sync",
                 flipped.volume(),
                 flipped.productName()
-            );
-            Notifier.notifyChatCommand(
-                "No matching pending flip found for flipped order. Click to resync tracked orders",
-                "managebazaarorders"
             );
             return;
         }
@@ -229,7 +219,7 @@ public class FlipHelper {
         double pricePerUnit = entry.pricePerUnit();
 
         var orderInfo = new OrderInfo.UnfilledOrderInfo(
-            ProductIdentity.fromIndex(entry.product()),
+            entry.product(),
             flipped.productName(),
             OrderType.Sell,
             flipped.volume(),
@@ -238,7 +228,7 @@ public class FlipHelper {
             0,
             -1
         );
-        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, ProductIdentity.fromIndex(entry.product())));
+        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, entry.product()));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
@@ -347,8 +337,6 @@ public class FlipHelper {
     }
 
     private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) { }
-
-    private record FlipEntry(IndexedProduct product, double pricePerUnit) { }
 
     public static class FlipHelperConfig {
 

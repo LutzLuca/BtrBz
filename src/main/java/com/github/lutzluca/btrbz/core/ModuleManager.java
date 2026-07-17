@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -35,7 +36,11 @@ public class ModuleManager {
     private @Nullable WidgetManager widgetManager;
     private @Nullable ModuleContext context;
 
-    public record ModuleContext(@NotNull BazaarData bazaarData, @NotNull ProductInfoProvider productInfoProvider) { }
+    public record ModuleContext(
+        @NotNull BazaarData bazaarData,
+        @NotNull ProductInfoProvider productInfoProvider,
+        @NotNull FlipSubmissionTracker flipSubmissionTracker
+    ) { }
 
     @Setter
     private boolean isDirty = false;
