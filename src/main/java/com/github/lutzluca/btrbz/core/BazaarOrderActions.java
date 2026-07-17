@@ -18,7 +18,6 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
@@ -356,8 +355,8 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Copy Remaining Amount"))
                 .binding(true, () -> this.copyRemaining, enabled -> this.copyRemaining = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Copy the unfilled amount when cancelling a buy order, ready to paste into the next order.")))
+                .description(ConfigScreen.createDescription(
+                    "Copy the unfilled amount when cancelling a buy order, ready to paste into the next order."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -383,8 +382,8 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Cancelled Order Actions"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable shortcuts for cancelled buy orders.")))
+                .description(ConfigScreen.createDescription(
+                    "Enable shortcuts for cancelled buy orders."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -393,8 +392,8 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Reopen Last Cancelled Buy Order"))
                 .binding(true, () -> this.reopenLastBuyOrderEnabled, val -> this.reopenLastBuyOrderEnabled = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Show a shortcut on the Bazaar Orders page to reopen the product page of the last cancelled buy order.")))
+                .description(ConfigScreen.createDescription(
+                    "Show a shortcut on the Bazaar Orders page to reopen the product page of the last cancelled buy order."))
                 .controller(ConfigScreen::createBooleanController);
         }
 

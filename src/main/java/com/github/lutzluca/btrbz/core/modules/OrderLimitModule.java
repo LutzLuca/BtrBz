@@ -10,7 +10,6 @@ import com.github.lutzluca.btrbz.widgets.LabelWidget;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -128,8 +127,8 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Daily Order Limit Overlay"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show BtrBz's estimate of your daily Bazaar usage.")))
+                .description(ConfigScreen.createDescription(
+                    "Show BtrBz's estimate of your daily Bazaar usage."))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }

@@ -20,7 +20,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import io.vavr.control.Try;
 import java.lang.reflect.Type;
@@ -303,8 +302,8 @@ public class AlertManager {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Play Alert Sound"))
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound together with the chat notification when a price target is reached.")))
+                .description(ConfigScreen.createDescription(
+                    "Play a sound together with the chat notification when a price target is reached."))
                 .binding(true, () -> this.soundOnAlert, val -> this.soundOnAlert = val)
                 .controller(ConfigScreen::createBooleanController);
         }

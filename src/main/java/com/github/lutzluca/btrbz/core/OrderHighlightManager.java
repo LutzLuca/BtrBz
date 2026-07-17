@@ -7,7 +7,6 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.HashMap;
 import java.util.List;
@@ -90,8 +89,8 @@ public class OrderHighlightManager {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Draw status-colored backgrounds behind your orders on the Bazaar Orders page.")))
+                .description(ConfigScreen.createDescription(
+                    "Draw status-colored backgrounds behind your orders on the Bazaar Orders page."))
                 .controller(ConfigScreen::createBooleanController);
         }
 

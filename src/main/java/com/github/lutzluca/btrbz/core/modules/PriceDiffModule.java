@@ -11,7 +11,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.LabelWidget;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import java.util.Optional;
@@ -118,8 +117,8 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Price Difference Overlay"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show the current market spread (best sell-offer price minus best buy-order price) per item and for the sellable amount in your inventory.")))
+                .description(ConfigScreen.createDescription(
+                    "Show the current market spread (best sell-offer price minus best buy-order price) per item and for the sellable amount in your inventory."))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }

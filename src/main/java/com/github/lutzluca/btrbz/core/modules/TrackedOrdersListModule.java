@@ -215,8 +215,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Tracked Orders Overlay"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show a list of tracked orders with additional information when hovering an entry.")))
+                .description(ConfigScreen.createDescription(
+                    "Show or hide the entire tracked orders overlay."))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }

@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -57,8 +56,8 @@ public class ChatFilterManager {
                 .options(List.of(
                     Option.<Boolean>createBuilder()
                           .name(Component.literal("Filter Transient Messages"))
-                          .description(OptionDescription.of(Component.literal(
-                              "Hide short-lived progress messages that do not report a result. Completed-order messages, warnings, and errors remain visible.")))
+                          .description(ConfigScreen.createDescription(
+                              "Hide short-lived progress messages that do not report a result. Completed-order messages, warnings, and errors remain visible."))
                           .binding(
                               true,
                               () -> this.enabled,

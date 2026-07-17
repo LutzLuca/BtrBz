@@ -26,7 +26,6 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
@@ -348,8 +347,8 @@ public class FlipHelper {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins below the current lowest offer.")))
+                .description(ConfigScreen.createDescription(
+                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins below the current lowest offer."))
                 .controller(ConfigScreen::createBooleanController);
         }
 

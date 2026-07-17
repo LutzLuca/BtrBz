@@ -12,7 +12,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.LabelWidget;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import java.util.Optional;
@@ -164,8 +163,8 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Value Overlay"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Show the combined coin value of your active and filled orders on the Bazaar Orders page.")))
+                .description(ConfigScreen.createDescription(
+                    "Show the combined coin value of your active and filled orders on the Bazaar Orders page."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
