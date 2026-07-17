@@ -24,7 +24,7 @@ public class AlertCommand {
 
     private static final AlertCommandParser PARSER = new AlertCommandParser();
     private static final SuggestionProvider<FabricClientCommandSource> TYPE_SUGGESTIONS = (ctx, builder) -> {
-        for (var type : List.of("buy", "sell", "instabuy", "instasell")) {
+        for (var type : List.of("buy-order", "sell-offer", "insta-buy", "insta-sell")) {
             if (type.startsWith(builder.getRemainingLowerCase())) {
                 builder.suggest(type);
             }

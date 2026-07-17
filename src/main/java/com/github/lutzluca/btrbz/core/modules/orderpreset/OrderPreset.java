@@ -13,6 +13,10 @@ import java.util.List;
 
 public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max, OrderPreset.Clipboard {
 
+    int MAX_COLOR = 0x404020;
+    int CLIPBOARD_COLOR = 0x204080;
+    int BACKGROUND_ALPHA = 0x80000000;
+
     record Volume(int amount) implements OrderPreset {
 
         @Override
@@ -52,10 +56,14 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
             this.preset = preset;
             this.displayText = Component.literal(preset.toString());
             this.backgroundColor = switch (preset) {
-                case OrderPreset.Max() -> 0x80404020;
-                case OrderPreset.Clipboard(int _) -> 0x80204080;
-                case OrderPreset.Volume(int _) -> 0x80000000;
+                case OrderPreset.Max() -> backgroundColor(MAX_COLOR);
+                case OrderPreset.Clipboard(int _) -> backgroundColor(CLIPBOARD_COLOR);
+                case OrderPreset.Volume(int _) -> BACKGROUND_ALPHA;
             };
+        }
+
+        private static int backgroundColor(int color) {
+            return BACKGROUND_ALPHA | color;
         }
 
         @Override

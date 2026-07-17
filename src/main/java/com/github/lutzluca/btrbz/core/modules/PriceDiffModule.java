@@ -11,7 +11,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.LabelWidget;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import java.util.Optional;
@@ -117,9 +116,9 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Price Diff Module"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show per-item and total price difference for the currently selected bazaar item")))
+                .name(Component.literal("Enable Price Difference Overlay"))
+                .description(ConfigScreen.createDescription(
+                    "Show the current market spread (best sell-offer price minus best buy-order price) per item and for the sellable amount in your inventory."))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -129,11 +128,13 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Price Diff"))
-                .description(OptionDescription.of(Component.literal(
-                    "Show per-item and total price difference for selected item")))
+                .name(Component.literal("Price Difference Overlay"))
+                .description(ConfigScreen.createDescription(
+                    "Display the current Bazaar spread per item and across the sellable amount in your inventory.",
+                    ConfigScreen.ConfigImage.PRICE_DIFFERENCE
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

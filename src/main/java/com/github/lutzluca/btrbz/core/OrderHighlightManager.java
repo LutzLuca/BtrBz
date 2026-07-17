@@ -7,13 +7,13 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
@@ -87,10 +87,10 @@ public class OrderHighlightManager {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Highlighting"))
+                .name(Component.literal("Enable Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable order highlights in the Order screen")))
+                .description(ConfigScreen.createDescription(
+                    "Draw status-colored backgrounds behind your orders on the Bazaar Orders page."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -100,11 +100,30 @@ public class OrderHighlightManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Highlighting"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable order highlights in the Order screen")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Color-code your orders on the Bazaar Orders page so their current status is easy to scan."),
+                    highlightLegend()
+                ),
+                    ConfigScreen.ConfigImage.ORDER_STATUS
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
+        }
+
+        private static Component highlightLegend() {
+            return Component.empty()
+                .append(Component.literal("Green").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal(": best price\n").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Blue").withStyle(ChatFormatting.BLUE))
+                .append(Component.literal(": matched at the best price\n").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Red").withStyle(ChatFormatting.RED))
+                .append(Component.literal(": undercut\n").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Purple").withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal(": status unknown\n").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Gold").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(": filled and ready to claim").withStyle(ChatFormatting.GRAY));
         }
     }
 }

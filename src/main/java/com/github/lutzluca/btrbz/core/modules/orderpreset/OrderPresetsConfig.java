@@ -7,6 +7,7 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -24,9 +25,9 @@ public class OrderPresetsConfig {
     public Builder<Boolean> createEnableOption() {
         return Option
             .<Boolean>createBuilder()
-            .name(Component.nullToEmpty("Order Presets: Master Switch"))
+            .name(Component.nullToEmpty("Enable Order Presets Overlay"))
             .description(OptionDescription.of(Component.literal(
-                "Master switch to enable or disable the Order Presets module.")))
+                "Show reusable order amounts while creating a new Bazaar buy order.")))
             .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -34,9 +35,13 @@ public class OrderPresetsConfig {
     public Builder<Boolean> createEnableContainerOption() {
         return Option
             .<Boolean>createBuilder()
-            .name(Component.nullToEmpty("Enable in Bazaar Menu"))
-            .description(OptionDescription.of(Component.literal(
-                "Show presets when setting up an order volume in the buy order volume setup menu.")))
+            .name(Component.nullToEmpty("Show in Order Amount Menu"))
+            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                ConfigScreen.text(
+                    "Show preset amounts beside the menu used to choose a buy-order amount."),
+                ConfigScreen.note(
+                    "This setting is independent from Show Beside Order Amount Sign.")
+            )))
             .binding(true, () -> this.enableOnContainer, enabled -> this.enableOnContainer = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -44,9 +49,13 @@ public class OrderPresetsConfig {
     public Builder<Boolean> createEnableSignOption() {
         return Option
             .<Boolean>createBuilder()
-            .name(Component.nullToEmpty("Enable in Sign Screen"))
-            .description(OptionDescription.of(Component.literal(
-                "Show presets when editing the enter volume amount sign in the order setup flow.")))
+            .name(Component.nullToEmpty("Show Beside Order Amount Sign"))
+            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                ConfigScreen.text(
+                    "Show preset amounts while entering the buy-order amount on the sign."),
+                ConfigScreen.note(
+                    "This can remain enabled when Show in Order Amount Menu is off.")
+            )))
             .binding(true, () -> this.enableOnSign, enabled -> this.enableOnSign = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -56,7 +65,7 @@ public class OrderPresetsConfig {
             .<Boolean>createBuilder()
             .name(Component.nullToEmpty("Hide Unaffordable Presets"))
             .description(OptionDescription.of(Component.literal(
-                "Hide presets that cannot currently be purchased due to insufficient coins.")))
+                "Hide preset amounts that cost more coins than are currently available in your purse.")))
             .binding(false, () -> this.hideUnaffordablePresets, hide -> this.hideUnaffordablePresets = hide)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -71,11 +80,25 @@ public class OrderPresetsConfig {
 
         return OptionGroup
             .createBuilder()
-            .name(Component.nullToEmpty("Order Presets"))
-            .description(OptionDescription.of(Component.literal(
-                "Lets you have predefined order volume for quick access")))
+            .name(Component.nullToEmpty("Order Presets Overlay"))
+            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                ConfigScreen.text("Choose common order amounts while setting up a buy order."),
+                Component
+                    .literal("Add a reusable amount with ")
+                    .append(ConfigScreen.command("/btrbz preset add <amount>"))
+                    .append(Component.literal(".")),
+                ConfigScreen.note(Component
+                    .literal("The overlay includes ")
+                    .withStyle(ChatFormatting.GRAY)
+                    .append(Component.literal("Max").withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal(", plus ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal("Clipboard").withStyle(ChatFormatting.BLUE))
+                    .append(Component.literal(" when it contains a valid amount.").withStyle(ChatFormatting.GRAY)))
+            ),
+                ConfigScreen.ConfigImage.ORDER_PRESETS
+            ))
             .options(rootGroup.build())
-            .collapsed(false)
+            .collapsed(true)
             .build();
     }
 }

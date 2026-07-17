@@ -510,9 +510,9 @@ public final class ProductInfoProvider {
         public Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable Product Info System"))
+                .name(Component.literal("Enable Product Information"))
                 .description(OptionDescription.of(Component.literal(
-                    "Master switch that enables or disables the entire product information feature.")))
+                    "Enable external product-page shortcuts and Bazaar price details in item tooltips.")))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -520,9 +520,11 @@ public final class ProductInfoProvider {
         public Builder<Boolean> createItemClickOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable Product Info Click"))
-                .description(OptionDescription.of(Component.literal(
-                    "Allows clicking the 'Product Info' paper item in the Bazaar Item menu to open the product page.")))
+                .name(Component.literal("Show Product Info Paper on Product Page"))
+                .description(ConfigScreen.createDescription(
+                    "Open the selected product on your preferred information site when clicking the Product Info paper in its Bazaar menu.",
+                    ConfigScreen.ConfigImage.PRODUCT_INFO_PAPER
+                ))
                 .binding(true, () -> this.itemClickEnabled, val -> this.itemClickEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -530,9 +532,9 @@ public final class ProductInfoProvider {
         public Builder<Boolean> createCtrlShiftOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Enable CTRL+SHIFT Click Shortcut"))
+                .name(Component.literal("Enable Product Lookup Click"))
                 .description(OptionDescription.of(Component.literal(
-                    "Allows viewing Bazaar product info by holding CTRL+SHIFT and clicking resolved Bazaar items.")))
+                    "Hold Ctrl+Shift and click a Bazaar product to open it on your preferred information site.")))
                 .binding(true, () -> this.ctrlShiftEnabled, val -> this.ctrlShiftEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -540,9 +542,12 @@ public final class ProductInfoProvider {
         public Builder<Boolean> createCtrlShiftOnBazaarItemsOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("CTRL+SHIFT on Bazaar Items"))
-                .description(OptionDescription.of(Component.literal(
-                    "Allows CTRL+SHIFT Click on resolved Bazaar UI items. Plain clicks still use the normal Bazaar/bookmark behavior.")))
+                .name(Component.literal("Lookup Bazaar Menu Items"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Allow Product Lookup Click on items inside Bazaar menus. A normal click keeps its usual Bazaar or bookmark action."),
+                    ConfigScreen.requires("Enable Product Lookup Click")
+                )))
                 .binding(
                     true,
                     () -> this.ctrlShiftOnBazaarItems,
@@ -554,9 +559,12 @@ public final class ProductInfoProvider {
         public Builder<Boolean> createShowOutsideBazaarOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Show Product Info Outside of the Bazaar"))
-                .description(OptionDescription.of(Component.literal(
-                    "Allows the CTRL+SHIFT Click shortcut to work outside the Bazaar (e.g., in chests or player inventory).")))
+                .name(Component.literal("Lookup Items Outside the Bazaar"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Allow Product Lookup Click in inventories and chests outside the Bazaar."),
+                    ConfigScreen.requires("Enable Product Lookup Click")
+                )))
                 .binding(true, () -> this.showOutsideBazaar, val -> this.showOutsideBazaar = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -565,8 +573,11 @@ public final class ProductInfoProvider {
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Price Tooltips"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display current Buy Order and Sell Offer prices in item tooltips for Bazaar items.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Add the best current buy-order and sell-offer prices to Bazaar product tooltips."),
+                    ConfigScreen.note("Hold Shift over a stack to show its total value instead of the per-item value.")
+                )))
                 .binding(
                     true,
                     () -> this.priceTooltipEnabled,
@@ -578,9 +589,9 @@ public final class ProductInfoProvider {
         public Builder<InfoProviderSite> createSiteOption() {
             return Option
                 .<InfoProviderSite>createBuilder()
-                .name(Component.literal("Preferred Product Info Site"))
+                .name(Component.literal("Preferred Information Site"))
                 .description(OptionDescription.of(Component.literal(
-                    "Select which external website to open for product information.")))
+                    "Choose the external website used by the Product Info paper and Product Lookup Click.")))
                 .binding(
                     InfoProviderSite.SkyblockBz,
                     () -> this.site != null ? this.site : InfoProviderSite.SkyblockBz,
@@ -592,22 +603,28 @@ public final class ProductInfoProvider {
         public OptionGroup createGroup() {
             var enabledBuilder = this.createEnabledOption();
 
-            var rootGroup = new OptionGrouping(enabledBuilder).addOptions(
-                this.createItemClickOption(),
-                this.createCtrlShiftOption(),
+            var ctrlShiftGroup = new OptionGrouping(this.createCtrlShiftOption()).addOptions(
                 this.createCtrlShiftOnBazaarItemsOption(),
-                this.createShowOutsideBazaarOption(),
-                this.createPriceTooltipOption(),
-                this.createSiteOption()
+                this.createShowOutsideBazaarOption()
             );
+
+            var rootGroup = new OptionGrouping(enabledBuilder)
+                .addOptions(this.createItemClickOption())
+                .addSubgroups(ctrlShiftGroup)
+                .addOptions(
+                    this.createPriceTooltipOption(),
+                    this.createSiteOption()
+                );
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Product Info"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for the product information helper (tooltips, click-to-open, site selection)")))
+                .name(Component.literal("Product Information"))
+                .description(ConfigScreen.createDescription(
+                    "View current prices in item tooltips or open a Bazaar product on an external information site.",
+                    ConfigScreen.ConfigImage.PRODUCT_INFO
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

@@ -20,7 +20,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import io.vavr.control.Try;
 import java.lang.reflect.Type;
@@ -288,9 +287,13 @@ public class AlertManager {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Price Alerts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable price alerts. When disabled alerts will not be fired; when re-enabled any alerts whose price is already reached will fire immediately.")))
+                .name(Component.literal("Enable Price Alerts"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Check configured price targets and notify you when a target is reached."),
+                    ConfigScreen.note(
+                        "Alerts that become valid while this is off may fire immediately when it is enabled again.")
+                )))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -298,9 +301,9 @@ public class AlertManager {
         public Option.Builder<Boolean> createSoundOnAlertOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Sound - Price Alert"))
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a price alert target is reached.")))
+                .name(Component.literal("Play Alert Sound"))
+                .description(ConfigScreen.createDescription(
+                    "Play a sound together with the chat notification when a price target is reached."))
                 .binding(true, () -> this.soundOnAlert, val -> this.soundOnAlert = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -311,10 +314,26 @@ public class AlertManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Price Alerts"))
-                .description(OptionDescription.of(Component.literal(
-                    "Configure price alerting behavior and manage active alerts")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Notify you when a Bazaar price reaches a configured target."),
+                    ConfigScreen.example(Component
+                        .empty()
+                        .append(ConfigScreen.command(
+                            "/btrbz alert add ENCHANTMENT_ULTIMATE_FLASH_1 buy-order 4m"))
+                        .append(Component
+                            .literal(" notifies when the best buy-order price for ")
+                            .withStyle(ChatFormatting.GRAY))
+                        .append(Component
+                            .literal("Flash I")
+                            .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
+                        .append(Component
+                            .literal(" reaches 4M coins or less.")
+                            .withStyle(ChatFormatting.GRAY)))
+                ),
+                    ConfigScreen.ConfigImage.PRICE_ALERT
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

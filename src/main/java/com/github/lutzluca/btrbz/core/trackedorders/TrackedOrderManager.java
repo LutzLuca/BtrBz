@@ -30,6 +30,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
@@ -390,46 +391,107 @@ public class TrackedOrderManager {
         public boolean groupOrders = false;
         public boolean includePricePerUnit = false;
 
-        public OptionGroup createGroup() {
+        public List<OptionGroup> createGroups() {
             var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption())
                 .addOptions(
                     this.createNotifyBestOnPriorityRegain(),
                     this.createSoundBestOption()
                 );
 
+            var notifyMatchedGroup = new OptionGrouping(this.createNotifyMatchedOption())
+                .addOptions(
+                    this.createGotoMatchedOption(),
+                    this.createSoundMatchedOption()
+                );
+
+            var notifyUndercutGroup = new OptionGrouping(this.createNotifyUndercutOption())
+                .addOptions(
+                    this.createGotoUndercutOption(),
+                    this.createSoundUndercutOption()
+                );
+
             var queueGroup = new OptionGrouping(this.createShowQueueInfoOption())
                 .addOptions(this.createQueueDisplayModeOption());
+
+            var notifyBestOptions = notifyBestGroup.build();
+            var notifyMatchedOptions = notifyMatchedGroup.build();
+            var notifyUndercutOptions = notifyUndercutGroup.build();
+            var queueOptions = queueGroup.build();
 
             var rootGroup = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
                     this.createGroupOrdersOption(),
                     this.createIncludePricePerUnitOption(),
-                    this.createGotoMatchedOption(),
-                    this.createGotoUndercutOption(),
-                    this.createNotifyMatchedOption(),
-                    this.createSoundMatchedOption(),
-                    this.createNotifyUndercutOption(),
-                    this.createSoundUndercutOption(),
                     this.createNotifySelfUndercutOption()
                 )
-                .addSubgroups(notifyBestGroup, queueGroup);
+                .controlGroups(
+                    notifyBestGroup,
+                    notifyMatchedGroup,
+                    notifyUndercutGroup,
+                    queueGroup
+                );
 
-            return OptionGroup
-                .createBuilder()
-                .name(Component.literal("Order Notification"))
-                .description(OptionDescription.of(Component.literal(
-                    "Tracked order notification settings")))
-                .options(rootGroup.build())
-                .collapsed(false)
-                .build();
+            return List.of(
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Order Notifications"))
+                    .description(ConfigScreen.createDescription(
+                        "Enable order-status notifications and configure behavior shared by every notification type.",
+                        ConfigScreen.ConfigImage.ORDER_NOTIFICATION
+                    ))
+                    .options(rootGroup.build())
+                    .collapsed(true)
+                    .build(),
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Top Position Notifications"))
+                    .description(ConfigScreen.createDescription(
+                        "Choose when BtrBz reports that an order has reached or regained the best market price."))
+                    .options(notifyBestOptions)
+                    .collapsed(true)
+                    .build(),
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Matched Order Notifications"))
+                    .description(ConfigScreen.createDescription(
+                        "Configure messages sent when your order shares the best price with competing orders."))
+                    .options(notifyMatchedOptions)
+                    .collapsed(true)
+                    .build(),
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Undercut Order Notifications"))
+                    .description(ConfigScreen.createDescription(
+                        "Configure messages sent when another buy order or sell offer takes priority over yours."))
+                    .options(notifyUndercutOptions)
+                    .collapsed(true)
+                    .build(),
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Notification Queue Information"))
+                    .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                        ConfigScreen.text(
+                            "Add estimated competing orders and items ahead of yours to matched and undercut notifications."),
+                        ConfigScreen.note(
+                            "The estimate comes from Hypixel's aggregated order book and is not your exact queue position.")
+                    )))
+                    .options(queueOptions)
+                    .collapsed(true)
+                    .build()
+            );
         }
 
         private Option.Builder<Action> createGotoMatchedOption() {
             return Option
                 .<Action>createBuilder()
-                .name(Component.literal("Go To - Matched"))
-                .description(OptionDescription.of(Component.literal(
-                    "Where to jump shortcut to when one of your tracked orders becomes matched")))
+                .name(Component.literal("Matched Notification Opens"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Choose where the link at the end of a matched-order notification goes."),
+                    ConfigScreen.example(matchedNotificationExample()),
+                    notificationLinkNote(),
+                    ConfigScreen.requires("Notify When Order Is Matched")
+                )))
                 .binding(
                     Action.Order,
                     () -> this.gotoOnMatched != null ? this.gotoOnMatched : Action.Order,
@@ -438,12 +500,69 @@ public class TrackedOrderManager {
                 .controller(Action::controller);
         }
 
+        private static Component matchedNotificationExample() {
+            return Component
+                .literal("[BtrBz] ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Buy Order").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("4").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE))
+                .append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("1").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" order / ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("29").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" items").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
+        }
+
+        private static Component undercutNotificationExample() {
+            return Component
+                .literal("[BtrBz] ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Buy Order").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("4").withStyle(ChatFormatting.GREEN))
+                .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("UNDERCUT!").withStyle(ChatFormatting.RED))
+                .append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("1").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" order / ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("29").withStyle(ChatFormatting.YELLOW))
+                .append(Component.literal(" items").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
+        }
+
+        private static Component notificationLinkNote() {
+            return ConfigScreen.note(Component
+                .literal("The final link changes between ")
+                .withStyle(ChatFormatting.GRAY)
+                .append(Component.literal("[Go To Orders]").withStyle(ChatFormatting.DARK_AQUA))
+                .append(Component.literal(" and ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("[Go To Item]").withStyle(ChatFormatting.DARK_AQUA))
+                .append(Component.literal(".").withStyle(ChatFormatting.GRAY)));
+        }
+
         private Option.Builder<Action> createGotoUndercutOption() {
             return Option
                 .<Action>createBuilder()
-                .name(Component.literal("Go To - Undercut"))
-                .description(OptionDescription.of(Component.literal(
-                    "Where to jump shortcut to when one of your tracked orders is undercut")))
+                .name(Component.literal("Undercut Notification Opens"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Choose where the link at the end of an undercut-order notification goes."),
+                    ConfigScreen.example(undercutNotificationExample()),
+                    notificationLinkNote(),
+                    ConfigScreen.requires("Notify When Order Is Undercut")
+                )))
                 .binding(
                     Action.Order,
                     () -> this.gotoOnUndercut != null ? this.gotoOnUndercut : Action.Order,
@@ -457,8 +576,11 @@ public class TrackedOrderManager {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Queue Info"))
                 .binding(true, () -> this.showQueueInfo, val -> this.showQueueInfo = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Display how many orders/items are ahead of your matched or undercut order")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Add estimated competing orders and items ahead of yours to matched and undercut notifications."),
+                    ConfigScreen.note("This is an order-book estimate, not an exact queue position.")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -474,102 +596,117 @@ public class TrackedOrderManager {
                         BtrBz.tooltipProvider().clearCache();
                     }
                 )
-                .description(OptionDescription.of(Component.literal(
-                    "Whether to display the number of orders and items, or just the number of items")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Show item counts only, or both order and item counts."),
+                    ConfigScreen.requires("Show Queue Info")
+                )))
                 .controller(QueueDisplayMode::controller);
         }
 
         private Option.Builder<Boolean> createNotifyBestOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Notify - Best"))
+                .name(Component.literal("Notify When Order Becomes Top"))
                 .binding(true, () -> this.notifyBest, val -> this.notifyBest = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a tracked order becomes the best/top order in the Bazaar")))
+                    "Send a message when your order reaches the best available price.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyBestOnPriorityRegain() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.nullToEmpty("Only On Priority Regain"))
+                .name(Component.nullToEmpty("Only When Regaining Top Position"))
                 .binding(
                     true,
                     () -> this.onlyOnPriorityRegain,
                     val -> this.onlyOnPriorityRegain = val
                 )
-                .description(OptionDescription.of(Component.nullToEmpty(
-                    "Only sends a notification when a tracked order regains it best/top curr")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Skip the initial top-position message and notify only after an order loses and later regains the best price."),
+                    ConfigScreen.requires("Notify When Order Becomes Top")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyMatchedOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Notify - Matched"))
+                .name(Component.literal("Notify When Order Is Matched"))
                 .binding(true, () -> this.notifyMatched, val -> this.notifyMatched = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a tracked order is matched (multiple orders at the same best price)")))
+                    "Send a message when your order shares the best price with one or more competing orders.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifyUndercutOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Notify - Undercut"))
+                .name(Component.literal("Notify When Order Is Undercut"))
                 .binding(true, () -> this.notifyUndercut, val -> this.notifyUndercut = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a tracked order is undercut / outbid by another order")))
+                    "Send a message when another buy order outbids yours or another sell offer lists for less.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createSoundBestOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Sound - Best"))
+                .name(Component.literal("Play Sound for Top Position"))
                 .binding(false, () -> this.soundBest, val -> this.soundBest = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a best/top order notification is triggered")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Play a sound with the top-position notification."),
+                    ConfigScreen.requires("Notify When Order Becomes Top")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createSoundMatchedOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Sound - Matched"))
+                .name(Component.literal("Play Sound for Matched Order"))
                 .binding(true, () -> this.soundMatched, val -> this.soundMatched = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when a matched notification is triggered")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Play a sound when an order begins sharing the best price."),
+                    ConfigScreen.requires("Notify When Order Is Matched")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createSoundUndercutOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Sound - Undercut"))
+                .name(Component.literal("Play Sound for Undercut Order"))
                 .binding(true, () -> this.soundUndercut, val -> this.soundUndercut = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Play a sound when an undercut notification is triggered")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Play a sound when another order takes priority over yours."),
+                    ConfigScreen.requires("Notify When Order Is Undercut")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createGroupOrdersOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Group Orders"))
+                .name(Component.literal("Group Orders (Experimental)"))
                 .binding(false, () -> this.groupOrders, val -> this.groupOrders = val)
-                .description(OptionDescription.of(Component.literal(
-                    "(Experimental) Group multiple orders at the same price into a single notification. Not yet fully tested, use with caution")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Combine your orders for the same product, side, and price into one notification."),
+                    ConfigScreen.note(
+                        "Some unusual grouped-order status transitions are not fully tested.")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createNotifySelfUndercutOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Notify - Self Undercut"))
+                .name(Component.literal("Warn When Your Orders Compete"))
                 .binding(true, () -> this.notifySelfUndercut, val -> this.notifySelfUndercut = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Send a notification when a previously placed order is detected to be undercut")))
+                    "Send a separate notification when one of your own orders undercuts another order for the same product.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -579,17 +716,17 @@ public class TrackedOrderManager {
                 .name(Component.literal("Include Price Per Unit"))
                 .binding(false, () -> this.includePricePerUnit, val -> this.includePricePerUnit = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Include the price per unit in the notification message")))
+                    "Include each order's unit price in status notification messages.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         private Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Tracked Orders"))
+                .name(Component.literal("Enable Order Notifications"))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the notifications when the curr of an order changes")))
+                    "Send messages when a tracked Bazaar order changes its market position.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -605,7 +742,7 @@ public class TrackedOrderManager {
                     .formatValue(action -> switch (action) {
                         case None -> Component.literal("No action");
                         case Item -> Component.literal("Go to Item in Bazaar");
-                        case Order -> Component.literal("Open Manage Bazaar Orders");
+                        case Order -> Component.literal("Open Bazaar Orders Page");
                     });
             }
         }

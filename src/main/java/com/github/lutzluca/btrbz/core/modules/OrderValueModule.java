@@ -12,7 +12,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.widgets.LabelWidget;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
 import java.util.Optional;
@@ -162,10 +161,10 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Value Overlay"))
+                .name(Component.literal("Enable Order Value Overlay"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the overlay that displays how much money your orders in the bazaar are worth")))
+                .description(ConfigScreen.createDescription(
+                    "Show the combined coin value of your active and filled orders on the Bazaar Orders page."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -175,8 +174,16 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Value Overlay"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Summarize coins tied up in active orders and available from filled orders."),
+                    ConfigScreen.note(
+                        "Pending and claimable items are valued at their own order price, not the current market price.")
+                ),
+                    ConfigScreen.ConfigImage.ORDER_VALUE
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

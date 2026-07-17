@@ -10,7 +10,6 @@ import com.github.lutzluca.btrbz.widgets.LabelWidget;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -127,9 +126,9 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Limit Module"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the Order Limit module that tracks your daily coin spending limit")))
+                .name(Component.literal("Enable Daily Order Limit Overlay"))
+                .description(ConfigScreen.createDescription(
+                    "Show BtrBz's estimate of your daily Bazaar usage."))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -138,8 +137,10 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Use Compact Display"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display the order limit in a compact format that takes up less screen space")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Abbreviate large values in the overlay."),
+                    ConfigScreen.example("1,250,000 is displayed as 1.3M.")
+                )))
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -149,11 +150,20 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
             return OptionGroup
                 .createBuilder()
-                .name(Component.literal("Order Limit"))
-                .description(OptionDescription.of(Component.literal(
-                    "Display and behaviour settings for the Order Limit module")))
+                .name(Component.literal("Daily Order Limit Overlay"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Show BtrBz's estimate of your daily Bazaar usage."),
+                    ConfigScreen.note(
+                        "The counter resets at 00:00 UTC and may differ from Hypixel if transactions were not observed."),
+                    Component
+                        .literal("For accurate estimates, configure your Bazaar tax rate with ")
+                        .append(ConfigScreen.command("/btrbz tax set <rate>"))
+                        .append(Component.literal("."))
+                ),
+                    ConfigScreen.ConfigImage.DAILY_LIMIT
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }

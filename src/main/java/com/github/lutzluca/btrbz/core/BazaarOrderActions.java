@@ -18,7 +18,6 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
@@ -338,17 +337,15 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createReopenBazaarOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Return to Bazaar After Order Setup"))
+                .name(Component.literal("Return to Bazaar After Placing an Order"))
                 .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
-                .description(OptionDescription.of(GameUtils.join(
-                    List.of(
-                        Component.literal(
-                            "Automatically reopens the main Bazaar menu after placing a buy/sell order."),
-                        Component.literal(
-                            "\nNote: This executes '/bz' which requires a server round-trip."),
-                        Component.literal(
-                            "You may experience brief mouse unlock during the transition, which may feel a bit clunky.")
-                    ), " "
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    Component
+                        .literal("Run ")
+                        .append(ConfigScreen.command("/bz"))
+                        .append(Component.literal(" after placing a buy order or sell offer.")),
+                    ConfigScreen.note(
+                        "The menu may briefly close and unlock the mouse while the server reopens it.")
                 )))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -356,34 +353,37 @@ public class BazaarOrderActions {
         public Option.Builder<Boolean> createCopyRemainingOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Copy Remaining "))
+                .name(Component.literal("Copy Remaining Amount"))
                 .binding(true, () -> this.copyRemaining, enabled -> this.copyRemaining = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Automatically copies the remaining amount of items from a cancelled order")))
+                .description(ConfigScreen.createDescription(
+                    "Copy the unfilled amount when cancelling a buy order, ready to paste into the next order."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Modifier> createCopyRemainingModifierOption() {
             return Option
                 .<Modifier>createBuilder()
-                .name(Component.literal("Copy Remaining Modifier"))
+                .name(Component.literal("Copy Amount Modifier"))
                 .binding(
                     Modifier.Ctrl,
                     () -> this.copyRemainingModifier != null ? this.copyRemainingModifier : Modifier.Ctrl,
                     val -> this.copyRemainingModifier = val
                 )
-                .description(OptionDescription.of(Component.literal(
-                    "The modifier key that must be held down to copy the remaining amount")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Choose which modifier key must be held while cancelling to copy the unfilled amount."),
+                    ConfigScreen.requires("Copy Remaining Amount")
+                )))
                 .controller(Modifier::controller);
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Order Actions Toggle"))
+                .name(Component.literal("Enable Cancelled Order Actions"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Master switch for actions on order cancel")))
+                .description(ConfigScreen.createDescription(
+                    "Enable shortcuts for cancelled buy orders."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -392,9 +392,8 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Reopen Last Cancelled Buy Order"))
                 .binding(true, () -> this.reopenLastBuyOrderEnabled, val -> this.reopenLastBuyOrderEnabled = val)
-                .description(OptionDescription.of(Component.literal(
-                    "Show a button in the Manage Orders screen to quickly reopen the Bazaar page "
-                    + "of the last cancelled buy order.")))
+                .description(ConfigScreen.createDescription(
+                    "Show a shortcut on the Bazaar Orders page to reopen the product page of the last cancelled buy order."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -403,13 +402,15 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Hide Button After Closing Orders"))
                 .binding(true, () -> this.clearOnClose, val -> this.clearOnClose = val)
-                .description(OptionDescription.of(Component.literal(
-                    "When enabled, the reopen button is hidden after you close the Manage Orders screen. "
-                    + "It reappears automatically the next time you cancel a buy order.")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Hide the reopen button when you leave the Bazaar Orders page. It returns after another buy order is cancelled."),
+                    ConfigScreen.requires("Reopen Last Cancelled Buy Order")
+                )))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public OptionGroup createGroup() {
+        public List<OptionGroup> createGroups() {
             var copyGroup = new OptionGrouping(this.createCopyRemainingOption())
                 .addOptions(this.createCopyRemainingModifierOption());
 
@@ -417,17 +418,28 @@ public class BazaarOrderActions {
                 .addOptions(this.createClearOnCloseOption());
 
             var rootGroup = new OptionGrouping(this.createEnabledOption())
-                .addOptions(this.createReopenBazaarOption())
                 .addSubgroups(copyGroup, reopenGroup);
 
-            return OptionGroup
-                .createBuilder()
-                .name(Component.literal("Order Cancel Actions"))
-                .description(OptionDescription.of(Component.literal(
-                    "Settings for actions after canceling an order")))
-                .options(rootGroup.build())
-                .collapsed(false)
-                .build();
+            return List.of(
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("After Placing an Order"))
+                    .description(ConfigScreen.createDescription(
+                        "Configure what happens after placing a buy order or sell offer."))
+                    .options(List.of(this.createReopenBazaarOption().build()))
+                    .collapsed(true)
+                    .build(),
+                OptionGroup
+                    .createBuilder()
+                    .name(Component.literal("Cancelled Order Actions"))
+                    .description(ConfigScreen.createDescription(
+                        "Copy the remaining amount or reopen the product page of the last cancelled buy order.",
+                        ConfigScreen.ConfigImage.REOPEN_LAST_ORDER
+                    ))
+                    .options(rootGroup.build())
+                    .collapsed(true)
+                    .build()
+            );
         }
     }
 }

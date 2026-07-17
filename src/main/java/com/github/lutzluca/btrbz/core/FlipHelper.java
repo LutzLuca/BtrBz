@@ -26,7 +26,6 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
@@ -346,10 +345,10 @@ public class FlipHelper {
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Flip Helper"))
+                .name(Component.literal("Enable Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .description(ConfigScreen.createDescription(
+                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins below the current lowest offer."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -359,10 +358,15 @@ public class FlipHelper {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Flip Helper"))
-                .description(OptionDescription.of(Component.literal(
-                    "Enable or disable the flip helper features (quick flip UI interactions)")))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text("Turn a filled buy order into a sell offer with fewer clicks."),
+                    ConfigScreen.example(
+                        "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")
+                ),
+                    ConfigScreen.ConfigImage.FLIP_HELPER
+                ))
                 .options(rootGroup.build())
-                .collapsed(false)
+                .collapsed(true)
                 .build();
         }
     }
