@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -36,7 +37,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
 
     private OrderBookPriceWidget widget;
 
-    private static final BazaarMenuType[] PRICE_SETUP_MENUS = {
+    private static final BazaarMenuType[] REGULAR_PRICE_SETUP_MENUS = {
         BazaarMenuType.BuyOrderSetupPrice,
         BazaarMenuType.SellOfferSetup
     };
@@ -67,20 +68,29 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         });
 
         this.context().bazaarData().addListener(snapshot -> {
-            var product = this.context().productInfoProvider().getOpenedProduct();
-            if (this.isDisplayed() && product != null) {
+            var prev = ScreenInfoHelper.get().getPrevInfo();
+            if (this.isDisplayed() && this.resolveProduct(prev).isPresent()) {
                 this.rebuildList();
             }
         });
     }
 
     private boolean isEnterPriceScreen(ScreenInfo curr, ScreenInfo prev) {
-        var product = this.context().productInfoProvider().getOpenedProduct();
-        if (!(curr.getScreen() instanceof SignEditScreen) || product == null) {
+        if (!(curr.getScreen() instanceof SignEditScreen) || this.resolveProduct(prev).isEmpty()) {
             return false;
         }
 
-        return prev.inMenu(PRICE_SETUP_MENUS);
+        return prev.inMenu(REGULAR_PRICE_SETUP_MENUS)
+            || (this.configState.showOnFlipSign && prev.inMenu(BazaarMenuType.OrderOptions));
+    }
+
+    private Optional<IndexedProduct> resolveProduct(ScreenInfo prev) {
+        if (prev.inMenu(BazaarMenuType.OrderOptions)) {
+            // OrderOptions does not expose the product, so use the product captured from the clicked order.
+            return this.context().flipProductContext().getSelectedProduct();
+        }
+
+        return Optional.ofNullable(this.context().productInfoProvider().getOpenedProduct());
     }
 
     private Optional<OrderType> resolveCurrentOrderType(ScreenInfo curr, ScreenInfo prev) {
@@ -91,6 +101,12 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         if (isSign && prev.inMenu(BazaarMenuType.SellOfferSetup)) {
+            return Optional.of(OrderType.Sell);
+        }
+
+        if (isSign
+            && this.configState.showOnFlipSign
+            && prev.inMenu(BazaarMenuType.OrderOptions)) {
             return Optional.of(OrderType.Sell);
         }
 
@@ -108,8 +124,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         var prev = ScreenInfoHelper.get().getPrevInfo();
-        var product = this.context().productInfoProvider().getOpenedProduct();
-        return product != null && this.isEnterPriceScreen(info, prev);
+        return this.isEnterPriceScreen(info, prev);
     }
 
     public void rebuildList() {
@@ -117,18 +132,21 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        var product = this.context().productInfoProvider().getOpenedProduct();
-        if (product == null) {
+        var prev = ScreenInfoHelper.get().getPrevInfo();
+        var product = this.resolveProduct(prev);
+        if (product.isEmpty()) {
             return;
         }
 
         if (this.currentOrderType == null) {
-            log.debug("Current order type is null, clearing list for product {}", product);
+            log.debug("Current order type is null, clearing list for product {}", product.get());
             this.widget.updateList(List.of());
             return;
         }
 
-        var orders = this.context().bazaarData().getOrderLists(ProductIdentity.fromIndex(product));
+        var orders = this.context()
+            .bazaarData()
+            .getOrderLists(ProductIdentity.fromIndex(product.get()));
 
         var summaries = switch (this.currentOrderType) {
             case Buy -> orders.buyOrders();
@@ -179,13 +197,13 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private void handlePriceClick(double rawPrice, boolean copyOnly) {
-        var product = this.context().productInfoProvider().getOpenedProduct();
-        if (product == null) {
+        var currInfo = ScreenInfoHelper.get().getCurrInfo();
+        var prevInfo = ScreenInfoHelper.get().getPrevInfo();
+        var product = this.resolveProduct(prevInfo);
+        if (product.isEmpty()) {
             return;
         }
 
-        var currInfo = ScreenInfoHelper.get().getCurrInfo();
-        var prevInfo = ScreenInfoHelper.get().getPrevInfo();
         var orderType = this.resolveCurrentOrderType(currInfo, prevInfo).orElse(this.currentOrderType);
         if (orderType == null) {
             return;
@@ -209,6 +227,11 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         log.debug("Price click processed: rawPrice={}, finalPrice={}", rawPrice, priceToUse);
 
         if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
+            if (prevInfo.inMenu(BazaarMenuType.OrderOptions)) {
+                this.context()
+                    .flipSubmissionTracker()
+                    .recordSubmittedFlip(ProductIdentity.fromIndex(product.get()), priceToUse);
+            }
             GameUtils.submitSignValue(signEditScreen, Utils.formatDecimal(priceToUse, 1, false));
         }
     }
@@ -223,6 +246,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     public static class OrderBookPriceConfig {
         public Position signPosition;
         public boolean enabled = true;
+        public boolean showOnFlipSign = true;
 
         public Option.Builder<Boolean> createEnableOption() {
             return Option
@@ -238,8 +262,27 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
                 .controller(ConfigScreen::createBooleanController);
         }
 
+        public Option.Builder<Boolean> createShowOnFlipSignOption() {
+            return Option
+                .<Boolean>createBuilder()
+                .name(Component.nullToEmpty("Show on Flip Price Sign"))
+                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                    ConfigScreen.text(
+                        "Show the sell-offer order book when entering a custom price for a filled buy order."),
+                    ConfigScreen.note(
+                        "Disable this to keep the overlay on regular buy-order and sell-offer price signs only.")
+                )))
+                .binding(
+                    true,
+                    () -> this.showOnFlipSign,
+                    val -> this.showOnFlipSign = val
+                )
+                .controller(ConfigScreen::createBooleanController);
+        }
+
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnableOption());
+            var rootGroup = new OptionGrouping(this.createEnableOption())
+                .addOptions(this.createShowOnFlipSignOption());
 
             return OptionGroup
                 .createBuilder()
