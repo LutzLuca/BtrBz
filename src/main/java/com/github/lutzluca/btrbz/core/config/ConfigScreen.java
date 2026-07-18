@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class ConfigScreen {
 
+    //? if <26.2 {
     public static void open() {
         var client = Minecraft.getInstance();
         client.schedule(() -> client.setScreen(ConfigScreen.create(
@@ -29,6 +30,15 @@ public class ConfigScreen {
             ConfigManager.get()
         )));
     }
+    //?} else {
+    /*public static void open() {
+        var client = Minecraft.getInstance();
+        client.schedule(() -> client.gui.setScreen(ConfigScreen.create(
+            client.gui.screen(),
+            ConfigManager.get()
+        )));
+    }
+    *///?}
 
     public static Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(

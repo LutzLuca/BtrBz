@@ -38,7 +38,11 @@ public final class GameUtils {
         var accessor = (com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor) signEditScreen;
         accessor.setLine(0);
         accessor.invokeSetMessage(value);
+        //? if <26.2 {
         Minecraft.getInstance().setScreen(null);
+        //?} else {
+        /*Minecraft.getInstance().gui.setScreen(null);
+         *///?}
     }
 
     public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;

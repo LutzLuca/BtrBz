@@ -42,7 +42,11 @@ public abstract class SlotItemProjectionMixin {
 
     @Unique
     private boolean btrbz$isCurrentMenuSlot(Slot slot) {
+        //? if <26.2 {
         var screen = Minecraft.getInstance().screen;
+        //?} else {
+        /*var screen = Minecraft.getInstance().gui.screen();
+        *///?}
 
         if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
             return false;

@@ -120,7 +120,11 @@ public class OrderBookScreen extends Screen {
 
     @Override
     public void onClose() {
+        //? if <26.2 {
         Minecraft.getInstance().setScreen(parent);
+        //?} else {
+        /*Minecraft.getInstance().gui.setScreen(parent);
+         *///?}
     }
 
     @Override
