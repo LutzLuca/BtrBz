@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0-alpha] - 2026-07-18
+
+### Added
+
+- Added an optional Order Book price overlay when entering custom flip prices from the Order Options screen
+- Added support for Minecraft 26.2
+
+### Changed
+
+- Reorganized the configuration screen into clearer categories with improved labels, descriptions, examples, images, color legends, and dependency guidance
+- Configuration sections now open collapsed by default for easier navigation
+- Alert commands now accept clearer order type names such as `buy-order`, `sell-offer`, `insta-buy`, and `insta-sell`
+
 ## [0.9.0-alpha] - 2026-07-12
 
 ### Added
