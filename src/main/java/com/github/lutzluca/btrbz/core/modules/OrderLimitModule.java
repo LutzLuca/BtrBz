@@ -34,11 +34,12 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
     @Override
     public Optional<DraggableWidget> createWidget(ScreenInfo info) {
+        var usage = this.currentUsage();
         List<Component> lines = List.of(
             Component.literal("Daily Limit:").withStyle(ChatFormatting.GOLD),
             Component
-                .literal(this.formatAmount(this.configState.usedToday) + " / " + Utils.formatCompact(
-                    this.configState.dailyLimit,
+                .literal(this.formatAmount(usage.used()) + " / " + Utils.formatCompact(
+                    usage.limit(),
                     0
                 ))
                 .withStyle(ChatFormatting.GREEN)
@@ -78,17 +79,33 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         );
     }
 
-    private void resetOrderLimitOnNewDay() {
-        long today = LocalDate.now(ZoneOffset.UTC).toEpochDay();
+    public DailyLimitUsage currentUsage() {
+        return new DailyLimitUsage(
+            this.configState.usedToday,
+            this.configState.dailyLimit,
+            this.configState.lastResetEpochDay
+        );
+    }
 
-        if (this.configState.lastResetEpochDay != today) {
+    private void resetOrderLimitOnNewDay() {
+        this.resetOrderLimitForDay(LocalDate.now(ZoneOffset.UTC).toEpochDay());
+    }
+
+    public boolean resetOrderLimitForDay(long epochDay) {
+        if (needsReset(this.configState.lastResetEpochDay, epochDay)) {
             log.info("Resetting daily order limit usage");
 
             this.updateConfig(cfg -> {
                 cfg.usedToday = 0.0;
-                cfg.lastResetEpochDay = today;
+                cfg.lastResetEpochDay = epochDay;
             });
+            return true;
         }
+        return false;
+    }
+
+    public static boolean needsReset(long lastResetEpochDay, long currentEpochDay) {
+        return lastResetEpochDay != currentEpochDay;
     }
 
     public String formatAmount(double amount) {
@@ -110,6 +127,8 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
 
         return Utils.formatCompact(amount, places);
     }
+
+    public record DailyLimitUsage(double used, double limit, long lastResetEpochDay) { }
 
     public static class OrderLimitConfig {
 

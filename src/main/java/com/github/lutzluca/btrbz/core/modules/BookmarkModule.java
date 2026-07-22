@@ -2,11 +2,14 @@ package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Position;
@@ -42,7 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -67,15 +70,28 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     private static final int SELL_OFFER_INDICATOR_COLOR = 0xFFFFD700;
 
     private ListWidget list;
+    private final BazaarData bazaarData;
+    private final ProductInfoProvider productInfoProvider;
+    private final TrackedOrderManager trackedOrderManager;
 
     private final Set<String> orderBuySet = new HashSet<>();
     private final Set<String> orderSellSet = new HashSet<>();
+
+    public BookmarkModule(
+        BazaarData bazaarData,
+        ProductInfoProvider productInfoProvider,
+        TrackedOrderManager trackedOrderManager
+    ) {
+        this.bazaarData = bazaarData;
+        this.productInfoProvider = productInfoProvider;
+        this.trackedOrderManager = trackedOrderManager;
+    }
 
     private void rebuildOrderCache() {
         this.orderBuySet.clear();
         this.orderSellSet.clear();
 
-        BtrBz.orderManager().getTrackedOrders().forEach(order -> {
+        this.trackedOrderManager.getTrackedOrders().forEach(order -> {
             switch (order.type) {
                 case Buy -> order.product.bazaarProductId().ifPresent(this.orderBuySet::add);
                 case Sell -> order.product.bazaarProductId().ifPresent(this.orderSellSet::add);
@@ -87,13 +103,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     public void onLoad() {
         this.configState.bookmarkedItems.removeIf(Objects::isNull);
 
-        var orderManager = BtrBz.orderManager();
         this.rebuildOrderCache();
-        orderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
-        orderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
-        orderManager.addOnOrderUpdatedListener(order -> this.rebuildOrderCache());
-        orderManager.addOnOrdersResetListener(this::rebuildOrderCache);
-        this.context().bazaarData().addIndexChangeListener(this::refreshBookmarkedProducts);
+        this.trackedOrderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
+        this.trackedOrderManager.addOnOrderRemovedListener(order -> this.rebuildOrderCache());
+        this.trackedOrderManager.addOnOrderUpdatedListener(order -> this.rebuildOrderCache());
+        this.trackedOrderManager.addOnOrdersResetListener(this::rebuildOrderCache);
+        this.bazaarData.addIndexChangeListener(this::refreshBookmarkedProducts);
 
         SlotHookRegistry.register(new BookmarkedItemHook());
     }
@@ -107,54 +122,102 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     private boolean toggleBookmark(IndexedProduct product, ItemStack itemStack) {
-        final class BookmarkTag {
-            boolean bookmarked;
+        if (this.isBookmarked(product)) {
+            this.removeBookmark(product.productId());
+            return false;
         }
 
-        var tag = new BookmarkTag();
         this.updateConfig(cfg -> {
-            var it = cfg.bookmarkedItems.listIterator();
-            while (it.hasNext()) {
-                var item = it.next();
-                if (item.product().productId().equals(product.productId())) {
-                    it.remove();
-                    tag.bookmarked = false;
-                    return;
-                }
-            }
-
-            it.add(new BookmarkedItem(product, itemStack));
-            tag.bookmarked = true;
+            cfg.bookmarkedItems.add(new BookmarkedItem(product, itemStack));
         });
 
-        if (this.list == null) {
-            return tag.bookmarked;
+        if (this.list != null) {
+            this.list.addItem(new BookmarkedItemRenderable(
+                product,
+                itemStack,
+                this.orderBuySet,
+                this.orderSellSet
+            ));
         }
+        return true;
+    }
 
-        if (tag.bookmarked) {
-            this.list.addItem(new BookmarkedItemRenderable(product, itemStack, this.orderBuySet, this.orderSellSet));
-            return tag.bookmarked;
-        }
-
-        this.list
-            .getItems()
+    public List<BookmarkSnapshot> currentBookmarks() {
+        return this.configState.bookmarkedItems
             .stream()
-            .filter(widget -> ((BookmarkedItemRenderable) widget).getProduct().productId().equals(product.productId()))
-            .findFirst()
-            .ifPresentOrElse(
-                widget -> {
-                    int index = this.list.getItems().indexOf(widget);
-                    if (index >= 0) {
-                        this.list.removeItem(index);
-                    }
-                },
-                () -> log.warn(
-                    "Tried to remove bookmark widget for {}, but it was not found",
-                    product
-                )
-            );
+            .map(item -> new BookmarkSnapshot(
+                item.product().productId(),
+                item.productName(),
+                item.itemStack(),
+                this.orderBuySet.contains(item.product().productId()),
+                this.orderSellSet.contains(item.product().productId())
+            ))
+            .toList();
+    }
 
-        return tag.bookmarked;
+    public boolean openBookmark(String productId) {
+        return this.configState.bookmarkedItems
+            .stream()
+            .filter(item -> item.product().productId().equals(productId))
+            .findFirst()
+            .map(item -> {
+                GameUtils.runCommand("bz " + item.productName());
+                return true;
+            })
+            .orElse(false);
+    }
+
+    public boolean removeBookmark(String productId) {
+        var updated = new ArrayList<>(this.configState.bookmarkedItems);
+        boolean removed = removeMatching(
+            updated,
+            item -> item.product().productId().equals(productId)
+        );
+        if (!removed) {
+            return false;
+        }
+
+        this.updateConfig(cfg -> cfg.bookmarkedItems = updated);
+        this.rebuildBookmarkList();
+        return true;
+    }
+
+    public boolean moveBookmark(String productId, int targetIndex) {
+        var updated = new ArrayList<>(this.configState.bookmarkedItems);
+        boolean moved = moveMatching(
+            updated,
+            item -> item.product().productId().equals(productId),
+            targetIndex
+        );
+        if (!moved) {
+            return false;
+        }
+
+        this.updateConfig(cfg -> cfg.bookmarkedItems = updated);
+        this.rebuildBookmarkList();
+        return true;
+    }
+
+    static <T> boolean moveMatching(List<T> items, Predicate<T> predicate, int targetIndex) {
+        if (targetIndex < 0 || targetIndex > items.size()) {
+            return false;
+        }
+
+        var matching = items.stream().filter(predicate).findFirst();
+        if (matching.isEmpty()) {
+            return false;
+        }
+
+        var item = matching.get();
+        int sourceIndex = items.indexOf(item);
+        items.remove(sourceIndex);
+        int insertionIndex = Math.min(targetIndex, items.size());
+        items.add(insertionIndex, item);
+        return sourceIndex != insertionIndex;
+    }
+
+    static <T> boolean removeMatching(List<T> items, Predicate<T> predicate) {
+        return items.removeIf(predicate);
     }
 
     private void refreshBookmarkedProducts() {
@@ -162,7 +225,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         var changed = false;
 
         for (var item : this.configState.bookmarkedItems) {
-            var refreshedProduct = this.context().bazaarData().refreshIndexedProduct(item.product());
+            var refreshedProduct = this.bazaarData.refreshIndexedProduct(item.product());
             if (refreshedProduct.equals(item.product())) {
                 refreshedItems.add(item);
                 continue;
@@ -198,7 +261,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 this.orderBuySet,
                 this.orderSellSet
             ))
-            .collect(Collectors.toList());
+            .map(Renderable.class::cast)
+            .toList();
     }
 
     @Override
@@ -226,9 +290,16 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .setRemovable(true)
             .setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
 
-        widget.onItemClick((self, item, idx) -> GameUtils.runCommand("bz " + ((BookmarkedItemRenderable) item).getProductName()))
-            .onReorder((self, fromIdx, toIdx) -> this.syncBookmarksFromList(self.getItems()))
-            .onItemRemoved((self, item, idx) -> this.syncBookmarksFromList(self.getItems()))
+        widget.onItemClick((self, item, idx) -> this.openBookmark(
+                ((BookmarkedItemRenderable) item).getProduct().productId()
+            ))
+            .onReorder((self, fromIdx, toIdx) -> this.moveBookmark(
+                ((BookmarkedItemRenderable) self.getItems().get(toIdx)).getProduct().productId(),
+                toIdx
+            ))
+            .onItemRemoved((self, item, idx) -> this.removeBookmark(
+                ((BookmarkedItemRenderable) item).getProduct().productId()
+            ))
             .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         widget.setItems(this.bookmarkRenderables());
@@ -264,7 +335,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return null;
             }
 
-            var product = BookmarkModule.this.context().productInfoProvider().getOpenedProduct();
+            var product = BookmarkModule.this.productInfoProvider.getOpenedProduct();
             if (product == null) {
                 return null;
             }
@@ -285,7 +356,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 return SlotClickResult.Pass;
             }
 
-            var product = BookmarkModule.this.context().productInfoProvider().getOpenedProduct();
+            var product = BookmarkModule.this.productInfoProvider.getOpenedProduct();
             if (product == null) {
                 return SlotClickResult.Pass;
             }
@@ -296,13 +367,21 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         }
     }
 
-    private void syncBookmarksFromList(List<Renderable> items) {
-        log.debug("Syncing bookmarks from widget list to config");
+    public record BookmarkSnapshot(
+        String productId,
+        String productName,
+        ItemStack itemStack,
+        boolean hasBuyOrder,
+        boolean hasSellOffer
+    ) {
+        public BookmarkSnapshot {
+            itemStack = itemStack.copy();
+        }
 
-        this.updateConfig(cfg -> cfg.bookmarkedItems = items.stream()
-            .map(BookmarkedItemRenderable.class::cast)
-            .map(item -> new BookmarkedItem(item.getProduct(), item.getItemStack()))
-            .collect(Collectors.toList()));
+        @Override
+        public ItemStack itemStack() {
+            return this.itemStack.copy();
+        }
     }
 
     public static class BookmarkedItemRenderable implements Renderable {

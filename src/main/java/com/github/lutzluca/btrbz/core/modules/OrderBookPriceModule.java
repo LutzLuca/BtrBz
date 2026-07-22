@@ -1,8 +1,12 @@
 package com.github.lutzluca.btrbz.core.modules;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
+import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -25,7 +29,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -43,6 +46,22 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     };
 
     @Nullable private OrderType currentOrderType;
+    private final BazaarData bazaarData;
+    private final ProductInfoProvider productInfoProvider;
+    private final FlipProductContext flipProductContext;
+    private final FlipSubmissionTracker flipSubmissionTracker;
+
+    public OrderBookPriceModule(
+        BazaarData bazaarData,
+        ProductInfoProvider productInfoProvider,
+        FlipProductContext flipProductContext,
+        FlipSubmissionTracker flipSubmissionTracker
+    ) {
+        this.bazaarData = bazaarData;
+        this.productInfoProvider = productInfoProvider;
+        this.flipProductContext = flipProductContext;
+        this.flipSubmissionTracker = flipSubmissionTracker;
+    }
 
     @Override
     public void onLoad() {
@@ -67,7 +86,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             }
         });
 
-        this.context().bazaarData().addListener(snapshot -> {
+        this.bazaarData.addListener(snapshot -> {
             var prev = ScreenInfoHelper.get().getPrevInfo();
             if (this.isDisplayed() && this.resolveProduct(prev).isPresent()) {
                 this.rebuildList();
@@ -87,10 +106,10 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     private Optional<IndexedProduct> resolveProduct(ScreenInfo prev) {
         if (prev.inMenu(BazaarMenuType.OrderOptions)) {
             // OrderOptions does not expose the product, so use the product captured from the clicked order.
-            return this.context().flipProductContext().getSelectedProduct();
+            return this.flipProductContext.getSelectedProduct();
         }
 
-        return Optional.ofNullable(this.context().productInfoProvider().getOpenedProduct());
+        return Optional.ofNullable(this.productInfoProvider.getOpenedProduct());
     }
 
     private Optional<OrderType> resolveCurrentOrderType(ScreenInfo curr, ScreenInfo prev) {
@@ -132,35 +151,44 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
+        var entries = this.currentSnapshot()
+            .map(snapshot -> snapshot.levels()
+                .stream()
+                .map(level -> (Renderable) new OrderBookEntry(level, snapshot.orderType()))
+                .toList())
+            .orElseGet(List::of);
+        this.widget.updateList(entries);
+    }
+
+    public Optional<OrderBookSnapshot> currentSnapshot() {
+        var curr = ScreenInfoHelper.get().getCurrInfo();
         var prev = ScreenInfoHelper.get().getPrevInfo();
         var product = this.resolveProduct(prev);
-        if (product.isEmpty()) {
-            return;
+        var orderType = this.resolveCurrentOrderType(curr, prev)
+            .or(() -> Optional.ofNullable(this.currentOrderType));
+        if (product.isEmpty() || orderType.isEmpty()) {
+            return Optional.empty();
         }
 
-        if (this.currentOrderType == null) {
-            log.debug("Current order type is null, clearing list for product {}", product.get());
-            this.widget.updateList(List.of());
-            return;
-        }
-
-        var orders = this.context()
-            .bazaarData()
-            .getOrderLists(ProductIdentity.fromIndex(product.get()));
-
-        var summaries = switch (this.currentOrderType) {
+        var identity = ProductIdentity.fromIndex(product.get());
+        var orders = this.bazaarData.getOrderLists(identity);
+        var summaries = switch (orderType.get()) {
             case Buy -> orders.buyOrders();
             case Sell -> orders.sellOffers();
         };
 
-        List<Renderable> entries = new ArrayList<>();
         double accumulatedVolume = 0;
+        var levels = new ArrayList<PriceLevel>(summaries.size());
         for (var summary : summaries) {
             accumulatedVolume += summary.getAmount();
-            entries.add(new OrderBookEntry(summary, this.currentOrderType, accumulatedVolume));
+            levels.add(new PriceLevel(
+                summary.getPricePerUnit(),
+                summary.getAmount(),
+                (int) summary.getOrders(),
+                accumulatedVolume
+            ));
         }
-
-        this.widget.updateList(entries);
+        return Optional.of(new OrderBookSnapshot(identity, orderType.get(), levels));
     }
 
     @Override
@@ -180,7 +208,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             this.widget = new OrderBookPriceWidget(
                 position.map(Position::x).orElse(20),
                 position.map(Position::y).orElse(20),
-                this::handlePriceClick
+                this::selectPrice
             );
 
             this.widget.onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.signPosition = pos));
@@ -196,7 +224,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         return Optional.ofNullable(this.configState.signPosition);
     }
 
-    private void handlePriceClick(double rawPrice, boolean copyOnly) {
+    public void selectPrice(double rawPrice, boolean copyOnly) {
         var currInfo = ScreenInfoHelper.get().getCurrInfo();
         var prevInfo = ScreenInfoHelper.get().getPrevInfo();
         var product = this.resolveProduct(prevInfo);
@@ -222,26 +250,44 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
             return;
         }
 
-        double priceToUse = this.applyUndercut(rawPrice, orderType);
+        double priceToUse = applyUndercut(rawPrice, orderType);
 
         log.debug("Price click processed: rawPrice={}, finalPrice={}", rawPrice, priceToUse);
 
         if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
             if (prevInfo.inMenu(BazaarMenuType.OrderOptions)) {
-                this.context()
-                    .flipSubmissionTracker()
-                    .recordSubmittedFlip(ProductIdentity.fromIndex(product.get()), priceToUse);
+                this.flipSubmissionTracker.recordSubmittedFlip(
+                    ProductIdentity.fromIndex(product.get()),
+                    priceToUse
+                );
             }
             GameUtils.submitSignValue(signEditScreen, Utils.formatDecimal(priceToUse, 1, false));
         }
     }
 
-    private double applyUndercut(double rawPrice, OrderType orderType) {
+    public static double applyUndercut(double rawPrice, OrderType orderType) {
         return switch (orderType) {
             case Buy -> rawPrice + 0.1;
             case Sell -> Math.max(rawPrice - 0.1, 0.1);
         };
     }
+
+    public record OrderBookSnapshot(
+        ProductIdentity product,
+        OrderType orderType,
+        List<PriceLevel> levels
+    ) {
+        public OrderBookSnapshot {
+            levels = List.copyOf(levels);
+        }
+    }
+
+    public record PriceLevel(
+        double pricePerUnit,
+        double volume,
+        int orders,
+        double cumulativeVolume
+    ) { }
 
     public static class OrderBookPriceConfig {
         public Position signPosition;
@@ -306,24 +352,24 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
     }
 
     private static class OrderBookEntry implements Renderable {
-        private final Summary summary;
+        private final PriceLevel level;
         private final OrderType type;
         private final Component priceText;
         private final Component statsText;
         private final List<Component> tooltip;
 
-        public OrderBookEntry(Summary summary, OrderType type, double accumulatedVolume) {
-            this.summary = summary;
+        public OrderBookEntry(PriceLevel level, OrderType type) {
+            this.level = level;
             this.type = type;
-            this.priceText = Component.literal(Utils.formatDecimal(summary.getPricePerUnit(), 1, true));
+            this.priceText = Component.literal(Utils.formatDecimal(level.pricePerUnit(), 1, true));
 
-            int orders = (int) summary.getOrders();
-            String volumeStr = Utils.formatDecimal(summary.getAmount(), 0, true);
+            int orders = level.orders();
+            String volumeStr = Utils.formatDecimal(level.volume(), 0, true);
             this.statsText = Component.literal("Vol: " + volumeStr + "  Ord: " + orders);
 
-            String cumulativeVolumeStr = Utils.formatDecimal(accumulatedVolume, 0, true);
+            String cumulativeVolumeStr = Utils.formatDecimal(level.cumulativeVolume(), 0, true);
             this.tooltip = List.of(
-                Component.literal("Price: " + Utils.formatDecimal(summary.getPricePerUnit(), 1, true)).withStyle(ChatFormatting.GOLD),
+                Component.literal("Price: " + Utils.formatDecimal(level.pricePerUnit(), 1, true)).withStyle(ChatFormatting.GOLD),
                 Component.literal("Level Volume: " + volumeStr).withStyle(ChatFormatting.GRAY),
                 Component.literal("Orders: " + orders).withStyle(ChatFormatting.GRAY),
                 Component.literal("Cumulative Volume: " + cumulativeVolumeStr).withStyle(ChatFormatting.AQUA)
@@ -355,7 +401,7 @@ public class OrderBookPriceModule extends Module<OrderBookPriceModule.OrderBookP
         }
 
         public double getPricePerUnit() {
-            return this.summary.getPricePerUnit();
+            return this.level.pricePerUnit();
         }
 
         @Override

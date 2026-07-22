@@ -10,6 +10,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import java.util.UUID;
 
 public final class OrderModels {
 
@@ -178,9 +179,22 @@ public final class OrderModels {
         }
     }
 
+    public record TrackedOrderId(UUID value) {
+        public TrackedOrderId {
+            if (value == null) {
+                throw new IllegalArgumentException("Tracked order ID cannot be null");
+            }
+        }
+
+        public static TrackedOrderId create() {
+            return new TrackedOrderId(UUID.randomUUID());
+        }
+    }
+
     @ToString
     public static class TrackedOrder {
 
+        private final TrackedOrderId id = TrackedOrderId.create();
         public ProductIdentity product;
         public String productName;
         public final String uiProductName;
@@ -196,6 +210,10 @@ public final class OrderModels {
          * It should ONLY be used for UI-side heuristics like the estimated fill time feature.
          */
         public int fillAmountSnapshot;
+
+        public TrackedOrderId id() {
+            return this.id;
+        }
 
         public TrackedOrder(OrderInfo.UnfilledOrderInfo info) {
             this(info, info.product());

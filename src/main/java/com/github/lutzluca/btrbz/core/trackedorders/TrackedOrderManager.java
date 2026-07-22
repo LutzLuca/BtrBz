@@ -15,6 +15,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -26,6 +27,7 @@ import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -39,6 +41,7 @@ public class TrackedOrderManager {
     private final BazaarData bazaarData;
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
+    private final List<TrackedOrder> displayOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
     private final TrackedOrderProductUpdater productUpdater;
     private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
@@ -48,6 +51,7 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
+    private final List<Runnable> onOrdersReorderedListeners = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
         (unfilledOrders, filledOrders) -> { };
 
@@ -128,6 +132,10 @@ public class TrackedOrderManager {
         this.onOrdersResetListeners.add(listener);
     }
 
+    public void addOnOrdersReorderedListener(Runnable listener) {
+        this.onOrdersReorderedListeners.add(listener);
+    }
+
     public void afterOrderSync(BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> cb) {
         this.onSyncCompletedCallback = cb;
     }
@@ -179,6 +187,7 @@ public class TrackedOrderManager {
 
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
+            this.displayOrders.remove(order);
             this.selfUndercutDetector.removeIfLastOrder(order, this.trackedOrders);
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
@@ -289,6 +298,7 @@ public class TrackedOrderManager {
     public void resetTrackedOrders() {
         var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();
+        this.displayOrders.clear();
         this.selfUndercutDetector.clear();
 
         log.info("Reset tracked orders (removed {})", removedSize);
@@ -296,12 +306,67 @@ public class TrackedOrderManager {
     }
 
     public List<TrackedOrder> getTrackedOrders() {
-        return List.copyOf(this.trackedOrders);
+        return List.copyOf(this.displayOrders);
+    }
+
+    public List<TrackedOrderSnapshot> currentOrders() {
+        return this.displayOrders.stream().map(TrackedOrderSnapshot::from).toList();
+    }
+
+    public boolean reorder(TrackedOrderId orderId, int dropIndex) {
+        Optional<TrackedOrder> matchingOrder = this.displayOrders
+            .stream()
+            .filter(order -> order.id().equals(orderId))
+            .findFirst();
+        if (matchingOrder.isEmpty() || dropIndex < 0 || dropIndex > this.displayOrders.size()) {
+            return false;
+        }
+
+        var order = matchingOrder.get();
+        int sourceIndex = this.displayOrders.indexOf(order);
+        this.displayOrders.remove(sourceIndex);
+        int insertionIndex = dropIndex > sourceIndex ? dropIndex - 1 : dropIndex;
+        insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
+        this.displayOrders.add(insertionIndex, order);
+
+        if (sourceIndex != insertionIndex) {
+            this.onOrdersReorderedListeners.forEach(Runnable::run);
+        }
+        return true;
     }
 
     public void addTrackedOrder(TrackedOrder order) {
         this.trackedOrders.add(order);
+        this.displayOrders.add(order);
         this.onOrderAddedListeners.forEach(listener -> listener.accept(order));
+    }
+
+    public record TrackedOrderSnapshot(
+        TrackedOrderId id,
+        ProductIdentity product,
+        String productName,
+        String uiProductName,
+        OrderType type,
+        int volume,
+        double pricePerUnit,
+        OrderStatus status,
+        int slot,
+        int fillAmountSnapshot
+    ) {
+        private static TrackedOrderSnapshot from(TrackedOrder order) {
+            return new TrackedOrderSnapshot(
+                order.id(),
+                order.product,
+                order.productName,
+                order.uiProductName,
+                order.type,
+                order.volume,
+                order.pricePerUnit,
+                order.status,
+                order.slot,
+                order.fillAmountSnapshot
+            );
+        }
     }
 
     public void removeMatching(OrderFilled info) {

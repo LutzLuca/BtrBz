@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.core.trackedorders;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
@@ -9,11 +11,14 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
@@ -23,6 +28,75 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class TrackedOrderManagerTest {
+
+    @Nested
+    @DisplayName("stable identity and ordering")
+    class StableIdentityAndOrdering {
+
+        @Test
+        void keepsSessionIdentityAcrossSnapshots() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            var order = trackedOrder(ProductIdentity.fromName("Troubled Bubble"));
+            var otherOrder = trackedOrder(ProductIdentity.fromName("Other Product"));
+            manager.addTrackedOrder(order);
+            manager.addTrackedOrder(otherOrder);
+
+            var firstSnapshot = manager.currentOrders().getFirst();
+            var secondSnapshot = manager.currentOrders().getFirst();
+
+            assertEquals(order.id(), firstSnapshot.id());
+            assertEquals(firstSnapshot.id(), secondSnapshot.id());
+            assertNotEquals(otherOrder.id(), firstSnapshot.id());
+        }
+
+        @Test
+        void reordersByStableIdAndDropIndex() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            var first = trackedOrder(ProductIdentity.fromName("First"), 1.0);
+            var second = trackedOrder(ProductIdentity.fromName("Second"), 2.0);
+            var third = trackedOrder(ProductIdentity.fromName("Third"), 3.0);
+            manager.addTrackedOrder(first);
+            manager.addTrackedOrder(second);
+            manager.addTrackedOrder(third);
+
+            assertTrue(manager.reorder(first.id(), 2));
+
+            assertEquals(
+                List.of(second.id(), first.id(), third.id()),
+                manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList()
+            );
+            assertFalse(manager.reorder(new TrackedOrderId(UUID.randomUUID()), 0));
+        }
+
+        @Test
+        void preservesDuplicateOrderIdentityAcrossDisplayReorderAndSync() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            var product = ProductIdentity.fromName("Duplicate Product");
+            var firstInfo = unfilledOrder(product, 2, 5);
+            var secondInfo = unfilledOrder(product, 7, 6);
+            var first = new TrackedOrder(firstInfo);
+            var second = new TrackedOrder(secondInfo);
+            manager.addTrackedOrder(first);
+            manager.addTrackedOrder(second);
+
+            assertTrue(manager.reorder(first.id(), 2));
+            manager.syncOrders(List.of(firstInfo, secondInfo));
+
+            assertEquals(List.of(second.id(), first.id()), manager
+                .currentOrders()
+                .stream()
+                .map(TrackedOrderManager.TrackedOrderSnapshot::id)
+                .toList());
+            var snapshotsById = manager.currentOrders().stream().collect(Collectors.toMap(
+                TrackedOrderManager.TrackedOrderSnapshot::id,
+                snapshot -> snapshot
+            ));
+            assertEquals(5, snapshotsById.get(first.id()).slot());
+            assertEquals(2, snapshotsById.get(first.id()).fillAmountSnapshot());
+            assertEquals(6, snapshotsById.get(second.id()).slot());
+            assertEquals(7, snapshotsById.get(second.id()).fillAmountSnapshot());
+        }
+    }
 
     @Nested
     @DisplayName("tracked status")
@@ -193,6 +267,23 @@ class TrackedOrderManagerTest {
             0,
             0
         ));
+    }
+
+    private static OrderInfo.UnfilledOrderInfo unfilledOrder(
+        ProductIdentity product,
+        int filledAmount,
+        int slot
+    ) {
+        return new OrderInfo.UnfilledOrderInfo(
+            product,
+            "Duplicate Product",
+            OrderType.Buy,
+            10,
+            10.0,
+            filledAmount,
+            0,
+            slot
+        );
     }
 
     private static MarketSnapshot snapshot(Map<String, Product> products) {

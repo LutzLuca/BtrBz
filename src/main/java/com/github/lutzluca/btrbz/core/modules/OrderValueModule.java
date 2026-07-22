@@ -23,14 +23,14 @@ import net.minecraft.network.chat.Component;
 public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayConfig> {
 
     private LabelWidget widget;
-    private List<UnfilledOrderInfo> unfilledOrders;
-    private List<FilledOrderInfo> filledOrders;
+    private List<UnfilledOrderInfo> unfilledOrders = List.of();
+    private List<FilledOrderInfo> filledOrders = List.of();
 
     @Override
     public void onLoad() {
         ScreenInfoHelper.registerOnSwitch(info -> {
-            this.unfilledOrders = null;
-            this.filledOrders = null;
+            this.unfilledOrders = List.of();
+            this.filledOrders = List.of();
         });
     }
 
@@ -44,20 +44,20 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         List<FilledOrderInfo> filledOrders
     ) {
         log.debug("Syncing values with updated order information");
-        this.unfilledOrders = unfilledOrders;
-        this.filledOrders = filledOrders;
+        this.unfilledOrders = List.copyOf(unfilledOrders);
+        this.filledOrders = List.copyOf(filledOrders);
 
         if (this.widget == null) {
             return;
         }
 
-        var lines = this.getLines();
+        var lines = this.getLines(this.currentBreakdown());
         this.widget.setLines(lines);
     }
 
     @Override
     public Optional<DraggableWidget> createWidget(ScreenInfo info) {
-        var lines = this.getLines();
+        var lines = this.getLines(this.currentBreakdown());
 
         this.widget = new LabelWidget(0, 0, lines);
         this.widget.setAutoSize(true)
@@ -74,74 +74,100 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         return Optional.of(this.widget);
     }
 
-    private List<Component> getLines() {
+    public OrderValueBreakdown currentBreakdown() {
+        return calculateBreakdown(this.unfilledOrders, this.filledOrders);
+    }
+
+    public static OrderValueBreakdown calculateBreakdown(
+        List<UnfilledOrderInfo> unfilledOrders,
+        List<FilledOrderInfo> filledOrders
+    ) {
         log.debug(
-            "Getting lines with unfilled lines: {} - filled lines: {}",
-            this.unfilledOrders,
-            this.filledOrders
+            "Calculating breakdown with unfilled orders: {} - filled orders: {}",
+            unfilledOrders,
+            filledOrders
         );
         double lockedInBuyOrders = 0.0;
         double itemsFromBuyOrders = 0.0;
         double coinsFromSellOffers = 0.0;
         double pendingSellOffers = 0.0;
 
-        if (this.unfilledOrders != null) {
-            for (var order : this.unfilledOrders) {
-                int unfilledVolume = order.volume() - order.filledAmountSnapshot();
+        for (var order : unfilledOrders) {
+            int unfilledVolume = order.volume() - order.filledAmountSnapshot();
 
-                switch (order.type()) {
-                    case Buy -> {
-                        lockedInBuyOrders += unfilledVolume * order.pricePerUnit();
-                        itemsFromBuyOrders += order.unclaimed() * order.pricePerUnit();
-                    }
-                    case Sell -> {
-                        pendingSellOffers += unfilledVolume * order.pricePerUnit();
-                        coinsFromSellOffers += order.unclaimed();
-                    }
+            switch (order.type()) {
+                case Buy -> {
+                    lockedInBuyOrders += unfilledVolume * order.pricePerUnit();
+                    itemsFromBuyOrders += order.unclaimed() * order.pricePerUnit();
+                }
+                case Sell -> {
+                    pendingSellOffers += unfilledVolume * order.pricePerUnit();
+                    coinsFromSellOffers += order.unclaimed();
                 }
             }
         }
 
-        if (this.filledOrders != null) {
-            for (var order : this.filledOrders) {
-                switch (order.type()) {
-                    case Buy -> itemsFromBuyOrders += order.unclaimed() * order.pricePerUnit();
-                    case Sell -> coinsFromSellOffers += order.unclaimed();
-                }
+        for (var order : filledOrders) {
+            switch (order.type()) {
+                case Buy -> itemsFromBuyOrders += order.unclaimed() * order.pricePerUnit();
+                case Sell -> coinsFromSellOffers += order.unclaimed();
             }
         }
-        var total = lockedInBuyOrders + itemsFromBuyOrders + coinsFromSellOffers + pendingSellOffers;
+
+        return new OrderValueBreakdown(
+            lockedInBuyOrders,
+            itemsFromBuyOrders,
+            coinsFromSellOffers,
+            pendingSellOffers
+        );
+    }
+
+    private List<Component> getLines(OrderValueBreakdown breakdown) {
 
         return List.of(
             Component.literal("Bazaar Overview").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
             Component
                 .literal("Buy Orders (Locked): " + Utils.formatCompact(
-                    lockedInBuyOrders,
+                    breakdown.lockedInBuyOrders(),
                     1
                 ) + " coins")
                 .withStyle(ChatFormatting.YELLOW),
             Component
                 .literal("Buy Orders (Items): " + Utils.formatCompact(
-                    itemsFromBuyOrders,
+                    breakdown.itemsFromBuyOrders(),
                     1
                 ) + " coins")
                 .withStyle(ChatFormatting.AQUA),
             Component
                 .literal("Sell Offers (Claimable): " + Utils.formatCompact(
-                    coinsFromSellOffers,
+                    breakdown.coinsFromSellOffers(),
                     1
                 ) + " coins")
                 .withStyle(ChatFormatting.GREEN),
             Component
                 .literal("Sell Offers (Pending): " + Utils.formatCompact(
-                    pendingSellOffers,
+                    breakdown.pendingSellOffers(),
                     1
                 ) + " coins")
                 .withStyle(ChatFormatting.YELLOW),
             Component
-                .literal("Total Worth: " + Utils.formatCompact(total, 1) + " coins")
+                .literal("Total Worth: " + Utils.formatCompact(breakdown.total(), 1) + " coins")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
         );
+    }
+
+    public record OrderValueBreakdown(
+        double lockedInBuyOrders,
+        double itemsFromBuyOrders,
+        double coinsFromSellOffers,
+        double pendingSellOffers
+    ) {
+        public double total() {
+            return this.lockedInBuyOrders
+                + this.itemsFromBuyOrders
+                + this.coinsFromSellOffers
+                + this.pendingSellOffers;
+        }
     }
 
     private Optional<Position> getWidgetPosition(ScreenInfo info, LabelWidget widget) {
