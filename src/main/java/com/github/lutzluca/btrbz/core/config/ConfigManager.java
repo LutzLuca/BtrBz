@@ -7,8 +7,7 @@ import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Position;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -49,20 +48,14 @@ public final class ConfigManager {
     }
 
     /**
-     * Saves immediately: avoid regular hot-path calls like tick, render, or polling.
+     * Saves immediately only when the updater reports a state change.
      */
-    public static void withConfig(Consumer<Config> consumer) {
-        consumer.accept(HANDLER.instance());
-        save();
-    }
-
-    /**
-     * Saves immediately: avoid regular hot-path calls like tick, render, or polling.
-     */
-    public static <R> R compute(Function<Config, R> function) {
-        R ret = function.apply(HANDLER.instance());
-        save();
-        return ret;
+    public static boolean updateIfChanged(Predicate<Config> updater) {
+        boolean changed = updater.test(HANDLER.instance());
+        if (changed) {
+            save();
+        }
+        return changed;
     }
 
     public static void save() {

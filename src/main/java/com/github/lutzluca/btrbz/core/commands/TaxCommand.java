@@ -54,7 +54,14 @@ public class TaxCommand {
                             return 1;
                         }
 
-                        ConfigManager.withConfig(cfg -> cfg.tax = rate);
+                        ConfigManager.updateIfChanged(cfg -> {
+                            if (Double.compare(cfg.tax, rate) == 0) {
+                                return false;
+                            }
+
+                            cfg.tax = rate;
+                            return true;
+                        });
                         Notifier.notifyPlayer(Notifier
                             .prefix()
                             .append(Component

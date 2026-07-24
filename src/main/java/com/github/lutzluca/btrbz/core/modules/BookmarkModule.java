@@ -101,7 +101,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     @Override
     public void onLoad() {
-        this.configState.bookmarkedItems.removeIf(Objects::isNull);
+        this.updateConfigIfChanged(cfg -> cfg.bookmarkedItems.removeIf(Objects::isNull));
 
         this.rebuildOrderCache();
         this.trackedOrderManager.addOnOrderAddedListener(order -> this.rebuildOrderCache());
@@ -168,58 +168,54 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     }
 
     public boolean removeBookmark(String productId) {
-        var updated = new ArrayList<>(this.configState.bookmarkedItems);
-        boolean removed = Utils.removeMatching(
-            updated,
+        boolean removed = this.updateConfigIfChanged(cfg -> Utils.removeMatching(
+            cfg.bookmarkedItems,
             item -> item.product().productId().equals(productId)
-        );
-        if (!removed) {
-            return false;
+        ));
+        if (removed) {
+            this.rebuildBookmarkList();
         }
-
-        this.updateConfig(cfg -> cfg.bookmarkedItems = updated);
-        this.rebuildBookmarkList();
-        return true;
+        return removed;
     }
 
     public boolean moveBookmark(String productId, int targetIndex) {
-        var updated = new ArrayList<>(this.configState.bookmarkedItems);
-        boolean moved = Utils.moveMatching(
-            updated,
+        boolean moved = this.updateConfigIfChanged(cfg -> Utils.moveMatching(
+            cfg.bookmarkedItems,
             item -> item.product().productId().equals(productId),
             targetIndex
-        );
-        if (!moved) {
-            return false;
+        ));
+        if (moved) {
+            this.rebuildBookmarkList();
         }
-
-        this.updateConfig(cfg -> cfg.bookmarkedItems = updated);
-        this.rebuildBookmarkList();
-        return true;
+        return moved;
     }
 
     private void refreshBookmarkedProducts() {
-        var refreshedItems = new ArrayList<BookmarkedItem>();
-        var changed = false;
+        boolean changed = this.updateConfigIfChanged(cfg -> {
+            boolean refreshed = false;
+            var iterator = cfg.bookmarkedItems.listIterator();
+            while (iterator.hasNext()) {
+                var item = iterator.next();
+                var refreshedProduct = this.bazaarData.refreshIndexedProduct(item.product());
+                if (refreshedProduct.equals(item.product())) {
+                    continue;
+                }
 
-        for (var item : this.configState.bookmarkedItems) {
-            var refreshedProduct = this.bazaarData.refreshIndexedProduct(item.product());
-            if (refreshedProduct.equals(item.product())) {
-                refreshedItems.add(item);
-                continue;
+                iterator.set(new BookmarkedItem(refreshedProduct, item.itemTemplate()));
+                refreshed = true;
             }
-
-            refreshedItems.add(new BookmarkedItem(refreshedProduct, item.itemTemplate()));
-            changed = true;
-        }
+            return refreshed;
+        });
 
         if (!changed) {
             return;
         }
 
-        this.updateConfig(cfg -> cfg.bookmarkedItems = refreshedItems);
         this.rebuildBookmarkList();
-        log.debug("Refreshed {} bookmarked product references after conversion index update", refreshedItems.size());
+        log.debug(
+            "Refreshed {} bookmarked product references after conversion index update",
+            this.configState.bookmarkedItems.size()
+        );
     }
 
     private void rebuildBookmarkList() {

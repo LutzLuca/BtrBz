@@ -40,7 +40,7 @@ public class AlertManager {
 
     public AlertManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        ConfigManager.get().alert.alerts.removeIf(Objects::isNull);
+        ConfigManager.updateIfChanged(cfg -> cfg.alert.alerts.removeIf(Objects::isNull));
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
@@ -98,21 +98,22 @@ public class AlertManager {
     }
 
     public boolean addAlert(ResolvedAlertArgs args) {
-        var alerts = ConfigManager.get().alert.alerts;
-        var exist = alerts.stream().anyMatch(alert -> alert.matches(args));
+        return ConfigManager.updateIfChanged(cfg -> {
+            var alerts = cfg.alert.alerts;
+            if (alerts.stream().anyMatch(alert -> alert.matches(args))) {
+                return false;
+            }
 
-        if (!exist) {
-            ConfigManager.withConfig(cfg -> cfg.alert.alerts.add(new Alert(args)));
-        }
-
-        return !exist;
+            alerts.add(new Alert(args));
+            return true;
+        });
     }
 
     public void removeAlert(UUID id) {
-        var removed = ConfigManager.compute(cfg -> Utils.removeIfAndReturn(
-            cfg.alert.alerts,
+        var removed = Utils.removeIfAndReturn(
+            ConfigManager.get().alert.alerts,
             alert -> alert.id.equals(id)
-        ));
+        );
 
         if (removed.isEmpty()) {
             Notifier.notifyPlayer(Notifier
@@ -122,6 +123,7 @@ public class AlertManager {
                     .withStyle(ChatFormatting.GRAY)));
             return;
         }
+        ConfigManager.save();
         if (removed.size() > 1) {
             Notifier.notifyPlayer(Notifier
                 .prefix()

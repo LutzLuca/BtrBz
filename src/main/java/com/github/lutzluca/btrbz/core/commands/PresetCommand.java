@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.ArrayList;
-import java.util.List;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
@@ -27,33 +26,35 @@ public class PresetCommand {
                 .executes(ctx -> {
                     int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
-                    ConfigManager.withConfig(cfg -> {
-                        var presets = new ArrayList<>(cfg.orderPresets.presets);
-
+                    boolean added = ConfigManager.updateIfChanged(cfg -> {
+                        var presets = cfg.orderPresets.presets;
                         if (presets.contains(volume)) {
-                            Notifier.notifyPlayer(Notifier
-                                .prefix()
-                                .append(Component.literal("Preset ").withStyle(ChatFormatting.GRAY))
-                                .append(Component
-                                    .literal(String.valueOf(volume))
-                                    .withStyle(ChatFormatting.AQUA))
-                                .append(Component
-                                    .literal(" already exists")
-                                    .withStyle(ChatFormatting.GRAY)));
-                            return;
+                            return false;
                         }
 
                         presets.add(volume);
                         presets.sort(Integer::compareTo);
-                        cfg.orderPresets.presets = presets;
+                        return true;
+                    });
 
+                    if (added) {
                         Notifier.notifyPlayer(Notifier
                             .prefix()
                             .append(Component.literal("Added preset ").withStyle(ChatFormatting.GRAY))
                             .append(Component
                                 .literal(String.valueOf(volume))
                                 .withStyle(ChatFormatting.AQUA)));
-                    });
+                    } else {
+                        Notifier.notifyPlayer(Notifier
+                            .prefix()
+                            .append(Component.literal("Preset ").withStyle(ChatFormatting.GRAY))
+                            .append(Component
+                                .literal(String.valueOf(volume))
+                                .withStyle(ChatFormatting.AQUA))
+                            .append(Component
+                                .literal(" already exists")
+                                .withStyle(ChatFormatting.GRAY)));
+                    }
 
                     return 1;
                 })))
@@ -65,30 +66,26 @@ public class PresetCommand {
                     .executes(ctx -> {
                         int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
-                        ConfigManager.withConfig(cfg -> {
-                            var presets = new ArrayList<>(cfg.orderPresets.presets);
+                        boolean removed = ConfigManager.updateIfChanged(cfg ->
+                            cfg.orderPresets.presets.remove(Integer.valueOf(volume))
+                        );
 
-                            if (!presets.contains(volume)) {
-                                Notifier.notifyPlayer(Notifier
-                                    .prefix()
-                                    .append(Component.literal("Preset ").withStyle(ChatFormatting.GRAY))
-                                    .append(Component
-                                        .literal(String.valueOf(volume))
-                                        .withStyle(ChatFormatting.RED))
-                                    .append(Component.literal(" not found").withStyle(ChatFormatting.GRAY)));
-                                return;
-                            }
-
-                            presets.remove(Integer.valueOf(volume));
-                            cfg.orderPresets.presets = presets;
-
+                        if (removed) {
                             Notifier.notifyPlayer(Notifier
                                 .prefix()
                                 .append(Component.literal("Removed preset ").withStyle(ChatFormatting.GRAY))
                                 .append(Component
                                     .literal(String.valueOf(volume))
                                     .withStyle(ChatFormatting.AQUA)));
-                        });
+                        } else {
+                            Notifier.notifyPlayer(Notifier
+                                .prefix()
+                                .append(Component.literal("Preset ").withStyle(ChatFormatting.GRAY))
+                                .append(Component
+                                    .literal(String.valueOf(volume))
+                                    .withStyle(ChatFormatting.RED))
+                                .append(Component.literal(" not found").withStyle(ChatFormatting.GRAY)));
+                        }
 
                         return 1;
                     })))
@@ -136,16 +133,21 @@ public class PresetCommand {
             }))
 
             .then(ClientCommands.literal("clear").executes(ctx -> {
-                ConfigManager.withConfig(cfg -> {
-                    int count = cfg.orderPresets.presets.size();
-                    cfg.orderPresets.presets = List.of();
+                int count = ConfigManager.get().orderPresets.presets.size();
+                ConfigManager.updateIfChanged(cfg -> {
+                    if (cfg.orderPresets.presets.isEmpty()) {
+                        return false;
+                    }
 
-                    Notifier.notifyPlayer(Notifier
-                        .prefix()
-                        .append(Component.literal("Cleared ").withStyle(ChatFormatting.GRAY))
-                        .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.AQUA))
-                        .append(Component.literal(" preset(s)").withStyle(ChatFormatting.GRAY)));
+                    cfg.orderPresets.presets.clear();
+                    return true;
                 });
+
+                Notifier.notifyPlayer(Notifier
+                    .prefix()
+                    .append(Component.literal("Cleared ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.AQUA))
+                    .append(Component.literal(" preset(s)").withStyle(ChatFormatting.GRAY)));
 
                 return 1;
             })));
