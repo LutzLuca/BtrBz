@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Position;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
@@ -45,7 +46,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -169,7 +169,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public boolean removeBookmark(String productId) {
         var updated = new ArrayList<>(this.configState.bookmarkedItems);
-        boolean removed = removeMatching(
+        boolean removed = Utils.removeMatching(
             updated,
             item -> item.product().productId().equals(productId)
         );
@@ -184,7 +184,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public boolean moveBookmark(String productId, int targetIndex) {
         var updated = new ArrayList<>(this.configState.bookmarkedItems);
-        boolean moved = moveMatching(
+        boolean moved = Utils.moveMatching(
             updated,
             item -> item.product().productId().equals(productId),
             targetIndex
@@ -196,28 +196,6 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.updateConfig(cfg -> cfg.bookmarkedItems = updated);
         this.rebuildBookmarkList();
         return true;
-    }
-
-    static <T> boolean moveMatching(List<T> items, Predicate<T> predicate, int targetIndex) {
-        if (targetIndex < 0 || targetIndex > items.size()) {
-            return false;
-        }
-
-        var matching = items.stream().filter(predicate).findFirst();
-        if (matching.isEmpty()) {
-            return false;
-        }
-
-        var item = matching.get();
-        int sourceIndex = items.indexOf(item);
-        items.remove(sourceIndex);
-        int insertionIndex = Math.min(targetIndex, items.size());
-        items.add(insertionIndex, item);
-        return sourceIndex != insertionIndex;
-    }
-
-    static <T> boolean removeMatching(List<T> items, Predicate<T> predicate) {
-        return items.removeIf(predicate);
     }
 
     private void refreshBookmarkedProducts() {

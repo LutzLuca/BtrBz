@@ -102,6 +102,12 @@ public class ModuleManager {
         return module;
     }
 
+    public void registerModules(Module<?>... modules) {
+        for (var module : modules) {
+            this.registerModule(module);
+        }
+    }
+
     private void applyConfigToModule(Module<?> module) {
         var field = this.moduleBindings.get(module.getClass());
         try {

@@ -142,12 +142,8 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
         }
 
         public double totalDifference() {
-            return calculateTotalDifference(this.perItemDifference, this.quantity);
+            return this.perItemDifference * this.quantity;
         }
-    }
-
-    public static double calculateTotalDifference(double perItemDifference, int quantity) {
-        return perItemDifference * quantity;
     }
 
     public static class PriceDiffConfig {

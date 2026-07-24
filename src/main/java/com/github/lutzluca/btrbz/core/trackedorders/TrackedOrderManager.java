@@ -51,7 +51,6 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
-    private final List<Runnable> onOrdersReorderedListeners = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
         (unfilledOrders, filledOrders) -> { };
 
@@ -130,10 +129,6 @@ public class TrackedOrderManager {
 
     public void addOnOrdersResetListener(Runnable listener) {
         this.onOrdersResetListeners.add(listener);
-    }
-
-    public void addOnOrdersReorderedListener(Runnable listener) {
-        this.onOrdersReorderedListeners.add(listener);
     }
 
     public void afterOrderSync(BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> cb) {
@@ -329,9 +324,6 @@ public class TrackedOrderManager {
         insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
         this.displayOrders.add(insertionIndex, order);
 
-        if (sourceIndex != insertionIndex) {
-            this.onOrdersReorderedListeners.forEach(Runnable::run);
-        }
         return true;
     }
 

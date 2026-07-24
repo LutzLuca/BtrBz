@@ -54,7 +54,6 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         this.trackedOrderManager.addOnOrderAddedListener(this::onOrderAdded);
         this.trackedOrderManager.addOnOrderRemovedListener(this::onOrderRemoved);
         this.trackedOrderManager.addOnOrdersResetListener(this::clearList);
-        this.trackedOrderManager.addOnOrdersReorderedListener(this::initializeList);
     }
 
     private void onOrderAdded(TrackedOrder order) {

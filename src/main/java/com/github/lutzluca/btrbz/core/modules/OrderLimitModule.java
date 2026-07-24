@@ -92,7 +92,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
     }
 
     public boolean resetOrderLimitForDay(long epochDay) {
-        if (needsReset(this.configState.lastResetEpochDay, epochDay)) {
+        if (this.configState.lastResetEpochDay != epochDay) {
             log.info("Resetting daily order limit usage");
 
             this.updateConfig(cfg -> {
@@ -102,10 +102,6 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             return true;
         }
         return false;
-    }
-
-    public static boolean needsReset(long lastResetEpochDay, long currentEpochDay) {
-        return lastResetEpochDay != currentEpochDay;
     }
 
     public String formatAmount(double amount) {

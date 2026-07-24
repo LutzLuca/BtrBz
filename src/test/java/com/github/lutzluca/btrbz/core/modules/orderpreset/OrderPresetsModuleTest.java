@@ -1,10 +1,8 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsModule.PresetUnavailableReason;
+import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsModule.PresetState;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -15,12 +13,12 @@ import org.junit.jupiter.api.Test;
 class OrderPresetsModuleTest {
 
     @Nested
-    @DisplayName("preset availability")
-    class PresetAvailability {
+    @DisplayName("preset resolution")
+    class PresetResolution {
 
         @Test
-        void describesMaxClipboardAndConfiguredVolumes() {
-            var descriptions = OrderPresetsModule.describePresets(
+        void ordersEntriesAndResolvesAffordableVolumes() {
+            var states = OrderPresetsModule.resolvePresets(
                 List.of(2, 10, 2_000),
                 1_000,
                 OptionalInt.of(3),
@@ -29,30 +27,17 @@ class OrderPresetsModuleTest {
                 false
             );
 
-            assertEquals(List.of("Max", "3", "2", "10"), descriptions
-                .stream()
-                .map(OrderPresetsModule.PresetDescription::displayText)
-                .toList());
-            assertEquals(5, descriptions.getFirst().resolvedVolume().orElseThrow());
-            assertTrue(descriptions.get(1).canApply());
-            assertFalse(descriptions.getLast().canApply());
-            assertEquals(
-                PresetUnavailableReason.INSUFFICIENT_COINS,
-                descriptions.getLast().unavailableReason()
-            );
+            assertEquals(List.of(
+                new PresetState.Available(new OrderPreset.Max(), 5),
+                new PresetState.Available(new OrderPreset.Clipboard(3), 3),
+                new PresetState.Available(new OrderPreset.Volume(2), 2),
+                new PresetState.InsufficientCoins(new OrderPreset.Volume(10))
+            ), states);
         }
 
         @Test
-        void hidesUnaffordableEntriesButKeepsExplicitAmountsWithoutPriceData() {
-            var hidden = OrderPresetsModule.describePresets(
-                List.of(2, 10),
-                1_000,
-                OptionalInt.empty(),
-                Optional.of(10.0),
-                Optional.of(55.0),
-                true
-            );
-            var withoutPrice = OrderPresetsModule.describePresets(
+        void keepsExplicitVolumesAvailableWithoutPriceData() {
+            var states = OrderPresetsModule.resolvePresets(
                 List.of(2),
                 1_000,
                 OptionalInt.empty(),
@@ -61,12 +46,56 @@ class OrderPresetsModuleTest {
                 false
             );
 
-            assertEquals(List.of("Max", "2"), hidden
-                .stream()
-                .map(OrderPresetsModule.PresetDescription::displayText)
-                .toList());
-            assertFalse(withoutPrice.getFirst().canApply());
-            assertTrue(withoutPrice.getLast().canApply());
+            assertEquals(List.of(
+                new PresetState.PriceUnavailable(new OrderPreset.Max()),
+                new PresetState.Available(new OrderPreset.Volume(2), 2)
+            ), states);
+        }
+
+        @Test
+        void distinguishesMissingPurseFromInsufficientCoins() {
+            var missingPurse = OrderPresetsModule.resolvePresets(
+                List.of(2),
+                1_000,
+                OptionalInt.empty(),
+                Optional.of(10.0),
+                Optional.empty(),
+                false
+            );
+            var insufficientCoins = OrderPresetsModule.resolvePresets(
+                List.of(2),
+                1_000,
+                OptionalInt.empty(),
+                Optional.of(10.0),
+                Optional.of(5.0),
+                false
+            );
+
+            assertEquals(List.of(
+                new PresetState.PurseUnavailable(new OrderPreset.Max()),
+                new PresetState.PurseUnavailable(new OrderPreset.Volume(2))
+            ), missingPurse);
+            assertEquals(List.of(
+                new PresetState.CannotAffordSingleItem(new OrderPreset.Max(), 5.0),
+                new PresetState.InsufficientCoins(new OrderPreset.Volume(2))
+            ), insufficientCoins);
+        }
+
+        @Test
+        void hidesOnlyUnaffordableStates() {
+            var states = OrderPresetsModule.resolvePresets(
+                List.of(2, 10),
+                1_000,
+                OptionalInt.empty(),
+                Optional.of(10.0),
+                Optional.of(55.0),
+                true
+            );
+
+            assertEquals(List.of(
+                new PresetState.Available(new OrderPreset.Max(), 5),
+                new PresetState.Available(new OrderPreset.Volume(2), 2)
+            ), states);
         }
     }
 }

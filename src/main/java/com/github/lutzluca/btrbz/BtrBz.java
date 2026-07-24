@@ -121,27 +121,38 @@ public class BtrBz implements ClientModInitializer {
         var moduleManager = ModuleManager.getInstance();
         var flipProductContext = new FlipProductContext();
         var flipSubmissionTracker = new FlipSubmissionTracker();
-        moduleManager.discoverBindings();
-        moduleManager.registerModule(new BookmarkModule(
+
+        var bookmarkModule = new BookmarkModule(
             BAZAAR_DATA,
             productInfoProvider,
             this.orderManager
-        ));
-        moduleManager.registerModule(new PriceDiffModule(BAZAAR_DATA));
-        moduleManager.registerModule(new TrackedOrdersListModule(
+        );
+        var priceDiffModule = new PriceDiffModule(BAZAAR_DATA);
+        var trackedOrdersListModule = new TrackedOrdersListModule(
             this.orderManager,
             this.highlightManager,
             this.tooltipProvider
-        ));
-        moduleManager.registerModule(new OrderPresetsModule(BAZAAR_DATA, productInfoProvider));
-        var orderLimitModule = moduleManager.registerModule(new OrderLimitModule());
-        var orderValueModule = moduleManager.registerModule(new OrderValueModule());
-        moduleManager.registerModule(new OrderBookPriceModule(
+        );
+        var orderPresetsModule = new OrderPresetsModule(BAZAAR_DATA, productInfoProvider);
+        var orderLimitModule = new OrderLimitModule();
+        var orderValueModule = new OrderValueModule();
+        var orderBookPriceModule = new OrderBookPriceModule(
             BAZAAR_DATA,
             productInfoProvider,
             flipProductContext,
             flipSubmissionTracker
-        ));
+        );
+
+        moduleManager.discoverBindings();
+        moduleManager.registerModules(
+            bookmarkModule,
+            priceDiffModule,
+            trackedOrdersListModule,
+            orderPresetsModule,
+            orderLimitModule,
+            orderValueModule,
+            orderBookPriceModule
+        );
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();
