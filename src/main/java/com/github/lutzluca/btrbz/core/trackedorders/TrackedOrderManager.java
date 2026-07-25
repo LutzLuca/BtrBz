@@ -189,19 +189,24 @@ public class TrackedOrderManager {
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
-        var updates = this.statusEvaluator
+        var statusUpdates = this.statusEvaluator
             .computeStatusUpdates(this.trackedOrders, snapshot)
-            .peek(update -> update.order().status = update.curr())
-            .collect(Collectors.toList());
+            .toList();
 
-        this.sendNotifications(updates, snapshot);
+        statusUpdates.forEach(update -> update.order().status = update.curr());
+
+        var notificationUpdates = statusUpdates.stream()
+            .filter(update -> !update.prev().sameVariant(update.curr()))
+            .toList();
+
+        this.sendNotifications(notificationUpdates, snapshot);
         this.resolveSelfUndercutStates(snapshot);
     }
 
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
     // `OrderStatus` variant are not detected. Concretely, if a stranger cancels their order from
-    // your bucket, all your orders stay `OrderStatus.Matched`, no `sameVariant` change fires, so
-    // no `StatusUpdate` is produced, and `sendNotifications` never processes the group.
+    // your bucket, all your orders stay `OrderStatus.Matched`, no order-level status change is
+    // emitted, and `sendNotifications` never processes the group.
     // Fixing this would require a separate group-level status diff pass (tracking previous
     // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
     // Accepted as a known limitation (for now).

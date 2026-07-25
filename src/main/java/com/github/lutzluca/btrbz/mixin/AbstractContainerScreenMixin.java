@@ -21,7 +21,6 @@ public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null) {
             wm.cleanup();

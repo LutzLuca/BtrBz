@@ -9,7 +9,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
-import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -50,8 +49,13 @@ public class ScreenInventoryTracker {
     private @Nullable Inventory currInv = null;
     private boolean acceptItems = false;
 
+    private Consumer<Inventory> onOpenCallback = null;
     private Consumer<Inventory> onFullyLoadedCallback = null;
     private Consumer<String> onCloseCallback = null;
+
+    public void setOnOpen(Consumer<Inventory> callback) {
+        this.onOpenCallback = callback;
+    }
 
     public void setOnLoaded(Consumer<Inventory> callback) {
         this.onFullyLoadedCallback = callback;
@@ -61,23 +65,28 @@ public class ScreenInventoryTracker {
         this.onCloseCallback = callback;
     }
 
-    public void onCloseScreen() {
-        this.close();
-    }
-
     public void close() {
-        String title = this.currInv != null ? this.currInv.title : "";
+        if (this.currInv == null) {
+            return;
+        }
+
+        String title = this.currInv.title;
+        this.currInv = null;
+        this.acceptItems = false;
+
         if (this.onCloseCallback != null) {
             this.onCloseCallback.accept(title);
         }
-        this.currInv = null;
+    }
+
+    public boolean isTrackingContainer(int containerId) {
+        return this.currInv != null && this.currInv.syncId == containerId;
     }
 
     public void onPacketReceived(Object packet) {
         switch (packet) {
             case ClientboundOpenScreenPacket openPacket -> this.handleOpenScreen(openPacket);
             case ClientboundContainerSetSlotPacket slotPacket -> this.handleSlotUpdate(slotPacket);
-            case ClientboundContainerClosePacket _ -> this.close();
             default -> { }
         }
     }
@@ -100,6 +109,10 @@ public class ScreenInventoryTracker {
 
         this.currInv = new Inventory(syncId, title, slotCount);
         this.acceptItems = true;
+
+        if (this.onOpenCallback != null) {
+            this.onOpenCallback.accept(this.currInv);
+        }
     }
 
     private void handleSlotUpdate(ClientboundContainerSetSlotPacket packet) {

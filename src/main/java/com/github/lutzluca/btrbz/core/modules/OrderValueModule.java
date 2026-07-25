@@ -188,7 +188,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
             return Option
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Value Overlay"))
-                .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
+                .binding(false, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(ConfigScreen.createDescription(
                     "Show the combined coin value of your active and filled orders on the Bazaar Orders page."))
                 .controller(ConfigScreen::createBooleanController);

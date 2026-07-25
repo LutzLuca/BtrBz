@@ -570,7 +570,7 @@ public final class ProductInfoProvider {
                         "Allow Product Lookup Click in inventories and chests outside the Bazaar."),
                     ConfigScreen.requires("Enable Product Lookup Click")
                 )))
-                .binding(true, () -> this.showOutsideBazaar, val -> this.showOutsideBazaar = val)
+                .binding(false, () -> this.showOutsideBazaar, val -> this.showOutsideBazaar = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 

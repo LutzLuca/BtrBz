@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.input.KeyEvent;
@@ -16,7 +15,6 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        ScreenInfoHelper.get().getInventoryWatcher().onCloseScreen();
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null) {
             wm.cleanup();

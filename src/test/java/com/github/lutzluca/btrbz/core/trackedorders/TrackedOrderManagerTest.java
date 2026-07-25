@@ -161,6 +161,53 @@ class TrackedOrderManagerTest {
 
             assertTrue(evaluator.computeStatusUpdates(List.of(order), snapshot).toList().isEmpty());
         }
+
+        @Test
+        void emitsChangedAmountForAnAlreadyUndercutOrder() {
+            var marketProduct = product("TROUBLED_BUBBLE");
+            setSummaries(
+                marketProduct,
+                List.of(summary(marketProduct, 12.0, 64, 1)),
+                List.of()
+            );
+            var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
+            var evaluator = new TrackedOrderStatusEvaluator();
+            var order = trackedOrder(ProductIdentity.fromRuntime(
+                "Troubled Bubble",
+                "TROUBLED_BUBBLE",
+                null
+            ));
+            order.status = new OrderStatus.Undercut(1.0);
+
+            var updates = evaluator.computeStatusUpdates(List.of(order), snapshot).toList();
+
+            assertEquals(1, updates.size());
+            var current = assertInstanceOf(OrderStatus.Undercut.class, updates.getFirst().curr());
+            assertEquals(2.0, current.amount);
+            assertTrue(updates.getFirst().prev().sameVariant(current));
+        }
+
+        @Test
+        void treatsMultipleOrdersAtTheBestPriceAsMatchedRegardlessOfReportedAmount() {
+            var marketProduct = product("TROUBLED_BUBBLE");
+            setSummaries(
+                marketProduct,
+                List.of(summary(marketProduct, 10.0, 0, 2)),
+                List.of()
+            );
+            var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
+            var evaluator = new TrackedOrderStatusEvaluator();
+            var order = trackedOrder(ProductIdentity.fromRuntime(
+                "Troubled Bubble",
+                "TROUBLED_BUBBLE",
+                null
+            ));
+
+            var updates = evaluator.computeStatusUpdates(List.of(order), snapshot).toList();
+
+            assertEquals(1, updates.size());
+            assertInstanceOf(OrderStatus.Matched.class, updates.getFirst().curr());
+        }
     }
 
     @Nested

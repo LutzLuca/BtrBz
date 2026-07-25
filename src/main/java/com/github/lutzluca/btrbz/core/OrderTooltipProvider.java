@@ -340,7 +340,7 @@ public class OrderTooltipProvider {
         public Option.Builder<Boolean> createPricesOption() {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Current Prices"))
-                .binding(false, () -> this.showPrices, val -> {
+                .binding(true, () -> this.showPrices, val -> {
                     this.showPrices = val;
                     invalidateCache();
                 })
@@ -455,7 +455,7 @@ public class OrderTooltipProvider {
         public Option.Builder<Boolean> createOnlyWhenUndercutOption() {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Only When Undercut"))
-                .binding(false, () -> this.showOnlyWhenUndercut, val -> {
+                .binding(true, () -> this.showOnlyWhenUndercut, val -> {
                     this.showOnlyWhenUndercut = val;
                     invalidateCache();
                 })
