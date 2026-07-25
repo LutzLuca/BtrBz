@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
+    private static final int CUSTOM_AMOUNT_SLOT = 16;
 
     private ListWidget list;
     private int currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
@@ -60,7 +61,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
             if (curr.inMenu(BazaarMenuType.BuyOrderSetupVolume) && prev.inMenu(BazaarMenuType.Item)) {
                 this.currMaxVolume = curr
-                    .getItemStack(16)
+                    .getItemStack(CUSTOM_AMOUNT_SLOT)
                     .flatMap(this::getMaxVolume)
                     .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
 
@@ -133,7 +134,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     return;
                 }
 
-                inventory.getItem(16).flatMap(this::getMaxVolume).ifPresent(maxVolume -> {
+                inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::getMaxVolume).ifPresent(maxVolume -> {
                     if (this.currMaxVolume != maxVolume) {
                         this.currMaxVolume = maxVolume;
                         this.rebuildList();
@@ -474,13 +475,19 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             return false;
         }
 
+        var currInfo = ScreenInfoHelper.get().getCurrInfo();
+        var screen = currInfo.getScreen();
+        var containerScreen = currInfo.getGenericContainerScreen();
+        if (!(screen instanceof SignEditScreen) && containerScreen.isEmpty()) {
+            return false;
+        }
+
         this.pendingPreset = true;
         this.pendingVolume = volume;
 
         log.debug("Preset click processed: volume={}", volume);
 
-        var currInfo = ScreenInfoHelper.get().getCurrInfo();
-        if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
+        if (screen instanceof SignEditScreen signEditScreen) {
             GameUtils.submitSignValue(signEditScreen, String.valueOf(volume));
 
             this.pendingVolume = -1;
@@ -488,9 +495,12 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             return true;
         }
 
-        // noinspection OptionalGetWithoutIsPresent
         interactionManager.handleContainerInput(
-            currInfo.getGenericContainerScreen().get().getMenu().containerId, 16, 1, ContainerInput.PICKUP, player
+            containerScreen.get().getMenu().containerId,
+            CUSTOM_AMOUNT_SLOT,
+            1,
+            ContainerInput.PICKUP,
+            player
         );
         return true;
     }
