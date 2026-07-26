@@ -11,7 +11,8 @@ public final class BazaarStyles {
     public static final int UNDERCUT_ROW = 0x303C1010;
     public static final int PROGRESS_TRACK = 0x503A414D;
     public static final int PROGRESS_FILL = 0xFFE3B64B;
-    public static final int INSERTION = 0xFFEBCB5B;
+    public static final int INSERTION_OUTLINE = 0xFF080A0E;
+    public static final int INSERTION = 0xFF55FFFF;
     public static final int BUY_ACCENT = 0xFF58C77A;
     public static final int SELL_ACCENT = 0xFFE3B64B;
     public static final int STATUS_TOP = 0xFF58C77A;

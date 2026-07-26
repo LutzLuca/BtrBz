@@ -272,6 +272,16 @@ class UtilsTest {
     class LegacyFormattedText {
 
         @Test
+        void parsesLegacyFormattingIntoComponentStyles() {
+            var text = Utils.legacyFormattedComponent("§d§lThunderlord VII");
+
+            assertEquals("Thunderlord VII", text.getString());
+            assertEquals(ChatFormatting.LIGHT_PURPLE.getColor(), text.getStyle().getColor().getValue());
+            assertTrue(text.getStyle().isBold());
+            assertEquals("§d§lThunderlord VII", Utils.legacyFormattedText(text));
+        }
+
+        @Test
         void preservesNamedColors() {
             var text = Component.literal("Troubled Bubble").withStyle(ChatFormatting.GOLD);
 

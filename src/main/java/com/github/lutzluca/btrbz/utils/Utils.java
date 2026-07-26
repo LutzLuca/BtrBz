@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.ItemStack;
@@ -145,6 +146,37 @@ public final class Utils {
 
     public static String legacyFormattedText(Component component) {
         return legacyFormattedRange(component, 0, component.getString().length()).orElse("");
+    }
+
+    public static Component legacyFormattedComponent(@Nullable String value) {
+        if (value == null || value.isEmpty()) return Component.empty();
+
+        var segments = new ArrayList<MutableComponent>();
+        var style = Style.EMPTY;
+        int segmentStart = 0;
+        for (int index = 0; index + 1 < value.length(); index++) {
+            if (value.charAt(index) != ChatFormatting.PREFIX_CODE) continue;
+
+            var formatting = ChatFormatting.getByCode(value.charAt(index + 1));
+            if (formatting == null) continue;
+
+            if (segmentStart < index) {
+                segments.add(Component.literal(value.substring(segmentStart, index)).setStyle(style));
+            }
+            style = style.applyLegacyFormat(formatting);
+            index++;
+            segmentStart = index + 1;
+        }
+        if (segmentStart < value.length()) {
+            segments.add(Component.literal(value.substring(segmentStart)).setStyle(style));
+        }
+        if (segments.isEmpty()) return Component.empty().setStyle(style);
+
+        var result = segments.getFirst();
+        for (int index = 1; index < segments.size(); index++) {
+            result.append(segments.get(index));
+        }
+        return result;
     }
 
     private static Optional<String> legacyFormattedRange(Component component, int startInclusive, int endExclusive) {

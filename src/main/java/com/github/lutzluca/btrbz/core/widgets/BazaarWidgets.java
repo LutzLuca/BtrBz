@@ -18,7 +18,6 @@ import com.github.lutzluca.btrbz.core.widgets.session.BtrBzWidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrderDragController;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrderHoverController;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidget;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetAnchorSpace;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetActionHandler;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetDefinition;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetId;
@@ -151,7 +150,7 @@ public final class BazaarWidgets {
             )
             .defaultPlacement(WidgetPlacement.topLeft(0.04, 0.50))
             .defaultActive(true)
-            .minSize(WidgetLayoutTokens.panelWidth(180), 48)
+            .minSize(WidgetLayoutTokens.panelWidth(118), 48)
             .configurationPanel(() -> configurationPanels.apply(ORDER_BOOK_PRICE_ID))
             .dataProvider(runtimeData::orderBook)
             .previewDataProvider(previewData::orderBook)
@@ -234,7 +233,6 @@ public final class BazaarWidgets {
             )
             .defaultPlacement(WidgetPlacement.topLeft(0.76, 0.58))
             .defaultActive(true)
-            .anchorSpace(WidgetAnchorSpace.Content)
             .minSize(WidgetLayoutTokens.panelWidth(140), 30)
             .configurationPanel(() -> configurationPanels.apply(ORDER_LIMIT_ID))
             .dataProvider(_ -> runtimeData.dailyLimit())
@@ -260,7 +258,6 @@ public final class BazaarWidgets {
             )
             .defaultPlacement(WidgetPlacement.topLeft(0.76, 0.72))
             .defaultActive(true)
-            .anchorSpace(WidgetAnchorSpace.Content)
             .minSize(WidgetLayoutTokens.panelWidth(150), 36)
             .configurationPanel(() -> configurationPanels.apply(PRICE_DIFF_ID))
             .dataProvider(_ -> runtimeData.priceDifference())

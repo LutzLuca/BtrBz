@@ -372,12 +372,14 @@ public final class BazaarWidgetViewData {
         String itemName,
         ItemStack icon,
         List<OrderBookEntry> buyOffers,
-        List<OrderBookEntry> sellOffers
+        List<OrderBookEntry> sellOffers,
+        Optional<OrderSide> appropriateSide
     ) {
         public OrderBookData {
             icon = icon.copy();
             buyOffers = List.copyOf(buyOffers);
             sellOffers = List.copyOf(sellOffers);
+            appropriateSide = Objects.requireNonNull(appropriateSide, "appropriateSide");
         }
 
         @Override

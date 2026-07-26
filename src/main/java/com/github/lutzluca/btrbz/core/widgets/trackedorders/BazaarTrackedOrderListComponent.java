@@ -171,9 +171,18 @@ final class BazaarTrackedOrderListComponent extends BaseParentUIComponent {
         if (visibleLineY.isEmpty()) return;
         lineY = visibleLineY.getAsInt();
 
+        int left = this.scrollList.x() + 4;
+        int right = this.scrollList.x() + this.scrollList.width() - 6;
+        int viewportTop = this.scrollList.y();
+        int viewportBottom = this.scrollList.y() + this.scrollList.height();
         graphics.fill(
-            this.scrollList.x() + 5, lineY,
-            this.scrollList.x() + this.scrollList.width() - 7, lineY + 1,
+            left - 2, Math.max(viewportTop, lineY - 1),
+            right + 2, Math.min(viewportBottom, lineY + 3),
+            BazaarStyles.INSERTION_OUTLINE
+        );
+        graphics.fill(
+            left, lineY,
+            right, Math.min(viewportBottom, lineY + 2),
             BazaarStyles.INSERTION
         );
     }
