@@ -388,7 +388,7 @@ final class RemoteNeuConversionIndexBuilder {
         int level;
         try {
             level = Integer.parseInt(levelText);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return Optional.empty();
         }
 

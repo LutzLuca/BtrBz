@@ -35,7 +35,7 @@ public record WidgetHostOptions(
     }
 
     public boolean isSelected(WidgetDefinition<?, ?> definition) {
-        return this.selectedWidget != null && this.selectedWidget.equals(definition.id());
+        return this.selectedWidget != null && this.selectedWidget.equals(definition.getId());
     }
 
     public boolean shouldRender(WidgetId widgetId, boolean runtimeVisible) {
@@ -43,6 +43,6 @@ public record WidgetHostOptions(
     }
 
     public String placementProfile(WidgetDefinition<?, ?> definition, String runtimeProfile) {
-        return this.placementProfiles.getOrDefault(definition.id(), runtimeProfile);
+        return this.placementProfiles.getOrDefault(definition.getId(), runtimeProfile);
     }
 }

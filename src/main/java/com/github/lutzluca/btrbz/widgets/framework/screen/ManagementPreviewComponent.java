@@ -68,14 +68,14 @@ final class ManagementPreviewComponent extends BaseUIComponent {
         var result = this.hitResult(absoluteX, absoluteY);
         if (result == null) return false;
 
-        boolean alreadySelected = result.definition().id().equals(this.screen.selectedWidget());
+        boolean alreadySelected = result.definition().getId().equals(this.screen.selectedWidget());
         this.clearSelectionOnRelease = alreadySelected;
         this.dragMoved = false;
         this.dragStartX = absoluteX;
         this.dragStartY = absoluteY;
 
         if (!alreadySelected) {
-            this.screen.selectWidget(result.definition().id());
+            this.screen.selectWidget(result.definition().getId());
         }
 
         this.dragState = new DragState(

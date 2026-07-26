@@ -181,10 +181,10 @@ public final class ConversionIndex {
             if (normalized.isEmpty()) {
                 return;
             }
-            index.computeIfAbsent(normalized, ignored -> new ArrayList<>())
+            index.computeIfAbsent(normalized, _ -> new ArrayList<>())
                 .add(toIndexedProduct(productId, entry));
         });
-        index.replaceAll((ignored, refs) -> Collections.unmodifiableList(refs));
+        index.replaceAll((_, refs) -> Collections.unmodifiableList(refs));
         return Collections.unmodifiableMap(index);
     }
 

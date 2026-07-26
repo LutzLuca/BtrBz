@@ -10,13 +10,12 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+@Slf4j
 public final class WidgetSlotComponent extends BaseParentUIComponent {
-    private static final Logger LOGGER = LoggerFactory.getLogger(WidgetSlotComponent.class);
     private final WidgetId widgetId;
     private final UIComponent child;
     private final WidgetBounds localBounds;
@@ -186,7 +185,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
                 this.scale
             );
         } catch (RuntimeException exception) {
-            LOGGER.warn("Widget {} failed while rendering", this.widgetId, exception);
+            log.warn("Widget {} failed while rendering", this.widgetId, exception);
         }
 
         if (this.drawManagementOverlay) {

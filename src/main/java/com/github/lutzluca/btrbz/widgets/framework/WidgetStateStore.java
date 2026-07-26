@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.widgets.framework;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetsConfig;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -35,7 +35,7 @@ public final class WidgetStateStore {
     }
 
     public WidgetPlacement placement(WidgetDefinition<?, ?> definition, String profile) {
-        if (key(definition) == Key.ORDER_PRESETS) {
+        if (key(definition) == Key.OrderPresets) {
             var state = config().orderPresets;
             return "sign".equals(profile) ? state.signPosition : state.containerPosition;
         }
@@ -43,12 +43,12 @@ public final class WidgetStateStore {
     }
 
     public boolean isActive(WidgetDefinition<?, ?> definition) {
-        if (key(definition) == Key.ORDER_PRESETS) return config().orderPresets.enabled;
+        if (key(definition) == Key.OrderPresets) return config().orderPresets.enabled;
         return single(definition).enabled;
     }
 
     public void setActive(WidgetDefinition<?, ?> definition, boolean active) {
-        if (key(definition) == Key.ORDER_PRESETS) config().orderPresets.enabled = active;
+        if (key(definition) == Key.OrderPresets) config().orderPresets.enabled = active;
         else single(definition).enabled = active;
         this.saveAction.run();
     }
@@ -59,7 +59,7 @@ public final class WidgetStateStore {
         WidgetPlacement placement,
         boolean persist
     ) {
-        if (key(definition) == Key.ORDER_PRESETS) {
+        if (key(definition) == Key.OrderPresets) {
             if ("sign".equals(profile)) config().orderPresets.signPosition = placement;
             else config().orderPresets.containerPosition = placement;
         } else {
@@ -73,12 +73,12 @@ public final class WidgetStateStore {
     }
 
     public double widgetScale(WidgetDefinition<?, ?> definition) {
-        if (key(definition) == Key.ORDER_PRESETS) return clampScale(config().orderPresets.scale);
+        if (key(definition) == Key.OrderPresets) return clampScale(config().orderPresets.scale);
         return clampScale(single(definition).scale);
     }
 
     public void setWidgetScale(WidgetDefinition<?, ?> definition, double value) {
-        if (key(definition) == Key.ORDER_PRESETS) config().orderPresets.scale = clampScale(value);
+        if (key(definition) == Key.OrderPresets) config().orderPresets.scale = clampScale(value);
         else single(definition).scale = clampScale(value);
         this.saveAction.run();
     }
@@ -92,20 +92,20 @@ public final class WidgetStateStore {
     }
 
     public int backgroundColor(WidgetDefinition<?, ?> definition, int fallback) {
-        Integer override = key(definition) == Key.ORDER_PRESETS
+        Integer override = key(definition) == Key.OrderPresets
             ? config().orderPresets.background
             : single(definition).background;
         return override == null ? fallback : override;
     }
 
     public void setBackgroundColor(WidgetDefinition<?, ?> definition, int color) {
-        if (key(definition) == Key.ORDER_PRESETS) config().orderPresets.background = color;
+        if (key(definition) == Key.OrderPresets) config().orderPresets.background = color;
         else single(definition).background = color;
         this.saveAction.run();
     }
 
     public void resetBackgroundColor(WidgetDefinition<?, ?> definition) {
-        if (key(definition) == Key.ORDER_PRESETS) config().orderPresets.background = null;
+        if (key(definition) == Key.OrderPresets) config().orderPresets.background = null;
         else single(definition).background = null;
         this.saveAction.run();
     }
@@ -121,33 +121,33 @@ public final class WidgetStateStore {
     private WidgetsConfig.SinglePlacementConfig single(WidgetDefinition<?, ?> definition) {
         var widgets = config();
         return switch (key(definition)) {
-            case BAZAAR_ORDERS -> widgets.bazaarOrders;
-            case TRACKED_ORDERS -> widgets.trackedOrders;
-            case ORDER_VALUE -> widgets.orderValue;
-            case ORDER_BOOK_SCREEN -> widgets.orderBookScreen;
-            case ORDER_BOOK_PRICE -> widgets.orderBookPrice;
-            case BOOKMARKS -> widgets.bookmarks;
-            case ORDER_LIMIT -> widgets.orderLimit;
-            case PRICE_DIFF -> widgets.priceDiff;
-            case ORDER_PRESETS -> throw new IllegalArgumentException("Order Presets has two placements");
+            case BazaarOrders -> widgets.bazaarOrders;
+            case TrackedOrders -> widgets.trackedOrders;
+            case OrderValue -> widgets.orderValue;
+            case OrderBookScreen -> widgets.orderBookScreen;
+            case OrderBookPrice -> widgets.orderBookPrice;
+            case Bookmarks -> widgets.bookmarks;
+            case OrderLimit -> widgets.orderLimit;
+            case PriceDiff -> widgets.priceDiff;
+            case OrderPresets -> throw new IllegalArgumentException("Order Presets has two placements");
         };
     }
 
     private static Key key(WidgetDefinition<?, ?> definition) {
-        var identifier = definition.id().identifier();
+        var identifier = definition.getId().identifier();
         if (!"btrbz".equals(identifier.getNamespace())) {
             throw new IllegalArgumentException("Unsupported widget namespace: " + identifier);
         }
         return switch (identifier.getPath()) {
-            case "bazaar_orders" -> Key.BAZAAR_ORDERS;
-            case "tracked_orders_list" -> Key.TRACKED_ORDERS;
-            case "order_value" -> Key.ORDER_VALUE;
-            case "order_book_screen" -> Key.ORDER_BOOK_SCREEN;
-            case "order_book_price" -> Key.ORDER_BOOK_PRICE;
-            case "bookmarks" -> Key.BOOKMARKS;
-            case "order_presets" -> Key.ORDER_PRESETS;
-            case "order_limit" -> Key.ORDER_LIMIT;
-            case "price_diff" -> Key.PRICE_DIFF;
+            case "bazaar_orders" -> Key.BazaarOrders;
+            case "tracked_orders_list" -> Key.TrackedOrders;
+            case "order_value" -> Key.OrderValue;
+            case "order_book_screen" -> Key.OrderBookScreen;
+            case "order_book_price" -> Key.OrderBookPrice;
+            case "bookmarks" -> Key.Bookmarks;
+            case "order_presets" -> Key.OrderPresets;
+            case "order_limit" -> Key.OrderLimit;
+            case "price_diff" -> Key.PriceDiff;
             default -> throw new IllegalArgumentException("Unsupported widget: " + identifier);
         };
     }
@@ -158,14 +158,14 @@ public final class WidgetStateStore {
     }
 
     private enum Key {
-        BAZAAR_ORDERS,
-        TRACKED_ORDERS,
-        ORDER_VALUE,
-        ORDER_BOOK_SCREEN,
-        ORDER_BOOK_PRICE,
-        BOOKMARKS,
-        ORDER_PRESETS,
-        ORDER_LIMIT,
-        PRICE_DIFF
+        BazaarOrders,
+        TrackedOrders,
+        OrderValue,
+        OrderBookScreen,
+        OrderBookPrice,
+        Bookmarks,
+        OrderPresets,
+        OrderLimit,
+        PriceDiff
     }
 }

@@ -173,7 +173,7 @@ public final class ConversionIndexService {
         synchronized (this.resolvedStackCache) {
             if (revision == this.indexRevision) {
                 this.resolvedStackCache
-                        .computeIfAbsent(stack, ignored -> new HashMap<>())
+                        .computeIfAbsent(stack, _ -> new HashMap<>())
                         .put(evidenceKey, resolved);
             }
         }

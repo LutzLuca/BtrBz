@@ -69,10 +69,9 @@ public final class WidgetRuntime {
 
     private WidgetHost createHost(List<WidgetDefinition<?, ?>> definitions) {
         this.requireInitialized();
-        return new WidgetHost(
+        return WidgetHost.runtime(
             definitions,
             this.stateStore,
-            true,
             this.sessionProvider
         );
     }

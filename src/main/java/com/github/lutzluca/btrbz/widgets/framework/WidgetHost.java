@@ -19,8 +19,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,12 +29,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+@Slf4j
 public class WidgetHost {
-    private static final Logger LOGGER = LoggerFactory.getLogger(WidgetHost.class);
     private final List<WidgetDefinition<?, ?>> definitions;
     private final WidgetStateStore stateStore;
     private final boolean runtime;
-    private final WidgetScreenSessionProvider sessionProvider;
+    private final @Nullable WidgetScreenSessionProvider sessionProvider;
     private final Map<WidgetId, WidgetRenderSurface> renderSurfaces = new HashMap<>();
     private final Map<WidgetId, WidgetInstanceState> instanceStates = new HashMap<>();
     private final Map<WidgetId, WidgetScreenSession> attachedWidgets = new HashMap<>();
@@ -43,24 +42,36 @@ public class WidgetHost {
 
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
 
-    public WidgetHost(
-        List<WidgetDefinition<?, ?>> definitions,
-        WidgetStateStore stateStore,
-        boolean runtime
-    ) {
-        this(definitions, stateStore, runtime, WidgetScreenSessionProvider.empty());
-    }
-
-    public WidgetHost(
+    private WidgetHost(
         List<WidgetDefinition<?, ?>> definitions,
         WidgetStateStore stateStore,
         boolean runtime,
-        WidgetScreenSessionProvider sessionProvider
+        @Nullable WidgetScreenSessionProvider sessionProvider
     ) {
         this.definitions = List.copyOf(definitions);
         this.stateStore = stateStore;
         this.runtime = runtime;
         this.sessionProvider = sessionProvider;
+    }
+
+    public static WidgetHost runtime(
+        List<WidgetDefinition<?, ?>> definitions,
+        WidgetStateStore stateStore,
+        WidgetScreenSessionProvider sessionProvider
+    ) {
+        return new WidgetHost(
+            definitions,
+            stateStore,
+            true,
+            java.util.Objects.requireNonNull(sessionProvider, "sessionProvider")
+        );
+    }
+
+    public static WidgetHost preview(
+        List<WidgetDefinition<?, ?>> definitions,
+        WidgetStateStore stateStore
+    ) {
+        return new WidgetHost(definitions, stateStore, false, null);
     }
 
     public List<WidgetRenderResult> render(
@@ -73,8 +84,8 @@ public class WidgetHost {
         @Nullable Screen screen
     ) {
         this.ensureAdapter();
-        var session = this.sessionProvider.current(screen);
-        this.detachChangedSessions(session);
+        var session = this.runtime ? this.currentSession(screen) : null;
+        if (session != null) this.detachChangedSessions(session);
         var slots = new ArrayList<WidgetSlotComponent>();
         var results = new ArrayList<WidgetRenderResult>();
         var nowAttached = new HashSet<WidgetId>();
@@ -84,12 +95,12 @@ public class WidgetHost {
             if (prepared == null) continue;
             slots.add(prepared.slot());
             results.add(prepared.result());
-            nowAttached.add(definition.id());
+            nowAttached.add(definition.getId());
         }
 
         this.detachMissing(nowAttached);
         for (var id : nowAttached) {
-            this.attachedWidgets.put(id, session);
+            if (session != null) this.attachedWidgets.put(id, session);
         }
 
         this.adapter.rootComponent.replaceSlots(slots);
@@ -113,7 +124,7 @@ public class WidgetHost {
             try {
                 adapter.dispose();
             } catch (RuntimeException exception) {
-                LOGGER.warn("Failed to dispose widget host adapter", exception);
+                log.warn("Failed to dispose widget host adapter", exception);
             }
         }
 
@@ -123,7 +134,7 @@ public class WidgetHost {
             try {
                 surface.close();
             } catch (RuntimeException exception) {
-                LOGGER.warn("Failed to close widget render surface", exception);
+                log.warn("Failed to close widget render surface", exception);
             }
         }
     }
@@ -168,19 +179,28 @@ public class WidgetHost {
         WidgetDefinition<?, ?> definition,
         WidgetCanvas screenCanvas,
         WidgetHostOptions options,
-        WidgetScreenSession session
+        @Nullable WidgetScreenSession session
     ) {
         boolean selected = options.isSelected(definition);
-        if (!options.shouldRender(definition.id(), this.stateStore.isActive(definition))) return null;
+        if (!options.shouldRender(definition.getId(), this.stateStore.isActive(definition))) return null;
 
         try {
-            var anchorCanvas = this.clampAnchor(session.anchorCanvas(definition.anchorSpace(), screenCanvas), screenCanvas);
-            var renderContext = new WidgetRenderContext(session);
-            if (this.runtime && !definition.displayPredicate().test(renderContext)) {
+            var renderContext = this.runtime
+                ? new WidgetRenderContext(java.util.Objects.requireNonNull(session, "runtime session"))
+                : null;
+            var anchorCanvas = renderContext != null
+                ? this.clampAnchor(
+                    renderContext.session().anchorCanvas(definition.getAnchorSpace(), screenCanvas),
+                    screenCanvas
+                )
+                : screenCanvas;
+            if (this.runtime && !definition.getDisplayPredicate().test(renderContext)) {
                 return null;
             }
 
-            String runtimeProfile = definition.placementProfile(renderContext);
+            String runtimeProfile = this.runtime
+                ? definition.placementProfile(renderContext)
+                : WidgetScreenSession.DEFAULT_PLACEMENT_PROFILE;
             String profile = options.placementProfile(definition, runtimeProfile);
             var placement = this.stateStore.placement(definition, profile);
             double minimumScale = WidgetScaleResolver.readableMinimumScale(
@@ -192,8 +212,8 @@ public class WidgetHost {
                 minimumScale,
                 anchorCanvas.width(),
                 anchorCanvas.height(),
-                definition.minWidth(),
-                definition.minHeight()
+                definition.getMinWidth(),
+                definition.getMinHeight()
             );
             var layout = new WidgetLayoutContext(
                 Math.max(1, (int) Math.floor(anchorCanvas.width() / scale)),
@@ -203,8 +223,8 @@ public class WidgetHost {
             var component = this.buildComponent(definition, layout, renderContext);
             if (component == null) return null;
             component.inflate(Size.of(anchorCanvas.width(), anchorCanvas.height()));
-            int logicalWidth = Math.max(definition.minWidth(), component.width());
-            int logicalHeight = Math.max(definition.minHeight(), component.height());
+            int logicalWidth = Math.max(definition.getMinWidth(), component.width());
+            int logicalHeight = Math.max(definition.getMinHeight(), component.height());
             scale = WidgetScaleResolver.fitToCanvas(
                 requestedScale,
                 minimumScale,
@@ -235,9 +255,9 @@ public class WidgetHost {
                 localBounds.height()
             );
             var slot = new WidgetSlotComponent(
-                definition.id(),
+                definition.getId(),
                 component,
-                this.renderSurface(definition.id()),
+                this.renderSurface(definition.getId()),
                 this.stateStore.backgroundColor(definition, WidgetChrome.DEFAULT_BACKGROUND),
                 localBounds,
                 logicalWidth,
@@ -261,21 +281,26 @@ public class WidgetHost {
     private UIComponent buildComponent(
         WidgetDefinition definition,
         WidgetLayoutContext layout,
-        WidgetRenderContext renderContext
+        @Nullable WidgetRenderContext renderContext
     ) {
-        var provider = this.runtime ? definition.dataProvider() : definition.previewDataProvider();
-        var snapshot = provider.apply(renderContext);
-        if (this.runtime && !definition.dataDisplayPredicate().test(snapshot)) return null;
+        var snapshot = this.runtime
+            ? definition.getDataProvider().apply(java.util.Objects.requireNonNull(renderContext, "runtime context"))
+            : definition.getPreviewDataProvider().get();
+        if (this.runtime && !definition.getDataDisplayPredicate().test(snapshot)) return null;
         Consumer actions = this.runtime
-            ? action -> this.dispatch(definition, action, renderContext.session())
-            : action -> {};
+            ? action -> this.dispatch(
+                definition,
+                action,
+                java.util.Objects.requireNonNull(renderContext, "runtime context").session()
+            )
+            : _ -> {};
         var buildContext = new WidgetBuildContext(
             layout,
-            this.instanceStates.computeIfAbsent(definition.id(), ignored -> new WidgetInstanceState()),
+            this.instanceStates.computeIfAbsent(definition.getId(), _ -> new WidgetInstanceState()),
             actions,
             this.runtime
         );
-        return WidgetChrome.wrap((UIComponent) definition.componentFactory().apply(snapshot, buildContext));
+        return WidgetChrome.wrap((UIComponent) definition.getComponentFactory().apply(snapshot, buildContext));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -286,13 +311,13 @@ public class WidgetHost {
     ) {
         var client = Minecraft.getInstance();
         var currentScreen = client.screen;
-        var currentSession = this.sessionProvider.current(currentScreen);
+        var currentSession = this.currentSession(currentScreen);
         if (sourceSession.id() != currentSession.id()) return;
 
         try {
-            definition.actionHandler().handle(action, sourceSession, currentSession);
+            definition.getActionHandler().handle(action, sourceSession, currentSession);
         } catch (Exception exception) {
-            LOGGER.warn("Widget action failed for {}", definition.id(), exception);
+            log.warn("Widget action failed for {}", definition.getId(), exception);
         }
     }
 
@@ -304,10 +329,10 @@ public class WidgetHost {
     ) {
         var layout = UIContainers.verticalFlow(Sizing.content(), Sizing.content());
         layout.padding(Insets.of(6));
-        layout.child(UIComponents.label(Component.literal("Widget error: " + definition.displayName()))
+        layout.child(UIComponents.label(Component.literal("Widget error: " + definition.getDisplayName()))
             .color(Color.ofArgb(0xFFFF8888)));
-        int logicalWidth = Math.max(definition.minWidth(), 130);
-        int logicalHeight = Math.max(definition.minHeight(), 24);
+        int logicalWidth = Math.max(definition.getMinWidth(), 130);
+        int logicalHeight = Math.max(definition.getMinHeight(), 24);
         double minimumScale = WidgetScaleResolver.readableMinimumScale(
             Minecraft.getInstance().getWindow().getGuiScale()
         );
@@ -330,9 +355,9 @@ public class WidgetHost {
         int scaledHeight = Math.max(1, (int) Math.ceil(logicalHeight * scale));
         var localBounds = placement.resolve(canvas.width(), canvas.height(), scaledWidth, scaledHeight);
         var slot = new WidgetSlotComponent(
-            definition.id(),
+            definition.getId(),
             layout,
-            this.renderSurface(definition.id()),
+            this.renderSurface(definition.getId()),
             this.stateStore.backgroundColor(definition, WidgetChrome.DEFAULT_BACKGROUND),
             localBounds,
             logicalWidth,
@@ -358,7 +383,9 @@ public class WidgetHost {
     }
 
     private void detachMissing(Set<WidgetId> nowAttached) {
-        for (var id : Set.copyOf(this.attachedWidgets.keySet())) {
+        var previouslyAttached = new HashSet<>(this.attachedWidgets.keySet());
+        previouslyAttached.addAll(this.instanceStates.keySet());
+        for (var id : previouslyAttached) {
             if (nowAttached.contains(id)) continue;
             this.attachedWidgets.remove(id);
             var state = this.instanceStates.remove(id);
@@ -387,11 +414,15 @@ public class WidgetHost {
     }
 
     private void logWidgetFailure(WidgetDefinition<?, ?> definition, Exception exception) {
-        LOGGER.warn("Widget {} failed during render preparation", definition.id(), exception);
+        log.warn("Widget {} failed during render preparation", definition.getId(), exception);
+    }
+
+    private WidgetScreenSession currentSession(@Nullable Screen screen) {
+        return java.util.Objects.requireNonNull(this.sessionProvider, "runtime session provider").current(screen);
     }
 
     private WidgetRenderSurface renderSurface(WidgetId widgetId) {
-        return this.renderSurfaces.computeIfAbsent(widgetId, ignored -> new WidgetRenderSurface());
+        return this.renderSurfaces.computeIfAbsent(widgetId, _ -> new WidgetRenderSurface());
     }
 
     private record PreparedWidget(WidgetSlotComponent slot, WidgetRenderResult result) {}

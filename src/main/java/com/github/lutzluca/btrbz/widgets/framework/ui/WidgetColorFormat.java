@@ -20,7 +20,7 @@ public final class WidgetColorFormat {
             int parsed = (int) Long.parseUnsignedLong(hex, 16);
             if (hex.length() == 6) parsed |= currentArgb & 0xFF000000;
             return OptionalInt.of(parsed);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return OptionalInt.empty();
         }
     }

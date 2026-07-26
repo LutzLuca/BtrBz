@@ -106,7 +106,7 @@ final class EnchantedBookIdParser {
     private static Optional<Integer> parseArabicLevel(String level) {
         try {
             return Optional.of(Integer.parseInt(level));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return Optional.empty();
         }
     }

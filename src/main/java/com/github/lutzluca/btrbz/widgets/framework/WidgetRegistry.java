@@ -48,8 +48,8 @@ public final class WidgetRegistry {
         WidgetDefinition<?, ?> definition,
         List<WidgetDefinition<?, ?>> destination
     ) {
-        if (this.definitions.putIfAbsent(definition.id(), definition) != null) {
-            throw new IllegalArgumentException("Widget already registered: " + definition.id());
+        if (this.definitions.putIfAbsent(definition.getId(), definition) != null) {
+            throw new IllegalArgumentException("Widget already registered: " + definition.getId());
         }
 
         destination.add(definition);
