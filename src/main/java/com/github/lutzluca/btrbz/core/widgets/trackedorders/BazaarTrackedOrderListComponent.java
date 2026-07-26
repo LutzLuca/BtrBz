@@ -46,7 +46,7 @@ final class BazaarTrackedOrderListComponent extends BaseParentUIComponent {
         TrackedOrderHoverController hover,
         Consumer<BazaarAction> actions
     ) {
-        super(Sizing.fill(100), Sizing.fixed(viewportHeight(options)));
+        super(Sizing.fill(100), Sizing.fixed(viewportHeight(options, orders.size())));
         this.reorderable = interactive && options.sort() == BazaarWidgetOptions.TrackedSort.Manual;
         this.interactive = interactive;
         this.drag = drag;
@@ -63,7 +63,7 @@ final class BazaarTrackedOrderListComponent extends BaseParentUIComponent {
 
         this.scrollList = new WidgetScrollListComponent(
             this.rows,
-            viewportHeight(options),
+            viewportHeight(options, orders.size()),
             WidgetLayoutTokens.LIST_GAP,
             interactive,
             scrollState,
@@ -73,8 +73,10 @@ final class BazaarTrackedOrderListComponent extends BaseParentUIComponent {
         this.allowOverflow(true);
     }
 
-    private static int viewportHeight(BazaarWidgetOptions.TrackedOrders options) {
-        return WidgetLayoutTokens.listViewportHeight(rowHeight(options), options.visibleRows());
+    private static int viewportHeight(BazaarWidgetOptions.TrackedOrders options, int orderCount) {
+        return WidgetLayoutTokens.configuredListViewportHeight(
+            rowHeight(options), orderCount, options.visibleRows(), options.fitToContent()
+        );
     }
 
     private static int rowHeight(BazaarWidgetOptions.TrackedOrders options) {

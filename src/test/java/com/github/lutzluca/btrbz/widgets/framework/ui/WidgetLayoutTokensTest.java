@@ -20,4 +20,14 @@ class WidgetLayoutTokensTest {
         assertEquals(342, WidgetLayoutTokens.panelWidth(330));
         assertEquals(210, WidgetLayoutTokens.panelWidth(198));
     }
+
+    @Test
+    void configuredViewportCanFitContentOrReserveTheMaximumHeight() {
+        assertEquals(1, WidgetLayoutTokens.configuredListViewportHeight(21, 0, 5, true));
+        assertEquals(43, WidgetLayoutTokens.configuredListViewportHeight(21, 2, 5, true));
+        assertEquals(109, WidgetLayoutTokens.configuredListViewportHeight(21, 5, 5, true));
+        assertEquals(109, WidgetLayoutTokens.configuredListViewportHeight(21, 8, 5, true));
+        assertEquals(109, WidgetLayoutTokens.configuredListViewportHeight(21, 0, 5, false));
+        assertEquals(109, WidgetLayoutTokens.configuredListViewportHeight(21, 2, 5, false));
+    }
 }

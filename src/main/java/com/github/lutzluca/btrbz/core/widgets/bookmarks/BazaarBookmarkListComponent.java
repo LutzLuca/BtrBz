@@ -32,7 +32,7 @@ final class BazaarBookmarkListComponent extends BaseParentUIComponent {
             BazaarWidgetOptions.Bookmarks options, boolean interactive,
             WidgetScrollState scrollState, BookmarkDragController drag,
             Consumer<BazaarAction> actions) {
-        super(Sizing.fill(100), Sizing.fixed(viewportHeight(options)));
+        super(Sizing.fill(100), Sizing.fixed(viewportHeight(options, bookmarks.size())));
         this.reorderable = interactive && options.sort() == BazaarWidgetOptions.BookmarkSort.Manual;
         this.drag = drag;
         for (int index = 0; index < bookmarks.size(); index++) {
@@ -41,16 +41,23 @@ final class BazaarBookmarkListComponent extends BaseParentUIComponent {
             ));
         }
         this.scrollList = new WidgetScrollListComponent(
-            this.rows, viewportHeight(options), WidgetLayoutTokens.LIST_GAP, interactive, scrollState,
+            this.rows,
+            viewportHeight(options, bookmarks.size()),
+            WidgetLayoutTokens.LIST_GAP,
+            interactive,
+            scrollState,
             BazaarStyles.SCROLLBAR
         );
         this.children = Collections.singletonList(this.scrollList);
         this.allowOverflow(true);
     }
 
-    private static int viewportHeight(BazaarWidgetOptions.Bookmarks options) {
-        return WidgetLayoutTokens.listViewportHeight(
-            BazaarBookmarkRowComponent.HEIGHT, options.visibleRows()
+    private static int viewportHeight(BazaarWidgetOptions.Bookmarks options, int bookmarkCount) {
+        return WidgetLayoutTokens.configuredListViewportHeight(
+            BazaarBookmarkRowComponent.HEIGHT,
+            bookmarkCount,
+            options.visibleRows(),
+            options.fitToContent()
         );
     }
 

@@ -33,7 +33,7 @@ public record BazaarWidgetOptions(
                 6,
                 200,
                 false,
-                false,
+                true,
                 true,
                 true,
                 PriceDisplay.Unit,
@@ -41,8 +41,8 @@ public record BazaarWidgetOptions(
                 UndercutDetail.PriceGapAndQueue
             ),
             new TrackedOrders(
-                218, 6, TrackedLayout.Standard, TrackedSort.Manual, false,
-                true, true, true, PriceDisplay.Unit, true, true
+                218, 6, true, TrackedLayout.Standard, TrackedSort.Manual, false,
+                true, true, true, true, PriceDisplay.Unit, true, true
             ),
             new OrderValue(205, ValueDisplay.Detailed, NumberStyle.Compact, true, ColorMode.Semantic,
                 true, true, true, true),
@@ -50,7 +50,7 @@ public record BazaarWidgetOptions(
             new EmbeddedOrderBook(
                 240, 3, true, true, true, true, true, true, EmbeddedSideDisplay.Relevant
             ),
-            new Bookmarks(200, 6, BookmarkSort.Manual, true, true, false),
+            new Bookmarks(200, 6, true, BookmarkSort.Manual, true, true, true, false),
             new Presets(100, true, true, true, true),
             new OrderLimit(180, LimitDisplay.UsedLimit, NumberStyle.Compact, true, 75, 90),
             new PriceDiff(190, DiffDisplay.Both, NumberStyle.Compact, true, true)
@@ -73,9 +73,11 @@ public record BazaarWidgetOptions(
     public record TrackedOrders(
         int contentWidth,
         int visibleRows,
+        boolean fitToContent,
         TrackedLayout layout,
         TrackedSort sort,
         boolean abbreviateEnchanted,
+        boolean hideWhenEmpty,
         boolean showStatusSummary,
         boolean showItem,
         boolean showVolume,
@@ -121,7 +123,9 @@ public record BazaarWidgetOptions(
     public record Bookmarks(
         int contentWidth,
         int visibleRows,
+        boolean fitToContent,
         BookmarkSort sort,
+        boolean hideWhenEmpty,
         boolean showItems,
         boolean showIndicators,
         boolean abbreviateEnchanted
