@@ -8,23 +8,8 @@ import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
-import com.github.lutzluca.btrbz.core.modules.BindModule;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookMarkConfig;
-import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
-import com.github.lutzluca.btrbz.core.modules.OrderLimitModule.OrderLimitConfig;
-import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsModule;
-import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsConfig;
-import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
-import com.github.lutzluca.btrbz.core.modules.OrderValueModule.OrderValueOverlayConfig;
-import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
-import com.github.lutzluca.btrbz.core.modules.PriceDiffModule.PriceDiffConfig;
-import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule;
-import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule.OrderBookPriceConfig;
-import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
-import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule.OrderListConfig;
-import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController.OrderBookConfig;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.widgets.WidgetsConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,32 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 public class Config {
 
     @SerialEntry
-    @BindModule(OrderLimitModule.class)
-    public OrderLimitConfig orderLimit = new OrderLimitConfig();
-
-    @SerialEntry
-    @BindModule(BookmarkModule.class)
-    public BookMarkConfig bookmark = new BookMarkConfig();
-
-    @SerialEntry
-    @BindModule(PriceDiffModule.class)
-    public PriceDiffConfig priceDiff = new PriceDiffConfig();
-
-    @SerialEntry
-    @BindModule(OrderValueModule.class)
-    public OrderValueOverlayConfig orderValueOverlay = new OrderValueOverlayConfig();
-
-    @SerialEntry
-    @BindModule(TrackedOrdersListModule.class)
-    public OrderListConfig orderList = new OrderListConfig();
-
-    @SerialEntry
-    @BindModule(OrderPresetsModule.class)
-    public OrderPresetsConfig orderPresets = new OrderPresetsConfig();
-
-    @SerialEntry
-    @BindModule(OrderBookPriceModule.class)
-    public OrderBookPriceConfig orderBookPrice = new OrderBookPriceConfig();
+    public WidgetsConfig widgets = new WidgetsConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
@@ -92,6 +52,4 @@ public class Config {
     @SerialEntry
     public ChatFilterManager.ChatFilterConfig chatFilter = new ChatFilterManager.ChatFilterConfig();
 
-    @SerialEntry
-    public OrderBookConfig orderBook = new OrderBookConfig();
 }

@@ -1,6 +1,9 @@
 package com.github.lutzluca.btrbz.mixin;
 
-import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetCanvas;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetHostOptions;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.input.KeyEvent;
@@ -15,24 +18,22 @@ public abstract class AbstractSignEditScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null) {
-            wm.cleanup();
-        }
+        BtrBz.screenWidgetHost().dispose();
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null) {
-            wm.render(graphics, mouseX, mouseY, delta);
-        }
+        var client = Minecraft.getInstance();
+        BtrBz.screenWidgetHost().render(
+            graphics, mouseX, mouseY, delta,
+            new WidgetCanvas(0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()),
+            WidgetHostOptions.runtime(true), client.screen
+        );
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.keyPressed(event)) {
+        if (BtrBz.screenWidgetHost().keyPressed(event)) {
             cir.setReturnValue(true);
         }
     }

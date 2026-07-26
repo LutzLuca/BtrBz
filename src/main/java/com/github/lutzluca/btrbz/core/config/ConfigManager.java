@@ -2,9 +2,8 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule.BookmarkedItem;
+import com.github.lutzluca.btrbz.core.widgets.WidgetsConfig.BookmarkedItem;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
-import com.github.lutzluca.btrbz.utils.Position;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder;
 import java.util.function.Predicate;
@@ -22,7 +21,6 @@ public final class ConfigManager {
                 .registerTypeAdapter(Alert.class, new Alert.GsonAdapter())
                 .registerTypeAdapter(BookmarkedItem.class, new BookmarkedItem.GsonAdapter())
                 .registerTypeAdapter(IndexedProduct.class, new IndexedProduct.GsonAdapter())
-                .registerTypeAdapter(Position.class, new Position.GsonAdapter())
             )
             .setPath(FabricLoader
                 .getInstance()

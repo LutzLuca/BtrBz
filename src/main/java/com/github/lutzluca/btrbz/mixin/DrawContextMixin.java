@@ -46,7 +46,7 @@ public class DrawContextMixin {
         GuiGraphicsExtractor context = (GuiGraphicsExtractor) (Object) this;
         int iconSize = 8;
 
-        if (isBookmarked != null && ConfigManager.get().bookmark.enabled) {
+        if (isBookmarked != null && ConfigManager.get().widgets.bookmarks.enabled) {
             var texture = isBookmarked ? BOOKMARK_STAR : BOOKMARK_ICON;
             context.blit(
                 RenderPipelines.GUI_TEXTURED,

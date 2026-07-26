@@ -34,6 +34,8 @@ repositories {
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
     maven("https://maven.isxander.dev/releases")
     maven("https://maven.terraformersmc.com/")
+    maven("https://maven.wispforest.io")
+    maven("https://jitpack.io")
 }
 
 fabricApi {
@@ -73,6 +75,9 @@ dependencies {
     runtimeOnly("me.djtheredstoner:DevAuth-fabric:1.2.1")
 
     implementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
+
+    implementation("io.wispforest:owo-lib:${getProp("owo_version")}")
+    annotationProcessor("io.wispforest:owo-lib:${getProp("owo_version")}")
 
     compileOnly("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
 }
@@ -131,7 +136,7 @@ publishMods {
 
         projectDescription = rootProject.file("README.md").readText()
 
-        requires("fabric-api", "yacl")
+        requires("fabric-api", "yacl", "owo-lib")
         optional("modmenu")
     }
 }
