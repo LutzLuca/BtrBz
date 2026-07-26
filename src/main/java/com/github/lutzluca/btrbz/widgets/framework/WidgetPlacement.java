@@ -4,11 +4,11 @@ public record WidgetPlacement(double x, double y, Anchor anchor) {
     public WidgetPlacement {
         x = clamp01(x);
         y = clamp01(y);
-        anchor = anchor == null ? Anchor.TOP_LEFT : anchor;
+        anchor = anchor == null ? Anchor.TopLeft : anchor;
     }
 
     public static WidgetPlacement topLeft(double x, double y) {
-        return new WidgetPlacement(x, y, Anchor.TOP_LEFT);
+        return new WidgetPlacement(x, y, Anchor.TopLeft);
     }
 
     public WidgetBounds resolve(int canvasWidth, int canvasHeight, int scaledWidgetWidth, int scaledWidgetHeight) {
@@ -54,6 +54,6 @@ public record WidgetPlacement(double x, double y, Anchor anchor) {
     }
 
     public enum Anchor {
-        TOP_LEFT
+        TopLeft
     }
 }

@@ -13,7 +13,7 @@ public final class WidgetInstanceState {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(factory, "factory");
-        Object value = this.values.computeIfAbsent(key, ignored -> factory.get());
+        Object value = this.values.computeIfAbsent(key, _ -> factory.get());
         if (!type.isInstance(value)) {
             throw new IllegalStateException("State key '" + key + "' contains " + value.getClass().getName()
                 + ", expected " + type.getName());

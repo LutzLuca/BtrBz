@@ -40,7 +40,7 @@ public final class OrderBookScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        this.addRenderableWidget(Button.builder(Component.literal("Go Back"), ignored -> this.onClose())
+        this.addRenderableWidget(Button.builder(Component.literal("Go Back"), _ -> this.onClose())
             .bounds((this.width - 100) / 2, this.height - 30, 100, 20)
             .build());
     }

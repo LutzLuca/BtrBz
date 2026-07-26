@@ -21,9 +21,11 @@ public class Commands {
 
     public static void registerAll(BazaarData bazaarData, WidgetRuntime widgetRuntime) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            rootCommand.then(ClientCommands.literal("widgets").executes(context -> {
+            rootCommand.then(ClientCommands.literal("widgets").executes(_ -> {
                 var client = Minecraft.getInstance();
-                client.setScreen(widgetRuntime.createManagementScreen(client.screen));
+                client.schedule(() -> client.setScreen(
+                    widgetRuntime.createManagementScreen(client.screen)
+                ));
                 return 1;
             }));
             dispatcher.register(rootCommand);

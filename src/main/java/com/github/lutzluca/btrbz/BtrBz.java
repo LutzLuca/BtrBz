@@ -14,19 +14,19 @@ import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
-import com.github.lutzluca.btrbz.core.widgets.BazaarConfigAdapter;
-import com.github.lutzluca.btrbz.core.widgets.BazaarConfigPanels;
-import com.github.lutzluca.btrbz.core.widgets.BazaarWidgetActionHandler;
-import com.github.lutzluca.btrbz.core.widgets.BazaarWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.BtrBzWidgetKeybinds;
-import com.github.lutzluca.btrbz.core.widgets.BazaarWidgetPreviewData;
+import com.github.lutzluca.btrbz.core.widgets.action.BazaarWidgetActionHandler;
+import com.github.lutzluca.btrbz.core.widgets.config.BazaarConfigAdapter;
+import com.github.lutzluca.btrbz.core.widgets.config.BazaarConfigPanels;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetPreviewData;
+import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
 import com.github.lutzluca.btrbz.core.widgets.BazaarWidgets;
-import com.github.lutzluca.btrbz.core.widgets.BookmarkComponent;
-import com.github.lutzluca.btrbz.core.widgets.BtrBzWidgetSessionProvider;
-import com.github.lutzluca.btrbz.core.widgets.DailyLimitComponent;
-import com.github.lutzluca.btrbz.core.widgets.OrderBookPriceComponent;
-import com.github.lutzluca.btrbz.core.widgets.OrderPresetsComponent;
-import com.github.lutzluca.btrbz.core.widgets.OrderValueComponent;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarkComponent;
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
+import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
+import com.github.lutzluca.btrbz.core.widgets.session.BtrBzWidgetSessionProvider;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -162,7 +162,6 @@ public class BtrBz implements ClientModInitializer {
             BAZAAR_DATA,
             this.orderManager,
             this.tooltipProvider,
-            productInfoProvider,
             bookmarks,
             orderValue,
             orderBookPrice,

@@ -75,7 +75,7 @@ public final class Utils {
                     StandardCopyOption.ATOMIC_MOVE,
                     StandardCopyOption.REPLACE_EXISTING
                 );
-            } catch (AtomicMoveNotSupportedException ignored) {
+            } catch (AtomicMoveNotSupportedException _) {
                 return Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
             } finally {
                 Files.deleteIfExists(tmp);
@@ -196,7 +196,7 @@ public final class Utils {
             if (!serialized.startsWith("#")) {
                 try {
                     out.append(ChatFormatting.valueOf(serialized.toUpperCase(Locale.ROOT)));
-                } catch (IllegalArgumentException ignored) {
+                } catch (IllegalArgumentException _) {
                     //ignore unknown color names
                 }
             }

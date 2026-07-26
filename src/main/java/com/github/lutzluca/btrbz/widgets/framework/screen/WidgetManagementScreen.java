@@ -101,10 +101,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.previousScreen = previousScreen;
         this.registry = registry;
         this.stateStore = stateStore;
-        this.previewHost = new WidgetHost(
+        this.previewHost = WidgetHost.preview(
             registry.all(),
-            stateStore,
-            false
+            stateStore
         );
         if (launchState.selectedWidget() != null) {
             if (registry.find(launchState.selectedWidget()).isEmpty()) {
@@ -115,7 +114,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.renderedWidgets.addAll(launchState.renderedWidgets());
         for (var definition : registry.all()) {
             this.previewProfiles.put(
-                definition.id(),
+                definition.getId(),
                 WidgetScreenSession.DEFAULT_PLACEMENT_PROFILE
             );
         }
@@ -146,7 +145,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     String placementProfile(WidgetDefinition<?, ?> definition) {
         return this.previewProfiles.getOrDefault(
-            definition.id(),
+            definition.getId(),
             WidgetScreenSession.DEFAULT_PLACEMENT_PROFILE
         );
     }
@@ -367,12 +366,12 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         var selected = this.selectedWidget == null ? null : this.registry.find(this.selectedWidget).orElse(null);
         this.sidebarContent.child(label("Selected", 0xFFB8C0CF));
-        this.sidebarContent.child(label(selected == null ? "None" : selected.displayName(), 0xFFFFFFFF));
+        this.sidebarContent.child(label(selected == null ? "None" : selected.getDisplayName(), 0xFFFFFFFF));
         if (selected != null) {
             this.addGameplayEnabledControl(selected);
             this.addWidgetScaleControls(selected);
             this.addBackgroundControls(selected);
-            this.sidebarContent.child(button("Reset Position", ignored ->
+            this.sidebarContent.child(button("Reset Position", _ ->
                 this.stateStore.resetPlacement(selected, this.placementProfile(selected))
             ));
             this.addPlacementProfileControl(selected);
@@ -382,7 +381,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 this.sidebarContent.child(configurationPanel);
             }
         }
-        this.sidebarContent.child(button("Close", ignored -> this.onClose()));
+        this.sidebarContent.child(button("Close", _ -> this.onClose()));
 
         // Attach only after the replacement content is complete, otherwise the
         // mounted sidebar performs an empty layout and clamps the saved offset
@@ -406,7 +405,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         String tooltip = this.sidebarMinimized ? "Maximize widget manager" : "Minimize widget manager";
         this.sidebarSizeButton = UIComponents.button(
             Component.literal(buttonText),
-            ignored -> this.setSidebarMinimized(!this.sidebarMinimized)
+            _ -> this.setSidebarMinimized(!this.sidebarMinimized)
         );
         this.sidebarSizeButton.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF465066, 0xFF20242D));
         this.sidebarSizeButton.textShadow(false);
@@ -434,7 +433,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             var profiles = selected.placementProfiles();
             int index = profiles.indexOf(this.placementProfile(selected));
             String next = profiles.get((index + 1) % profiles.size());
-            this.previewProfiles.put(selected.id(), next);
+            this.previewProfiles.put(selected.getId(), next);
             control.setMessage(Component.literal("Placement: " + placementProfileName(next)));
         }));
     }
@@ -453,7 +452,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         slider.message(value -> Component.literal("Widget scale " + value));
         slider.onChanged().subscribe(value -> this.stateStore.setWidgetScale(selected, value));
         this.sidebarContent.child(slider);
-        this.sidebarContent.child(button("Reset widget scale", ignored -> {
+        this.sidebarContent.child(button("Reset widget scale", _ -> {
             this.stateStore.resetWidgetScale(selected);
             this.rebuildSidebar();
         }));
@@ -469,7 +468,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private void addBackgroundControls(WidgetDefinition<?, ?> selected) {
         this.sidebarContent.child(label("Background", 0xFFB8C0CF));
         this.addBackgroundEditor(selected, WidgetChrome.DEFAULT_BACKGROUND);
-        this.sidebarContent.child(button("Reset background", ignored -> {
+        this.sidebarContent.child(button("Reset background", _ -> {
             this.stateStore.resetBackgroundColor(selected);
             this.rebuildSidebar();
         }));
@@ -519,15 +518,15 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         row.verticalAlignment(VerticalAlignment.CENTER);
         var rendered = UIComponents.smallCheckbox(Component.literal("R"));
         rendered.tooltip(Component.literal("Rendered in the widget manager"));
-        rendered.checked(this.renderedWidgets.contains(definition.id()));
+        rendered.checked(this.renderedWidgets.contains(definition.getId()));
         rendered.onChanged().subscribe(value -> {
-            if (value) this.renderedWidgets.add(definition.id());
-            else this.renderedWidgets.remove(definition.id());
+            if (value) this.renderedWidgets.add(definition.getId());
+            else this.renderedWidgets.remove(definition.getId());
         });
         row.child(rendered);
-        var select = button(definition.displayName(), ignored -> this.selectWidget(definition.id()));
+        var select = button(definition.getDisplayName(), _ -> this.selectWidget(definition.getId()));
         select.horizontalSizing(Sizing.expand(100));
-        if (definition.id().equals(this.selectedWidget)) {
+        if (definition.getId().equals(this.selectedWidget)) {
             select.renderer(ButtonComponent.Renderer.flat(0xFF3B4252, 0xFF465066, 0xFF292D36));
         }
         row.child(select);

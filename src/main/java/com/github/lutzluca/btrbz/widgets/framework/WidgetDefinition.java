@@ -11,20 +11,26 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import lombok.AccessLevel;
+import lombok.Getter;
 
+@Getter
 public final class WidgetDefinition<T, A> {
     private final WidgetId id;
     private final String displayName;
+    @Getter(AccessLevel.NONE)
     private final Map<String, WidgetPlacement> defaultPlacements;
     private final boolean defaultActive;
     private final Function<WidgetRenderContext, T> dataProvider;
-    private final Function<WidgetRenderContext, T> previewDataProvider;
+    private final Supplier<T> previewDataProvider;
     private final Predicate<T> dataDisplayPredicate;
     private final BiFunction<T, WidgetBuildContext<A>, UIComponent> componentFactory;
     private final WidgetActionHandler<A> actionHandler;
     private final Predicate<WidgetRenderContext> displayPredicate;
+    @Getter(AccessLevel.NONE)
     private final Supplier<? extends UIComponent> configurationPanel;
     private final WidgetAnchorSpace anchorSpace;
+    @Getter(AccessLevel.NONE)
     private final Function<WidgetRenderContext, String> placementProfileResolver;
     private final int minWidth;
     private final int minHeight;
@@ -67,19 +73,7 @@ public final class WidgetDefinition<T, A> {
         return (action, sourceSession, currentSession) -> {};
     }
 
-    public WidgetId id() { return this.id; }
-    public String displayName() { return this.displayName; }
-    public boolean defaultActive() { return this.defaultActive; }
-    public Function<WidgetRenderContext, T> dataProvider() { return this.dataProvider; }
-    public Function<WidgetRenderContext, T> previewDataProvider() { return this.previewDataProvider; }
-    public Predicate<T> dataDisplayPredicate() { return this.dataDisplayPredicate; }
-    public BiFunction<T, WidgetBuildContext<A>, UIComponent> componentFactory() { return this.componentFactory; }
-    public WidgetActionHandler<A> actionHandler() { return this.actionHandler; }
-    public Predicate<WidgetRenderContext> displayPredicate() { return this.displayPredicate; }
     public UIComponent configurationPanel() { return this.configurationPanel.get(); }
-    public WidgetAnchorSpace anchorSpace() { return this.anchorSpace; }
-    public int minWidth() { return this.minWidth; }
-    public int minHeight() { return this.minHeight; }
 
     public List<String> placementProfiles() {
         return List.copyOf(this.defaultPlacements.keySet());
@@ -105,13 +99,13 @@ public final class WidgetDefinition<T, A> {
         private final Map<String, WidgetPlacement> defaultPlacements = new LinkedHashMap<>();
         private boolean defaultActive = true;
         private Function<WidgetRenderContext, T> dataProvider;
-        private Function<WidgetRenderContext, T> previewDataProvider;
-        private Predicate<T> dataDisplayPredicate = ignored -> true;
+        private Supplier<T> previewDataProvider;
+        private Predicate<T> dataDisplayPredicate = _ -> true;
         private BiFunction<T, WidgetBuildContext<A>, UIComponent> componentFactory;
         private WidgetActionHandler<A> actionHandler = noOpActionHandler();
-        private Predicate<WidgetRenderContext> displayPredicate = ignored -> true;
+        private Predicate<WidgetRenderContext> displayPredicate = _ -> true;
         private Supplier<? extends UIComponent> configurationPanel = () -> null;
-        private WidgetAnchorSpace anchorSpace = WidgetAnchorSpace.SCREEN;
+        private WidgetAnchorSpace anchorSpace = WidgetAnchorSpace.Screen;
         private Function<WidgetRenderContext, String> placementProfileResolver = context ->
             context.session().placementProfile();
         private int minWidth = 48;
@@ -145,7 +139,7 @@ public final class WidgetDefinition<T, A> {
             return this;
         }
 
-        public Builder<T, A> previewDataProvider(Function<WidgetRenderContext, T> previewDataProvider) {
+        public Builder<T, A> previewDataProvider(Supplier<T> previewDataProvider) {
             this.previewDataProvider = previewDataProvider;
             return this;
         }

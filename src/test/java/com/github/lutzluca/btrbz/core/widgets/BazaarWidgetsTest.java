@@ -1,5 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
+import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetPreviewData;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
+import com.github.lutzluca.btrbz.core.widgets.session.BtrBzWidgetSession;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetRegistry;
@@ -23,52 +28,52 @@ class BazaarWidgetsTest {
             BazaarWidgets.ORDER_PRESETS_ID,
             BazaarWidgets.ORDER_LIMIT_ID,
             BazaarWidgets.PRICE_DIFF_ID
-        ), registry.all().stream().map(definition -> definition.id()).toList());
+        ), registry.all().stream().map(definition -> definition.getId()).toList());
     }
 
     @Test
     void definitionsAcceptOnlyTheirProductionSessions() {
         var registry = registry();
         assertVisible(registry, BazaarWidgets.BAZAAR_ORDERS_ID, session(
-            BtrBzWidgetSession.HostKind.HUD, null, null, false
+            BtrBzWidgetSession.HostKind.Hud, null, null, false
         ));
         assertVisible(registry, BazaarWidgets.TRACKED_ORDERS_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.Item, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.Item, null, false
         ));
         assertVisible(registry, BazaarWidgets.ORDER_VALUE_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.Orders, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.Orders, null, false
         ));
         assertVisible(registry, BazaarWidgets.ORDER_BOOK_SCREEN_ID, session(
-            BtrBzWidgetSession.HostKind.ORDER_BOOK, null, null, true
+            BtrBzWidgetSession.HostKind.OrderBook, null, null, true
         ));
         assertVisible(registry, BazaarWidgets.ORDER_BOOK_PRICE_ID, session(
-            BtrBzWidgetSession.HostKind.SIGN, null, BazaarMenuType.BuyOrderSetupPrice, true
+            BtrBzWidgetSession.HostKind.Sign, null, BazaarMenuType.BuyOrderSetupPrice, true
         ));
         assertVisible(registry, BazaarWidgets.BOOKMARKS_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.Main, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.Main, null, false
         ));
         assertVisible(registry, BazaarWidgets.ORDER_PRESETS_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.BuyOrderSetupVolume, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.BuyOrderSetupVolume, null, false
         ));
         assertVisible(registry, BazaarWidgets.ORDER_PRESETS_ID, session(
-            BtrBzWidgetSession.HostKind.SIGN, null, BazaarMenuType.BuyOrderSetupVolume, false
+            BtrBzWidgetSession.HostKind.Sign, null, BazaarMenuType.BuyOrderSetupVolume, false
         ));
         assertVisible(registry, BazaarWidgets.ORDER_LIMIT_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.Main, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.Main, null, false
         ));
         assertVisible(registry, BazaarWidgets.ORDER_LIMIT_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.ItemGroup, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.ItemGroup, null, false
         ));
         assertVisible(registry, BazaarWidgets.PRICE_DIFF_ID, session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.Item, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.Item, null, false
         ));
 
         var invalid = new WidgetRenderContext(session(
-            BtrBzWidgetSession.HostKind.CONTAINER, BazaarMenuType.Settings, null, false
+            BtrBzWidgetSession.HostKind.Container, BazaarMenuType.Settings, null, false
         ));
-        assertFalse(registry.find(BazaarWidgets.ORDER_VALUE_ID).orElseThrow().displayPredicate().test(invalid));
-        assertFalse(registry.find(BazaarWidgets.ORDER_LIMIT_ID).orElseThrow().displayPredicate().test(invalid));
-        assertFalse(registry.find(BazaarWidgets.PRICE_DIFF_ID).orElseThrow().displayPredicate().test(invalid));
+        assertFalse(registry.find(BazaarWidgets.ORDER_VALUE_ID).orElseThrow().getDisplayPredicate().test(invalid));
+        assertFalse(registry.find(BazaarWidgets.ORDER_LIMIT_ID).orElseThrow().getDisplayPredicate().test(invalid));
+        assertFalse(registry.find(BazaarWidgets.PRICE_DIFF_ID).orElseThrow().getDisplayPredicate().test(invalid));
     }
 
     @Test
@@ -76,11 +81,11 @@ class BazaarWidgetsTest {
         var registry = registry();
         var limit = registry.find(BazaarWidgets.ORDER_LIMIT_ID).orElseThrow();
         var diff = registry.find(BazaarWidgets.PRICE_DIFF_ID).orElseThrow();
-        assertTrue(testData(limit, new BazaarData.DailyLimitData(0, 15_000_000_000L)));
-        assertFalse(testData(diff, new BazaarData.PriceDifferenceData(
+        assertTrue(testData(limit, new BazaarWidgetViewData.DailyLimitData(0, 15_000_000_000L)));
+        assertFalse(testData(diff, new BazaarWidgetViewData.PriceDifferenceData(
             "Unavailable", net.minecraft.world.item.ItemStack.EMPTY, 0, 0
         )));
-        assertTrue(testData(diff, new BazaarData.PriceDifferenceData(
+        assertTrue(testData(diff, new BazaarWidgetViewData.PriceDifferenceData(
             "Zero spread", net.minecraft.world.item.ItemStack.EMPTY, 0, 1
         )));
     }
@@ -88,9 +93,10 @@ class BazaarWidgetsTest {
     private static WidgetRegistry registry() {
         var registry = new WidgetRegistry();
         var preview = new BazaarWidgetPreviewData();
+        var runtime = new BazaarWidgetData(null, null, null, null, null, null, null, null);
         BazaarWidgets.register(
-            registry, BazaarWidgetOptions::defaults, ignored -> null,
-            preview, preview, (action, source, current) -> {}
+            registry, BazaarWidgetOptions::defaults, _ -> null,
+            runtime, preview, (action, source, current) -> {}
         );
         return registry;
     }
@@ -104,7 +110,7 @@ class BazaarWidgetsTest {
         return new BtrBzWidgetSession(
             1, host, Optional.ofNullable(menu), Optional.ofNullable(previous), true,
             product ? Optional.of("PRODUCT") : Optional.empty(),
-            host == BtrBzWidgetSession.HostKind.SIGN ? Optional.of(OrderType.Buy) : Optional.empty(),
+            host == BtrBzWidgetSession.HostKind.Sign ? Optional.of(OrderType.Buy) : Optional.empty(),
             1, null
         );
     }
@@ -114,7 +120,7 @@ class BazaarWidgetsTest {
         com.github.lutzluca.btrbz.widgets.framework.WidgetId id,
         BtrBzWidgetSession session
     ) {
-        assertTrue(registry.find(id).orElseThrow().displayPredicate().test(new WidgetRenderContext(session)));
+        assertTrue(registry.find(id).orElseThrow().getDisplayPredicate().test(new WidgetRenderContext(session)));
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -122,6 +128,6 @@ class BazaarWidgetsTest {
         com.github.lutzluca.btrbz.widgets.framework.WidgetDefinition definition,
         Object data
     ) {
-        return definition.dataDisplayPredicate().test(data);
+        return definition.getDataDisplayPredicate().test(data);
     }
 }

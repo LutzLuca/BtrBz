@@ -9,7 +9,7 @@ import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConf
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
-import com.github.lutzluca.btrbz.core.widgets.WidgetsConfig;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;
 
