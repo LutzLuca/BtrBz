@@ -7,6 +7,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetRuntime;
+import net.minecraft.client.Minecraft;
 
 public class Commands {
 
@@ -17,8 +19,13 @@ public class Commands {
             return 1;
         });
 
-    public static void registerAll(BazaarData bazaarData) {
+    public static void registerAll(BazaarData bazaarData, WidgetRuntime widgetRuntime) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            rootCommand.then(ClientCommands.literal("widgets").executes(context -> {
+                var client = Minecraft.getInstance();
+                client.setScreen(widgetRuntime.createManagementScreen(client.screen));
+                return 1;
+            }));
             dispatcher.register(rootCommand);
             dispatcher.register(AlertCommand.get(bazaarData));
             dispatcher.register(ConversionCommand.get(bazaarData));

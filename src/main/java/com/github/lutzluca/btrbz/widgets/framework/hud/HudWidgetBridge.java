@@ -1,0 +1,36 @@
+package com.github.lutzluca.btrbz.widgets.framework.hud;
+
+import com.github.lutzluca.btrbz.widgets.framework.WidgetCanvas;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetHost;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetHostOptions;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+
+public final class HudWidgetBridge {
+    private HudWidgetBridge() {}
+
+    public static void register(Identifier elementId, WidgetHost host) {
+        HudElementRegistry.addLast(elementId, (context, tickCounter) -> {
+            render(host, context, tickCounter.getGameTimeDeltaPartialTick(false));
+        });
+    }
+
+    private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
+        var client = Minecraft.getInstance();
+        if (client.options.hideGui) return;
+        if (client.screen != null) return;
+
+        var window = client.getWindow();
+        host.render(
+            graphics,
+            -1,
+            -1,
+            partialTicks,
+            new WidgetCanvas(0, 0, window.getGuiScaledWidth(), window.getGuiScaledHeight()),
+            WidgetHostOptions.runtime(false),
+            null
+        );
+    }
+}

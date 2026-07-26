@@ -47,6 +47,10 @@ public final class ScreenInfoHelper {
         return INSTANCE;
     }
 
+    public long screenTransitionVersion() {
+        return this.screenTransitionVersion;
+    }
+
     public static boolean inMenu(BazaarMenuType... menu) {
         return INSTANCE.currInfo.inMenu(menu);
     }
@@ -374,6 +378,10 @@ public final class ScreenInfoHelper {
                 accessor.getImageWidth(),
                 accessor.getImageHeight()
             ));
+        }
+
+        public boolean inventoryLoaded() {
+            return this.state.inventoryLoaded;
         }
 
         private void markInventoryLoaded() {

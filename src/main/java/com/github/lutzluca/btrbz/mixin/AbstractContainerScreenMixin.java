@@ -11,28 +11,29 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.inventory.Slot;
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetCanvas;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetHostOptions;
+import net.minecraft.client.Minecraft;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null) {
-            wm.cleanup();
-        }
+        BtrBz.screenWidgetHost().dispose();
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null) {
-            wm.render(graphics, mouseX, mouseY, delta);
-        }
+        var client = Minecraft.getInstance();
+        BtrBz.screenWidgetHost().render(
+            graphics, mouseX, mouseY, delta,
+            new WidgetCanvas(0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()),
+            WidgetHostOptions.runtime(true), client.screen
+        );
     }
 
     @Inject(method = "extractSlot", at = @At("HEAD"))
@@ -65,40 +66,35 @@ public abstract class AbstractContainerScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.keyPressed(event)) {
+        if (BtrBz.screenWidgetHost().keyPressed(event)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
     private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
+        if (BtrBz.screenWidgetHost().mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseClicked(event, doubleClick)) {
+        if (BtrBz.screenWidgetHost().mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseReleased(event)) {
+        if (BtrBz.screenWidgetHost().mouseReleased(event)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
     private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
+        if (BtrBz.screenWidgetHost().mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
     }

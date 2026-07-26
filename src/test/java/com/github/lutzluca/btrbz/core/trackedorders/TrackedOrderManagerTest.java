@@ -65,6 +65,7 @@ class TrackedOrderManagerTest {
                 List.of(second.id(), first.id(), third.id()),
                 manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList()
             );
+            assertEquals(List.of(first.id(), second.id(), third.id()), manager.creationOrder());
             assertFalse(manager.reorder(new TrackedOrderId(UUID.randomUUID()), 0));
         }
 

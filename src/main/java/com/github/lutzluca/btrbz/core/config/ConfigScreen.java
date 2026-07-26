@@ -2,7 +2,9 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import dev.isxander.yacl3.api.ConfigCategory;
+import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
@@ -19,6 +21,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.core.widgets.BazaarWidgets;
+import com.github.lutzluca.btrbz.widgets.framework.WidgetId;
 
 public class ConfigScreen {
 
@@ -52,6 +56,20 @@ public class ConfigScreen {
     }
 
     private static void buildCategories(Builder builder, Config config) {
+        var widgets = ConfigCategory.createBuilder()
+            .name(Component.literal("Widgets"))
+            .tooltip(Component.literal("Configure BtrBz's nine production widgets."))
+            .group(widgetGroup("Bazaar Orders", BazaarWidgets.BAZAAR_ORDERS_ID))
+            .group(widgetGroup("Tracked Orders", BazaarWidgets.TRACKED_ORDERS_ID))
+            .group(widgetGroup("Order Value", BazaarWidgets.ORDER_VALUE_ID))
+            .group(widgetGroup("Order Book", BazaarWidgets.ORDER_BOOK_SCREEN_ID))
+            .group(widgetGroup("Order Book Price", BazaarWidgets.ORDER_BOOK_PRICE_ID))
+            .group(widgetGroup("Bookmarks", BazaarWidgets.BOOKMARKS_ID))
+            .group(widgetGroup("Order Presets", BazaarWidgets.ORDER_PRESETS_ID))
+            .group(widgetGroup("Daily Limit", BazaarWidgets.ORDER_LIMIT_ID))
+            .group(widgetGroup("Price Difference", BazaarWidgets.PRICE_DIFF_ID))
+            .build();
+
         var ordersAndNotifications = ConfigCategory
             .createBuilder()
             .name(Component.literal("Orders & Notifications"))
@@ -67,14 +85,9 @@ public class ConfigScreen {
             .name(Component.literal("Interface & Overlays"))
             .tooltip(Component.literal(
                 "Configure Bazaar overlays, hover tooltips, product information, price helpers, and chat cleanup."))
-            .group(config.orderList.getGroup())
             .group(config.orderListTooltip.createGroup())
             .group(config.orderItemTooltip.createGroup())
-            .group(config.bookmark.createGroup())
             .group(config.productInfo.createGroup())
-            .group(config.priceDiff.createGroup())
-            .group(config.orderValueOverlay.createGroup())
-            .group(config.orderBookPrice.createGroup())
             .group(config.chatFilter.createGroup())
             .build();
 
@@ -85,8 +98,6 @@ public class ConfigScreen {
                 "Configure tools that assist with creating, cancelling, reopening, and flipping orders."))
             .groups(config.orderActions.createGroups())
             .group(config.flipHelper.createGroup())
-            .group(config.orderPresets.createGroup())
-            .group(config.orderBook.createGroup())
             .build();
 
         var safetyAndLimits = ConfigCategory
@@ -95,14 +106,32 @@ public class ConfigScreen {
             .tooltip(Component.literal(
                 "Prevent risky order prices and configure the daily transaction-limit display."))
             .group(config.orderProtection.createGroup())
-            .group(config.orderLimit.createGroup())
             .build();
 
         builder
+            .category(widgets)
             .category(ordersAndNotifications)
             .category(interfaceAndOverlays)
             .category(orderWorkflow)
             .category(safetyAndLimits);
+    }
+
+    private static OptionGroup widgetGroup(String name, WidgetId id) {
+        var configure = ButtonOption.createBuilder()
+            .name(Component.literal(name))
+            .text(Component.literal("Configure"))
+            .description(OptionDescription.of(Component.literal(
+                "Open the widget manager focused on " + name + "."
+            )))
+            .action(screen -> Minecraft.getInstance().setScreen(
+                BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)
+            ))
+            .build();
+        return OptionGroup.createBuilder()
+            .name(Component.literal(name))
+            .option(configure)
+            .collapsed(true)
+            .build();
     }
 
     public static OptionDescription createDescription(String text) {
@@ -185,23 +214,15 @@ public class ConfigScreen {
 
     public enum ConfigImage {
         PRICE_ALERT("alert-registration-and-firing.png", 658, 202),
-        BOOKMARKS("bookmark-with-order-indicators.png", 497, 373),
-        ORDER_BOOK("custom-order-book-overlay.png", 1472, 828),
-        DAILY_LIMIT("daily-limit-overlay.png", 547, 410),
         FLIP_HELPER("flip-helper.png", 994, 654),
         ORDER_LIST_TOOLTIP("order-list-tooltips.png", 710, 399),
         ORDER_NOTIFICATION("order-notifications.png", 661, 235),
-        ORDER_PRESETS("order-presets.png", 619, 348),
         ORDER_PROTECTION("order-protection-blocking.png", 1092, 614),
         ORDER_STATUS("order-status-highlight.png", 423, 238),
         ORDER_TOOLTIP("order-tooltip.png", 542, 305),
-        ORDER_VALUE("order-value-overlay.png", 550, 412),
-        PRICE_DIFFERENCE("price-diff-overlay.png", 687, 515),
-        PRICE_ENTRY_ORDER_BOOK("price-entry-order-book.png", 1212, 682),
         PRODUCT_INFO_PAPER("product-info-paper.png", 622, 350),
         PRODUCT_INFO("product-info.png", 588, 218),
-        REOPEN_LAST_ORDER("reopen-last-order.png", 578, 325),
-        TRACKED_ORDER_OVERLAY("tracked-order-overlay.png", 490, 368);
+        REOPEN_LAST_ORDER("reopen-last-order.png", 578, 325);
 
         private final Identifier identifier;
         private final int width;

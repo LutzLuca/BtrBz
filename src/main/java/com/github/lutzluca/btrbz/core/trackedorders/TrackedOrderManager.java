@@ -46,6 +46,7 @@ public class TrackedOrderManager {
     private final TrackedOrderProductUpdater productUpdater;
     private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
     private final SelfUndercutDetector selfUndercutDetector = new SelfUndercutDetector();
+    private long displayRevision;
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
@@ -183,6 +184,7 @@ public class TrackedOrderManager {
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
             this.displayOrders.remove(order);
+            this.displayRevision++;
             this.selfUndercutDetector.removeIfLastOrder(order, this.trackedOrders);
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
@@ -300,6 +302,7 @@ public class TrackedOrderManager {
         this.trackedOrders.clear();
         this.displayOrders.clear();
         this.selfUndercutDetector.clear();
+        this.displayRevision++;
 
         log.info("Reset tracked orders (removed {})", removedSize);
         this.onOrdersResetListeners.forEach(Runnable::run);
@@ -311,6 +314,15 @@ public class TrackedOrderManager {
 
     public List<TrackedOrderSnapshot> currentOrders() {
         return this.displayOrders.stream().map(TrackedOrderSnapshot::from).toList();
+    }
+
+    /** Creation chronology, independent of the session-owned manual display order. */
+    public List<TrackedOrderId> creationOrder() {
+        return this.trackedOrders.stream().map(TrackedOrder::id).toList();
+    }
+
+    public long displayRevision() {
+        return this.displayRevision;
     }
 
     public boolean reorder(TrackedOrderId orderId, int dropIndex) {
@@ -328,6 +340,7 @@ public class TrackedOrderManager {
         int insertionIndex = dropIndex > sourceIndex ? dropIndex - 1 : dropIndex;
         insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
         this.displayOrders.add(insertionIndex, order);
+        this.displayRevision++;
 
         return true;
     }
@@ -335,6 +348,7 @@ public class TrackedOrderManager {
     public void addTrackedOrder(TrackedOrder order) {
         this.trackedOrders.add(order);
         this.displayOrders.add(order);
+        this.displayRevision++;
         this.onOrderAddedListeners.forEach(listener -> listener.accept(order));
     }
 

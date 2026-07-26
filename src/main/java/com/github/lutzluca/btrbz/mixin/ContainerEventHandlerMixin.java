@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.mixin;
 
-import com.github.lutzluca.btrbz.core.ModuleManager;
+import com.github.lutzluca.btrbz.BtrBz;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -14,14 +16,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 // AbstractSignEditScreen don't override these mouse methods the bytecode lives here.
 // Safe against double-firing: any screen that does override (e.g. AbstractContainerScreen)
 // never dispatches to this bytecode, so these injections never run for those screens.
-// wm != null is the only guard needed it is non-null only when a module is active for the current screen.
 @Mixin(ContainerEventHandler.class)
 public interface ContainerEventHandlerMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.keyPressed(event)) {
+        if (Minecraft.getInstance().screen instanceof SignEditScreen
+            && BtrBz.screenWidgetHost().keyPressed(event)) {
             cir.setReturnValue(true);
         }
     }
@@ -29,8 +30,8 @@ public interface ContainerEventHandlerMixin {
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
     private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt,
             CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
+        if (Minecraft.getInstance().screen instanceof SignEditScreen
+            && BtrBz.screenWidgetHost().mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
         }
     }
@@ -38,16 +39,16 @@ public interface ContainerEventHandlerMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick,
             CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseClicked(event, doubleClick)) {
+        if (Minecraft.getInstance().screen instanceof SignEditScreen
+            && BtrBz.screenWidgetHost().mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseReleased(event)) {
+        if (Minecraft.getInstance().screen instanceof SignEditScreen
+            && BtrBz.screenWidgetHost().mouseReleased(event)) {
             cir.setReturnValue(true);
         }
     }
@@ -55,8 +56,8 @@ public interface ContainerEventHandlerMixin {
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
     private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY,
             CallbackInfoReturnable<Boolean> cir) {
-        var wm = ModuleManager.getInstance().getWidgetManager();
-        if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
+        if (Minecraft.getInstance().screen instanceof SignEditScreen
+            && BtrBz.screenWidgetHost().mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
     }
