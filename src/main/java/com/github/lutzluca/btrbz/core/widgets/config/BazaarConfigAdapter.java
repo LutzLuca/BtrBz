@@ -27,8 +27,9 @@ public final class BazaarConfigAdapter {
                 hud.queueDisplay, hud.undercutDetail
             ),
             new BazaarWidgetOptions.TrackedOrders(
-                tracked.contentWidth, tracked.visibleRows, tracked.layout, tracked.sort,
-                tracked.abbreviateEnchanted, tracked.showStatusSummary, tracked.showItem,
+                tracked.contentWidth, tracked.visibleRows, tracked.fitToContent,
+                tracked.layout, tracked.sort, tracked.abbreviateEnchanted,
+                tracked.hideWhenEmpty, tracked.showStatusSummary, tracked.showItem,
                 tracked.showVolume, tracked.priceDisplay, tracked.showMarketInfo,
                 tracked.showProgress
             ),
@@ -47,8 +48,9 @@ public final class BazaarConfigAdapter {
                 embedded.showHeader, embedded.showItem, embedded.sideDisplay
             ),
             new BazaarWidgetOptions.Bookmarks(
-                bookmarks.contentWidth, bookmarks.visibleRows, bookmarks.sort,
-                bookmarks.showItems, bookmarks.showIndicators, bookmarks.abbreviateEnchanted
+                bookmarks.contentWidth, bookmarks.visibleRows, bookmarks.fitToContent,
+                bookmarks.sort, bookmarks.hideWhenEmpty, bookmarks.showItems,
+                bookmarks.showIndicators, bookmarks.abbreviateEnchanted
             ),
             new BazaarWidgetOptions.Presets(
                 presets.contentWidth, presets.maximum, presets.clipboard,

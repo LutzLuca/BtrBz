@@ -30,6 +30,19 @@ public final class WidgetLayoutTokens {
         return Math.max(1, Math.max(1, rowHeight) * safeRows + LIST_GAP * Math.max(0, safeRows - 1));
     }
 
+    public static int configuredListViewportHeight(
+        int rowHeight,
+        int itemCount,
+        int maximumVisibleRows,
+        boolean fitToContent
+    ) {
+        int maximumRows = Math.max(1, maximumVisibleRows);
+        int visibleRows = fitToContent
+            ? Math.min(Math.max(0, itemCount), maximumRows)
+            : maximumRows;
+        return listViewportHeight(rowHeight, visibleRows);
+    }
+
     public static int panelWidth(int contentWidth) {
         return Math.max(1, contentWidth) + PANEL_HORIZONTAL_PADDING * 2;
     }

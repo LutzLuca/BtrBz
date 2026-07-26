@@ -58,9 +58,11 @@ public final class BazaarConfigPanels {
         var values = ConfigManager.get().widgets.trackedOrders;
         this.integer(panel, "Content width", () -> values.contentWidth, value -> values.contentWidth = value, 180, 320);
         this.integer(panel, "Visible rows", () -> values.visibleRows, value -> values.visibleRows = value, 1, 10);
+        this.bool(panel, "Fit to content", () -> values.fitToContent, value -> values.fitToContent = value);
         this.enumeration(panel, "Density", () -> values.layout, value -> values.layout = value);
         this.enumeration(panel, "Sort order", () -> values.sort, value -> values.sort = value);
         this.bool(panel, "Abbreviate Enchanted", () -> values.abbreviateEnchanted, value -> values.abbreviateEnchanted = value);
+        this.bool(panel, "Hide when no active orders", () -> values.hideWhenEmpty, value -> values.hideWhenEmpty = value);
         this.bool(panel, "Show filled count", () -> values.showStatusSummary, value -> values.showStatusSummary = value);
         this.bool(panel, "Show ItemStacks", () -> values.showItem, value -> values.showItem = value);
         this.bool(panel, "Show volume", () -> values.showVolume, value -> values.showVolume = value);
@@ -118,7 +120,9 @@ public final class BazaarConfigPanels {
         var values = ConfigManager.get().widgets.bookmarks;
         this.integer(panel, "Content width", () -> values.contentWidth, value -> values.contentWidth = value, 150, 300);
         this.integer(panel, "Visible rows", () -> values.visibleRows, value -> values.visibleRows = value, 1, 12);
+        this.bool(panel, "Fit to content", () -> values.fitToContent, value -> values.fitToContent = value);
         this.enumeration(panel, "Sort order", () -> values.sort, value -> values.sort = value);
+        this.bool(panel, "Hide when no bookmarks", () -> values.hideWhenEmpty, value -> values.hideWhenEmpty = value);
         this.bool(panel, "Show ItemStacks", () -> values.showItems, value -> values.showItems = value);
         this.bool(panel, "Show order indicators", () -> values.showIndicators, value -> values.showIndicators = value);
         this.bool(panel, "Abbreviate Enchanted", () -> values.abbreviateEnchanted, value -> values.abbreviateEnchanted = value);

@@ -82,12 +82,14 @@ public final class BazaarWidgets {
             )
             .defaultPlacement(WidgetPlacement.topLeft(0.04, 0.18))
             .defaultActive(true)
-            .minSize(WidgetLayoutTokens.panelWidth(180), 46)
+            .minSize(WidgetLayoutTokens.panelWidth(180), 16)
             .configurationPanel(() -> configurationPanels.apply(TRACKED_ORDERS_ID))
             .dataProvider(_ -> runtimeData.orders())
             .previewDataProvider(previewData::orders)
             .displayWhen(context -> session(context).host() == BtrBzWidgetSession.HostKind.Container
                 && session(context).menu().isPresent())
+            .displayWhenData(data -> !options.get().trackedOrders().hideWhenEmpty()
+                || !data.orders().isEmpty())
             .actionHandler(actionHandler)
             .componentFactory((snapshot, context) -> {
                 var tracked = options.get().trackedOrders();
@@ -176,12 +178,14 @@ public final class BazaarWidgets {
             )
             .defaultPlacement(WidgetPlacement.topLeft(0.30, 0.52))
             .defaultActive(true)
-            .minSize(WidgetLayoutTokens.panelWidth(150), 42)
+            .minSize(WidgetLayoutTokens.panelWidth(150), 16)
             .configurationPanel(() -> configurationPanels.apply(BOOKMARKS_ID))
             .dataProvider(_ -> runtimeData.bookmarks())
             .previewDataProvider(previewData::bookmarks)
             .displayWhen(context -> session(context).host() == BtrBzWidgetSession.HostKind.Container
                 && session(context).menu().isPresent())
+            .displayWhenData(data -> !options.get().bookmarks().hideWhenEmpty()
+                || !data.bookmarks().isEmpty())
             .actionHandler(actionHandler)
             .componentFactory((data, context) -> {
                 var bookmarks = options.get().bookmarks();

@@ -48,6 +48,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final int SIDEBAR_MARGIN = 18;
     private static final int SIDEBAR_PADDING = 7;
     private static final int HEADER_HEIGHT = 18;
+    private static final double SCALE_STEP = 0.01;
 
     private final @Nullable Screen previousScreen;
     private final WidgetRegistry registry;
@@ -417,7 +418,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void addBaseScale() {
         var slider = new ScrollSafeDiscreteSliderComponent(
-            Sizing.fill(100), WidgetStateStore.MIN_SCALE, WidgetStateStore.MAX_SCALE, 0.05
+            Sizing.fill(100), WidgetStateStore.MIN_SCALE, WidgetStateStore.MAX_SCALE, SCALE_STEP
         );
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.globalFineTuneScale());
@@ -445,7 +446,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private void addWidgetScaleControls(WidgetDefinition<?, ?> selected) {
         this.sidebarContent.child(label("Widget scale", 0xFFB8C0CF));
         var slider = new ScrollSafeDiscreteSliderComponent(
-            Sizing.fill(100), WidgetStateStore.MIN_SCALE, WidgetStateStore.MAX_SCALE, 0.05
+            Sizing.fill(100), WidgetStateStore.MIN_SCALE, WidgetStateStore.MAX_SCALE, SCALE_STEP
         );
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.widgetScale(selected));

@@ -53,7 +53,7 @@ class BazaarWidgetViewDataTest {
     @Test
     void hudDefaultsToDetailedMode() {
         assertEquals(BazaarWidgetOptions.HudMode.Detailed, BazaarWidgetOptions.defaults().hud().mode());
-        assertEquals(false, BazaarWidgetOptions.defaults().hud().hideWhenEmpty());
+        assertEquals(true, BazaarWidgetOptions.defaults().hud().hideWhenEmpty());
         assertEquals(true, BazaarWidgetOptions.defaults().hud().showItem());
         assertEquals(BazaarWidgetOptions.PriceDisplay.Unit,
             BazaarWidgetOptions.defaults().hud().priceDisplay());

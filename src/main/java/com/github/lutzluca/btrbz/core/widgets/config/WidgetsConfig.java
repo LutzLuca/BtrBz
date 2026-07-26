@@ -53,7 +53,7 @@ public final class WidgetsConfig {
         public int visibleOrders = 6;
         public int contentWidth = 200;
         public boolean abbreviateEnchanted = false;
-        public boolean hideWhenEmpty = false;
+        public boolean hideWhenEmpty = true;
         public boolean showItem = true;
         public boolean showVolume = true;
         public BazaarWidgetOptions.PriceDisplay priceDisplay = BazaarWidgetOptions.PriceDisplay.Unit;
@@ -69,9 +69,11 @@ public final class WidgetsConfig {
     public static final class TrackedOrdersConfig extends SinglePlacementConfig {
         public int contentWidth = 218;
         public int visibleRows = 6;
+        public boolean fitToContent = true;
         public BazaarWidgetOptions.TrackedLayout layout = BazaarWidgetOptions.TrackedLayout.Standard;
         public BazaarWidgetOptions.TrackedSort sort = BazaarWidgetOptions.TrackedSort.Manual;
         public boolean abbreviateEnchanted = false;
+        public boolean hideWhenEmpty = true;
         public boolean showStatusSummary = true;
         public boolean showItem = true;
         public boolean showVolume = true;
@@ -134,7 +136,9 @@ public final class WidgetsConfig {
     public static final class BookmarksConfig extends SinglePlacementConfig {
         public int contentWidth = 200;
         public int visibleRows = 6;
+        public boolean fitToContent = true;
         public BazaarWidgetOptions.BookmarkSort sort = BazaarWidgetOptions.BookmarkSort.Manual;
+        public boolean hideWhenEmpty = true;
         public boolean showItems = true;
         public boolean showIndicators = true;
         public boolean abbreviateEnchanted = false;
