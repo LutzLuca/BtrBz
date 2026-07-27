@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.PriceDisplay;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.QueueDisplay;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.UndercutDetail;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,17 +14,17 @@ public final class BazaarOrderText {
     public static List<String> optionalDetails(
         BazaarWidgetViewData.Order order,
         boolean showVolume,
-        BazaarWidgetOptions.PriceDisplay priceDisplay,
+        PriceDisplay priceDisplay,
         boolean showMarketInfo
     ) {
         var details = new ArrayList<String>();
         if (showVolume) details.add(order.amountText() + "x");
-        if (priceDisplay == BazaarWidgetOptions.PriceDisplay.Unit
-            || priceDisplay == BazaarWidgetOptions.PriceDisplay.Both) {
+        if (priceDisplay == PriceDisplay.Unit
+            || priceDisplay == PriceDisplay.Both) {
             details.add("@ " + order.unitPriceText());
         }
-        if (priceDisplay == BazaarWidgetOptions.PriceDisplay.Total
-            || priceDisplay == BazaarWidgetOptions.PriceDisplay.Both) {
+        if (priceDisplay == PriceDisplay.Total
+            || priceDisplay == PriceDisplay.Both) {
             details.add("total " + order.totalPriceText());
         }
         if (showMarketInfo) order.marketInfo().map(BazaarOrderText::marketText)
@@ -37,8 +39,8 @@ public final class BazaarOrderText {
 
     public static List<String> hudMarketCandidates(
         BazaarWidgetViewData.Order order,
-        BazaarWidgetOptions.QueueDisplay queueDisplay,
-        BazaarWidgetOptions.UndercutDetail undercutDetail
+        QueueDisplay queueDisplay,
+        UndercutDetail undercutDetail
     ) {
         if (order.marketInfo().isEmpty()) return List.of();
         var market = order.marketInfo().orElseThrow();
@@ -51,18 +53,18 @@ public final class BazaarOrderText {
 
     private static List<String> undercutCandidates(
         BazaarWidgetViewData.MarketInfo market,
-        BazaarWidgetOptions.QueueDisplay queueDisplay,
-        BazaarWidgetOptions.UndercutDetail undercutDetail
+        QueueDisplay queueDisplay,
+        UndercutDetail undercutDetail
     ) {
-        if (undercutDetail == BazaarWidgetOptions.UndercutDetail.Hidden) return List.of();
+        if (undercutDetail == UndercutDetail.Hidden) return List.of();
         String gap = market.priceDifference().isPresent()
             ? "gap " + BazaarWidgetViewData.formatPrice(market.priceDifference().getAsDouble())
             : "";
         var queue = queueCandidates(market, queueDisplay);
-        boolean showGap = undercutDetail == BazaarWidgetOptions.UndercutDetail.PriceGap
-            || undercutDetail == BazaarWidgetOptions.UndercutDetail.PriceGapAndQueue;
-        boolean showQueue = undercutDetail == BazaarWidgetOptions.UndercutDetail.Queue
-            || undercutDetail == BazaarWidgetOptions.UndercutDetail.PriceGapAndQueue;
+        boolean showGap = undercutDetail == UndercutDetail.PriceGap
+            || undercutDetail == UndercutDetail.PriceGapAndQueue;
+        boolean showQueue = undercutDetail == UndercutDetail.Queue
+            || undercutDetail == UndercutDetail.PriceGapAndQueue;
 
         var candidates = new ArrayList<String>();
         if (showGap && !gap.isBlank() && showQueue) {
@@ -75,14 +77,14 @@ public final class BazaarOrderText {
 
     private static List<String> queueCandidates(
         BazaarWidgetViewData.MarketInfo market,
-        BazaarWidgetOptions.QueueDisplay display
+        QueueDisplay display
     ) {
-        if (display == BazaarWidgetOptions.QueueDisplay.Hidden || market.itemsAhead().isEmpty()) {
+        if (display == QueueDisplay.Hidden || market.itemsAhead().isEmpty()) {
             return List.of();
         }
         String items = BazaarWidgetViewData.formatCompact(market.itemsAhead().getAsLong());
         var candidates = new ArrayList<String>();
-        if (display == BazaarWidgetOptions.QueueDisplay.OrdersAndItems && market.ordersAhead().isPresent()) {
+        if (display == QueueDisplay.OrdersAndItems && market.ordersAhead().isPresent()) {
             candidates.add(BazaarWidgetViewData.formatCompact(market.ordersAhead().getAsInt())
                 + "o / " + items + "i ahead");
         }

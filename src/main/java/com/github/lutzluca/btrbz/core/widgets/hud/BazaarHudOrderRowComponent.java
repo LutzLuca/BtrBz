@@ -1,11 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
-import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -29,30 +28,36 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private static final int TEXT_GAP = 4;
     private static final int ICON_GAP = 3;
 
-    private final BazaarWidgetViewData.Order order;
-    private final BazaarWidgetOptions.Hud options;
-    private final Component productName;
+    private BazaarWidgetViewData.Order order;
+    private BazaarOrdersWidgetConfig options;
+    private Component productName;
     private final ItemComponent item;
-    private final List<UIComponent> children;
+    private boolean showItem;
 
-    BazaarHudOrderRowComponent(BazaarWidgetViewData.Order order, BazaarWidgetOptions.Hud options) {
+    BazaarHudOrderRowComponent(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
+        this.item = BazaarUi.item(order.iconCopy(), ICON_SIZE);
+        this.allowOverflow(true);
+        this.update(order, options);
+    }
+
+    void update(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
         this.order = order;
         this.options = options;
         this.productName = order.formattedItemName(options.abbreviateEnchanted());
-        this.item = options.showItem() ? BazaarUi.item(order.iconCopy(), ICON_SIZE) : null;
-        this.children = this.item == null ? List.of() : List.of(this.item);
-        this.allowOverflow(true);
+        this.showItem = options.showItem();
+        this.item.stack(order.iconCopy());
+        this.updateLayout();
     }
 
     @Override
     public void layout(Size space) {
-        if (this.item == null) return;
+        if (!this.showItem) return;
         this.item.inflate(Size.of(ICON_SIZE, ICON_SIZE));
         this.item.mount(this, this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING, this.y + 1);
     }
 
-    @Override public List<UIComponent> children() { return this.children; }
+    @Override public List<UIComponent> children() { return this.showItem ? List.of(this.item) : List.of(); }
 
     @Override
     public ParentUIComponent removeChild(UIComponent child) {
@@ -64,8 +69,8 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
         var font = Minecraft.getInstance().font;
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.item != null) {
-            this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, this.children);
+        if (this.showItem) {
+            this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
             x += ICON_SIZE + ICON_GAP;
         }
 

@@ -1,11 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
-import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.UIComponents;
-import io.wispforest.owo.ui.container.FlowLayout;
-import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
@@ -20,15 +17,15 @@ import net.minecraft.world.item.ItemStack;
 public final class BazaarUi {
     private BazaarUi() {}
 
-    public static FlowLayout panel(int width) {
-        var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.content());
+    public static RetainedFlowLayout panel(int width) {
+        var panel = RetainedFlowLayout.vertical(Sizing.fixed(width), Sizing.content());
         panel.allowOverflow(true);
         panel.gap(WidgetLayoutTokens.LINE_GAP);
         return panel;
     }
 
-    public static FlowLayout line(UIComponent... components) {
-        var line = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
+    public static RetainedFlowLayout line(UIComponent... components) {
+        var line = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
         line.verticalAlignment(VerticalAlignment.CENTER);
         line.gap(3);
         for (var component : components) if (component != null) line.child(component);

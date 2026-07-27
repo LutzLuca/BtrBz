@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Objects;
@@ -10,7 +9,7 @@ import java.util.function.Supplier;
 
 /** Durable UTC daily accounting, deliberately independent from widget enablement. */
 public final class DailyLimitComponent {
-    private final Supplier<WidgetsConfig.DailyLimitConfig> configSupplier;
+    private final Supplier<DailyLimitWidgetConfig> configSupplier;
     private final Runnable saveAction;
     private final LongSupplier utcEpochDay;
 
@@ -23,7 +22,7 @@ public final class DailyLimitComponent {
     }
 
     DailyLimitComponent(
-        Supplier<WidgetsConfig.DailyLimitConfig> configSupplier,
+        Supplier<DailyLimitWidgetConfig> configSupplier,
         Runnable saveAction,
         LongSupplier utcEpochDay
     ) {
@@ -57,11 +56,11 @@ public final class DailyLimitComponent {
         return changed;
     }
 
-    private WidgetsConfig.DailyLimitConfig config() {
+    private DailyLimitWidgetConfig config() {
         return this.configSupplier.get();
     }
 
-    public static boolean resetForDay(WidgetsConfig.DailyLimitConfig config, long epochDay) {
+    public static boolean resetForDay(DailyLimitWidgetConfig config, long epochDay) {
         if (config.lastResetEpochDay == epochDay) return false;
         config.usedToday = 0;
         config.lastResetEpochDay = epochDay;

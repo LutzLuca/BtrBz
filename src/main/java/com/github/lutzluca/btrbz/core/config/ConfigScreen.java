@@ -21,8 +21,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.github.lutzluca.btrbz.core.widgets.BazaarWidgets;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 
 public class ConfigScreen {
 
@@ -56,19 +56,11 @@ public class ConfigScreen {
     }
 
     private static void buildCategories(Builder builder, Config config) {
-        var widgets = ConfigCategory.createBuilder()
+        var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
-            .tooltip(Component.literal("Configure BtrBz's nine production widgets."))
-            .group(widgetGroup("Bazaar Orders", BazaarWidgets.BAZAAR_ORDERS_ID))
-            .group(widgetGroup("Tracked Orders", BazaarWidgets.TRACKED_ORDERS_ID))
-            .group(widgetGroup("Order Value", BazaarWidgets.ORDER_VALUE_ID))
-            .group(widgetGroup("Order Book", BazaarWidgets.ORDER_BOOK_SCREEN_ID))
-            .group(widgetGroup("Order Book Price", BazaarWidgets.ORDER_BOOK_PRICE_ID))
-            .group(widgetGroup("Bookmarks", BazaarWidgets.BOOKMARKS_ID))
-            .group(widgetGroup("Order Presets", BazaarWidgets.ORDER_PRESETS_ID))
-            .group(widgetGroup("Daily Limit", BazaarWidgets.ORDER_LIMIT_ID))
-            .group(widgetGroup("Price Difference", BazaarWidgets.PRICE_DIFF_ID))
-            .build();
+            .tooltip(Component.literal("Configure BtrBz's production widgets."));
+        widgetGroups(BtrBz.widgetRuntime().registry()).forEach(widgetBuilder::group);
+        var widgets = widgetBuilder.build();
 
         var ordersAndNotifications = ConfigCategory
             .createBuilder()
@@ -114,6 +106,12 @@ public class ConfigScreen {
             .category(interfaceAndOverlays)
             .category(orderWorkflow)
             .category(safetyAndLimits);
+    }
+
+    static List<OptionGroup> widgetGroups(WidgetRegistry registry) {
+        return registry.all().stream()
+            .map(definition -> widgetGroup(definition.getDisplayName(), definition.getId()))
+            .toList();
     }
 
     private static OptionGroup widgetGroup(String name, WidgetId id) {

@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.widgets.WidgetHostOwner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
@@ -22,7 +23,8 @@ public interface ContainerEventHandlerMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
-            && BtrBz.screenWidgetHost().keyPressed(event)) {
+            && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
+            && owner.btrbz$widgetHost().keyPressed(event)) {
             cir.setReturnValue(true);
         }
     }
@@ -31,7 +33,8 @@ public interface ContainerEventHandlerMixin {
     private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt,
             CallbackInfoReturnable<Boolean> cir) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
-            && BtrBz.screenWidgetHost().mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
+            && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
+            && owner.btrbz$widgetHost().mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
         }
     }
@@ -40,7 +43,8 @@ public interface ContainerEventHandlerMixin {
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick,
             CallbackInfoReturnable<Boolean> cir) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
-            && BtrBz.screenWidgetHost().mouseClicked(event, doubleClick)) {
+            && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
+            && owner.btrbz$widgetHost().mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
         }
     }
@@ -48,7 +52,8 @@ public interface ContainerEventHandlerMixin {
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
-            && BtrBz.screenWidgetHost().mouseReleased(event)) {
+            && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
+            && owner.btrbz$widgetHost().mouseReleased(event)) {
             cir.setReturnValue(true);
         }
     }
@@ -57,7 +62,8 @@ public interface ContainerEventHandlerMixin {
     private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY,
             CallbackInfoReturnable<Boolean> cir) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
-            && BtrBz.screenWidgetHost().mouseDragged(event, deltaX, deltaY)) {
+            && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
+            && owner.btrbz$widgetHost().mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
     }

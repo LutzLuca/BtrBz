@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
-import com.github.lutzluca.btrbz.core.widgets.presets.OrderPreset;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarNumberFormat;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
@@ -279,122 +278,6 @@ public final class BazaarWidgetViewData {
                 OptionalDouble.of(bestPrice), OptionalDouble.of(Math.abs(priceDifference)),
                 OptionalInt.of(Math.max(0, ordersAhead)), OptionalLong.of(Math.max(0, itemsAhead))
             );
-        }
-    }
-
-    public record OrderBookEntry(OrderSide side, double price, int quantity, int orders) {
-        public String priceText() {
-            return formatPrice(this.price);
-        }
-
-        public String quantityText() {
-            return formatInt(this.quantity);
-        }
-    }
-
-    public record OrderValueData(long buyLocked, long buyItems, long sellClaimable, long sellPending, long total) {}
-
-    public record Bookmark(
-        String productId,
-        String productName,
-        Component formattedProductName,
-        ItemStack icon,
-        boolean buyOrder,
-        boolean sellOrder
-    ) {
-        public Bookmark {
-            Objects.requireNonNull(productId, "productId");
-            Objects.requireNonNull(productName, "productName");
-            Objects.requireNonNull(formattedProductName, "formattedProductName");
-            icon = icon.copy();
-        }
-
-        public Bookmark(String productId, String productName, ItemStack icon, boolean buyOrder, boolean sellOrder) {
-            this(productId, productName, Component.literal(productName), icon, buyOrder, sellOrder);
-        }
-
-        @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
-        }
-
-        public Component formattedProductName(boolean abbreviateEnchanted) {
-            if (!abbreviateEnchanted) return this.formattedProductName.copy();
-            return Component.literal(BazaarHudOptions.productName(this.productName, abbreviateEnchanted))
-                .setStyle(this.formattedProductName.getStyle());
-        }
-    }
-
-    public record BookmarksData(List<Bookmark> bookmarks) {
-        public BookmarksData {
-            bookmarks = List.copyOf(bookmarks);
-        }
-    }
-
-    public record Preset(OrderPreset preset, String label, String tooltip, boolean available) {
-        public Preset {
-            Objects.requireNonNull(preset, "preset");
-            Objects.requireNonNull(label, "label");
-            Objects.requireNonNull(tooltip, "tooltip");
-        }
-    }
-
-    public record PresetsData(List<Preset> presets) {
-        public PresetsData {
-            presets = List.copyOf(presets);
-        }
-    }
-
-    public record PriceDifferenceData(String productName, ItemStack icon, long perItem, int quantity) {
-        public PriceDifferenceData {
-            icon = icon.copy();
-        }
-
-        @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
-        }
-
-        public long total() {
-            return this.perItem * this.quantity;
-        }
-    }
-
-    public record OrderBookData(
-        String itemName,
-        ItemStack icon,
-        List<OrderBookEntry> buyOffers,
-        List<OrderBookEntry> sellOffers,
-        Optional<OrderSide> appropriateSide
-    ) {
-        public OrderBookData {
-            icon = icon.copy();
-            buyOffers = List.copyOf(buyOffers);
-            sellOffers = List.copyOf(sellOffers);
-            appropriateSide = Objects.requireNonNull(appropriateSide, "appropriateSide");
-        }
-
-        @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
-        }
-    }
-
-    public record DailyLimitData(long used, long limit) {
-        public DailyLimitData {
-            if (used < 0 || limit <= 0) throw new IllegalArgumentException("limit values must be positive");
         }
     }
 

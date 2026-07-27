@@ -14,19 +14,24 @@ import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
-import com.github.lutzluca.btrbz.core.widgets.action.BazaarWidgetActionHandler;
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarConfigAdapter;
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarConfigPanels;
-import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetPreviewData;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
-import com.github.lutzluca.btrbz.core.widgets.BazaarWidgets;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarkComponent;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
-import com.github.lutzluca.btrbz.core.widgets.session.BtrBzWidgetSessionProvider;
+import com.github.lutzluca.btrbz.core.widgets.session.DefaultWidgetSessionProvider;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -54,11 +59,10 @@ import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.Identifier;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetHost;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetRegistry;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetRuntime;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetStateStore;
-import com.github.lutzluca.btrbz.widgets.framework.hud.HudWidgetBridge;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
+import com.github.lutzluca.btrbz.core.widgets.WidgetStateStore;
+import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -77,7 +81,6 @@ public class BtrBz implements ClientModInitializer {
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
     private WidgetRuntime widgetRuntime;
-    private WidgetHost screenWidgetHost;
     private boolean automaticConversionFailureNotified;
 
     public static TrackedOrderManager orderManager() {
@@ -104,9 +107,6 @@ public class BtrBz implements ClientModInitializer {
         return instance.widgetRuntime;
     }
 
-    public static WidgetHost screenWidgetHost() {
-        return instance.screenWidgetHost;
-    }
 
     @Override
     public void onInitializeClient() {
@@ -153,42 +153,26 @@ public class BtrBz implements ClientModInitializer {
             flipSubmissionTracker
         );
 
-        var sessionProvider = new BtrBzWidgetSessionProvider(
+        var sessionProvider = new DefaultWidgetSessionProvider(
             productInfoProvider,
             orderBookPrice,
             this.orderManager
         );
-        var widgetData = new BazaarWidgetData(
-            BAZAAR_DATA,
-            this.orderManager,
-            this.tooltipProvider,
-            bookmarks,
-            orderValue,
-            orderBookPrice,
-            orderPresets,
-            dailyLimit
+        var ordersWidgetData = new OrdersWidgetData(
+            BAZAAR_DATA, this.orderManager, this.tooltipProvider, orderValue
         );
-        var actionHandler = new BazaarWidgetActionHandler(
-            this.orderManager,
-            bookmarks,
-            orderBookPrice,
-            orderPresets
-        );
-        var panels = new BazaarConfigPanels();
-        this.widgetRuntime = new WidgetRuntime(
-            new WidgetRegistry(),
-            new WidgetStateStore(),
-            sessionProvider
-        );
-        this.widgetRuntime.install(registry -> BazaarWidgets.register(
-            registry,
-            BazaarConfigAdapter::read,
-            panels::create,
-            widgetData,
-            new BazaarWidgetPreviewData(),
-            actionHandler
-        )).initialize();
-        this.screenWidgetHost = this.widgetRuntime.createBazaarHost();
+        var orderBookWidgetData = new OrderBookWidgetData(BAZAAR_DATA);
+        var widgetRegistry = new WidgetRegistry();
+        widgetRegistry.register(BazaarOrdersWidgetDefinition.create(ordersWidgetData));
+        widgetRegistry.register(TrackedOrdersWidgetDefinition.create(ordersWidgetData, this.orderManager));
+        widgetRegistry.register(OrderValueWidgetDefinition.create(orderValue));
+        widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
+        widgetRegistry.register(OrderBookPriceWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
+        widgetRegistry.register(BookmarksWidgetDefinition.create(bookmarks));
+        widgetRegistry.register(OrderPresetsWidgetDefinition.create(orderPresets));
+        widgetRegistry.register(DailyLimitWidgetDefinition.create(dailyLimit));
+        widgetRegistry.register(PriceDifferenceWidgetDefinition.create(BAZAAR_DATA));
+        this.widgetRuntime = new WidgetRuntime(widgetRegistry, new WidgetStateStore(), sessionProvider);
         HudWidgetBridge.register(
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
             this.widgetRuntime.createHudHost()
@@ -201,7 +185,7 @@ public class BtrBz implements ClientModInitializer {
             var trackedOrders = this.orderManager.getTrackedOrders();
             this.highlightManager.sync(trackedOrders, filledOrder);
             orderValue.sync(unfilledOrders, filledOrder);
-            widgetData.captureOrderIcons();
+            ordersWidgetData.captureOrderIcons();
         });
 
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {

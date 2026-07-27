@@ -54,13 +54,6 @@ public final class OrderPresetsComponent {
         );
     }
 
-    public boolean eligible(ScreenInfo current, ScreenInfo previous) {
-        return current.inMenu(BazaarMenuType.BuyOrderSetupVolume)
-            || this.inTransaction
-                && current.getScreen() instanceof SignEditScreen
-                && previous.inMenu(BazaarMenuType.BuyOrderSetupVolume);
-    }
-
     public boolean inTransaction() {
         return this.inTransaction;
     }

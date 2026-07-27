@@ -10,7 +10,7 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHook;
 import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
-import com.github.lutzluca.btrbz.widgets.framework.WidgetRuntime;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -43,7 +43,7 @@ public final class OrderBookScreenController {
         @Override
         public boolean matches(SlotView view) {
             return hookEligible(
-                ConfigManager.get().widgets.orderBookScreen.enabled,
+                ConfigManager.get().widgets.orderBookScreen.frame.enabled,
                 productInfoProvider.getOpenedProduct() != null,
                 view.playerInventorySlot(),
                 view.slotIdx(),
@@ -65,7 +65,7 @@ public final class OrderBookScreenController {
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigManager.get().widgets.orderBookScreen.enabled) return SlotClickResult.Pass;
+            if (!ConfigManager.get().widgets.orderBookScreen.frame.enabled) return SlotClickResult.Pass;
             var product = productInfoProvider.getOpenedProduct();
             if (product == null) return SlotClickResult.Pass;
             var identity = ProductIdentity.fromIndex(product);
@@ -77,7 +77,7 @@ public final class OrderBookScreenController {
                 identity,
                 product.formattedName(),
                 icon,
-                runtime.createBazaarHost()
+                runtime.createScreenHost()
             ));
             return SlotClickResult.Consume;
         }

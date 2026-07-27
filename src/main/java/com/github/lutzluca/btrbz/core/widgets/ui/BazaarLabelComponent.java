@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
-import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetSurfaceText;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaceText;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import net.minecraft.network.chat.Component;

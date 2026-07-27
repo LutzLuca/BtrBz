@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.widgets.BazaarWidgets;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -28,7 +27,7 @@ public final class BtrBzWidgetKeybinds {
             while (toggleHud.consumeClick()) {
                 if (client.screen != null || client.player == null || client.level == null) continue;
                 var definition = BtrBz.widgetRuntime().registry()
-                    .find(BazaarWidgets.BAZAAR_ORDERS_ID)
+                    .find(BazaarOrdersWidgetDefinition.ID)
                     .orElseThrow();
                 var store = BtrBz.widgetRuntime().stateStore();
                 boolean enabled = !store.isActive(definition);

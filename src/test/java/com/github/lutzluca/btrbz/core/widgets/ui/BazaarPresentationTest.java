@@ -1,11 +1,14 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidget;
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudWidget;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidget;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidget;
+import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
@@ -17,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class BazaarPresentationTest {
     @Test
     void singleSideOrderBookRetainsConfiguredContentWidth() {
-        var split = options(330, BazaarWidgetOptions.BookLayout.Split);
-        var buyOnly = options(330, BazaarWidgetOptions.BookLayout.BuyOnly);
+        var split = options(330, OrderBookWidgetConfig.BookLayout.Split);
+        var buyOnly = options(330, OrderBookWidgetConfig.BookLayout.BuyOnly);
 
         assertEquals(330, OrderBookWidget.contentWidth(split));
         assertEquals(164, OrderBookWidget.sideWidth(split));
@@ -28,7 +31,7 @@ class BazaarPresentationTest {
 
     @Test
     void singleSideOrderBookUsesTheConfiguredMinimumWidth() {
-        var sellOnly = options(220, BazaarWidgetOptions.BookLayout.SellOnly);
+        var sellOnly = options(220, OrderBookWidgetConfig.BookLayout.SellOnly);
 
         assertEquals(220, OrderBookWidget.contentWidth(sellOnly));
         assertEquals(220, OrderBookWidget.sideWidth(sellOnly));
@@ -92,10 +95,10 @@ class BazaarPresentationTest {
         var manual = List.of(fresh, old);
 
         assertEquals(List.of(old, fresh), TrackedOrdersWidget.sortedOrders(
-            manual, BazaarWidgetOptions.TrackedSort.Oldest
+            manual, TrackedOrdersWidgetConfig.TrackedSort.Oldest
         ));
         assertEquals(List.of(fresh, old), TrackedOrdersWidget.sortedOrders(
-            manual, BazaarWidgetOptions.TrackedSort.Newest
+            manual, TrackedOrdersWidgetConfig.TrackedSort.Newest
         ));
         assertEquals(List.of(fresh, old), manual);
     }
@@ -106,26 +109,21 @@ class BazaarPresentationTest {
         var alpha = bookmark("a", "alpha");
         var manual = List.of(zed, alpha);
         assertEquals(List.of(alpha, zed), BookmarksWidget.sortedBookmarks(
-            manual, BazaarWidgetOptions.BookmarkSort.Alphabetical
+            manual, BookmarksWidgetConfig.BookmarkSort.Alphabetical
         ));
         assertEquals(List.of(zed, alpha), BookmarksWidget.sortedBookmarks(
-            manual, BazaarWidgetOptions.BookmarkSort.Manual
+            manual, BookmarksWidgetConfig.BookmarkSort.Manual
         ));
     }
 
-    private static BazaarWidgetOptions.OrderBook options(
+    private static OrderBookWidgetConfig options(
         int width,
-        BazaarWidgetOptions.BookLayout layout
+        OrderBookWidgetConfig.BookLayout layout
     ) {
-        return new BazaarWidgetOptions.OrderBook(
-            width,
-            5,
-            layout,
-            BazaarWidgetOptions.NumberStyle.Exact,
-            true,
-            true,
-            true
-        );
+        var options = new OrderBookWidgetConfig();
+        options.contentWidth = width;
+        options.layout = layout;
+        return options;
     }
 
     private static BazaarWidgetViewData.Order order(String id, BazaarWidgetViewData.OrderStatus status) {
@@ -142,7 +140,7 @@ class BazaarPresentationTest {
         );
     }
 
-    private static BazaarWidgetViewData.Bookmark bookmark(String id, String name) {
-        return new BazaarWidgetViewData.Bookmark(id, name, Component.literal(name), ItemStack.EMPTY, false, false);
+    private static BookmarksWidgetData.Bookmark bookmark(String id, String name) {
+        return new BookmarksWidgetData.Bookmark(id, name, Component.literal(name), ItemStack.EMPTY, false, false);
     }
 }

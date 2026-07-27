@@ -1,6 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarNumberFormat;
 import net.minecraft.ChatFormatting;
@@ -52,13 +55,14 @@ class BazaarWidgetViewDataTest {
 
     @Test
     void hudDefaultsToDetailedMode() {
-        assertEquals(BazaarWidgetOptions.HudMode.Detailed, BazaarWidgetOptions.defaults().hud().mode());
-        assertEquals(true, BazaarWidgetOptions.defaults().hud().hideWhenEmpty());
-        assertEquals(true, BazaarWidgetOptions.defaults().hud().showItem());
-        assertEquals(BazaarWidgetOptions.PriceDisplay.Unit,
-            BazaarWidgetOptions.defaults().hud().priceDisplay());
-        assertEquals(true, BazaarWidgetOptions.defaults().trackedOrders().showStatusSummary());
-        assertEquals(true, BazaarWidgetOptions.defaults().trackedOrders().showProgress());
+        var hud = new BazaarOrdersWidgetConfig();
+        var tracked = new TrackedOrdersWidgetConfig();
+        assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, hud.mode);
+        assertTrue(hud.hideWhenEmpty);
+        assertTrue(hud.showItem);
+        assertEquals(WidgetDisplayOptions.PriceDisplay.Unit, hud.priceDisplay);
+        assertTrue(tracked.showStatusSummary);
+        assertTrue(tracked.showProgress);
     }
 
     @Test
@@ -75,7 +79,7 @@ class BazaarWidgetViewDataTest {
     @Test
     void bookmarkAbbreviationPreservesProviderFormatting() {
         var formatted = Component.literal("Enchanted Diamond").withStyle(ChatFormatting.AQUA);
-        var bookmark = new BazaarWidgetViewData.Bookmark(
+        var bookmark = new BookmarksWidgetData.Bookmark(
             "ENCHANTED_DIAMOND",
             "Enchanted Diamond",
             formatted,
@@ -92,7 +96,7 @@ class BazaarWidgetViewDataTest {
     void unabridgedBookmarkPreservesTheSuppliedComponentTree() {
         var formatted = Component.literal("Enchanted ").withStyle(ChatFormatting.AQUA)
             .append(Component.literal("Diamond").withStyle(ChatFormatting.BOLD));
-        var bookmark = new BazaarWidgetViewData.Bookmark(
+        var bookmark = new BookmarksWidgetData.Bookmark(
             "ENCHANTED_DIAMOND",
             "Enchanted Diamond",
             formatted,

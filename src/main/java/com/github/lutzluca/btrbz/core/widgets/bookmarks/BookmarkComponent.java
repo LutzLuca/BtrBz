@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig.BookmarkedItem;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -160,7 +160,7 @@ public final class BookmarkComponent {
     private final class BookmarkHook implements SlotHook {
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().widgets.bookmarks.enabled
+            return ConfigManager.get().widgets.bookmarks.frame.enabled
                 && view.slotIdx() == PRODUCT_SLOT
                 && view.getCurrInfo().inMenu(BazaarMenuType.Item);
         }
@@ -176,7 +176,7 @@ public final class BookmarkComponent {
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigManager.get().widgets.bookmarks.enabled) return SlotClickResult.Pass;
+            if (!ConfigManager.get().widgets.bookmarks.frame.enabled) return SlotClickResult.Pass;
             var raw = context.view().getRawStack();
             if (raw.get(BtrBz.BOOKMARKED) == null || productInfoProvider.getOpenedProduct() == null) {
                 return SlotClickResult.Pass;
