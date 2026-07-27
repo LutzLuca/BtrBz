@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,8 +9,8 @@ import org.junit.jupiter.api.Test;
 class DailyLimitComponentTest {
     @Test
     void accountsWhilePresentationIsDisabledAndPersistsTheMutation() {
-        var config = new WidgetsConfig.DailyLimitConfig();
-        config.enabled = false;
+        var config = new DailyLimitWidgetConfig();
+        config.frame.enabled = false;
         config.lastResetEpochDay = 20_000;
         var saves = new java.util.concurrent.atomic.AtomicInteger();
         var component = new DailyLimitComponent(() -> config, saves::incrementAndGet, () -> 20_000);
@@ -24,7 +23,7 @@ class DailyLimitComponentTest {
 
     @Test
     void resetsOnlyWhenUtcEpochDayChanges() {
-        var config = new WidgetsConfig.DailyLimitConfig();
+        var config = new DailyLimitWidgetConfig();
         config.usedToday = 12_345;
         assertTrue(DailyLimitComponent.resetForDay(config, 20_000));
         assertEquals(0, config.usedToday);

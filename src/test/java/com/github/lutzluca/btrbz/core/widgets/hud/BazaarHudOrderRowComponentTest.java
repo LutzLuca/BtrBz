@@ -1,8 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ class BazaarHudOrderRowComponentTest {
         assertEquals(
             List.of("64x", "@ 12.4M", "total 793.6M"),
             BazaarOrderText.optionalDetails(
-                order, true, BazaarWidgetOptions.PriceDisplay.Both, false
+                order, true, WidgetDisplayOptions.PriceDisplay.Both, false
             )
         );
     }
@@ -32,7 +32,7 @@ class BazaarHudOrderRowComponentTest {
         assertEquals(
             "64x · @ 12.4M · best 12,399,999.9 · 0.1 away",
             BazaarOrderText.joined(BazaarOrderText.optionalDetails(
-                order, true, BazaarWidgetOptions.PriceDisplay.Unit, true
+                order, true, WidgetDisplayOptions.PriceDisplay.Unit, true
             ))
         );
     }
@@ -48,16 +48,16 @@ class BazaarHudOrderRowComponentTest {
             List.of("72 ahead"),
             BazaarOrderText.hudMarketCandidates(
                 order,
-                BazaarWidgetOptions.QueueDisplay.Items,
-                BazaarWidgetOptions.UndercutDetail.PriceGapAndQueue
+                WidgetDisplayOptions.QueueDisplay.Items,
+                WidgetDisplayOptions.UndercutDetail.PriceGapAndQueue
             )
         );
         assertEquals(
             List.of("3o / 72i ahead", "72 ahead"),
             BazaarOrderText.hudMarketCandidates(
                 order,
-                BazaarWidgetOptions.QueueDisplay.OrdersAndItems,
-                BazaarWidgetOptions.UndercutDetail.PriceGapAndQueue
+                WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
+                WidgetDisplayOptions.UndercutDetail.PriceGapAndQueue
             )
         );
     }
@@ -73,8 +73,8 @@ class BazaarHudOrderRowComponentTest {
             List.of("gap 0.1 · 3o / 72i ahead", "gap 0.1 · 72 ahead", "gap 0.1"),
             BazaarOrderText.hudMarketCandidates(
                 order,
-                BazaarWidgetOptions.QueueDisplay.OrdersAndItems,
-                BazaarWidgetOptions.UndercutDetail.PriceGapAndQueue
+                WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
+                WidgetDisplayOptions.UndercutDetail.PriceGapAndQueue
             )
         );
     }

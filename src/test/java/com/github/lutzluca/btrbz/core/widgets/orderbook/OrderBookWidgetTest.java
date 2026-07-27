@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class OrderBookWidgetTest {
     @Test
     void appropriateSideOptionRestrictsSellWorkflowsToSellOffers() {
-        var options = options(BazaarWidgetOptions.EmbeddedSideDisplay.Relevant);
+        var options = options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant);
         var book = book(Optional.of(BazaarWidgetViewData.OrderSide.Sell));
 
         assertFalse(OrderBookWidget.showsEmbeddedSide(
@@ -28,12 +28,12 @@ class OrderBookWidgetTest {
     @Test
     void configuredSidesRemainVisibleWithoutRestrictionOrWorkflowSide() {
         assertTrue(OrderBookWidget.showsEmbeddedSide(
-            options(BazaarWidgetOptions.EmbeddedSideDisplay.Both),
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both),
             book(Optional.of(BazaarWidgetViewData.OrderSide.Sell)),
             BazaarWidgetViewData.OrderSide.Buy
         ));
         assertTrue(OrderBookWidget.showsEmbeddedSide(
-            options(BazaarWidgetOptions.EmbeddedSideDisplay.Relevant),
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant),
             book(Optional.empty()), BazaarWidgetViewData.OrderSide.Buy
         ));
     }
@@ -43,53 +43,45 @@ class OrderBookWidgetTest {
         var sellWorkflow = book(Optional.of(BazaarWidgetViewData.OrderSide.Sell));
 
         assertEquals(118, OrderBookWidget.embeddedContentWidth(
-            options(BazaarWidgetOptions.EmbeddedSideDisplay.Relevant), sellWorkflow
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow
         ));
         assertEquals(1, OrderBookWidget.embeddedVisibleSideCount(
-            options(BazaarWidgetOptions.EmbeddedSideDisplay.Relevant), sellWorkflow
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow
         ));
         assertEquals(240, OrderBookWidget.embeddedContentWidth(
-            options(BazaarWidgetOptions.EmbeddedSideDisplay.Both), sellWorkflow
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow
         ));
         assertEquals(2, OrderBookWidget.embeddedVisibleSideCount(
-            options(BazaarWidgetOptions.EmbeddedSideDisplay.Both), sellWorkflow
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow
         ));
     }
 
     @Test
     void embeddedMetadataLabelsOrderCountsExplicitly() {
-        var entry = new BazaarWidgetViewData.OrderBookEntry(
+        var entry = new OrderBookWidgetData.Entry(
             BazaarWidgetViewData.OrderSide.Sell, 100, 424, 2
         );
 
         assertEquals(
             "424 · 2 ord",
             OrderBookWidget.embeddedMetadata(
-                entry, options(BazaarWidgetOptions.EmbeddedSideDisplay.Relevant)
+                entry, options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant)
             )
         );
     }
 
-    private static BazaarWidgetOptions.EmbeddedOrderBook options(
-        BazaarWidgetOptions.EmbeddedSideDisplay sideDisplay
+    private static OrderBookPriceWidgetConfig options(
+        OrderBookPriceWidgetConfig.EmbeddedSideDisplay sideDisplay
     ) {
-        return new BazaarWidgetOptions.EmbeddedOrderBook(
-            240,
-            3,
-            true,
-            true,
-            true,
-            true,
-            true,
-            true,
-            sideDisplay
-        );
+        var options = new OrderBookPriceWidgetConfig();
+        options.sideDisplay = sideDisplay;
+        return options;
     }
 
-    private static BazaarWidgetViewData.OrderBookData book(
+    private static OrderBookWidgetData.Snapshot book(
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
-        return new BazaarWidgetViewData.OrderBookData(
+        return new OrderBookWidgetData.Snapshot(
             "Product", ItemStack.EMPTY, List.of(), List.of(), appropriateSide
         );
     }

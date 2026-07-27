@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
-import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import org.junit.jupiter.api.Test;
 
 import java.util.OptionalInt;
@@ -34,8 +34,8 @@ class BazaarTrackedOrderListComponentTest {
     @Test
     void compactRowsUseAThinnerProgressBar() {
         assertEquals(1, BazaarTrackedOrderRowComponent.progressHeight(
-            BazaarWidgetOptions.TrackedLayout.Compact));
+            TrackedOrdersWidgetConfig.TrackedLayout.Compact));
         assertEquals(2, BazaarTrackedOrderRowComponent.progressHeight(
-            BazaarWidgetOptions.TrackedLayout.Standard));
+            TrackedOrdersWidgetConfig.TrackedLayout.Standard));
     }
 }

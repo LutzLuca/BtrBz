@@ -1,0 +1,55 @@
+package com.github.lutzluca.btrbz.core.widgets.config;
+
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+@DisplayName("Widget config binding")
+class WidgetConfigBindingTest {
+    @Nested
+    @DisplayName("preference resets")
+    class PreferenceResets {
+        @Test
+        @DisplayName("preserve durable preset volumes")
+        void preservesPresetVolumes() {
+            var config = new OrderPresetsWidgetConfig();
+            config.contentWidth = 91;
+            config.volumes.addAll(List.of(64, 1024));
+            var changes = new AtomicInteger();
+            var binding = new WidgetConfigBinding<>(
+                () -> config, OrderPresetsWidgetConfig::new, value -> value.frame,
+                OrderPresetsWidgetConfig::resetPreferences, changes::incrementAndGet
+            );
+
+            binding.resetAll();
+
+            assertEquals(100, config.contentWidth);
+            assertEquals(List.of(64, 1024), config.volumes);
+            assertEquals(1, changes.get());
+        }
+
+        @Test
+        @DisplayName("preserve daily accounting state")
+        void preservesDailyUsage() {
+            var config = new DailyLimitWidgetConfig();
+            config.contentWidth = 141;
+            config.usedToday = 1234;
+            config.lastResetEpochDay = 99;
+            var binding = new WidgetConfigBinding<>(
+                () -> config, DailyLimitWidgetConfig::new, value -> value.frame,
+                DailyLimitWidgetConfig::resetPreferences, () -> {}
+            );
+
+            binding.resetAll();
+
+            assertEquals(180, config.contentWidth);
+            assertEquals(1234, config.usedToday);
+            assertEquals(99, config.lastResetEpochDay);
+        }
+    }
+}

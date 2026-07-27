@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
-import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 
 public final class BazaarOrderCountPolicy {
     public static final int MINIMUM = 1;

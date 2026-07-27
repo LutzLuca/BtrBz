@@ -1,0 +1,43 @@
+package com.github.lutzluca.btrbz.core.widgets.ordervalue;
+
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
+import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+
+public final class OrderValueWidgetConfig {
+    public enum ValueDisplay { Detailed, Summary }
+    public enum ColorMode { Semantic, Neutral }
+
+    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.65, 0.16));
+    public int contentWidth = 205;
+    public ValueDisplay display = ValueDisplay.Detailed;
+    public NumberStyle numberStyle = NumberStyle.Compact;
+    public boolean showCoinsSuffix = true;
+    public ColorMode colorMode = ColorMode.Semantic;
+    public boolean buyLocked = true;
+    public boolean buyItems = true;
+    public boolean sellClaimable = true;
+    public boolean sellPending = true;
+
+    public int contentWidth() { return this.contentWidth; }
+    public ValueDisplay display() { return this.display; }
+    public NumberStyle numberStyle() { return this.numberStyle; }
+    public boolean showCoinsSuffix() { return this.showCoinsSuffix; }
+    public ColorMode colorMode() { return this.colorMode; }
+    public boolean buyLocked() { return this.buyLocked; }
+    public boolean buyItems() { return this.buyItems; }
+    public boolean sellClaimable() { return this.sellClaimable; }
+    public boolean sellPending() { return this.sellPending; }
+
+    public static void resetPreferences(OrderValueWidgetConfig current, OrderValueWidgetConfig defaults) {
+        current.contentWidth = defaults.contentWidth;
+        current.display = defaults.display;
+        current.numberStyle = defaults.numberStyle;
+        current.showCoinsSuffix = defaults.showCoinsSuffix;
+        current.colorMode = defaults.colorMode;
+        current.buyLocked = defaults.buyLocked;
+        current.buyItems = defaults.buyItems;
+        current.sellClaimable = defaults.sellClaimable;
+        current.sellPending = defaults.sellPending;
+    }
+}

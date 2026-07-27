@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
-import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
@@ -16,8 +16,8 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
 public final class BazaarOrderRowComponent extends BaseUIComponent {
     private static final int MINIMUM_LEFT_WIDTH = 24;
-    private final BazaarRow row;
-    private final boolean hoverable;
+    private BazaarRow row;
+    private boolean hoverable;
     private final boolean insideScrollContainer;
     private boolean hoverSuppressed;
 
@@ -32,6 +32,13 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         this.insideScrollContainer = insideScrollContainer;
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
         if (!row.tooltip().isEmpty()) this.tooltip(row.tooltip());
+    }
+
+    void update(BazaarRow row, boolean hoverable, int height) {
+        this.row = row;
+        this.hoverable = hoverable;
+        this.verticalSizing(Sizing.fixed(height));
+        this.tooltip(row.tooltip());
     }
 
     @Override public boolean canFocus(FocusSource source) {
