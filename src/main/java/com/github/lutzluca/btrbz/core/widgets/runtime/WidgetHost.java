@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.runtime;
 
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
@@ -6,6 +6,15 @@ import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetChrome;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetRenderSurface;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
+import com.github.lutzluca.btrbz.core.widgets.WidgetView;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Size;
 import net.minecraft.client.Minecraft;
@@ -198,9 +207,7 @@ public final class WidgetHost {
                 ? definition.placementProfile(session)
                 : preview.placementProfile();
             String profile = options.placementProfile(definition, initialProfile);
-            var anchorCanvas = this.runtime
-                ? this.clampAnchor(session.anchorCanvas(definition.getAnchorSpace(), screenCanvas), screenCanvas)
-                : screenCanvas;
+            var anchorCanvas = screenCanvas;
             if (!visible) {
                 mountedWidget.slot().update(
                     this.stateStore.backgroundColor(definition, WidgetChrome.DEFAULT_BACKGROUND),
@@ -210,9 +217,7 @@ public final class WidgetHost {
                 return new PreparedWidget(mountedWidget, null, anchorCanvas);
             }
 
-            double minimumScale = WidgetScaleResolver.readableMinimumScale(
-                Minecraft.getInstance().getWindow().getGuiScale()
-            );
+            double minimumScale = WidgetScaleResolver.MIN_SCALE;
             double requestedScale = Math.max(this.stateStore.requestedScale(definition), minimumScale);
             double scale = WidgetScaleResolver.fitToCanvas(
                 requestedScale, minimumScale, anchorCanvas.width(), anchorCanvas.height(),
@@ -300,15 +305,6 @@ public final class WidgetHost {
 
     private WidgetSession currentSession(@Nullable Screen screen) {
         return java.util.Objects.requireNonNull(this.sessionProvider, "runtime session provider").current(screen);
-    }
-
-    private WidgetCanvas clampAnchor(WidgetCanvas requested, WidgetCanvas screen) {
-        int left = Math.max(screen.x(), requested.x());
-        int top = Math.max(screen.y(), requested.y());
-        int right = Math.min(screen.x() + screen.width(), requested.x() + requested.width());
-        int bottom = Math.min(screen.y() + screen.height(), requested.y() + requested.height());
-        if (right <= left || bottom <= top) return screen;
-        return new WidgetCanvas(left, top, right - left, bottom - top);
     }
 
     private @Nullable RuntimeWidgetHit runtimeHitAt(double x, double y) {

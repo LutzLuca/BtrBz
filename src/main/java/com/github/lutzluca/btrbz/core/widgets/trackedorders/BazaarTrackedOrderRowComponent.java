@@ -57,7 +57,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         Consumer<TrackedOrdersAction> actions
     ) {
         super(Sizing.fill(100), Sizing.fixed(
-            options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
+            options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
         ));
         this.list = list;
         this.item = BazaarUi.item(order.iconCopy(), STANDARD_ICON_SIZE);
@@ -75,18 +75,18 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     ) {
         this.order = order;
         this.options = options;
-        this.productName = order.formattedItemName(options.abbreviateEnchanted());
+        this.productName = order.formattedItemName(options.abbreviateEnchanted);
         this.index = index;
-        this.reorderable = interactive && options.sort() == TrackedOrdersWidgetConfig.TrackedSort.Manual;
+        this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
-        this.showItem = options.showItem();
+        this.showItem = options.showItem;
         this.actions = actions;
-        int iconSize = options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact
+        int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
         this.item.stack(order.iconCopy());
         this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
         this.verticalSizing(Sizing.fixed(
-            options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
+            options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
         ));
         this.tooltip(interactive ? tooltip : List.of());
         this.updateLayout();
@@ -95,7 +95,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     @Override
     public void layout(Size space) {
         if (!this.showItem) return;
-        boolean compact = this.options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact;
+        boolean compact = this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact;
         int iconSize = compact ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
         int progressHeight = compact ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;
         int iconX = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
@@ -171,7 +171,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         }
 
         if (this.showItem) this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
-        if (this.options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact) {
+        if (this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact) {
             this.drawCompact(graphics);
         } else {
             this.drawStandard(graphics);
@@ -252,14 +252,14 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private List<String> optionalDetails(boolean includeMarketInfo) {
         return BazaarOrderText.optionalDetails(
             this.order,
-            this.options.showVolume(),
-            this.options.priceDisplay(),
-            includeMarketInfo && this.options.showMarketInfo()
+            this.options.showVolume,
+            this.options.priceDisplay,
+            includeMarketInfo && this.options.showMarketInfo
         );
     }
 
     private String firstFittingMarketText(int availableWidth) {
-        if (!this.options.showMarketInfo()) return "";
+        if (!this.options.showMarketInfo) return "";
         var font = Minecraft.getInstance().font;
         for (var candidate : BazaarOrderText.hudMarketCandidates(
             this.order,
@@ -272,9 +272,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     private void drawProgress(OwoUIGraphics graphics) {
-        if (!this.options.showProgress() || this.order.liveProgress().isEmpty()) return;
+        if (!this.options.showProgress || this.order.liveProgress().isEmpty()) return;
         var progress = this.order.liveProgress().orElseThrow();
-        int progressHeight = this.options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact
+        int progressHeight = this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;
         int left = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;

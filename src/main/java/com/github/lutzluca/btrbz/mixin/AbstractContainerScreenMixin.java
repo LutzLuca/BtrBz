@@ -15,10 +15,10 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCanvas;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHostOptions;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHost;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHostOwner;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOwner;
 import net.minecraft.client.Minecraft;
 
 @Mixin(AbstractContainerScreen.class)

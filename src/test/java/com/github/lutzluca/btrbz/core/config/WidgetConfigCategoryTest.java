@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import dev.isxander.yacl3.api.ButtonOption;

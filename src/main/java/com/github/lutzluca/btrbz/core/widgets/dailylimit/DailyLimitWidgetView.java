@@ -39,23 +39,23 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth()));
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         int percent = (int) Math.round(data.used() * 100.0 / data.limit());
-        int color = percent >= config.criticalThreshold()
+        int color = percent >= config.criticalThreshold
             ? BazaarStyles.STATUS_UNDERCUT
-            : percent >= config.warningThreshold() ? BazaarStyles.SELL_ACCENT : BazaarStyles.BUY_ACCENT;
-        String used = number(data.used(), config.numberStyle());
-        String limit = number(data.limit(), config.numberStyle());
-        String display = switch (config.display()) {
+            : percent >= config.warningThreshold ? BazaarStyles.SELL_ACCENT : BazaarStyles.BUY_ACCENT;
+        String used = number(data.used(), config.numberStyle);
+        String limit = number(data.limit(), config.numberStyle);
+        String display = switch (config.display) {
             case UsedLimit -> used + " / " + limit;
-            case Remaining -> number(data.limit() - data.used(), config.numberStyle()) + " remaining";
+            case Remaining -> number(data.limit() - data.used(), config.numberStyle) + " remaining";
             case Percentage -> percent + "% used";
             case Compact -> "Limit " + used + "/" + limit;
         };
         this.value.text(Component.literal(display));
         this.value.color(BazaarStyles.color(color));
         this.root.clearChildren();
-        if (config.showHeader()) this.root.child(this.header);
+        if (config.showHeader) this.root.child(this.header);
         this.root.child(this.value);
     }
 

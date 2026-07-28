@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

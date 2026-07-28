@@ -1,11 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.WidgetStateStore;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.ui.ScrollSafeDiscreteSliderComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetChrome;
@@ -437,7 +438,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void addBaseScale() {
         var slider = new ScrollSafeDiscreteSliderComponent(
-            Sizing.fill(100), WidgetStateStore.MIN_SCALE, WidgetStateStore.MAX_SCALE, SCALE_STEP
+            Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP
         );
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.globalFineTuneScale());
@@ -464,7 +465,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private void addWidgetScaleControls(WidgetDefinition<?, ?, ?> selected) {
         this.sidebarContent.child(label("Widget scale", 0xFFB8C0CF));
         var slider = new ScrollSafeDiscreteSliderComponent(
-            Sizing.fill(100), WidgetStateStore.MIN_SCALE, WidgetStateStore.MAX_SCALE, SCALE_STEP
+            Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP
         );
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.widgetScale(selected));

@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.layout;
 
 public record WidgetCanvas(int x, int y, int width, int height) {
     public WidgetCanvas {

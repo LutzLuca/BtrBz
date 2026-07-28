@@ -1,15 +1,14 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
+import java.util.Objects;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
-
-/**
- * Runtime services over BtrBz's finalized production widget registry.
- */
+/** Application facade over BtrBz's finalized production widget registry. */
 public final class WidgetRuntime {
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;

@@ -49,23 +49,23 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth()));
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.item.stack(data.iconCopy());
         this.productName.text(Component.literal(data.productName()));
         this.product.clearChildren();
-        if (config.showItems()) this.product.child(this.item);
+        if (config.showItems) this.product.child(this.item);
         this.product.child(this.productName);
         int color = data.total() >= 0 ? BazaarStyles.BUY_ACCENT : BazaarStyles.STATUS_UNDERCUT;
-        this.perItem.update("Per item", signed(data.perItem(), config.numberStyle()), color);
+        this.perItem.update("Per item", signed(data.perItem(), config.numberStyle), color);
         this.total.update(
             "Total (" + BazaarWidgetViewData.formatInt(data.quantity()) + " items)",
-            signed(data.total(), config.numberStyle()),
+            signed(data.total(), config.numberStyle),
             color
         );
         this.root.clearChildren();
-        if (config.showProduct()) this.root.child(this.product);
-        if (config.display() != PriceDifferenceWidgetConfig.DiffDisplay.Total) this.root.child(this.perItem.root);
-        if (config.display() != PriceDifferenceWidgetConfig.DiffDisplay.PerItem) this.root.child(this.total.root);
+        if (config.showProduct) this.root.child(this.product);
+        if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.Total) this.root.child(this.perItem.root);
+        if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.PerItem) this.root.child(this.total.root);
     }
 
     private static String number(long value, WidgetDisplayOptions.NumberStyle style) {

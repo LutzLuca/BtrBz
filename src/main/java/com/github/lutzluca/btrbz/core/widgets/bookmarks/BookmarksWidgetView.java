@@ -34,9 +34,9 @@ final class BookmarksWidgetView implements WidgetView<BookmarksWidgetData.Snapsh
         WidgetSession session,
         Consumer<BookmarksAction> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth()));
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.list.update(
-            BookmarksWidget.sortedBookmarks(data.bookmarks(), config.sort()),
+            BookmarksWidget.sortedBookmarks(data.bookmarks(), config.sort),
             config,
             true,
             actions

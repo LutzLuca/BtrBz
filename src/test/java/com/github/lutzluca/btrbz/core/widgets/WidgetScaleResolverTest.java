@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,14 +24,7 @@ class WidgetScaleResolverTest {
 
     @Test
     void automaticFitDoesNotGoBelowTheSupportedMinimumScale() {
-        assertEquals(WidgetStateStore.MIN_SCALE, WidgetScaleResolver.fitToCanvas(1.0, 120, 80, 350, 142));
-    }
-
-    @Test
-    void readableFloorKeepsGuiScaleOneAtNativeDensity() {
-        assertEquals(WidgetStateStore.MIN_SCALE, WidgetScaleResolver.readableMinimumScale(1));
-        assertEquals(WidgetStateStore.MIN_SCALE, WidgetScaleResolver.readableMinimumScale(2));
-        assertEquals(WidgetStateStore.MIN_SCALE, WidgetScaleResolver.readableMinimumScale(3));
+        assertEquals(WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.fitToCanvas(1.0, 120, 80, 350, 142));
     }
 
     @Test

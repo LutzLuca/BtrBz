@@ -45,9 +45,9 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth()));
-        int buyColor = semantic(config.colorMode(), BazaarStyles.BUY_ACCENT);
-        int sellColor = semantic(config.colorMode(), BazaarStyles.SELL_ACCENT);
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
+        int buyColor = semantic(config.colorMode, BazaarStyles.BUY_ACCENT);
+        int sellColor = semantic(config.colorMode, BazaarStyles.SELL_ACCENT);
         this.buyLocked.update(data.buyLocked(), buyColor, config);
         this.buyItems.update(data.buyItems(), buyColor, config);
         this.sellClaimable.update(data.sellClaimable(), sellColor, config);
@@ -56,11 +56,11 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
 
         this.root.clearChildren();
         this.root.child(this.header);
-        if (config.display() == OrderValueWidgetConfig.ValueDisplay.Detailed) {
-            if (config.buyLocked()) this.root.child(this.buyLocked.root);
-            if (config.buyItems()) this.root.child(this.buyItems.root);
-            if (config.sellClaimable()) this.root.child(this.sellClaimable.root);
-            if (config.sellPending()) this.root.child(this.sellPending.root);
+        if (config.display == OrderValueWidgetConfig.ValueDisplay.Detailed) {
+            if (config.buyLocked) this.root.child(this.buyLocked.root);
+            if (config.buyItems) this.root.child(this.buyItems.root);
+            if (config.sellClaimable) this.root.child(this.sellClaimable.root);
+            if (config.sellPending) this.root.child(this.sellPending.root);
         }
         this.root.child(this.total.root);
     }
@@ -90,7 +90,7 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         }
 
         private void update(long amount, int color, OrderValueWidgetConfig config) {
-            String text = number(amount, config.numberStyle()) + (config.showCoinsSuffix() ? " coins" : "");
+            String text = number(amount, config.numberStyle) + (config.showCoinsSuffix ? " coins" : "");
             this.value.text(Component.literal(text).setStyle(this.value.text().getStyle()));
             this.value.color(BazaarStyles.color(color));
         }

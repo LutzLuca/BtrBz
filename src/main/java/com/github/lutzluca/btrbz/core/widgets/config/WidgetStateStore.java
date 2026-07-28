@@ -1,31 +1,30 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.config;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import java.util.Objects;
 import java.util.function.Supplier;
 
 /** Shared root-scale persistence plus generic access to definition-owned frame config. */
 public final class WidgetStateStore {
-    public static final double MIN_SCALE = 0.5;
-    public static final double MAX_SCALE = 2.0;
     private final Supplier<WidgetsConfig> configSupplier;
     private final Runnable saveAction;
 
     public WidgetStateStore() { this(() -> ConfigManager.get().widgets, ConfigManager::save); }
 
-    WidgetStateStore(Supplier<WidgetsConfig> configSupplier, Runnable saveAction) {
+    public WidgetStateStore(Supplier<WidgetsConfig> configSupplier, Runnable saveAction) {
         this.configSupplier = Objects.requireNonNull(configSupplier, "configSupplier");
         this.saveAction = Objects.requireNonNull(saveAction, "saveAction");
     }
 
-    public double globalFineTuneScale() { return clampScale(this.config().globalFineTuneScale); }
+    public double globalFineTuneScale() { return WidgetScaleResolver.clampScale(this.config().globalFineTuneScale); }
     public void setGlobalFineTuneScale(double value) {
         this.setGlobalFineTuneScale(value, true);
     }
     public void setGlobalFineTuneScale(double value, boolean persist) {
-        this.config().globalFineTuneScale = clampScale(value);
+        this.config().globalFineTuneScale = WidgetScaleResolver.clampScale(value);
         if (persist) this.saveAction.run();
     }
     public WidgetPlacement placement(WidgetDefinition<?, ?, ?> definition, String profile) {
@@ -61,13 +60,13 @@ public final class WidgetStateStore {
         this.setPlacement(definition, profile, fallback, persist);
     }
     public double widgetScale(WidgetDefinition<?, ?, ?> definition) {
-        return clampScale(definition.frame().scale);
+        return WidgetScaleResolver.clampScale(definition.frame().scale);
     }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value) {
         this.setWidgetScale(definition, value, true);
     }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value, boolean persist) {
-        definition.frame().scale = clampScale(value);
+        definition.frame().scale = WidgetScaleResolver.clampScale(value);
         if (persist) this.saveAction.run();
     }
     public void resetWidgetScale(WidgetDefinition<?, ?, ?> definition) {
@@ -100,8 +99,4 @@ public final class WidgetStateStore {
     public void save() { this.saveAction.run(); }
 
     private WidgetsConfig config() { return this.configSupplier.get(); }
-    private static double clampScale(double value) {
-        if (!Double.isFinite(value)) return 1.0;
-        return Math.max(MIN_SCALE, Math.min(MAX_SCALE, value));
-    }
 }

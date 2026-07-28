@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

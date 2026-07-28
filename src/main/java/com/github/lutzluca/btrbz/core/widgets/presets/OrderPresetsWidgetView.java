@@ -43,13 +43,13 @@ final class OrderPresetsWidgetView implements WidgetView<
         WidgetSession session,
         Consumer<OrderPresetsAction> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth()));
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
         for (var preset : data.presets()) {
-            if (preset.label().equals("Maximum") && !config.maximum()) continue;
-            if (preset.label().equals("Clipboard") && !config.clipboard()) continue;
-            if (!preset.available() && !config.showDisabled()) continue;
-            List<Component> tooltip = config.showTooltips()
+            if (preset.label().equals("Maximum") && !config.maximum) continue;
+            if (preset.label().equals("Clipboard") && !config.clipboard) continue;
+            if (!preset.available() && !config.showDisabled) continue;
+            List<Component> tooltip = config.showTooltips
                 ? List.of(Component.literal(preset.tooltip()))
                 : List.of();
             Consumer<Boolean> click = preset.available()

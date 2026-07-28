@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.utils;
 
-import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.List;
@@ -367,23 +366,6 @@ public final class ScreenInfoHelper {
             return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Component::getString);
         }
 
-        public Optional<HandledScreenBounds> getHandledScreenBounds() {
-            if (!(this.screen instanceof AbstractContainerScreenAccessor accessor)) {
-                return Optional.empty();
-            }
-
-            return Optional.of(new HandledScreenBounds(
-                accessor.getLeftPos(),
-                accessor.getTopPos(),
-                accessor.getImageWidth(),
-                accessor.getImageHeight()
-            ));
-        }
-
-        public boolean inventoryLoaded() {
-            return this.state.inventoryLoaded;
-        }
-
         private void markInventoryLoaded() {
             this.state.inventoryLoaded = true;
         }
@@ -401,8 +383,6 @@ public final class ScreenInfoHelper {
     private record ScreenCloseListenerEntry(
         Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
     ) { }
-
-    public record HandledScreenBounds(int x, int y, int width, int height) { }
 
     private static final class MenuState {
 

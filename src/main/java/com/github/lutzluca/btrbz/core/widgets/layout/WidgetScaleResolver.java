@@ -1,6 +1,9 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.layout;
 
 public final class WidgetScaleResolver {
+    public static final double MIN_SCALE = 0.5;
+    public static final double MAX_SCALE = 2.0;
+
     private WidgetScaleResolver() {}
 
     public static double fitToCanvas(
@@ -27,7 +30,7 @@ public final class WidgetScaleResolver {
     ) {
         return fitToCanvas(
             requestedScale,
-            WidgetStateStore.MIN_SCALE,
+            MIN_SCALE,
             canvasWidth,
             canvasHeight,
             logicalWidth,
@@ -35,17 +38,18 @@ public final class WidgetScaleResolver {
         );
     }
 
-    public static double readableMinimumScale(int minecraftGuiScale) {
-        return WidgetStateStore.MIN_SCALE;
-    }
-
     public static double combineRequestedScale(double baseScale, double widgetScale) {
         double safeBase = Double.isFinite(baseScale) ? baseScale : 1.0;
         double safeWidget = Double.isFinite(widgetScale) ? widgetScale : 1.0;
         return Math.max(
-            WidgetStateStore.MIN_SCALE,
-            Math.min(WidgetStateStore.MAX_SCALE, safeBase * safeWidget)
+            MIN_SCALE,
+            Math.min(MAX_SCALE, safeBase * safeWidget)
         );
+    }
+
+    public static double clampScale(double value) {
+        if (!Double.isFinite(value)) return 1.0;
+        return Math.max(MIN_SCALE, Math.min(MAX_SCALE, value));
     }
 
     public static boolean fitsCanvas(

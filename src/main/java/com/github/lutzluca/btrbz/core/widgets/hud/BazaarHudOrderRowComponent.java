@@ -44,8 +44,8 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     void update(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
         this.order = order;
         this.options = options;
-        this.productName = order.formattedItemName(options.abbreviateEnchanted());
-        this.showItem = options.showItem();
+        this.productName = order.formattedItemName(options.abbreviateEnchanted);
+        this.showItem = options.showItem;
         this.item.stack(order.iconCopy());
         this.updateLayout();
     }
@@ -86,12 +86,12 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         graphics.text(font, status, x, secondY, this.order.status().color(), false);
         int detailX = x + font.width(status);
         var details = BazaarOrderText.joined(BazaarOrderText.optionalDetails(
-            this.order, this.options.showVolume(), this.options.priceDisplay(), false
+            this.order, this.options.showVolume, this.options.priceDisplay, false
         ));
         var prefix = details.isBlank() ? Component.empty() : Component.literal(" · ");
         int leftDetailWidth = font.width(prefix) + font.width(details);
         var marketCandidates = BazaarOrderText.hudMarketCandidates(
-            this.order, this.options.queueDisplay(), this.options.undercutDetail()
+            this.order, this.options.queueDisplay, this.options.undercutDetail
         );
         String marketText = firstFittingMarketText(
             marketCandidates,

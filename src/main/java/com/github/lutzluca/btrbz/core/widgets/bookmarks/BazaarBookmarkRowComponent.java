@@ -58,11 +58,11 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         Consumer<BookmarksAction> actions
     ) {
         this.bookmark = bookmark;
-        this.productName = bookmark.formattedProductName(options.abbreviateEnchanted());
-        this.showItem = options.showItems();
-        this.showIndicators = options.showIndicators();
+        this.productName = bookmark.formattedProductName(options.abbreviateEnchanted);
+        this.showItem = options.showItems;
+        this.showIndicators = options.showIndicators;
         this.interactive = interactive;
-        this.reorderable = interactive && options.sort() == BookmarksWidgetConfig.BookmarkSort.Manual;
+        this.reorderable = interactive && options.sort == BookmarksWidgetConfig.BookmarkSort.Manual;
         this.index = index;
         this.actions = actions;
         this.item.stack(bookmark.iconCopy());
