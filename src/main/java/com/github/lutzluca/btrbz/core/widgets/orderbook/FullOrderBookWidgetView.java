@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
@@ -29,7 +29,7 @@ final class FullOrderBookWidgetView implements WidgetView<
 > {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-    private final ItemComponent item = icon(ItemStack.EMPTY);
+    private @Nullable ItemComponent item;
     private final LabelComponent itemName = label("", BazaarStyles.PRIMARY_TEXT);
     private final LabelComponent bookTitle = label("Order Book", BazaarStyles.MUTED_TEXT);
     private final RetainedFlowLayout lists = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
@@ -59,10 +59,18 @@ final class FullOrderBookWidgetView implements WidgetView<
         Consumer<OrderBookAction> actions
     ) {
         this.root.horizontalSizing(Sizing.fixed(OrderBookWidget.contentWidth(config)));
-        this.item.stack(data.iconCopy());
         this.itemName.text(Component.literal(data.itemName()));
         this.header.clearChildren();
-        if (config.showItem && !data.iconCopy().isEmpty()) this.header.child(this.item);
+        var itemStack = data.itemStack();
+        if (config.showItem && itemStack.isPresent()) {
+            var stack = itemStack.orElseThrow();
+            if (this.item == null) {
+                this.item = icon(stack);
+            } else {
+                this.item.stack(stack);
+            }
+            this.header.child(this.item);
+        }
         this.header.child(this.itemName);
         this.header.child(this.bookTitle);
 

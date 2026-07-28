@@ -45,7 +45,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     ) {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
         this.list = list;
-        this.item = BazaarUi.item(bookmark.iconCopy(), ICON_SIZE);
+        this.item = BazaarUi.item(bookmark.itemStack(), ICON_SIZE);
         this.allowOverflow(true);
         this.update(bookmark, options, interactive, index, actions);
     }
@@ -65,7 +65,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         this.reorderable = interactive && options.sort == BookmarksWidgetConfig.BookmarkSort.Manual;
         this.index = index;
         this.actions = actions;
-        this.item.stack(bookmark.iconCopy());
+        this.item.stack(bookmark.itemStack());
         this.updateLayout();
     }
 

@@ -12,28 +12,24 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 
 /** BtrBz-owned host screen for only the full Order Book widget. */
 public final class OrderBookScreen extends Screen {
     private final Screen parent;
     private final ProductIdentity product;
     private final String productName;
-    private final ItemStack productIcon;
     private final WidgetHost host;
 
     public OrderBookScreen(
         Screen parent,
         ProductIdentity product,
         String productName,
-        ItemStack productIcon,
         WidgetHost host
     ) {
         super(Component.literal(productName + " Order Book"));
         this.parent = parent;
         this.product = product;
         this.productName = productName;
-        this.productIcon = productIcon.copy();
         this.host = host;
     }
 
@@ -55,10 +51,6 @@ public final class OrderBookScreen extends Screen {
 
     public String productName() {
         return this.productName;
-    }
-
-    public ItemStack productIcon() {
-        return this.productIcon.copy();
     }
 
     public void selectPrice(double price) {

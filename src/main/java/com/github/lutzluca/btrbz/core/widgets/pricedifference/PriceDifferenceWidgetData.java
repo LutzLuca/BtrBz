@@ -19,20 +19,21 @@ public final class PriceDifferenceWidgetData {
 
     public Snapshot snapshot() {
         var info = ScreenInfoHelper.get().getCurrInfo();
-        var productStack = info.getItemStack(PRODUCT_SLOT).orElse(ItemStack.EMPTY);
+        var productStack = info.getItemStack(PRODUCT_SLOT);
         int quantity = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount).orElse(0);
         if (productStack.isEmpty() || quantity <= 0) return empty();
-        var product = this.market.resolveProduct(productStack);
+        var stack = productStack.orElseThrow();
+        var product = this.market.resolveProduct(stack);
         var spread = this.market.productSpread(product);
         if (spread.isEmpty()) return empty();
         return new Snapshot(
-            productStack.getHoverName().getString(), productStack.copy(), Math.round(spread.get()), quantity
+            stack.getHoverName().getString(), Optional.of(stack), Math.round(spread.get()), quantity
         );
     }
 
     public static Snapshot preview() {
         return new Snapshot(
-            "Enchanted Diamond", new ItemStack(Items.DIAMOND), 12_450, 640
+            "Enchanted Diamond", Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640
         );
     }
 
@@ -47,21 +48,17 @@ public final class PriceDifferenceWidgetData {
     }
 
     private static Snapshot empty() {
-        return new Snapshot("", ItemStack.EMPTY, 0, 0);
+        return new Snapshot("", Optional.empty(), 0, 0);
     }
 
-    public record Snapshot(String productName, ItemStack icon, long perItem, int quantity) {
+    public record Snapshot(String productName, Optional<ItemStack> itemStack, long perItem, int quantity) {
         public Snapshot {
-            icon = icon.copy();
+            itemStack = itemStack.map(ItemStack::copy);
         }
 
         @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
+        public Optional<ItemStack> itemStack() {
+            return this.itemStack.map(ItemStack::copy);
         }
 
         public long total() {

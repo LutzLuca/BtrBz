@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 /** The only boundary that classifies concrete Minecraft and BtrBz screens. */
 public final class DefaultWidgetSessionProvider implements WidgetSessionProvider {
     private static final int PRODUCT_SLOT = 13;
+    private final BazaarData market;
     private final ProductInfoProvider productInfoProvider;
     private final OrderBookPriceComponent orderBookPrice;
     private final TrackedOrderManager trackedOrders;
@@ -26,10 +28,12 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     private long semanticSessionId;
 
     public DefaultWidgetSessionProvider(
+        BazaarData market,
         ProductInfoProvider productInfoProvider,
         OrderBookPriceComponent orderBookPrice,
         TrackedOrderManager trackedOrders
     ) {
+        this.market = Objects.requireNonNull(market, "market");
         this.productInfoProvider = Objects.requireNonNull(productInfoProvider, "productInfoProvider");
         this.orderBookPrice = Objects.requireNonNull(orderBookPrice, "orderBookPrice");
         this.trackedOrders = Objects.requireNonNull(trackedOrders, "trackedOrders");
@@ -47,22 +51,23 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         Optional<OrderType> side = Optional.empty();
 
         if (screen instanceof OrderBookScreen orderBookScreen) {
-            product = Optional.of(new WidgetProductContext(
+            product = Optional.of(this.context(
                 orderBookScreen.product(),
                 Component.literal(orderBookScreen.productName()),
-                orderBookScreen.productIcon()
+                previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
             ));
         } else if (sign) {
             var workflow = this.orderBookPrice.currentWorkflow();
             product = workflow.map(OrderBookPriceComponent.Workflow::product)
-                .map(identity -> context(identity, previous.getItemStack(PRODUCT_SLOT)
-                    .or(() -> current.getItemStack(PRODUCT_SLOT))
-                    .orElse(ItemStack.EMPTY)));
+                .map(identity -> this.context(
+                    identity,
+                    previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
+                ));
             side = workflow.map(OrderBookPriceComponent.Workflow::side);
         } else if (this.productInfoProvider.getOpenedProduct() != null) {
-            product = Optional.of(context(
+            product = Optional.of(this.context(
                 ProductIdentity.fromIndex(this.productInfoProvider.getOpenedProduct()),
-                current.getItemStack(PRODUCT_SLOT).orElse(ItemStack.EMPTY)
+                current.getItemStack(PRODUCT_SLOT)
             ));
         }
 
@@ -89,8 +94,20 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         );
     }
 
-    private static WidgetProductContext context(ProductIdentity identity, ItemStack icon) {
-        return new WidgetProductContext(identity, Component.literal(identity.visualName()), icon);
+    private WidgetProductContext context(ProductIdentity identity, Optional<ItemStack> observedStack) {
+        return this.context(identity, Component.literal(identity.visualName()), observedStack);
+    }
+
+    private WidgetProductContext context(
+        ProductIdentity identity,
+        Component displayName,
+        Optional<ItemStack> observedStack
+    ) {
+        return new WidgetProductContext(
+            identity,
+            displayName,
+            this.market.productStack(identity).or(() -> observedStack.map(ItemStack::copy))
+        );
     }
 
     private record SemanticKey(

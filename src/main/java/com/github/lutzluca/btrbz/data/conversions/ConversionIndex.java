@@ -14,7 +14,7 @@ import java.util.Set;
 
 public final class ConversionIndex {
 
-    public static final int SCHEMA_VERSION = 1;
+    public static final int SCHEMA_VERSION = 2;
 
     private static final ConversionIndex EMPTY = new ConversionIndex(
         SCHEMA_VERSION,
@@ -126,6 +126,18 @@ public final class ConversionIndex {
         return Optional
             .ofNullable(this.products.get(productId))
             .map(entry -> toIndexedProduct(productId, entry));
+    }
+
+    public Optional<ProductStackData> productStackData(String productId) {
+        return Optional
+            .ofNullable(this.products.get(productId))
+            .map(ConversionProductEntry::itemStack);
+    }
+
+    public Optional<LegacyProductStackData> legacyProductStackData(String productId) {
+        return Optional
+            .ofNullable(this.products.get(productId))
+            .map(ConversionProductEntry::legacyItemStack);
     }
 
     public List<IndexedProduct> allProducts() {

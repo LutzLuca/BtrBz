@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -91,7 +90,7 @@ class BazaarHudOrderRowComponentTest {
             new com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId(
                 java.util.UUID.nameUUIDFromBytes("order".getBytes())
             ), BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
-            ItemStack.EMPTY, 12_400_000, 64,
+            Optional.empty(), 12_400_000, 64,
             Optional.of(new BazaarWidgetViewData.FillProgress(21, 64)),
             status, marketInfo, List.of()
         );

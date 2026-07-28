@@ -17,6 +17,7 @@ import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
@@ -25,7 +26,7 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout product = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-    private final ItemComponent item = icon(net.minecraft.world.item.ItemStack.EMPTY);
+    private @Nullable ItemComponent item;
     private final LabelComponent productName = text("", BazaarStyles.PRIMARY_TEXT);
     private final ValueLine perItem = new ValueLine(0);
     private final ValueLine total = new ValueLine(1);
@@ -50,10 +51,18 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         Consumer<Void> actions
     ) {
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
-        this.item.stack(data.iconCopy());
         this.productName.text(Component.literal(data.productName()));
         this.product.clearChildren();
-        if (config.showItems) this.product.child(this.item);
+        var itemStack = data.itemStack();
+        if (config.showItems && itemStack.isPresent()) {
+            var stack = itemStack.orElseThrow();
+            if (this.item == null) {
+                this.item = icon(stack);
+            } else {
+                this.item.stack(stack);
+            }
+            this.product.child(this.item);
+        }
         this.product.child(this.productName);
         int color = data.total() >= 0 ? BazaarStyles.BUY_ACCENT : BazaarStyles.STATUS_UNDERCUT;
         this.perItem.update("Per item", signed(data.perItem(), config.numberStyle), color);

@@ -10,6 +10,8 @@ import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -32,7 +34,6 @@ public final class OrdersWidgetData {
     private final TrackedOrderManager trackedOrders;
     private final OrderTooltipProvider tooltipProvider;
     private final com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent orderValue;
-    private final Map<TrackedOrderId, ItemStack> orderIcons = new HashMap<>();
 
     public OrdersWidgetData(
         BazaarData market,
@@ -46,16 +47,8 @@ public final class OrdersWidgetData {
         this.orderValue = orderValue;
     }
 
-    public void captureOrderIcons() {
-        var info = ScreenInfoHelper.get().getCurrInfo();
-        for (var order : this.trackedOrders.currentOrders()) {
-            info.getItemStack(order.slot()).ifPresent(stack -> this.orderIcons.put(order.id(), stack.copy()));
-        }
-        var ids = this.trackedOrders.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList();
-        this.orderIcons.keySet().removeIf(id -> !ids.contains(id));
-    }
-
     public BazaarWidgetViewData.OrdersData snapshot() {
+        var screenInfo = ScreenInfoHelper.get().getCurrInfo();
         Map<TrackedOrderId, TrackedOrder> live = new HashMap<>();
         this.trackedOrders.getTrackedOrders().forEach(order -> live.put(order.id(), order));
         Map<TrackedOrderId, Long> creationSequence = new HashMap<>();
@@ -71,13 +64,13 @@ public final class OrdersWidgetData {
                 .filter(_ -> ConfigManager.get().orderListTooltip.enabled)
                 .map(order -> this.tooltipProvider.getCachedTooltip(order, ConfigManager.get().orderListTooltip))
                 .orElseGet(List::of);
-            var icon = this.orderIcons.getOrDefault(snapshot.id(), new ItemStack(Items.CHEST));
             return new BazaarWidgetViewData.Order(
                 snapshot.id(),
                 snapshot.type() == OrderType.Buy ? BazaarWidgetViewData.OrderSide.Buy : BazaarWidgetViewData.OrderSide.Sell,
                 snapshot.productName(),
                 Utils.legacyFormattedComponent(product.visualName()),
-                icon,
+                this.market.productStack(product)
+                    .or(() -> this.observedProductStack(screenInfo, snapshot.slot(), product)),
                 Math.round(snapshot.pricePerUnit()),
                 snapshot.volume(),
                 Optional.of(new BazaarWidgetViewData.FillProgress(
@@ -123,6 +116,29 @@ public final class OrdersWidgetData {
         ));
     }
 
+    private Optional<ItemStack> observedProductStack(
+        ScreenInfo screenInfo,
+        int slot,
+        ProductIdentity expectedProduct
+    ) {
+        if (!screenInfo.inMenu(BazaarMenuType.Orders)) {
+            return Optional.empty();
+        }
+
+        return screenInfo
+            .getItemStack(slot)
+            .filter(stack -> sameProduct(expectedProduct, this.market.resolveProduct(stack)))
+            .map(ItemStack::copy);
+    }
+
+    static boolean sameProduct(ProductIdentity expected, ProductIdentity observed) {
+        return Utils
+            .zipOptionals(expected.bazaarProductId(), observed.bazaarProductId())
+            .map(ids -> ids.getLeft().equals(ids.getRight()))
+            .orElseGet(() -> Utils.normalizeDisplayName(expected.strippedName())
+                .equals(Utils.normalizeDisplayName(observed.strippedName())));
+    }
+
     private static BazaarWidgetViewData.OrderStatus status(OrderStatus status) {
         return switch (status) {
             case OrderStatus.Top _ -> BazaarWidgetViewData.OrderStatus.Top;
@@ -154,7 +170,7 @@ public final class OrdersWidgetData {
             case Top, Unknown -> Optional.empty();
         };
         return new BazaarWidgetViewData.Order(
-            id, side, name, styled(name, item), new ItemStack(item), price, total,
+            id, side, name, styled(name, item), Optional.of(new ItemStack(item)), price, total,
             Optional.of(new BazaarWidgetViewData.FillProgress(filled, total)), status, market, tooltip
         );
     }

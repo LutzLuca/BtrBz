@@ -22,12 +22,12 @@ public final class OrderBookWidgetData {
     public Snapshot snapshot(WidgetSession session) {
         ProductIdentity product = session.product().map(context -> context.identity()).orElse(null);
         String name = "Order Book";
-        ItemStack icon = ItemStack.EMPTY;
+        Optional<ItemStack> itemStack = Optional.empty();
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide = Optional.empty();
         if (session.product().isPresent()) {
             var context = session.product().orElseThrow();
             name = context.displayName().getString();
-            icon = context.icon();
+            itemStack = context.itemStack();
         }
         if (session.inSign()) {
             appropriateSide = session.side().map(side -> side == OrderType.Buy
@@ -35,12 +35,12 @@ public final class OrderBookWidgetData {
                 : BazaarWidgetViewData.OrderSide.Sell);
         }
         if (product == null) {
-            return new Snapshot(name, icon, List.of(), List.of(), appropriateSide);
+            return new Snapshot(name, itemStack, List.of(), List.of(), appropriateSide);
         }
         var lists = this.market.getOrderLists(product);
         return new Snapshot(
             name,
-            icon,
+            itemStack,
             lists.buyOrders().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Buy, summary.getPricePerUnit(),
                 (int) summary.getAmount(), (int) summary.getOrders()
@@ -55,7 +55,7 @@ public final class OrderBookWidgetData {
 
     public static Snapshot preview() {
         return new Snapshot(
-            "Booster Cookie", new ItemStack(Items.COOKIE),
+            "Booster Cookie", Optional.of(new ItemStack(Items.COOKIE)),
             previewLevels(BazaarWidgetViewData.OrderSide.Buy, 9_811_000.1),
             previewLevels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0),
             Optional.of(BazaarWidgetViewData.OrderSide.Sell)
@@ -90,25 +90,20 @@ public final class OrderBookWidgetData {
 
     public record Snapshot(
         String itemName,
-        ItemStack icon,
+        Optional<ItemStack> itemStack,
         List<Entry> buyOffers,
         List<Entry> sellOffers,
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
         public Snapshot {
-            icon = icon.copy();
+            itemStack = itemStack.map(ItemStack::copy);
             buyOffers = List.copyOf(buyOffers);
             sellOffers = List.copyOf(sellOffers);
-            appropriateSide = java.util.Objects.requireNonNull(appropriateSide, "appropriateSide");
         }
 
         @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
+        public Optional<ItemStack> itemStack() {
+            return this.itemStack.map(ItemStack::copy);
         }
     }
 }

@@ -124,7 +124,7 @@ public final class BazaarWidgetViewData {
         OrderSide side,
         String itemName,
         Component formattedItemName,
-        ItemStack icon,
+        Optional<ItemStack> itemStack,
         long unitPrice,
         int totalAmount,
         Optional<FillProgress> liveProgress,
@@ -138,7 +138,7 @@ public final class BazaarWidgetViewData {
             Objects.requireNonNull(side, "side");
             Objects.requireNonNull(itemName, "itemName");
             Objects.requireNonNull(formattedItemName, "formattedItemName");
-            icon = icon.copy();
+            itemStack = itemStack.map(ItemStack::copy);
             if (totalAmount < 0) throw new IllegalArgumentException("totalAmount must be non-negative");
             liveProgress = Objects.requireNonNull(liveProgress, "liveProgress");
             liveProgress.ifPresent(progress -> {
@@ -156,7 +156,7 @@ public final class BazaarWidgetViewData {
             OrderSide side,
             String itemName,
             Component formattedItemName,
-            ItemStack icon,
+            Optional<ItemStack> itemStack,
             long unitPrice,
             int totalAmount,
             Optional<FillProgress> liveProgress,
@@ -164,7 +164,7 @@ public final class BazaarWidgetViewData {
             Optional<MarketInfo> marketInfo,
             List<Component> tooltipLines
         ) {
-            this(id, side, itemName, formattedItemName, icon, unitPrice, totalAmount,
+            this(id, side, itemName, formattedItemName, itemStack, unitPrice, totalAmount,
                 liveProgress, status, marketInfo, tooltipLines, 0);
         }
 
@@ -173,7 +173,7 @@ public final class BazaarWidgetViewData {
             OrderSide side,
             String itemName,
             Component formattedItemName,
-            ItemStack icon,
+            Optional<ItemStack> itemStack,
             long unitPrice,
             int totalAmount,
             int liveFilledAmount,
@@ -181,19 +181,15 @@ public final class BazaarWidgetViewData {
             List<Component> tooltipLines
         ) {
             this(
-                id, side, itemName, formattedItemName, icon, unitPrice, totalAmount,
+                id, side, itemName, formattedItemName, itemStack, unitPrice, totalAmount,
                 Optional.of(new FillProgress(liveFilledAmount, totalAmount)),
                 status, Optional.empty(), tooltipLines, 0
             );
         }
 
         @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
+        public Optional<ItemStack> itemStack() {
+            return this.itemStack.map(ItemStack::copy);
         }
 
         /** The stable volume originally placed. Live remaining volume belongs to {@link FillProgress}. */

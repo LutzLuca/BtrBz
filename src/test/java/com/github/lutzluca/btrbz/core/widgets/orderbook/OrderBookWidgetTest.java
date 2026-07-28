@@ -8,7 +8,6 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
 
 class OrderBookWidgetTest {
@@ -82,7 +81,7 @@ class OrderBookWidgetTest {
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
         return new OrderBookWidgetData.Snapshot(
-            "Product", ItemStack.EMPTY, List.of(), List.of(), appropriateSide
+            "Product", Optional.empty(), List.of(), List.of(), appropriateSide
         );
     }
 }

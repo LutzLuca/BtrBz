@@ -21,7 +21,6 @@ import org.jetbrains.annotations.Nullable;
 /** Gated slot hook that opens the BtrBz-owned full Order Book host screen. */
 public final class OrderBookScreenController {
     private static final int SLOT = 8;
-    private static final int PRODUCT_SLOT = 13;
     private static final BazaarMenuType[] MENUS = {
         BazaarMenuType.Item,
         BazaarMenuType.BuyOrderSetupVolume,
@@ -31,7 +30,10 @@ public final class OrderBookScreenController {
     private final ProductInfoProvider productInfoProvider;
     private final WidgetRuntime runtime;
 
-    public OrderBookScreenController(ProductInfoProvider productInfoProvider, WidgetRuntime runtime) {
+    public OrderBookScreenController(
+        ProductInfoProvider productInfoProvider,
+        WidgetRuntime runtime
+    ) {
         this.productInfoProvider = productInfoProvider;
         this.runtime = runtime;
         SlotHookRegistry.register(new Hook());
@@ -69,14 +71,10 @@ public final class OrderBookScreenController {
             var product = productInfoProvider.getOpenedProduct();
             if (product == null) return SlotClickResult.Pass;
             var identity = ProductIdentity.fromIndex(product);
-            var icon = context.view().getCurrInfo().getItemStack(PRODUCT_SLOT)
-                .map(ItemStack::copy)
-                .orElse(ItemStack.EMPTY);
             Minecraft.getInstance().setScreen(new OrderBookScreen(
                 context.view().getCurrInfo().getScreen(),
                 identity,
                 product.formattedName(),
-                icon,
                 runtime.createScreenHost()
             ));
             return SlotClickResult.Consume;

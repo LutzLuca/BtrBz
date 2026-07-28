@@ -2,23 +2,24 @@ package com.github.lutzluca.btrbz.core.widgets.session;
 
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import java.util.Objects;
+import java.util.Optional;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 public record WidgetProductContext(
     ProductIdentity identity,
     Component displayName,
-    ItemStack icon
+    Optional<ItemStack> itemStack
 ) {
     public WidgetProductContext {
         Objects.requireNonNull(identity, "identity");
         Objects.requireNonNull(displayName, "displayName");
-        icon = Objects.requireNonNull(icon, "icon").copy();
+        itemStack = itemStack.map(ItemStack::copy);
     }
 
     @Override
-    public ItemStack icon() {
-        return this.icon.copy();
+    public Optional<ItemStack> itemStack() {
+        return this.itemStack.map(ItemStack::copy);
     }
 
     public String productId() {
