@@ -3,10 +3,12 @@ package com.github.lutzluca.btrbz.core.widgets.hud;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
+import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.resources.Identifier;
 
 public final class HudWidgetBridge {
@@ -20,8 +22,10 @@ public final class HudWidgetBridge {
 
     private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
         var client = Minecraft.getInstance();
-        if (client.options.hideGui || client.level == null) return;
-        if (client.screen != null && !(client.screen instanceof ChatScreen)) return;
+        if (client.options.hideGui || client.options.keyPlayerList.isDown() || client.level == null) return;
+        boolean generalContainer = client.screen instanceof AbstractContainerScreen<?>
+            && !ScreenInfoHelper.inBazaar();
+        if (client.screen != null && !(client.screen instanceof ChatScreen) && !generalContainer) return;
 
         var window = client.getWindow();
         host.render(
