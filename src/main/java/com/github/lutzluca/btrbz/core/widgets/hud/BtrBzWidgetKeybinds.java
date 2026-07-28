@@ -1,9 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -32,9 +34,9 @@ public final class BtrBzWidgetKeybinds {
                 var store = BtrBz.widgetRuntime().stateStore();
                 boolean enabled = !store.isActive(definition);
                 store.setActive(definition, enabled);
-                client.player.sendSystemMessage(Component.literal(
+                Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
                     "Bazaar Orders HUD " + (enabled ? "enabled" : "disabled")
-                ));
+                ).withStyle(ChatFormatting.GRAY)));
             }
         });
     }
