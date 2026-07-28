@@ -176,11 +176,6 @@ public final class GameUtils {
 
                 return Utils
                     .parseUsFormattedNumber(amountToken)
-                    .onSuccess(purse -> log.debug(
-                        "Parsed purse scoreboard line: line='{}', amountToken='{}', purse={}",
-                        line,
-                        amountToken,
-                        purse))
                     .map(Number::doubleValue)
                     .toJavaOptional();
             });
