@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.PriceDisplay;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class TrackedOrdersWidgetConfig {
     public enum TrackedLayout { Standard, Compact }
@@ -22,21 +22,6 @@ public final class TrackedOrdersWidgetConfig {
     public PriceDisplay priceDisplay = PriceDisplay.Unit;
     public boolean showMarketInfo = true;
     public boolean showProgress = true;
-
-    public int contentWidth() { return this.contentWidth; }
-    public int visibleRows() { return this.visibleRows; }
-    public boolean fitToContent() { return this.fitToContent; }
-    public TrackedLayout layout() { return this.layout; }
-    public TrackedSort sort() { return this.sort; }
-    public boolean abbreviateEnchanted() { return this.abbreviateEnchanted; }
-    public boolean hideWhenEmpty() { return this.hideWhenEmpty; }
-    public boolean showStatusSummary() { return this.showStatusSummary; }
-    public boolean showItem() { return this.showItem; }
-    public boolean showVolume() { return this.showVolume; }
-    public PriceDisplay priceDisplay() { return this.priceDisplay; }
-    public boolean showMarketInfo() { return this.showMarketInfo; }
-    public boolean showProgress() { return this.showProgress; }
-
     public static void resetPreferences(TrackedOrdersWidgetConfig current, TrackedOrdersWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;

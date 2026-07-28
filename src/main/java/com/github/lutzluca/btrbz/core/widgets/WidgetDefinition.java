@@ -33,7 +33,6 @@ public final class WidgetDefinition<D, C, A> {
     private final WidgetActionHandler<A> actionHandler;
     private final Map<String, String> placementProfiles;
     private final Function<WidgetSession, String> placementProfileResolver;
-    private final WidgetAnchorSpace anchorSpace;
     private final int minWidth;
     private final int minHeight;
 
@@ -55,7 +54,6 @@ public final class WidgetDefinition<D, C, A> {
         this.placementProfileResolver = Objects.requireNonNull(
             builder.placementProfileResolver, "placementProfileResolver"
         );
-        this.anchorSpace = Objects.requireNonNull(builder.anchorSpace, "anchorSpace");
         this.minWidth = Math.max(1, builder.minWidth);
         this.minHeight = Math.max(1, builder.minHeight);
     }
@@ -107,7 +105,6 @@ public final class WidgetDefinition<D, C, A> {
         private WidgetActionHandler<A> actionHandler = noOpHandler();
         private final Map<String, String> placementProfiles = new LinkedHashMap<>();
         private Function<WidgetSession, String> placementProfileResolver = WidgetSession::placementProfile;
-        private WidgetAnchorSpace anchorSpace = WidgetAnchorSpace.Screen;
         private int minWidth = 48;
         private int minHeight = 16;
 
@@ -164,10 +161,6 @@ public final class WidgetDefinition<D, C, A> {
         }
         public Builder<D, C, A> placementProfileResolver(Function<WidgetSession, String> resolver) {
             this.placementProfileResolver = resolver;
-            return this;
-        }
-        public Builder<D, C, A> anchorSpace(WidgetAnchorSpace anchorSpace) {
-            this.anchorSpace = anchorSpace;
             return this;
         }
         public Builder<D, C, A> minSize(int width, int height) {

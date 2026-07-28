@@ -1,5 +1,7 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.runtime;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;

@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class OrderValueWidgetConfig {
     public enum ValueDisplay { Detailed, Summary }
@@ -18,17 +18,6 @@ public final class OrderValueWidgetConfig {
     public boolean buyItems = true;
     public boolean sellClaimable = true;
     public boolean sellPending = true;
-
-    public int contentWidth() { return this.contentWidth; }
-    public ValueDisplay display() { return this.display; }
-    public NumberStyle numberStyle() { return this.numberStyle; }
-    public boolean showCoinsSuffix() { return this.showCoinsSuffix; }
-    public ColorMode colorMode() { return this.colorMode; }
-    public boolean buyLocked() { return this.buyLocked; }
-    public boolean buyItems() { return this.buyItems; }
-    public boolean sellClaimable() { return this.sellClaimable; }
-    public boolean sellPending() { return this.sellPending; }
-
     public static void resetPreferences(OrderValueWidgetConfig current, OrderValueWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.display = defaults.display;

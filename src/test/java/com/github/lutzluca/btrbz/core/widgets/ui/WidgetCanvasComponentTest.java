@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
-import com.github.lutzluca.btrbz.core.widgets.WidgetBounds;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.base.BaseUIComponent;

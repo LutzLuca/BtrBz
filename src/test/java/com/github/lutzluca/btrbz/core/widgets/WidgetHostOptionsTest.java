@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 

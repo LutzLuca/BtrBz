@@ -3,7 +3,10 @@ package com.github.lutzluca.btrbz.core.widgets;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,7 +42,7 @@ class WidgetStateStoreTest {
         store.setPlacement(bookmarks, "default", placement, true);
 
         assertFalse(config.bookmarks.frame.enabled);
-        assertEquals(WidgetStateStore.MAX_SCALE, config.bookmarks.frame.scale);
+        assertEquals(WidgetScaleResolver.MAX_SCALE, config.bookmarks.frame.scale);
         assertEquals(0x7F102030, config.bookmarks.frame.background);
         assertEquals(placement, config.bookmarks.frame.placements.get("default"));
         assertEquals(4, saves.get());

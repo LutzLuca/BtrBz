@@ -1,11 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.core.widgets.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHost;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHostOptions;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
-import com.github.lutzluca.btrbz.core.widgets.WidgetRenderResult;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetRenderResult;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIGraphics;

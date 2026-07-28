@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -40,15 +40,6 @@ public final class BookmarksWidgetConfig {
     public boolean showIndicators = true;
     public boolean abbreviateEnchanted = false;
     public List<BookmarkedItem> items = new ArrayList<>();
-
-    public int contentWidth() { return this.contentWidth; }
-    public int visibleRows() { return this.visibleRows; }
-    public boolean fitToContent() { return this.fitToContent; }
-    public BookmarkSort sort() { return this.sort; }
-    public boolean hideWhenEmpty() { return this.hideWhenEmpty; }
-    public boolean showItems() { return this.showItems; }
-    public boolean showIndicators() { return this.showIndicators; }
-    public boolean abbreviateEnchanted() { return this.abbreviateEnchanted; }
 
     public static void resetPreferences(BookmarksWidgetConfig current, BookmarksWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;

@@ -2,9 +2,9 @@ package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCanvas;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHost;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHostOptions;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;

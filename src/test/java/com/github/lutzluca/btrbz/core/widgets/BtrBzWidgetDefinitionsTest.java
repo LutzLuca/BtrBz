@@ -107,9 +107,9 @@ class BtrBzWidgetDefinitionsTest {
             ))
             : Optional.empty();
         return new WidgetSession(
-            1, hud, sign, orderBook, false,
-            Optional.ofNullable(menu), Optional.ofNullable(previous), true, context,
-            sign ? Optional.of(OrderType.Buy) : Optional.empty(), 1, null
+            1, hud, sign, orderBook,
+            Optional.ofNullable(menu), Optional.ofNullable(previous), context,
+            sign ? Optional.of(OrderType.Buy) : Optional.empty(), 1
         );
     }
 }

@@ -49,7 +49,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             ),
             viewportHeight(options, orders.size()),
             interactive,
-            options.sort() == TrackedOrdersWidgetConfig.TrackedSort.Manual
+            options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual
         );
     }
 
@@ -78,12 +78,12 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
 
     private static int viewportHeight(TrackedOrdersWidgetConfig options, int orderCount) {
         return WidgetLayoutTokens.configuredListViewportHeight(
-            rowHeight(options), orderCount, options.visibleRows(), options.fitToContent()
+            rowHeight(options), orderCount, options.visibleRows, options.fitToContent
         );
     }
 
     private static int rowHeight(TrackedOrdersWidgetConfig options) {
-        return options.layout() == TrackedOrdersWidgetConfig.TrackedLayout.Compact
+        return options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? BazaarTrackedOrderRowComponent.COMPACT_HEIGHT
             : BazaarTrackedOrderRowComponent.STANDARD_HEIGHT;
     }

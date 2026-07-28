@@ -61,7 +61,7 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.Identifier;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
-import com.github.lutzluca.btrbz.core.widgets.WidgetStateStore;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
 
 @Slf4j

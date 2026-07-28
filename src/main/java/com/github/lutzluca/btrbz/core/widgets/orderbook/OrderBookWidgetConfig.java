@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class OrderBookWidgetConfig {
     public enum BookLayout { Split, BuyOnly, SellOnly }
@@ -15,15 +15,6 @@ public final class OrderBookWidgetConfig {
     public boolean showOrderCount = true;
     public boolean showHeader = true;
     public boolean showItem = true;
-
-    public int contentWidth() { return this.contentWidth; }
-    public int visibleRows() { return this.visibleRows; }
-    public BookLayout layout() { return this.layout; }
-    public NumberStyle numberStyle() { return this.numberStyle; }
-    public boolean showOrderCount() { return this.showOrderCount; }
-    public boolean showHeader() { return this.showHeader; }
-    public boolean showItem() { return this.showItem; }
-
     public static void resetPreferences(OrderBookWidgetConfig current, OrderBookWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;

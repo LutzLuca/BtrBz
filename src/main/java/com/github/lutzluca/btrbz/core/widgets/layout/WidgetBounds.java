@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.layout;
 
 public record WidgetBounds(int x, int y, int width, int height) {
     public boolean contains(double pointX, double pointY) {

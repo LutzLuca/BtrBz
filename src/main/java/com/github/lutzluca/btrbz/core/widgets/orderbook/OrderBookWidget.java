@@ -13,9 +13,9 @@ public final class OrderBookWidget {
         BazaarWidgetViewData.OrderSide side
     ) {
         boolean configured = side == BazaarWidgetViewData.OrderSide.Buy
-            ? options.showBuy()
-            : options.showSell();
-        return configured && (options.sideDisplay() == OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both
+            ? options.showBuy
+            : options.showSell;
+        return configured && (options.sideDisplay == OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both
             || book.appropriateSide().isEmpty()
             || book.appropriateSide().filter(side::equals).isPresent());
     }
@@ -25,8 +25,8 @@ public final class OrderBookWidget {
         OrderBookWidgetData.Snapshot book
     ) {
         return embeddedVisibleSideCount(options, book) <= 1
-            ? Math.max(1, (options.contentWidth() - 4) / 2)
-            : options.contentWidth();
+            ? Math.max(1, (options.contentWidth - 4) / 2)
+            : options.contentWidth;
     }
 
     static int embeddedVisibleSideCount(
@@ -40,11 +40,11 @@ public final class OrderBookWidget {
     }
 
     public static int contentWidth(OrderBookWidgetConfig options) {
-        return options.contentWidth();
+        return options.contentWidth;
     }
 
     public static int sideWidth(OrderBookWidgetConfig options) {
-        return options.layout() == OrderBookWidgetConfig.BookLayout.Split
+        return options.layout == OrderBookWidgetConfig.BookLayout.Split
             ? Math.max(1, (contentWidth(options) - 2) / 2)
             : contentWidth(options);
     }
@@ -54,8 +54,8 @@ public final class OrderBookWidget {
         OrderBookPriceWidgetConfig options
     ) {
         var parts = new ArrayList<String>();
-        if (options.showAmounts()) parts.add(entry.quantityText());
-        if (options.showOrderCount()) parts.add(entry.orders() + " ord");
+        if (options.showAmounts) parts.add(entry.quantityText());
+        if (options.showOrderCount) parts.add(entry.orders() + " ord");
         return String.join(" · ", parts);
     }
 }

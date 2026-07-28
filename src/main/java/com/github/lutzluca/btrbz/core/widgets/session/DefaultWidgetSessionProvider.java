@@ -8,7 +8,6 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCanvas;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.Screen;
@@ -67,9 +66,6 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             ));
         }
 
-        WidgetCanvas content = current.getHandledScreenBounds()
-            .map(bounds -> new WidgetCanvas(bounds.x(), bounds.y(), bounds.width(), bounds.height()))
-            .orElse(null);
         var key = new SemanticKey(
             helper.screenTransitionVersion(), hud, sign, orderBook,
             current.getMenuType(), previous.getMenuType(),
@@ -85,14 +81,11 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             hud,
             sign,
             orderBook,
-            false,
             current.getMenuType(),
             previous.getMenuType(),
-            current.inventoryLoaded(),
             product,
             side,
-            this.trackedOrders.displayRevision(),
-            content
+            this.trackedOrders.displayRevision()
         );
     }
 

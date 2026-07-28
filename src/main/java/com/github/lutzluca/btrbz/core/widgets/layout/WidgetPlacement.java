@@ -1,14 +1,13 @@
-package com.github.lutzluca.btrbz.core.widgets;
+package com.github.lutzluca.btrbz.core.widgets.layout;
 
-public record WidgetPlacement(double x, double y, Anchor anchor) {
+public record WidgetPlacement(double x, double y) {
     public WidgetPlacement {
         x = clamp01(x);
         y = clamp01(y);
-        anchor = anchor == null ? Anchor.TopLeft : anchor;
     }
 
     public static WidgetPlacement topLeft(double x, double y) {
-        return new WidgetPlacement(x, y, Anchor.TopLeft);
+        return new WidgetPlacement(x, y);
     }
 
     public WidgetBounds resolve(int canvasWidth, int canvasHeight, int scaledWidgetWidth, int scaledWidgetHeight) {
@@ -51,9 +50,5 @@ public record WidgetPlacement(double x, double y, Anchor anchor) {
 
     public static int clampInt(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    public enum Anchor {
-        TopLeft
     }
 }

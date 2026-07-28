@@ -42,7 +42,6 @@ public final class WidgetPreviewSessions {
         Optional<WidgetProductContext> product,
         Optional<OrderType> side
     ) {
-        return new WidgetSession(1, hud, sign, orderBook, false, menu, previous, true,
-            product, side, 1, null);
+        return new WidgetSession(1, hud, sign, orderBook, menu, previous, product, side, 1);
     }
 }

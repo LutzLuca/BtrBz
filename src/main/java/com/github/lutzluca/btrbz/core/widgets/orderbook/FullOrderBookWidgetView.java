@@ -62,23 +62,23 @@ final class FullOrderBookWidgetView implements WidgetView<
         this.item.stack(data.iconCopy());
         this.itemName.text(Component.literal(data.itemName()));
         this.header.clearChildren();
-        if (config.showItem() && !data.iconCopy().isEmpty()) this.header.child(this.item);
+        if (config.showItem && !data.iconCopy().isEmpty()) this.header.child(this.item);
         this.header.child(this.itemName);
         this.header.child(this.bookTitle);
 
         int rowHeight = rowHeight();
-        int viewportHeight = WidgetLayoutTokens.listViewportHeight(rowHeight, config.visibleRows());
+        int viewportHeight = WidgetLayoutTokens.listViewportHeight(rowHeight, config.visibleRows);
         int sideHeight = Minecraft.getInstance().font.lineHeight + WidgetLayoutTokens.LINE_GAP + viewportHeight;
         this.lists.verticalSizing(Sizing.fixed(sideHeight));
         boolean compactMetadata = OrderBookWidget.sideWidth(config) < 190;
         this.buy.update(data.buyOffers(), config, compactMetadata, rowHeight, viewportHeight, actions);
         this.sell.update(data.sellOffers(), config, compactMetadata, rowHeight, viewportHeight, actions);
         this.lists.clearChildren();
-        if (config.layout() != OrderBookWidgetConfig.BookLayout.SellOnly) this.lists.child(this.buy.root);
-        if (config.layout() != OrderBookWidgetConfig.BookLayout.BuyOnly) this.lists.child(this.sell.root);
+        if (config.layout != OrderBookWidgetConfig.BookLayout.SellOnly) this.lists.child(this.buy.root);
+        if (config.layout != OrderBookWidgetConfig.BookLayout.BuyOnly) this.lists.child(this.sell.root);
 
         this.root.clearChildren();
-        if (config.showHeader()) this.root.child(this.header);
+        if (config.showHeader) this.root.child(this.header);
         this.root.child(this.lists);
     }
 
@@ -115,17 +115,17 @@ final class FullOrderBookWidgetView implements WidgetView<
             int viewportHeight,
             Consumer<OrderBookAction> actions
         ) {
-            this.root.horizontalSizing(config.layout() == OrderBookWidgetConfig.BookLayout.Split
+            this.root.horizontalSizing(config.layout == OrderBookWidgetConfig.BookLayout.Split
                 ? Sizing.expand(50)
                 : Sizing.fill(100));
             var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
             for (int index = 0; index < entries.size(); index++) {
                 var entry = entries.get(index);
                 String metadata = compactMetadata
-                    ? number(entry.quantity(), config.numberStyle()) + "v"
-                        + (config.showOrderCount() ? " · " + entry.orders() + "o" : "")
-                    : "Vol: " + number(entry.quantity(), config.numberStyle())
-                        + (config.showOrderCount() ? "  Ord: " + entry.orders() : "");
+                    ? number(entry.quantity(), config.numberStyle) + "v"
+                        + (config.showOrderCount ? " · " + entry.orders() + "o" : "")
+                    : "Vol: " + number(entry.quantity(), config.numberStyle)
+                        + (config.showOrderCount ? "  Ord: " + entry.orders() : "");
                 rows.add(new BazaarOrderRowComponent.BazaarRow(
                     this.side.name() + "-" + Double.doubleToLongBits(entry.price()) + "-" + index,
                     entry.priceText(), entry.side().accentColor(), "", metadata,

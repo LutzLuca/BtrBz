@@ -48,10 +48,10 @@ final class BazaarOrdersWidgetView implements WidgetView<
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth()));
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.root.clearChildren();
-        if (config.mode() == BazaarOrdersWidgetConfig.HudMode.StatusCounts) {
-            this.counts.update(data, config.contentWidth());
+        if (config.mode == BazaarOrdersWidgetConfig.HudMode.StatusCounts) {
+            this.counts.update(data, config.contentWidth);
             this.root.child(this.counts.root);
         } else {
             this.detailed.update(data, config);
@@ -86,7 +86,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
             ));
             this.empty.text(Component.literal(BazaarHudWidget.emptyText(data)));
             int visible = BazaarOrderCountPolicy.visibleCount(
-                config.visibleOrders(), data.orders().size(), Integer.MAX_VALUE,
+                config.visibleOrders, data.orders().size(), Integer.MAX_VALUE,
                 BazaarHudOrderRowComponent.HEIGHT, Minecraft.getInstance().font.lineHeight
             );
             this.rows.clearChildren();

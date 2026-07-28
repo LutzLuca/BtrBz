@@ -60,7 +60,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         this.item.stack(data.iconCopy());
         this.itemName.text(Component.literal(data.itemName()));
         this.header.clearChildren();
-        if (config.showItem() && !data.iconCopy().isEmpty()) this.header.child(this.item);
+        if (config.showItem && !data.iconCopy().isEmpty()) this.header.child(this.item);
         this.header.child(this.itemName);
         this.header.child(this.prices);
 
@@ -76,7 +76,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         }
 
         this.root.clearChildren();
-        if (config.showHeader()) this.root.child(this.header);
+        if (config.showHeader) this.root.child(this.header);
         this.root.child(this.sides);
     }
 
@@ -122,7 +122,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
                 rows,
                 true,
                 rowHeight,
-                WidgetLayoutTokens.listViewportHeight(rowHeight, config.visibleRows())
+                WidgetLayoutTokens.listViewportHeight(rowHeight, config.visibleRows)
             );
         }
     }

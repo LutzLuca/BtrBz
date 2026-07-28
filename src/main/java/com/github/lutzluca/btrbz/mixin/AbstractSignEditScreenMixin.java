@@ -1,10 +1,10 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCanvas;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHostOptions;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHost;
-import com.github.lutzluca.btrbz.core.widgets.WidgetHostOwner;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOwner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;

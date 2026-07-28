@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
-import com.github.lutzluca.btrbz.core.widgets.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
