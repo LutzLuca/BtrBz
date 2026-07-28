@@ -353,8 +353,11 @@ public final class ScreenInfoHelper {
             return this.getGenericContainerScreen().flatMap(gcs -> {
                 var handler = gcs.getMenu();
                 var inventory = handler.getContainer();
+                if (!ScreenInfoHelper.isValidContainerIndex(idx, inventory.getContainerSize())) {
+                    return Optional.empty();
+                }
                 var slot = inventory.getItem(idx);
-                return slot == ItemStack.EMPTY ? Optional.empty() : Optional.of(slot);
+                return slot.isEmpty() ? Optional.empty() : Optional.of(slot);
             });
         }
 
@@ -373,6 +376,10 @@ public final class ScreenInfoHelper {
         private void resetMenuMatchState() {
             this.state.reset();
         }
+    }
+
+    static boolean isValidContainerIndex(int index, int containerSize) {
+        return index >= 0 && index < containerSize;
     }
 
     private record ScreenLoadListenerEntry(

@@ -17,10 +17,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
@@ -37,7 +39,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private static final int COMPACT_PROGRESS_HEIGHT = 1;
 
     private final BazaarTrackedOrderListComponent list;
-    private final ItemComponent item;
+    private @Nullable ItemComponent item;
     private BazaarWidgetViewData.Order order;
     private TrackedOrdersWidgetConfig options;
     private Component productName;
@@ -60,7 +62,6 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
         ));
         this.list = list;
-        this.item = BazaarUi.item(order.iconCopy(), STANDARD_ICON_SIZE);
         this.allowOverflow(true);
         this.update(order, options, tooltip, index, interactive, actions);
     }
@@ -79,12 +80,19 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.index = index;
         this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
-        this.showItem = options.showItem;
+        var itemStack = order.itemStack();
+        this.showItem = options.showItem && itemStack.isPresent();
         this.actions = actions;
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
-        this.item.stack(order.iconCopy());
-        this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
+        if (itemStack.isPresent()) {
+            if (this.item == null) {
+                this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
+            } else {
+                this.item.stack(itemStack.orElseThrow());
+                this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
+            }
+        }
         this.verticalSizing(Sizing.fixed(
             options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
         ));
@@ -106,19 +114,21 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
                 + font.width(Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD))
                 + TEXT_GAP;
         }
-        this.item.inflate(Size.of(iconSize, iconSize));
-        this.item.mount(
+        this.itemComponent().inflate(Size.of(iconSize, iconSize));
+        this.itemComponent().mount(
             this,
             iconX,
             this.y + Math.max(0, (this.height - progressHeight - iconSize) / 2)
         );
     }
 
-    @Override public List<UIComponent> children() { return this.showItem ? List.of(this.item) : List.of(); }
+    @Override public List<UIComponent> children() {
+        return this.showItem ? List.of(this.itemComponent()) : List.of();
+    }
 
     @Override
     public ParentUIComponent removeChild(UIComponent child) {
-        throw new UnsupportedOperationException("Tracked row owns its item icon");
+        throw new UnsupportedOperationException("Tracked row owns its item component");
     }
 
     @Override
@@ -170,7 +180,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.UNDERCUT_ROW);
         }
 
-        if (this.showItem) this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
+        if (this.showItem) {
+            this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
+        }
         if (this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact) {
             this.drawCompact(graphics);
         } else {
@@ -294,4 +306,8 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId orderId() { return this.order.id(); }
+
+    private ItemComponent itemComponent() {
+        return Objects.requireNonNull(this.item, "item");
+    }
 }

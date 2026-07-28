@@ -154,6 +154,7 @@ public class BtrBz implements ClientModInitializer {
         );
 
         var sessionProvider = new DefaultWidgetSessionProvider(
+            BAZAAR_DATA,
             productInfoProvider,
             orderBookPrice,
             this.orderManager
@@ -185,7 +186,6 @@ public class BtrBz implements ClientModInitializer {
             var trackedOrders = this.orderManager.getTrackedOrders();
             this.highlightManager.sync(trackedOrders, filledOrder);
             orderValue.sync(unfilledOrders, filledOrder);
-            ordersWidgetData.captureOrderIcons();
         });
 
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {

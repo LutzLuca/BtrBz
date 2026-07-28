@@ -59,7 +59,7 @@ public final class BookmarksWidgetData {
         String productId,
         String productName,
         Component formattedProductName,
-        ItemStack icon,
+        ItemStack itemStack,
         boolean buyOrder,
         boolean sellOrder
     ) {
@@ -67,20 +67,16 @@ public final class BookmarksWidgetData {
             Objects.requireNonNull(productId, "productId");
             Objects.requireNonNull(productName, "productName");
             Objects.requireNonNull(formattedProductName, "formattedProductName");
-            icon = icon.copy();
+            itemStack = itemStack.copy();
         }
 
-        public Bookmark(String productId, String productName, ItemStack icon, boolean buyOrder, boolean sellOrder) {
-            this(productId, productName, Component.literal(productName), icon, buyOrder, sellOrder);
+        public Bookmark(String productId, String productName, ItemStack itemStack, boolean buyOrder, boolean sellOrder) {
+            this(productId, productName, Component.literal(productName), itemStack, buyOrder, sellOrder);
         }
 
         @Override
-        public ItemStack icon() {
-            return this.icon.copy();
-        }
-
-        public ItemStack iconCopy() {
-            return this.icon.copy();
+        public ItemStack itemStack() {
+            return this.itemStack.copy();
         }
 
         public Component formattedProductName(boolean abbreviateEnchanted) {

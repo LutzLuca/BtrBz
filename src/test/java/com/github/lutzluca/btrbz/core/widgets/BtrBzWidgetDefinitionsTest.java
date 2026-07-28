@@ -20,7 +20,6 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -86,8 +85,8 @@ class BtrBzWidgetDefinitionsTest {
     @Test
     void priceDifferenceVisibilityUsesItsOwnSnapshot() {
         var definition = PriceDifferenceWidgetDefinition.create(null);
-        var unavailable = new PriceDifferenceWidgetData.Snapshot("Unavailable", ItemStack.EMPTY, 0, 0);
-        var available = new PriceDifferenceWidgetData.Snapshot("Available", ItemStack.EMPTY, 1, 1);
+        var unavailable = new PriceDifferenceWidgetData.Snapshot("Unavailable", Optional.empty(), 0, 0);
+        var available = new PriceDifferenceWidgetData.Snapshot("Available", Optional.empty(), 1, 1);
         var session = session(false, false, false, BazaarMenuType.Item, null, false);
         assertFalse(definition.getVisibility().test(unavailable, new PriceDifferenceWidgetConfig(), session));
         assertTrue(definition.getVisibility().test(available, new PriceDifferenceWidgetConfig(), session));
@@ -103,7 +102,7 @@ class BtrBzWidgetDefinitionsTest {
     ) {
         Optional<WidgetProductContext> context = product
             ? Optional.of(new WidgetProductContext(
-                ProductIdentity.fromName("Product"), Component.literal("Product"), ItemStack.EMPTY
+                ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty()
             ))
             : Optional.empty();
         return new WidgetSession(

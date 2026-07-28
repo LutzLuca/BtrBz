@@ -38,7 +38,9 @@ final class RemoteNeuConversionIndexBuilder {
     private static final Duration ZIP_REQUEST_TIMEOUT = Duration.ofSeconds(60);
     private static final int LOG_SAMPLE_LIMIT = Integer.getInteger("btrbz.conversions.logSampleLimit", 0);
     private static final int MAX_ROMAN_LEVEL = 3999;
-    static final int BUILDER_VERSION = 2;
+    // The 26.1.x artifact must remain compatible with its oldest supported release.
+    static final int BASELINE_ITEM_DATA_VERSION = 4786;
+    static final int BUILDER_VERSION = 4;
     private static final HttpClient HTTP_CLIENT = HttpClient
         .newBuilder()
         .connectTimeout(CONNECT_TIMEOUT)
@@ -66,8 +68,7 @@ final class RemoteNeuConversionIndexBuilder {
         Map.entry("RAW_FISH:3", "RAW_FISH-3"),
         Map.entry("SAND:1", "SAND-1"),
         Map.entry("BAZAAR_COOKIE", "BOOSTER_COOKIE"),
-        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK"),
-        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1")
+        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK")
     );
 
     private RemoteNeuConversionIndexBuilder() { }
@@ -75,49 +76,70 @@ final class RemoteNeuConversionIndexBuilder {
     record BuildResult(ConversionIndex index, boolean changed) { }
 
     static BuildResult build(ConversionIndex current) throws ConversionRefreshException {
-        return build(current, false);
+        return build(current, BASELINE_ITEM_DATA_VERSION);
     }
 
-    static BuildResult build(ConversionIndex current, boolean allowPartial) throws ConversionRefreshException {
+    static BuildResult build(ConversionIndex current, int maxDataVersion) throws ConversionRefreshException {
+        log.debug(
+            "Checking remote Bazaar/NEU conversion sources (builderVersion={}, maxDataVersion={})",
+            BUILDER_VERSION,
+            maxDataVersion
+        );
         var productIds = fetchBazaarProductIds();
+        log.debug("Fetched {} product ids from the Hypixel Bazaar API", productIds.size());
         var neuCommit = fetchNeuCommit();
+        log.debug("Resolved NEU repository head commit {}", neuCommit);
         var canReuseEntries = shouldReuseNeuEntries(current, neuCommit, productIds);
         if (canReuseEntries && current.products().keySet().equals(productIds)) {
+            long overlays = current.products().values().stream().filter(entry -> entry.itemStack() != null).count();
+            long legacy = current.products().values().stream().filter(entry -> entry.legacyItemStack() != null).count();
             log.debug(
-                "NEU commit and Bazaar product list unchanged; keeping current conversion index with {} products",
-                current.size()
+                "NEU commit and Bazaar product list unchanged; keeping current conversion index "
+                    + "with {} products (overlays={}, legacy={})",
+                current.size(),
+                overlays,
+                legacy
             );
             return new BuildResult(current, false);
         }
 
+        log.info(
+            "Rebuilding Bazaar conversion index (products={}, reuseEntries={}, neuCommit={}, maxDataVersion={})",
+            productIds.size(),
+            canReuseEntries,
+            neuCommit,
+            maxDataVersion
+        );
+
         var products = canReuseEntries
             ? reusableEntries(current, productIds)
-            : fetchNeuEntries(neuCommit, productIds);
+            : fetchNeuEntries(neuCommit, productIds, maxDataVersion);
 
-        var missingProductIds = validateCompleteIndex(productIds, products, allowPartial);
-        var carriedForwardCount = carryForwardMissingEntries(current, products, missingProductIds);
-        if (carriedForwardCount > 0) {
-            log.warn(
-                "Carried forward {} stale conversion entries from the active index; they remain marked as missing",
-                carriedForwardCount
-            );
-        }
+        validateCompleteIndex(productIds, products);
 
         var index = new ConversionIndex(
             ConversionIndex.SCHEMA_VERSION,
             BUILDER_VERSION,
             Instant.now().toString(),
             neuCommit,
-            products,
-            missingProductIds
+            products
         );
         var counts = index.sourceCounts();
+        long overlays = index.products().values().stream().filter(entry -> entry.itemStack() != null).count();
+        long legacy = index.products().values().stream().filter(entry -> entry.legacyItemStack() != null).count();
+        long covered = index.products().values().stream()
+            .filter(entry -> entry.itemStack() != null || entry.legacyItemStack() != null)
+            .count();
         log.info(
-            "Built Bazaar conversion index from {} products: neu={}, derived={}, missing={}, neuCommit={}",
+            "Built Bazaar conversion index from {} products: neu={}, derived={}, overlays={}, "
+                + "legacy={}, stackCoverage={}/{}, neuCommit={}",
             index.size(),
             counts.neu(),
             counts.derived(),
-            index.missingProductIds().size(),
+            overlays,
+            legacy,
+            covered,
+            index.size(),
             neuCommit
         );
         return new BuildResult(index, true);
@@ -136,30 +158,7 @@ final class RemoteNeuConversionIndexBuilder {
             return false;
         }
 
-        if (!curr.isComplete()) {
-            return false;
-        }
-
         return productIds.stream().allMatch(productId -> curr.products().containsKey(productId));
-    }
-
-    static int carryForwardMissingEntries(
-        ConversionIndex current,
-        Map<String, ConversionProductEntry> products,
-        Set<String> missingProductIds
-    ) {
-        if (current == null || missingProductIds.isEmpty()) {
-            return 0;
-        }
-
-        var carriedForwardCount = 0;
-        for (var productId : missingProductIds) {
-            var currentEntry = current.products().get(productId);
-            if (currentEntry != null && products.putIfAbsent(productId, currentEntry) == null) {
-                carriedForwardCount++;
-            }
-        }
-        return carriedForwardCount;
     }
 
     private static Set<String> fetchBazaarProductIds() throws ConversionRefreshException {
@@ -198,7 +197,11 @@ final class RemoteNeuConversionIndexBuilder {
         return entries;
     }
 
-    private static Map<String, ConversionProductEntry> fetchNeuEntries(String commit, Set<String> productIds)
+    private static Map<String, ConversionProductEntry> fetchNeuEntries(
+        String commit,
+        Set<String> productIds,
+        int maxDataVersion
+    )
         throws ConversionRefreshException {
         Path zipPath;
         try {
@@ -212,6 +215,7 @@ final class RemoteNeuConversionIndexBuilder {
         }
 
         try {
+            log.info("Downloading NEU repository archive for commit {}", commit);
             var req = baseRequest(URI.create(String.format(NEU_ZIP_URL, commit)))
                 .timeout(ZIP_REQUEST_TIMEOUT)
                 .setHeader("Accept", "application/zip, application/octet-stream")
@@ -221,9 +225,11 @@ final class RemoteNeuConversionIndexBuilder {
             if (resp.statusCode() != 200) {
                 throw new IOException("Failed to download NEU zip: HTTP " + resp.statusCode());
             }
+            log.debug("Downloaded NEU repository archive ({} bytes)", Files.size(zipPath));
 
             try (var zip = new ZipFile(zipPath.toFile(), StandardCharsets.UTF_8)) {
                 var entriesBySuffix = indexZipEntries(zip);
+                var overlaysByNeuId = indexItemOverlays(zip);
                 var stockEntry = entriesBySuffix.get("constants/bazaarstocks.json");
                 if (stockEntry == null) {
                     throw new IOException("NEU zip did not contain constants/bazaarstocks.json");
@@ -240,8 +246,16 @@ final class RemoteNeuConversionIndexBuilder {
                 var productEntries = new LinkedHashMap<String, ConversionProductEntry>();
                 var derivedFallbackExamples = new ArrayList<String>();
                 var staticAliasCount = 0;
+                var processed = 0;
                 for (var productId : new TreeSet<>(productIds)) {
-                    var productEntry = resolveEntry(zip, entriesBySuffix, stockIds, productId);
+                    var productEntry = resolveEntry(
+                        zip,
+                        entriesBySuffix,
+                        overlaysByNeuId,
+                        stockIds,
+                        productId,
+                        maxDataVersion
+                    );
                     if (productEntry.isEmpty()) {
                         continue;
                     }
@@ -255,12 +269,23 @@ final class RemoteNeuConversionIndexBuilder {
                     if (STATIC_NEU_ALIASES.containsKey(productId)) {
                         staticAliasCount++;
                     }
+                    processed++;
+                    if (processed % 250 == 0) {
+                        log.debug(
+                            "Processed {}/{} Bazaar products from the NEU repository",
+                            processed,
+                            productIds.size()
+                        );
+                    }
                 }
 
                 log.debug(
-                    "Read {} Bazaar conversion entries from NEU commit {} (staticAliases={})",
+                    "Read {} Bazaar conversion entries from NEU commit {} "
+                        + "(overlays={}, legacy={}, staticAliases={})",
                     productEntries.size(),
                     commit,
+                    productEntries.values().stream().filter(entry -> entry.itemStack() != null).count(),
+                    productEntries.values().stream().filter(entry -> entry.legacyItemStack() != null).count(),
                     staticAliasCount
                 );
                 if (!derivedFallbackExamples.isEmpty()) {
@@ -285,25 +310,24 @@ final class RemoteNeuConversionIndexBuilder {
         }
     }
 
-    static Set<String> validateCompleteIndex(
+    private static void validateCompleteIndex(
         Set<String> productIds,
-        Map<String, ConversionProductEntry> products,
-        boolean allowPartial
+        Map<String, ConversionProductEntry> products
     ) throws ConversionRefreshException {
         var missing = new TreeSet<>(productIds);
         missing.removeAll(products.keySet());
         if (missing.isEmpty()) {
-            return Set.of();
+            return;
         }
 
+        var sample = missing.stream().limit(LOG_SAMPLE_LIMIT).toList();
         log.warn(
-            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata: {}",
+            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata. Sample: {}",
             missing.size(),
-            missing
+            sample
         );
-
-        if (allowPartial) {
-            return Set.copyOf(missing);
+        if (log.isDebugEnabled()) {
+            log.debug("Missing Bazaar conversion products: {}", missing);
         }
 
         throw new ConversionRefreshException(
@@ -315,53 +339,118 @@ final class RemoteNeuConversionIndexBuilder {
     private static Optional<ConversionProductEntry> resolveEntry(
         ZipFile zip,
         Map<String, ZipEntry> entriesBySuffix,
+        Map<String, List<ItemOverlayEntry>> overlaysByNeuId,
         Map<String, String> stockIds,
-        String productId
+        String productId,
+        int maxDataVersion
     ) throws IOException {
         var directItem = entriesBySuffix.get("items/" + productId + ".json");
         if (directItem != null) {
-            return entryFromItem(zip, directItem, productId)
-                .or(() -> derivedEnchantmentEntry(productId));
+            var entry = entryFromItem(
+                zip,
+                directItem,
+                overlaysByNeuId,
+                productId,
+                productId,
+                maxDataVersion
+            );
+            return entry.isPresent()
+                ? entry
+                : derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
         }
 
         var stockNeuId = stockIds.get(productId);
         if (stockNeuId != null && !stockNeuId.isBlank()) {
-            return entryFromNeuId(zip, entriesBySuffix, productId, stockNeuId);
+            return entryFromNeuId(
+                zip,
+                entriesBySuffix,
+                overlaysByNeuId,
+                productId,
+                stockNeuId,
+                maxDataVersion
+            );
         }
 
         var aliasNeuId = STATIC_NEU_ALIASES.get(productId);
         if (aliasNeuId != null) {
-            return entryFromNeuId(zip, entriesBySuffix, productId, aliasNeuId);
+            return entryFromNeuId(
+                zip,
+                entriesBySuffix,
+                overlaysByNeuId,
+                productId,
+                aliasNeuId,
+                maxDataVersion
+            );
         }
 
-        return derivedEnchantmentEntry(productId);
+        return derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
     }
 
     private static Optional<ConversionProductEntry> entryFromNeuId(
         ZipFile zip,
         Map<String, ZipEntry> entriesBySuffix,
+        Map<String, List<ItemOverlayEntry>> overlaysByNeuId,
         String productId,
-        String neuId
+        String neuId,
+        int maxDataVersion
     ) throws IOException {
         var itemEntry = entriesBySuffix.get("items/" + neuId + ".json");
         if (itemEntry == null) {
-            return derivedEnchantmentEntry(productId);
+            return derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
         }
 
-        return entryFromItem(zip, itemEntry, neuId)
-            .or(() -> derivedEnchantmentEntry(productId));
+        var entry = entryFromItem(
+            zip,
+            itemEntry,
+            overlaysByNeuId,
+            productId,
+            neuId,
+            maxDataVersion
+        );
+        return entry.isPresent()
+            ? entry
+            : derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
     }
 
     private static Optional<ConversionProductEntry> entryFromItem(
         ZipFile zip,
         ZipEntry itemEntry,
-        String neuId
+        Map<String, List<ItemOverlayEntry>> overlaysByNeuId,
+        String productId,
+        String neuId,
+        int maxDataVersion
     ) throws IOException {
-        return readNeuFormattedName(zip, itemEntry)
-            .map(formattedName -> new ConversionProductEntry(
-                formattedName,
-                new ProductNameSource.Neu(neuId)
+        var itemStack = readProductStack(
+            zip,
+            overlaysByNeuId,
+            neuId,
+            productId.startsWith("ENCHANTMENT_") ? "ENCHANTED_BOOK" : null,
+            maxDataVersion
+        ).orElse(null);
+        return readNeuItemData(zip, itemEntry)
+            .map(item -> new ConversionProductEntry(
+                item.formattedName(),
+                new ProductNameSource.Neu(neuId),
+                itemStack,
+                item.legacyStack()
             ));
+    }
+
+    private static Optional<ConversionProductEntry> derivedEnchantmentEntry(
+        ZipFile zip,
+        Map<String, List<ItemOverlayEntry>> overlaysByNeuId,
+        String productId,
+        int maxDataVersion
+    ) throws IOException {
+        var itemStack = readProductStack(
+            zip,
+            overlaysByNeuId,
+            "ENCHANTED_BOOK",
+            null,
+            maxDataVersion
+        ).orElse(null);
+        return deriveEnchantmentDisplayName(productId)
+            .map(name -> new ConversionProductEntry(name, new ProductNameSource.Derived(), itemStack));
     }
 
     static Optional<ConversionProductEntry> derivedEnchantmentEntry(String productId) {
@@ -419,13 +508,78 @@ final class RemoteNeuConversionIndexBuilder {
         return entries;
     }
 
+    private static Map<String, List<ItemOverlayEntry>> indexItemOverlays(ZipFile zip) {
+        var overlays = new HashMap<String, List<ItemOverlayEntry>>();
+        zip.stream().forEach(entry -> {
+            var name = entry.getName();
+            var overlayIdx = name.indexOf("itemsOverlay/");
+            if (overlayIdx < 0 || !name.endsWith(".snbt")) {
+                return;
+            }
+
+            var relative = name.substring(overlayIdx + "itemsOverlay/".length());
+            var separator = relative.indexOf('/');
+            if (separator <= 0 || separator == relative.length() - 1) {
+                return;
+            }
+
+            try {
+                var dataVersion = Integer.parseInt(relative.substring(0, separator));
+                var neuId = relative.substring(separator + 1, relative.length() - ".snbt".length());
+                overlays.computeIfAbsent(neuId, _ -> new ArrayList<>())
+                    .add(new ItemOverlayEntry(dataVersion, entry));
+            } catch (NumberFormatException err) {
+                log.debug("Ignoring NEU item overlay with invalid data version: {}", name, err);
+            }
+        });
+        return overlays;
+    }
+
+    static Optional<Integer> newestCompatibleOverlayVersion(Set<Integer> versions, int maxDataVersion) {
+        return versions.stream().filter(version -> version <= maxDataVersion).max(Integer::compareTo);
+    }
+
+    private static Optional<ProductStackData> readProductStack(
+        ZipFile zip,
+        Map<String, List<ItemOverlayEntry>> overlaysByNeuId,
+        String neuId,
+        String fallbackNeuId,
+        int maxDataVersion
+    ) throws IOException {
+        var selected = selectItemOverlay(overlaysByNeuId.get(neuId), maxDataVersion);
+        if (selected.isEmpty() && fallbackNeuId != null) {
+            selected = selectItemOverlay(overlaysByNeuId.get(fallbackNeuId), maxDataVersion);
+        }
+        if (selected.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var overlay = selected.get();
+        try (var stream = zip.getInputStream(overlay.entry())) {
+            var stackSnbt = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            return Optional.of(new ProductStackData(overlay.dataVersion(), stackSnbt));
+        }
+    }
+
+    private static Optional<ItemOverlayEntry> selectItemOverlay(
+        List<ItemOverlayEntry> overlays,
+        int maxDataVersion
+    ) {
+        if (overlays == null || overlays.isEmpty()) {
+            return Optional.empty();
+        }
+        return overlays.stream()
+            .filter(overlay -> overlay.dataVersion() <= maxDataVersion)
+            .max((first, second) -> Integer.compare(first.dataVersion(), second.dataVersion()));
+    }
+
     private static List<BazaarStock> readBazaarStocks(ZipFile zip, ZipEntry entry) throws IOException {
         try (Reader reader = new InputStreamReader(zip.getInputStream(entry), StandardCharsets.UTF_8)) {
             return GSON.fromJson(reader, new TypeToken<List<BazaarStock>>() { }.getType());
         }
     }
 
-    private static Optional<String> readNeuFormattedName(ZipFile zip, ZipEntry entry) throws IOException {
+    private static Optional<NeuItemData> readNeuItemData(ZipFile zip, ZipEntry entry) throws IOException {
         try (Reader reader = new InputStreamReader(zip.getInputStream(entry), StandardCharsets.UTF_8)) {
             var item = GSON.fromJson(reader, JsonObject.class);
             if (item == null) {
@@ -435,25 +589,36 @@ final class RemoteNeuConversionIndexBuilder {
             var displayName = item.has("displayname")
                 ? item.get("displayname").getAsString()
                 : "";
-
-            if (!Utils.cleanDisplayName(displayName).equals("Enchanted Book")) {
-                return Optional.of(displayName).filter(name -> !Utils.cleanDisplayName(name).isBlank());
+            var formattedName = displayName;
+            if (Utils.cleanDisplayName(displayName).equals("Enchanted Book")) {
+                formattedName = null;
+                if (item.has("lore") && item.get("lore").isJsonArray()) {
+                    for (var lineElement : item.getAsJsonArray("lore")) {
+                        var rawLine = lineElement.getAsString();
+                        var stripped = Utils.cleanDisplayName(rawLine);
+                        if (stripped.isBlank() || stripped.equals("Combinable in Anvil")) {
+                            continue;
+                        }
+                        formattedName = formatEnchantedBookName(displayName, rawLine);
+                        break;
+                    }
+                }
             }
 
-            if (!item.has("lore") || !item.get("lore").isJsonArray()) {
+            if (formattedName == null || Utils.cleanDisplayName(formattedName).isBlank()) {
                 return Optional.empty();
             }
 
-            for (var lineElement : item.getAsJsonArray("lore")) {
-                var rawLine = lineElement.getAsString();
-                var stripped = Utils.cleanDisplayName(rawLine);
-                if (stripped.isBlank() || stripped.equals("Combinable in Anvil")) {
-                    continue;
+            LegacyProductStackData legacyStack = null;
+            if (item.has("itemid") && item.has("nbttag")) {
+                var itemId = item.get("itemid").getAsString();
+                var nbtTag = item.get("nbttag").getAsString();
+                int damage = item.has("damage") ? item.get("damage").getAsInt() : 0;
+                if (!itemId.isBlank() && !nbtTag.isBlank()) {
+                    legacyStack = new LegacyProductStackData(itemId, damage, nbtTag);
                 }
-                return Optional.of(formatEnchantedBookName(displayName, rawLine));
             }
-
-            return Optional.empty();
+            return Optional.of(new NeuItemData(formattedName, legacyStack));
         }
     }
 
@@ -531,4 +696,8 @@ final class RemoteNeuConversionIndexBuilder {
         String stock;
         String id;
     }
+
+    private record NeuItemData(String formattedName, LegacyProductStackData legacyStack) { }
+
+    private record ItemOverlayEntry(int dataVersion, ZipEntry entry) { }
 }

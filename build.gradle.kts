@@ -29,6 +29,14 @@ loom {
 
 repositories {
     mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven("https://maven.azureaaron.net/releases")
+        }
+        filter {
+            includeGroup("net.azureaaron")
+        }
+    }
     maven("https://maven.fabricmc.net/")
     maven("https://repo.hypixel.net/repository/Hypixel/")
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
@@ -66,6 +74,9 @@ dependencies {
 
     implementation("io.vavr:vavr:0.10.7")
     include("io.vavr:vavr:0.10.7")
+
+    implementation("net.azureaaron:legacy-item-dfu:${getProp("legacy_item_dfu_version")}")
+    include("net.azureaaron:legacy-item-dfu:${getProp("legacy_item_dfu_version")}")
 
     implementation("com.google.code.gson:gson:2.14.0")
 

@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 
@@ -69,7 +70,7 @@ class BazaarWidgetViewDataTest {
     void liveProgressNeverChangesTheStableOrderVolume() {
         var order = new BazaarWidgetViewData.Order(
             id("partially-filled"), BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
-            ItemStack.EMPTY, 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, List.of()
+            Optional.empty(), 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, List.of()
         );
 
         assertEquals(64, order.amount());
@@ -117,7 +118,7 @@ class BazaarWidgetViewDataTest {
             BazaarWidgetViewData.OrderSide.Buy,
             "Product",
             Component.literal("Product"),
-            ItemStack.EMPTY,
+            Optional.empty(),
             1,
             volume,
             0,

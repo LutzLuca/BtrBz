@@ -15,8 +15,10 @@ import io.wispforest.owo.ui.core.UIComponent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
@@ -31,12 +33,11 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
     private Component productName;
-    private final ItemComponent item;
+    private @Nullable ItemComponent item;
     private boolean showItem;
 
     BazaarHudOrderRowComponent(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
-        this.item = BazaarUi.item(order.iconCopy(), ICON_SIZE);
         this.allowOverflow(true);
         this.update(order, options);
     }
@@ -45,19 +46,28 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.order = order;
         this.options = options;
         this.productName = order.formattedItemName(options.abbreviateEnchanted);
-        this.showItem = options.showItem;
-        this.item.stack(order.iconCopy());
+        var itemStack = order.itemStack();
+        this.showItem = options.showItem && itemStack.isPresent();
+        if (itemStack.isPresent()) {
+            if (this.item == null) {
+                this.item = BazaarUi.item(itemStack.orElseThrow(), ICON_SIZE);
+            } else {
+                this.item.stack(itemStack.orElseThrow());
+            }
+        }
         this.updateLayout();
     }
 
     @Override
     public void layout(Size space) {
         if (!this.showItem) return;
-        this.item.inflate(Size.of(ICON_SIZE, ICON_SIZE));
-        this.item.mount(this, this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING, this.y + 1);
+        this.itemComponent().inflate(Size.of(ICON_SIZE, ICON_SIZE));
+        this.itemComponent().mount(this, this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING, this.y + 1);
     }
 
-    @Override public List<UIComponent> children() { return this.showItem ? List.of(this.item) : List.of(); }
+    @Override public List<UIComponent> children() {
+        return this.showItem ? List.of(this.itemComponent()) : List.of();
+    }
 
     @Override
     public ParentUIComponent removeChild(UIComponent child) {
@@ -70,7 +80,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         var font = Minecraft.getInstance().font;
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         if (this.showItem) {
-            this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
+            this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
             x += ICON_SIZE + ICON_GAP;
         }
 
@@ -116,5 +126,9 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
             if (font.width(candidate) <= availableWidth) return candidate;
         }
         return "";
+    }
+
+    private ItemComponent itemComponent() {
+        return Objects.requireNonNull(this.item, "item");
     }
 }

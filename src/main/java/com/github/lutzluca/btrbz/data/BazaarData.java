@@ -74,6 +74,14 @@ public class BazaarData {
         return this.conversionIndexService.allProducts();
     }
 
+    public Optional<ItemStack> productStack(ProductIdentity identity) {
+        return identity.bazaarProductId().flatMap(this.conversionIndexService::productStack);
+    }
+
+    public Optional<ItemStack> productStack(IndexedProduct product) {
+        return this.conversionIndexService.productStack(product.productId());
+    }
+
     public IndexedProduct refreshIndexedProduct(IndexedProduct product) {
         // Keep stale display metadata if the active conversion index no longer contains this id.
         return this.resolveProductId(product.productId()).orElse(product);

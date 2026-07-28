@@ -135,7 +135,8 @@ class BazaarPresentationTest {
             new com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId(
                 java.util.UUID.nameUUIDFromBytes(id.getBytes())
             ), BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
-            ItemStack.EMPTY, 1, 1, java.util.Optional.of(new BazaarWidgetViewData.FillProgress(0, 1)),
+            java.util.Optional.empty(), 1, 1,
+            java.util.Optional.of(new BazaarWidgetViewData.FillProgress(0, 1)),
             status, java.util.Optional.empty(), List.of(), sequence
         );
     }
