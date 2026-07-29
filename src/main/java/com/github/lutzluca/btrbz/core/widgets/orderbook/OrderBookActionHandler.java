@@ -26,6 +26,11 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
                     this.embeddedWorkflow.selectPrice(select.price(), select.copyOnly());
                 }
             }
+            case OrderBookAction.GoBack _ -> {
+                if (!current.inOrderBook()) return;
+                var screen = Minecraft.getInstance().screen;
+                if (screen != null) screen.onClose();
+            }
         }
     }
 }
