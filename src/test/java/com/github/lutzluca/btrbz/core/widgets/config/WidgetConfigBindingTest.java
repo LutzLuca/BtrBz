@@ -28,7 +28,7 @@ class WidgetConfigBindingTest {
 
             binding.resetAll();
 
-            assertEquals(25, config.contentWidth);
+            assertEquals(50, config.contentWidth);
             assertEquals(5, config.visibleRows);
             assertEquals(List.of(64, 1024), config.volumes);
             assertEquals(1, changes.get());
