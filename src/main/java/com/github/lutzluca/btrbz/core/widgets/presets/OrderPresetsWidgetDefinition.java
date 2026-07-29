@@ -28,7 +28,7 @@ public final class OrderPresetsWidgetDefinition {
             .settingsPanel(OrderPresetsWidgetSettings::create)
             .placementProfile("default", "Container")
             .placementProfile("sign", "Sign")
-            .minSize(WidgetLayoutTokens.panelWidth(24), 42)
+            .minSize(WidgetLayoutTokens.panelWidth(40), 42)
             .build();
     }
 }

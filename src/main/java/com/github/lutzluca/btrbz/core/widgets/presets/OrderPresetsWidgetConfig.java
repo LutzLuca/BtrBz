@@ -11,7 +11,7 @@ public final class OrderPresetsWidgetConfig {
         "sign",
         WidgetPlacement.topLeft(0.62, 0.08)
     );
-    public int contentWidth = 25;
+    public int contentWidth = 50;
     public int visibleRows = 5;
     public boolean maximum = true;
     public boolean clipboard = true;

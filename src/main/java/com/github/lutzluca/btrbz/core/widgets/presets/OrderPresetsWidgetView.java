@@ -22,16 +22,18 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 final class OrderPresetsWidgetView implements WidgetView<
     OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction
 > {
-    private static final int ROW_HEIGHT = 18;
+    private static final int ROW_HEIGHT = 15;
+    private static final int HEADER_HEIGHT = 15;
 
     private final FlowLayout root = panel(1);
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(
-        Sizing.fill(100), Sizing.fixed(ROW_HEIGHT)
+        Sizing.fill(100), Sizing.fixed(HEADER_HEIGHT)
     );
     private final BazaarOrderListComponent list;
 
     OrderPresetsWidgetView() {
         this.list = new BazaarOrderListComponent(true, ROW_HEIGHT, ROW_HEIGHT);
+        this.root.gap(WidgetLayoutTokens.SECTION_GAP);
         this.header.verticalAlignment(VerticalAlignment.CENTER);
         this.header.child(text("Presets", BazaarStyles.PRIMARY_TEXT));
         this.root.child(this.header);
@@ -53,8 +55,8 @@ final class OrderPresetsWidgetView implements WidgetView<
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
         for (var preset : data.presets()) {
-            if (preset.label().equals("Maximum") && !config.maximum) continue;
-            if (preset.label().equals("Clipboard") && !config.clipboard) continue;
+            if (preset.preset() instanceof OrderPreset.Maximum && !config.maximum) continue;
+            if (preset.preset() instanceof OrderPreset.Clipboard && !config.clipboard) continue;
             if (!preset.available() && !config.showDisabled) continue;
             List<Component> tooltip = config.showTooltips && !preset.tooltip().isBlank()
                 ? List.of(Component.literal(preset.tooltip()))
@@ -62,10 +64,10 @@ final class OrderPresetsWidgetView implements WidgetView<
             Consumer<Boolean> click = preset.available()
                 ? _ -> actions.accept(new OrderPresetsAction.Apply(preset.preset()))
                 : null;
-            int background = switch (preset.label()) {
-                case "Maximum" -> 0x80404020;
-                case "Clipboard" -> 0x80204080;
-                default -> 0x00000000;
+            int background = switch (preset.preset()) {
+                case OrderPreset.Maximum _ -> 0x80404020;
+                case OrderPreset.Clipboard _ -> 0x80204080;
+                case OrderPreset.Fixed _ -> 0x00000000;
             };
             rows.add(new BazaarOrderRowComponent.BazaarRow(
                 rowId(preset),

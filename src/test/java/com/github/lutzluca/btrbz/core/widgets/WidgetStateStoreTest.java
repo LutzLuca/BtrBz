@@ -31,7 +31,7 @@ class WidgetStateStoreTest {
         assertEquals(10, config.orderBookScreen.visibleRows);
         assertEquals(400, config.orderBookPrice.contentWidth);
         assertEquals(8, config.orderBookPrice.visibleRows);
-        assertEquals(25, config.orderPresets.contentWidth);
+        assertEquals(50, config.orderPresets.contentWidth);
         assertEquals(5, config.orderPresets.visibleRows);
         assertTrue(config.orderLimit.fitToContent);
         assertTrue(config.orderValue.fitToContent);
