@@ -16,7 +16,7 @@ public final class OrderPresetsWidgetDefinition {
         OrderPresetsComponent component
     ) {
         var data = new OrderPresetsWidgetData(component);
-        return WidgetDefinition.<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction>builder(ID, "Order Presets")
+        return WidgetDefinition.<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction>builder(ID, "Presets")
             .config(() -> ConfigManager.get().widgets.orderPresets, OrderPresetsWidgetConfig::new,
                 config -> config.frame, OrderPresetsWidgetConfig::resetPreferences)
             .supports(session -> session.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
@@ -28,7 +28,7 @@ public final class OrderPresetsWidgetDefinition {
             .settingsPanel(OrderPresetsWidgetSettings::create)
             .placementProfile("default", "Container")
             .placementProfile("sign", "Sign")
-            .minSize(WidgetLayoutTokens.panelWidth(90), 42)
+            .minSize(WidgetLayoutTokens.panelWidth(24), 42)
             .build();
     }
 }

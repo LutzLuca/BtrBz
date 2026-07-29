@@ -38,7 +38,7 @@ final class FullOrderBookWidgetView implements WidgetView<
 
     FullOrderBookWidgetView() {
         this.root.allowOverflow(true);
-        this.root.gap(WidgetLayoutTokens.SECTION_GAP);
+        this.root.gap(0);
         this.header.allowOverflow(true);
         this.header.verticalAlignment(VerticalAlignment.CENTER);
         this.header.gap(WidgetLayoutTokens.HEADER_GAP);
@@ -110,7 +110,7 @@ final class FullOrderBookWidgetView implements WidgetView<
             this.title = title;
             this.side = side;
             this.root.allowOverflow(true);
-            this.root.gap(WidgetLayoutTokens.LINE_GAP);
+            this.root.gap(0);
             this.root.child(label(title, BazaarStyles.SECONDARY_TEXT));
             this.root.child(this.list);
         }
@@ -132,8 +132,8 @@ final class FullOrderBookWidgetView implements WidgetView<
                 String metadata = compactMetadata
                     ? number(entry.quantity(), config.numberStyle) + "v"
                         + (config.showOrderCount ? " · " + entry.orders() + "o" : "")
-                    : "Vol: " + number(entry.quantity(), config.numberStyle)
-                        + (config.showOrderCount ? "  Ord: " + entry.orders() : "");
+                    : "Volume: " + number(entry.quantity(), config.numberStyle)
+                        + (config.showOrderCount ? " · Orders: " + entry.orders() : "");
                 rows.add(new BazaarOrderRowComponent.BazaarRow(
                     this.side.name() + "-" + Double.doubleToLongBits(entry.price()) + "-" + index,
                     entry.priceText(), entry.side().accentColor(), "", metadata,

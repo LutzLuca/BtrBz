@@ -6,12 +6,12 @@ import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetRenderResult;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.input.MouseButtonEvent;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -63,7 +63,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     }
 
     boolean beginDrag(double absoluteX, double absoluteY, int button) {
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) return false;
 
         var result = this.hitResult(absoluteX, absoluteY);
         if (result == null) return false;

@@ -1,10 +1,17 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+
 /**
  * Tracks the widget-manager panel independently from the owo component tree so
  * dragging and window resizing do not discard its position.
  */
 final class WidgetManagerPanelState {
+    static final int MINIMUM_WIDTH = 170;
+    static final int MAXIMUM_WIDTH = 240;
+    static final int MINIMUM_HEIGHT_PERCENT = 55;
+    static final int MAXIMUM_HEIGHT_PERCENT = 90;
+
     private int x;
     private int y;
     private boolean initialized;
@@ -34,7 +41,7 @@ final class WidgetManagerPanelState {
     ) {
         if (!this.initialized || !this.userPositioned) {
             this.x = Math.max(0, viewportWidth - panelWidth - margin);
-            this.y = clamp(margin, viewportHeight - panelHeight);
+            this.y = clampToViewport(margin, viewportHeight - panelHeight);
             this.initialized = true;
             return;
         }
@@ -91,17 +98,25 @@ final class WidgetManagerPanelState {
         return true;
     }
 
+    static int configuredWidth(int value) {
+        return WidgetPlacement.clampInt(value, MINIMUM_WIDTH, MAXIMUM_WIDTH);
+    }
+
+    static int configuredHeightPercent(int value) {
+        return WidgetPlacement.clampInt(value, MINIMUM_HEIGHT_PERCENT, MAXIMUM_HEIGHT_PERCENT);
+    }
+
     private void clampToViewport(
         int viewportWidth,
         int viewportHeight,
         int panelWidth,
         int panelHeight
     ) {
-        this.x = clamp(this.x, viewportWidth - panelWidth);
-        this.y = clamp(this.y, viewportHeight - panelHeight);
+        this.x = clampToViewport(this.x, viewportWidth - panelWidth);
+        this.y = clampToViewport(this.y, viewportHeight - panelHeight);
     }
 
-    private static int clamp(int value, int maximum) {
-        return Math.max(0, Math.min(value, Math.max(0, maximum)));
+    private static int clampToViewport(int value, int maximum) {
+        return WidgetPlacement.clampInt(value, 0, Math.max(0, maximum));
     }
 }

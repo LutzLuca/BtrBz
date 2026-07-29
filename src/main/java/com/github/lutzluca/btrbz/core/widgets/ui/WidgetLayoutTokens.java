@@ -8,6 +8,7 @@ public final class WidgetLayoutTokens {
     public static final int SECTION_GAP = 3;
     public static final int LIST_GAP = 1;
     public static final int LINE_GAP = 1;
+    public static final int VALUE_GAP = 8;
 
     public static final int ROW_HORIZONTAL_PADDING = 3;
     public static final int ROW_VERTICAL_PADDING = 1;

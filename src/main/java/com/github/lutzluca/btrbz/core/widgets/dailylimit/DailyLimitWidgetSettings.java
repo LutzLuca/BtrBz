@@ -12,6 +12,7 @@ public final class DailyLimitWidgetSettings {
     public static UIComponent create(WidgetConfigBinding<DailyLimitWidgetConfig> binding) {
         var panel = panel();
         integer(panel, "Content width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 140, 280);
+        bool(panel, "Fit width to content", binding, c -> c.fitToContent, (c, v) -> c.fitToContent = v);
         enumeration(panel, "Display", binding, c -> c.display, (c, v) -> c.display = v);
         enumeration(panel, "Number format", binding, c -> c.numberStyle, (c, v) -> c.numberStyle = v);
         bool(panel, "Show header", binding, c -> c.showHeader, (c, v) -> c.showHeader = v);

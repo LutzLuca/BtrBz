@@ -27,6 +27,25 @@ public final class WidgetStateStore {
         this.config().globalFineTuneScale = WidgetScaleResolver.clampScale(value);
         if (persist) this.saveAction.run();
     }
+    public int managerPanelWidth() {
+        return this.config().managerPanelWidth;
+    }
+    public void setManagerPanelWidth(int value, boolean persist) {
+        this.config().managerPanelWidth = value;
+        if (persist) this.saveAction.run();
+    }
+    public int managerPanelHeightPercent() {
+        return this.config().managerPanelHeightPercent;
+    }
+    public void setManagerPanelHeightPercent(int value, boolean persist) {
+        this.config().managerPanelHeightPercent = value;
+        if (persist) this.saveAction.run();
+    }
+    public boolean runtimeDragging() { return this.config().runtimeDragging; }
+    public void setRuntimeDragging(boolean enabled, boolean persist) {
+        this.config().runtimeDragging = enabled;
+        if (persist) this.saveAction.run();
+    }
     public WidgetPlacement placement(WidgetDefinition<?, ?, ?> definition, String profile) {
         var frame = definition.frame();
         return frame.placements.getOrDefault(profile, frame.placements.getOrDefault(

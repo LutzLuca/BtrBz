@@ -8,7 +8,7 @@ public final class BookmarksWidgetSettings {
     private BookmarksWidgetSettings() {}
     public static UIComponent create(WidgetConfigBinding<BookmarksWidgetConfig> binding) {
         var panel = panel();
-        integer(panel, "Content width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 150, 300);
+        integer(panel, "Content width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 180, 300);
         integer(panel, "Visible rows", binding, c -> c.visibleRows, (c, v) -> c.visibleRows = v, 1, 12);
         bool(panel, "Fit to content", binding, c -> c.fitToContent, (c, v) -> c.fitToContent = v);
         enumeration(panel, "Sort order", binding, c -> c.sort, (c, v) -> c.sort = v);

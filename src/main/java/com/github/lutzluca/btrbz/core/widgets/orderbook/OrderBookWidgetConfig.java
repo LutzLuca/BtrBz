@@ -8,8 +8,8 @@ public final class OrderBookWidgetConfig {
     public enum BookLayout { Split, BuyOnly, SellOnly }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.55, 0.34));
-    public int contentWidth = 330;
-    public int visibleRows = 5;
+    public int contentWidth = 400;
+    public int visibleRows = 10;
     public BookLayout layout = BookLayout.Split;
     public NumberStyle numberStyle = NumberStyle.Exact;
     public boolean showOrderCount = true;

@@ -15,6 +15,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Size;
 import net.minecraft.client.Minecraft;
@@ -23,7 +24,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -113,7 +113,9 @@ public final class WidgetHost {
         this.adapter.rootComponent.synchronizeSlots(orderedSlots);
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
         this.adapter.extractRenderState(graphics, mouseX, mouseY, partialTicks);
-        if (options.allowTooltips()) this.adapter.drawTooltip(graphics, mouseX, mouseY, partialTicks);
+        if (options.allowTooltips() && this.runtimePlacementDrag == null) {
+            this.adapter.drawTooltip(graphics, mouseX, mouseY, partialTicks);
+        }
         return List.copyOf(results);
     }
 
@@ -132,22 +134,25 @@ public final class WidgetHost {
 
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         if (this.adapter == null) return false;
+        if (this.canBeginRuntimePlacementDrag(click)) {
+            var hit = this.runtimeHitAt(click.x(), click.y());
+            if (hit != null) {
+                var result = hit.result();
+                this.runtimePlacementDrag = new RuntimePlacementDrag(
+                    result.definition(), result.placementProfile(), hit.anchorCanvas(),
+                    click.x() - result.bounds().x(), click.y() - result.bounds().y(),
+                    result.bounds().width(), result.bounds().height(), click.button()
+                );
+                this.capturedMouseButtons.add(click.button());
+                return true;
+            }
+        }
         boolean handled = this.adapter.mouseClicked(click, doubled);
         if (handled) {
             this.capturedMouseButtons.add(click.button());
             return true;
         }
-        if (!this.runtimePlacementDragging || click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
-        var hit = this.runtimeHitAt(click.x(), click.y());
-        if (hit == null) return false;
-        var result = hit.result();
-        this.runtimePlacementDrag = new RuntimePlacementDrag(
-            result.definition(), result.placementProfile(), hit.anchorCanvas(),
-            click.x() - result.bounds().x(), click.y() - result.bounds().y(),
-            result.bounds().width(), result.bounds().height(), click.button()
-        );
-        this.capturedMouseButtons.add(click.button());
-        return true;
+        return false;
     }
 
     public boolean mouseReleased(MouseButtonEvent click) {
@@ -313,6 +318,13 @@ public final class WidgetHost {
             if (hit.result().bounds().contains(x, y)) return hit;
         }
         return null;
+    }
+
+    private boolean canBeginRuntimePlacementDrag(MouseButtonEvent click) {
+        return this.runtimePlacementDragging
+            && this.stateStore.runtimeDragging()
+            && click.button() == InputConstants.MOUSE_BUTTON_LEFT
+            && click.hasAltDown();
     }
 
     private void updateRuntimePlacement(double mouseX, double mouseY) {

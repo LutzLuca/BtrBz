@@ -24,7 +24,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             true,
             BazaarStyles.SCROLLBAR,
             BazaarStyles.INSERTION,
-            BazaarStyles.INSERTION_OUTLINE,
+            0,
             4,
             2
         );

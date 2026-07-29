@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -18,7 +19,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
 /** Full-name tracked-order row with an optional, layout-stable live fill bar. */
 final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
-    static final int STANDARD_HEIGHT = 24;
+    static final int STANDARD_HEIGHT = 23;
     static final int COMPACT_HEIGHT = 16;
     private static final int STANDARD_ICON_SIZE = 16;
     private static final int COMPACT_ICON_SIZE = 12;
@@ -138,7 +138,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     @Override
     public boolean onMouseDown(MouseButtonEvent click, boolean doubled) {
-        if (!this.reorderable || click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (!this.reorderable || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return super.onMouseDown(click, doubled);
         }
         return this.list.beginDrag(this.order.id(), this.index);
@@ -146,14 +146,14 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     @Override
     public boolean onMouseDrag(MouseButtonEvent click, double deltaX, double deltaY) {
-        if (!this.reorderable || !this.list.dragging(this.order.id())) return false;
+        if (!this.reorderable || !this.list.trackingDrag(this.order.id())) return false;
         this.list.dragPointer(this.y + (int) click.y());
         return true;
     }
 
     @Override
     public boolean onMouseUp(MouseButtonEvent click) {
-        if (!this.reorderable || !this.list.dragging(this.order.id())) return false;
+        if (!this.reorderable || !this.list.trackingDrag(this.order.id())) return false;
         var result = this.list.finishDrag().orElse(null);
         if (result == null) return false;
         this.actions.accept(new TrackedOrdersAction.Reorder(result.key(), result.dropIndex()));

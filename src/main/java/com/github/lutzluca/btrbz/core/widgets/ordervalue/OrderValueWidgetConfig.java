@@ -10,6 +10,7 @@ public final class OrderValueWidgetConfig {
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.65, 0.16));
     public int contentWidth = 205;
+    public boolean fitToContent = true;
     public ValueDisplay display = ValueDisplay.Detailed;
     public NumberStyle numberStyle = NumberStyle.Compact;
     public boolean showCoinsSuffix = true;
@@ -20,6 +21,7 @@ public final class OrderValueWidgetConfig {
     public boolean sellPending = true;
     public static void resetPreferences(OrderValueWidgetConfig current, OrderValueWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
+        current.fitToContent = defaults.fitToContent;
         current.display = defaults.display;
         current.numberStyle = defaults.numberStyle;
         current.showCoinsSuffix = defaults.showCoinsSuffix;

@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -15,12 +16,11 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
 final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
-    static final int HEIGHT = 17;
+    static final int HEIGHT = 20;
     private static final int ICON_SIZE = 16;
     private static final int DOT_SIZE = 5;
 
@@ -73,7 +73,11 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     public void layout(Size space) {
         if (!this.showItem) return;
         this.item.inflate(Size.of(ICON_SIZE, ICON_SIZE));
-        this.item.mount(this, this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING, this.y);
+        this.item.mount(
+            this,
+            this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING,
+            this.y + (this.height - ICON_SIZE) / 2
+        );
     }
 
     @Override
@@ -94,12 +98,12 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     @Override
     public boolean onMouseDown(MouseButtonEvent click, boolean doubled) {
         if (!this.interactive) return super.onMouseDown(click, doubled);
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_LEFT) {
             if (this.reorderable && this.list.beginDrag(this.bookmark.productId(), this.index)) return true;
             this.actions.accept(new BookmarksAction.Open(this.bookmark.productId()));
             return true;
         }
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
             this.actions.accept(new BookmarksAction.Remove(this.bookmark.productId()));
             return true;
         }
@@ -108,14 +112,14 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
     @Override
     public boolean onMouseDrag(MouseButtonEvent click, double deltaX, double deltaY) {
-        if (!this.reorderable || !this.list.dragging(this.bookmark.productId())) return false;
+        if (!this.reorderable || !this.list.trackingDrag(this.bookmark.productId())) return false;
         this.list.dragPointer(this.y + (int) click.y());
         return true;
     }
 
     @Override
     public boolean onMouseUp(MouseButtonEvent click) {
-        if (!this.reorderable || !this.list.dragging(this.bookmark.productId())) return false;
+        if (!this.reorderable || !this.list.trackingDrag(this.bookmark.productId())) return false;
         var result = this.list.finishDrag().orElse(null);
         if (result == null) return false;
         if (!result.moved()) {

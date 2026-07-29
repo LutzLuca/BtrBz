@@ -27,7 +27,7 @@ public final class BookmarksWidgetDefinition {
             .viewFactory(BookmarksWidgetView::new)
             .actionHandler(new BookmarksActionHandler(component))
             .settingsPanel(BookmarksWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(150), 16)
+            .minSize(WidgetLayoutTokens.panelWidth(180), 16)
             .build();
     }
 }

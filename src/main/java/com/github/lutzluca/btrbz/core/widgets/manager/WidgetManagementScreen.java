@@ -12,6 +12,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContain
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetChrome;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetColorFormat;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.ColorPickerComponent;
@@ -34,7 +35,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -42,10 +42,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
-    private static final int SIDEBAR_WIDTH = 222;
     private static final int MINIMIZED_SIDEBAR_WIDTH = 150;
     private static final int MINIMIZED_SIDEBAR_HEIGHT = 32;
-    private static final int SIDEBAR_HEIGHT_PERCENT = 85;
     private static final int SIDEBAR_MARGIN = 18;
     private static final int SIDEBAR_PADDING = 7;
     private static final int HEADER_HEIGHT = 18;
@@ -207,7 +205,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         if (this.isSidebarHit(click.x(), click.y())) {
-            if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT
+            if (click.button() == InputConstants.MOUSE_BUTTON_LEFT
                 && this.isSidebarHeaderHit(click.x(), click.y())
                 && !this.isSidebarSizeButtonHit(click.x(), click.y())) {
                 this.sidebarCapturedMouse = false;
@@ -258,7 +256,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public boolean keyPressed(KeyEvent input) {
-        if (input.key() == GLFW.GLFW_KEY_B && !input.hasControlDown() && !input.hasAltDown()) {
+        if (input.key() == InputConstants.KEY_B && !input.hasControlDown() && !input.hasAltDown()) {
             this.setSidebarMinimized(!this.sidebarMinimized);
             return true;
         }
@@ -276,7 +274,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         );
         this.sidebar = UIContainers.verticalFlow(
             Sizing.fixed(this.sidebarWidth()),
-            this.sidebarMinimized ? Sizing.fixed(this.sidebarHeight()) : Sizing.fill(SIDEBAR_HEIGHT_PERCENT)
+            this.sidebarMinimized
+                ? Sizing.fixed(this.sidebarHeight())
+                : Sizing.fill(this.sidebarHeightPercent())
         );
         this.sidebar.positioning(Positioning.absolute(this.sidebarPosition.x(), this.sidebarPosition.y()));
         this.sidebar.surface(WidgetSurfaces.roundedPanel(0xF0181B22, 6));
@@ -304,7 +304,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         if (this.sidebar == null) return;
         this.sidebar.sizing(
             Sizing.fixed(this.sidebarWidth()),
-            minimized ? Sizing.fixed(this.sidebarHeight()) : Sizing.fill(SIDEBAR_HEIGHT_PERCENT)
+            minimized
+                ? Sizing.fixed(this.sidebarHeight())
+                : Sizing.fill(this.sidebarHeightPercent())
         );
         this.applySidebarPosition();
         this.rebuildSidebar();
@@ -323,14 +325,26 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private int sidebarWidth() {
-        int preferredWidth = this.sidebarMinimized ? MINIMIZED_SIDEBAR_WIDTH : SIDEBAR_WIDTH;
+        int preferredWidth = this.sidebarMinimized
+            ? MINIMIZED_SIDEBAR_WIDTH
+            : this.expandedSidebarWidth();
         return Math.min(preferredWidth, Math.max(1, this.width - SIDEBAR_MARGIN * 2));
+    }
+
+    private int expandedSidebarWidth() {
+        return WidgetManagerPanelState.configuredWidth(this.stateStore.managerPanelWidth());
+    }
+
+    private int sidebarHeightPercent() {
+        return WidgetManagerPanelState.configuredHeightPercent(
+            this.stateStore.managerPanelHeightPercent()
+        );
     }
 
     private int sidebarHeight() {
         return this.sidebarMinimized
             ? Math.min(MINIMIZED_SIDEBAR_HEIGHT, Math.max(1, this.height))
-            : Math.round(this.height * SIDEBAR_HEIGHT_PERCENT / 100f);
+            : Math.round(this.height * this.sidebarHeightPercent() / 100f);
     }
 
     private void applySidebarPosition() {
@@ -372,7 +386,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var selected = this.selectedWidget == null ? null : this.registry.find(this.selectedWidget).orElse(null);
         this.sidebarContent.child(label("Selected", 0xFFB8C0CF));
         this.sidebarContent.child(label(selected == null ? "None" : selected.getDisplayName(), 0xFFFFFFFF));
-        if (selected != null) {
+        if (selected == null) {
+            this.addManagerControls();
+        } else {
             this.addGameplayEnabledControl(selected);
             this.addWidgetScaleControls(selected);
             this.addBackgroundControls(selected);
@@ -409,6 +425,73 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         // before the settings controls have been added.
         this.sidebarScroller.restoreScrollOffset(this.sidebarScrollOffset);
         this.sidebar.child(this.sidebarScroller);
+    }
+
+    private void addManagerControls() {
+        this.sidebarContent.child(label("Widget Manager", 0xFFB8C0CF));
+
+        var width = new ScrollSafeDiscreteSliderComponent(
+            Sizing.fill(100),
+            WidgetManagerPanelState.MINIMUM_WIDTH,
+            WidgetManagerPanelState.MAXIMUM_WIDTH
+        );
+        width.decimalPlaces(0);
+        width.setFromDiscreteValue(this.expandedSidebarWidth());
+        width.message(value -> Component.literal("Panel width " + value));
+        width.onChanged().subscribe(value -> this.resizeSidebar(
+            (int) Math.round(value),
+            this.sidebarHeightPercent()
+        ));
+        this.sidebarContent.child(width);
+
+        var height = new ScrollSafeDiscreteSliderComponent(
+            Sizing.fill(100),
+            WidgetManagerPanelState.MINIMUM_HEIGHT_PERCENT,
+            WidgetManagerPanelState.MAXIMUM_HEIGHT_PERCENT
+        );
+        height.decimalPlaces(0);
+        height.setFromDiscreteValue(this.sidebarHeightPercent());
+        height.message(value -> Component.literal("Panel height " + value + "%"));
+        height.onChanged().subscribe(value -> this.resizeSidebar(
+            this.expandedSidebarWidth(),
+            (int) Math.round(value)
+        ));
+        this.sidebarContent.child(height);
+
+        var runtimeDragging = UIComponents.smallCheckbox(Component.literal("Enable runtime Alt-dragging"));
+        runtimeDragging.checked(this.stateStore.runtimeDragging());
+        runtimeDragging.tooltip(Component.literal(
+            "Convenience feature only; not recommended for regular use because interactions may behave unexpectedly."
+        ));
+        runtimeDragging.onChanged().subscribe(value -> {
+            this.stateStore.setRuntimeDragging(value, false);
+            this.markDirty();
+        });
+        this.sidebarContent.child(runtimeDragging);
+        this.sidebarContent.child(label("Convenience feature only.", 0xFF808997));
+        this.sidebarContent.child(label("Not advised for regular use;", 0xFF808997));
+        this.sidebarContent.child(label("interactions may be unexpected.", 0xFF808997));
+    }
+
+    private void resizeSidebar(int panelWidth, int panelHeightPercent) {
+        int oldWidth = this.sidebarWidth();
+        this.stateStore.setManagerPanelWidth(panelWidth, false);
+        this.stateStore.setManagerPanelHeightPercent(panelHeightPercent, false);
+        this.markDirty();
+        this.sidebarPosition.resizePanel(
+            oldWidth,
+            this.sidebarWidth(),
+            this.width,
+            this.height,
+            this.sidebarHeight(),
+            SIDEBAR_MARGIN
+        );
+        if (this.sidebar == null) return;
+        this.sidebar.sizing(
+            Sizing.fixed(this.sidebarWidth()),
+            Sizing.fill(this.sidebarHeightPercent())
+        );
+        this.applySidebarPosition();
     }
 
     private FlowLayout createSidebarHeader() {

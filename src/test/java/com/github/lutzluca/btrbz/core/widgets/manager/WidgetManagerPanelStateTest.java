@@ -8,6 +8,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WidgetManagerPanelStateTest {
     @Test
+    void configuredDimensionsStayWithinTheSupportedRange() {
+        assertEquals(WidgetManagerPanelState.MINIMUM_WIDTH, WidgetManagerPanelState.configuredWidth(1));
+        assertEquals(200, WidgetManagerPanelState.configuredWidth(200));
+        assertEquals(WidgetManagerPanelState.MAXIMUM_WIDTH, WidgetManagerPanelState.configuredWidth(1_000));
+        assertEquals(
+            WidgetManagerPanelState.MINIMUM_HEIGHT_PERCENT,
+            WidgetManagerPanelState.configuredHeightPercent(1)
+        );
+        assertEquals(
+            WidgetManagerPanelState.MAXIMUM_HEIGHT_PERCENT,
+            WidgetManagerPanelState.configuredHeightPercent(100)
+        );
+    }
+
+    @Test
     void defaultsToTopRightWithTheRequestedMargin() {
         var state = new WidgetManagerPanelState();
 

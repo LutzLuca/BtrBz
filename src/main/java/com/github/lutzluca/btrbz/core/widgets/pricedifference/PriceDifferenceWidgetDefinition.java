@@ -26,7 +26,7 @@ public final class PriceDifferenceWidgetDefinition {
             .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(PriceDifferenceWidgetView::new)
             .settingsPanel(PriceDifferenceWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(150), 36)
+            .minSize(WidgetLayoutTokens.panelWidth(80), 36)
             .build();
     }
 }

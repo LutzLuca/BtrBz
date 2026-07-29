@@ -8,7 +8,7 @@ public final class OrderBookPriceWidgetSettings {
     private OrderBookPriceWidgetSettings() {}
     public static UIComponent create(WidgetConfigBinding<OrderBookPriceWidgetConfig> binding) {
         var panel = panel();
-        integer(panel, "Content width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 240, 360);
+        integer(panel, "Content width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 240, 440);
         integer(panel, "Levels per side", binding, c -> c.visibleRows, (c, v) -> c.visibleRows = v, 1, 10);
         bool(panel, "Show buy offers", binding, c -> c.showBuy, (c, v) -> c.showBuy = v);
         bool(panel, "Show sell offers", binding, c -> c.showSell, (c, v) -> c.showSell = v);
