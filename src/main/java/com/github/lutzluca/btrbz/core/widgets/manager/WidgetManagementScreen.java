@@ -9,7 +9,6 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.ui.ScrollSafeDiscreteSliderComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetChrome;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetColorFormat;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -39,6 +38,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
 public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final int MINIMIZED_SIDEBAR_WIDTH = 150;
@@ -370,7 +371,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         );
         this.sidebarScroller.scrollbarThiccness(4);
 
-        this.addBaseScale();
+        this.addGlobalAppearanceControls();
         this.sidebarContent.child(label("Widgets", 0xFFB8C0CF));
         this.sidebarContent.child(label("R: rendered here", 0xFF808997));
         var list = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
@@ -515,18 +516,27 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         return this.sidebarHeader;
     }
 
-    private void addBaseScale() {
+    private void addGlobalAppearanceControls() {
+        this.sidebarContent.child(label("Global appearance", 0xFFB8C0CF));
         var slider = new ScrollSafeDiscreteSliderComponent(
             Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP
         );
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.globalFineTuneScale());
-        slider.message(value -> Component.literal("Base scale " + value));
+        slider.message(value -> Component.literal("Global scale " + value));
         slider.onChanged().subscribe(value -> {
             this.stateStore.setGlobalFineTuneScale(value, false);
             this.markDirty();
         });
         this.sidebarContent.child(slider);
+        this.sidebarContent.child(label("Global background", 0xFF808997));
+        this.addColorEditor(
+            this.stateStore::globalBackgroundColor,
+            color -> {
+                this.stateStore.setGlobalBackgroundColor(color, false);
+                this.markDirty();
+            }
+        );
     }
 
     private void addPlacementProfileControl(WidgetDefinition<?, ?, ?> selected) {
@@ -542,7 +552,16 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addWidgetScaleControls(WidgetDefinition<?, ?, ?> selected) {
-        this.sidebarContent.child(label("Widget scale", 0xFFB8C0CF));
+        var override = UIComponents.smallCheckbox(Component.literal("Override scale"));
+        override.checked(this.stateStore.hasWidgetScaleOverride(selected));
+        override.onChanged().subscribe(value -> {
+            this.stateStore.setWidgetScaleOverride(selected, value, false);
+            this.markDirty();
+            this.rebuildSidebar();
+        });
+        this.sidebarContent.child(override);
+        if (!this.stateStore.hasWidgetScaleOverride(selected)) return;
+
         var slider = new ScrollSafeDiscreteSliderComponent(
             Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP
         );
@@ -554,11 +573,6 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.markDirty();
         });
         this.sidebarContent.child(slider);
-        this.sidebarContent.child(button("Reset widget scale", _ -> {
-            this.stateStore.resetWidgetScale(selected, false);
-            this.markDirty();
-            this.rebuildSidebar();
-        }));
     }
 
     private void addGameplayEnabledControl(WidgetDefinition<?, ?, ?> selected) {
@@ -572,20 +586,27 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addBackgroundControls(WidgetDefinition<?, ?, ?> selected) {
-        this.sidebarContent.child(label("Background", 0xFFB8C0CF));
-        this.addBackgroundEditor(selected, WidgetChrome.DEFAULT_BACKGROUND);
-        this.sidebarContent.child(button("Reset background", _ -> {
-            this.stateStore.resetBackgroundColor(selected, false);
+        var override = UIComponents.smallCheckbox(Component.literal("Override background"));
+        override.checked(this.stateStore.hasBackgroundOverride(selected));
+        override.onChanged().subscribe(value -> {
+            this.stateStore.setBackgroundOverride(selected, value, false);
             this.markDirty();
             this.rebuildSidebar();
-        }));
+        });
+        this.sidebarContent.child(override);
+        if (!this.stateStore.hasBackgroundOverride(selected)) return;
+
+        this.addColorEditor(
+            () -> this.stateStore.backgroundColor(selected),
+            color -> {
+                this.stateStore.setBackgroundColor(selected, color, false);
+                this.markDirty();
+            }
+        );
     }
 
-    private void addBackgroundEditor(
-        WidgetDefinition<?, ?, ?> selected,
-        int fallback
-    ) {
-        int value = this.stateStore.backgroundColor(selected, fallback);
+    private void addColorEditor(IntSupplier currentColor, IntConsumer changeColor) {
+        int value = currentColor.getAsInt();
         var picker = new ColorPickerComponent();
         picker.sizing(Sizing.fill(100), Sizing.fixed(72));
         picker.selectorWidth(12);
@@ -598,19 +619,17 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         hex.text(WidgetColorFormat.formatArgb(value));
         var synchronizing = new boolean[] {false};
         hex.onChanged().subscribe(text -> {
-            int current = this.stateStore.backgroundColor(selected, fallback);
+            int current = currentColor.getAsInt();
             var parsed = WidgetColorFormat.parse(text, current);
             hex.setTextColor(parsed.isPresent() ? 0xFFE8EDF5 : 0xFFE06C75);
             if (parsed.isEmpty() || synchronizing[0]) return;
             synchronizing[0] = true;
-            this.stateStore.setBackgroundColor(selected, parsed.getAsInt(), false);
-            this.markDirty();
+            changeColor.accept(parsed.getAsInt());
             picker.selectedColor(Color.ofArgb(parsed.getAsInt()));
             synchronizing[0] = false;
         });
         picker.onChanged().subscribe(color -> {
-            this.stateStore.setBackgroundColor(selected, color.argb(), false);
-            this.markDirty();
+            changeColor.accept(color.argb());
             if (synchronizing[0]) return;
             synchronizing[0] = true;
             hex.setValue(WidgetColorFormat.formatArgb(color.argb()));

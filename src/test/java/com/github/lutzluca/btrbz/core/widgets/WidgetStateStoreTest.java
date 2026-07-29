@@ -10,6 +10,8 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,6 +20,7 @@ class WidgetStateStoreTest {
     void fixedConfigStartsFromProductionDefaults() {
         var config = new WidgetsConfig();
         assertEquals(1.0, config.globalFineTuneScale);
+        assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.globalBackground);
         assertEquals(6, config.bazaarOrders.visibleOrders);
         assertEquals(200, config.bazaarOrders.contentWidth);
         assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, config.bazaarOrders.mode);
@@ -114,6 +117,89 @@ class WidgetStateStoreTest {
         holder[0] = replacement;
         assertSame(replacement, definition.config());
         assertFalse(definition.frame().enabled);
+    }
+
+    @Nested
+    @DisplayName("global appearance overrides")
+    class GlobalAppearanceOverrides {
+        @Test
+        @DisplayName("widgets inherit global appearance by default")
+        void inheritsGlobalAppearance() {
+            var config = new WidgetsConfig();
+            var store = new WidgetStateStore(() -> config, () -> {});
+            var bookmarks = bookmarksDefinition(() -> config.bookmarks);
+
+            store.setGlobalFineTuneScale(1.35, false);
+            store.setGlobalBackgroundColor(0xAA102030, false);
+
+            assertFalse(store.hasWidgetScaleOverride(bookmarks));
+            assertFalse(store.hasBackgroundOverride(bookmarks));
+            assertEquals(1.35, store.requestedScale(bookmarks));
+            assertEquals(0xAA102030, store.backgroundColor(bookmarks));
+        }
+
+        @Test
+        @DisplayName("first-time overrides start from the global values")
+        void initializesOverridesFromGlobalValues() {
+            var config = new WidgetsConfig();
+            var store = new WidgetStateStore(() -> config, () -> {});
+            var bookmarks = bookmarksDefinition(() -> config.bookmarks);
+            store.setGlobalFineTuneScale(1.25, false);
+            store.setGlobalBackgroundColor(0xBB203040, false);
+
+            store.setWidgetScaleOverride(bookmarks, true, false);
+            store.setBackgroundOverride(bookmarks, true, false);
+
+            assertEquals(1.25, config.bookmarks.frame.scale);
+            assertEquals(0xBB203040, config.bookmarks.frame.background);
+            assertEquals(1.25, store.requestedScale(bookmarks));
+            assertEquals(0xBB203040, store.backgroundColor(bookmarks));
+        }
+
+        @Test
+        @DisplayName("disabled overrides preserve their custom values")
+        void preservesDisabledOverrideValues() {
+            var config = new WidgetsConfig();
+            var store = new WidgetStateStore(() -> config, () -> {});
+            var bookmarks = bookmarksDefinition(() -> config.bookmarks);
+            store.setWidgetScaleOverride(bookmarks, true, false);
+            store.setWidgetScale(bookmarks, 1.6, false);
+            store.setBackgroundOverride(bookmarks, true, false);
+            store.setBackgroundColor(bookmarks, 0xCC304050, false);
+
+            store.setWidgetScaleOverride(bookmarks, false, false);
+            store.setBackgroundOverride(bookmarks, false, false);
+            store.setGlobalFineTuneScale(0.8, false);
+            store.setGlobalBackgroundColor(0xDD405060, false);
+
+            assertEquals(0.8, store.requestedScale(bookmarks));
+            assertEquals(0xDD405060, store.backgroundColor(bookmarks));
+            assertEquals(1.6, config.bookmarks.frame.scale);
+            assertEquals(0xCC304050, config.bookmarks.frame.background);
+
+            store.setWidgetScaleOverride(bookmarks, true, false);
+            store.setBackgroundOverride(bookmarks, true, false);
+
+            assertEquals(1.6, store.requestedScale(bookmarks));
+            assertEquals(0xCC304050, store.backgroundColor(bookmarks));
+        }
+
+        @Test
+        @DisplayName("legacy custom values are treated as enabled overrides")
+        void recognizesLegacyOverrides() {
+            var config = new WidgetsConfig();
+            config.bookmarks.frame.scale = 0.75;
+            config.bookmarks.frame.background = 0xEE506070;
+            var store = new WidgetStateStore(() -> config, () -> {});
+            var bookmarks = bookmarksDefinition(() -> config.bookmarks);
+
+            assertNull(config.bookmarks.frame.overrideScale);
+            assertNull(config.bookmarks.frame.overrideBackground);
+            assertTrue(store.hasWidgetScaleOverride(bookmarks));
+            assertTrue(store.hasBackgroundOverride(bookmarks));
+            assertEquals(0.75, store.requestedScale(bookmarks));
+            assertEquals(0xEE506070, store.backgroundColor(bookmarks));
+        }
     }
 
     private static WidgetDefinition<Object, BookmarksWidgetConfig, Void> bookmarksDefinition(

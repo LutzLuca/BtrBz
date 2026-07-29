@@ -8,7 +8,9 @@ import java.util.Map;
 public final class WidgetFrameConfig {
     public boolean enabled = true;
     public Map<String, WidgetPlacement> placements = new LinkedHashMap<>();
+    public Boolean overrideScale = null;
     public double scale = 1.0;
+    public Boolean overrideBackground = null;
     public Integer background = null;
 
     public WidgetFrameConfig(WidgetPlacement defaultPlacement) {

@@ -215,7 +215,7 @@ public final class WidgetHost {
             var anchorCanvas = screenCanvas;
             if (!visible) {
                 mountedWidget.slot().update(
-                    this.stateStore.backgroundColor(definition, WidgetChrome.DEFAULT_BACKGROUND),
+                    this.stateStore.backgroundColor(definition),
                     mountedWidget.slot().localBounds(), 1, 1, 1,
                     options.isSelected(definition), options.drawManagementOverlay(), false
                 );
@@ -253,7 +253,7 @@ public final class WidgetHost {
                 resolved.width(), resolved.height()
             );
             mountedWidget.slot().update(
-                this.stateStore.backgroundColor(definition, WidgetChrome.DEFAULT_BACKGROUND),
+                this.stateStore.backgroundColor(definition),
                 localBounds, logicalWidth, logicalHeight, scale,
                 options.isSelected(definition), options.drawManagementOverlay(), true
             );
@@ -279,7 +279,7 @@ public final class WidgetHost {
         var component = WidgetChrome.wrap(view.root());
         var surface = new WidgetRenderSurface();
         var slot = new WidgetSlotComponent(
-            definition.getId(), component, surface, WidgetChrome.DEFAULT_BACKGROUND,
+            definition.getId(), component, surface, this.stateStore.backgroundColor(definition),
             new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false
         );
         return new MountedWidget(definition, view, component, slot, surface);

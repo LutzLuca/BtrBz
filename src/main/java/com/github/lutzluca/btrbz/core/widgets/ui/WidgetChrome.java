@@ -7,7 +7,6 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 
 public final class WidgetChrome {
-    public static final int DEFAULT_BACKGROUND = 0x840C0C0C;
     static final int CORNER_RADIUS = 5;
 
     private WidgetChrome() {}
