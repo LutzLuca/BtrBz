@@ -9,8 +9,11 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
+import io.wispforest.owo.ui.component.UIComponents;
+import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
@@ -33,8 +36,18 @@ final class FullOrderBookWidgetView implements WidgetView<
     private final LabelComponent itemName = label("", BazaarStyles.PRIMARY_TEXT);
     private final LabelComponent bookTitle = label("Order Book", BazaarStyles.MUTED_TEXT);
     private final RetainedFlowLayout lists = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
+    private final RetainedFlowLayout footer = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
+    private final LabelComponent instruction = label(
+        "Click a price to copy it and return",
+        BazaarStyles.MUTED_TEXT
+    );
+    private final ButtonComponent goBack = UIComponents.button(
+        Component.literal("Go Back"),
+        _ -> this.actions.accept(new OrderBookAction.GoBack())
+    );
     private final Side buy = new Side("Buy Offers", BazaarWidgetViewData.OrderSide.Buy);
     private final Side sell = new Side("Sell Offers", BazaarWidgetViewData.OrderSide.Sell);
+    private Consumer<OrderBookAction> actions = _ -> {};
 
     FullOrderBookWidgetView() {
         this.root.allowOverflow(true);
@@ -44,6 +57,16 @@ final class FullOrderBookWidgetView implements WidgetView<
         this.header.gap(WidgetLayoutTokens.HEADER_GAP);
         this.lists.allowOverflow(true);
         this.lists.gap(2);
+        this.footer.allowOverflow(true);
+        this.footer.padding(Insets.top(WidgetLayoutTokens.SECTION_GAP));
+        this.footer.gap(WidgetLayoutTokens.HEADER_GAP);
+        this.footer.verticalAlignment(VerticalAlignment.CENTER);
+        this.instruction.horizontalSizing(Sizing.expand(100));
+        this.goBack.sizing(Sizing.fixed(60), Sizing.fixed(16));
+        this.goBack.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));
+        this.goBack.textShadow(false);
+        this.footer.child(this.instruction);
+        this.footer.child(this.goBack);
     }
 
     @Override
@@ -58,6 +81,7 @@ final class FullOrderBookWidgetView implements WidgetView<
         WidgetSession session,
         Consumer<OrderBookAction> actions
     ) {
+        this.actions = actions;
         this.root.horizontalSizing(Sizing.fixed(OrderBookWidget.contentWidth(config)));
         this.itemName.text(Component.literal(data.itemName()));
         this.header.clearChildren();
@@ -88,6 +112,7 @@ final class FullOrderBookWidgetView implements WidgetView<
         this.root.clearChildren();
         if (config.showHeader) this.root.child(this.header);
         this.root.child(this.lists);
+        this.root.child(this.footer);
     }
 
     private static int rowHeight() {

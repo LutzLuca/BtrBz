@@ -1,13 +1,11 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -33,14 +31,6 @@ public final class OrderBookScreen extends Screen {
         this.host = host;
     }
 
-    @Override
-    protected void init() {
-        super.init();
-        this.addRenderableWidget(Button.builder(Component.literal("Go Back"), _ -> this.onClose())
-            .bounds((this.width - 100) / 2, this.height - 30, 100, 20)
-            .build());
-    }
-
     public ProductIdentity product() {
         return this.product;
     }
@@ -51,11 +41,6 @@ public final class OrderBookScreen extends Screen {
 
     public String productName() {
         return this.productName;
-    }
-
-    public void selectPrice(double price) {
-        Minecraft.getInstance().keyboardHandler.setClipboard(Utils.formatDecimal(price, 1, false));
-        this.onClose();
     }
 
     @Override
@@ -79,20 +64,12 @@ public final class OrderBookScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, this.width, this.height, 0x80000000);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.centeredText(this.font, this.title, this.width / 2, 12, 0xFFFFFFFF);
-        graphics.centeredText(
-            this.font,
-            Component.literal("Click a price to copy it and return"),
-            this.width / 2,
-            26,
-            0xFFAAAAAA
-        );
         this.host.render(
             graphics,
             mouseX,
             mouseY,
             delta,
-            new WidgetCanvas(0, 0, this.width, this.height - 36),
+            new WidgetCanvas(0, 0, this.width, this.height),
             WidgetHostOptions.runtime(true),
             this
         );
