@@ -40,12 +40,4 @@ class WidgetScaleResolverTest {
         assertFalse(WidgetScaleResolver.fitsCanvas(scale, 120, 80, 350, 142));
         assertTrue(WidgetScaleResolver.fitsCanvas(1.0, 800, 600, 350, 142));
     }
-
-    @Test
-    void baseAndPerWidgetScalesMultiplyWithinTheSupportedRange() {
-        assertEquals(0.75, WidgetScaleResolver.combineRequestedScale(1.0, 0.75));
-        assertEquals(0.6, WidgetScaleResolver.combineRequestedScale(0.8, 0.75), 0.000001);
-        assertEquals(0.5, WidgetScaleResolver.combineRequestedScale(0.5, 0.5));
-        assertEquals(2.0, WidgetScaleResolver.combineRequestedScale(2.0, 2.0));
-    }
 }

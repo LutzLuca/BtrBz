@@ -27,6 +27,14 @@ public final class WidgetStateStore {
         this.config().globalFineTuneScale = WidgetScaleResolver.clampScale(value);
         if (persist) this.saveAction.run();
     }
+    public int globalBackgroundColor() { return this.config().globalBackground; }
+    public void setGlobalBackgroundColor(int color) {
+        this.setGlobalBackgroundColor(color, true);
+    }
+    public void setGlobalBackgroundColor(int color, boolean persist) {
+        this.config().globalBackground = color;
+        if (persist) this.saveAction.run();
+    }
     public int managerPanelWidth() {
         return this.config().managerPanelWidth;
     }
@@ -81,6 +89,29 @@ public final class WidgetStateStore {
     public double widgetScale(WidgetDefinition<?, ?, ?> definition) {
         return WidgetScaleResolver.clampScale(definition.frame().scale);
     }
+    public boolean hasWidgetScaleOverride(WidgetDefinition<?, ?, ?> definition) {
+        var frame = definition.frame();
+        if (frame.overrideScale != null) return frame.overrideScale;
+        return Double.compare(
+            WidgetScaleResolver.clampScale(frame.scale),
+            WidgetScaleResolver.clampScale(definition.defaultFrame().scale)
+        ) != 0;
+    }
+    public void setWidgetScaleOverride(WidgetDefinition<?, ?, ?> definition, boolean enabled) {
+        this.setWidgetScaleOverride(definition, enabled, true);
+    }
+    public void setWidgetScaleOverride(
+        WidgetDefinition<?, ?, ?> definition,
+        boolean enabled,
+        boolean persist
+    ) {
+        var frame = definition.frame();
+        if (enabled && frame.overrideScale == null && !this.hasWidgetScaleOverride(definition)) {
+            frame.scale = this.globalFineTuneScale();
+        }
+        frame.overrideScale = enabled;
+        if (persist) this.saveAction.run();
+    }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value) {
         this.setWidgetScale(definition, value, true);
     }
@@ -89,17 +120,44 @@ public final class WidgetStateStore {
         if (persist) this.saveAction.run();
     }
     public void resetWidgetScale(WidgetDefinition<?, ?, ?> definition) {
-        this.setWidgetScale(definition, definition.defaultFrame().scale, true);
+        this.resetWidgetScale(definition, true);
     }
     public void resetWidgetScale(WidgetDefinition<?, ?, ?> definition, boolean persist) {
-        this.setWidgetScale(definition, definition.defaultFrame().scale, persist);
+        var frame = definition.frame();
+        var defaults = definition.defaultFrame();
+        frame.overrideScale = defaults.overrideScale;
+        frame.scale = defaults.scale;
+        if (persist) this.saveAction.run();
     }
     public double requestedScale(WidgetDefinition<?, ?, ?> definition) {
-        return WidgetScaleResolver.combineRequestedScale(this.globalFineTuneScale(), this.widgetScale(definition));
+        return this.hasWidgetScaleOverride(definition)
+            ? this.widgetScale(definition)
+            : this.globalFineTuneScale();
     }
-    public int backgroundColor(WidgetDefinition<?, ?, ?> definition, int fallback) {
+    public boolean hasBackgroundOverride(WidgetDefinition<?, ?, ?> definition) {
+        var frame = definition.frame();
+        return frame.overrideBackground != null ? frame.overrideBackground : frame.background != null;
+    }
+    public void setBackgroundOverride(WidgetDefinition<?, ?, ?> definition, boolean enabled) {
+        this.setBackgroundOverride(definition, enabled, true);
+    }
+    public void setBackgroundOverride(
+        WidgetDefinition<?, ?, ?> definition,
+        boolean enabled,
+        boolean persist
+    ) {
+        var frame = definition.frame();
+        if (enabled && frame.background == null) {
+            frame.background = this.globalBackgroundColor();
+        }
+        frame.overrideBackground = enabled;
+        if (persist) this.saveAction.run();
+    }
+    public int backgroundColor(WidgetDefinition<?, ?, ?> definition) {
         var background = definition.frame().background;
-        return background == null ? fallback : background;
+        return this.hasBackgroundOverride(definition) && background != null
+            ? background
+            : this.globalBackgroundColor();
     }
     public void setBackgroundColor(WidgetDefinition<?, ?, ?> definition, int color) {
         this.setBackgroundColor(definition, color, true);
@@ -112,7 +170,10 @@ public final class WidgetStateStore {
         this.resetBackgroundColor(definition, true);
     }
     public void resetBackgroundColor(WidgetDefinition<?, ?, ?> definition, boolean persist) {
-        definition.frame().background = definition.defaultFrame().background;
+        var frame = definition.frame();
+        var defaults = definition.defaultFrame();
+        frame.overrideBackground = defaults.overrideBackground;
+        frame.background = defaults.background;
         if (persist) this.saveAction.run();
     }
     public void save() { this.saveAction.run(); }

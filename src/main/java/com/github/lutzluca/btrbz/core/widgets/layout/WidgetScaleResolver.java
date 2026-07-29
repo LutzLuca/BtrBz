@@ -38,15 +38,6 @@ public final class WidgetScaleResolver {
         );
     }
 
-    public static double combineRequestedScale(double baseScale, double widgetScale) {
-        double safeBase = Double.isFinite(baseScale) ? baseScale : 1.0;
-        double safeWidget = Double.isFinite(widgetScale) ? widgetScale : 1.0;
-        return Math.max(
-            MIN_SCALE,
-            Math.min(MAX_SCALE, safeBase * safeWidget)
-        );
-    }
-
     public static double clampScale(double value) {
         if (!Double.isFinite(value)) return 1.0;
         return Math.max(MIN_SCALE, Math.min(MAX_SCALE, value));

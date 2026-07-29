@@ -74,7 +74,9 @@ public final class WidgetConfigBinding<C> {
         target.enabled = source.enabled;
         target.placements.clear();
         target.placements.putAll(source.placements);
+        target.overrideScale = source.overrideScale;
         target.scale = source.scale;
+        target.overrideBackground = source.overrideBackground;
         target.background = source.background;
     }
 }

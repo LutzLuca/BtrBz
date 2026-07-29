@@ -53,5 +53,26 @@ class WidgetConfigBindingTest {
             assertEquals(1234, config.usedToday);
             assertEquals(99, config.lastResetEpochDay);
         }
+
+        @Test
+        @DisplayName("reset all clears frame appearance overrides")
+        void resetsFrameAppearanceOverrides() {
+            var config = new DailyLimitWidgetConfig();
+            config.frame.overrideScale = true;
+            config.frame.scale = 1.7;
+            config.frame.overrideBackground = true;
+            config.frame.background = 0xAA102030;
+            var binding = new WidgetConfigBinding<>(
+                () -> config, DailyLimitWidgetConfig::new, value -> value.frame,
+                DailyLimitWidgetConfig::resetPreferences, () -> {}
+            );
+
+            binding.resetAll();
+
+            assertNull(config.frame.overrideScale);
+            assertEquals(1.0, config.frame.scale);
+            assertNull(config.frame.overrideBackground);
+            assertNull(config.frame.background);
+        }
     }
 }
