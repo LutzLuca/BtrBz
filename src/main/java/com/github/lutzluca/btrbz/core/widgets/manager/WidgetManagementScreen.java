@@ -37,7 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,8 +53,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private final WidgetStateStore stateStore;
     private final WidgetManagerEditSession editSession;
     private final WidgetHost previewHost;
+    private final WidgetManagerSelectionState selectionState;
     private final WidgetManagerPanelState sidebarPosition = new WidgetManagerPanelState();
-    private final Set<WidgetId> renderedWidgets = new LinkedHashSet<>();
     private final Map<WidgetId, String> previewProfiles = new LinkedHashMap<>();
 
     private FlowLayout root;
@@ -65,7 +64,6 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout sidebarContent;
     private RestorableVerticalScrollContainer<FlowLayout> sidebarScroller;
     private ButtonComponent sidebarSizeButton;
-    private @Nullable WidgetId selectedWidget;
     private boolean sidebarMinimized;
     private boolean sidebarCapturedMouse;
     private double sidebarScrollOffset;
@@ -111,9 +109,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             if (registry.find(launchState.selectedWidget()).isEmpty()) {
                 throw new IllegalArgumentException("Unknown widget: " + launchState.selectedWidget());
             }
-            this.selectedWidget = launchState.selectedWidget();
         }
-        this.renderedWidgets.addAll(launchState.renderedWidgets());
+        this.selectionState = new WidgetManagerSelectionState(launchState);
         for (var definition : registry.all()) {
             this.previewProfiles.put(
                 definition.getId(),
@@ -141,8 +138,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     WidgetStateStore stateStore() { return this.stateStore; }
-    @Nullable WidgetId selectedWidget() { return this.selectedWidget; }
-    Set<WidgetId> renderedWidgets() { return Set.copyOf(this.renderedWidgets); }
+    @Nullable WidgetId selectedWidget() { return this.selectionState.selectedWidget(); }
+    Set<WidgetId> renderedWidgets() { return this.selectionState.renderedWidgets(); }
     Map<WidgetId, String> previewProfiles() { return Map.copyOf(this.previewProfiles); }
     void markDirty() { this.editSession.markDirty(); }
 
@@ -154,14 +151,12 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     void selectWidget(WidgetId id) {
-        if (id.equals(this.selectedWidget)) return;
-        this.selectedWidget = id;
+        if (!this.selectionState.select(id)) return;
         this.rebuildSidebar();
     }
 
     void clearSelectedWidget() {
-        if (this.selectedWidget == null) return;
-        this.selectedWidget = null;
+        if (!this.selectionState.clearSelection()) return;
         this.rebuildSidebar();
     }
 
@@ -383,7 +378,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.registry.all().forEach(definition -> list.child(this.widgetRow(definition)));
         this.sidebarContent.child(list);
 
-        var selected = this.selectedWidget == null ? null : this.registry.find(this.selectedWidget).orElse(null);
+        var selectedWidget = this.selectionState.selectedWidget();
+        var selected = selectedWidget == null ? null : this.registry.find(selectedWidget).orElse(null);
         this.sidebarContent.child(label("Selected", 0xFFB8C0CF));
         this.sidebarContent.child(label(selected == null ? "None" : selected.getDisplayName(), 0xFFFFFFFF));
         if (selected == null) {
@@ -631,15 +627,12 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         row.verticalAlignment(VerticalAlignment.CENTER);
         var rendered = UIComponents.smallCheckbox(Component.literal("R"));
         rendered.tooltip(Component.literal("Rendered in the widget manager"));
-        rendered.checked(this.renderedWidgets.contains(definition.getId()));
-        rendered.onChanged().subscribe(value -> {
-            if (value) this.renderedWidgets.add(definition.getId());
-            else this.renderedWidgets.remove(definition.getId());
-        });
+        rendered.checked(this.selectionState.renderedWidgets().contains(definition.getId()));
+        rendered.onChanged().subscribe(value -> this.selectionState.setRendered(definition.getId(), value));
         row.child(rendered);
         var select = button(definition.getDisplayName(), _ -> this.selectWidget(definition.getId()));
         select.horizontalSizing(Sizing.expand(100));
-        if (definition.getId().equals(this.selectedWidget)) {
+        if (definition.getId().equals(this.selectionState.selectedWidget())) {
             select.renderer(ButtonComponent.Renderer.flat(0xFF3B4252, 0xFF465066, 0xFF292D36));
         }
         row.child(select);
