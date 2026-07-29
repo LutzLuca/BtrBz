@@ -31,8 +31,8 @@ public final class BookmarksWidgetConfig {
     public enum BookmarkSort { Manual, Alphabetical }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.30, 0.52));
-    public int contentWidth = 200;
-    public int visibleRows = 6;
+    public int contentWidth = 190;
+    public int visibleRows = 5;
     public boolean fitToContent = true;
     public BookmarkSort sort = BookmarkSort.Manual;
     public boolean hideWhenEmpty = true;

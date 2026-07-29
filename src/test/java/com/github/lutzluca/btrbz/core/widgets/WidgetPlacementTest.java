@@ -20,8 +20,8 @@ class WidgetPlacementTest {
     void dragReleaseConvertsAbsolutePositionToFractions() {
         var placement = WidgetPlacement.fromAbsolute(120, 60, 320, 180, 80, 30);
 
-        assertEquals(0.5, placement.x(), 0.0001);
-        assertEquals(0.4, placement.y(), 0.0001);
+        assertEquals(0.375, placement.x(), 0.0001);
+        assertEquals(1.0 / 3.0, placement.y(), 0.0001);
     }
 
     @Test
@@ -35,16 +35,16 @@ class WidgetPlacementTest {
     }
 
     @Test
-    void scaleChangesBoundsButDoesNotRewriteFractions() {
+    void contentSizeChangesPreserveTheTopLeftAnchor() {
         var placement = WidgetPlacement.topLeft(0.25, 0.5);
 
         var normal = placement.resolve(400, 200, 100, 40);
         var scaled = placement.resolve(400, 200, 150, 60);
 
-        assertEquals(75, normal.x());
-        assertEquals(80, normal.y());
-        assertEquals(63, scaled.x());
-        assertEquals(70, scaled.y());
+        assertEquals(100, normal.x());
+        assertEquals(100, normal.y());
+        assertEquals(100, scaled.x());
+        assertEquals(100, scaled.y());
         assertEquals(0.25, placement.x());
         assertEquals(0.5, placement.y());
     }

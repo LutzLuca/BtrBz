@@ -41,13 +41,13 @@ class OrderBookWidgetTest {
     void oneVisibleSideUsesHalfWidthAndTwoSidesUseFullWidth() {
         var sellWorkflow = book(Optional.of(BazaarWidgetViewData.OrderSide.Sell));
 
-        assertEquals(118, OrderBookWidget.embeddedContentWidth(
+        assertEquals(198, OrderBookWidget.embeddedContentWidth(
             options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow
         ));
         assertEquals(1, OrderBookWidget.embeddedVisibleSideCount(
             options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow
         ));
-        assertEquals(240, OrderBookWidget.embeddedContentWidth(
+        assertEquals(400, OrderBookWidget.embeddedContentWidth(
             options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow
         ));
         assertEquals(2, OrderBookWidget.embeddedVisibleSideCount(
@@ -62,7 +62,7 @@ class OrderBookWidgetTest {
         );
 
         assertEquals(
-            "424 · 2 ord",
+            "424 items · 2 orders",
             OrderBookWidget.embeddedMetadata(
                 entry, options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant)
             )

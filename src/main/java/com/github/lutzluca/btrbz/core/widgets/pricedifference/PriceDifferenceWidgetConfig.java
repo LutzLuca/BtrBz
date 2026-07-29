@@ -9,12 +9,14 @@ public final class PriceDifferenceWidgetConfig {
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.76, 0.72));
     public int contentWidth = 190;
+    public boolean fitToContent = true;
     public DiffDisplay display = DiffDisplay.Both;
     public NumberStyle numberStyle = NumberStyle.Compact;
     public boolean showItems = true;
     public boolean showProduct = true;
     public static void resetPreferences(PriceDifferenceWidgetConfig current, PriceDifferenceWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
+        current.fitToContent = defaults.fitToContent;
         current.display = defaults.display;
         current.numberStyle = defaults.numberStyle;
         current.showItems = defaults.showItems;

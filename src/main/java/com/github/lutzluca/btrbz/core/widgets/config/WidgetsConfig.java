@@ -13,6 +13,9 @@ import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetC
 /** Serialized aggregate; each concrete widget owns its persisted config type. */
 public final class WidgetsConfig {
     public double globalFineTuneScale = 1.0;
+    public int managerPanelWidth = 210;
+    public int managerPanelHeightPercent = 75;
+    public boolean runtimeDragging = false;
 
     public BazaarOrdersWidgetConfig bazaarOrders = new BazaarOrdersWidgetConfig();
     public TrackedOrdersWidgetConfig trackedOrders = new TrackedOrdersWidgetConfig();

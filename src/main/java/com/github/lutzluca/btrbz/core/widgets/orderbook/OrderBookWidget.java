@@ -54,8 +54,8 @@ public final class OrderBookWidget {
         OrderBookPriceWidgetConfig options
     ) {
         var parts = new ArrayList<String>();
-        if (options.showAmounts) parts.add(entry.quantityText());
-        if (options.showOrderCount) parts.add(entry.orders() + " ord");
+        if (options.showAmounts) parts.add(entry.quantityText() + " items");
+        if (options.showOrderCount) parts.add(entry.orders() + " orders");
         return String.join(" · ", parts);
     }
 }

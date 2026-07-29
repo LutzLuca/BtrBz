@@ -9,6 +9,7 @@ public final class DailyLimitWidgetConfig {
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.76, 0.58));
     public int contentWidth = 180;
+    public boolean fitToContent = true;
     public LimitDisplay display = LimitDisplay.UsedLimit;
     public NumberStyle numberStyle = NumberStyle.Compact;
     public boolean showHeader = true;
@@ -19,6 +20,7 @@ public final class DailyLimitWidgetConfig {
     public long lastResetEpochDay = -1;
     public static void resetPreferences(DailyLimitWidgetConfig current, DailyLimitWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
+        current.fitToContent = defaults.fitToContent;
         current.display = defaults.display;
         current.numberStyle = defaults.numberStyle;
         current.showHeader = defaults.showHeader;

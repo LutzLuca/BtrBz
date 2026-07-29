@@ -16,8 +16,8 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
             BazaarStyles.SCROLLBAR,
             BazaarStyles.INSERTION,
             0,
-            5,
-            1
+            4,
+            2
         );
     }
 

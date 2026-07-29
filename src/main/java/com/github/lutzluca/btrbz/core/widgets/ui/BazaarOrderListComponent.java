@@ -36,14 +36,15 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
         int height
     ) {
         this.dirty = true;
+        boolean reserveScrollbarSpace = WidgetLayoutTokens.listViewportHeight(rowHeight, rowData.size()) > height;
         var retainedIds = new HashSet<String>();
         var ordered = new ArrayList<BazaarOrderRowComponent>(rowData.size());
         for (var data : rowData) {
             if (!retainedIds.add(data.id())) throw new IllegalArgumentException("Duplicate Bazaar row id: " + data.id());
             var row = this.rowsById.computeIfAbsent(
-                data.id(), _ -> new BazaarOrderRowComponent(data, hoverable, rowHeight, true)
+                data.id(), _ -> new BazaarOrderRowComponent(data, hoverable, rowHeight, reserveScrollbarSpace)
             );
-            row.update(data, hoverable, rowHeight);
+            row.update(data, hoverable, rowHeight, reserveScrollbarSpace);
             ordered.add(row);
         }
         this.rowsById.keySet().removeIf(id -> !retainedIds.contains(id));

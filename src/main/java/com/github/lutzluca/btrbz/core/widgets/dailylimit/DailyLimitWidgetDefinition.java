@@ -24,7 +24,7 @@ public final class DailyLimitWidgetDefinition {
             .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(DailyLimitWidgetView::new)
             .settingsPanel(DailyLimitWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(140), 30)
+            .minSize(WidgetLayoutTokens.panelWidth(60), 30)
             .build();
     }
 }

@@ -16,6 +16,7 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import java.util.function.Consumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +51,6 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.productName.text(Component.literal(data.productName()));
         this.product.clearChildren();
         var itemStack = data.itemStack();
@@ -65,12 +65,32 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         }
         this.product.child(this.productName);
         int color = data.total() >= 0 ? BazaarStyles.BUY_ACCENT : BazaarStyles.STATUS_UNDERCUT;
-        this.perItem.update("Per item", signed(data.perItem(), config.numberStyle), color);
+        String perItemValue = signed(data.perItem(), config.numberStyle);
+        String totalLabel = "Total (" + BazaarWidgetViewData.formatInt(data.quantity()) + " items)";
+        String totalValue = signed(data.total(), config.numberStyle);
+        this.perItem.update("Per item", perItemValue, color);
         this.total.update(
-            "Total (" + BazaarWidgetViewData.formatInt(data.quantity()) + " items)",
-            signed(data.total(), config.numberStyle),
+            totalLabel,
+            totalValue,
             color
         );
+        if (config.fitToContent) {
+            var font = Minecraft.getInstance().font;
+            int fittedWidth = 1;
+            if (config.showProduct) {
+                fittedWidth = font.width(data.productName())
+                    + (config.showItems && itemStack.isPresent() ? 16 + 3 : 0);
+            }
+            if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.Total) {
+                fittedWidth = Math.max(fittedWidth, lineWidth("Per item", perItemValue));
+            }
+            if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.PerItem) {
+                fittedWidth = Math.max(fittedWidth, lineWidth(totalLabel, totalValue));
+            }
+            this.root.horizontalSizing(Sizing.fixed(fittedWidth));
+        } else {
+            this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
+        }
         this.root.clearChildren();
         if (config.showProduct) this.root.child(this.product);
         if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.Total) this.root.child(this.perItem.root);
@@ -85,6 +105,11 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
 
     private static String signed(long value, WidgetDisplayOptions.NumberStyle style) {
         return (value >= 0 ? "+" : "") + number(value, style);
+    }
+
+    private static int lineWidth(String label, String value) {
+        var font = Minecraft.getInstance().font;
+        return font.width(label) + WidgetLayoutTokens.VALUE_GAP + font.width(value);
     }
 
     private static final class ValueLine {

@@ -22,10 +22,42 @@ class WidgetStateStoreTest {
         assertEquals(200, config.bazaarOrders.contentWidth);
         assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, config.bazaarOrders.mode);
         assertEquals(TrackedOrdersWidgetConfig.TrackedSort.Manual, config.trackedOrders.sort);
+        assertEquals(190, config.trackedOrders.contentWidth);
+        assertEquals(5, config.trackedOrders.visibleRows);
         assertEquals(BookmarksWidgetConfig.BookmarkSort.Manual, config.bookmarks.sort);
+        assertEquals(190, config.bookmarks.contentWidth);
+        assertEquals(5, config.bookmarks.visibleRows);
+        assertEquals(400, config.orderBookScreen.contentWidth);
+        assertEquals(10, config.orderBookScreen.visibleRows);
+        assertEquals(400, config.orderBookPrice.contentWidth);
+        assertEquals(8, config.orderBookPrice.visibleRows);
+        assertEquals(25, config.orderPresets.contentWidth);
+        assertEquals(5, config.orderPresets.visibleRows);
+        assertTrue(config.orderLimit.fitToContent);
+        assertTrue(config.orderValue.fitToContent);
+        assertTrue(config.priceDiff.fitToContent);
+        assertEquals(210, config.managerPanelWidth);
+        assertEquals(75, config.managerPanelHeightPercent);
+        assertFalse(config.runtimeDragging);
         assertEquals(15_000_000_000d, config.orderLimit.dailyLimit);
         assertTrue(config.bookmarks.items.isEmpty());
         assertTrue(config.orderPresets.volumes.isEmpty());
+    }
+
+    @Test
+    void managerPreferencesPersistThroughTheSharedStore() {
+        var config = new WidgetsConfig();
+        var saves = new AtomicInteger();
+        var store = new WidgetStateStore(() -> config, saves::incrementAndGet);
+
+        store.setManagerPanelWidth(190, true);
+        store.setManagerPanelHeightPercent(70, true);
+        store.setRuntimeDragging(true, true);
+
+        assertEquals(190, config.managerPanelWidth);
+        assertEquals(70, config.managerPanelHeightPercent);
+        assertTrue(config.runtimeDragging);
+        assertEquals(3, saves.get());
     }
 
     @Test

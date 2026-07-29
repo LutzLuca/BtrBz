@@ -1,13 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -18,25 +17,26 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     private static final int MINIMUM_LEFT_WIDTH = 24;
     private BazaarRow row;
     private boolean hoverable;
-    private final boolean insideScrollContainer;
+    private boolean reserveScrollbarSpace;
     private boolean hoverSuppressed;
 
     BazaarOrderRowComponent(
         BazaarRow row,
         boolean hoverable,
         int height,
-        boolean insideScrollContainer
+        boolean reserveScrollbarSpace
     ) {
         this.row = row;
         this.hoverable = hoverable;
-        this.insideScrollContainer = insideScrollContainer;
+        this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
         if (!row.tooltip().isEmpty()) this.tooltip(row.tooltip());
     }
 
-    void update(BazaarRow row, boolean hoverable, int height) {
+    void update(BazaarRow row, boolean hoverable, int height, boolean reserveScrollbarSpace) {
         this.row = row;
         this.hoverable = hoverable;
+        this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.verticalSizing(Sizing.fixed(height));
         this.tooltip(row.tooltip());
     }
@@ -46,7 +46,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     }
 
     @Override public boolean onMouseDown(MouseButtonEvent click, boolean doubled) {
-        if (click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.onMouseDown(click, doubled);
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.onMouseDown(click, doubled);
         if (this.hoverable && this.row.clickAction() != null) {
             this.row.clickAction().accept(click.hasControlDown());
             return true;
@@ -78,7 +78,9 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         }
 
         int trailingInset = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.insideScrollContainer) trailingInset += WidgetLayoutTokens.SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
+        if (this.reserveScrollbarSpace) {
+            trailingInset += WidgetLayoutTokens.SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
+        }
         int rowEnd = this.x + this.width - trailingInset;
         var rightText = Component.literal(this.row.rightText());
         var prefix = Component.literal(this.row.prefix());

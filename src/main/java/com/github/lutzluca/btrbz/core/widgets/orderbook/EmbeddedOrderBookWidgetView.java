@@ -38,7 +38,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
 
     EmbeddedOrderBookWidgetView() {
         this.root.allowOverflow(true);
-        this.root.gap(WidgetLayoutTokens.LINE_GAP);
+        this.root.gap(0);
         this.header.verticalAlignment(VerticalAlignment.CENTER);
         this.header.gap(3);
         this.sides.gap(4);
@@ -101,7 +101,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         private Side(String title, int color, BazaarWidgetViewData.OrderSide side) {
             this.color = color;
             this.side = side;
-            this.root.gap(WidgetLayoutTokens.LINE_GAP);
+            this.root.gap(0);
             this.root.child(label(title, color));
             this.root.child(this.list);
         }

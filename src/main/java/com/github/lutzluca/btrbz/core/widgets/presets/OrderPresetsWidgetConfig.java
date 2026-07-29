@@ -11,7 +11,8 @@ public final class OrderPresetsWidgetConfig {
         "sign",
         WidgetPlacement.topLeft(0.62, 0.08)
     );
-    public int contentWidth = 100;
+    public int contentWidth = 25;
+    public int visibleRows = 5;
     public boolean maximum = true;
     public boolean clipboard = true;
     public boolean showDisabled = true;
@@ -19,6 +20,7 @@ public final class OrderPresetsWidgetConfig {
     public List<Integer> volumes = new ArrayList<>();
     public static void resetPreferences(OrderPresetsWidgetConfig current, OrderPresetsWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
+        current.visibleRows = defaults.visibleRows;
         current.maximum = defaults.maximum;
         current.clipboard = defaults.clipboard;
         current.showDisabled = defaults.showDisabled;

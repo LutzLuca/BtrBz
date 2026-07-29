@@ -24,7 +24,7 @@ public final class OrderValueWidgetDefinition {
             .preview(() -> new WidgetPreview<>(OrderValueWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Orders), "default"))
             .viewFactory(OrderValueWidgetView::new)
             .settingsPanel(OrderValueWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(170), 32)
+            .minSize(WidgetLayoutTokens.panelWidth(90), 32)
             .build();
     }
 }

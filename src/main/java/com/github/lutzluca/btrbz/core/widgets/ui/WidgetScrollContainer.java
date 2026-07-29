@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Size;
@@ -7,7 +8,6 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 
 /** A retained widget scroll container which owns its scroll and thumb-capture state. */
 public final class WidgetScrollContainer<C extends UIComponent> extends ScrollContainer<C> {
@@ -75,7 +75,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         double absoluteX = this.x + click.x();
         double absoluteY = this.y + click.y();
         if (this.isInScrollbar(absoluteX, absoluteY)) {
-            if (click.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && this.isInThumb(absoluteX, absoluteY)) {
+            if (click.button() == InputConstants.MOUSE_BUTTON_LEFT && this.isInThumb(absoluteX, absoluteY)) {
                 this.thumbCaptured = true;
                 this.scrollbaring = true;
                 this.retainedVisibleUntil = System.currentTimeMillis() + 1500L;

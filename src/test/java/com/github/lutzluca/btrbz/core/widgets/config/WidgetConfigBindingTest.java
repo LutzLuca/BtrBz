@@ -28,7 +28,8 @@ class WidgetConfigBindingTest {
 
             binding.resetAll();
 
-            assertEquals(100, config.contentWidth);
+            assertEquals(25, config.contentWidth);
+            assertEquals(5, config.visibleRows);
             assertEquals(List.of(64, 1024), config.volumes);
             assertEquals(1, changes.get());
         }
@@ -48,6 +49,7 @@ class WidgetConfigBindingTest {
             binding.resetAll();
 
             assertEquals(180, config.contentWidth);
+            assertTrue(config.fitToContent);
             assertEquals(1234, config.usedToday);
             assertEquals(99, config.lastResetEpochDay);
         }

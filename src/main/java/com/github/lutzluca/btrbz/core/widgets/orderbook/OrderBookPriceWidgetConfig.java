@@ -7,8 +7,8 @@ public final class OrderBookPriceWidgetConfig {
     public enum EmbeddedSideDisplay { Relevant, Both }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.04, 0.50));
-    public int contentWidth = 240;
-    public int visibleRows = 3;
+    public int contentWidth = 400;
+    public int visibleRows = 8;
     public boolean showBuy = true;
     public boolean showSell = true;
     public boolean showAmounts = true;

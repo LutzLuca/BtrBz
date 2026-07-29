@@ -8,9 +8,11 @@ import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import io.wispforest.owo.ui.component.LabelComponent;
+import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.function.Consumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
@@ -23,6 +25,7 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
     DailyLimitWidgetView() {
         this.root.allowOverflow(true);
         this.root.gap(WidgetLayoutTokens.LINE_GAP);
+        this.root.horizontalAlignment(HorizontalAlignment.CENTER);
         this.root.child(this.header);
         this.root.child(this.value);
     }
@@ -39,7 +42,6 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         int percent = (int) Math.round(data.used() * 100.0 / data.limit());
         int color = percent >= config.criticalThreshold
             ? BazaarStyles.STATUS_UNDERCUT
@@ -52,6 +54,12 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
             case Percentage -> percent + "% used";
             case Compact -> "Limit " + used + "/" + limit;
         };
+        var font = Minecraft.getInstance().font;
+        int fittedWidth = Math.max(
+            font.width(this.header.text()),
+            font.width(display)
+        );
+        this.root.horizontalSizing(Sizing.fixed(config.fitToContent ? fittedWidth : config.contentWidth));
         this.value.text(Component.literal(display));
         this.value.color(BazaarStyles.color(color));
         this.root.clearChildren();
