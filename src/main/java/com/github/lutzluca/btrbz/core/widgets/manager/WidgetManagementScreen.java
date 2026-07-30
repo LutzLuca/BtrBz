@@ -205,6 +205,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     @Override
+    public void resize(int width, int height) {
+        super.resize(width, height);
+        if (this.backgroundScreen != null) {
+            this.backgroundScreen.resize(width, height);
+        }
+    }
+
+    @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         if (this.backgroundScreen != null) {
             this.backgroundScreen.extractBackground(graphics, -10_000, -10_000, delta);
