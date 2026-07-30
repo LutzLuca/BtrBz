@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderRowComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.Sizing;
@@ -72,9 +73,10 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         this.header.child(this.itemName);
         this.header.child(this.prices);
 
+        var workflowSide = session.side().orElseThrow();
         boolean single = OrderBookWidget.embeddedVisibleSideCount(config, data) <= 1;
-        this.buy.update(data.buyOffers(), config, single, actions);
-        this.sell.update(data.sellOffers(), config, single, actions);
+        this.buy.update(data.buyOffers(), config, workflowSide, single, actions);
+        this.sell.update(data.sellOffers(), config, workflowSide, single, actions);
         this.sides.clearChildren();
         if (OrderBookWidget.showsEmbeddedSide(config, data, BazaarWidgetViewData.OrderSide.Buy)) {
             this.sides.child(this.buy.root);
@@ -109,6 +111,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         private void update(
             List<OrderBookWidgetData.Entry> entries,
             OrderBookPriceWidgetConfig config,
+            OrderType workflowSide,
             boolean single,
             Consumer<OrderBookAction> actions
         ) {
@@ -116,11 +119,22 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
             var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
             for (int index = 0; index < entries.size(); index++) {
                 var entry = entries.get(index);
+                double submittedPrice = OrderBookPriceComponent.adjustPrice(entry.price(), workflowSide);
+                String adjustment = Double.compare(submittedPrice, entry.price()) == 0
+                    ? ""
+                    : workflowSide == OrderType.Buy ? " (+0.1)" : " (-0.1)";
                 rows.add(new BazaarOrderRowComponent.BazaarRow(
                     this.side.name() + "-" + Double.doubleToLongBits(entry.price()) + "-" + index,
                     entry.priceText(), this.color, "", OrderBookWidget.embeddedMetadata(entry, config),
                     BazaarStyles.MUTED_TEXT, 0,
-                    List.of(Component.literal("Click to use " + entry.priceText() + "; Ctrl-click to copy")),
+                    List.of(
+                        Component.literal(
+                            "Click: submit "
+                                + BazaarWidgetViewData.formatPrice(submittedPrice)
+                                + adjustment
+                        ),
+                        Component.literal("Ctrl-click: copy " + entry.priceText())
+                    ),
                     copyOnly -> actions.accept(new OrderBookAction.SelectPrice(entry.price(), copyOnly)),
                     true
                 ));
