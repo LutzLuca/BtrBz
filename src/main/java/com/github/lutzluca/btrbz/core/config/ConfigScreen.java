@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.BtrBz;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
@@ -59,9 +58,9 @@ public class ConfigScreen {
     private static void buildCategories(Builder builder, Config config) {
         var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
-            .tooltip(Component.literal("Configure BtrBz's production widgets."));
-        widgetBuilder.group(widgetManagerGroup(config.widgets));
-        widgetGroups(BtrBz.widgetRuntime().registry()).forEach(widgetBuilder::group);
+            .tooltip(Component.literal("Configure BtrBz's production widgets."))
+            .options(widgetManagerOptions(config.widgets))
+            .options(widgetOptions(BtrBz.widgetRuntime().registry()));
         var widgets = widgetBuilder.build();
 
         var ordersAndNotifications = ConfigCategory
@@ -110,13 +109,13 @@ public class ConfigScreen {
             .category(safetyAndLimits);
     }
 
-    static List<OptionGroup> widgetGroups(WidgetRegistry registry) {
+    static List<ButtonOption> widgetOptions(WidgetRegistry registry) {
         return registry.all().stream()
-            .map(definition -> widgetGroup(definition.getDisplayName(), definition.getId()))
+            .map(definition -> widgetOption(definition.getDisplayName(), definition.getId()))
             .toList();
     }
 
-    static OptionGroup widgetManagerGroup(WidgetsConfig config) {
+    static List<Option<?>> widgetManagerOptions(WidgetsConfig config) {
         var showLauncher = Option.<Boolean>createBuilder()
             .name(Component.literal("Show Widget Manager Button in Bazaar"))
             .description(createDescription(
@@ -143,16 +142,11 @@ public class ConfigScreen {
             ))
             .action(_ -> BtrBz.widgetRuntime().stateStore().resetManagerLauncherPosition(true))
             .build();
-        return OptionGroup.createBuilder()
-            .name(Component.literal("Widget Manager"))
-            .option(showLauncher)
-            .option(openManager)
-            .option(resetPosition)
-            .build();
+        return List.of(showLauncher, openManager, resetPosition);
     }
 
-    private static OptionGroup widgetGroup(String name, WidgetId id) {
-        var configure = ButtonOption.createBuilder()
+    private static ButtonOption widgetOption(String name, WidgetId id) {
+        return ButtonOption.createBuilder()
             .name(Component.literal(name))
             .text(Component.literal("Configure"))
             .description(OptionDescription.of(Component.literal(
@@ -161,11 +155,6 @@ public class ConfigScreen {
             .action(screen -> Minecraft.getInstance().setScreen(
                 BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)
             ))
-            .build();
-        return OptionGroup.createBuilder()
-            .name(Component.literal(name))
-            .option(configure)
-            .collapsed(true)
             .build();
     }
 
