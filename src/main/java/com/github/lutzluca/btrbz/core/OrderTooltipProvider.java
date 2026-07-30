@@ -300,7 +300,7 @@ public class OrderTooltipProvider {
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option.<Boolean>createBuilder()
-                .name(Component.literal("Enable Order List Tooltips"))
+                .name(Component.literal("Enable Tracked Orders Tooltips"))
                 .binding(true, () -> this.enabled, val -> {
                     this.enabled = val;
                     invalidateCache();
@@ -375,12 +375,9 @@ public class OrderTooltipProvider {
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
-                .name(Component.literal("Order List Tooltips"))
-                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                    ConfigScreen.text(
-                        "Choose which status, estimated queue, and market details appear when hovering entries in the Tracked Orders Overlay."),
-                    ConfigScreen.requires("Enable Tracked Orders Overlay")
-                ),
+                .name(Component.literal("Tracked Orders Tooltips"))
+                .description(ConfigScreen.createDescription(
+                    "Choose which status, estimated queue, and market details appear when hovering entries in the Tracked Orders widget.",
                     ConfigScreen.ConfigImage.ORDER_LIST_TOOLTIP
                 ))
                 .options(root.build())

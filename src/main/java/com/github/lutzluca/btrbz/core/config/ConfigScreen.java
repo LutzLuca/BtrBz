@@ -58,7 +58,7 @@ public class ConfigScreen {
     private static void buildCategories(Builder builder, Config config) {
         var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
-            .tooltip(Component.literal("Configure BtrBz's production widgets."))
+            .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
             .options(widgetManagerOptions(config.widgets))
             .options(widgetOptions(BtrBz.widgetRuntime().registry()));
         var widgets = widgetBuilder.build();
@@ -73,11 +73,11 @@ public class ConfigScreen {
             .group(config.alert.createGroup())
             .build();
 
-        var interfaceAndOverlays = ConfigCategory
+        var interfaceAndTooltips = ConfigCategory
             .createBuilder()
-            .name(Component.literal("Interface & Overlays"))
+            .name(Component.literal("Interface & Tooltips"))
             .tooltip(Component.literal(
-                "Configure Bazaar overlays, hover tooltips, product information, price helpers, and chat cleanup."))
+                "Configure hover tooltips, product information, price helpers, and Bazaar chat cleanup."))
             .group(config.orderListTooltip.createGroup())
             .group(config.orderItemTooltip.createGroup())
             .group(config.productInfo.createGroup())
@@ -88,25 +88,17 @@ public class ConfigScreen {
             .createBuilder()
             .name(Component.literal("Order Workflow"))
             .tooltip(Component.literal(
-                "Configure tools that assist with creating, cancelling, reopening, and flipping orders."))
+                "Configure tools that assist with creating, cancelling, reopening, flipping, and protecting orders."))
             .groups(config.orderActions.createGroups())
             .group(config.flipHelper.createGroup())
-            .build();
-
-        var safetyAndLimits = ConfigCategory
-            .createBuilder()
-            .name(Component.literal("Safety & Limits"))
-            .tooltip(Component.literal(
-                "Prevent risky order prices and configure the daily transaction-limit display."))
             .group(config.orderProtection.createGroup())
             .build();
 
         builder
             .category(widgets)
             .category(ordersAndNotifications)
-            .category(interfaceAndOverlays)
-            .category(orderWorkflow)
-            .category(safetyAndLimits);
+            .category(interfaceAndTooltips)
+            .category(orderWorkflow);
     }
 
     static List<ButtonOption> widgetOptions(WidgetRegistry registry) {
