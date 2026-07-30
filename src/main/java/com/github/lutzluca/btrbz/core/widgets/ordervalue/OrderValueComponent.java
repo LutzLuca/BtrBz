@@ -23,10 +23,6 @@ public final class OrderValueComponent {
         return calculateBreakdown(this.unfilledOrders, this.filledOrders);
     }
 
-    public int filledOrderCount() {
-        return this.filledOrders.size();
-    }
-
     public static Breakdown calculateBreakdown(
         List<UnfilledOrderInfo> unfilledOrders,
         List<FilledOrderInfo> filledOrders

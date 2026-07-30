@@ -33,21 +33,23 @@ public final class OrdersWidgetData {
     private final BazaarData market;
     private final TrackedOrderManager trackedOrders;
     private final OrderTooltipProvider tooltipProvider;
-    private final com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent orderValue;
 
     public OrdersWidgetData(
         BazaarData market,
         TrackedOrderManager trackedOrders,
-        OrderTooltipProvider tooltipProvider,
-        com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent orderValue
+        OrderTooltipProvider tooltipProvider
     ) {
         this.market = market;
         this.trackedOrders = trackedOrders;
         this.tooltipProvider = tooltipProvider;
-        this.orderValue = orderValue;
     }
 
     public BazaarWidgetViewData.OrdersData snapshot() {
+        var snapshots = this.trackedOrders.currentOrders();
+        if (snapshots.isEmpty()) {
+            return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());
+        }
+
         var screenInfo = ScreenInfoHelper.get().getCurrInfo();
         Map<TrackedOrderId, TrackedOrder> live = new HashMap<>();
         this.trackedOrders.getTrackedOrders().forEach(order -> live.put(order.id(), order));
@@ -56,7 +58,7 @@ public final class OrdersWidgetData {
         for (int index = 0; index < canonicalOrder.size(); index++) {
             creationSequence.put(canonicalOrder.get(index), (long) index);
         }
-        var orders = this.trackedOrders.currentOrders().stream().map(snapshot -> {
+        var orders = snapshots.stream().map(snapshot -> {
             var status = status(snapshot.status());
             var product = snapshot.product();
             var marketInfo = this.marketInfo(product, snapshot.type(), snapshot.pricePerUnit());
@@ -82,7 +84,7 @@ public final class OrdersWidgetData {
                 creationSequence.getOrDefault(snapshot.id(), 0L)
             );
         }).toList();
-        return new BazaarWidgetViewData.OrdersData(orders, this.orderValue.filledOrderCount());
+        return new BazaarWidgetViewData.OrdersData(orders, this.trackedOrders.filledOrderCount());
     }
 
     public static BazaarWidgetViewData.OrdersData preview() {

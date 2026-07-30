@@ -160,7 +160,7 @@ public class BtrBz implements ClientModInitializer {
             this.orderManager
         );
         var ordersWidgetData = new OrdersWidgetData(
-            BAZAAR_DATA, this.orderManager, this.tooltipProvider, orderValue
+            BAZAAR_DATA, this.orderManager, this.tooltipProvider
         );
         var orderBookWidgetData = new OrderBookWidgetData(BAZAAR_DATA);
         var widgetRegistry = new WidgetRegistry();
@@ -218,7 +218,7 @@ public class BtrBz implements ClientModInitializer {
         );
 
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
-        MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
+        MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::handleOrderFilled);
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
 
         MESSAGE_DISPATCHER.on(

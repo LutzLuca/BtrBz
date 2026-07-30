@@ -47,6 +47,7 @@ public class TrackedOrderManager {
     private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
     private final SelfUndercutDetector selfUndercutDetector = new SelfUndercutDetector();
     private long displayRevision;
+    private int filledOrderCount;
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
@@ -149,6 +150,7 @@ public class TrackedOrderManager {
                 case UnfilledOrderInfo unfilled -> unfilledOrders.add(unfilled);
             }
         }
+        this.filledOrderCount = filledOrders.size();
 
         var unfilledCopy = new ArrayList<>(unfilledOrders);
 
@@ -303,6 +305,7 @@ public class TrackedOrderManager {
         this.displayOrders.clear();
         this.selfUndercutDetector.clear();
         this.displayRevision++;
+        this.filledOrderCount = 0;
 
         log.info("Reset tracked orders (removed {})", removedSize);
         this.onOrdersResetListeners.forEach(Runnable::run);
@@ -323,6 +326,10 @@ public class TrackedOrderManager {
 
     public long displayRevision() {
         return this.displayRevision;
+    }
+
+    public int filledOrderCount() {
+        return this.filledOrderCount;
     }
 
     public boolean reorder(TrackedOrderId orderId, int dropIndex) {
@@ -380,7 +387,8 @@ public class TrackedOrderManager {
         }
     }
 
-    public void removeMatching(OrderFilled info) {
+    public void handleOrderFilled(OrderFilled info) {
+        this.filledOrderCount++;
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
         // noinspection SimplifyStreamApiCallChains
