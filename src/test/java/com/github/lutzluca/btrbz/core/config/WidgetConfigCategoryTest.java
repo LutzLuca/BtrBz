@@ -20,31 +20,26 @@ class WidgetConfigCategoryTest {
     @Test
     @DisplayName("provides config-only controls for the widget manager launcher")
     void containsWidgetManagerControls() {
-        var group = ConfigScreen.widgetManagerGroup(new WidgetsConfig());
+        var options = ConfigScreen.widgetManagerOptions(new WidgetsConfig());
 
-        assertEquals("Widget Manager", group.name().getString());
-        assertEquals(3, group.options().size());
-        assertFalse(group.options().getFirst() instanceof ButtonOption);
-        assertInstanceOf(ButtonOption.class, group.options().get(1));
-        assertInstanceOf(ButtonOption.class, group.options().getLast());
+        assertEquals(3, options.size());
+        assertFalse(options.getFirst() instanceof ButtonOption);
+        assertInstanceOf(ButtonOption.class, options.get(1));
+        assertInstanceOf(ButtonOption.class, options.getLast());
     }
 
     @Test
-    @DisplayName("derives one manager launcher per registry entry without widget bindings")
+    @DisplayName("derives one linear manager launcher per registry entry without widget bindings")
     void containsOnlyManagerLaunchers() {
         var registry = new WidgetRegistry();
         registry.register(definition("btrbz:first", "First"));
         registry.register(definition("btrbz:second", "Second"));
 
-        var groups = ConfigScreen.widgetGroups(registry);
+        var options = ConfigScreen.widgetOptions(registry);
 
-        assertEquals(2, groups.size());
-        assertEquals("First", groups.getFirst().name().getString());
-        assertEquals("Second", groups.getLast().name().getString());
-        groups.forEach(group -> {
-            assertEquals(1, group.options().size());
-            assertInstanceOf(ButtonOption.class, group.options().getFirst());
-        });
+        assertEquals(2, options.size());
+        assertEquals("First", options.getFirst().name().getString());
+        assertEquals("Second", options.getLast().name().getString());
     }
 
     private static WidgetDefinition<Object, TestConfig, Void> definition(String id, String name) {
