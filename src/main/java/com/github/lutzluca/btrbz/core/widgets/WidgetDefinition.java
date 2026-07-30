@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import lombok.Getter;
 
 /** The complete typed recipe for one BtrBz widget. */
@@ -27,6 +28,7 @@ public final class WidgetDefinition<D, C, A> {
     private final Predicate<WidgetSession> supports;
     private final WidgetVisibility<D, C> visibility;
     private final Function<WidgetSession, D> runtimeData;
+    private final UnaryOperator<D> snapshotCopy;
     private final Supplier<WidgetPreview<D>> preview;
     private final Supplier<WidgetView<D, C, A>> viewFactory;
     private final Function<WidgetConfigBinding<C>, UIComponent> settingsPanel;
@@ -46,6 +48,7 @@ public final class WidgetDefinition<D, C, A> {
         this.supports = Objects.requireNonNull(builder.supports, "supports");
         this.visibility = Objects.requireNonNull(builder.visibility, "visibility");
         this.runtimeData = Objects.requireNonNull(builder.runtimeData, "runtimeData");
+        this.snapshotCopy = Objects.requireNonNull(builder.snapshotCopy, "snapshotCopy");
         this.preview = Objects.requireNonNull(builder.preview, "preview");
         this.viewFactory = Objects.requireNonNull(builder.viewFactory, "viewFactory");
         this.settingsPanel = Objects.requireNonNull(builder.settingsPanel, "settingsPanel");
@@ -67,6 +70,17 @@ public final class WidgetDefinition<D, C, A> {
     public WidgetFrameConfig frame() { return this.frameConfig.apply(this.config()); }
     public WidgetFrameConfig defaultFrame() { return this.frameConfig.apply(this.defaults()); }
     public boolean supports(WidgetSession session) { return this.supports.test(session); }
+    public WidgetPreview<D> captureRuntimePreview(WidgetSession session) {
+        if (!this.supports(session)) {
+            throw new IllegalArgumentException("Widget does not support this session: " + this.id);
+        }
+        var data = Objects.requireNonNull(this.runtimeData.apply(session), "runtime widget data");
+        var snapshot = Objects.requireNonNull(this.snapshotCopy.apply(data), "frozen widget data");
+        return new WidgetPreview<>(snapshot, session, this.placementProfile(session));
+    }
+    public boolean isVisible(WidgetPreview<D> preview) {
+        return this.visibility.test(preview.data(), this.config(), preview.session());
+    }
     public List<String> placementProfileKeys() { return List.copyOf(this.placementProfiles.keySet()); }
     public String placementProfileLabel(String profile) {
         return this.placementProfiles.getOrDefault(profile, this.placementProfiles.get("default"));
@@ -99,6 +113,7 @@ public final class WidgetDefinition<D, C, A> {
         private Predicate<WidgetSession> supports = _ -> true;
         private WidgetVisibility<D, C> visibility = (data, config, session) -> true;
         private Function<WidgetSession, D> runtimeData;
+        private UnaryOperator<D> snapshotCopy;
         private Supplier<WidgetPreview<D>> preview;
         private Supplier<WidgetView<D, C, A>> viewFactory;
         private Function<WidgetConfigBinding<C>, UIComponent> settingsPanel = _ -> null;
@@ -137,6 +152,11 @@ public final class WidgetDefinition<D, C, A> {
         }
         public Builder<D, C, A> runtimeData(Function<WidgetSession, D> runtimeData) {
             this.runtimeData = runtimeData;
+            return this;
+        }
+        /** Declares the widget-specific deep-copy boundary used by frozen editing sessions. */
+        public Builder<D, C, A> snapshotCopy(UnaryOperator<D> snapshotCopy) {
+            this.snapshotCopy = snapshotCopy;
             return this;
         }
         public Builder<D, C, A> preview(Supplier<WidgetPreview<D>> preview) {

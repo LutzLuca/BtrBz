@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ public final class WidgetHost {
     private final boolean runtime;
     private final boolean runtimePlacementDragging;
     private final @Nullable WidgetSessionProvider sessionProvider;
+    private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
@@ -52,13 +54,15 @@ public final class WidgetHost {
         WidgetStateStore stateStore,
         boolean runtime,
         boolean runtimePlacementDragging,
-        @Nullable WidgetSessionProvider sessionProvider
+        @Nullable WidgetSessionProvider sessionProvider,
+        @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews
     ) {
         this.definitions = List.copyOf(definitions);
         this.stateStore = stateStore;
         this.runtime = runtime;
         this.runtimePlacementDragging = runtimePlacementDragging;
         this.sessionProvider = sessionProvider;
+        this.capturedPreviews = capturedPreviews == null ? null : Map.copyOf(capturedPreviews);
     }
 
     public static WidgetHost runtime(
@@ -67,14 +71,22 @@ public final class WidgetHost {
         WidgetSessionProvider sessionProvider,
         boolean placementDragging
     ) {
-        return new WidgetHost(definitions, stateStore, true, placementDragging, sessionProvider);
+        return new WidgetHost(definitions, stateStore, true, placementDragging, sessionProvider, null);
     }
 
     public static WidgetHost preview(
         List<WidgetDefinition<?, ?, ?>> definitions,
         WidgetStateStore stateStore
     ) {
-        return new WidgetHost(definitions, stateStore, false, false, null);
+        return new WidgetHost(definitions, stateStore, false, false, null, null);
+    }
+
+    public static WidgetHost preview(
+        List<WidgetDefinition<?, ?, ?>> definitions,
+        WidgetStateStore stateStore,
+        Map<WidgetId, WidgetPreview<?>> capturedPreviews
+    ) {
+        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews);
     }
 
     public List<WidgetRenderResult> render(
@@ -95,6 +107,8 @@ public final class WidgetHost {
 
         for (var definition : this.definitions) {
             boolean requested = options.shouldRender(definition.getId(), definition.frame().enabled);
+            if (!this.runtime && this.capturedPreviews != null
+                && !this.capturedPreviews.containsKey(definition.getId())) continue;
             if (!requested || this.runtime && !definition.supports(runtimeSession)) continue;
             var prepared = this.prepare(definition, canvas, options, runtimeSession);
             if (prepared == null) continue;
@@ -196,7 +210,7 @@ public final class WidgetHost {
         @Nullable WidgetSession runtimeSession
     ) {
         try {
-            WidgetPreview preview = this.runtime ? null : (WidgetPreview) definition.getPreview().get();
+            WidgetPreview preview = this.runtime ? null : this.preview(definition);
             WidgetSession session = this.runtime ? runtimeSession : preview.session();
             Object data = this.runtime ? definition.getRuntimeData().apply(session) : preview.data();
             Object config = definition.config();
@@ -271,6 +285,17 @@ public final class WidgetHost {
             this.detach(definition.getId());
             return null;
         }
+    }
+
+    @SuppressWarnings("rawtypes")
+    private WidgetPreview preview(WidgetDefinition definition) {
+        if (this.capturedPreviews != null) {
+            return (WidgetPreview) Objects.requireNonNull(
+                this.capturedPreviews.get(definition.getId()),
+                "captured widget preview"
+            );
+        }
+        return (WidgetPreview) definition.getPreview().get();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

@@ -42,6 +42,8 @@ class WidgetStateStoreTest {
         assertEquals(210, config.managerPanelWidth);
         assertEquals(75, config.managerPanelHeightPercent);
         assertFalse(config.runtimeDragging);
+        assertTrue(config.managerLauncherVisible);
+        assertEquals(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, config.managerLauncherPosition);
         assertEquals(15_000_000_000d, config.orderLimit.dailyLimit);
         assertTrue(config.bookmarks.items.isEmpty());
         assertTrue(config.orderPresets.volumes.isEmpty());
@@ -56,11 +58,31 @@ class WidgetStateStoreTest {
         store.setManagerPanelWidth(190, true);
         store.setManagerPanelHeightPercent(70, true);
         store.setRuntimeDragging(true, true);
+        store.setManagerLauncherVisible(false, true);
+        var launcherPosition = WidgetPlacement.topLeft(0.4, 0.2);
+        store.setManagerLauncherPosition(launcherPosition, true);
 
         assertEquals(190, config.managerPanelWidth);
         assertEquals(70, config.managerPanelHeightPercent);
         assertTrue(config.runtimeDragging);
-        assertEquals(3, saves.get());
+        assertFalse(config.managerLauncherVisible);
+        assertEquals(launcherPosition, config.managerLauncherPosition);
+        assertEquals(5, saves.get());
+    }
+
+    @Test
+    void resettingTheManagerLauncherRestoresOnlyItsPosition() {
+        var config = new WidgetsConfig();
+        var saves = new AtomicInteger();
+        var store = new WidgetStateStore(() -> config, saves::incrementAndGet);
+        config.managerLauncherVisible = false;
+        config.managerLauncherPosition = WidgetPlacement.topLeft(0.4, 0.2);
+
+        store.resetManagerLauncherPosition(true);
+
+        assertFalse(config.managerLauncherVisible);
+        assertEquals(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, config.managerLauncherPosition);
+        assertEquals(1, saves.get());
     }
 
     @Test
@@ -92,6 +114,7 @@ class WidgetStateStoreTest {
             .config(() -> config.orderPresets, OrderPresetsWidgetConfig::new,
                 value -> value.frame, OrderPresetsWidgetConfig::resetPreferences)
             .runtimeData(_ -> new Object())
+            .snapshotCopy(_ -> new Object())
             .preview(() -> null)
             .viewFactory(() -> null)
             .placementProfile("sign", "Sign")
@@ -210,6 +233,7 @@ class WidgetStateStoreTest {
             .config(supplier, BookmarksWidgetConfig::new,
                 value -> value.frame, BookmarksWidgetConfig::resetPreferences)
             .runtimeData(_ -> new Object())
+            .snapshotCopy(_ -> new Object())
             .preview(() -> null)
             .viewFactory(() -> null)
             .build();

@@ -22,4 +22,15 @@ record WidgetManagementLaunchState(
         Objects.requireNonNull(widgetId, "widgetId");
         return new WidgetManagementLaunchState(widgetId, Set.of(widgetId));
     }
+
+    static WidgetManagementLaunchState contextual(Set<WidgetId> renderedWidgets) {
+        return new WidgetManagementLaunchState(null, renderedWidgets);
+    }
+
+    static WidgetManagementLaunchState contextual(Set<WidgetId> renderedWidgets, WidgetId selectedWidget) {
+        Objects.requireNonNull(selectedWidget, "selectedWidget");
+        var rendered = new java.util.LinkedHashSet<>(renderedWidgets);
+        rendered.add(selectedWidget);
+        return new WidgetManagementLaunchState(selectedWidget, rendered);
+    }
 }

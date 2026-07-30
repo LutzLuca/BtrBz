@@ -23,6 +23,7 @@ public final class BookmarksWidgetDefinition {
             .supports(WidgetSession::inBazaarContainer)
             .visibility((data, config, _) -> !config.hideWhenEmpty || !data.bookmarks().isEmpty())
             .runtimeData(_ -> provider.snapshot())
+            .snapshotCopy(BookmarksWidgetData.Snapshot::detachedCopy)
             .preview(() -> new WidgetPreview<>(BookmarksWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(BookmarksWidgetView::new)
             .actionHandler(new BookmarksActionHandler(component))

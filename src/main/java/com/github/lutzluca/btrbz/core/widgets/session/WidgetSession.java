@@ -83,6 +83,20 @@ public final class WidgetSession {
         return this.sign ? "sign" : DEFAULT_PLACEMENT_PROFILE;
     }
 
+    public WidgetSession detachedCopy() {
+        return new WidgetSession(
+            this.id,
+            this.hud,
+            this.sign,
+            this.orderBook,
+            this.menu,
+            this.previousMenu,
+            this.product.map(WidgetProductContext::detachedCopy),
+            this.side,
+            this.trackedRevision
+        );
+    }
+
     private static Optional<String> productId(Optional<WidgetProductContext> product) {
         return product.map(WidgetProductContext::productId);
     }

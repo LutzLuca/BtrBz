@@ -29,6 +29,7 @@ import io.wispforest.owo.ui.core.Surface;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -50,6 +51,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final double SCALE_STEP = 0.01;
 
     private final @Nullable Screen previousScreen;
+    private final @Nullable AbstractContainerScreen<?> backgroundScreen;
+    private final @Nullable Set<WidgetId> contextualWidgets;
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
     private final WidgetManagerEditSession editSession;
@@ -74,7 +77,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         WidgetRegistry registry,
         WidgetStateStore stateStore
     ) {
-        this(previousScreen, registry, stateStore, WidgetManagementLaunchState.empty());
+        this(previousScreen, registry, stateStore, WidgetManagementLaunchState.empty(), null);
     }
 
     public WidgetManagementScreen(
@@ -87,7 +90,39 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             previousScreen,
             registry,
             stateStore,
-            WidgetManagementLaunchState.configure(initiallySelectedWidget)
+            WidgetManagementLaunchState.configure(initiallySelectedWidget),
+            null
+        );
+    }
+
+    public WidgetManagementScreen(
+        @Nullable Screen previousScreen,
+        WidgetRegistry registry,
+        WidgetStateStore stateStore,
+        WidgetManagementContext context
+    ) {
+        this(
+            previousScreen,
+            registry,
+            stateStore,
+            WidgetManagementLaunchState.contextual(context.initiallyRendered()),
+            context
+        );
+    }
+
+    public WidgetManagementScreen(
+        @Nullable Screen previousScreen,
+        WidgetRegistry registry,
+        WidgetStateStore stateStore,
+        WidgetId initiallySelectedWidget,
+        WidgetManagementContext context
+    ) {
+        this(
+            previousScreen,
+            registry,
+            stateStore,
+            WidgetManagementLaunchState.contextual(context.initiallyRendered(), initiallySelectedWidget),
+            context
         );
     }
 
@@ -95,17 +130,19 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        WidgetManagementLaunchState launchState
+        WidgetManagementLaunchState launchState,
+        @Nullable WidgetManagementContext context
     ) {
         super(Component.literal("BtrBz Widgets"));
         this.previousScreen = previousScreen;
+        this.backgroundScreen = context == null ? null : context.backgroundScreen();
+        this.contextualWidgets = context == null ? null : Set.copyOf(context.frozenPreviews().keySet());
         this.registry = registry;
         this.stateStore = stateStore;
         this.editSession = new WidgetManagerEditSession(stateStore::save);
-        this.previewHost = WidgetHost.preview(
-            registry.all(),
-            stateStore
-        );
+        this.previewHost = context == null
+            ? WidgetHost.preview(registry.all(), stateStore)
+            : WidgetHost.preview(registry.all(), stateStore, context.frozenPreviews());
         if (launchState.selectedWidget() != null) {
             if (registry.find(launchState.selectedWidget()).isEmpty()) {
                 throw new IllegalArgumentException("Unknown widget: " + launchState.selectedWidget());
@@ -143,6 +180,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     Set<WidgetId> renderedWidgets() { return this.selectionState.renderedWidgets(); }
     Map<WidgetId, String> previewProfiles() { return Map.copyOf(this.previewProfiles); }
     void markDirty() { this.editSession.markDirty(); }
+    boolean hasBazaarBackground() { return this.backgroundScreen != null; }
 
     String placementProfile(WidgetDefinition<?, ?, ?> definition) {
         return this.previewProfiles.getOrDefault(
@@ -163,11 +201,17 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(this.previousScreen);
+        this.minecraft.setScreen(this.returnScreen());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        if (this.backgroundScreen != null) {
+            this.backgroundScreen.extractBackground(graphics, -10_000, -10_000, delta);
+            graphics.nextStratum();
+            this.backgroundScreen.extractContents(graphics, -10_000, -10_000, delta);
+            graphics.nextStratum();
+        }
         if (this.sidebar != null && this.sidebar.width() != this.sidebarWidth()) {
             this.sidebar.horizontalSizing(Sizing.fixed(this.sidebarWidth()));
         }
@@ -183,6 +227,13 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         );
         this.applySidebarPosition();
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
+
+    private @Nullable Screen returnScreen() {
+        if (this.backgroundScreen == null) return this.previousScreen;
+        if (this.minecraft.player == null
+            || this.minecraft.player.containerMenu != this.backgroundScreen.getMenu()) return null;
+        return this.backgroundScreen;
     }
 
     @Override
@@ -372,11 +423,20 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.sidebarScroller.scrollbarThiccness(4);
 
         this.addGlobalAppearanceControls();
-        this.sidebarContent.child(label("Widgets", 0xFFB8C0CF));
+        this.sidebarContent.child(label(
+            this.hasBazaarBackground() ? "Widgets in this Bazaar screen" : "Widgets",
+            0xFFB8C0CF
+        ));
+        if (this.hasBazaarBackground()) {
+            this.sidebarContent.child(label("Content frozen when opened", 0xFF808997));
+        }
         this.sidebarContent.child(label("R: rendered here", 0xFF808997));
         var list = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         list.gap(4);
-        this.registry.all().forEach(definition -> list.child(this.widgetRow(definition)));
+        this.registry.all().stream()
+            .filter(definition -> this.contextualWidgets == null
+                || this.contextualWidgets.contains(definition.getId()))
+            .forEach(definition -> list.child(this.widgetRow(definition)));
         this.sidebarContent.child(list);
 
         var selectedWidget = this.selectionState.selectedWidget();

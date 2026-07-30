@@ -13,7 +13,7 @@ public record WidgetProductContext(
 ) {
     public WidgetProductContext {
         Objects.requireNonNull(identity, "identity");
-        Objects.requireNonNull(displayName, "displayName");
+        displayName = Objects.requireNonNull(displayName, "displayName").copy();
         itemStack = itemStack.map(ItemStack::copy);
     }
 
@@ -22,7 +22,14 @@ public record WidgetProductContext(
         return this.itemStack.map(ItemStack::copy);
     }
 
+    @Override
+    public Component displayName() { return this.displayName.copy(); }
+
     public String productId() {
         return this.identity.bazaarProductId().orElse(this.identity.strippedName());
+    }
+
+    public WidgetProductContext detachedCopy() {
+        return new WidgetProductContext(this.identity, this.displayName.copy(), this.itemStack());
     }
 }

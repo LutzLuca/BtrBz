@@ -5,15 +5,30 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.api.ButtonOption;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 
 @DisplayName("YACL widget category")
 class WidgetConfigCategoryTest {
+    @Test
+    @DisplayName("provides config-only controls for the widget manager launcher")
+    void containsWidgetManagerControls() {
+        var group = ConfigScreen.widgetManagerGroup(new WidgetsConfig());
+
+        assertEquals("Widget Manager", group.name().getString());
+        assertEquals(3, group.options().size());
+        assertFalse(group.options().getFirst() instanceof ButtonOption);
+        assertInstanceOf(ButtonOption.class, group.options().get(1));
+        assertInstanceOf(ButtonOption.class, group.options().getLast());
+    }
+
     @Test
     @DisplayName("derives one manager launcher per registry entry without widget bindings")
     void containsOnlyManagerLaunchers() {
@@ -36,6 +51,7 @@ class WidgetConfigCategoryTest {
         return WidgetDefinition.<Object, TestConfig, Void>builder(WidgetId.parse(id), name)
             .config(TestConfig::new, TestConfig::new, value -> value.frame, (current, defaults) -> {})
             .runtimeData(_ -> new Object())
+            .snapshotCopy(_ -> new Object())
             .preview(() -> null)
             .viewFactory(() -> null)
             .build();

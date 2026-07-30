@@ -19,12 +19,16 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOwner;
+import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin implements WidgetHostOwner {
     @Unique
     private WidgetHost btrbz$host;
+    @Unique
+    private WidgetManagerLauncher btrbz$managerLauncher;
 
     @Override
     public WidgetHost btrbz$widgetHost() {
@@ -32,23 +36,39 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner {
         return this.btrbz$host;
     }
 
+    @Unique
+    private WidgetManagerLauncher btrbz$managerLauncher() {
+        if (this.btrbz$managerLauncher == null) {
+            this.btrbz$managerLauncher = new WidgetManagerLauncher(BtrBz.widgetRuntime());
+        }
+        return this.btrbz$managerLauncher;
+    }
+
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
         if (this.btrbz$host != null) this.btrbz$host.dispose();
+        if (this.btrbz$managerLauncher != null) this.btrbz$managerLauncher.dispose();
     }
 
     @Inject(method = "removed", at = @At("HEAD"), require = 0)
     private void onRemoved(CallbackInfo ci) {
         if (this.btrbz$host != null) this.btrbz$host.dispose();
+        if (this.btrbz$managerLauncher != null) this.btrbz$managerLauncher.dispose();
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         var client = Minecraft.getInstance();
+        var canvas = new WidgetCanvas(
+            0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
+        );
         this.btrbz$widgetHost().render(
             graphics, mouseX, mouseY, delta,
-            new WidgetCanvas(0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()),
+            canvas,
             WidgetHostOptions.runtime(true), client.screen
+        );
+        this.btrbz$managerLauncher().render(
+            graphics, mouseX, mouseY, delta, canvas, (Screen) (Object) this
         );
     }
 
@@ -96,21 +116,32 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (this.btrbz$widgetHost().mouseClicked(event, doubleClick)) {
+        if (this.btrbz$managerLauncher().mouseClicked(event)
+            || this.btrbz$widgetHost().mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (this.btrbz$widgetHost().mouseReleased(event)) {
+        var client = Minecraft.getInstance();
+        var canvas = new WidgetCanvas(
+            0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
+        );
+        if (this.btrbz$managerLauncher().mouseReleased(event, canvas, (Screen) (Object) this)
+            || this.btrbz$widgetHost().mouseReleased(event)) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
     private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
-        if (this.btrbz$widgetHost().mouseDragged(event, deltaX, deltaY)) {
+        var client = Minecraft.getInstance();
+        var canvas = new WidgetCanvas(
+            0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
+        );
+        if (this.btrbz$managerLauncher().mouseDragged(event, canvas)
+            || this.btrbz$widgetHost().mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);
         }
     }

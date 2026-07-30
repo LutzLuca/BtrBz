@@ -21,6 +21,7 @@ public final class DailyLimitWidgetDefinition {
                 config -> config.frame, DailyLimitWidgetConfig::resetPreferences)
             .supports(session -> session.inAnyBazaarMenu(BazaarMenuType.Main, BazaarMenuType.ItemGroup))
             .runtimeData(_ -> data.snapshot())
+            .snapshotCopy(DailyLimitWidgetData.Snapshot::detachedCopy)
             .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(DailyLimitWidgetView::new)
             .settingsPanel(DailyLimitWidgetSettings::create)

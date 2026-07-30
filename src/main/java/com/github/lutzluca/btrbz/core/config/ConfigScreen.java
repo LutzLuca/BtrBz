@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 
 public class ConfigScreen {
 
@@ -59,6 +60,7 @@ public class ConfigScreen {
         var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
             .tooltip(Component.literal("Configure BtrBz's production widgets."));
+        widgetBuilder.group(widgetManagerGroup(config.widgets));
         widgetGroups(BtrBz.widgetRuntime().registry()).forEach(widgetBuilder::group);
         var widgets = widgetBuilder.build();
 
@@ -112,6 +114,41 @@ public class ConfigScreen {
         return registry.all().stream()
             .map(definition -> widgetGroup(definition.getDisplayName(), definition.getId()))
             .toList();
+    }
+
+    static OptionGroup widgetManagerGroup(WidgetsConfig config) {
+        var showLauncher = Option.<Boolean>createBuilder()
+            .name(Component.literal("Show Widget Manager Button in Bazaar"))
+            .description(createDescription(
+                "Show the draggable quick-access button in Bazaar screens. This does not disable the widget manager."
+            ))
+            .binding(true, () -> config.managerLauncherVisible, value -> config.managerLauncherVisible = value)
+            .controller(ConfigScreen::createBooleanController)
+            .build();
+        var openManager = ButtonOption.createBuilder()
+            .name(Component.literal("Open Widget Manager"))
+            .text(Component.literal("Open"))
+            .description(createDescription(
+                "Open the widget manager without using the Bazaar quick-access button."
+            ))
+            .action(screen -> Minecraft.getInstance().setScreen(
+                BtrBz.widgetRuntime().createManagementScreen(screen)
+            ))
+            .build();
+        var resetPosition = ButtonOption.createBuilder()
+            .name(Component.literal("Reset Widget Manager Button Position"))
+            .text(Component.literal("Reset"))
+            .description(createDescription(
+                "Restore the Bazaar quick-access button to its default position."
+            ))
+            .action(_ -> BtrBz.widgetRuntime().stateStore().resetManagerLauncherPosition(true))
+            .build();
+        return OptionGroup.createBuilder()
+            .name(Component.literal("Widget Manager"))
+            .option(showLauncher)
+            .option(openManager)
+            .option(resetPosition)
+            .build();
     }
 
     private static OptionGroup widgetGroup(String name, WidgetId id) {

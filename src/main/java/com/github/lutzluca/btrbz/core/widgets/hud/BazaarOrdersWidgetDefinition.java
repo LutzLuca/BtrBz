@@ -25,6 +25,7 @@ public final class BazaarOrdersWidgetDefinition {
             .visibility((data, config, _) -> !config.hideWhenEmpty
                 || !data.orders().isEmpty() || data.filledOrderCount() > 0)
             .runtimeData(_ -> provider.snapshot())
+            .snapshotCopy(BazaarWidgetViewData.OrdersData::detachedCopy)
             .preview(() -> new WidgetPreview<>(OrdersWidgetData.preview(), WidgetPreviewSessions.hud(), "default"))
             .viewFactory(BazaarOrdersWidgetView::new)
             .settingsPanel(BazaarOrdersWidgetSettings::create)

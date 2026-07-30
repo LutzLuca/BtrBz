@@ -21,6 +21,7 @@ public final class OrderBookWidgetDefinition {
                 config -> config.frame, OrderBookWidgetConfig::resetPreferences)
             .supports(session -> session.inOrderBook() && session.product().isPresent())
             .runtimeData(provider::snapshot)
+            .snapshotCopy(OrderBookWidgetData.Snapshot::detachedCopy)
             .preview(() -> {
                 var data = OrderBookWidgetData.preview();
                 return new WidgetPreview<>(data, WidgetPreviewSessions.orderBook(data), "default");
