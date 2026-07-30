@@ -64,5 +64,9 @@ public final class PriceDifferenceWidgetData {
         public long total() {
             return this.perItem * this.quantity;
         }
+
+        public Snapshot detachedCopy() {
+            return new Snapshot(this.productName, this.itemStack(), this.perItem, this.quantity);
+        }
     }
 }

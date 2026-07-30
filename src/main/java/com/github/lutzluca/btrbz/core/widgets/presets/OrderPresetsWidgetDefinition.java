@@ -22,6 +22,7 @@ public final class OrderPresetsWidgetDefinition {
             .supports(session -> session.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
                 || session.inSign() && session.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume))
             .runtimeData(_ -> data.snapshot())
+            .snapshotCopy(OrderPresetsWidgetData.Snapshot::detachedCopy)
             .preview(() -> new WidgetPreview<>(OrderPresetsWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.BuyOrderSetupVolume), "default"))
             .viewFactory(OrderPresetsWidgetView::new)
             .actionHandler(new OrderPresetsActionHandler(component))

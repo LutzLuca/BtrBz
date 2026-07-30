@@ -9,16 +9,21 @@ import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 /** Serialized aggregate; each concrete widget owns its persisted config type. */
 public final class WidgetsConfig {
     public static final int DEFAULT_BACKGROUND = 0x840C0C0C;
+    public static final WidgetPlacement DEFAULT_MANAGER_LAUNCHER_POSITION =
+        WidgetPlacement.topLeft(0.91, 0.05);
 
     public double globalFineTuneScale = 1.0;
     public int globalBackground = DEFAULT_BACKGROUND;
     public int managerPanelWidth = 210;
     public int managerPanelHeightPercent = 75;
     public boolean runtimeDragging = false;
+    public boolean managerLauncherVisible = true;
+    public WidgetPlacement managerLauncherPosition = DEFAULT_MANAGER_LAUNCHER_POSITION;
 
     public BazaarOrdersWidgetConfig bazaarOrders = new BazaarOrdersWidgetConfig();
     public TrackedOrdersWidgetConfig trackedOrders = new TrackedOrdersWidgetConfig();

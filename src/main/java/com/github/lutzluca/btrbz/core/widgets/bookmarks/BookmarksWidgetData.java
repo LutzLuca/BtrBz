@@ -66,7 +66,9 @@ public final class BookmarksWidgetData {
         public Bookmark {
             Objects.requireNonNull(productId, "productId");
             Objects.requireNonNull(productName, "productName");
-            Objects.requireNonNull(formattedProductName, "formattedProductName");
+            formattedProductName = Objects.requireNonNull(
+                formattedProductName, "formattedProductName"
+            ).copy();
             itemStack = itemStack.copy();
         }
 
@@ -79,16 +81,34 @@ public final class BookmarksWidgetData {
             return this.itemStack.copy();
         }
 
+        @Override
+        public Component formattedProductName() { return this.formattedProductName.copy(); }
+
         public Component formattedProductName(boolean abbreviateEnchanted) {
             if (!abbreviateEnchanted) return this.formattedProductName.copy();
             return Component.literal(BazaarHudOptions.productName(this.productName, abbreviateEnchanted))
                 .setStyle(this.formattedProductName.getStyle());
+        }
+
+        public Bookmark detachedCopy() {
+            return new Bookmark(
+                this.productId,
+                this.productName,
+                this.formattedProductName.copy(),
+                this.itemStack(),
+                this.buyOrder,
+                this.sellOrder
+            );
         }
     }
 
     public record Snapshot(List<Bookmark> bookmarks) {
         public Snapshot {
             bookmarks = List.copyOf(bookmarks);
+        }
+
+        public Snapshot detachedCopy() {
+            return new Snapshot(this.bookmarks.stream().map(Bookmark::detachedCopy).toList());
         }
     }
 }

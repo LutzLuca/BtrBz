@@ -54,6 +54,22 @@ public final class WidgetStateStore {
         this.config().runtimeDragging = enabled;
         if (persist) this.saveAction.run();
     }
+    public boolean managerLauncherVisible() { return this.config().managerLauncherVisible; }
+    public void setManagerLauncherVisible(boolean visible, boolean persist) {
+        this.config().managerLauncherVisible = visible;
+        if (persist) this.saveAction.run();
+    }
+    public WidgetPlacement managerLauncherPosition() {
+        var placement = this.config().managerLauncherPosition;
+        return placement == null ? WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION : placement;
+    }
+    public void setManagerLauncherPosition(WidgetPlacement placement, boolean persist) {
+        this.config().managerLauncherPosition = Objects.requireNonNull(placement, "placement");
+        if (persist) this.saveAction.run();
+    }
+    public void resetManagerLauncherPosition(boolean persist) {
+        this.setManagerLauncherPosition(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, persist);
+    }
     public WidgetPlacement placement(WidgetDefinition<?, ?, ?> definition, String profile) {
         var frame = definition.frame();
         return frame.placements.getOrDefault(profile, frame.placements.getOrDefault(

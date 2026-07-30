@@ -95,6 +95,10 @@ public final class BazaarWidgetViewData {
         public OrdersData(List<Order> orders, int filledOrderCount) {
             this(orders, StatusCounts.from(orders), filledOrderCount);
         }
+
+        public OrdersData detachedCopy() {
+            return new OrdersData(this.orders.stream().map(Order::detachedCopy).toList(), this.filledOrderCount);
+        }
     }
 
     public record StatusCounts(int top, int matched, int undercut, int unknown) {
@@ -137,7 +141,7 @@ public final class BazaarWidgetViewData {
             Objects.requireNonNull(id, "id");
             Objects.requireNonNull(side, "side");
             Objects.requireNonNull(itemName, "itemName");
-            Objects.requireNonNull(formattedItemName, "formattedItemName");
+            formattedItemName = Objects.requireNonNull(formattedItemName, "formattedItemName").copy();
             itemStack = itemStack.map(ItemStack::copy);
             if (totalAmount < 0) throw new IllegalArgumentException("totalAmount must be non-negative");
             liveProgress = Objects.requireNonNull(liveProgress, "liveProgress");
@@ -148,7 +152,7 @@ public final class BazaarWidgetViewData {
             });
             Objects.requireNonNull(status, "status");
             marketInfo = Objects.requireNonNull(marketInfo, "marketInfo");
-            tooltipLines = List.copyOf(tooltipLines);
+            tooltipLines = tooltipLines.stream().<Component>map(Component::copy).toList();
         }
 
         public Order(
@@ -192,6 +196,14 @@ public final class BazaarWidgetViewData {
             return this.itemStack.map(ItemStack::copy);
         }
 
+        @Override
+        public Component formattedItemName() { return this.formattedItemName.copy(); }
+
+        @Override
+        public List<Component> tooltipLines() {
+            return this.tooltipLines.stream().<Component>map(Component::copy).toList();
+        }
+
         /** The stable volume originally placed. Live remaining volume belongs to {@link FillProgress}. */
         public int amount() {
             return this.totalAmount;
@@ -213,6 +225,23 @@ public final class BazaarWidgetViewData {
             if (!abbreviateEnchanted) return this.formattedItemName.copy();
             return Component.literal(BazaarHudOptions.productName(this.itemName, abbreviateEnchanted))
                 .setStyle(this.formattedItemName.getStyle());
+        }
+
+        public Order detachedCopy() {
+            return new Order(
+                this.id,
+                this.side,
+                this.itemName,
+                this.formattedItemName.copy(),
+                this.itemStack(),
+                this.unitPrice,
+                this.totalAmount,
+                this.liveProgress,
+                this.status,
+                this.marketInfo,
+                this.tooltipLines.stream().<Component>map(Component::copy).toList(),
+                this.creationSequence
+            );
         }
     }
 

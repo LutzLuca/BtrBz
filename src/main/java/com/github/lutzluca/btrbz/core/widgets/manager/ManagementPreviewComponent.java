@@ -40,7 +40,13 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         this.canvas = new WidgetCanvas(this.x, this.y, this.width, this.height);
 
-        graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, 0x660B0D12);
+        graphics.fill(
+            this.x,
+            this.y,
+            this.x + this.width,
+            this.y + this.height,
+            this.screen.hasBazaarBackground() ? 0x00000000 : 0x660B0D12
+        );
         this.lastResults = this.host.render(
             graphics,
             mouseX,

@@ -105,5 +105,19 @@ public final class OrderBookWidgetData {
         public Optional<ItemStack> itemStack() {
             return this.itemStack.map(ItemStack::copy);
         }
+
+        public Snapshot detachedCopy() {
+            return new Snapshot(
+                this.itemName,
+                this.itemStack(),
+                this.buyOffers.stream().map(entry -> new Entry(
+                    entry.side(), entry.price(), entry.quantity(), entry.orders()
+                )).toList(),
+                this.sellOffers.stream().map(entry -> new Entry(
+                    entry.side(), entry.price(), entry.quantity(), entry.orders()
+                )).toList(),
+                this.appropriateSide
+            );
+        }
     }
 }

@@ -2,13 +2,20 @@ package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
+import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementContext;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.jetbrains.annotations.Nullable;
+import lombok.extern.slf4j.Slf4j;
 
 /** Application facade over BtrBz's finalized production widget registry. */
+@Slf4j
 public final class WidgetRuntime {
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
@@ -51,13 +58,57 @@ public final class WidgetRuntime {
     }
 
     public WidgetManagementScreen createManagementScreen(@Nullable Screen previousScreen) {
-        return new WidgetManagementScreen(previousScreen, this.registry, this.stateStore);
+        var context = this.captureManagementContext(previousScreen);
+        return context == null
+            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore)
+            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, context);
     }
 
     public WidgetManagementScreen createManagementScreenForWidget(
         @Nullable Screen previousScreen,
         WidgetId widgetId
     ) {
-        return new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, widgetId);
+        var context = this.captureManagementContext(previousScreen);
+        return context == null
+            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, widgetId)
+            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, widgetId, context);
+    }
+
+    public boolean canOpenContextualManager(@Nullable Screen screen) {
+        return screen instanceof AbstractContainerScreen<?>
+            && this.sessionProvider.current(screen).inBazaarContainer();
+    }
+
+    private @Nullable WidgetManagementContext captureManagementContext(@Nullable Screen screen) {
+        if (!(screen instanceof AbstractContainerScreen<?> container)) return null;
+        var session = this.sessionProvider.current(screen);
+        if (!session.inBazaarContainer()) return null;
+        var frozenSession = session.detachedCopy();
+
+        var previews = new LinkedHashMap<WidgetId, WidgetPreview<?>>();
+        var rendered = new LinkedHashSet<WidgetId>();
+        for (var definition : this.registry.all()) {
+            if (!definition.supports(frozenSession)) continue;
+            try {
+                var preview = capture(definition, frozenSession);
+                previews.put(definition.getId(), preview);
+                if (definition.frame().enabled && visible(definition, preview)) {
+                    rendered.add(definition.getId());
+                }
+            } catch (RuntimeException exception) {
+                log.warn("Failed to freeze widget {} for management", definition.getId(), exception);
+            }
+        }
+        return new WidgetManagementContext(container, previews, rendered);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static WidgetPreview<?> capture(WidgetDefinition definition, WidgetSession session) {
+        return definition.captureRuntimePreview(session);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static boolean visible(WidgetDefinition definition, WidgetPreview preview) {
+        return definition.isVisible(preview);
     }
 }
