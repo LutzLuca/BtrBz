@@ -29,7 +29,6 @@ import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import static java.util.Locale.ROOT;
 
 public final class Utils {
 
@@ -196,7 +195,7 @@ public final class Utils {
             /*String serialized = color.serialize();
             if (!serialized.startsWith("#")) {
                 try {
-                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(ROOT)));
+                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(Locale.ROOT)));
                 } catch (IllegalArgumentException ignored) {
                     //ignore unknown color names
                 }
@@ -250,6 +249,32 @@ public final class Utils {
             }
         }
         return removed;
+    }
+
+    public static <T> boolean moveMatching(List<T> items, Predicate<? super T> predicate, int targetIndex) {
+        if (targetIndex < 0 || targetIndex > items.size()) {
+            return false;
+        }
+
+        int sourceIndex = -1;
+        for (int i = 0; i < items.size(); i++) {
+            if (predicate.test(items.get(i))) {
+                sourceIndex = i;
+                break;
+            }
+        }
+        if (sourceIndex < 0) {
+            return false;
+        }
+
+        var item = items.remove(sourceIndex);
+        int insertionIndex = Math.min(targetIndex, items.size());
+        items.add(insertionIndex, item);
+        return sourceIndex != insertionIndex;
+    }
+
+    public static <T> boolean removeMatching(List<T> items, Predicate<? super T> predicate) {
+        return items.removeIf(predicate);
     }
 
     public static <T> Optional<T> getFirst(List<T> list) {

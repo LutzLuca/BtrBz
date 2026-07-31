@@ -10,6 +10,7 @@ import dev.isxander.yacl3.api.OptionGroup;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OrderPresetsConfig {
@@ -20,7 +21,7 @@ public class OrderPresetsConfig {
     public boolean enableOnContainer = true;
     public boolean enableOnSign = true;
     public boolean hideUnaffordablePresets = false;
-    public List<Integer> presets = List.of();
+    public List<Integer> presets = new ArrayList<>();
 
     public Builder<Boolean> createEnableOption() {
         return Option

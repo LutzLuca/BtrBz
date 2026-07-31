@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -28,6 +29,10 @@ public final class ScreenInfoHelper {
     private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
     private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
     private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
+    private final ScreenInfo inventoryOwnerInfo = new ScreenInfo(null);
+    private boolean hasInventoryOwner = false;
+    private long screenTransitionVersion = 0;
+    private long dispatchedScreenTransitionVersion = 0;
     
     @Getter
     private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
@@ -70,9 +75,19 @@ public final class ScreenInfoHelper {
         INSTANCE.screenCloseListenerEntries.add(info);
     }
 
+    public boolean isContainerActive(int containerId) {
+        var player = Minecraft.getInstance().player;
+        return player != null && player.containerMenu.containerId == containerId;
+    }
+
     private void setupInventoryWatcher() {
+        this.inventoryWatcher.setOnOpen(_ -> {
+            this.inventoryOwnerInfo.setScreen(this.currInfo.getScreen());
+            this.hasInventoryOwner = true;
+        });
+
         this.inventoryWatcher.setOnLoaded(inventory -> {
-            var screenInfo = this.currInfo;
+            var screenInfo = this.hasInventoryOwner ? this.inventoryOwnerInfo : this.currInfo;
 
             screenInfo.markInventoryLoaded();
             log.trace("Inventory loaded: '{}'", inventory.title);
@@ -92,7 +107,12 @@ public final class ScreenInfoHelper {
         });
 
         this.inventoryWatcher.setOnClose(title -> {
-            var screenInfo = this.prevInfo;
+            if (!this.hasInventoryOwner) {
+                return;
+            }
+
+            this.hasInventoryOwner = false;
+            var screenInfo = this.inventoryOwnerInfo;
 
             log.trace("Inventory closed: '{}'", title);
 
@@ -117,14 +137,39 @@ public final class ScreenInfoHelper {
             return;
         }
 
+        this.closeInventoryForTransition(screen);
+
         var next = this.prevInfo;
         this.prevInfo = this.currInfo;
         this.currInfo = next;
 
         this.currInfo.setScreen(screen);
+        this.screenTransitionVersion++;
+    }
+
+    private void closeInventoryForTransition(@Nullable Screen nextScreen) {
+        if (this.inventoryWatcher.getCurrInv() == null) {
+            return;
+        }
+
+        var player = Minecraft.getInstance().player;
+        if (
+            nextScreen != null
+                && player != null
+                && this.inventoryWatcher.isTrackingContainer(player.containerMenu.containerId)
+        ) {
+            return;
+        }
+
+        this.inventoryWatcher.close();
     }
 
     public void fireScreenSwitchCallbacks() {
+        if (this.dispatchedScreenTransitionVersion == this.screenTransitionVersion) {
+            return;
+        }
+
+        this.dispatchedScreenTransitionVersion = this.screenTransitionVersion;
         var screenInfo = this.currInfo;
 
         this.switchListeners.forEach(listener ->

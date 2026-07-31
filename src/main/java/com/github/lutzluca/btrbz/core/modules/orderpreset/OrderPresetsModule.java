@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.core.modules.Module;
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 
@@ -17,6 +19,7 @@ import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
+    private static final int CUSTOM_AMOUNT_SLOT = 16;
 
     private ListWidget list;
     private int currMaxVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
@@ -39,6 +43,13 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     private int pendingVolume = -1;
     private boolean pendingPreset = false;
     private boolean inTransaction = false;
+    private final BazaarData bazaarData;
+    private final ProductInfoProvider productInfoProvider;
+
+    public OrderPresetsModule(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
+        this.bazaarData = bazaarData;
+        this.productInfoProvider = productInfoProvider;
+    }
 
     @Override
     public void onLoad() {
@@ -50,7 +61,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
             if (curr.inMenu(BazaarMenuType.BuyOrderSetupVolume) && prev.inMenu(BazaarMenuType.Item)) {
                 this.currMaxVolume = curr
-                    .getItemStack(16)
+                    .getItemStack(CUSTOM_AMOUNT_SLOT)
                     .flatMap(this::getMaxVolume)
                     .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
 
@@ -123,7 +134,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
                     return;
                 }
 
-                inventory.getItem(16).flatMap(this::getMaxVolume).ifPresent(maxVolume -> {
+                inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::getMaxVolume).ifPresent(maxVolume -> {
                     if (this.currMaxVolume != maxVolume) {
                         this.currMaxVolume = maxVolume;
                         this.rebuildList();
@@ -144,7 +155,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
     }
 
     private @Nullable IndexedProduct getCurrentProduct() {
-        return this.context().productInfoProvider().getOpenedProduct();
+        return this.productInfoProvider.getOpenedProduct();
     }
 
     private boolean isOrderFlowSignScreen(ScreenInfo curr, ScreenInfo prev) {
@@ -159,13 +170,22 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             return;
         }
 
+        List<Renderable> entries = this.currentPresets()
+            .stream()
+            .map(this::createPresetEntry)
+            .map(Renderable.class::cast)
+            .toList();
+
+        this.list.setItems(entries);
+    }
+
+    public List<PresetState> currentPresets() {
         var purse = GameUtils.getPurse();
         var pricePerUnit = Optional
             .ofNullable(this.getCurrentProduct())
             .map(ProductIdentity::fromIndex)
-            .flatMap(this.context().bazaarData()::highestBuyOrderPrice)
+            .flatMap(this.bazaarData::highestBuyOrderPrice)
             .map(price -> price + .1);
-        var priceAvailable = pricePerUnit.isPresent();
 
         log.debug(
             "Rebuilding Order Preset list: maxVolume={}, pricePerUnit={}, purse={}",
@@ -174,100 +194,124 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             purse
         );
 
-        List<OrderPreset> presets = this.configState.presets
-            .stream()
-            .filter(presetVolume -> presetVolume <= this.currMaxVolume)
-            .sorted()
-            .map(OrderPreset.Volume::new)
-            .collect(Collectors.toCollection(ArrayList::new));
-
-        presets.addFirst(new OrderPreset.Max());
-
+        OptionalInt clipboardVolume = OptionalInt.empty();
         var clipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
         if (!clipboard.isBlank()) {
-            Utils.parseUsFormattedNumber(clipboard).map(Number::intValue).onSuccess(clipboardVolume -> {
-                if (clipboardVolume > 0 && clipboardVolume <= this.currMaxVolume) {
-                    presets.add(1, new OrderPreset.Clipboard(clipboardVolume));
-                }
-            });
+            clipboardVolume = Utils
+                .parseUsFormattedNumber(clipboard)
+                .map(Number::intValue)
+                .filter(volume -> volume > 0 && volume <= this.currMaxVolume)
+                .map(OptionalInt::of)
+                .getOrElse(OptionalInt.empty());
         }
 
-        List<Renderable> entries = presets
-            .stream()
-            .map(preset -> this.createPresetEntry(preset, priceAvailable, pricePerUnit, purse))
-            .flatMap(Optional::stream)
-            .collect(Collectors.toList());
-
-        this.list.setItems(entries);
+        return resolvePresets(
+            this.configState.presets,
+            this.currMaxVolume,
+            clipboardVolume,
+            pricePerUnit,
+            purse,
+            this.configState.hideUnaffordablePresets
+        );
     }
 
-    private Optional<OrderPreset.RenderableEntry> createPresetEntry(
+    public static List<PresetState> resolvePresets(
+        List<Integer> configuredVolumes,
+        int maxVolume,
+        OptionalInt clipboardVolume,
+        Optional<Double> pricePerUnit,
+        Optional<Double> purse,
+        boolean hideUnaffordable
+    ) {
+        List<OrderPreset> presets = configuredVolumes
+            .stream()
+            .filter(volume -> volume <= maxVolume)
+            .sorted()
+            .map(volume -> (OrderPreset) new OrderPreset.Volume(volume))
+            .collect(Collectors.toCollection(ArrayList::new));
+        
+        presets.addFirst(new OrderPreset.Max());
+        if (clipboardVolume.isPresent()) {
+            presets.add(1, new OrderPreset.Clipboard(clipboardVolume.getAsInt()));
+        }
+
+        return presets.stream()
+            .map(preset -> switch (preset) {
+                case OrderPreset.Max _ -> resolveMaxPreset(preset, maxVolume, pricePerUnit, purse);
+                case OrderPreset.Clipboard(int amount) -> resolveAmountPreset(preset, amount, pricePerUnit, purse);
+                case OrderPreset.Volume(int amount) -> resolveAmountPreset(preset, amount, pricePerUnit, purse);
+            })
+            .filter(state -> !hideUnaffordable || !(state instanceof PresetState.Unaffordable))
+            .toList();
+    }
+
+    private static PresetState resolveAmountPreset(
         OrderPreset preset,
-        boolean priceAvailable,
+        int amount,
         Optional<Double> pricePerUnit,
         Optional<Double> purse
     ) {
-        return switch (preset) {
-            case OrderPreset.Max _ -> this.createMaxEntry(preset, priceAvailable, pricePerUnit, purse);
-            case OrderPreset.Clipboard clipboardPreset -> this.createAmountEntry(
-                preset,
-                clipboardPreset.amount(),
-                priceAvailable,
-                pricePerUnit,
-                purse,
-                List.of(Component.literal("From Clipboard"))
-            );
-            case OrderPreset.Volume(int amount) -> this.createAmountEntry(
-                preset,
-                amount,
-                priceAvailable,
-                pricePerUnit,
-                purse,
-                List.of()
-            );
-        };
+        if (pricePerUnit.isEmpty()) {
+            return new PresetState.Available(preset, amount);
+        }
+        if (purse.isEmpty()) {
+            return new PresetState.PurseUnavailable(preset);
+        }
+        if (amount * pricePerUnit.get() > purse.get()) {
+            return new PresetState.InsufficientCoins(preset);
+        }
+
+        return new PresetState.Available(preset, amount);
     }
 
-    private Optional<OrderPreset.RenderableEntry> createAmountEntry(
+    private static PresetState resolveMaxPreset(
         OrderPreset preset,
-        int amount,
-        boolean priceAvailable,
+        int maxVolume,
         Optional<Double> pricePerUnit,
-        Optional<Double> purse,
-        List<Component> affordableTooltipLines
+        Optional<Double> purse
     ) {
-        var entry = new OrderPreset.RenderableEntry(preset);
-
-        if (!priceAvailable) {
-            if (!affordableTooltipLines.isEmpty()) {
-                entry.setTooltipLines(affordableTooltipLines);
-            }
-
-            return Optional.of(entry);
+        if (pricePerUnit.isEmpty()) {
+            return new PresetState.PriceUnavailable(preset);
         }
-
         if (purse.isEmpty()) {
-            entry.setDisabled(true);
-            entry.setTooltipLines(List.of(Component.literal("Unable to determine purse amount")));
-            return Optional.of(entry);
+            return new PresetState.PurseUnavailable(preset);
         }
 
-        boolean canAfford = amount * pricePerUnit.get() <= purse.get();
-        if (!canAfford) {
-            if (this.configState.hideUnaffordablePresets) {
-                return Optional.empty();
-            }
-
-            entry.setDisabled(true);
-            entry.setTooltipLines(List.of(Component.literal("Insufficient coins")));
-            return Optional.of(entry);
+        int maxVol = calculateMaxVolume(purse.get(), pricePerUnit.get(), maxVolume);
+        if (maxVol == 0) {
+            return new PresetState.CannotAffordSingleItem(
+                preset,
+                pricePerUnit.get() - purse.get()
+            );
         }
+        return new PresetState.Available(preset, maxVol);
+    }
 
-        if (!affordableTooltipLines.isEmpty()) {
-            entry.setTooltipLines(affordableTooltipLines);
-        }
+    private OrderPreset.RenderableEntry createPresetEntry(PresetState state) {
+        List<Component> tooltipLines = switch (state) {
+            case PresetState.Available(OrderPreset.Max _, int volume) -> List.of(Component.literal(
+                Utils.formatDecimal(volume, 0, true) + " items"
+            ));
+            case PresetState.Available(OrderPreset.Clipboard _, _) -> List.of(Component.literal("From Clipboard"));
+            case PresetState.Available _ -> List.of();
+            case PresetState.PriceUnavailable _ -> List.of(Component.literal(
+                "Unable to determine price information"
+            ));
+            case PresetState.PurseUnavailable _ -> List.of(Component.literal(
+                "Unable to determine purse amount"
+            ));
+            case PresetState.InsufficientCoins _ -> List.of(Component.literal("Insufficient coins"));
+            case PresetState.CannotAffordSingleItem(_, double missingCoins) -> List.of(
+                Component.literal("Missing " + Utils.formatCompact(missingCoins, 1) + " coins"),
+                Component.literal("to buy one item")
+            );
+        };
 
-        return Optional.of(entry);
+        return new OrderPreset.RenderableEntry(
+            state.preset(),
+            state instanceof PresetState.Unavailable,
+            tooltipLines
+        );
     }
 
     private Optional<Integer> getMaxVolume(@NotNull ItemStack item) {
@@ -367,7 +411,7 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
             .onItemClick((self, item, idx) -> {
                 var preset = (OrderPreset.RenderableEntry) item;
                 if (!preset.isDisabled()) {
-                    this.handlePresetClick(preset.getPreset());
+                    this.applyPreset(preset.getPreset());
                 }
             }).onDragEnd((self, pos) -> this.savePosition(
                 pos,
@@ -393,30 +437,26 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
         };
     }
 
-    private void handlePresetClick(OrderPreset preset) {
+    public boolean applyPreset(OrderPreset preset) {
         log.debug("Handle preset click: {}", preset);
 
         int volume = switch (preset) {
             case OrderPreset.Max _ -> {
                 var product = this.getCurrentProduct();
                 if (product == null) {
-                    log.debug("Cannot calculate MAX: product unavailable");
                     yield 0;
                 }
 
-                var price = this.context()
-                    .bazaarData()
+                var price = this.bazaarData
                     .highestBuyOrderPrice(ProductIdentity.fromIndex(product))
-                    .map(currPrice -> currPrice + 0.1);
-
+                    .map(currentPrice -> currentPrice + 0.1);
                 if (price.isEmpty()) {
-                    log.debug("Cannot calculate MAX: price unavailable");
                     yield 0;
                 }
 
                 yield GameUtils
                     .getPurse()
-                    .map(purse -> this.calculateMaxVolume(purse, price.get()))
+                    .map(purse -> calculateMaxVolume(purse, price.get(), this.currMaxVolume))
                     .orElse(0);
             }
             case OrderPreset.Clipboard clipboardPreset -> clipboardPreset.amount();
@@ -425,14 +465,21 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         if (volume == 0) {
             log.debug("Clicked preset resolved to a volume of 0 which is invalid");
-            return;
+            return false;
         }
 
         var client = Minecraft.getInstance();
         var player = client.player;
         var interactionManager = client.gameMode;
         if (player == null || interactionManager == null) {
-            return;
+            return false;
+        }
+
+        var currInfo = ScreenInfoHelper.get().getCurrInfo();
+        var screen = currInfo.getScreen();
+        var containerScreen = currInfo.getGenericContainerScreen();
+        if (!(screen instanceof SignEditScreen) && containerScreen.isEmpty()) {
+            return false;
         }
 
         this.pendingPreset = true;
@@ -440,66 +487,49 @@ public class OrderPresetsModule extends Module<OrderPresetsConfig> {
 
         log.debug("Preset click processed: volume={}", volume);
 
-        var currInfo = ScreenInfoHelper.get().getCurrInfo();
-        if (currInfo.getScreen() instanceof SignEditScreen signEditScreen) {
+        if (screen instanceof SignEditScreen signEditScreen) {
             GameUtils.submitSignValue(signEditScreen, String.valueOf(volume));
 
             this.pendingVolume = -1;
             this.pendingPreset = false;
-            return;
+            return true;
         }
 
-        // noinspection OptionalGetWithoutIsPresent
         interactionManager.handleContainerInput(
-            currInfo.getGenericContainerScreen().get().getMenu().containerId, 16, 1, ContainerInput.PICKUP, player
+            containerScreen.get().getMenu().containerId,
+            CUSTOM_AMOUNT_SLOT,
+            1,
+            ContainerInput.PICKUP,
+            player
         );
+        return true;
     }
 
-    private int calculateMaxVolume(double purse, double pricePerUnit) {
-        return Math.min((int) (purse / pricePerUnit), this.currMaxVolume);
+    private static int calculateMaxVolume(double purse, double pricePerUnit, int maxVolume) {
+        return Math.min((int) (purse / pricePerUnit), maxVolume);
     }
 
-    private Optional<OrderPreset.RenderableEntry> createMaxEntry(
-        OrderPreset preset,
-        boolean priceAvailable,
-        Optional<Double> pricePerUnit,
-        Optional<Double> purse
-    ) {
-        var entry = new OrderPreset.RenderableEntry(preset);
+    public sealed interface PresetState permits PresetState.Available, PresetState.Unavailable {
 
-        if (!priceAvailable) {
-            entry.setDisabled(true);
-            entry.setTooltipLines(List.of(Component.literal("Unable to determine price information")));
-            return Optional.of(entry);
-        }
+        OrderPreset preset();
 
-        if (purse.isEmpty()) {
-            entry.setDisabled(true);
-            entry.setTooltipLines(List.of(Component.literal("Unable to determine purse amount")));
-            return Optional.of(entry);
-        }
+        record Available(OrderPreset preset, int resolvedVolume) implements PresetState { }
 
-        int maxVolume = this.calculateMaxVolume(purse.get(), pricePerUnit.get());
+        sealed interface Unavailable extends PresetState permits
+            PriceUnavailable,
+            PurseUnavailable,
+            Unaffordable { }
 
-        if (maxVolume == 0) {
-            if (this.configState.hideUnaffordablePresets) {
-                return Optional.empty();
-            }
+        sealed interface Unaffordable extends Unavailable permits
+            InsufficientCoins,
+            CannotAffordSingleItem { }
 
-            entry.setDisabled(true);
-            double missing = pricePerUnit.get() - purse.get();
-            String formattedMissing = Utils.formatCompact(missing, 1);
+        record PriceUnavailable(OrderPreset preset) implements Unavailable { }
 
-            entry.setTooltipLines(List.of(
-                Component.literal("Missing " + formattedMissing + " coins"),
-                Component.literal("to buy one item")
-            ));
-            return Optional.of(entry);
-        }
+        record PurseUnavailable(OrderPreset preset) implements Unavailable { }
 
-        entry.setTooltipLines(List.of(
-            Component.literal(Utils.formatDecimal(maxVolume, 0, true) + " items")
-        ));
-        return Optional.of(entry);
+        record InsufficientCoins(OrderPreset preset) implements Unaffordable { }
+
+        record CannotAffordSingleItem(OrderPreset preset, double missingCoins) implements Unaffordable { }
     }
 }

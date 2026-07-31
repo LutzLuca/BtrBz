@@ -2,11 +2,8 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
-import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.Module;
-import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.widgets.core.WidgetManager;
 import com.github.lutzluca.btrbz.widgets.base.DraggableWidget;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
@@ -18,12 +15,10 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -35,15 +30,6 @@ public class ModuleManager {
     private final Map<Class<? extends Module<?>>, Field> moduleBindings = new HashMap<>();
 
     private @Nullable WidgetManager widgetManager;
-    private @Nullable ModuleContext context;
-
-    public record ModuleContext(
-        @NotNull BazaarData bazaarData,
-        @NotNull ProductInfoProvider productInfoProvider,
-        @NotNull FlipProductContext flipProductContext,
-        @NotNull FlipSubmissionTracker flipSubmissionTracker
-    ) { }
-
     @Setter
     private boolean isDirty = false;
 
@@ -67,14 +53,6 @@ public class ModuleManager {
 
     public @Nullable WidgetManager getWidgetManager() {
         return this.widgetManager;
-    }
-
-    public void initContext(@NotNull ModuleContext context) {
-        if (this.context != null) {
-            throw new IllegalStateException("ModuleManager context has already been initialized");
-        }
-
-        this.context = context;
     }
 
     private void renderModules(ScreenInfo info) {
@@ -114,20 +92,19 @@ public class ModuleManager {
         }
     }
 
-    public <T, M extends Module<T>> M registerModule(Class<M> moduleClass) {
-        try {
-            M module = moduleClass.getDeclaredConstructor().newInstance();
-            module.initContext(Objects.requireNonNull(this.context, "ModuleManager context not initialized"));
-            this.modules.put(moduleClass, module);
-            this.applyConfigToModule(module);
-            module.onLoad();
-            log.info("Registered module: {}", moduleClass.getName());
-            return module;
-        } catch (Exception err) {
-            throw new RuntimeException(
-                "Failed to instantiate module: " + moduleClass.getName(),
-                err
-            );
+    public <T, M extends Module<T>> M registerModule(M module) {
+        @SuppressWarnings("unchecked")
+        Class<M> moduleClass = (Class<M>) module.getClass();
+        this.modules.put(moduleClass, module);
+        this.applyConfigToModule(module);
+        module.onLoad();
+        log.info("Registered module: {}", moduleClass.getName());
+        return module;
+    }
+
+    public void registerModules(Module<?>... modules) {
+        for (var module : modules) {
+            this.registerModule(module);
         }
     }
 

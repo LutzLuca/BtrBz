@@ -15,6 +15,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -26,6 +27,7 @@ import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -39,6 +41,7 @@ public class TrackedOrderManager {
     private final BazaarData bazaarData;
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
+    private final List<TrackedOrder> displayOrders = new ArrayList<>();
     private final TimedStore<OutstandingOrderInfo> outstandingOrderStore;
     private final TrackedOrderProductUpdater productUpdater;
     private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
@@ -179,25 +182,31 @@ public class TrackedOrderManager {
 
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
+            this.displayOrders.remove(order);
             this.selfUndercutDetector.removeIfLastOrder(order, this.trackedOrders);
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
-        var updates = this.statusEvaluator
+        var statusUpdates = this.statusEvaluator
             .computeStatusUpdates(this.trackedOrders, snapshot)
-            .peek(update -> update.order().status = update.curr())
-            .collect(Collectors.toList());
+            .toList();
 
-        this.sendNotifications(updates, snapshot);
+        statusUpdates.forEach(update -> update.order().status = update.curr());
+
+        var notificationUpdates = statusUpdates.stream()
+            .filter(update -> !update.prev().sameVariant(update.curr()))
+            .toList();
+
+        this.sendNotifications(notificationUpdates, snapshot);
         this.resolveSelfUndercutStates(snapshot);
     }
 
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
     // `OrderStatus` variant are not detected. Concretely, if a stranger cancels their order from
-    // your bucket, all your orders stay `OrderStatus.Matched`, no `sameVariant` change fires, so
-    // no `StatusUpdate` is produced, and `sendNotifications` never processes the group.
+    // your bucket, all your orders stay `OrderStatus.Matched`, no order-level status change is
+    // emitted, and `sendNotifications` never processes the group.
     // Fixing this would require a separate group-level status diff pass (tracking previous
     // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
     // Accepted as a known limitation (for now).
@@ -289,6 +298,7 @@ public class TrackedOrderManager {
     public void resetTrackedOrders() {
         var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();
+        this.displayOrders.clear();
         this.selfUndercutDetector.clear();
 
         log.info("Reset tracked orders (removed {})", removedSize);
@@ -296,12 +306,64 @@ public class TrackedOrderManager {
     }
 
     public List<TrackedOrder> getTrackedOrders() {
-        return List.copyOf(this.trackedOrders);
+        return List.copyOf(this.displayOrders);
+    }
+
+    public List<TrackedOrderSnapshot> currentOrders() {
+        return this.displayOrders.stream().map(TrackedOrderSnapshot::from).toList();
+    }
+
+    public boolean reorder(TrackedOrderId orderId, int dropIndex) {
+        Optional<TrackedOrder> matchingOrder = this.displayOrders
+            .stream()
+            .filter(order -> order.id().equals(orderId))
+            .findFirst();
+        if (matchingOrder.isEmpty() || dropIndex < 0 || dropIndex > this.displayOrders.size()) {
+            return false;
+        }
+
+        var order = matchingOrder.get();
+        int sourceIndex = this.displayOrders.indexOf(order);
+        this.displayOrders.remove(sourceIndex);
+        int insertionIndex = dropIndex > sourceIndex ? dropIndex - 1 : dropIndex;
+        insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
+        this.displayOrders.add(insertionIndex, order);
+
+        return true;
     }
 
     public void addTrackedOrder(TrackedOrder order) {
         this.trackedOrders.add(order);
+        this.displayOrders.add(order);
         this.onOrderAddedListeners.forEach(listener -> listener.accept(order));
+    }
+
+    public record TrackedOrderSnapshot(
+        TrackedOrderId id,
+        ProductIdentity product,
+        String productName,
+        String uiProductName,
+        OrderType type,
+        int volume,
+        double pricePerUnit,
+        OrderStatus status,
+        int slot,
+        int fillAmountSnapshot
+    ) {
+        private static TrackedOrderSnapshot from(TrackedOrder order) {
+            return new TrackedOrderSnapshot(
+                order.id(),
+                order.product,
+                order.productName,
+                order.uiProductName,
+                order.type,
+                order.volume,
+                order.pricePerUnit,
+                order.status,
+                order.slot,
+                order.fillAmountSnapshot
+            );
+        }
     }
 
     public void removeMatching(OrderFilled info) {

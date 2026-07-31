@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.ModuleManager;
-import com.github.lutzluca.btrbz.core.ModuleManager.ModuleContext;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager;
@@ -122,21 +121,38 @@ public class BtrBz implements ClientModInitializer {
         var moduleManager = ModuleManager.getInstance();
         var flipProductContext = new FlipProductContext();
         var flipSubmissionTracker = new FlipSubmissionTracker();
-        moduleManager.initContext(new ModuleContext(
+
+        var bookmarkModule = new BookmarkModule(
+            BAZAAR_DATA,
+            productInfoProvider,
+            this.orderManager
+        );
+        var priceDiffModule = new PriceDiffModule(BAZAAR_DATA);
+        var trackedOrdersListModule = new TrackedOrdersListModule(
+            this.orderManager,
+            this.highlightManager,
+            this.tooltipProvider
+        );
+        var orderPresetsModule = new OrderPresetsModule(BAZAAR_DATA, productInfoProvider);
+        var orderLimitModule = new OrderLimitModule();
+        var orderValueModule = new OrderValueModule();
+        var orderBookPriceModule = new OrderBookPriceModule(
             BAZAAR_DATA,
             productInfoProvider,
             flipProductContext,
             flipSubmissionTracker
-        ));
+        );
 
         moduleManager.discoverBindings();
-        moduleManager.registerModule(BookmarkModule.class);
-        moduleManager.registerModule(PriceDiffModule.class);
-        moduleManager.registerModule(TrackedOrdersListModule.class);
-        moduleManager.registerModule(OrderPresetsModule.class);
-        var orderLimitModule = moduleManager.registerModule(OrderLimitModule.class);
-        var orderValueModule = moduleManager.registerModule(OrderValueModule.class);
-        moduleManager.registerModule(OrderBookPriceModule.class);
+        moduleManager.registerModules(
+            bookmarkModule,
+            priceDiffModule,
+            trackedOrdersListModule,
+            orderPresetsModule,
+            orderLimitModule,
+            orderValueModule,
+            orderBookPriceModule
+        );
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();

@@ -1,8 +1,9 @@
 package com.github.lutzluca.btrbz.core.modules;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
+import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
@@ -34,14 +35,25 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
     private ListWidget list;
     private Integer currentHoverSlot = null;
+    private final TrackedOrderManager trackedOrderManager;
+    private final OrderHighlightManager orderHighlightManager;
+    private final OrderTooltipProvider orderTooltipProvider;
+
+    public TrackedOrdersListModule(
+        TrackedOrderManager trackedOrderManager,
+        OrderHighlightManager orderHighlightManager,
+        OrderTooltipProvider orderTooltipProvider
+    ) {
+        this.trackedOrderManager = trackedOrderManager;
+        this.orderHighlightManager = orderHighlightManager;
+        this.orderTooltipProvider = orderTooltipProvider;
+    }
 
     @Override
     public void onLoad() {
-        var orderManager = BtrBz.orderManager();
-
-        orderManager.addOnOrderAddedListener(this::onOrderAdded);
-        orderManager.addOnOrderRemovedListener(this::onOrderRemoved);
-        orderManager.addOnOrdersResetListener(this::clearList);
+        this.trackedOrderManager.addOnOrderAddedListener(this::onOrderAdded);
+        this.trackedOrderManager.addOnOrderRemovedListener(this::onOrderRemoved);
+        this.trackedOrderManager.addOnOrdersResetListener(this::clearList);
     }
 
     private void onOrderAdded(TrackedOrder order) {
@@ -74,13 +86,13 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         this.currentHoverSlot = slotIdx;
-        BtrBz.highlightManager().setHighlightOverride(slotIdx, 0xCC00FFFF /* 0xAAFFFFFF */);
+        this.orderHighlightManager.setHighlightOverride(slotIdx, 0xCC00FFFF /* 0xAAFFFFFF */);
     }
 
     private void onWidgetHoverExit(int slotIdx) {
         if (this.currentHoverSlot != null && this.currentHoverSlot == slotIdx) {
             this.currentHoverSlot = null;
-            BtrBz.highlightManager().clearHighlightOverride();
+            this.orderHighlightManager.clearHighlightOverride();
         }
     }
 
@@ -91,8 +103,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
         this.list.clear();
 
-        var orderManager = BtrBz.orderManager();
-        for (var order : orderManager.getTrackedOrders()) {
+        for (var order : this.trackedOrderManager.getTrackedOrders()) {
             var entry = this.createEntryWidget(order);
             this.list.addItem(entry);
         }
@@ -240,8 +251,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
     }
 
-    @Slf4j
-    private static class OrderEntryRenderable implements Renderable {
+    private class OrderEntryRenderable implements Renderable {
 
         @Getter
         private final TrackedOrder order;
@@ -257,7 +267,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 return null;
             }
 
-            return BtrBz.tooltipProvider().getCachedTooltip(this.order, cfg);
+            return TrackedOrdersListModule.this.orderTooltipProvider.getCachedTooltip(this.order, cfg);
         }
 
         @Override

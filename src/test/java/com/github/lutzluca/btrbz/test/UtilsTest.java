@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.lutzluca.btrbz.utils.Utils;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -13,6 +15,39 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class UtilsTest {
+
+    @Nested
+    @DisplayName("semantic list operations")
+    class SemanticListOperations {
+
+        @Test
+        void movesTheMatchingItemToTheTargetIndex() {
+            var items = new ArrayList<>(List.of("APPLE", "CARROT", "POTATO"));
+
+            assertTrue(Utils.moveMatching(items, "APPLE"::equals, 2));
+            assertEquals(List.of("CARROT", "POTATO", "APPLE"), items);
+        }
+
+        @Test
+        void leavesTheListUnchangedForInvalidMoves() {
+            var items = new ArrayList<>(List.of("APPLE", "CARROT"));
+
+            assertFalse(Utils.moveMatching(items, "MISSING"::equals, 1));
+            assertFalse(Utils.moveMatching(items, "APPLE"::equals, -1));
+            assertFalse(Utils.moveMatching(items, "APPLE"::equals, 3));
+            assertFalse(Utils.moveMatching(items, "APPLE"::equals, 0));
+            assertEquals(List.of("APPLE", "CARROT"), items);
+        }
+
+        @Test
+        void removesAllMatchingItems() {
+            var items = new ArrayList<>(List.of("APPLE", "POTATO", "APPLE"));
+
+            assertTrue(Utils.removeMatching(items, "APPLE"::equals));
+            assertEquals(List.of("POTATO"), items);
+            assertFalse(Utils.removeMatching(items, "MISSING"::equals));
+        }
+    }
 
     @Nested
     @DisplayName("formatDecimal")

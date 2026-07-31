@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -25,7 +24,10 @@ final class TrackedOrderStatusEvaluator {
             .stream()
             .map(order -> this.getTrackedStatus(order, snapshot))
             .flatMap(Optional::stream)
-            .filter(trackedStatus -> !trackedStatus.order().status.sameVariant(trackedStatus.status()))
+            .filter(trackedStatus -> this.hasStatusChanged(
+                trackedStatus.order().status,
+                trackedStatus.status()
+            ))
             .map(trackedStatus -> new StatusUpdate(
                 trackedStatus.order(),
                 trackedStatus.status(),
@@ -150,7 +152,7 @@ final class TrackedOrderStatusEvaluator {
             double bestPrice = summary.getPricePerUnit();
             if (Double.compare(order.pricePerUnit, bestPrice) == 0) {
                 return summary.getOrders() > 1
-                    ? this.matchedOrGhostTop(order, summary)
+                    ? new Matched()
                     : new Top();
             }
 
@@ -165,24 +167,14 @@ final class TrackedOrderStatusEvaluator {
         });
     }
 
-    /**
-     * The Hypixel API can contain "ghost orders", entries that report
-     * {@code orders > 1} at a price bucket but carry 0 actual items. When only ghost
-     * orders sit alongside the player's order, the bucket's total item amount equals
-     * or is less than the player's own volume, meaning there is no real competition.
-     */
-    private @NotNull OrderStatus matchedOrGhostTop(TrackedOrder order, Summary summary) {
-        int itemsAhead = Math.max(0, (int) summary.getAmount() - order.volume);
-        if (itemsAhead == 0) {
-            log.debug(
-                "Ghost order detected for {}: bucket has {} orders but 0 items ahead of player volume ({}), treating as Top",
-                order.product.bazaarProductId().orElse(order.productName),
-                (int) summary.getOrders(),
-                order.volume
-            );
-            return new Top();
+    private boolean hasStatusChanged(OrderStatus previous, OrderStatus current) {
+        if (!previous.sameVariant(current)) {
+            return true;
         }
-        return new Matched();
+
+        return previous instanceof Undercut previousUndercut
+            && current instanceof Undercut currentUndercut
+            && Double.compare(previousUndercut.amount, currentUndercut.amount) != 0;
     }
 
     private record TrackedStatus(TrackedOrder order, OrderStatus status) { }

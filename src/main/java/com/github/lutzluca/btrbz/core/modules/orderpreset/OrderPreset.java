@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.modules.orderpreset;
 
 import com.github.lutzluca.btrbz.widgets.Renderable;
 import lombok.Getter;
-import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -45,15 +44,15 @@ public sealed interface OrderPreset permits OrderPreset.Volume, OrderPreset.Max,
         @Getter
         private final OrderPreset preset;
         @Getter
-        @Setter
-        private boolean disabled = false;
-        @Setter
-        private List<Component> tooltipLines = null;
+        private final boolean disabled;
+        private final List<Component> tooltipLines;
         private final Component displayText;
         private final int backgroundColor;
 
-        public RenderableEntry(OrderPreset preset) {
+        public RenderableEntry(OrderPreset preset, boolean disabled, List<Component> tooltipLines) {
             this.preset = preset;
+            this.disabled = disabled;
+            this.tooltipLines = List.copyOf(tooltipLines);
             this.displayText = Component.literal(preset.toString());
             this.backgroundColor = switch (preset) {
                 case OrderPreset.Max() -> backgroundColor(MAX_COLOR);

@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
