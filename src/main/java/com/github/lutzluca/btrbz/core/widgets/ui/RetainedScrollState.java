@@ -11,4 +11,8 @@ final class RetainedScrollState {
     public void remember(double offset) {
         this.offset = Math.max(0.0, offset);
     }
+
+    public double offset() {
+        return this.offset;
+    }
 }

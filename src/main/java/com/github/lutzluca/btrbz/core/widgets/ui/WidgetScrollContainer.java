@@ -134,6 +134,18 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         return this.interactive && this.thumbCaptured;
     }
 
+    public double scrollOffset() {
+        return this.retainedScroll.offset();
+    }
+
+    public void scrollOffset(double offset) {
+        this.retainedScroll.remember(offset);
+        double restoredOffset = this.retainedScroll.restore(this.maxScroll);
+        this.scrollOffset = restoredOffset;
+        this.currentScrollPosition = restoredOffset;
+        this.updateChildPosition();
+    }
+
     private boolean isInThumb(double mouseX, double mouseY) {
         if (!this.isInScrollbar(mouseX, mouseY)) return false;
         var padding = this.padding.get();
