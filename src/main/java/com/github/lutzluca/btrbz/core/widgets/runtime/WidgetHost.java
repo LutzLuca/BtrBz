@@ -14,6 +14,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
+import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
@@ -43,6 +44,7 @@ public final class WidgetHost {
     private final boolean runtimePlacementDragging;
     private final @Nullable WidgetSessionProvider sessionProvider;
     private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
+    private final @Nullable Map<WidgetId, Double> scrollOffsets;
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
@@ -55,7 +57,8 @@ public final class WidgetHost {
         boolean runtime,
         boolean runtimePlacementDragging,
         @Nullable WidgetSessionProvider sessionProvider,
-        @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews
+        @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews,
+        @Nullable Map<WidgetId, Double> scrollOffsets
     ) {
         this.definitions = List.copyOf(definitions);
         this.stateStore = stateStore;
@@ -63,22 +66,26 @@ public final class WidgetHost {
         this.runtimePlacementDragging = runtimePlacementDragging;
         this.sessionProvider = sessionProvider;
         this.capturedPreviews = capturedPreviews == null ? null : Map.copyOf(capturedPreviews);
+        this.scrollOffsets = scrollOffsets;
     }
 
     public static WidgetHost runtime(
         List<WidgetDefinition<?, ?, ?>> definitions,
         WidgetStateStore stateStore,
         WidgetSessionProvider sessionProvider,
+        Map<WidgetId, Double> scrollOffsets,
         boolean placementDragging
     ) {
-        return new WidgetHost(definitions, stateStore, true, placementDragging, sessionProvider, null);
+        return new WidgetHost(
+            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets
+        );
     }
 
     public static WidgetHost preview(
         List<WidgetDefinition<?, ?, ?>> definitions,
         WidgetStateStore stateStore
     ) {
-        return new WidgetHost(definitions, stateStore, false, false, null, null);
+        return new WidgetHost(definitions, stateStore, false, false, null, null, null);
     }
 
     public static WidgetHost preview(
@@ -86,7 +93,7 @@ public final class WidgetHost {
         WidgetStateStore stateStore,
         Map<WidgetId, WidgetPreview<?>> capturedPreviews
     ) {
-        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews);
+        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews, null);
     }
 
     public List<WidgetRenderResult> render(
@@ -301,6 +308,9 @@ public final class WidgetHost {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private MountedWidget mount(WidgetDefinition definition) {
         WidgetView view = (WidgetView) definition.getViewFactory().get();
+        if (this.scrollOffsets != null && view instanceof ScrollOffsetView scrollView) {
+            scrollView.scrollOffset(this.scrollOffsets.getOrDefault(definition.getId(), 0.0));
+        }
         var component = WidgetChrome.wrap(view.root());
         var surface = new WidgetRenderSurface();
         var slot = new WidgetSlotComponent(
@@ -327,6 +337,9 @@ public final class WidgetHost {
     private void detach(WidgetId id) {
         var removed = this.mounted.remove(id);
         if (removed == null) return;
+        if (this.scrollOffsets != null && removed.view() instanceof ScrollOffsetView scrollView) {
+            this.scrollOffsets.put(id, scrollView.scrollOffset());
+        }
         try { removed.view().close(); }
         catch (RuntimeException exception) { log.warn("Failed to close widget view {}", id, exception); }
         try { removed.surface().close(); }

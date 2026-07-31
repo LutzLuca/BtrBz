@@ -130,6 +130,14 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         return this.rowView;
     }
 
+    public final double scrollOffset() {
+        return this.scrollList.scrollOffset();
+    }
+
+    public final void scrollOffset(double offset) {
+        this.scrollList.scrollOffset(offset);
+    }
+
     public final boolean beginDrag(K key, int index) {
         if (!this.reorderable || !this.retainedRows.contains(key)) return false;
         this.pendingDragKey = key;

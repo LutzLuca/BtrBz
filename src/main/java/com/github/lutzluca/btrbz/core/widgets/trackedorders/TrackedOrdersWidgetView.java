@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
+import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -16,9 +17,9 @@ import java.util.function.Consumer;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
 
-final class TrackedOrdersWidgetView implements WidgetView<
-    BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction
-> {
+final class TrackedOrdersWidgetView implements
+    WidgetView<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>,
+    ScrollOffsetView {
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fixed(1), Sizing.content());
     private final LabelComponent status = label("", BazaarStyles.MUTED_TEXT);
     private final BazaarTrackedOrderListComponent list = new BazaarTrackedOrderListComponent();
@@ -39,6 +40,16 @@ final class TrackedOrdersWidgetView implements WidgetView<
     @Override
     public UIComponent root() {
         return this.root;
+    }
+
+    @Override
+    public double scrollOffset() {
+        return this.list.scrollOffset();
+    }
+
+    @Override
+    public void scrollOffset(double offset) {
+        this.list.scrollOffset(offset);
     }
 
     @Override

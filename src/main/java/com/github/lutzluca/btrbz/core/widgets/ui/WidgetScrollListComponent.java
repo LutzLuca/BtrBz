@@ -73,4 +73,12 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
     public void scrollByProgress(double delta) {
         this.scroller.scrollByProgress(delta);
     }
+
+    public double scrollOffset() {
+        return this.scroller.scrollOffset();
+    }
+
+    public void scrollOffset(double offset) {
+        this.scroller.scrollOffset(offset);
+    }
 }

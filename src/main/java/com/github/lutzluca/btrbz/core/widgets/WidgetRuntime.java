@@ -6,8 +6,10 @@ import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementContext;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -20,6 +22,7 @@ public final class WidgetRuntime {
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
     private final WidgetSessionProvider sessionProvider;
+    private final Map<WidgetId, Double> scrollOffsets = new HashMap<>();
 
     public WidgetRuntime(
         WidgetRegistry registry,
@@ -53,6 +56,7 @@ public final class WidgetRuntime {
             this.registry.all(),
             this.stateStore,
             this.sessionProvider,
+            this.scrollOffsets,
             placementDragging
         );
     }
