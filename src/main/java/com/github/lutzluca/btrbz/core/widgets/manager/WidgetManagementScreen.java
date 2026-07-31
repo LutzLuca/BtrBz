@@ -165,7 +165,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout rootComponent) {
         this.root = rootComponent;
-        rootComponent.surface(Surface.flat(0x00000000));
+        rootComponent.surface(Surface.flat(0x8C000000));
         rootComponent.padding(Insets.none());
         rootComponent.gap(0);
         rootComponent.allowOverflow(false);

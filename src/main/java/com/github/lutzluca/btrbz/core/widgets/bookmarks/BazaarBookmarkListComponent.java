@@ -27,15 +27,26 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
         boolean interactive,
         Consumer<BookmarksAction> actions
     ) {
+        int viewportHeight = viewportHeight(options, bookmarks.size());
+        boolean reserveScrollbarSpace = reserveScrollbarSpace(bookmarks.size(), viewportHeight);
         this.reconcileRows(
             bookmarks,
             BookmarksWidgetData.Bookmark::productId,
-            (bookmark, index) -> new BazaarBookmarkRowComponent(this, bookmark, options, interactive, index, actions),
-            (row, bookmark, index) -> row.update(bookmark, options, interactive, index, actions),
-            viewportHeight(options, bookmarks.size()),
+            (bookmark, index) -> new BazaarBookmarkRowComponent(
+                this, bookmark, options, interactive, reserveScrollbarSpace, index, actions
+            ),
+            (row, bookmark, index) -> row.update(
+                bookmark, options, interactive, reserveScrollbarSpace, index, actions
+            ),
+            viewportHeight,
             interactive,
             options.sort == BookmarksWidgetConfig.BookmarkSort.Manual
         );
+    }
+
+    static boolean reserveScrollbarSpace(int bookmarkCount, int viewportHeight) {
+        return WidgetLayoutTokens.listViewportHeight(BazaarBookmarkRowComponent.HEIGHT, bookmarkCount)
+            > viewportHeight;
     }
 
     private static int viewportHeight(BookmarksWidgetConfig options, int bookmarkCount) {
