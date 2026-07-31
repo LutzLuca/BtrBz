@@ -20,6 +20,7 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -297,6 +298,36 @@ class ConversionIndexTest {
 
             assertEquals("ENCHANTED_DIAMOND", normalized.getString("id").orElseThrow());
             assertFalse(normalized.contains("ExtraAttributes"));
+        }
+
+        @Test
+        void recoversTheNeuItemModelNestedByTheLegacyFixer() {
+            var fixed = assertDoesNotThrow(() -> fixLegacy(new LegacyProductStackData(
+                "minecraft:paper",
+                0,
+                "{ExtraAttributes:{id:\"FINE_TOPAZ_GEM\"},"
+                    + "ItemModel:\"hypixel_skyblock:item/collections/gemstone/topaz/fine_topaz_gem\"}"
+            )));
+            var item = assertInstanceOf(CompoundTag.class, fixed.getValue());
+            var customData = item
+                .getCompoundOrEmpty("components")
+                .getCompoundOrEmpty("minecraft:custom_data");
+
+            assertEquals(
+                Identifier.parse("hypixel_skyblock:item/collections/gemstone/topaz/fine_topaz_gem"),
+                LegacyStackNormalizer.itemModel(customData).orElseThrow()
+            );
+        }
+
+        @Test
+        void ignoresMissingOrMalformedNeuItemModels() {
+            var customData = new CompoundTag();
+
+            assertTrue(LegacyStackNormalizer.itemModel(customData).isEmpty());
+
+            customData.putString("ItemModel", "not a valid identifier");
+
+            assertTrue(LegacyStackNormalizer.itemModel(customData).isEmpty());
         }
 
         @Test
