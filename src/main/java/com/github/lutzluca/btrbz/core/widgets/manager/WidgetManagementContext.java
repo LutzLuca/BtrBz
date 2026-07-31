@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 
-/** Frozen real-data context captured before a Bazaar screen is replaced by the manager. */
+/** Frozen real-data overrides for widgets rendered before a Bazaar screen is replaced by the manager. */
 public record WidgetManagementContext(
     AbstractContainerScreen<?> backgroundScreen,
     Map<WidgetId, WidgetPreview<?>> frozenPreviews,

@@ -92,13 +92,12 @@ public final class WidgetRuntime {
         var previews = new LinkedHashMap<WidgetId, WidgetPreview<?>>();
         var rendered = new LinkedHashSet<WidgetId>();
         for (var definition : this.registry.all()) {
-            if (!definition.supports(frozenSession)) continue;
+            if (!definition.frame().enabled || !definition.supports(frozenSession)) continue;
             try {
                 var preview = capture(definition, frozenSession);
+                if (!visible(definition, preview)) continue;
                 previews.put(definition.getId(), preview);
-                if (definition.frame().enabled && visible(definition, preview)) {
-                    rendered.add(definition.getId());
-                }
+                rendered.add(definition.getId());
             } catch (RuntimeException exception) {
                 log.warn("Failed to freeze widget {} for management", definition.getId(), exception);
             }
