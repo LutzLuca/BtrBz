@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -114,8 +113,6 @@ public final class WidgetHost {
 
         for (var definition : this.definitions) {
             boolean requested = options.shouldRender(definition.getId(), definition.frame().enabled);
-            if (!this.runtime && this.capturedPreviews != null
-                && !this.capturedPreviews.containsKey(definition.getId())) continue;
             if (!requested || this.runtime && !definition.supports(runtimeSession)) continue;
             var prepared = this.prepare(definition, canvas, options, runtimeSession);
             if (prepared == null) continue;
@@ -296,13 +293,9 @@ public final class WidgetHost {
 
     @SuppressWarnings("rawtypes")
     private WidgetPreview preview(WidgetDefinition definition) {
-        if (this.capturedPreviews != null) {
-            return (WidgetPreview) Objects.requireNonNull(
-                this.capturedPreviews.get(definition.getId()),
-                "captured widget preview"
-            );
-        }
-        return (WidgetPreview) definition.getPreview().get();
+        return (WidgetPreview) WidgetPreviewResolver.resolve(
+            definition.getId(), this.capturedPreviews, definition.getPreview()
+        );
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

@@ -52,7 +52,6 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private final @Nullable Screen previousScreen;
     private final @Nullable AbstractContainerScreen<?> backgroundScreen;
-    private final @Nullable Set<WidgetId> contextualWidgets;
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
     private final WidgetManagerEditSession editSession;
@@ -136,7 +135,6 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         super(Component.literal("BtrBz Widgets"));
         this.previousScreen = previousScreen;
         this.backgroundScreen = context == null ? null : context.backgroundScreen();
-        this.contextualWidgets = context == null ? null : Set.copyOf(context.frozenPreviews().keySet());
         this.registry = registry;
         this.stateStore = stateStore;
         this.editSession = new WidgetManagerEditSession(stateStore::save);
@@ -431,20 +429,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.sidebarScroller.scrollbarThiccness(4);
 
         this.addGlobalAppearanceControls();
-        this.sidebarContent.child(label(
-            this.hasBazaarBackground() ? "Widgets in this Bazaar screen" : "Widgets",
-            0xFFB8C0CF
-        ));
+        this.sidebarContent.child(label("Widgets", 0xFFB8C0CF));
         if (this.hasBazaarBackground()) {
-            this.sidebarContent.child(label("Content frozen when opened", 0xFF808997));
+            this.sidebarContent.child(label("Visible content frozen at open", 0xFF808997));
         }
         this.sidebarContent.child(label("R: rendered here", 0xFF808997));
         var list = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         list.gap(4);
-        this.registry.all().stream()
-            .filter(definition -> this.contextualWidgets == null
-                || this.contextualWidgets.contains(definition.getId()))
-            .forEach(definition -> list.child(this.widgetRow(definition)));
+        this.registry.all().forEach(definition -> list.child(this.widgetRow(definition)));
         this.sidebarContent.child(list);
 
         var selectedWidget = this.selectionState.selectedWidget();
