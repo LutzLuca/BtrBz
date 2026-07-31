@@ -69,10 +69,10 @@ class WidgetConfigBindingTest {
 
             binding.resetAll();
 
-            assertNull(config.frame.overrideScale);
+            assertFalse(config.frame.overrideScale);
             assertEquals(1.0, config.frame.scale);
-            assertNull(config.frame.overrideBackground);
-            assertNull(config.frame.background);
+            assertFalse(config.frame.overrideBackground);
+            assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
         }
     }
 }

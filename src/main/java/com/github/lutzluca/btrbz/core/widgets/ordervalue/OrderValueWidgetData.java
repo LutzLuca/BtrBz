@@ -19,9 +19,5 @@ public final class OrderValueWidgetData {
         return new Snapshot(24_700_000, 8_400_000, 11_200_000, 6_800_000, 51_100_000);
     }
 
-    public record Snapshot(long buyLocked, long buyItems, long sellClaimable, long sellPending, long total) {
-        public Snapshot detachedCopy() {
-            return new Snapshot(this.buyLocked, this.buyItems, this.sellClaimable, this.sellPending, this.total);
-        }
-    }
+    public record Snapshot(long buyLocked, long buyItems, long sellClaimable, long sellPending, long total) {}
 }

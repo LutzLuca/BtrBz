@@ -89,26 +89,11 @@ public final class BookmarksWidgetData {
             return Component.literal(BazaarHudOptions.productName(this.productName, abbreviateEnchanted))
                 .setStyle(this.formattedProductName.getStyle());
         }
-
-        public Bookmark detachedCopy() {
-            return new Bookmark(
-                this.productId,
-                this.productName,
-                this.formattedProductName.copy(),
-                this.itemStack(),
-                this.buyOrder,
-                this.sellOrder
-            );
-        }
     }
 
     public record Snapshot(List<Bookmark> bookmarks) {
         public Snapshot {
             bookmarks = List.copyOf(bookmarks);
-        }
-
-        public Snapshot detachedCopy() {
-            return new Snapshot(this.bookmarks.stream().map(Bookmark::detachedCopy).toList());
         }
     }
 }

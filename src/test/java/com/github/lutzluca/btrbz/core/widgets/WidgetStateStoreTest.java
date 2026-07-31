@@ -114,7 +114,6 @@ class WidgetStateStoreTest {
             .config(() -> config.orderPresets, OrderPresetsWidgetConfig::new,
                 value -> value.frame, OrderPresetsWidgetConfig::resetPreferences)
             .runtimeData(_ -> new Object())
-            .snapshotCopy(_ -> new Object())
             .preview(() -> null)
             .viewFactory(() -> null)
             .placementProfile("sign", "Sign")
@@ -162,24 +161,6 @@ class WidgetStateStoreTest {
         }
 
         @Test
-        @DisplayName("first-time overrides start from the global values")
-        void initializesOverridesFromGlobalValues() {
-            var config = new WidgetsConfig();
-            var store = new WidgetStateStore(() -> config, () -> {});
-            var bookmarks = bookmarksDefinition(() -> config.bookmarks);
-            store.setGlobalFineTuneScale(1.25, false);
-            store.setGlobalBackgroundColor(0xBB203040, false);
-
-            store.setWidgetScaleOverride(bookmarks, true, false);
-            store.setBackgroundOverride(bookmarks, true, false);
-
-            assertEquals(1.25, config.bookmarks.frame.scale);
-            assertEquals(0xBB203040, config.bookmarks.frame.background);
-            assertEquals(1.25, store.requestedScale(bookmarks));
-            assertEquals(0xBB203040, store.backgroundColor(bookmarks));
-        }
-
-        @Test
         @DisplayName("disabled overrides preserve their custom values")
         void preservesDisabledOverrideValues() {
             var config = new WidgetsConfig();
@@ -207,22 +188,6 @@ class WidgetStateStoreTest {
             assertEquals(0xCC304050, store.backgroundColor(bookmarks));
         }
 
-        @Test
-        @DisplayName("legacy custom values are treated as enabled overrides")
-        void recognizesLegacyOverrides() {
-            var config = new WidgetsConfig();
-            config.bookmarks.frame.scale = 0.75;
-            config.bookmarks.frame.background = 0xEE506070;
-            var store = new WidgetStateStore(() -> config, () -> {});
-            var bookmarks = bookmarksDefinition(() -> config.bookmarks);
-
-            assertNull(config.bookmarks.frame.overrideScale);
-            assertNull(config.bookmarks.frame.overrideBackground);
-            assertTrue(store.hasWidgetScaleOverride(bookmarks));
-            assertTrue(store.hasBackgroundOverride(bookmarks));
-            assertEquals(0.75, store.requestedScale(bookmarks));
-            assertEquals(0xEE506070, store.backgroundColor(bookmarks));
-        }
     }
 
     private static WidgetDefinition<Object, BookmarksWidgetConfig, Void> bookmarksDefinition(
@@ -233,7 +198,6 @@ class WidgetStateStoreTest {
             .config(supplier, BookmarksWidgetConfig::new,
                 value -> value.frame, BookmarksWidgetConfig::resetPreferences)
             .runtimeData(_ -> new Object())
-            .snapshotCopy(_ -> new Object())
             .preview(() -> null)
             .viewFactory(() -> null)
             .build();

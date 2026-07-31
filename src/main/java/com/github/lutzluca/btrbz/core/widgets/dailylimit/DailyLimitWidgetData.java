@@ -20,7 +20,5 @@ public final class DailyLimitWidgetData {
         public Snapshot {
             if (used < 0 || limit <= 0) throw new IllegalArgumentException("limit values must be positive");
         }
-
-        public Snapshot detachedCopy() { return new Snapshot(this.used, this.limit); }
     }
 }

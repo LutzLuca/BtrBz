@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarNumberFormat;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -21,17 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BazaarWidgetViewDataTest {
-    @Test
-    void compactCoinFormattingMatchesBtrbzStyle() {
-        assertEquals("7.1B", BazaarNumberFormat.compact(7_100_000_000d));
-        assertEquals("26.12B", BazaarNumberFormat.compact(26_120_000_000d));
-        assertEquals("26B", BazaarNumberFormat.compact(26_000_000_000d));
-        assertEquals("4.5M", BazaarNumberFormat.compact(4_500_000d));
-        assertEquals("21.2M", BazaarNumberFormat.compact(21_200_000d));
-        assertEquals("1.5k", BazaarNumberFormat.compact(1_500d));
-        assertEquals("875", BazaarNumberFormat.compact(875d));
-    }
-
     @Test
     void enchantedAbbreviationIsOptionalAndSpecific() {
         assertEquals("Ench. Diamond", BazaarHudOptions.productName("Enchanted Diamond", true));
@@ -75,6 +63,17 @@ class BazaarWidgetViewDataTest {
 
         assertEquals(64, order.amount());
         assertEquals(43, order.liveProgress().orElseThrow().remaining());
+    }
+
+    @Test
+    void fractionalUnitPricesRemainPreciseThroughTotalFormatting() {
+        var order = new BazaarWidgetViewData.Order(
+            id("fractional-price"), BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
+            Optional.empty(), 85.9, 100, 0, BazaarWidgetViewData.OrderStatus.Top, List.of()
+        );
+
+        assertEquals(85.9, order.unitPrice());
+        assertEquals("8.6k", order.totalPriceText());
     }
 
     @Test

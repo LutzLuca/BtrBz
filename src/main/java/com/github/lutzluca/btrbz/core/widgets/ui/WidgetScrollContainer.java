@@ -11,9 +11,9 @@ import org.jetbrains.annotations.Nullable;
 
 /** A retained widget scroll container which owns its scroll and thumb-capture state. */
 public final class WidgetScrollContainer<C extends UIComponent> extends ScrollContainer<C> {
+    private final RetainedScrollState retainedScroll = new RetainedScrollState();
     private boolean interactive;
     private boolean thumbCaptured;
-    private double retainedProgress;
     private long retainedVisibleUntil;
 
     public WidgetScrollContainer(
@@ -34,7 +34,8 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     @Override
     public void layout(Size space) {
         super.layout(space);
-        double restoredOffset = this.maxScroll * this.retainedProgress;
+        // Reconciliation briefly lays out an empty child; retain the last user-owned offset across that pass.
+        double restoredOffset = this.retainedScroll.restore(this.maxScroll);
         this.scrollOffset = restoredOffset;
         this.currentScrollPosition = restoredOffset;
         this.scrollbaring = this.interactive && this.thumbCaptured;
@@ -159,9 +160,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
 
     private void rememberState() {
         if (!this.interactive) return;
-        this.retainedProgress = this.maxScroll <= 0
-            ? 0.0
-            : Math.max(0.0, Math.min(1.0, this.scrollOffset / this.maxScroll));
+        this.retainedScroll.remember(this.scrollOffset);
         this.retainedVisibleUntil = this.lastScrollbarInteractTime;
     }
 }

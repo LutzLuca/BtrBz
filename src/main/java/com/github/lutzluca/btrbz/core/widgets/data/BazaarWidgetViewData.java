@@ -3,9 +3,9 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarNumberFormat;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
+import com.github.lutzluca.btrbz.utils.Utils;
 
 import java.text.NumberFormat;
 import java.util.List;
@@ -27,14 +27,11 @@ public final class BazaarWidgetViewData {
     }
 
     public static String formatCompact(double value) {
-        return BazaarNumberFormat.compact(value);
+        return Utils.formatCompact(value);
     }
 
     public static String formatPrice(double value) {
-        var format = NumberFormat.getNumberInstance(Locale.US);
-        format.setMinimumFractionDigits(1);
-        format.setMaximumFractionDigits(1);
-        return format.format(value);
+        return Utils.formatDecimal(value, 1, true);
     }
 
     public enum OrderSide {
@@ -95,10 +92,6 @@ public final class BazaarWidgetViewData {
         public OrdersData(List<Order> orders, int filledOrderCount) {
             this(orders, StatusCounts.from(orders), filledOrderCount);
         }
-
-        public OrdersData detachedCopy() {
-            return new OrdersData(this.orders.stream().map(Order::detachedCopy).toList(), this.filledOrderCount);
-        }
     }
 
     public record StatusCounts(int top, int matched, int undercut, int unknown) {
@@ -129,7 +122,7 @@ public final class BazaarWidgetViewData {
         String itemName,
         Component formattedItemName,
         Optional<ItemStack> itemStack,
-        long unitPrice,
+        double unitPrice,
         int totalAmount,
         Optional<FillProgress> liveProgress,
         OrderStatus status,
@@ -161,7 +154,7 @@ public final class BazaarWidgetViewData {
             String itemName,
             Component formattedItemName,
             Optional<ItemStack> itemStack,
-            long unitPrice,
+            double unitPrice,
             int totalAmount,
             Optional<FillProgress> liveProgress,
             OrderStatus status,
@@ -178,7 +171,7 @@ public final class BazaarWidgetViewData {
             String itemName,
             Component formattedItemName,
             Optional<ItemStack> itemStack,
-            long unitPrice,
+            double unitPrice,
             int totalAmount,
             int liveFilledAmount,
             OrderStatus status,
@@ -218,30 +211,13 @@ public final class BazaarWidgetViewData {
         }
 
         public String totalPriceText() {
-            return formatCompact((double) this.unitPrice * this.totalAmount);
+            return formatCompact(this.unitPrice * this.totalAmount);
         }
 
         public Component formattedItemName(boolean abbreviateEnchanted) {
             if (!abbreviateEnchanted) return this.formattedItemName.copy();
             return Component.literal(BazaarHudOptions.productName(this.itemName, abbreviateEnchanted))
                 .setStyle(this.formattedItemName.getStyle());
-        }
-
-        public Order detachedCopy() {
-            return new Order(
-                this.id,
-                this.side,
-                this.itemName,
-                this.formattedItemName.copy(),
-                this.itemStack(),
-                this.unitPrice,
-                this.totalAmount,
-                this.liveProgress,
-                this.status,
-                this.marketInfo,
-                this.tooltipLines.stream().<Component>map(Component::copy).toList(),
-                this.creationSequence
-            );
         }
     }
 

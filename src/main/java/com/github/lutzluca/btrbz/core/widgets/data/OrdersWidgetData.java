@@ -73,7 +73,7 @@ public final class OrdersWidgetData {
                 Utils.legacyFormattedComponent(product.visualName()),
                 this.market.productStack(product)
                     .or(() -> this.observedProductStack(screenInfo, snapshot.slot(), product)),
-                Math.round(snapshot.pricePerUnit()),
+                snapshot.pricePerUnit(),
                 snapshot.volume(),
                 Optional.of(new BazaarWidgetViewData.FillProgress(
                     Math.max(0, Math.min(snapshot.fillAmountSnapshot(), snapshot.volume())), snapshot.volume()

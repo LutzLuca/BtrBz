@@ -28,7 +28,7 @@ public final class TrackedOrdersWidget {
             case Status -> sorted.sort(Comparator.comparing(order -> order.status().ordinal()));
             case Side -> sorted.sort(Comparator.comparing(order -> order.side().ordinal()));
             case Product -> sorted.sort(Comparator.comparing(BazaarWidgetViewData.Order::itemName));
-            case Value -> sorted.sort(Comparator.comparingLong(
+            case Value -> sorted.sort(Comparator.comparingDouble(
                 (BazaarWidgetViewData.Order order) -> order.unitPrice() * order.amount()
             ).reversed());
             case Manual -> { }

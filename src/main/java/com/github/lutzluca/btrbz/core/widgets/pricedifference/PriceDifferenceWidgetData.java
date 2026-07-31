@@ -27,7 +27,7 @@ public final class PriceDifferenceWidgetData {
         var spread = this.market.productSpread(product);
         if (spread.isEmpty()) return empty();
         return new Snapshot(
-            stack.getHoverName().getString(), Optional.of(stack), Math.round(spread.get()), quantity
+            stack.getHoverName().getString(), Optional.of(stack), spread.get(), quantity
         );
     }
 
@@ -51,7 +51,7 @@ public final class PriceDifferenceWidgetData {
         return new Snapshot("", Optional.empty(), 0, 0);
     }
 
-    public record Snapshot(String productName, Optional<ItemStack> itemStack, long perItem, int quantity) {
+    public record Snapshot(String productName, Optional<ItemStack> itemStack, double perItem, int quantity) {
         public Snapshot {
             itemStack = itemStack.map(ItemStack::copy);
         }
@@ -61,12 +61,8 @@ public final class PriceDifferenceWidgetData {
             return this.itemStack.map(ItemStack::copy);
         }
 
-        public long total() {
+        public double total() {
             return this.perItem * this.quantity;
-        }
-
-        public Snapshot detachedCopy() {
-            return new Snapshot(this.productName, this.itemStack(), this.perItem, this.quantity);
         }
     }
 }

@@ -46,7 +46,6 @@ class WidgetConfigCategoryTest {
         return WidgetDefinition.<Object, TestConfig, Void>builder(WidgetId.parse(id), name)
             .config(TestConfig::new, TestConfig::new, value -> value.frame, (current, defaults) -> {})
             .runtimeData(_ -> new Object())
-            .snapshotCopy(_ -> new Object())
             .preview(() -> null)
             .viewFactory(() -> null)
             .build();

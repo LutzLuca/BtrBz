@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 class IdentityScopedCacheTest {
 
     @Nested
-    @DisplayName("positive cache")
-    class PositiveCache {
+    @DisplayName("cached resolutions")
+    class CachedResolutions {
 
         @Test
         void cachesSuccessfulValuesWithinTheSameScopes() {
@@ -39,7 +39,7 @@ class IdentityScopedCacheTest {
         }
 
         @Test
-        void doesNotCacheAnEmptyResolution() {
+        void cachesAnEmptyResolutionWithinTheSameScopes() {
             var cache = new IdentityScopedCache<String, Object>();
             var primaryScope = new Object();
             var secondaryScope = new Object();
@@ -52,7 +52,7 @@ class IdentityScopedCacheTest {
                 }).isEmpty());
             }
 
-            assertEquals(2, calls.get());
+            assertEquals(1, calls.get());
         }
     }
 

@@ -10,12 +10,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 @DisplayName("Bazaar widget view data snapshots")
 class BazaarWidgetViewDataSnapshotTest {
     @Test
-    void copiesNestedMutableComponentsAtConstructionAndFreezeBoundaries() {
+    void copiesNestedMutableComponentsAtConstructionAndAccessBoundaries() {
         var name = Component.literal("Original");
         var tooltip = Component.literal("Tooltip");
         var order = new BazaarWidgetViewData.Order(
@@ -31,17 +30,14 @@ class BazaarWidgetViewDataSnapshotTest {
             Optional.empty(),
             List.of(tooltip)
         );
-        var source = new BazaarWidgetViewData.OrdersData(List.of(order));
+        var snapshot = new BazaarWidgetViewData.OrdersData(List.of(order));
 
         name.append(" changed");
         tooltip.append(" changed");
-        var frozen = source.detachedCopy();
-        ((MutableComponent) source.orders().getFirst().formattedItemName()).append(" source mutation");
-        ((MutableComponent) source.orders().getFirst().tooltipLines().getFirst()).append(" source mutation");
+        ((MutableComponent) snapshot.orders().getFirst().formattedItemName()).append(" accessor mutation");
+        ((MutableComponent) snapshot.orders().getFirst().tooltipLines().getFirst()).append(" accessor mutation");
 
-        assertNotSame(source, frozen);
-        assertNotSame(source.orders().getFirst(), frozen.orders().getFirst());
-        assertEquals("Original", frozen.orders().getFirst().formattedItemName().getString());
-        assertEquals("Tooltip", frozen.orders().getFirst().tooltipLines().getFirst().getString());
+        assertEquals("Original", snapshot.orders().getFirst().formattedItemName().getString());
+        assertEquals("Tooltip", snapshot.orders().getFirst().tooltipLines().getFirst().getString());
     }
 }
