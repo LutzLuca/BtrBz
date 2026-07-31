@@ -6,11 +6,11 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * A strong-key, positive-only cache invalidated when either owning context changes identity.
+ * A strong-key resolution cache invalidated when either owning context changes identity.
  * This is intended for values whose validity belongs to the lifetime of two context objects.
  */
 public final class IdentityScopedCache<K, V> {
-    private final Map<K, V> values = new HashMap<>();
+    private final Map<K, Optional<V>> values = new HashMap<>();
     private Object primaryScope;
     private Object secondaryScope;
 
@@ -21,13 +21,10 @@ public final class IdentityScopedCache<K, V> {
         Supplier<Optional<V>> resolver
     ) {
         this.updateScope(primaryScope, secondaryScope);
-        var cached = this.values.get(key);
-        if (cached != null) {
-            return Optional.of(cached);
-        }
+        if (this.values.containsKey(key)) return this.values.get(key);
 
         var resolved = resolver.get();
-        resolved.ifPresent(value -> this.values.put(key, value));
+        this.values.put(key, resolved);
         return resolved;
     }
 

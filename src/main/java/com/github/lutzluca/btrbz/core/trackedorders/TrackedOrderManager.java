@@ -343,8 +343,10 @@ public class TrackedOrderManager {
 
         var order = matchingOrder.get();
         int sourceIndex = this.displayOrders.indexOf(order);
-        this.displayOrders.remove(sourceIndex);
         int insertionIndex = dropIndex > sourceIndex ? dropIndex - 1 : dropIndex;
+        if (insertionIndex == sourceIndex) return false;
+
+        this.displayOrders.remove(sourceIndex);
         insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
         this.displayOrders.add(insertionIndex, order);
         this.displayRevision++;

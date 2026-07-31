@@ -52,13 +52,6 @@ class RetainedWidgetComponentsTest {
     }
 
     @Test
-    @DisplayName("scroll container owns retained scroll and capture state")
-    void scrollContainerOwnsItsState() throws NoSuchFieldException {
-        WidgetScrollContainer.class.getDeclaredField("retainedProgress");
-        WidgetScrollContainer.class.getDeclaredField("thumbCaptured");
-    }
-
-    @Test
     @DisplayName("detached flow mutations are mounted on reattachment")
     void detachedFlowMutationsRemainDirty() {
         var host = RetainedFlowLayout.vertical(Sizing.fixed(100), Sizing.content());

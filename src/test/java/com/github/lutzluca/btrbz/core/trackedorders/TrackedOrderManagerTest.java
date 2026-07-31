@@ -72,6 +72,23 @@ class TrackedOrderManagerTest {
         }
 
         @Test
+        void ignoresAnEffectiveNoOpWithoutAdvancingTheRevision() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            var first = trackedOrder(ProductIdentity.fromName("First"), 1.0);
+            var second = trackedOrder(ProductIdentity.fromName("Second"), 2.0);
+            manager.addTrackedOrder(first);
+            manager.addTrackedOrder(second);
+            long revision = manager.displayRevision();
+
+            assertFalse(manager.reorder(first.id(), 1));
+            assertEquals(revision, manager.displayRevision());
+            assertEquals(
+                List.of(first.id(), second.id()),
+                manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList()
+            );
+        }
+
+        @Test
         void preservesDuplicateOrderIdentityAcrossDisplayReorderAndSync() {
             var manager = new TrackedOrderManager(new BazaarData());
             var product = ProductIdentity.fromName("Duplicate Product");

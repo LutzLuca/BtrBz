@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -85,10 +84,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
                 data.counts().total() + " active · " + data.filledOrderCount() + " filled"
             ));
             this.empty.text(Component.literal(BazaarHudWidget.emptyText(data)));
-            int visible = BazaarOrderCountPolicy.visibleCount(
-                config.visibleOrders, data.orders().size(), Integer.MAX_VALUE,
-                BazaarHudOrderRowComponent.HEIGHT, Minecraft.getInstance().font.lineHeight
-            );
+            int visible = Math.min(config.supportedVisibleOrders(), data.orders().size());
             this.rows.clearChildren();
             for (int index = 0; index < visible; index++) {
                 var order = data.orders().get(index);

@@ -125,6 +125,14 @@ class UtilsTest {
         void formatsNegativeValues() {
             assertEquals("-1.5k", Utils.formatCompact(-1500, 1));
         }
+
+        @Test
+        void formatsWidgetValuesWithoutForcedTrailingZeros() {
+            assertEquals("26.12B", Utils.formatCompact(26_120_000_000d));
+            assertEquals("26B", Utils.formatCompact(26_000_000_000d));
+            assertEquals("21.2M", Utils.formatCompact(21_200_000d));
+            assertEquals("875", Utils.formatCompact(875d));
+        }
     }
 
     @Nested

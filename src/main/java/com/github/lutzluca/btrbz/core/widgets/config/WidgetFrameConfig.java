@@ -8,10 +8,10 @@ import java.util.Map;
 public final class WidgetFrameConfig {
     public boolean enabled = true;
     public Map<String, WidgetPlacement> placements = new LinkedHashMap<>();
-    public Boolean overrideScale = null;
+    public boolean overrideScale = false;
     public double scale = 1.0;
-    public Boolean overrideBackground = null;
-    public Integer background = null;
+    public boolean overrideBackground = false;
+    public int background = WidgetsConfig.DEFAULT_BACKGROUND;
 
     public WidgetFrameConfig(WidgetPlacement defaultPlacement) {
         this.placements.put("default", defaultPlacement);

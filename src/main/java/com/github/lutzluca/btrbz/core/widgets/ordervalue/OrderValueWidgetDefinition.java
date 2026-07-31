@@ -21,7 +21,6 @@ public final class OrderValueWidgetDefinition {
                 config -> config.frame, OrderValueWidgetConfig::resetPreferences)
             .supports(session -> session.inBazaarMenu(BazaarMenuType.Orders))
             .runtimeData(_ -> data.snapshot())
-            .snapshotCopy(OrderValueWidgetData.Snapshot::detachedCopy)
             .preview(() -> new WidgetPreview<>(OrderValueWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Orders), "default"))
             .viewFactory(OrderValueWidgetView::new)
             .settingsPanel(OrderValueWidgetSettings::create)

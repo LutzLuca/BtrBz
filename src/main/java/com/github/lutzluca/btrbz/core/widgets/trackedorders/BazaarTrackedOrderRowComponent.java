@@ -156,7 +156,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         if (!this.reorderable || !this.list.trackingDrag(this.order.id())) return false;
         var result = this.list.finishDrag().orElse(null);
         if (result == null) return false;
-        this.actions.accept(new TrackedOrdersAction.Reorder(result.key(), result.dropIndex()));
+        if (result.moved()) {
+            this.actions.accept(new TrackedOrdersAction.Reorder(result.key(), result.dropIndex()));
+        }
         return true;
     }
 

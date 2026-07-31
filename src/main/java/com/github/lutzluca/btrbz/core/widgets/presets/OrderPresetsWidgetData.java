@@ -58,11 +58,5 @@ public final class OrderPresetsWidgetData {
         public Snapshot {
             presets = List.copyOf(presets);
         }
-
-        public Snapshot detachedCopy() {
-            return new Snapshot(this.presets.stream().map(preset -> new Preset(
-                preset.preset(), preset.label(), preset.tooltip(), preset.available()
-            )).toList());
-        }
     }
 }

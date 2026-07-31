@@ -23,7 +23,6 @@ public final class PriceDifferenceWidgetDefinition {
             .supports(session -> session.inBazaarMenu(BazaarMenuType.Item))
             .visibility((data, _, _) -> data.quantity() > 0)
             .runtimeData(_ -> provider.snapshot())
-            .snapshotCopy(PriceDifferenceWidgetData.Snapshot::detachedCopy)
             .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(PriceDifferenceWidgetView::new)
             .settingsPanel(PriceDifferenceWidgetSettings::create)

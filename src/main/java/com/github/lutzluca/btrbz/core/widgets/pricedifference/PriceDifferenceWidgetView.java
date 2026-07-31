@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.utils.Utils;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -97,13 +98,13 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.PerItem) this.root.child(this.total.root);
     }
 
-    private static String number(long value, WidgetDisplayOptions.NumberStyle style) {
+    private static String number(double value, WidgetDisplayOptions.NumberStyle style) {
         return style == WidgetDisplayOptions.NumberStyle.Compact
             ? BazaarWidgetViewData.formatCompact(value)
-            : BazaarWidgetViewData.formatInt(value);
+            : Utils.formatDecimal(value, 1, true);
     }
 
-    private static String signed(long value, WidgetDisplayOptions.NumberStyle style) {
+    private static String signed(double value, WidgetDisplayOptions.NumberStyle style) {
         return (value >= 0 ? "+" : "") + number(value, style);
     }
 

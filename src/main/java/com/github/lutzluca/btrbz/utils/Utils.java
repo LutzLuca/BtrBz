@@ -5,8 +5,6 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -334,32 +332,28 @@ public final class Utils {
             throw new IllegalArgumentException("places must be >= 0");
         }
 
-        double abs = Math.abs(value);
-        String suffix;
-        double scaled;
-
-        if (abs >= 1_000_000_000) {
-            scaled = value / 1_000_000_000d;
-            suffix = "B";
-        } else if (abs >= 1_000_000) {
-            scaled = value / 1_000_000d;
-            suffix = "M";
-        } else if (abs >= 1_000) {
-            scaled = value / 1_000d;
-            suffix = "k";
-        } else {
-            scaled = value;
-            suffix = "";
-        }
-
-        StringBuilder pattern = new StringBuilder("0");
-        if (places > 0) {
-            pattern.append(".");
-            pattern.append("0".repeat(places));
-        }
-
-        return new DecimalFormat(pattern.toString(), DecimalFormatSymbols.getInstance(Locale.US)).format(scaled) + suffix;
+        var compact = compactValue(value);
+        return formatDecimal(compact.value(), places, false) + compact.suffix();
     }
+
+    public static String formatCompact(double value) {
+        var compact = compactValue(value);
+        var formatter = NumberFormat.getNumberInstance(Locale.US);
+        formatter.setMinimumFractionDigits(0);
+        formatter.setMaximumFractionDigits(Math.abs(value) >= 1_000_000_000 ? 2 : 1);
+        formatter.setGroupingUsed(false);
+        return formatter.format(compact.value()) + compact.suffix();
+    }
+
+    private static CompactValue compactValue(double value) {
+        double absolute = Math.abs(value);
+        if (absolute >= 1_000_000_000) return new CompactValue(value / 1_000_000_000d, "B");
+        if (absolute >= 1_000_000) return new CompactValue(value / 1_000_000d, "M");
+        if (absolute >= 1_000) return new CompactValue(value / 1_000d, "k");
+        return new CompactValue(value, "");
+    }
+
+    private record CompactValue(double value, String suffix) {}
 
 
     public static boolean isValidRomanNumeral(String roman) {
