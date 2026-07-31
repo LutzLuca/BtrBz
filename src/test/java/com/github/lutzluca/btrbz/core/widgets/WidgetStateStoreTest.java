@@ -43,6 +43,10 @@ class WidgetStateStoreTest {
         assertEquals(75, config.managerPanelHeightPercent);
         assertFalse(config.runtimeDragging);
         assertTrue(config.managerLauncherVisible);
+        assertEquals(
+            WidgetPlacement.topLeft(0.05, 0.91),
+            WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION
+        );
         assertEquals(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, config.managerLauncherPosition);
         assertEquals(15_000_000_000d, config.orderLimit.dailyLimit);
         assertTrue(config.bookmarks.items.isEmpty());
@@ -81,7 +85,7 @@ class WidgetStateStoreTest {
         store.resetManagerLauncherPosition(true);
 
         assertFalse(config.managerLauncherVisible);
-        assertEquals(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, config.managerLauncherPosition);
+        assertEquals(WidgetPlacement.topLeft(0.05, 0.91), config.managerLauncherPosition);
         assertEquals(1, saves.get());
     }
 
