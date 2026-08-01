@@ -212,7 +212,8 @@ public final class OrderInfoParser {
         // Worth {roundedFormattedTotal} coins
         // Blank
         // Order amount / Offer amount: {volume}x
-        // Optional: Filled: {filledAmount}/{volume} {filledPercentage}%!
+        // Partial: Filled: {compactFilledAmount}/{compactVolume} ({filledPercentage}%)
+        // Complete: Filled: {compactFilledAmount}/{compactVolume} 100%!
         // Blank
         // Price per unit: {pricePerUnit} coins
         // ...
@@ -272,8 +273,8 @@ public final class OrderInfoParser {
         return Try.of(() -> {
             Double pricePerUnit = null;
             Integer volume = null;
-            Boolean filled = null;
-            int filledAmount = 0;
+            Double filledPercentage = null;
+            Integer exactFilledAmount = null;
             int unclaimed = 0;
 
             for (String rawLine : lore) {
@@ -301,17 +302,43 @@ public final class OrderInfoParser {
                     volume = parsed
                         .getOrElseThrow(() -> new IllegalArgumentException("Failed to parse volume"))
                         .intValue();
-                } else if (filled == null && line.startsWith("Filled") && line.contains("%")) {
-                    filled = line.contains("100%");
-                    var first = line.indexOf(' ');
-                    var last = line.lastIndexOf(' ');
+                } else if (filledPercentage == null && line.startsWith("Filled:")) {
+                    if (line.endsWith("100%!")) {
+                        filledPercentage = 100.0;
+                        continue;
+                    }
+                    if (!line.endsWith("%)")) {
+                        throw new IllegalArgumentException("Partial filled line must end with a parenthesized percentage");
+                    }
 
-                    var parts = line.substring(first, last).trim().split("/", 2);
-                    filledAmount = Utils
-                        .parseUsFormattedNumber(parts[0])
+                    int percentStart = line.lastIndexOf('(');
+                    int percentEnd = line.length() - 2;
+                    if (percentStart < 0 || percentStart + 1 >= percentEnd) {
+                        throw new IllegalArgumentException("Failed to locate partial filled percentage");
+                    }
+                    filledPercentage = Utils
+                        .parseUsFormattedNumber(line.substring(percentStart + 1, percentEnd))
                         .getOrElseThrow(() -> new IllegalArgumentException(
-                            "Failed to parse filledAmound"))
-                        .intValue();
+                            "Failed to parse filled percentage"))
+                        .doubleValue();
+                    if (filledPercentage < 0 || filledPercentage > 100) {
+                        throw new IllegalArgumentException(
+                            "Filled percentage must be between zero and 100");
+                    }
+
+                    int countsStart = line.indexOf(':');
+                    int countsEnd = line.indexOf('/', countsStart + 1);
+                    if (countsStart < 0 || countsEnd < 0 || countsStart + 1 >= countsEnd) {
+                        throw new IllegalArgumentException("Failed to locate filled counts");
+                    }
+                    var filledToken = line.substring(countsStart + 1, countsEnd).trim();
+                    if (isUnsignedInteger(filledToken)) {
+                        exactFilledAmount = Utils
+                            .parseUsFormattedNumber(filledToken)
+                            .getOrElseThrow(() -> new IllegalArgumentException(
+                                "Failed to parse exact filled amount"))
+                            .intValue();
+                    }
                 } else if (line.startsWith("You have")) {
                     var trimmed = line.replaceFirst("You have", "").trim();
                     var spaceIdx = trimmed.indexOf(' ');
@@ -328,14 +355,39 @@ public final class OrderInfoParser {
                     "Missing required fields (pricePerUnit or volume) in lore");
             }
 
+            // Prefer a fully parseable integer numerator. Hypixel compacts larger counts
+            // (for example 3.1k/51.2k), in which case infer the amount from the displayed
+            // percentage instead. The percentage is rounded and this fallback can therefore
+            // be off by up to about 0.1% of the order volume (~72 items at the maximum of 71,680).
+            int filledAmount;
+            if (filledPercentage == null) {
+                filledAmount = 0;
+            } else if (exactFilledAmount != null) {
+                filledAmount = exactFilledAmount;
+            } else {
+                filledAmount = (int) Math.round(volume * filledPercentage / 100.0);
+            }
             return new OrderDetails(
                 pricePerUnit,
                 volume,
                 filledAmount,
                 unclaimed,
-                filled != null && filled
+                filledPercentage != null && filledPercentage >= 100 && filledAmount >= volume
             );
         });
+    }
+
+    private static boolean isUnsignedInteger(String value) {
+        if (value.isEmpty()) {
+            return false;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            char current = value.charAt(index);
+            if (!Character.isDigit(current) && current != ',') {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static Try<OutstandingOrderInfo> parseSetOrderItem(ItemStack item) {

@@ -205,8 +205,9 @@ public final class OrderModels {
         public OrderStatus status = new OrderStatus.Unknown();
         public int slot;
         /**
-         * The amount of items that were filled at the time this order was last viewed in the Bazaar UI.
-         * This value is a snapshot from the UI and may differ from the actual Bazaar state.
+         * The amount of items that were filled when this order was last viewed in the Bazaar UI.
+         * Exact integer lore counts are preserved. When Hypixel compacts the count, it is inferred from
+         * the rounded fill percentage and may differ by up to roughly 0.1% of the original order volume.
          * It should ONLY be used for UI-side heuristics like the estimated fill time feature.
          */
         public int fillAmountSnapshot;
