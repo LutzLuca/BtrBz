@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.hud;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.PriceDisplay;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.QueueDisplay;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.UndercutDetail;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class BazaarOrdersWidgetConfig {
@@ -22,7 +21,7 @@ public final class BazaarOrdersWidgetConfig {
     public boolean showVolume = true;
     public PriceDisplay priceDisplay = PriceDisplay.Unit;
     public QueueDisplay queueDisplay = QueueDisplay.Items;
-    public UndercutDetail undercutDetail = UndercutDetail.PriceGapAndQueue;
+    public boolean showUndercutGap = true;
 
     public int supportedVisibleOrders() {
         return Math.max(MIN_VISIBLE_ORDERS, Math.min(MAX_VISIBLE_ORDERS, this.visibleOrders));
@@ -38,6 +37,6 @@ public final class BazaarOrdersWidgetConfig {
         current.showVolume = defaults.showVolume;
         current.priceDisplay = defaults.priceDisplay;
         current.queueDisplay = defaults.queueDisplay;
-        current.undercutDetail = defaults.undercutDetail;
+        current.showUndercutGap = defaults.showUndercutGap;
     }
 }

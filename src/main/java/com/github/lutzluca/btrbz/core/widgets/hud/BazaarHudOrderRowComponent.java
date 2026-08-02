@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -22,13 +21,14 @@ import java.util.Objects;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
-/** Two-line, freshness-safe HUD row: identity first, status and optional facts second. */
+/** Two-line HUD row with categorical state above order identity and market position. */
 final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     static final int ICON_SIZE = 16;
-    static final int HEIGHT = 21;
+    static final int ICON_CELL_WIDTH = 18;
+    static final int HEIGHT = 20;
 
     private static final int TEXT_GAP = 4;
-    private static final int ICON_GAP = 3;
+    private static final int HORIZONTAL_PADDING = 1;
 
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
@@ -62,7 +62,9 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     public void layout(Size space) {
         if (!this.showItem) return;
         this.itemComponent().inflate(Size.of(ICON_SIZE, ICON_SIZE));
-        this.itemComponent().mount(this, this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING, this.y + 1);
+        int iconX = this.x + (ICON_CELL_WIDTH - ICON_SIZE) / 2;
+        int iconY = this.y + (HEIGHT - ICON_SIZE) / 2;
+        this.itemComponent().mount(this, iconX, iconY);
     }
 
     @Override public List<UIComponent> children() {
@@ -78,45 +80,54 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
         var font = Minecraft.getInstance().font;
-        int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        int x = this.x + HORIZONTAL_PADDING;
         if (this.showItem) {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
-            x += ICON_SIZE + ICON_GAP;
+            x = this.x + ICON_CELL_WIDTH;
         }
 
         var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
-        int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
+        int right = this.x + this.width - HORIZONTAL_PADDING;
         int sideX = right - font.width(side);
-        graphics.text(font, ellipsize(this.productName, Math.max(0, sideX - TEXT_GAP - x)),
+        int statusX = sideX - TEXT_GAP - font.width(status);
+        graphics.text(font, ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x)),
             x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
+        graphics.text(font, status, statusX, this.y + 1, this.order.status().color(), false);
         graphics.text(font, side, sideX, this.y + 1, this.order.side().accentColor(), false);
 
-        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
-        int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
-        graphics.text(font, status, x, secondY, this.order.status().color(), false);
-        int detailX = x + font.width(status);
-        var details = BazaarOrderText.joined(BazaarOrderText.optionalDetails(
-            this.order, this.options.showVolume, this.options.priceDisplay, false
-        ));
-        var prefix = details.isBlank() ? Component.empty() : Component.literal(" · ");
-        int leftDetailWidth = font.width(prefix) + font.width(details);
-        var marketCandidates = BazaarOrderText.hudMarketCandidates(
-            this.order, this.options.queueDisplay, this.options.undercutDetail
+        int secondY = this.y + 10;
+        String identity = BazaarOrderText.hudOrderIdentity(
+            this.order, this.options.showVolume, this.options.priceDisplay
+        );
+        var marketCandidates = BazaarOrderText.hudMarketPositionCandidates(
+            this.order, this.options.queueDisplay, this.options.showUndercutGap
         );
         String marketText = firstFittingMarketText(
             marketCandidates,
-            Math.max(0, right - detailX - leftDetailWidth - TEXT_GAP)
+            Math.max(0, right - x - font.width(identity) - TEXT_GAP)
         );
         int marketX = marketText.isBlank() ? right : right - font.width(marketText);
 
-        if (!details.isBlank()) {
-            graphics.text(font, prefix, detailX, secondY, BazaarStyles.MUTED_TEXT, false);
-            detailX += font.width(prefix);
-            graphics.text(font, ellipsize(Component.literal(details), Math.max(0, marketX - TEXT_GAP - detailX)),
-                detailX, secondY, BazaarStyles.SECONDARY_TEXT, false);
+        if (!identity.isBlank()) {
+            graphics.text(
+                font,
+                ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x)),
+                x,
+                secondY,
+                BazaarStyles.SECONDARY_TEXT,
+                false
+            );
         }
         if (!marketText.isBlank()) {
-            graphics.text(font, Component.literal(marketText), marketX, secondY, BazaarStyles.SECONDARY_TEXT, false);
+            graphics.text(
+                font,
+                Component.literal(marketText),
+                marketX,
+                secondY,
+                BazaarStyles.SECONDARY_TEXT,
+                false
+            );
         }
     }
 
