@@ -25,7 +25,31 @@ class BazaarHudOrderRowComponentTest {
     }
 
     @Test
-    void marketDifferenceKeepsExactSmallCoinDeltaInsteadOfPercentage() {
+    void hudIdentityCombinesVolumeAndUnitPriceWithoutASeparator() {
+        var order = order(Optional.empty());
+
+        assertEquals(
+            "64x @ 12.4M",
+            BazaarOrderText.hudOrderIdentity(
+                order, true, WidgetDisplayOptions.PriceDisplay.Unit
+            )
+        );
+        assertEquals(
+            "64x @ 12.4M · total 793.6M",
+            BazaarOrderText.hudOrderIdentity(
+                order, true, WidgetDisplayOptions.PriceDisplay.Both
+            )
+        );
+    }
+
+    @Test
+    void hudRowCentersIconWithCompactHorizontalInsets() {
+        assertEquals(20, BazaarHudOrderRowComponent.HEIGHT);
+        assertEquals(18, BazaarHudOrderRowComponent.ICON_CELL_WIDTH);
+    }
+
+    @Test
+    void marketDifferenceKeepsExactSmallCoinGapInsteadOfPercentage() {
         var order = order(Optional.of(BazaarWidgetViewData.MarketInfo.bestPrice(12_399_999.9, 0.1)));
 
         assertEquals(
@@ -74,6 +98,36 @@ class BazaarHudOrderRowComponentTest {
                 order,
                 WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
                 WidgetDisplayOptions.UndercutDetail.PriceGapAndQueue
+            )
+        );
+    }
+
+    @Test
+    void readableHudMarketPositionUsesOptionalGapAndBracketedQueue() {
+        var order = order(
+            BazaarWidgetViewData.OrderStatus.Undercut,
+            Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(12_399_999.9, 0.1, 3, 72))
+        );
+
+        assertEquals(
+            List.of(
+                "gap 0.1 · [3/72]",
+                "gap 0.1 · [72 items]",
+                "gap 0.1 · [72]",
+                "gap 0.1"
+            ),
+            BazaarOrderText.hudMarketPositionCandidates(
+                order,
+                WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
+                true
+            )
+        );
+        assertEquals(
+            List.of("[3/72]", "[72 items]", "[72]"),
+            BazaarOrderText.hudMarketPositionCandidates(
+                order,
+                WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
+                false
             )
         );
     }

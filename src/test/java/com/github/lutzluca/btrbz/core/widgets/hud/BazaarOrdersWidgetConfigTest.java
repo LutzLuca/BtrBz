@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -8,6 +9,21 @@ import org.junit.jupiter.api.Test;
 
 @DisplayName("Bazaar orders widget config")
 class BazaarOrdersWidgetConfigTest {
+    @Nested
+    @DisplayName("preference reset")
+    class PreferenceReset {
+        @Test
+        @DisplayName("restores the undercut gap preference")
+        void restoresUndercutGapPreference() {
+            var config = new BazaarOrdersWidgetConfig();
+            config.showUndercutGap = false;
+
+            BazaarOrdersWidgetConfig.resetPreferences(config, new BazaarOrdersWidgetConfig());
+
+            assertTrue(config.showUndercutGap);
+        }
+    }
+
     @Nested
     @DisplayName("visible order limit")
     class VisibleOrderLimit {

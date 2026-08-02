@@ -25,7 +25,7 @@ public final class BazaarOrdersWidgetSettings {
         bool(panel, "Show volume", binding, c -> c.showVolume, (c, v) -> c.showVolume = v);
         enumeration(panel, "Price display", binding, c -> c.priceDisplay, (c, v) -> c.priceDisplay = v);
         enumeration(panel, "Queue display", binding, c -> c.queueDisplay, (c, v) -> c.queueDisplay = v);
-        enumeration(panel, "Undercut detail", binding, c -> c.undercutDetail, (c, v) -> c.undercutDetail = v);
+        bool(panel, "Show undercut gap", binding, c -> c.showUndercutGap, (c, v) -> c.showUndercutGap = v);
         return panel;
     }
 }
