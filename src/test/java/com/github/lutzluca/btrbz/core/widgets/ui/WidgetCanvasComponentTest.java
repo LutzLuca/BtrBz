@@ -47,6 +47,30 @@ class WidgetCanvasComponentTest {
     }
 
     @Test
+    void canvasSuppressesAllTooltipsWhileAnySlotOwnsMouseCapture() {
+        var tooltipSlot = slot("test:tooltip", new TooltipComponent(100, 100), 10, 20, 100, 100, 1.0);
+        var captureSlot = slot(
+            "test:capture",
+            new DragParent(new PassiveComponent(100, 100)),
+            150,
+            20,
+            100,
+            100,
+            1.0
+        );
+        var captureClick = new MouseButtonEvent(25, 25, new MouseButtonInfo(0, 0));
+        var slots = List.of(tooltipSlot, captureSlot);
+
+        assertSame(tooltipSlot, WidgetCanvasComponent.topmostTooltipSlot(slots, 30, 40));
+        assertTrue(captureSlot.onMouseDown(captureClick, false));
+        assertNull(WidgetCanvasComponent.topmostTooltipSlot(slots, 30, 40));
+
+        captureSlot.onMouseUp(captureClick);
+
+        assertSame(tooltipSlot, WidgetCanvasComponent.topmostTooltipSlot(slots, 30, 40));
+    }
+
+    @Test
     void dragStaysWithTheComponentThatHandledMouseDown() {
         var dragParent = new DragParent(new PassiveComponent(100, 100));
         var slot = slot("test:drag-parent", dragParent, 10, 20, 100, 100, .5);

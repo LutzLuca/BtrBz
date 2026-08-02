@@ -65,6 +65,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
 
     public boolean visible() { return this.visible; }
 
+    boolean ownsMouseCapture() { return this.activeMouseTarget != null; }
+
     public void update(
         int backgroundColor,
         WidgetBounds localBounds,
@@ -172,6 +174,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         if (!this.visible) return;
         int logicalMouseX = this.logicalAbsoluteX(mouseX - this.x);
         int logicalMouseY = this.logicalAbsoluteY(mouseY - this.y);
+        int childMouseX = this.drawManagementOverlay ? this.x - 1 : logicalMouseX;
+        int childMouseY = this.drawManagementOverlay ? this.y - 1 : logicalMouseY;
 
         graphics.push();
         try {
@@ -196,8 +200,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
                 this.child,
                 this.logicalWidth,
                 this.logicalHeight,
-                logicalMouseX,
-                logicalMouseY,
+                childMouseX,
+                childMouseY,
                 partialTicks,
                 delta,
                 this.x,
