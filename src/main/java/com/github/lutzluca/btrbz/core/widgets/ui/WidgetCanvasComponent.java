@@ -76,6 +76,8 @@ public final class WidgetCanvasComponent extends BaseParentUIComponent {
         int mouseX,
         int mouseY
     ) {
+        if (slots.stream().anyMatch(WidgetSlotComponent::ownsMouseCapture)) return null;
+
         for (int index = slots.size() - 1; index >= 0; index--) {
             var slot = slots.get(index);
             if (slot.visible() && slot.isInBoundingBox(mouseX, mouseY)

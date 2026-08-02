@@ -158,6 +158,12 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         return this.dragging(key) || this.pendingDragKey != null && this.pendingDragKey.equals(key);
     }
 
+    public final boolean hoverSuppressed() {
+        return this.pendingDragKey != null
+            || this.draggedKey != null
+            || this.scrollList.scrollbarOwnsMouseCapture();
+    }
+
     public final void dragPointer(int pointerY) {
         if (this.pendingDragKey != null) {
             this.pendingDragMoved = true;

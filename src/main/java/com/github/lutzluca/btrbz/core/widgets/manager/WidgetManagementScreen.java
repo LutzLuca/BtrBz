@@ -235,6 +235,17 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
+    @Override
+    protected void drawComponentTooltip(
+        GuiGraphicsExtractor graphics,
+        int mouseX,
+        int mouseY,
+        float delta
+    ) {
+        if (this.sidebarPosition.isDragging() || this.preview != null && this.preview.isDragging()) return;
+        super.drawComponentTooltip(graphics, mouseX, mouseY, delta);
+    }
+
     private @Nullable Screen returnScreen() {
         if (this.backgroundScreen == null) return this.previousScreen;
         if (this.minecraft.player == null

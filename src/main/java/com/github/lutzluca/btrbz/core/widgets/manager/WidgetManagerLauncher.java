@@ -67,7 +67,7 @@ public final class WidgetManagerLauncher {
         this.button.positioning(Positioning.absolute(this.bounds.x(), this.bounds.y()));
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
         this.adapter.extractRenderState(graphics, mouseX, mouseY, delta);
-        this.adapter.drawTooltip(graphics, mouseX, mouseY, delta);
+        if (!this.captured) this.adapter.drawTooltip(graphics, mouseX, mouseY, delta);
     }
 
     public boolean mouseClicked(MouseButtonEvent click) {
