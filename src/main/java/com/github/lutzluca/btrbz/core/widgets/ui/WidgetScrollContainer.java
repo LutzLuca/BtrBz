@@ -165,6 +165,12 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         this.rememberState();
     }
 
+    public void flashScrollbar() {
+        if (!this.interactive) return;
+        this.retainedVisibleUntil = System.currentTimeMillis() + 1250L;
+        this.lastScrollbarInteractTime = this.retainedVisibleUntil;
+    }
+
     private void updateChildPosition() {
         int topInset = this.padding.get().top() + this.child.margins().get().top();
         this.child.updateY(this.y + topInset - (int) this.currentScrollPosition);

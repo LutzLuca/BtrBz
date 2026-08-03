@@ -19,6 +19,7 @@ final class BookmarksWidgetView implements
     private final FlowLayout root = panel(1);
     private final LabelComponent title = text("Bookmarks", BazaarStyles.PRIMARY_TEXT);
     private final BazaarBookmarkListComponent list = new BazaarBookmarkListComponent();
+    private final BookmarkAdditionTracker additions = new BookmarkAdditionTracker();
 
     BookmarksWidgetView() {
         this.root.child(this.title);
@@ -48,11 +49,15 @@ final class BookmarksWidgetView implements
         Consumer<BookmarksAction> actions
     ) {
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
+        boolean added = this.additions.update(
+            data.bookmarks().stream().map(BookmarksWidgetData.Bookmark::productId).toList()
+        );
         this.list.update(
             BookmarksWidget.sortedBookmarks(data.bookmarks(), config.sort),
             config,
             true,
             actions
         );
+        if (added) this.list.flashScrollbar();
     }
 }

@@ -111,7 +111,11 @@ public final class WidgetManagerLauncher {
         this.dragging = false;
         this.tooltipDelay.reset();
         if (!moved) {
-            Minecraft.getInstance().setScreen(this.runtime.createManagementScreen(screen));
+            var manager = this.runtime.createManagementScreen(screen);
+            if (screen instanceof WidgetManagerLauncherOwner owner) {
+                owner.btrbz$prepareManagerTransition();
+            }
+            Minecraft.getInstance().setScreen(manager);
         }
         return true;
     }
