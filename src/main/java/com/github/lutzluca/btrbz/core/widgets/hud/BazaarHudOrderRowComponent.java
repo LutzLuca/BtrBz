@@ -96,7 +96,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
         int secondY = this.y + 10;
         String identity = BazaarOrderText.orderIdentity(this.order);
-        var marketCandidates = BazaarOrderText.hudMarketPositionCandidates(
+        var marketCandidates = BazaarOrderText.marketPositionCandidates(
             this.order, this.options.showQueue, this.options.showUndercutGap
         );
         String marketText = firstFittingMarketText(
