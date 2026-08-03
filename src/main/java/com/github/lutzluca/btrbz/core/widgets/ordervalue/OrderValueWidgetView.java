@@ -68,13 +68,9 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
 
     private static final class ValueLine {
         private final FlowLayout root = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        private final String name;
-        private final boolean bold;
         private final LabelComponent value;
 
         private ValueLine(String name, boolean bold) {
-            this.name = name;
-            this.bold = bold;
             this.root.allowOverflow(true);
             this.root.child(label(name, BazaarStyles.SECONDARY_TEXT));
             this.root.child(spacer());

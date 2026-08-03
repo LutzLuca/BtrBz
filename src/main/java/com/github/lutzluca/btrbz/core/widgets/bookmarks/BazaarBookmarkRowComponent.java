@@ -86,7 +86,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
     @Override
     public ParentUIComponent removeChild(UIComponent child) {
-        throw new UnsupportedOperationException("Bookmark row owns its ItemStack");
+        throw new UnsupportedOperationException("Bookmark row owns its item icon");
     }
 
     @Override

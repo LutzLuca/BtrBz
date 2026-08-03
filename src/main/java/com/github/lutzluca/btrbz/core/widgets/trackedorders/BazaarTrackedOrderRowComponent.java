@@ -34,7 +34,6 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private static final int STANDARD_ICON_SIZE = 16;
     private static final int COMPACT_ICON_SIZE = 12;
     private static final int TEXT_GAP = 3;
-    private static final int MINIMUM_PRODUCT_WIDTH = 36;
     private static final int STANDARD_PROGRESS_HEIGHT = 2;
     private static final int COMPACT_PROGRESS_HEIGHT = 1;
 
@@ -103,7 +102,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         lines.add(this.productName.copy());
         lines.add(Component.literal(this.order.status().label() + " · " + this.order.side().label()));
         lines.add(Component.literal(BazaarOrderText.orderIdentity(this.order)));
-        var market = BazaarOrderText.hudMarketPositionCandidates(this.order, true, true);
+        var market = BazaarOrderText.marketPositionCandidates(this.order, true, true);
         if (!market.isEmpty()) lines.add(Component.literal(market.getFirst()));
         this.order.liveProgress().ifPresent(progress -> lines.add(Component.literal(
             "Filled " + progress.filled() + "/" + progress.total()
@@ -242,7 +241,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     private String firstFittingMarketText(int availableWidth) {
         var font = Minecraft.getInstance().font;
-        for (var candidate : BazaarOrderText.hudMarketPositionCandidates(this.order, true, true)) {
+        for (var candidate : BazaarOrderText.marketPositionCandidates(this.order, true, true)) {
             if (font.width(candidate) <= availableWidth) return candidate;
         }
         return "";
