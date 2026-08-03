@@ -8,8 +8,10 @@ public final class OrderValueWidgetSettings {
     private OrderValueWidgetSettings() {}
     public static UIComponent create(WidgetConfigBinding<OrderValueWidgetConfig> binding) {
         var panel = panel();
-        integer(panel, "Widget width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 170, 280);
-        enumeration(panel, "Display", binding, c -> c.display, (c, v) -> c.display = v);
+        integer(panel, "Widget width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 170, 280,
+            "Controls horizontal space without changing text scale.");
+        enumeration(panel, "Display", binding, c -> c.display, (c, v) -> c.display = v,
+            "Detailed shows each non-zero value category. Summary shows only total worth.");
         return panel;
     }
 }

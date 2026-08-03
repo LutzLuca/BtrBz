@@ -11,7 +11,8 @@ public final class DailyLimitWidgetSettings {
     private DailyLimitWidgetSettings() {}
     public static UIComponent create(WidgetConfigBinding<DailyLimitWidgetConfig> binding) {
         var panel = panel();
-        integer(panel, "Widget width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 180, 280);
+        integer(panel, "Widget width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 180, 280,
+            "Controls horizontal space for the exact estimated usage and limit values.");
         panel.child(UIComponents.label(Component.literal("Daily coin limit")));
         var limit = UIComponents.textBox(Sizing.fill(100));
         limit.setMaxLength(18);
@@ -24,6 +25,9 @@ public final class DailyLimitWidgetSettings {
                 if (parsed > 0) binding.mutate(config -> config.dailyLimit = parsed);
             } catch (NumberFormatException _) { }
         });
+        limit.tooltip(com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips.wrapped(
+            "Your personal Bazaar coin limit. The used value is estimated from transactions observed by the mod."
+        ));
         panel.child(limit);
         return panel;
     }

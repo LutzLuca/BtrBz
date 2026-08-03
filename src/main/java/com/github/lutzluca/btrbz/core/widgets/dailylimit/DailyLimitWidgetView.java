@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Sizing;
@@ -26,6 +27,9 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         this.root.horizontalAlignment(HorizontalAlignment.CENTER);
         this.root.child(this.header);
         this.root.child(this.value);
+        this.value.tooltip(WidgetTooltips.wrapped(
+            "Estimated from Bazaar transactions observed by the mod. Activity missed while data is unavailable may not be included."
+        ));
     }
 
     @Override

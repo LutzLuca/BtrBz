@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
@@ -20,6 +21,7 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -92,8 +94,22 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.verticalSizing(Sizing.fixed(
             options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
         ));
-        this.tooltip(interactive ? tooltip : List.of());
+        this.tooltip(interactive ? WidgetTooltips.wrapped(this.tooltipLines(tooltip)) : List.of());
         this.updateLayout();
+    }
+
+    private List<Component> tooltipLines(List<Component> providerLines) {
+        var lines = new ArrayList<Component>();
+        lines.add(this.productName.copy());
+        lines.add(Component.literal(this.order.status().label() + " · " + this.order.side().label()));
+        lines.add(Component.literal(BazaarOrderText.orderIdentity(this.order)));
+        var market = BazaarOrderText.hudMarketPositionCandidates(this.order, true, true);
+        if (!market.isEmpty()) lines.add(Component.literal(market.getFirst()));
+        this.order.liveProgress().ifPresent(progress -> lines.add(Component.literal(
+            "Filled " + progress.filled() + "/" + progress.total()
+        )));
+        lines.addAll(providerLines);
+        return List.copyOf(lines);
     }
 
     @Override

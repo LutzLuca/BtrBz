@@ -30,7 +30,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         this.hoverable = hoverable;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
-        if (!row.tooltip().isEmpty()) this.tooltip(row.tooltip());
+        if (!row.tooltip().isEmpty()) this.tooltip(WidgetTooltips.wrapped(row.tooltip()));
     }
 
     void update(BazaarRow row, boolean hoverable, int height, boolean reserveScrollbarSpace) {
@@ -38,7 +38,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         this.hoverable = hoverable;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.verticalSizing(Sizing.fixed(height));
-        this.tooltip(row.tooltip());
+        this.tooltip(WidgetTooltips.wrapped(row.tooltip()));
     }
 
     @Override public boolean canFocus(FocusSource source) {
