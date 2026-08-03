@@ -28,8 +28,6 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     private final ItemComponent item;
     private BookmarksWidgetData.Bookmark bookmark;
     private Component productName;
-    private boolean showItem;
-    private boolean showIndicators;
     private boolean interactive;
     private boolean reorderable;
     private boolean reserveScrollbarSpace;
@@ -61,9 +59,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         Consumer<BookmarksAction> actions
     ) {
         this.bookmark = bookmark;
-        this.productName = bookmark.formattedProductName(options.abbreviateEnchanted);
-        this.showItem = options.showItems;
-        this.showIndicators = options.showIndicators;
+        this.productName = bookmark.formattedProductName(false);
         this.interactive = interactive;
         this.reorderable = interactive && options.sort == BookmarksWidgetConfig.BookmarkSort.Manual;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
@@ -75,7 +71,6 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
     @Override
     public void layout(Size space) {
-        if (!this.showItem) return;
         this.item.inflate(Size.of(ICON_SIZE, ICON_SIZE));
         this.item.mount(
             this,
@@ -86,7 +81,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
     @Override
     public List<UIComponent> children() {
-        return this.showItem ? List.of(this.item) : List.of();
+        return List.of(this.item);
     }
 
     @Override
@@ -143,13 +138,11 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         if (this.list.dragging(this.bookmark.productId())) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_DRAG);
         }
-        if (this.showItem) this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
+        this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
 
         var font = Minecraft.getInstance().font;
-        int textX = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING + (this.showItem ? ICON_SIZE + 3 : 0);
-        int indicatorCount = this.showIndicators
-            ? (this.bookmark.buyOrder() ? 1 : 0) + (this.bookmark.sellOrder() ? 1 : 0)
-            : 0;
+        int textX = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING + ICON_SIZE + 3;
+        int indicatorCount = (this.bookmark.buyOrder() ? 1 : 0) + (this.bookmark.sellOrder() ? 1 : 0);
         int indicatorWidth = indicatorCount == 0 ? 0 : indicatorCount * DOT_SIZE + (indicatorCount - 1) * 3;
         int trailingInset = trailingInset(this.reserveScrollbarSpace);
         int available = Math.max(0, this.x + this.width - trailingInset
@@ -159,11 +152,11 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
         int dotX = this.x + this.width - trailingInset - indicatorWidth;
         int dotY = this.y + (this.height - DOT_SIZE) / 2;
-        if (this.showIndicators && this.bookmark.buyOrder()) {
+        if (this.bookmark.buyOrder()) {
             graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, BazaarStyles.BUY_ACCENT);
             dotX += DOT_SIZE + 3;
         }
-        if (this.showIndicators && this.bookmark.sellOrder()) {
+        if (this.bookmark.sellOrder()) {
             graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, BazaarStyles.SELL_ACCENT);
         }
     }

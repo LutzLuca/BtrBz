@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.PriceDisplay;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class BazaarOrdersWidgetConfig {
@@ -15,10 +14,6 @@ public final class BazaarOrdersWidgetConfig {
     public int visibleOrders = 6;
     public int contentWidth = 200;
     public boolean abbreviateEnchanted = false;
-    public boolean hideWhenEmpty = true;
-    public boolean showItem = true;
-    public boolean showVolume = true;
-    public PriceDisplay priceDisplay = PriceDisplay.Unit;
     public boolean showQueue = true;
     public boolean showUndercutGap = false;
 
@@ -31,10 +26,6 @@ public final class BazaarOrdersWidgetConfig {
         current.visibleOrders = defaults.visibleOrders;
         current.contentWidth = defaults.contentWidth;
         current.abbreviateEnchanted = defaults.abbreviateEnchanted;
-        current.hideWhenEmpty = defaults.hideWhenEmpty;
-        current.showItem = defaults.showItem;
-        current.showVolume = defaults.showVolume;
-        current.priceDisplay = defaults.priceDisplay;
         current.showQueue = defaults.showQueue;
         current.showUndercutGap = defaults.showUndercutGap;
     }

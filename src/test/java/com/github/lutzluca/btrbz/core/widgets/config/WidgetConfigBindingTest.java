@@ -48,8 +48,7 @@ class WidgetConfigBindingTest {
 
             binding.resetAll();
 
-            assertEquals(180, config.contentWidth);
-            assertTrue(config.fitToContent);
+            assertEquals(220, config.contentWidth);
             assertEquals(1234, config.usedToday);
             assertEquals(99, config.lastResetEpochDay);
         }
@@ -73,6 +72,7 @@ class WidgetConfigBindingTest {
             assertEquals(1.0, config.frame.scale);
             assertFalse(config.frame.overrideBackground);
             assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
+            assertFalse(config.frame.enabled);
         }
     }
 }

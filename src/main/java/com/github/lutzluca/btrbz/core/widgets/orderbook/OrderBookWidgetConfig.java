@@ -13,15 +13,11 @@ public final class OrderBookWidgetConfig {
     public BookLayout layout = BookLayout.Split;
     public NumberStyle numberStyle = NumberStyle.Exact;
     public boolean showOrderCount = true;
-    public boolean showHeader = true;
-    public boolean showItem = true;
     public static void resetPreferences(OrderBookWidgetConfig current, OrderBookWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;
         current.layout = defaults.layout;
         current.numberStyle = defaults.numberStyle;
         current.showOrderCount = defaults.showOrderCount;
-        current.showHeader = defaults.showHeader;
-        current.showItem = defaults.showItem;
     }
 }

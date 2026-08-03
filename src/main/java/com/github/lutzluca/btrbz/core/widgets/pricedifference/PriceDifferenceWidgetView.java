@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.wispforest.owo.ui.component.ItemComponent;
@@ -17,7 +16,6 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import java.util.function.Consumer;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +53,7 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         this.productName.text(Component.literal(data.productName()));
         this.product.clearChildren();
         var itemStack = data.itemStack();
-        if (config.showItems && itemStack.isPresent()) {
+        if (itemStack.isPresent()) {
             var stack = itemStack.orElseThrow();
             if (this.item == null) {
                 this.item = icon(stack);
@@ -66,51 +64,24 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         }
         this.product.child(this.productName);
         int color = data.total() >= 0 ? BazaarStyles.BUY_ACCENT : BazaarStyles.STATUS_UNDERCUT;
-        String perItemValue = signed(data.perItem(), config.numberStyle);
+        String perItemValue = signed(data.perItem());
         String totalLabel = "Total (" + BazaarWidgetViewData.formatInt(data.quantity()) + " items)";
-        String totalValue = signed(data.total(), config.numberStyle);
+        String totalValue = signed(data.total());
         this.perItem.update("Per item", perItemValue, color);
         this.total.update(
             totalLabel,
             totalValue,
             color
         );
-        if (config.fitToContent) {
-            var font = Minecraft.getInstance().font;
-            int fittedWidth = 1;
-            if (config.showProduct) {
-                fittedWidth = font.width(data.productName())
-                    + (config.showItems && itemStack.isPresent() ? 16 + 3 : 0);
-            }
-            if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.Total) {
-                fittedWidth = Math.max(fittedWidth, lineWidth("Per item", perItemValue));
-            }
-            if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.PerItem) {
-                fittedWidth = Math.max(fittedWidth, lineWidth(totalLabel, totalValue));
-            }
-            this.root.horizontalSizing(Sizing.fixed(fittedWidth));
-        } else {
-            this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
-        }
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.root.clearChildren();
-        if (config.showProduct) this.root.child(this.product);
-        if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.Total) this.root.child(this.perItem.root);
-        if (config.display != PriceDifferenceWidgetConfig.DiffDisplay.PerItem) this.root.child(this.total.root);
+        this.root.child(this.product);
+        this.root.child(this.perItem.root);
+        this.root.child(this.total.root);
     }
 
-    private static String number(double value, WidgetDisplayOptions.NumberStyle style) {
-        return style == WidgetDisplayOptions.NumberStyle.Compact
-            ? BazaarWidgetViewData.formatCompact(value)
-            : Utils.formatDecimal(value, 1, true);
-    }
-
-    private static String signed(double value, WidgetDisplayOptions.NumberStyle style) {
-        return (value >= 0 ? "+" : "") + number(value, style);
-    }
-
-    private static int lineWidth(String label, String value) {
-        var font = Minecraft.getInstance().font;
-        return font.width(label) + WidgetLayoutTokens.VALUE_GAP + font.width(value);
+    private static String signed(double value) {
+        return (value >= 0 ? "+" : "") + Utils.formatDecimal(value, 1, true);
     }
 
     private static final class ValueLine {

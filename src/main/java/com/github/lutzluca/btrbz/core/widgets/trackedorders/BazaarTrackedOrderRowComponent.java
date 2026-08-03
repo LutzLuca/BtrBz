@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -20,7 +19,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -46,7 +44,6 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private int index;
     private boolean reorderable;
     private boolean interactive;
-    private boolean showItem;
     private Consumer<TrackedOrdersAction> actions;
 
     BazaarTrackedOrderRowComponent(
@@ -76,12 +73,11 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     ) {
         this.order = order;
         this.options = options;
-        this.productName = order.formattedItemName(options.abbreviateEnchanted);
+        this.productName = order.formattedItemName(false);
         this.index = index;
         this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
         var itemStack = order.itemStack();
-        this.showItem = options.showItem && itemStack.isPresent();
         this.actions = actions;
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
@@ -102,18 +98,11 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     @Override
     public void layout(Size space) {
-        if (!this.showItem) return;
+        if (this.item == null) return;
         boolean compact = this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact;
         int iconSize = compact ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
         int progressHeight = compact ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;
         int iconX = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (compact) {
-            var font = Minecraft.getInstance().font;
-            iconX += font.width(Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD))
-                + TEXT_GAP
-                + font.width(Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD))
-                + TEXT_GAP;
-        }
         this.itemComponent().inflate(Size.of(iconSize, iconSize));
         this.itemComponent().mount(
             this,
@@ -123,7 +112,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     @Override public List<UIComponent> children() {
-        return this.showItem ? List.of(this.itemComponent()) : List.of();
+        return this.item == null ? List.of() : List.of(this.itemComponent());
     }
 
     @Override
@@ -182,7 +171,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.UNDERCUT_ROW);
         }
 
-        if (this.showItem) {
+        if (this.item != null) {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
         }
         if (this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact) {
@@ -196,31 +185,24 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private void drawStandard(OwoUIGraphics graphics) {
         var font = Minecraft.getInstance().font;
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.showItem) x += STANDARD_ICON_SIZE + TEXT_GAP;
+        if (this.item != null) x += STANDARD_ICON_SIZE + TEXT_GAP;
         int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
         int sideX = right - font.width(side);
-        graphics.text(font, ellipsize(this.productName, Math.max(0, sideX - TEXT_GAP - x)),
+        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
+        int statusX = sideX - TEXT_GAP - font.width(status);
+        graphics.text(font, ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x)),
             x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
+        graphics.text(font, status, statusX, this.y + 1, this.order.status().color(), false);
         graphics.text(font, side, sideX, this.y + 1, this.order.side().accentColor(), false);
 
-        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
         int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
-        graphics.text(font, status, x, secondY, this.order.status().color(), false);
-        int detailX = x + font.width(status);
-        String details = BazaarOrderText.joined(this.optionalDetails(false));
-        var prefix = details.isBlank() ? Component.empty() : Component.literal(" · ");
-        int leftDetailWidth = font.width(prefix) + font.width(details);
-        String marketText = this.firstFittingMarketText(
-            Math.max(0, right - detailX - leftDetailWidth - TEXT_GAP)
-        );
+        String identity = BazaarOrderText.orderIdentity(this.order);
+        String marketText = this.firstFittingMarketText(Math.max(0,
+            right - x - font.width(identity) - TEXT_GAP));
         int marketX = marketText.isBlank() ? right : right - font.width(marketText);
-        if (!details.isBlank()) {
-            graphics.text(font, prefix, detailX, secondY, BazaarStyles.MUTED_TEXT, false);
-            detailX += font.width(prefix);
-            graphics.text(font, ellipsize(Component.literal(details), Math.max(0, marketX - TEXT_GAP - detailX)),
-                detailX, secondY, BazaarStyles.SECONDARY_TEXT, false);
-        }
+        graphics.text(font, ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x)),
+            x, secondY, BazaarStyles.SECONDARY_TEXT, false);
         if (!marketText.isBlank()) {
             graphics.text(font, Component.literal(marketText), marketX, secondY, BazaarStyles.SECONDARY_TEXT, false);
         }
@@ -230,63 +212,28 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         var font = Minecraft.getInstance().font;
         int textY = this.y + Math.max(0, (this.height - COMPACT_PROGRESS_HEIGHT - font.lineHeight) / 2);
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
-        graphics.text(font, status, x, textY, this.order.status().color(), false);
-        x += font.width(status) + TEXT_GAP;
-
-        var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
-        graphics.text(font, side, x, textY, this.order.side().accentColor(), false);
-        x += font.width(side) + TEXT_GAP;
-        if (this.showItem) x += COMPACT_ICON_SIZE + TEXT_GAP;
-
+        if (this.item != null) x += COMPACT_ICON_SIZE + TEXT_GAP;
         int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        var details = new ArrayList<>(this.optionalDetails(false));
-        int marketSeparatorWidth = details.isEmpty() ? 0 : font.width(" · ");
-        String marketText = this.firstFittingMarketText(
-            Math.max(0, right - x - MINIMUM_PRODUCT_WIDTH - TEXT_GAP
-                - font.width(BazaarOrderText.joined(details)) - marketSeparatorWidth)
-        );
-        if (!marketText.isBlank()) details.add(marketText);
-        String detailText = BazaarOrderText.joined(details);
-        int detailWidth = font.width(detailText);
-        while (!details.isEmpty() && detailWidth > Math.max(0, right - x - MINIMUM_PRODUCT_WIDTH - TEXT_GAP)) {
-            details.removeLast();
-            detailText = BazaarOrderText.joined(details);
-            detailWidth = font.width(detailText);
-        }
-        int detailX = detailText.isBlank() ? right : right - detailWidth;
-        int nameRight = detailText.isBlank() ? right : detailX - TEXT_GAP;
-        graphics.text(font, ellipsize(this.productName, Math.max(0, nameRight - x)),
+        var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
+        int sideX = right - font.width(side);
+        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
+        int statusX = sideX - TEXT_GAP - font.width(status);
+        graphics.text(font, ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x)),
             x, textY, BazaarStyles.PRIMARY_TEXT, false);
-        if (!detailText.isBlank()) {
-            graphics.text(font, detailText, detailX, textY, BazaarStyles.SECONDARY_TEXT, false);
-        }
-    }
-
-    private List<String> optionalDetails(boolean includeMarketInfo) {
-        return BazaarOrderText.optionalDetails(
-            this.order,
-            this.options.showVolume,
-            this.options.priceDisplay,
-            includeMarketInfo && this.options.showMarketInfo
-        );
+        graphics.text(font, status, statusX, textY, this.order.status().color(), false);
+        graphics.text(font, side, sideX, textY, this.order.side().accentColor(), false);
     }
 
     private String firstFittingMarketText(int availableWidth) {
-        if (!this.options.showMarketInfo) return "";
         var font = Minecraft.getInstance().font;
-        for (var candidate : BazaarOrderText.hudMarketCandidates(
-            this.order,
-            WidgetDisplayOptions.QueueDisplay.Items,
-            WidgetDisplayOptions.UndercutDetail.PriceGapAndQueue
-        )) {
+        for (var candidate : BazaarOrderText.hudMarketPositionCandidates(this.order, true, true)) {
             if (font.width(candidate) <= availableWidth) return candidate;
         }
         return "";
     }
 
     private void drawProgress(OwoUIGraphics graphics) {
-        if (!this.options.showProgress || this.order.liveProgress().isEmpty()) return;
+        if (this.order.liveProgress().isEmpty()) return;
         var progress = this.order.liveProgress().orElseThrow();
         int progressHeight = this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;

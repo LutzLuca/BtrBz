@@ -13,17 +13,13 @@ public final class OrderPresetsWidgetConfig {
     );
     public int contentWidth = 50;
     public int visibleRows = 5;
-    public boolean maximum = true;
     public boolean clipboard = true;
-    public boolean showDisabled = true;
-    public boolean showTooltips = true;
+    public boolean showDisabled = false;
     public List<Integer> volumes = new ArrayList<>();
     public static void resetPreferences(OrderPresetsWidgetConfig current, OrderPresetsWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;
-        current.maximum = defaults.maximum;
         current.clipboard = defaults.clipboard;
         current.showDisabled = defaults.showDisabled;
-        current.showTooltips = defaults.showTooltips;
     }
 }

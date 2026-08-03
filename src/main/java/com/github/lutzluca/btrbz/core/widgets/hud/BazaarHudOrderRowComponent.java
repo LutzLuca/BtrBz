@@ -34,7 +34,6 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private BazaarOrdersWidgetConfig options;
     private Component productName;
     private @Nullable ItemComponent item;
-    private boolean showItem;
 
     BazaarHudOrderRowComponent(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
@@ -47,7 +46,6 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.options = options;
         this.productName = order.formattedItemName(options.abbreviateEnchanted);
         var itemStack = order.itemStack();
-        this.showItem = options.showItem && itemStack.isPresent();
         if (itemStack.isPresent()) {
             if (this.item == null) {
                 this.item = BazaarUi.item(itemStack.orElseThrow(), ICON_SIZE);
@@ -60,7 +58,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
     @Override
     public void layout(Size space) {
-        if (!this.showItem) return;
+        if (this.item == null) return;
         this.itemComponent().inflate(Size.of(ICON_SIZE, ICON_SIZE));
         int iconX = this.x + (ICON_CELL_WIDTH - ICON_SIZE) / 2;
         int iconY = this.y + (HEIGHT - ICON_SIZE) / 2;
@@ -68,7 +66,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     }
 
     @Override public List<UIComponent> children() {
-        return this.showItem ? List.of(this.itemComponent()) : List.of();
+        return this.item == null ? List.of() : List.of(this.itemComponent());
     }
 
     @Override
@@ -81,7 +79,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
         var font = Minecraft.getInstance().font;
         int x = this.x + HORIZONTAL_PADDING;
-        if (this.showItem) {
+        if (this.item != null) {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
             x = this.x + ICON_CELL_WIDTH;
         }
@@ -97,9 +95,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         graphics.text(font, side, sideX, this.y + 1, this.order.side().accentColor(), false);
 
         int secondY = this.y + 10;
-        String identity = BazaarOrderText.hudOrderIdentity(
-            this.order, this.options.showVolume, this.options.priceDisplay
-        );
+        String identity = BazaarOrderText.orderIdentity(this.order);
         var marketCandidates = BazaarOrderText.hudMarketPositionCandidates(
             this.order, this.options.showQueue, this.options.showUndercutGap
         );

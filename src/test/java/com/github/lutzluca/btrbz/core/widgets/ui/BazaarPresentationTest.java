@@ -89,14 +89,11 @@ class BazaarPresentationTest {
     }
 
     @Test
-    void newestAndOldestAreDerivedWithoutMutatingManualOrder() {
+    void newestIsDerivedWithoutMutatingManualOrder() {
         var old = order("old", BazaarWidgetViewData.OrderStatus.Top, 1);
         var fresh = order("fresh", BazaarWidgetViewData.OrderStatus.Top, 2);
         var manual = List.of(fresh, old);
 
-        assertEquals(List.of(old, fresh), TrackedOrdersWidget.sortedOrders(
-            manual, TrackedOrdersWidgetConfig.TrackedSort.Oldest
-        ));
         assertEquals(List.of(fresh, old), TrackedOrdersWidget.sortedOrders(
             manual, TrackedOrdersWidgetConfig.TrackedSort.Newest
         ));

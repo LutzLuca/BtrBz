@@ -56,6 +56,10 @@ public final class BazaarOrderText {
         };
     }
 
+    public static String orderIdentity(BazaarWidgetViewData.Order order) {
+        return order.amountText() + "x @ " + order.unitPriceText();
+    }
+
     public static List<String> hudMarketPositionCandidates(
         BazaarWidgetViewData.Order order,
         boolean showQueue,
@@ -121,6 +125,7 @@ public final class BazaarOrderText {
 
         var candidates = new ArrayList<String>();
         for (var queueText : queue) candidates.add(gap + " · " + queueText);
+        candidates.addAll(queue);
         candidates.add(gap);
         return distinct(candidates);
     }
@@ -150,12 +155,11 @@ public final class BazaarOrderText {
         String items = BazaarWidgetViewData.formatCompact(market.itemsAhead().getAsLong());
         var candidates = new ArrayList<String>();
         if (market.ordersAhead().isPresent()) {
-            candidates.add("queue "
+            candidates.add("["
                 + BazaarWidgetViewData.formatCompact(market.ordersAhead().getAsInt())
-                + "/" + items);
+                + "/" + items + "]");
         }
-        candidates.add("queue " + items + " items");
-        candidates.add("queue " + items);
+        candidates.add("[" + items + "]");
         return distinct(candidates);
     }
 

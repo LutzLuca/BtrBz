@@ -51,7 +51,7 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
 
     private static int viewportHeight(BookmarksWidgetConfig options, int bookmarkCount) {
         return WidgetLayoutTokens.configuredListViewportHeight(
-            BazaarBookmarkRowComponent.HEIGHT, bookmarkCount, options.visibleRows, options.fitToContent
+            BazaarBookmarkRowComponent.HEIGHT, bookmarkCount, options.visibleRows, true
         );
     }
 }
