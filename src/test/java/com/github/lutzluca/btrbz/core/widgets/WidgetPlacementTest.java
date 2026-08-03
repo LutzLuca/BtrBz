@@ -17,6 +17,14 @@ class WidgetPlacementTest {
     }
 
     @Test
+    void bottomLeftPlacementPinsLauncherInsideTheCorner() {
+        var bounds = WidgetPlacement.topLeft(0.0, 1.0).resolve(320, 180, 22, 22);
+
+        assertEquals(0, bounds.x());
+        assertEquals(158, bounds.y());
+    }
+
+    @Test
     void dragReleaseConvertsAbsolutePositionToFractions() {
         var placement = WidgetPlacement.fromAbsolute(120, 60, 320, 180, 80, 30);
 

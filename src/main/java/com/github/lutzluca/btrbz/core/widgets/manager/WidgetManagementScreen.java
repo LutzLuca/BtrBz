@@ -59,6 +59,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private final WidgetManagerEditSession editSession;
     private final WidgetHost previewHost;
     private final WidgetManagerSelectionState selectionState;
+    private final WidgetManagerSidebarScrollState sidebarScrollState = new WidgetManagerSidebarScrollState();
     private final WidgetManagerPanelState sidebarPosition = new WidgetManagerPanelState();
     private final Map<WidgetId, String> previewProfiles = new LinkedHashMap<>();
 
@@ -71,7 +72,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private ButtonComponent sidebarSizeButton;
     private boolean sidebarMinimized;
     private boolean sidebarCapturedMouse;
-    private double sidebarScrollOffset;
+    private @Nullable WidgetId pendingResetConfirmation;
 
     public WidgetManagementScreen(
         @Nullable Screen previousScreen,
@@ -190,11 +191,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     void selectWidget(WidgetId id) {
+        if (!id.equals(this.selectionState.selectedWidget())) this.sidebarScrollState.openDetail();
+        this.pendingResetConfirmation = null;
         if (!this.selectionState.select(id)) return;
         this.rebuildSidebar();
     }
 
     void clearSelectedWidget() {
+        this.pendingResetConfirmation = null;
         if (!this.selectionState.clearSelection()) return;
         this.rebuildSidebar();
     }
@@ -423,9 +427,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void rebuildSidebar() {
         if (this.sidebar == null) return;
-        if (this.sidebarScroller != null) {
-            this.sidebarScrollOffset = this.sidebarScroller.savedScrollOffset();
-        }
+        this.saveSidebarScrollOffset();
         this.sidebar.clearChildren();
         this.sidebarScroller = null;
         this.sidebarContent = null;
@@ -441,60 +443,103 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         );
         this.sidebarScroller.scrollbarThiccness(4);
 
-        this.addGlobalAppearanceControls();
-        this.sidebarContent.child(label("Widgets", 0xFFB8C0CF));
-        if (this.hasBazaarBackground()) {
-            this.sidebarContent.child(label("Visible content frozen at open", 0xFF808997));
-        }
-        this.sidebarContent.child(label("R: rendered here", 0xFF808997));
-        var list = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-        list.gap(4);
-        this.registry.all().forEach(definition -> list.child(this.widgetRow(definition)));
-        this.sidebarContent.child(list);
-
         var selectedWidget = this.selectionState.selectedWidget();
         var selected = selectedWidget == null ? null : this.registry.find(selectedWidget).orElse(null);
-        this.sidebarContent.child(label("Selected", 0xFFB8C0CF));
-        this.sidebarContent.child(label(selected == null ? "None" : selected.getDisplayName(), 0xFFFFFFFF));
         if (selected == null) {
-            this.addManagerControls();
+            this.addOverviewControls();
         } else {
-            this.addGameplayEnabledControl(selected);
-            this.addWidgetScaleControls(selected);
-            this.addBackgroundControls(selected);
-            this.sidebarContent.child(button("Reset position", _ -> {
-                this.stateStore.resetPlacement(selected, this.placementProfile(selected), false);
-                this.markDirty();
-            }));
-            this.sidebarContent.child(button("Reset all positions", _ -> {
-                var binding = selected.binding(this::markDirty);
-                var current = binding.frame();
-                current.placements.clear();
-                current.placements.putAll(binding.defaultFrame().placements);
-                binding.markChanged();
-            }));
-            this.addPlacementProfileControl(selected);
-            var configurationPanel = selected.settingsPanel(this::markDirty);
-            if (configurationPanel != null) {
-                this.sidebarContent.child(label("Content & behavior", 0xFFB8C0CF));
-                this.sidebarContent.child(configurationPanel);
-                this.sidebarContent.child(button("Reset content preferences", _ -> {
-                    selected.binding(this::markDirty).resetPreferences();
-                    this.rebuildSidebar();
-                }));
-            }
-            this.sidebarContent.child(button("Reset all widget preferences", _ -> {
-                selected.binding(this::markDirty).resetAll();
-                this.rebuildSidebar();
-            }));
+            this.addDetailControls(selected);
         }
         this.sidebarContent.child(button("Close", _ -> this.onClose()));
 
         // Attach only after the replacement content is complete, otherwise the
         // mounted sidebar performs an empty layout and clamps the saved offset
         // before the settings controls have been added.
-        this.sidebarScroller.restoreScrollOffset(this.sidebarScrollOffset);
+        this.sidebarScroller.restoreScrollOffset(this.sidebarScrollState.mount(selected != null));
         this.sidebar.child(this.sidebarScroller);
+    }
+
+    private void saveSidebarScrollOffset() {
+        if (this.sidebarScroller == null) return;
+        this.sidebarScrollState.saveMountedOffset(this.sidebarScroller.savedScrollOffset());
+    }
+
+    private void addOverviewControls() {
+        this.addGlobalAppearanceControls();
+        this.sidebarContent.child(label("Widgets", 0xFFB8C0CF));
+        if (this.hasBazaarBackground()) {
+            this.sidebarContent.child(label("Visible content frozen at open", 0xFF808997));
+        }
+        this.sidebarContent.child(label("Preview controls manager visibility", 0xFF808997));
+        var list = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
+        list.gap(4);
+        this.registry.all().forEach(definition -> list.child(this.widgetRow(definition)));
+        this.sidebarContent.child(list);
+        this.addManagerControls();
+    }
+
+    private void addDetailControls(WidgetDefinition<?, ?, ?> selected) {
+        this.sidebarContent.child(button("← Back", _ -> this.clearSelectedWidget()));
+        this.sidebarContent.child(label(selected.getDisplayName(), 0xFFFFFFFF));
+
+        this.sidebarContent.child(label("Availability", 0xFFB8C0CF));
+        this.addGameplayEnabledControl(selected);
+
+        this.sidebarContent.child(label("Appearance", 0xFFB8C0CF));
+        this.addWidgetScaleControls(selected);
+        this.addBackgroundControls(selected);
+
+        this.sidebarContent.child(label("Placement", 0xFFB8C0CF));
+        this.addPlacementProfileControl(selected);
+        var resetPosition = button("Reset this profile position", _ -> {
+            this.stateStore.resetPlacement(selected, this.placementProfile(selected), false);
+            this.markDirty();
+        });
+        resetPosition.tooltip(WidgetTooltips.wrapped(
+            "Restores only the selected placement profile to its default position."
+        ));
+        this.sidebarContent.child(resetPosition);
+
+        var configurationPanel = selected.settingsPanel(this::markDirty);
+        if (configurationPanel != null) {
+            this.sidebarContent.child(label("Content & behavior", 0xFFB8C0CF));
+            this.sidebarContent.child(configurationPanel);
+            var resetContent = button("Reset content settings", _ -> {
+                selected.binding(this::markDirty).resetPreferences();
+                this.rebuildSidebar();
+            });
+            resetContent.tooltip(WidgetTooltips.wrapped(
+                "Restores this widget's content settings while preserving placement and appearance."
+            ));
+            this.sidebarContent.child(resetContent);
+        }
+
+        this.addEntireWidgetReset(selected);
+    }
+
+    private void addEntireWidgetReset(WidgetDefinition<?, ?, ?> selected) {
+        if (!selected.getId().equals(this.pendingResetConfirmation)) {
+            var reset = button("Reset entire widget…", _ -> {
+                this.pendingResetConfirmation = selected.getId();
+                this.rebuildSidebar();
+            });
+            reset.tooltip(WidgetTooltips.wrapped(
+                "Restores enabled state, appearance, every placement profile, and all content settings."
+            ));
+            this.sidebarContent.child(reset);
+            return;
+        }
+
+        this.sidebarContent.child(label("Reset every setting for this widget?", 0xFFE06C75));
+        this.sidebarContent.child(button("Confirm entire reset", _ -> {
+            selected.binding(this::markDirty).resetAll();
+            this.pendingResetConfirmation = null;
+            this.rebuildSidebar();
+        }));
+        this.sidebarContent.child(button("Cancel", _ -> {
+            this.pendingResetConfirmation = null;
+            this.rebuildSidebar();
+        }));
     }
 
     private void addManagerControls() {
@@ -572,7 +617,11 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.sidebarHeader.verticalAlignment(VerticalAlignment.CENTER);
         this.sidebarHeader.cursorStyle(CursorStyle.MOVE);
 
-        var title = label("Widget Manager", 0xFFFFFFFF).shadow(true);
+        var selectedId = this.selectionState.selectedWidget();
+        String titleText = selectedId == null
+            ? "Widget Manager"
+            : this.registry.find(selectedId).map(WidgetDefinition::getDisplayName).orElse("Widget");
+        var title = label(titleText, 0xFFFFFFFF).shadow(true);
         title.horizontalSizing(Sizing.expand(100));
         title.cursorStyle(CursorStyle.MOVE);
         this.sidebarHeader.child(title);
@@ -761,7 +810,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var row = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
         row.gap(5);
         row.verticalAlignment(VerticalAlignment.CENTER);
-        var rendered = UIComponents.smallCheckbox(Component.literal("R"));
+        var rendered = UIComponents.smallCheckbox(Component.literal("Preview"));
         rendered.tooltip(WidgetTooltips.wrapped(
             "Controls whether this widget is rendered on the manager canvas. This does not enable it in gameplay."
         ));
