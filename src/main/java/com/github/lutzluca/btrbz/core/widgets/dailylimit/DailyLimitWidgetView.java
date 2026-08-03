@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Sizing;
@@ -48,13 +49,25 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         int color = percent >= 90
             ? BazaarStyles.STATUS_UNDERCUT
             : percent >= 75 ? BazaarStyles.SELL_ACCENT : BazaarStyles.BUY_ACCENT;
-        String display = BazaarWidgetViewData.formatInt(data.used())
-            + " / " + BazaarWidgetViewData.formatInt(data.limit());
+        String display = formattedValue(data, config.numberStyle);
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.value.text(Component.literal(display));
         this.value.color(BazaarStyles.color(color));
         this.root.clearChildren();
         this.root.child(this.header);
         this.root.child(this.value);
+    }
+
+    static String formattedValue(
+        DailyLimitWidgetData.Snapshot data,
+        WidgetDisplayOptions.NumberStyle style
+    ) {
+        return number(data.used(), style) + " / " + number(data.limit(), style);
+    }
+
+    private static String number(long value, WidgetDisplayOptions.NumberStyle style) {
+        return style == WidgetDisplayOptions.NumberStyle.Compact
+            ? BazaarWidgetViewData.formatCompact(value)
+            : BazaarWidgetViewData.formatInt(value);
     }
 }

@@ -12,6 +12,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContain
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetColorFormat;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
+import com.github.lutzluca.btrbz.core.widgets.ui.TooltipDelayState;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
@@ -28,6 +29,7 @@ import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.Surface;
+import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -51,6 +53,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final int SIDEBAR_PADDING = 7;
     private static final int HEADER_HEIGHT = 18;
     private static final double SCALE_STEP = 0.01;
+    private static final long TOOLTIP_DELAY_MILLIS = 200;
 
     private final @Nullable Screen previousScreen;
     private final @Nullable AbstractContainerScreen<?> backgroundScreen;
@@ -62,6 +65,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private final WidgetManagerSidebarScrollState sidebarScrollState = new WidgetManagerSidebarScrollState();
     private final WidgetManagerPanelState sidebarPosition = new WidgetManagerPanelState();
     private final Map<WidgetId, String> previewProfiles = new LinkedHashMap<>();
+    private final TooltipDelayState<UIComponent> tooltipDelay =
+        new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
 
     private FlowLayout root;
     private ManagementPreviewComponent preview;
@@ -248,8 +253,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         int mouseY,
         float delta
     ) {
-        if (this.sidebarPosition.isDragging() || this.preview != null && this.preview.isDragging()) return;
-        super.drawComponentTooltip(graphics, mouseX, mouseY, delta);
+        if (this.sidebarPosition.isDragging() || this.preview != null && this.preview.isDragging()) {
+            this.tooltipDelay.reset();
+            return;
+        }
+        UIComponent target = this.root == null ? null : this.root.childAt(mouseX, mouseY);
+        if (this.tooltipDelay.ready(target, System.nanoTime())) {
+            super.drawComponentTooltip(graphics, mouseX, mouseY, delta);
+        }
     }
 
     private @Nullable Screen returnScreen() {
@@ -326,6 +337,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public boolean keyPressed(KeyEvent input) {
+        if (input.key() == InputConstants.KEY_ESCAPE) {
+            if (this.selectionState.selectedWidget() != null) {
+                this.clearSelectedWidget();
+            } else {
+                this.onClose();
+            }
+            return true;
+        }
         if (input.key() == InputConstants.KEY_B && !input.hasControlDown() && !input.hasAltDown()) {
             this.setSidebarMinimized(!this.sidebarMinimized);
             return true;
