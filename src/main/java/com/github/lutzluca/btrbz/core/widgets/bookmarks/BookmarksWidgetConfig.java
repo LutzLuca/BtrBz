@@ -31,7 +31,7 @@ public final class BookmarksWidgetConfig {
     public enum BookmarkSort { Manual, Alphabetical }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.30, 0.52));
-    public int contentWidth = 190;
+    public int contentWidth = 200;
     public int visibleRows = 5;
     public BookmarkSort sort = BookmarkSort.Manual;
     public List<BookmarkedItem> items = new ArrayList<>();

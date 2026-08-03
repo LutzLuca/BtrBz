@@ -25,10 +25,10 @@ class WidgetStateStoreTest {
         assertEquals(200, config.bazaarOrders.contentWidth);
         assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, config.bazaarOrders.mode);
         assertEquals(TrackedOrdersWidgetConfig.TrackedSort.Manual, config.trackedOrders.sort);
-        assertEquals(190, config.trackedOrders.contentWidth);
+        assertEquals(200, config.trackedOrders.contentWidth);
         assertEquals(5, config.trackedOrders.visibleRows);
         assertEquals(BookmarksWidgetConfig.BookmarkSort.Manual, config.bookmarks.sort);
-        assertEquals(190, config.bookmarks.contentWidth);
+        assertEquals(200, config.bookmarks.contentWidth);
         assertEquals(5, config.bookmarks.visibleRows);
         assertEquals(400, config.orderBookScreen.contentWidth);
         assertEquals(10, config.orderBookScreen.visibleRows);
@@ -36,7 +36,7 @@ class WidgetStateStoreTest {
         assertEquals(8, config.orderBookPrice.visibleRows);
         assertEquals(50, config.orderPresets.contentWidth);
         assertEquals(5, config.orderPresets.visibleRows);
-        assertEquals(220, config.orderLimit.contentWidth);
+        assertEquals(WidgetDisplayOptions.NumberStyle.Compact, config.orderLimit.numberStyle);
         assertFalse(config.orderLimit.frame.enabled);
         assertFalse(config.orderPresets.showDisabled);
         assertEquals(210, config.managerPanelWidth);

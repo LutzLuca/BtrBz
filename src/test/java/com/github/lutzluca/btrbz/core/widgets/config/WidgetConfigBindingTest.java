@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.config;
 
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +39,7 @@ class WidgetConfigBindingTest {
         @DisplayName("preserve daily accounting state")
         void preservesDailyUsage() {
             var config = new DailyLimitWidgetConfig();
-            config.contentWidth = 141;
+            config.numberStyle = NumberStyle.Exact;
             config.usedToday = 1234;
             config.lastResetEpochDay = 99;
             var binding = new WidgetConfigBinding<>(
@@ -48,7 +49,7 @@ class WidgetConfigBindingTest {
 
             binding.resetAll();
 
-            assertEquals(220, config.contentWidth);
+            assertEquals(NumberStyle.Compact, config.numberStyle);
             assertEquals(1234, config.usedToday);
             assertEquals(99, config.lastResetEpochDay);
         }

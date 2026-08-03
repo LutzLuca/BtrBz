@@ -11,8 +11,6 @@ public final class DailyLimitWidgetSettings {
     private DailyLimitWidgetSettings() {}
     public static UIComponent create(WidgetConfigBinding<DailyLimitWidgetConfig> binding) {
         var panel = panel();
-        integer(panel, "Widget width", binding, c -> c.contentWidth, (c, v) -> c.contentWidth = v, 180, 280,
-            "Controls horizontal space for the exact estimated usage and limit values.");
         enumeration(panel, "Number format", binding, c -> c.numberStyle, (c, v) -> c.numberStyle = v,
             "Compact abbreviates large values. Exact keeps the full comma-separated coin amounts.");
         panel.child(UIComponents.label(Component.literal("Daily coin limit")));

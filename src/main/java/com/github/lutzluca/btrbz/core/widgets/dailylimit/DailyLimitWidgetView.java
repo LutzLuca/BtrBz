@@ -18,8 +18,8 @@ import net.minecraft.network.chat.Component;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 
 final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> {
-    private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent header = text("Estimated Daily Limit", BazaarStyles.PRIMARY_TEXT);
+    private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.content(), Sizing.content());
+    private final LabelComponent header = text("Daily Limit", BazaarStyles.PRIMARY_TEXT);
     private final LabelComponent value = text("", BazaarStyles.BUY_ACCENT);
 
     DailyLimitWidgetView() {
@@ -50,7 +50,6 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
             ? BazaarStyles.STATUS_UNDERCUT
             : percent >= 75 ? BazaarStyles.SELL_ACCENT : BazaarStyles.BUY_ACCENT;
         String display = formattedValue(data, config.numberStyle);
-        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.value.text(Component.literal(display));
         this.value.color(BazaarStyles.color(color));
         this.root.clearChildren();
