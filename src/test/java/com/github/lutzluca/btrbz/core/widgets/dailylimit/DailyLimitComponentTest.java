@@ -4,9 +4,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import org.junit.jupiter.api.Test;
 
 class DailyLimitComponentTest {
+    @Test
+    void formatsCompactAndExactValues() {
+        var preview = DailyLimitWidgetData.preview();
+
+        assertEquals("11.25B / 15B", DailyLimitWidgetView.formattedValue(preview, NumberStyle.Compact));
+        assertEquals(
+            "11,250,000,000 / 15,000,000,000",
+            DailyLimitWidgetView.formattedValue(preview, NumberStyle.Exact)
+        );
+    }
+
+    @Test
+    void defaultsToCompactAndResetsTheNumberFormat() {
+        var config = new DailyLimitWidgetConfig();
+        assertEquals(NumberStyle.Compact, config.numberStyle);
+
+        config.numberStyle = NumberStyle.Exact;
+        DailyLimitWidgetConfig.resetPreferences(config, new DailyLimitWidgetConfig());
+
+        assertEquals(NumberStyle.Compact, config.numberStyle);
+    }
+
     @Test
     void accountsWhilePresentationIsDisabledAndPersistsTheMutation() {
         var config = new DailyLimitWidgetConfig();

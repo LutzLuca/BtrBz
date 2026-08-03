@@ -16,6 +16,7 @@ import java.util.List;
 
 @Slf4j
 public final class WidgetSlotComponent extends BaseParentUIComponent {
+    private static final long TOOLTIP_DELAY_MILLIS = 200;
     private final WidgetId widgetId;
     private final UIComponent child;
     private WidgetBounds localBounds;
@@ -28,6 +29,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
     private boolean drawManagementOverlay;
     private boolean visible = true;
     private @Nullable UIComponent activeMouseTarget;
+    private final TooltipDelayState<UIComponent> tooltipDelay =
+        new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
 
     public WidgetSlotComponent(
         WidgetId widgetId,
@@ -84,7 +87,10 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         this.scale = scale;
         this.selected = selected;
         this.drawManagementOverlay = drawManagementOverlay;
-        if (this.visible && !visible) this.activeMouseTarget = null;
+        if (this.visible && !visible) {
+            this.activeMouseTarget = null;
+            this.tooltipDelay.reset();
+        }
         this.visible = visible;
         this.sizing(Sizing.fixed(Math.max(1, localBounds.width())), Sizing.fixed(Math.max(1, localBounds.height())));
     }
@@ -212,6 +218,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
             log.warn("Widget {} failed while rendering", this.widgetId, exception);
         }
 
+        this.tooltipDelay.ready(this.tooltipTargetAt(mouseX, mouseY), System.nanoTime());
+
         if (this.drawManagementOverlay) {
             int color = this.selected ? 0xFFEBCB5B : 0x66FFFFFF;
             graphics.drawRectOutline(this.x - 1, this.y - 1, this.width + 2, this.height + 2, color);
@@ -232,7 +240,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         int logicalMouseX = this.logicalAbsoluteX(mouseX - this.x);
         int logicalMouseY = this.logicalAbsoluteY(mouseY - this.y);
         var target = this.logicalTooltipTargetAt(logicalMouseX, logicalMouseY);
-        if (target == null) return;
+        if (!this.tooltipDelay.ready(target, System.nanoTime())) return;
 
         context.push();
         try {

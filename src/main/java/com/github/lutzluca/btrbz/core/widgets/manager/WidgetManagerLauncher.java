@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.core.widgets.ui.TooltipDelayState;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -28,6 +29,7 @@ public final class WidgetManagerLauncher {
     private static final int SIZE = 22;
     private static final int ICON_SIZE = 16;
     private static final double DRAG_THRESHOLD = 2.0;
+    private static final long TOOLTIP_DELAY_MILLIS = 200;
     private static final Identifier ICON = Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "icon.png");
 
     private final WidgetRuntime runtime;
@@ -42,6 +44,8 @@ public final class WidgetManagerLauncher {
     private double startY;
     private double pointerOffsetX;
     private double pointerOffsetY;
+    private final TooltipDelayState<FlowLayout> tooltipDelay =
+        new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
 
     public WidgetManagerLauncher(WidgetRuntime runtime) {
         this.runtime = runtime;
@@ -67,7 +71,10 @@ public final class WidgetManagerLauncher {
         this.button.positioning(Positioning.absolute(this.bounds.x(), this.bounds.y()));
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
         this.adapter.extractRenderState(graphics, mouseX, mouseY, delta);
-        if (!this.captured) this.adapter.drawTooltip(graphics, mouseX, mouseY, delta);
+        FlowLayout tooltipTarget = !this.captured && this.bounds.contains(mouseX, mouseY) ? this.button : null;
+        if (this.tooltipDelay.ready(tooltipTarget, System.nanoTime())) {
+            this.adapter.drawTooltip(graphics, mouseX, mouseY, delta);
+        }
     }
 
     public boolean mouseClicked(MouseButtonEvent click) {
@@ -102,6 +109,7 @@ public final class WidgetManagerLauncher {
         }
         this.captured = false;
         this.dragging = false;
+        this.tooltipDelay.reset();
         if (!moved) {
             Minecraft.getInstance().setScreen(this.runtime.createManagementScreen(screen));
         }
