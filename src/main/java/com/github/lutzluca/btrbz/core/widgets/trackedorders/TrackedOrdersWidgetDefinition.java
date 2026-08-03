@@ -24,7 +24,7 @@ public final class TrackedOrdersWidgetDefinition {
             .config(() -> ConfigManager.get().widgets.trackedOrders, TrackedOrdersWidgetConfig::new,
                 config -> config.frame, TrackedOrdersWidgetConfig::resetPreferences)
             .supports(WidgetSession::inBazaarContainer)
-            .visibility((data, config, _) -> !config.hideWhenEmpty || !data.orders().isEmpty())
+            .visibility((data, _, _) -> !data.orders().isEmpty())
             .runtimeData(_ -> provider.snapshot())
             .preview(() -> new WidgetPreview<>(OrdersWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(TrackedOrdersWidgetView::new)

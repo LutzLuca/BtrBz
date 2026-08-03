@@ -78,7 +78,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
 
     private static int viewportHeight(TrackedOrdersWidgetConfig options, int orderCount) {
         return WidgetLayoutTokens.configuredListViewportHeight(
-            rowHeight(options), orderCount, options.visibleRows, options.fitToContent
+            rowHeight(options), orderCount, options.visibleRows, true
         );
     }
 

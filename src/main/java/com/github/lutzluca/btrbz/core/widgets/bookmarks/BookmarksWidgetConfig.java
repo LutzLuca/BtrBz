@@ -33,23 +33,13 @@ public final class BookmarksWidgetConfig {
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.30, 0.52));
     public int contentWidth = 190;
     public int visibleRows = 5;
-    public boolean fitToContent = true;
     public BookmarkSort sort = BookmarkSort.Manual;
-    public boolean hideWhenEmpty = true;
-    public boolean showItems = true;
-    public boolean showIndicators = true;
-    public boolean abbreviateEnchanted = false;
     public List<BookmarkedItem> items = new ArrayList<>();
 
     public static void resetPreferences(BookmarksWidgetConfig current, BookmarksWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;
-        current.fitToContent = defaults.fitToContent;
         current.sort = defaults.sort;
-        current.hideWhenEmpty = defaults.hideWhenEmpty;
-        current.showItems = defaults.showItems;
-        current.showIndicators = defaults.showIndicators;
-        current.abbreviateEnchanted = defaults.abbreviateEnchanted;
     }
 
     /** Durable bookmark identity and a defensive item-stack template. */

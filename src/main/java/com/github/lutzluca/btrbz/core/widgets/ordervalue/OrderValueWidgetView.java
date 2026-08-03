@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -13,8 +12,6 @@ import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.function.Consumer;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.boldLabel;
@@ -47,49 +44,26 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        int buyColor = semantic(config.colorMode, BazaarStyles.BUY_ACCENT);
-        int sellColor = semantic(config.colorMode, BazaarStyles.SELL_ACCENT);
-        this.buyLocked.update(data.buyLocked(), buyColor, config);
-        this.buyItems.update(data.buyItems(), buyColor, config);
-        this.sellClaimable.update(data.sellClaimable(), sellColor, config);
-        this.sellPending.update(data.sellPending(), sellColor, config);
-        this.total.update(data.total(), BazaarStyles.SELL_ACCENT, config);
-
-        if (config.fitToContent) {
-            int fittedWidth = Minecraft.getInstance().font.width(this.header.text());
-            if (config.display == OrderValueWidgetConfig.ValueDisplay.Detailed) {
-                if (config.buyLocked) fittedWidth = Math.max(fittedWidth, this.buyLocked.contentWidth(data.buyLocked(), config));
-                if (config.buyItems) fittedWidth = Math.max(fittedWidth, this.buyItems.contentWidth(data.buyItems(), config));
-                if (config.sellClaimable) fittedWidth = Math.max(fittedWidth, this.sellClaimable.contentWidth(data.sellClaimable(), config));
-                if (config.sellPending) fittedWidth = Math.max(fittedWidth, this.sellPending.contentWidth(data.sellPending(), config));
-            }
-            fittedWidth = Math.max(fittedWidth, this.total.contentWidth(data.total(), config));
-            this.root.horizontalSizing(Sizing.fixed(fittedWidth));
-        } else {
-            this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
-        }
+        this.buyLocked.update(data.buyLocked(), BazaarStyles.BUY_ACCENT);
+        this.buyItems.update(data.buyItems(), BazaarStyles.BUY_ACCENT);
+        this.sellClaimable.update(data.sellClaimable(), BazaarStyles.SELL_ACCENT);
+        this.sellPending.update(data.sellPending(), BazaarStyles.SELL_ACCENT);
+        this.total.update(data.total(), BazaarStyles.SELL_ACCENT);
+        this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
 
         this.root.clearChildren();
         this.root.child(this.header);
         if (config.display == OrderValueWidgetConfig.ValueDisplay.Detailed) {
-            if (config.buyLocked) this.root.child(this.buyLocked.root);
-            if (config.buyItems) this.root.child(this.buyItems.root);
-            if (config.sellClaimable) this.root.child(this.sellClaimable.root);
-            if (config.sellPending) this.root.child(this.sellPending.root);
+            if (data.buyLocked() != 0) this.root.child(this.buyLocked.root);
+            if (data.buyItems() != 0) this.root.child(this.buyItems.root);
+            if (data.sellClaimable() != 0) this.root.child(this.sellClaimable.root);
+            if (data.sellPending() != 0) this.root.child(this.sellPending.root);
         }
         this.root.child(this.total.root);
     }
 
-    private static String number(long value, WidgetDisplayOptions.NumberStyle style) {
-        return style == WidgetDisplayOptions.NumberStyle.Compact
-            ? BazaarWidgetViewData.formatCompact(value)
-            : BazaarWidgetViewData.formatInt(value);
-    }
-
-    private static int semantic(OrderValueWidgetConfig.ColorMode mode, int semanticColor) {
-        return mode == OrderValueWidgetConfig.ColorMode.Semantic
-            ? semanticColor
-            : BazaarStyles.SECONDARY_TEXT;
+    private static String number(long value) {
+        return BazaarWidgetViewData.formatCompact(value);
     }
 
     private static final class ValueLine {
@@ -108,18 +82,10 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
             this.root.child(this.value);
         }
 
-        private void update(long amount, int color, OrderValueWidgetConfig config) {
-            String text = number(amount, config.numberStyle) + (config.showCoinsSuffix ? " coins" : "");
+        private void update(long amount, int color) {
+            String text = number(amount) + " coins";
             this.value.text(Component.literal(text).setStyle(this.value.text().getStyle()));
             this.value.color(BazaarStyles.color(color));
-        }
-
-        private int contentWidth(long amount, OrderValueWidgetConfig config) {
-            var font = Minecraft.getInstance().font;
-            String text = number(amount, config.numberStyle) + (config.showCoinsSuffix ? " coins" : "");
-            var valueText = Component.literal(text);
-            if (this.bold) valueText.withStyle(ChatFormatting.BOLD);
-            return font.width(this.name) + WidgetLayoutTokens.VALUE_GAP + font.width(valueText);
         }
     }
 }

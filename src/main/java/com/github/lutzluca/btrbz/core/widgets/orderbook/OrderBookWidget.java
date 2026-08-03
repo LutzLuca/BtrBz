@@ -12,12 +12,9 @@ public final class OrderBookWidget {
         OrderBookWidgetData.Snapshot book,
         BazaarWidgetViewData.OrderSide side
     ) {
-        boolean configured = side == BazaarWidgetViewData.OrderSide.Buy
-            ? options.showBuy
-            : options.showSell;
-        return configured && (options.sideDisplay == OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both
+        return options.sideDisplay == OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both
             || book.appropriateSide().isEmpty()
-            || book.appropriateSide().filter(side::equals).isPresent());
+            || book.appropriateSide().filter(side::equals).isPresent();
     }
 
     static int embeddedContentWidth(
@@ -54,7 +51,7 @@ public final class OrderBookWidget {
         OrderBookPriceWidgetConfig options
     ) {
         var parts = new ArrayList<String>();
-        if (options.showAmounts) parts.add(entry.quantityText() + " items");
+        parts.add(entry.quantityText() + " items");
         if (options.showOrderCount) parts.add(entry.orders() + " orders");
         return String.join(" · ", parts);
     }

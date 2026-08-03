@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -47,11 +46,10 @@ class BazaarWidgetViewDataTest {
         var hud = new BazaarOrdersWidgetConfig();
         var tracked = new TrackedOrdersWidgetConfig();
         assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, hud.mode);
-        assertTrue(hud.hideWhenEmpty);
-        assertTrue(hud.showItem);
-        assertEquals(WidgetDisplayOptions.PriceDisplay.Unit, hud.priceDisplay);
-        assertTrue(tracked.showStatusSummary);
-        assertTrue(tracked.showProgress);
+        assertTrue(hud.showQueue);
+        assertFalse(hud.showUndercutGap);
+        assertEquals(TrackedOrdersWidgetConfig.TrackedLayout.Standard, tracked.layout);
+        assertEquals(TrackedOrdersWidgetConfig.TrackedSort.Manual, tracked.sort);
     }
 
     @Test

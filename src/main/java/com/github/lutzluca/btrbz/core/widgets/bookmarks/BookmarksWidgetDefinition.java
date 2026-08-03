@@ -21,7 +21,7 @@ public final class BookmarksWidgetDefinition {
             .config(() -> ConfigManager.get().widgets.bookmarks, BookmarksWidgetConfig::new,
                 config -> config.frame, BookmarksWidgetConfig::resetPreferences)
             .supports(WidgetSession::inBazaarContainer)
-            .visibility((data, config, _) -> !config.hideWhenEmpty || !data.bookmarks().isEmpty())
+            .visibility((data, _, _) -> !data.bookmarks().isEmpty())
             .runtimeData(_ -> provider.snapshot())
             .preview(() -> new WidgetPreview<>(BookmarksWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(BookmarksWidgetView::new)

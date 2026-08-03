@@ -62,7 +62,7 @@ final class TrackedOrdersWidgetView implements
         var sorted = TrackedOrdersWidget.sortedOrders(data.orders(), config.sort);
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.status.text(net.minecraft.network.chat.Component.literal(
-            TrackedOrdersWidget.headerStatus(data, sorted.size(), config.showStatusSummary)
+            TrackedOrdersWidget.headerStatus(data, sorted.size())
         ));
         this.list.update(sorted, config, true, BazaarWidgetViewData.Order::tooltipLines, actions);
     }

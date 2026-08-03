@@ -61,7 +61,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         this.itemName.text(Component.literal(data.itemName()));
         this.header.clearChildren();
         var itemStack = data.itemStack();
-        if (config.showItem && itemStack.isPresent()) {
+        if (itemStack.isPresent()) {
             var stack = itemStack.orElseThrow();
             if (this.item == null) {
                 this.item = icon(stack);
@@ -86,7 +86,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         }
 
         this.root.clearChildren();
-        if (config.showHeader) this.root.child(this.header);
+        this.root.child(this.header);
         this.root.child(this.sides);
     }
 

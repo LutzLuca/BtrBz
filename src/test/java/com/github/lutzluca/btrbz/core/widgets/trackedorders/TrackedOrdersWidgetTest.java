@@ -11,7 +11,6 @@ class TrackedOrdersWidgetTest {
     void placesTheFilledCountInTheHeaderStatus() {
         var data = new BazaarWidgetViewData.OrdersData(List.of(), 3);
 
-        assertEquals("2 active · 3 filled", TrackedOrdersWidget.headerStatus(data, 2, true));
-        assertEquals("2 active", TrackedOrdersWidget.headerStatus(data, 2, false));
+        assertEquals("2 active · 3 filled", TrackedOrdersWidget.headerStatus(data, 2));
     }
 }

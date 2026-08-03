@@ -22,8 +22,7 @@ public final class BazaarOrdersWidgetDefinition {
             .config(() -> ConfigManager.get().widgets.bazaarOrders, BazaarOrdersWidgetConfig::new,
                 config -> config.frame, BazaarOrdersWidgetConfig::resetPreferences)
             .supports(WidgetSession::inHud)
-            .visibility((data, config, _) -> !config.hideWhenEmpty
-                || !data.orders().isEmpty() || data.filledOrderCount() > 0)
+            .visibility((data, _, _) -> !data.orders().isEmpty() || data.filledOrderCount() > 0)
             .runtimeData(_ -> provider.snapshot())
             .preview(() -> new WidgetPreview<>(OrdersWidgetData.preview(), WidgetPreviewSessions.hud(), "default"))
             .viewFactory(BazaarOrdersWidgetView::new)

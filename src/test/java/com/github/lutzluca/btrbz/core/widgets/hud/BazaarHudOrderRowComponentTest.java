@@ -28,18 +28,7 @@ class BazaarHudOrderRowComponentTest {
     void hudIdentityCombinesVolumeAndUnitPriceWithoutASeparator() {
         var order = order(Optional.empty());
 
-        assertEquals(
-            "64x @ 12.4M",
-            BazaarOrderText.hudOrderIdentity(
-                order, true, WidgetDisplayOptions.PriceDisplay.Unit
-            )
-        );
-        assertEquals(
-            "64x @ 12.4M · total 793.6M",
-            BazaarOrderText.hudOrderIdentity(
-                order, true, WidgetDisplayOptions.PriceDisplay.Both
-            )
-        );
+        assertEquals("64x @ 12.4M", BazaarOrderText.orderIdentity(order));
     }
 
     @Test
@@ -103,7 +92,7 @@ class BazaarHudOrderRowComponentTest {
     }
 
     @Test
-    void readableHudMarketPositionUsesOptionalGapAndLabeledQueue() {
+    void readableHudMarketPositionUsesOptionalGapAndBracketedQueue() {
         var order = order(
             BazaarWidgetViewData.OrderStatus.Undercut,
             Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(12_399_999.9, 0.1, 3, 72))
@@ -111,9 +100,10 @@ class BazaarHudOrderRowComponentTest {
 
         assertEquals(
             List.of(
-                "gap 0.1 · queue 3/72",
-                "gap 0.1 · queue 72 items",
-                "gap 0.1 · queue 72",
+                "gap 0.1 · [3/72]",
+                "gap 0.1 · [72]",
+                "[3/72]",
+                "[72]",
                 "gap 0.1"
             ),
             BazaarOrderText.hudMarketPositionCandidates(
@@ -123,7 +113,7 @@ class BazaarHudOrderRowComponentTest {
             )
         );
         assertEquals(
-            List.of("queue 3/72", "queue 72 items", "queue 72"),
+            List.of("[3/72]", "[72]"),
             BazaarOrderText.hudMarketPositionCandidates(
                 order,
                 true,
