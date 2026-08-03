@@ -58,15 +58,15 @@ public final class BazaarOrderText {
 
     public static List<String> hudMarketPositionCandidates(
         BazaarWidgetViewData.Order order,
-        QueueDisplay queueDisplay,
+        boolean showQueue,
         boolean showUndercutGap
     ) {
         if (order.marketInfo().isEmpty()) return List.of();
         var market = order.marketInfo().orElseThrow();
         return switch (order.status()) {
             case Top, Unknown -> List.of();
-            case Matched -> readableQueueCandidates(market, queueDisplay);
-            case Undercut -> readableUndercutCandidates(market, queueDisplay, showUndercutGap);
+            case Matched -> readableQueueCandidates(market, showQueue);
+            case Undercut -> readableUndercutCandidates(market, showQueue, showUndercutGap);
         };
     }
 
@@ -110,13 +110,13 @@ public final class BazaarOrderText {
 
     private static List<String> readableUndercutCandidates(
         BazaarWidgetViewData.MarketInfo market,
-        QueueDisplay queueDisplay,
+        boolean showQueue,
         boolean showGap
     ) {
         String gap = market.priceDifference().isPresent()
             ? "gap " + BazaarWidgetViewData.formatCompact(market.priceDifference().getAsDouble())
             : "";
-        var queue = readableQueueCandidates(market, queueDisplay);
+        var queue = readableQueueCandidates(market, showQueue);
         if (!showGap || gap.isBlank()) return queue;
 
         var candidates = new ArrayList<String>();
@@ -144,18 +144,18 @@ public final class BazaarOrderText {
 
     private static List<String> readableQueueCandidates(
         BazaarWidgetViewData.MarketInfo market,
-        QueueDisplay display
+        boolean showQueue
     ) {
-        if (display == QueueDisplay.Hidden || market.itemsAhead().isEmpty()) return List.of();
+        if (!showQueue || market.itemsAhead().isEmpty()) return List.of();
         String items = BazaarWidgetViewData.formatCompact(market.itemsAhead().getAsLong());
         var candidates = new ArrayList<String>();
-        if (display == QueueDisplay.OrdersAndItems && market.ordersAhead().isPresent()) {
-            candidates.add("["
+        if (market.ordersAhead().isPresent()) {
+            candidates.add("queue "
                 + BazaarWidgetViewData.formatCompact(market.ordersAhead().getAsInt())
-                + "/" + items + "]");
+                + "/" + items);
         }
-        candidates.add("[" + items + " items]");
-        candidates.add("[" + items + "]");
+        candidates.add("queue " + items + " items");
+        candidates.add("queue " + items);
         return distinct(candidates);
     }
 

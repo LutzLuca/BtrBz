@@ -101,7 +101,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
             this.order, this.options.showVolume, this.options.priceDisplay
         );
         var marketCandidates = BazaarOrderText.hudMarketPositionCandidates(
-            this.order, this.options.queueDisplay, this.options.showUndercutGap
+            this.order, this.options.showQueue, this.options.showUndercutGap
         );
         String marketText = firstFittingMarketText(
             marketCandidates,

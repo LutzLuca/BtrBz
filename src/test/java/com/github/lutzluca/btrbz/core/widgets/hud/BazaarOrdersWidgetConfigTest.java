@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
@@ -13,14 +14,16 @@ class BazaarOrdersWidgetConfigTest {
     @DisplayName("preference reset")
     class PreferenceReset {
         @Test
-        @DisplayName("restores the undercut gap preference")
-        void restoresUndercutGapPreference() {
+        @DisplayName("restores the market detail preferences")
+        void restoresMarketDetailPreferences() {
             var config = new BazaarOrdersWidgetConfig();
-            config.showUndercutGap = false;
+            config.showQueue = false;
+            config.showUndercutGap = true;
 
             BazaarOrdersWidgetConfig.resetPreferences(config, new BazaarOrdersWidgetConfig());
 
-            assertTrue(config.showUndercutGap);
+            assertTrue(config.showQueue);
+            assertFalse(config.showUndercutGap);
         }
     }
 

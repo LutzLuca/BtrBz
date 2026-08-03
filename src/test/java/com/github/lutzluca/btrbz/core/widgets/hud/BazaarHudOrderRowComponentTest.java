@@ -103,7 +103,7 @@ class BazaarHudOrderRowComponentTest {
     }
 
     @Test
-    void readableHudMarketPositionUsesOptionalGapAndBracketedQueue() {
+    void readableHudMarketPositionUsesOptionalGapAndLabeledQueue() {
         var order = order(
             BazaarWidgetViewData.OrderStatus.Undercut,
             Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(12_399_999.9, 0.1, 3, 72))
@@ -111,24 +111,28 @@ class BazaarHudOrderRowComponentTest {
 
         assertEquals(
             List.of(
-                "gap 0.1 · [3/72]",
-                "gap 0.1 · [72 items]",
-                "gap 0.1 · [72]",
+                "gap 0.1 · queue 3/72",
+                "gap 0.1 · queue 72 items",
+                "gap 0.1 · queue 72",
                 "gap 0.1"
             ),
             BazaarOrderText.hudMarketPositionCandidates(
                 order,
-                WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
+                true,
                 true
             )
         );
         assertEquals(
-            List.of("[3/72]", "[72 items]", "[72]"),
+            List.of("queue 3/72", "queue 72 items", "queue 72"),
             BazaarOrderText.hudMarketPositionCandidates(
                 order,
-                WidgetDisplayOptions.QueueDisplay.OrdersAndItems,
+                true,
                 false
             )
+        );
+        assertEquals(
+            List.of("gap 0.1"),
+            BazaarOrderText.hudMarketPositionCandidates(order, false, true)
         );
     }
 
