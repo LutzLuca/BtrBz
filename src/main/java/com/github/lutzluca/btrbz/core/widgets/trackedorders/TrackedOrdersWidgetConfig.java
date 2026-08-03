@@ -8,7 +8,7 @@ public final class TrackedOrdersWidgetConfig {
     public enum TrackedSort { Manual, Newest, Status }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.04, 0.18));
-    public int contentWidth = 190;
+    public int contentWidth = 200;
     public int visibleRows = 5;
     public TrackedLayout layout = TrackedLayout.Standard;
     public TrackedSort sort = TrackedSort.Manual;

@@ -30,7 +30,7 @@ public final class TrackedOrdersWidgetDefinition {
             .viewFactory(TrackedOrdersWidgetView::new)
             .actionHandler(new TrackedOrdersActionHandler(trackedOrders))
             .settingsPanel(TrackedOrdersWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(180), 16)
+            .minSize(WidgetLayoutTokens.panelWidth(200), 16)
             .build();
     }
 }

@@ -17,7 +17,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.ColorPickerComponent;
-import io.wispforest.owo.ui.component.DropdownComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -688,36 +687,17 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private void addPlacementProfileControl(WidgetDefinition<?, ?, ?> selected) {
         if (selected.placementProfileKeys().size() <= 1) return;
         String current = this.placementProfile(selected);
-        var control = button("Placement: " + selected.placementProfileLabel(current), button ->
-            this.openPlacementProfileMenu(selected, button));
+        var control = button("Placement: " + selected.placementProfileLabel(current), button -> {
+            var profiles = selected.placementProfileKeys();
+            int index = profiles.indexOf(this.placementProfile(selected));
+            String next = profiles.get((index + 1) % profiles.size());
+            this.previewProfiles.put(selected.getId(), next);
+            button.setMessage(Component.literal("Placement: " + selected.placementProfileLabel(next)));
+        });
         control.tooltip(WidgetTooltips.wrapped(
-            "Selects which screen-specific placement is previewed and edited."
+            "Cycles through the screen-specific placements available for this widget."
         ));
         this.sidebarContent.child(control);
-    }
-
-    private void openPlacementProfileMenu(
-        WidgetDefinition<?, ?, ?> selected,
-        ButtonComponent control
-    ) {
-        DropdownComponent.openContextMenu(
-            this,
-            this.root,
-            FlowLayout::child,
-            control.x(),
-            control.y() + control.height(),
-            dropdown -> {
-                for (var profile : selected.placementProfileKeys()) {
-                    dropdown.button(Component.literal(selected.placementProfileLabel(profile)), menu -> {
-                        this.previewProfiles.put(selected.getId(), profile);
-                        control.setMessage(Component.literal(
-                            "Placement: " + selected.placementProfileLabel(profile)
-                        ));
-                        menu.remove();
-                    });
-                }
-            }
-        );
     }
 
     private void addWidgetScaleControls(WidgetDefinition<?, ?, ?> selected) {

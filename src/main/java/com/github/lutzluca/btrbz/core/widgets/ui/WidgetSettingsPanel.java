@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
-import com.github.lutzluca.btrbz.core.widgets.ui.ScrollSafeDiscreteSliderComponent;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -10,7 +9,6 @@ import io.wispforest.owo.ui.core.Sizing;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 public final class WidgetSettingsPanel {
@@ -79,26 +77,12 @@ public final class WidgetSettingsPanel {
         Runnable afterChange
     ) {
         var control = UIComponents.button(enumMessage(label, getter.apply(binding.current())), button -> {
-            var screen = Minecraft.getInstance().screen;
-            if (screen == null || !(button.root() instanceof FlowLayout root)) return;
             var current = getter.apply(binding.current());
-            io.wispforest.owo.ui.component.DropdownComponent.openContextMenu(
-                screen,
-                root,
-                FlowLayout::child,
-                button.x(),
-                button.y() + button.height(),
-                dropdown -> {
-                    for (var value : current.getDeclaringClass().getEnumConstants()) {
-                        dropdown.button(Component.literal(enumLabel(value)), menu -> {
-                            binding.mutate(config -> setter.accept(config, value));
-                            button.setMessage(enumMessage(label, value));
-                            menu.remove();
-                            afterChange.run();
-                        });
-                    }
-                }
-            );
+            var values = current.getDeclaringClass().getEnumConstants();
+            var next = values[(current.ordinal() + 1) % values.length];
+            binding.mutate(config -> setter.accept(config, next));
+            button.setMessage(enumMessage(label, next));
+            afterChange.run();
         });
         control.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));
         control.textShadow(false);
