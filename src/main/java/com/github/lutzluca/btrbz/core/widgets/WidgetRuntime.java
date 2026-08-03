@@ -9,10 +9,12 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
 import lombok.extern.slf4j.Slf4j;
 
@@ -79,14 +81,28 @@ public final class WidgetRuntime {
     }
 
     public boolean canOpenContextualManager(@Nullable Screen screen) {
-        return screen instanceof AbstractContainerScreen<?>
-            && this.sessionProvider.current(screen).inBazaarContainer();
+        var session = this.sessionProvider.current(screen);
+        return contextualManagerSupported(
+            screen instanceof AbstractContainerScreen<?>,
+            screen instanceof SignEditScreen,
+            session,
+            this.registry.all()
+        );
+    }
+
+    static boolean contextualManagerSupported(
+        boolean containerScreen,
+        boolean signScreen,
+        WidgetSession session,
+        List<WidgetDefinition<?, ?, ?>> definitions
+    ) {
+        if (containerScreen) return session.inBazaarContainer();
+        return signScreen && definitions.stream().anyMatch(definition -> definition.supports(session));
     }
 
     private @Nullable WidgetManagementContext captureManagementContext(@Nullable Screen screen) {
-        if (!(screen instanceof AbstractContainerScreen<?> container)) return null;
+        if (!this.canOpenContextualManager(screen)) return null;
         var session = this.sessionProvider.current(screen);
-        if (!session.inBazaarContainer()) return null;
         var frozenSession = session.detachedCopy();
 
         var previews = new LinkedHashMap<WidgetId, WidgetPreview<?>>();
@@ -102,7 +118,8 @@ public final class WidgetRuntime {
                 log.warn("Failed to freeze widget {} for management", definition.getId(), exception);
             }
         }
-        return new WidgetManagementContext(container, previews, rendered);
+        var background = screen instanceof AbstractContainerScreen<?> container ? container : null;
+        return new WidgetManagementContext(background, previews, rendered);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

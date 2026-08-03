@@ -138,6 +138,10 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.scrollList.scrollOffset(offset);
     }
 
+    public final void flashScrollbar() {
+        this.scrollList.flashScrollbar();
+    }
+
     public final boolean beginDrag(K key, int index) {
         if (!this.reorderable || !this.retainedRows.contains(key)) return false;
         this.pendingDragKey = key;

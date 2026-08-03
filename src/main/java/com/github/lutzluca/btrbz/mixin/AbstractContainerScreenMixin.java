@@ -20,11 +20,12 @@ import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOwner;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
+import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncherOwner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 
 @Mixin(AbstractContainerScreen.class)
-public abstract class AbstractContainerScreenMixin implements WidgetHostOwner {
+public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, WidgetManagerLauncherOwner {
     @Unique
     private WidgetHost btrbz$host;
     @Unique
@@ -37,7 +38,8 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner {
     }
 
     @Unique
-    private WidgetManagerLauncher btrbz$managerLauncher() {
+    @Override
+    public WidgetManagerLauncher btrbz$managerLauncher() {
         if (this.btrbz$managerLauncher == null) {
             this.btrbz$managerLauncher = new WidgetManagerLauncher(BtrBz.widgetRuntime());
         }

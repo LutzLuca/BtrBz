@@ -155,9 +155,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         }
         this.selectionState = new WidgetManagerSelectionState(launchState);
         for (var definition : registry.all()) {
+            var frozenPreview = context == null
+                ? null
+                : context.frozenPreviews().get(definition.getId());
             this.previewProfiles.put(
                 definition.getId(),
-                WidgetSession.DEFAULT_PLACEMENT_PROFILE
+                frozenPreview == null
+                    ? WidgetSession.DEFAULT_PLACEMENT_PROFILE
+                    : frozenPreview.placementProfile()
             );
         }
     }

@@ -22,7 +22,12 @@ public final class HudWidgetBridge {
 
     private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
         var client = Minecraft.getInstance();
-        if (client.options.hideGui || client.options.keyPlayerList.isDown() || client.level == null) return;
+        if (shouldSuppressHud(
+            client.options.hideGui,
+            client.options.keyPlayerList.isDown(),
+            client.getDebugOverlay().showDebugScreen(),
+            client.level == null
+        )) return;
         boolean generalContainer = client.screen instanceof AbstractContainerScreen<?>
             && !ScreenInfoHelper.inBazaar();
         if (client.screen != null && !(client.screen instanceof ChatScreen) && !generalContainer) return;
@@ -37,5 +42,14 @@ public final class HudWidgetBridge {
             WidgetHostOptions.runtime(false),
             null
         );
+    }
+
+    static boolean shouldSuppressHud(
+        boolean hideGui,
+        boolean playerListVisible,
+        boolean debugScreenVisible,
+        boolean levelMissing
+    ) {
+        return hideGui || playerListVisible || debugScreenVisible || levelMissing;
     }
 }

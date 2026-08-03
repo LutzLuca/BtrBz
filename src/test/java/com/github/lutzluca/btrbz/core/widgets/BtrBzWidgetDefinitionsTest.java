@@ -65,6 +65,9 @@ class BtrBzWidgetDefinitionsTest {
         assertTrue(OrderPresetsWidgetDefinition.create(null).supports(
             session(false, false, false, BazaarMenuType.BuyOrderSetupVolume, null, false)
         ));
+        assertTrue(OrderPresetsWidgetDefinition.create(null).supports(
+            session(false, true, false, null, BazaarMenuType.BuyOrderSetupVolume, false)
+        ));
         assertTrue(DailyLimitWidgetDefinition.create(null).supports(
             session(false, false, false, BazaarMenuType.ItemGroup, null, false)
         ));
