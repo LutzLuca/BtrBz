@@ -15,7 +15,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 public final class WidgetsConfig {
     public static final int DEFAULT_BACKGROUND = 0x840C0C0C;
     public static final WidgetPlacement DEFAULT_MANAGER_LAUNCHER_POSITION =
-        WidgetPlacement.topLeft(0.05, 0.91);
+        WidgetPlacement.topLeft(0.0, 1.0);
 
     public double globalFineTuneScale = 1.0;
     public int globalBackground = DEFAULT_BACKGROUND;

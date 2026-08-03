@@ -24,7 +24,6 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     private WidgetCanvas canvas = new WidgetCanvas(0, 0, 1, 1);
     private List<WidgetRenderResult> lastResults = List.of();
     private DragState dragState;
-    private boolean clearSelectionOnRelease = false;
     private boolean dragMoved = false;
     private double dragStartX = 0.0;
     private double dragStartY = 0.0;
@@ -75,7 +74,6 @@ final class ManagementPreviewComponent extends BaseUIComponent {
         if (result == null) return false;
 
         boolean alreadySelected = result.definition().getId().equals(this.screen.selectedWidget());
-        this.clearSelectionOnRelease = alreadySelected;
         this.dragMoved = false;
         this.dragStartX = absoluteX;
         this.dragStartY = absoluteY;
@@ -137,12 +135,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
         if (this.dragState == null) return false;
 
         if (this.dragMoved) this.screen.markDirty();
-        if (this.clearSelectionOnRelease && !this.dragMoved) {
-            this.screen.clearSelectedWidget();
-        }
-
         this.dragState = null;
-        this.clearSelectionOnRelease = false;
         this.dragMoved = false;
         return true;
     }

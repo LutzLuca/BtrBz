@@ -44,7 +44,7 @@ class WidgetStateStoreTest {
         assertFalse(config.runtimeDragging);
         assertTrue(config.managerLauncherVisible);
         assertEquals(
-            WidgetPlacement.topLeft(0.05, 0.91),
+            WidgetPlacement.topLeft(0.0, 1.0),
             WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION
         );
         assertEquals(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, config.managerLauncherPosition);
@@ -85,7 +85,7 @@ class WidgetStateStoreTest {
         store.resetManagerLauncherPosition(true);
 
         assertFalse(config.managerLauncherVisible);
-        assertEquals(WidgetPlacement.topLeft(0.05, 0.91), config.managerLauncherPosition);
+        assertEquals(WidgetPlacement.topLeft(0.0, 1.0), config.managerLauncherPosition);
         assertEquals(1, saves.get());
     }
 
