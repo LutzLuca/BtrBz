@@ -568,6 +568,20 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private void addManagerControls() {
         this.sidebarContent.child(label("Widget Manager", 0xFFB8C0CF));
 
+        var launcherVisible = UIComponents.smallCheckbox(
+            Component.literal("Show quick-access button")
+        );
+        launcherVisible.checked(this.stateStore.managerLauncherVisible());
+        launcherVisible.tooltip(WidgetTooltips.wrapped(
+            "Shows the draggable widget manager button on supported Bazaar screens. "
+                + "Its size follows the global widget scale."
+        ));
+        launcherVisible.onChanged().subscribe(value -> {
+            this.stateStore.setManagerLauncherVisible(value, false);
+            this.markDirty();
+        });
+        this.sidebarContent.child(launcherVisible);
+
         var width = new ScrollSafeDiscreteSliderComponent(
             Sizing.fill(100),
             WidgetManagerPanelState.MINIMUM_WIDTH,

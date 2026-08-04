@@ -143,6 +143,9 @@ public final class WidgetStateStore {
 
         return base * WidgetScaleResolver.automaticGuiScale();
     }
+    public double requestedGlobalScale() {
+        return this.globalFineTuneScale() * WidgetScaleResolver.automaticGuiScale();
+    }
     public boolean hasBackgroundOverride(WidgetDefinition<?, ?, ?> definition) {
         return definition.frame().overrideBackground;
     }
