@@ -1,13 +1,16 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetRenderSurface;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
-import com.github.lutzluca.btrbz.core.widgets.ui.TooltipDelayState;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -15,8 +18,8 @@ import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
-import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Sizing;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -29,13 +32,17 @@ public final class WidgetManagerLauncher {
     private static final int SIZE = 22;
     private static final int ICON_SIZE = 16;
     private static final double DRAG_THRESHOLD = 2.0;
-    private static final long TOOLTIP_DELAY_MILLIS = 200;
     private static final Identifier ICON = Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "icon.png");
+    private static final WidgetId ID = WidgetId.of(
+        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widget_manager_launcher")
+    );
 
     private final WidgetRuntime runtime;
     private final WidgetStateStore stateStore;
-    private OwoUIAdapter<FlowLayout> adapter;
+    private final WidgetRenderSurface renderSurface = new WidgetRenderSurface();
+    private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private FlowLayout button;
+    private WidgetSlotComponent slot;
     private WidgetBounds bounds = new WidgetBounds(0, 0, SIZE, SIZE);
     private boolean visible;
     private boolean captured;
@@ -44,8 +51,6 @@ public final class WidgetManagerLauncher {
     private double startY;
     private double pointerOffsetX;
     private double pointerOffsetY;
-    private final TooltipDelayState<FlowLayout> tooltipDelay =
-        new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
 
     public WidgetManagerLauncher(WidgetRuntime runtime) {
         this.runtime = runtime;
@@ -65,14 +70,27 @@ public final class WidgetManagerLauncher {
         if (!this.visible) return;
 
         this.ensureAdapter();
-        this.bounds = this.stateStore.managerLauncherPosition().resolve(
-            canvas.width(), canvas.height(), SIZE, SIZE
+        var layout = WidgetManagerLauncherLayout.resolve(
+            canvas,
+            this.stateStore.managerLauncherPosition(),
+            SIZE,
+            this.stateStore.requestedGlobalScale()
         );
-        this.button.positioning(Positioning.absolute(this.bounds.x(), this.bounds.y()));
+        this.bounds = layout.screenBounds();
+        this.slot.update(
+            0x00000000,
+            layout.localBounds(),
+            SIZE,
+            SIZE,
+            layout.scale(),
+            false,
+            false,
+            true
+        );
+        this.adapter.rootComponent.synchronizeSlots(List.of(this.slot));
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
         this.adapter.extractRenderState(graphics, mouseX, mouseY, delta);
-        FlowLayout tooltipTarget = !this.captured && this.bounds.contains(mouseX, mouseY) ? this.button : null;
-        if (this.tooltipDelay.ready(tooltipTarget, System.nanoTime())) {
+        if (!this.captured) {
             this.adapter.drawTooltip(graphics, mouseX, mouseY, delta);
         }
     }
@@ -109,7 +127,6 @@ public final class WidgetManagerLauncher {
         }
         this.captured = false;
         this.dragging = false;
-        this.tooltipDelay.reset();
         if (!moved) {
             var manager = this.runtime.createManagementScreen(screen);
             if (screen instanceof WidgetManagerLauncherOwner owner) {
@@ -127,13 +144,14 @@ public final class WidgetManagerLauncher {
         var current = this.adapter;
         this.adapter = null;
         this.button = null;
+        this.slot = null;
         if (current != null) current.dispose();
+        this.renderSurface.close();
     }
 
     private void ensureAdapter() {
         if (this.adapter != null) return;
-        this.adapter = OwoUIAdapter.createWithoutScreen(0, 0, 1, 1, UIContainers::horizontalFlow);
-        this.adapter.rootComponent.allowOverflow(false);
+        this.adapter = OwoUIAdapter.createWithoutScreen(0, 0, 1, 1, WidgetCanvasComponent::new);
 
         this.button = UIContainers.verticalFlow(Sizing.fixed(SIZE), Sizing.fixed(SIZE));
         this.button.padding(Insets.of((SIZE - ICON_SIZE) / 2));
@@ -144,14 +162,28 @@ public final class WidgetManagerLauncher {
         icon.sizing(Sizing.fixed(ICON_SIZE), Sizing.fixed(ICON_SIZE));
         icon.blend(true);
         this.button.child(icon);
-        this.adapter.rootComponent.child(this.button);
+        this.slot = new WidgetSlotComponent(
+            ID,
+            this.button,
+            this.renderSurface,
+            0x00000000,
+            new WidgetBounds(0, 0, SIZE, SIZE),
+            SIZE,
+            SIZE,
+            1.0,
+            false,
+            false
+        );
+        this.adapter.rootComponent.synchronizeSlots(List.of(this.slot));
     }
 
     private void updatePlacement(double mouseX, double mouseY, WidgetCanvas canvas) {
         int x = (int) Math.round(mouseX - this.pointerOffsetX - canvas.x());
         int y = (int) Math.round(mouseY - this.pointerOffsetY - canvas.y());
         this.stateStore.setManagerLauncherPosition(
-            WidgetPlacement.fromAbsolute(x, y, canvas.width(), canvas.height(), SIZE, SIZE),
+            WidgetPlacement.fromAbsolute(
+                x, y, canvas.width(), canvas.height(), this.bounds.width(), this.bounds.height()
+            ),
             false
         );
     }
