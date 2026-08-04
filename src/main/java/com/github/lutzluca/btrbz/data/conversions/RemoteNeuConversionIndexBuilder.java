@@ -66,7 +66,8 @@ final class RemoteNeuConversionIndexBuilder {
         Map.entry("RAW_FISH:3", "RAW_FISH-3"),
         Map.entry("SAND:1", "SAND-1"),
         Map.entry("BAZAAR_COOKIE", "BOOSTER_COOKIE"),
-        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK")
+        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK"),
+        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1")
     );
 
     private RemoteNeuConversionIndexBuilder() { }
@@ -258,15 +259,11 @@ final class RemoteNeuConversionIndexBuilder {
             return;
         }
 
-        var sample = missing.stream().limit(LOG_SAMPLE_LIMIT).toList();
         log.warn(
-            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata. Sample: {}",
+            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata: {}",
             missing.size(),
-            sample
+            missing
         );
-        if (log.isDebugEnabled()) {
-            log.debug("Missing Bazaar conversion products: {}", missing);
-        }
 
         throw new ConversionRefreshException(
             ConversionRefreshException.Phase.Validate,
