@@ -13,6 +13,7 @@ import com.mojang.serialization.Dynamic;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import net.azureaaron.legacyitemdfu.LegacyItemStackFixer;
 import net.azureaaron.legacyitemdfu.TypeReferences;
 import net.minecraft.nbt.CompoundTag;
@@ -170,6 +171,48 @@ class ConversionIndexTest {
             assertEquals("Sharpness V", parsed.product("ENCHANTMENT_SHARPNESS_5").orElseThrow().strippedName());
             var neu = assertInstanceOf(ProductNameSource.Neu.class, source);
             assertEquals("SHARPNESS;5", neu.neuId());
+        }
+
+        @Test
+        void roundTripsMissingProductMarkers() throws Exception {
+            var index = new ConversionIndex(
+                ConversionIndex.SCHEMA_VERSION,
+                7,
+                "now",
+                "abc",
+                java.util.Map.of(
+                    "KNOWN",
+                    new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))
+                ),
+                Set.of("MISSING")
+            );
+
+            var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
+            var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
+
+            assertFalse(parsed.isComplete());
+            assertEquals(Set.of("MISSING"), parsed.missingProductIds());
+        }
+
+        @Test
+        void treatsSnapshotsWithoutMissingProductMarkersAsComplete() throws Exception {
+            var json = """
+                {
+                  "schemaVersion": 2,
+                  "builderVersion": 1,
+                  "generatedAt": "now",
+                  "products": {
+                    "KNOWN": {
+                      "formattedName": "Known",
+                      "source": { "type": "neu", "neuId": "KNOWN" }
+                    }
+                  }
+                }
+                """;
+
+            var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
+
+            assertTrue(parsed.isComplete());
         }
 
         @Test

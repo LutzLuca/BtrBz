@@ -40,7 +40,7 @@ final class RemoteNeuConversionIndexBuilder {
     private static final int MAX_ROMAN_LEVEL = 3999;
     // The 26.1.x artifact must remain compatible with its oldest supported release.
     static final int BASELINE_ITEM_DATA_VERSION = 4786;
-    static final int BUILDER_VERSION = 4;
+    static final int BUILDER_VERSION = 5;
     private static final HttpClient HTTP_CLIENT = HttpClient
         .newBuilder()
         .connectTimeout(CONNECT_TIMEOUT)
@@ -68,7 +68,8 @@ final class RemoteNeuConversionIndexBuilder {
         Map.entry("RAW_FISH:3", "RAW_FISH-3"),
         Map.entry("SAND:1", "SAND-1"),
         Map.entry("BAZAAR_COOKIE", "BOOSTER_COOKIE"),
-        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK")
+        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK"),
+        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1")
     );
 
     private RemoteNeuConversionIndexBuilder() { }
@@ -76,10 +77,22 @@ final class RemoteNeuConversionIndexBuilder {
     record BuildResult(ConversionIndex index, boolean changed) { }
 
     static BuildResult build(ConversionIndex current) throws ConversionRefreshException {
-        return build(current, BASELINE_ITEM_DATA_VERSION);
+        return build(current, BASELINE_ITEM_DATA_VERSION, false);
+    }
+
+    static BuildResult build(ConversionIndex current, boolean allowPartial) throws ConversionRefreshException {
+        return build(current, BASELINE_ITEM_DATA_VERSION, allowPartial);
     }
 
     static BuildResult build(ConversionIndex current, int maxDataVersion) throws ConversionRefreshException {
+        return build(current, maxDataVersion, false);
+    }
+
+    static BuildResult build(
+        ConversionIndex current,
+        int maxDataVersion,
+        boolean allowPartial
+    ) throws ConversionRefreshException {
         log.debug(
             "Checking remote Bazaar/NEU conversion sources (builderVersion={}, maxDataVersion={})",
             BUILDER_VERSION,
@@ -115,14 +128,22 @@ final class RemoteNeuConversionIndexBuilder {
             ? reusableEntries(current, productIds)
             : fetchNeuEntries(neuCommit, productIds, maxDataVersion);
 
-        validateCompleteIndex(productIds, products);
+        var missingProductIds = validateCompleteIndex(productIds, products, allowPartial);
+        var carriedForwardCount = carryForwardMissingEntries(current, products, missingProductIds);
+        if (carriedForwardCount > 0) {
+            log.warn(
+                "Carried forward {} stale conversion entries from the active index; they remain marked as missing",
+                carriedForwardCount
+            );
+        }
 
         var index = new ConversionIndex(
             ConversionIndex.SCHEMA_VERSION,
             BUILDER_VERSION,
             Instant.now().toString(),
             neuCommit,
-            products
+            products,
+            missingProductIds
         );
         var counts = index.sourceCounts();
         long overlays = index.products().values().stream().filter(entry -> entry.itemStack() != null).count();
@@ -131,11 +152,12 @@ final class RemoteNeuConversionIndexBuilder {
             .filter(entry -> entry.itemStack() != null || entry.legacyItemStack() != null)
             .count();
         log.info(
-            "Built Bazaar conversion index from {} products: neu={}, derived={}, overlays={}, "
+            "Built Bazaar conversion index from {} products: neu={}, derived={}, missing={}, overlays={}, "
                 + "legacy={}, stackCoverage={}/{}, neuCommit={}",
             index.size(),
             counts.neu(),
             counts.derived(),
+            index.missingProductIds().size(),
             overlays,
             legacy,
             covered,
@@ -158,7 +180,30 @@ final class RemoteNeuConversionIndexBuilder {
             return false;
         }
 
+        if (!curr.isComplete()) {
+            return false;
+        }
+
         return productIds.stream().allMatch(productId -> curr.products().containsKey(productId));
+    }
+
+    static int carryForwardMissingEntries(
+        ConversionIndex current,
+        Map<String, ConversionProductEntry> products,
+        Set<String> missingProductIds
+    ) {
+        if (current == null || missingProductIds.isEmpty()) {
+            return 0;
+        }
+
+        var carriedForwardCount = 0;
+        for (var productId : missingProductIds) {
+            var currentEntry = current.products().get(productId);
+            if (currentEntry != null && products.putIfAbsent(productId, currentEntry) == null) {
+                carriedForwardCount++;
+            }
+        }
+        return carriedForwardCount;
     }
 
     private static Set<String> fetchBazaarProductIds() throws ConversionRefreshException {
@@ -310,14 +355,15 @@ final class RemoteNeuConversionIndexBuilder {
         }
     }
 
-    private static void validateCompleteIndex(
+    static Set<String> validateCompleteIndex(
         Set<String> productIds,
-        Map<String, ConversionProductEntry> products
+        Map<String, ConversionProductEntry> products,
+        boolean allowPartial
     ) throws ConversionRefreshException {
         var missing = new TreeSet<>(productIds);
         missing.removeAll(products.keySet());
         if (missing.isEmpty()) {
-            return;
+            return Set.of();
         }
 
         var sample = missing.stream().limit(LOG_SAMPLE_LIMIT).toList();
@@ -328,6 +374,10 @@ final class RemoteNeuConversionIndexBuilder {
         );
         if (log.isDebugEnabled()) {
             log.debug("Missing Bazaar conversion products: {}", missing);
+        }
+
+        if (allowPartial) {
+            return Set.copyOf(missing);
         }
 
         throw new ConversionRefreshException(
