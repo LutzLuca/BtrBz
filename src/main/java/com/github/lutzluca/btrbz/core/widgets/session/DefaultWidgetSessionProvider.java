@@ -71,9 +71,11 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             ));
         }
 
+        var currMenu = current.getMenuType();
+        var prevMenu = previous.getMenuType();
         var key = new SemanticKey(
             helper.screenTransitionVersion(), hud, sign, orderBook,
-            current.getMenuType(), previous.getMenuType(),
+            currMenu, prevMenu,
             product.map(WidgetProductContext::productId), side
         );
         if (!key.equals(this.previousKey)) {
@@ -86,8 +88,8 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             hud,
             sign,
             orderBook,
-            current.getMenuType(),
-            previous.getMenuType(),
+            currMenu,
+            prevMenu,
             product,
             side,
             this.trackedOrders.displayRevision()

@@ -50,8 +50,12 @@ public final class ScreenInfoHelper {
         return this.screenTransitionVersion;
     }
 
-    public static boolean inMenu(BazaarMenuType... menu) {
+    public static boolean inMenu(BazaarMenuType menu) {
         return INSTANCE.currInfo.inMenu(menu);
+    }
+
+    public static boolean inMenu(BazaarMenuType... menus) {
+        return INSTANCE.currInfo.inMenu(menus);
     }
 
     public static boolean inBazaar() {
@@ -230,7 +234,7 @@ public final class ScreenInfoHelper {
         Settings,  // Bazaar ➜ Settings
         Confirm; // Confirm
 
-        public static final BazaarMenuType[] VALUES = BazaarMenuType.values();
+        private static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
 
         // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
@@ -336,8 +340,12 @@ public final class ScreenInfoHelper {
             return this.inMenu(BazaarMenuType.VALUES);
         }
 
-        public boolean inMenu(BazaarMenuType... menu) {
-            for (var type : menu) {
+        public boolean inMenu(BazaarMenuType menu) {
+            return this.state.matches(this, menu);
+        }
+
+        public boolean inMenu(BazaarMenuType... menus) {
+            for (var type : menus) {
                 if (this.state.matches(this, type)) {
                     return true;
                 }
@@ -393,49 +401,36 @@ public final class ScreenInfoHelper {
 
     private static final class MenuState {
 
-        private int verifiedMenu = 0;
+        private Optional<BazaarMenuType> verifiedMenu = Optional.empty();
         private int verifiedNotMenu = 0;
         private boolean inventoryLoaded = false;
 
         public void reset() {
-            this.verifiedMenu = 0;
+            this.verifiedMenu = Optional.empty();
             this.verifiedNotMenu = 0;
             this.inventoryLoaded = false;
         }
 
         public Optional<BazaarMenuType> getMenu(ScreenInfo info) {
-            var menus = BazaarMenuType.values();
-            if (this.verifiedMenu != 0) {
-                for (var type : menus) {
-                    if (verifiedMenu == (1 << type.ordinal())) {
-                        return Optional.of(type);
-                    }
-                }
+            if (this.verifiedMenu.isPresent()) return this.verifiedMenu;
 
-                throw new RuntimeException("unreachable");
-            }
-
-            for (var menu : menus) {
+            for (var menu : BazaarMenuType.VALUES) {
                 if (((this.verifiedNotMenu >> menu.ordinal()) & 1) == 1) {
                     continue;
                 }
                 if (this.matches(info, menu)) {
-                    return Optional.of(menu);
+                    return this.verifiedMenu;
                 }
             }
             return Optional.empty();
         }
 
         public boolean matches(ScreenInfo info, BazaarMenuType type) {
+            if (this.verifiedMenu.isPresent()) {
+                return this.verifiedMenu.get() == type;
+            }
+
             int typeBit = 1 << type.ordinal();
-            if ((this.verifiedMenu & typeBit) != 0) {
-                return true;
-            }
-
-            if (this.verifiedMenu != 0) {
-                return false;
-            }
-
             if ((this.verifiedNotMenu & typeBit) != 0) {
                 return false;
             }
@@ -446,7 +441,7 @@ public final class ScreenInfoHelper {
 
             boolean matches = type.matches(info);
             if (matches) {
-                this.verifiedMenu |= typeBit;
+                this.verifiedMenu = Optional.of(type);
                 log.debug("Matched menu: {}", type);
             } else {
                 this.verifiedNotMenu |= typeBit;
