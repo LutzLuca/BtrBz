@@ -5,14 +5,14 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 
 public final class DailyLimitWidgetConfig {
-    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.76, 0.58));
+    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.468, 0.063));
     public NumberStyle numberStyle = NumberStyle.Compact;
     public double dailyLimit = 15_000_000_000d;
     public double usedToday = 0;
     public long lastResetEpochDay = -1;
 
     public DailyLimitWidgetConfig() {
-        this.frame.enabled = false;
+        this.frame.enabled = true;
     }
 
     public static void resetPreferences(DailyLimitWidgetConfig current, DailyLimitWidgetConfig defaults) {

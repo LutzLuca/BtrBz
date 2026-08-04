@@ -30,7 +30,7 @@ import net.minecraft.world.item.Items;
 public final class BookmarksWidgetConfig {
     public enum BookmarkSort { Manual, Alphabetical }
 
-    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.30, 0.52));
+    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.145, 0.516));
     public int contentWidth = 200;
     public int visibleRows = 5;
     public BookmarkSort sort = BookmarkSort.Manual;

@@ -73,7 +73,7 @@ class WidgetConfigBindingTest {
             assertEquals(1.0, config.frame.scale);
             assertFalse(config.frame.overrideBackground);
             assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
-            assertFalse(config.frame.enabled);
+            assertTrue(config.frame.enabled);
         }
     }
 }

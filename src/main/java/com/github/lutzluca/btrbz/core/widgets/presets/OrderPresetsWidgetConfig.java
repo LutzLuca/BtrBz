@@ -7,9 +7,9 @@ import java.util.List;
 
 public final class OrderPresetsWidgetConfig {
     public WidgetFrameConfig frame = new WidgetFrameConfig(
-        WidgetPlacement.topLeft(0.55, 0.58),
+        WidgetPlacement.topLeft(0.642, 0.30),
         "sign",
-        WidgetPlacement.topLeft(0.62, 0.08)
+        WidgetPlacement.topLeft(0.60, 0.183)
     );
     public int contentWidth = 50;
     public int visibleRows = 5;

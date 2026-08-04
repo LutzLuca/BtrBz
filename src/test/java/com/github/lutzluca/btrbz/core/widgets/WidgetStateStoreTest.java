@@ -21,7 +21,7 @@ class WidgetStateStoreTest {
         var config = new WidgetsConfig();
         assertEquals(1.0, config.globalFineTuneScale);
         assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.globalBackground);
-        assertEquals(6, config.bazaarOrders.visibleOrders);
+        assertEquals(4, config.bazaarOrders.visibleOrders);
         assertEquals(200, config.bazaarOrders.contentWidth);
         assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, config.bazaarOrders.mode);
         assertEquals(TrackedOrdersWidgetConfig.TrackedSort.Manual, config.trackedOrders.sort);
@@ -37,7 +37,7 @@ class WidgetStateStoreTest {
         assertEquals(50, config.orderPresets.contentWidth);
         assertEquals(5, config.orderPresets.visibleRows);
         assertEquals(WidgetDisplayOptions.NumberStyle.Compact, config.orderLimit.numberStyle);
-        assertFalse(config.orderLimit.frame.enabled);
+        assertTrue(config.orderLimit.frame.enabled);
         assertFalse(config.orderPresets.showDisabled);
         assertEquals(210, config.managerPanelWidth);
         assertEquals(75, config.managerPanelHeightPercent);
