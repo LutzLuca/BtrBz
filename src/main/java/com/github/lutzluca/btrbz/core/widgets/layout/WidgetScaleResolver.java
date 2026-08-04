@@ -1,10 +1,24 @@
 package com.github.lutzluca.btrbz.core.widgets.layout;
 
+import net.minecraft.client.Minecraft;
+
 public final class WidgetScaleResolver {
     public static final double MIN_SCALE = 0.5;
     public static final double MAX_SCALE = 2.0;
 
     private WidgetScaleResolver() {}
+
+    public static double automaticGuiScale() {
+        var window = Minecraft.getInstance().getWindow();
+        double guiScale = window.getGuiScale();
+
+        return switch ((int) Math.round(guiScale)) {
+            case 1, 2 -> 1.00;
+            case 3 -> 0.71;
+            case 4 -> 0.64;
+            default -> 0.64 * Math.pow(4.0 / guiScale, 0.8);
+        };
+    }
 
     public static double fitToCanvas(
         double requestedScale,
