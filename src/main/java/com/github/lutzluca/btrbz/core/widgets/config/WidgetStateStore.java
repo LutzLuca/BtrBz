@@ -137,9 +137,11 @@ public final class WidgetStateStore {
         if (persist) this.saveAction.run();
     }
     public double requestedScale(WidgetDefinition<?, ?, ?> definition) {
-        return this.hasWidgetScaleOverride(definition)
+        double base = this.hasWidgetScaleOverride(definition)
             ? this.widgetScale(definition)
             : this.globalFineTuneScale();
+
+        return base * WidgetScaleResolver.automaticGuiScale();
     }
     public boolean hasBackgroundOverride(WidgetDefinition<?, ?, ?> definition) {
         return definition.frame().overrideBackground;

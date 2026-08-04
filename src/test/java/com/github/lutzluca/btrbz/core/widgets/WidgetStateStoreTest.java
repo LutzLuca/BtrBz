@@ -160,7 +160,7 @@ class WidgetStateStoreTest {
 
             assertFalse(store.hasWidgetScaleOverride(bookmarks));
             assertFalse(store.hasBackgroundOverride(bookmarks));
-            assertEquals(1.35, store.requestedScale(bookmarks));
+            assertEquals(1.35, store.globalFineTuneScale());
             assertEquals(0xAA102030, store.backgroundColor(bookmarks));
         }
 
@@ -180,7 +180,7 @@ class WidgetStateStoreTest {
             store.setGlobalFineTuneScale(0.8, false);
             store.setGlobalBackgroundColor(0xDD405060, false);
 
-            assertEquals(0.8, store.requestedScale(bookmarks));
+            assertEquals(0.8, store.globalFineTuneScale());
             assertEquals(0xDD405060, store.backgroundColor(bookmarks));
             assertEquals(1.6, config.bookmarks.frame.scale);
             assertEquals(0xCC304050, config.bookmarks.frame.background);
@@ -188,7 +188,7 @@ class WidgetStateStoreTest {
             store.setWidgetScaleOverride(bookmarks, true, false);
             store.setBackgroundOverride(bookmarks, true, false);
 
-            assertEquals(1.6, store.requestedScale(bookmarks));
+            assertEquals(1.6, store.widgetScale(bookmarks));
             assertEquals(0xCC304050, store.backgroundColor(bookmarks));
         }
 
