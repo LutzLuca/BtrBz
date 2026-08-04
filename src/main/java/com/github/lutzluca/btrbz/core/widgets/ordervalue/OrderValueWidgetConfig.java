@@ -5,7 +5,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class OrderValueWidgetConfig {
     public enum ValueDisplay { Detailed, Summary }
-    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.65, 0.16));
+    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.393, 0.077));
     public int contentWidth = 205;
     public ValueDisplay display = ValueDisplay.Detailed;
     public static void resetPreferences(OrderValueWidgetConfig current, OrderValueWidgetConfig defaults) {

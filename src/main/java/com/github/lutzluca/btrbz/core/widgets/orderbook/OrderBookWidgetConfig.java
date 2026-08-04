@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 public final class OrderBookWidgetConfig {
     public enum BookLayout { Split, BuyOnly, SellOnly }
 
-    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.55, 0.34));
+    public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.29, 0.31));
     public int contentWidth = 400;
     public int visibleRows = 10;
     public BookLayout layout = BookLayout.Split;
