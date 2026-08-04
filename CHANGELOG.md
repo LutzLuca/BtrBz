@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.10.1-alpha] - 2026-08-04
+
+### Added
+
+- Added `/btrbz conversions refresh force` for applying a marked partial conversion index when Bazaar-to-NEU mappings cannot be resolved
+
+### Changed
+
+- Removed the singular `/btrbz conversion` command alias
+
+### Fixed
+
+- Fixed an incorrect Wetwing attribute shard mapping that prevented Bazaar conversion index refreshes
+- Fixed Bazaar child-screen transitions losing inventory context or dispatching duplicate close events
+- Fixed tracked-order ordering and status refreshes, including changed undercut amounts and orders sharing the best price
+- Fixed Order Preset state handling and prevented preset input from leaking into unrelated containers
+
 ## [0.10.0-alpha] - 2026-07-18
 
 ### Added
