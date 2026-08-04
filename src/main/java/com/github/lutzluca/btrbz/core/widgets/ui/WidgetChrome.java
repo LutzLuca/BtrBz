@@ -19,6 +19,7 @@ public final class WidgetChrome {
         ));
         layout.allowOverflow(true);
         layout.child(content);
+        if (content.tooltip() != null) layout.tooltip(content.tooltip());
         return layout;
     }
 }
