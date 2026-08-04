@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -87,8 +88,51 @@ class ConversionIndexTest {
             assertFalse(json.contains("\"strippedName\""));
             assertEquals(7, parsed.builderVersion());
             assertEquals("Sharpness V", parsed.product("ENCHANTMENT_SHARPNESS_5").orElseThrow().strippedName());
+            assertTrue(parsed.isComplete());
             var neu = assertInstanceOf(ProductNameSource.Neu.class, source);
             assertEquals("SHARPNESS;5", neu.neuId());
+        }
+
+        @Test
+        void roundTripsMissingProductMarkers() throws Exception {
+            var index = new ConversionIndex(
+                ConversionIndex.SCHEMA_VERSION,
+                7,
+                "now",
+                "abc",
+                java.util.Map.of(
+                    "KNOWN",
+                    new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))
+                ),
+                Set.of("MISSING")
+            );
+
+            var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
+            var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
+
+            assertFalse(parsed.isComplete());
+            assertEquals(Set.of("MISSING"), parsed.missingProductIds());
+        }
+
+        @Test
+        void treatsSnapshotsWithoutMissingProductMarkersAsComplete() throws Exception {
+            var json = """
+                {
+                  "schemaVersion": 1,
+                  "builderVersion": 1,
+                  "generatedAt": "now",
+                  "products": {
+                    "KNOWN": {
+                      "formattedName": "Known",
+                      "source": { "type": "neu", "neuId": "KNOWN" }
+                    }
+                  }
+                }
+                """;
+
+            var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
+
+            assertTrue(parsed.isComplete());
         }
 
         @Test

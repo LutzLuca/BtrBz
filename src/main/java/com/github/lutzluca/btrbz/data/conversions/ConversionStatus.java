@@ -5,6 +5,7 @@ import java.util.Optional;
 public record ConversionStatus(
     IndexLoadSource activeLoadSource,
     ConversionSourceCounts sourceCounts,
+    int missingProductCount,
     Optional<String> neuCommit,
     String generatedAt,
     Optional<String> lastSuccessfulRefreshAt,
@@ -29,6 +30,7 @@ public record ConversionStatus(
         return new ConversionStatus(
             source,
             index.sourceCounts(),
+            index.missingProductIds().size(),
             index.neuCommit(),
             index.generatedAt(),
             lastSuccessfulRefreshAt,

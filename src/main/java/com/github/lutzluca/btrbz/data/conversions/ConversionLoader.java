@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -47,7 +48,8 @@ final class ConversionLoader {
         int builderVersion,
         String generatedAt,
         String neuCommit,
-        Map<String, ConversionProductEntry> products
+        Map<String, ConversionProductEntry> products,
+        Set<String> missingProductIds
     ) {
 
         static IndexSnapshot fromIndex(ConversionIndex index) {
@@ -56,7 +58,8 @@ final class ConversionLoader {
                 index.builderVersion(),
                 index.generatedAt(),
                 index.neuCommit().orElse(null),
-                index.products()
+                index.products(),
+                index.missingProductIds()
             );
         }
 
@@ -74,7 +77,8 @@ final class ConversionLoader {
                     this.builderVersion,
                     this.generatedAt,
                     this.neuCommit,
-                    this.products
+                    this.products,
+                    this.missingProductIds
                 );
             } catch (IllegalArgumentException err) {
                 throw new IOException("Invalid conversion index", err);

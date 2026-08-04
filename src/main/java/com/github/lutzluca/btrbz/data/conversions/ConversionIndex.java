@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public final class ConversionIndex {
 
@@ -20,7 +21,8 @@ public final class ConversionIndex {
         0,
         Instant.EPOCH.toString(),
         null,
-        Map.of()
+        Map.of(),
+        Set.of()
     );
 
     private final int schemaVersion;
@@ -28,6 +30,7 @@ public final class ConversionIndex {
     private final String generatedAt;
     private final String neuCommit;
     private final Map<String, ConversionProductEntry> products;
+    private final Set<String> missingProductIds;
     private final Map<String, List<IndexedProduct>> normalizedNameIndex;
 
     public ConversionIndex(
@@ -46,6 +49,17 @@ public final class ConversionIndex {
         String neuCommit,
         Map<String, ConversionProductEntry> products
     ) {
+        this(schemaVersion, builderVersion, generatedAt, neuCommit, products, Set.of());
+    }
+
+    public ConversionIndex(
+        int schemaVersion,
+        int builderVersion,
+        String generatedAt,
+        String neuCommit,
+        Map<String, ConversionProductEntry> products,
+        Set<String> missingProductIds
+    ) {
         if (schemaVersion != SCHEMA_VERSION) {
             throw new IllegalArgumentException("Unsupported conversion index schema version: " + schemaVersion);
         }
@@ -62,6 +76,9 @@ public final class ConversionIndex {
         this.products = Collections.unmodifiableMap(new LinkedHashMap<>(
             products == null ? Map.of() : products
         ));
+        this.missingProductIds = Set.copyOf(
+            missingProductIds == null ? Set.of() : missingProductIds
+        );
         this.normalizedNameIndex = buildNameIndex(this.products);
     }
 
@@ -87,6 +104,14 @@ public final class ConversionIndex {
 
     public Map<String, ConversionProductEntry> products() {
         return this.products;
+    }
+
+    public Set<String> missingProductIds() {
+        return this.missingProductIds;
+    }
+
+    public boolean isComplete() {
+        return this.missingProductIds.isEmpty();
     }
 
     public int size() {

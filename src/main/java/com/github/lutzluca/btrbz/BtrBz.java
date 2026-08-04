@@ -258,7 +258,11 @@ public class BtrBz implements ClientModInitializer {
             case RefreshSuccess -> {
                 this.automaticConversionFailureNotified = false;
                 if (event.manual()) {
-                    MessageQueue.sendOrQueue("Updated Bazaar conversion index", Level.Info);
+                    if (event.message().isBlank()) {
+                        MessageQueue.sendOrQueue("Updated Bazaar conversion index", Level.Info);
+                    } else {
+                        MessageQueue.sendOrQueue(event.message(), Level.Warn);
+                    }
                 }
             }
             case PersistFailure -> {

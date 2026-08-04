@@ -51,7 +51,11 @@ public class BazaarData {
     }
 
     public boolean refreshConversions(boolean manual) {
-        return this.conversionIndexService.refreshConversionIndex(manual);
+        return this.refreshConversions(manual, false);
+    }
+
+    public boolean refreshConversions(boolean manual, boolean force) {
+        return this.conversionIndexService.refreshConversionIndex(manual, force);
     }
 
     public ConversionStatus getConversionStatus() {
