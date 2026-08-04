@@ -13,14 +13,19 @@ import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.function.Consumer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 
 final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> {
-    private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.content(), Sizing.content());
+    private final RetainedFlowLayout root = RetainedFlowLayout.vertical(
+        Sizing.fixed(DailyLimitWidgetDefinition.MINIMUM_CONTENT_WIDTH),
+        Sizing.content()
+    );
     private final LabelComponent header = text("Daily Limit", BazaarStyles.PRIMARY_TEXT);
     private final LabelComponent value = text("", BazaarStyles.BUY_ACCENT);
+    private String displayedValue = "";
 
     DailyLimitWidgetView() {
         this.root.allowOverflow(true);
@@ -28,7 +33,7 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         this.root.horizontalAlignment(HorizontalAlignment.CENTER);
         this.root.child(this.header);
         this.root.child(this.value);
-        this.value.tooltip(WidgetTooltips.wrapped(
+        this.root.tooltip(WidgetTooltips.wrapped(
             "Estimated from Bazaar transactions observed by the mod. Activity missed while data is unavailable may not be included."
         ));
     }
@@ -52,6 +57,14 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         String display = formattedValue(data, config.numberStyle);
         this.value.text(Component.literal(display));
         this.value.color(BazaarStyles.color(color));
+        if (!display.equals(this.displayedValue)) {
+            this.displayedValue = display;
+            var font = Minecraft.getInstance().font;
+            this.root.horizontalSizing(Sizing.fixed(Math.max(
+                DailyLimitWidgetDefinition.MINIMUM_CONTENT_WIDTH,
+                Math.max(font.width("Daily Limit"), font.width(display))
+            )));
+        }
         this.root.clearChildren();
         this.root.child(this.header);
         this.root.child(this.value);

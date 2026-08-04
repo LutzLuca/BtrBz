@@ -11,6 +11,7 @@ import net.minecraft.resources.Identifier;
 
 public final class DailyLimitWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_limit"));
+    static final int MINIMUM_CONTENT_WIDTH = 60;
     private DailyLimitWidgetDefinition() {}
     public static WidgetDefinition<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> create(
         DailyLimitComponent component
@@ -24,7 +25,7 @@ public final class DailyLimitWidgetDefinition {
             .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(DailyLimitWidgetView::new)
             .settingsPanel(DailyLimitWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(60), 30)
+            .minSize(WidgetLayoutTokens.panelWidth(MINIMUM_CONTENT_WIDTH), 30)
             .build();
     }
 }
