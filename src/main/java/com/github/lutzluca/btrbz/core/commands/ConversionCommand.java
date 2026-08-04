@@ -14,9 +14,7 @@ public final class ConversionCommand {
     private ConversionCommand() { }
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
-        return Commands.rootCommand
-            .then(command("conversions", bazaarData))
-            .then(command("conversion", bazaarData));
+        return Commands.rootCommand.then(command("conversions", bazaarData));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> command(
@@ -33,22 +31,28 @@ public final class ConversionCommand {
                 }))
             .then(ClientCommands
                 .literal("refresh")
-                .executes(ctx -> {
-                    if (bazaarData.refreshConversions(true)) {
-                        Notifier.notifyPlayer(Notifier
-                            .prefix()
-                            .append(Component
-                                .literal("Started Bazaar conversion refresh")
-                                .withStyle(ChatFormatting.GRAY)));
-                    } else {
-                        Notifier.notifyPlayer(Notifier
-                            .prefix()
-                            .append(Component
-                                .literal("Bazaar conversion refresh is already running")
-                                .withStyle(ChatFormatting.GRAY)));
-                    }
-                    return 1;
-                }));
+                .executes(ctx -> startRefresh(bazaarData, false))
+                .then(ClientCommands
+                    .literal("force")
+                    .executes(ctx -> startRefresh(bazaarData, true))));
+    }
+
+    private static int startRefresh(BazaarData bazaarData, boolean force) {
+        if (bazaarData.refreshConversions(true, force)) {
+            var message = force
+                ? "Started forced Bazaar conversion refresh"
+                : "Started Bazaar conversion refresh";
+            Notifier.notifyPlayer(Notifier
+                .prefix()
+                .append(Component.literal(message).withStyle(ChatFormatting.GRAY)));
+        } else {
+            Notifier.notifyPlayer(Notifier
+                .prefix()
+                .append(Component
+                    .literal("Bazaar conversion refresh is already running")
+                    .withStyle(ChatFormatting.GRAY)));
+        }
+        return 1;
     }
 
     private static void notifyStatus(ConversionStatus status) {
@@ -58,6 +62,9 @@ public final class ConversionCommand {
             .append(Component.literal("Bazaar conversions").withStyle(ChatFormatting.GOLD))
             .append(Component.literal("\nSource: " + status.activeLoadSource()).withStyle(ChatFormatting.GRAY))
             .append(Component.literal("\nProducts: " + counts.total()).withStyle(ChatFormatting.GRAY))
+            .append(Component
+                .literal("\nMissing products: " + status.missingProductCount())
+                .withStyle(status.missingProductCount() == 0 ? ChatFormatting.GRAY : ChatFormatting.YELLOW))
             .append(Component
                 .literal("\nSources: neu=" + counts.neu()
                     + ", derived=" + counts.derived())

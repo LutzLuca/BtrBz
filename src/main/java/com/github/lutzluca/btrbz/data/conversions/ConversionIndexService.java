@@ -79,6 +79,10 @@ public final class ConversionIndexService {
     }
 
     public boolean refreshConversionIndex(boolean manual) {
+        return this.refreshConversionIndex(manual, false);
+    }
+
+    public boolean refreshConversionIndex(boolean manual, boolean force) {
         if (!this.refreshInFlight.compareAndSet(false, true)) {
             this.emitConversionEvent(new ConversionEvent(
                     ConversionEvent.Kind.RefreshAlreadyRunning,
@@ -88,7 +92,7 @@ public final class ConversionIndexService {
         }
 
         CompletableFuture
-                .supplyAsync(() -> Try.of(this::prepareRemoteRefresh))
+                .supplyAsync(() -> Try.of(() -> this.prepareRemoteRefresh(force)))
                 .thenAccept(result -> Minecraft.getInstance().execute(() -> {
                     try {
                         result
@@ -196,8 +200,8 @@ public final class ConversionIndexService {
         this.conversionEventListeners.add(listener);
     }
 
-    private RemoteRefreshResult prepareRemoteRefresh() throws ConversionRefreshException {
-        var build = RemoteNeuConversionIndexBuilder.build(this.currentIndex);
+    private RemoteRefreshResult prepareRemoteRefresh(boolean allowPartial) throws ConversionRefreshException {
+        var build = RemoteNeuConversionIndexBuilder.build(this.currentIndex, allowPartial);
         if (!build.changed()) {
             return new RemoteRefreshResult(build.index(), false, Optional.empty());
         }
@@ -235,7 +239,9 @@ public final class ConversionIndexService {
             this.emitConversionEvent(new ConversionEvent(
                     ConversionEvent.Kind.RefreshSuccess,
                     manual,
-                    ""));
+                    result.index().isComplete()
+                        ? ""
+                        : "Applied partial index with " + result.index().missingProductIds().size() + " missing products"));
         }
     }
 
@@ -259,9 +265,10 @@ public final class ConversionIndexService {
     private void logIndexSummary(ConversionStatus.IndexLoadSource source, ConversionIndex index) {
         var counts = index.sourceCounts();
         log.debug(
-                "Applied conversion index from {} ({} products, source counts: neu={}, derived={})",
+                "Applied conversion index from {} ({} products, missing={}, source counts: neu={}, derived={})",
                 source,
                 index.size(),
+                index.missingProductIds().size(),
                 counts.neu(),
                 counts.derived());
         this.logDerivedMappings(index);

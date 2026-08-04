@@ -2,8 +2,10 @@ package com.github.lutzluca.btrbz.data.conversions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -93,6 +95,100 @@ class RemoteNeuConversionIndexBuilderTest {
             );
 
             assertFalse(reusable);
+        }
+
+        @Test
+        void fetchesWhenCurrentIndexIsIncomplete() {
+            var current = new ConversionIndex(
+                ConversionIndex.SCHEMA_VERSION,
+                RemoteNeuConversionIndexBuilder.BUILDER_VERSION,
+                "now",
+                "abc",
+                Map.of("NEU_PRODUCT", new ConversionProductEntry(
+                    "Neu Product",
+                    new ProductNameSource.Neu("NEU_PRODUCT")
+                )),
+                Set.of("MISSING_PRODUCT")
+            );
+
+            var reusable = RemoteNeuConversionIndexBuilder.shouldReuseNeuEntries(
+                current,
+                "abc",
+                Set.of("NEU_PRODUCT")
+            );
+
+            assertFalse(reusable);
+        }
+    }
+
+    @Nested
+    @DisplayName("completeness validation")
+    class CompletenessValidation {
+
+        @Test
+        void rejectsPartialIndexByDefault() {
+            assertThrows(
+                ConversionRefreshException.class,
+                () -> RemoteNeuConversionIndexBuilder.validateCompleteIndex(
+                    Set.of("KNOWN", "MISSING"),
+                    Map.of("KNOWN", new ConversionProductEntry(
+                        "Known",
+                        new ProductNameSource.Neu("KNOWN")
+                    )),
+                    false
+                )
+            );
+        }
+
+        @Test
+        void returnsMissingProductsWhenPartialIndexIsAllowed() throws Exception {
+            var missing = RemoteNeuConversionIndexBuilder.validateCompleteIndex(
+                Set.of("KNOWN", "MISSING"),
+                Map.of("KNOWN", new ConversionProductEntry(
+                    "Known",
+                    new ProductNameSource.Neu("KNOWN")
+                )),
+                true
+            );
+
+            assertEquals(Set.of("MISSING"), missing);
+        }
+
+        @Test
+        void carriesForwardOnlyMissingEntriesWithoutOverwritingFreshMappings() {
+            var current = indexWithNeuCommit(
+                "old",
+                Map.of(
+                    "UPDATED", new ConversionProductEntry(
+                        "Old Updated",
+                        new ProductNameSource.Neu("OLD_UPDATED")
+                    ),
+                    "STALE", new ConversionProductEntry(
+                        "Stale",
+                        new ProductNameSource.Neu("STALE")
+                    ),
+                    "REMOVED", new ConversionProductEntry(
+                        "Removed",
+                        new ProductNameSource.Neu("REMOVED")
+                    )
+                )
+            );
+            var freshUpdated = new ConversionProductEntry(
+                "Fresh Updated",
+                new ProductNameSource.Neu("FRESH_UPDATED")
+            );
+            var products = new LinkedHashMap<>(Map.of("UPDATED", freshUpdated));
+
+            var carriedForward = RemoteNeuConversionIndexBuilder.carryForwardMissingEntries(
+                current,
+                products,
+                Set.of("STALE")
+            );
+
+            assertEquals(1, carriedForward);
+            assertEquals(freshUpdated, products.get("UPDATED"));
+            assertEquals(current.products().get("STALE"), products.get("STALE"));
+            assertFalse(products.containsKey("REMOVED"));
         }
     }
 

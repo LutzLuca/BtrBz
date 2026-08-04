@@ -38,7 +38,7 @@ final class RemoteNeuConversionIndexBuilder {
     private static final Duration ZIP_REQUEST_TIMEOUT = Duration.ofSeconds(60);
     private static final int LOG_SAMPLE_LIMIT = Integer.getInteger("btrbz.conversions.logSampleLimit", 0);
     private static final int MAX_ROMAN_LEVEL = 3999;
-    static final int BUILDER_VERSION = 1;
+    static final int BUILDER_VERSION = 2;
     private static final HttpClient HTTP_CLIENT = HttpClient
         .newBuilder()
         .connectTimeout(CONNECT_TIMEOUT)
@@ -66,7 +66,8 @@ final class RemoteNeuConversionIndexBuilder {
         Map.entry("RAW_FISH:3", "RAW_FISH-3"),
         Map.entry("SAND:1", "SAND-1"),
         Map.entry("BAZAAR_COOKIE", "BOOSTER_COOKIE"),
-        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK")
+        Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK"),
+        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1")
     );
 
     private RemoteNeuConversionIndexBuilder() { }
@@ -74,6 +75,10 @@ final class RemoteNeuConversionIndexBuilder {
     record BuildResult(ConversionIndex index, boolean changed) { }
 
     static BuildResult build(ConversionIndex current) throws ConversionRefreshException {
+        return build(current, false);
+    }
+
+    static BuildResult build(ConversionIndex current, boolean allowPartial) throws ConversionRefreshException {
         var productIds = fetchBazaarProductIds();
         var neuCommit = fetchNeuCommit();
         var canReuseEntries = shouldReuseNeuEntries(current, neuCommit, productIds);
@@ -89,21 +94,30 @@ final class RemoteNeuConversionIndexBuilder {
             ? reusableEntries(current, productIds)
             : fetchNeuEntries(neuCommit, productIds);
 
-        validateCompleteIndex(productIds, products);
+        var missingProductIds = validateCompleteIndex(productIds, products, allowPartial);
+        var carriedForwardCount = carryForwardMissingEntries(current, products, missingProductIds);
+        if (carriedForwardCount > 0) {
+            log.warn(
+                "Carried forward {} stale conversion entries from the active index; they remain marked as missing",
+                carriedForwardCount
+            );
+        }
 
         var index = new ConversionIndex(
             ConversionIndex.SCHEMA_VERSION,
             BUILDER_VERSION,
             Instant.now().toString(),
             neuCommit,
-            products
+            products,
+            missingProductIds
         );
         var counts = index.sourceCounts();
         log.info(
-            "Built Bazaar conversion index from {} products: neu={}, derived={}, neuCommit={}",
+            "Built Bazaar conversion index from {} products: neu={}, derived={}, missing={}, neuCommit={}",
             index.size(),
             counts.neu(),
             counts.derived(),
+            index.missingProductIds().size(),
             neuCommit
         );
         return new BuildResult(index, true);
@@ -122,7 +136,30 @@ final class RemoteNeuConversionIndexBuilder {
             return false;
         }
 
+        if (!curr.isComplete()) {
+            return false;
+        }
+
         return productIds.stream().allMatch(productId -> curr.products().containsKey(productId));
+    }
+
+    static int carryForwardMissingEntries(
+        ConversionIndex current,
+        Map<String, ConversionProductEntry> products,
+        Set<String> missingProductIds
+    ) {
+        if (current == null || missingProductIds.isEmpty()) {
+            return 0;
+        }
+
+        var carriedForwardCount = 0;
+        for (var productId : missingProductIds) {
+            var currentEntry = current.products().get(productId);
+            if (currentEntry != null && products.putIfAbsent(productId, currentEntry) == null) {
+                carriedForwardCount++;
+            }
+        }
+        return carriedForwardCount;
     }
 
     private static Set<String> fetchBazaarProductIds() throws ConversionRefreshException {
@@ -248,24 +285,25 @@ final class RemoteNeuConversionIndexBuilder {
         }
     }
 
-    private static void validateCompleteIndex(
+    static Set<String> validateCompleteIndex(
         Set<String> productIds,
-        Map<String, ConversionProductEntry> products
+        Map<String, ConversionProductEntry> products,
+        boolean allowPartial
     ) throws ConversionRefreshException {
         var missing = new TreeSet<>(productIds);
         missing.removeAll(products.keySet());
         if (missing.isEmpty()) {
-            return;
+            return Set.of();
         }
 
-        var sample = missing.stream().limit(LOG_SAMPLE_LIMIT).toList();
         log.warn(
-            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata. Sample: {}",
+            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata: {}",
             missing.size(),
-            sample
+            missing
         );
-        if (log.isDebugEnabled()) {
-            log.debug("Missing Bazaar conversion products: {}", missing);
+
+        if (allowPartial) {
+            return Set.copyOf(missing);
         }
 
         throw new ConversionRefreshException(
