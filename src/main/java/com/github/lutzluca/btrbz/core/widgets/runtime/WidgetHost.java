@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 
 /** Retained runtime/preview host for the single ordered widget registry. */
@@ -45,6 +46,7 @@ public final class WidgetHost {
     private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
     private final @Nullable Map<WidgetId, Double> scrollOffsets;
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
+    private final Map<WidgetId, PrepareCache> prepareCache = new HashMap<>();
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private List<RuntimeWidgetHit> runtimeWidgetHits = List.of();
@@ -216,11 +218,27 @@ public final class WidgetHost {
         try {
             WidgetPreview preview = this.runtime ? null : this.preview(definition);
             WidgetSession session = this.runtime ? runtimeSession : preview.session();
-            Object data = this.runtime ? definition.getRuntimeData().apply(session) : preview.data();
-            Object config = definition.config();
             var mountedWidget = this.mounted.computeIfAbsent(
                 definition.getId(), _ -> this.mount(definition)
             );
+            PrepareKey prepareKey = null;
+            if (this.runtime && session != null) {
+                var widgetKey = definition.cacheKey(session);
+                if (widgetKey != null) {
+                    prepareKey = new PrepareKey(
+                        widgetKey, session.id(),
+                        screenCanvas.width(), screenCanvas.height(), options
+                    );
+                    var cached = this.prepareCache.get(definition.getId());
+                    if (cached != null && prepareKey.equals(cached.key())) {
+                        return cached.result();
+                    }
+                }
+            }
+
+            Object data = this.runtime ? definition.getRuntimeData().apply(session) : preview.data();
+            Object config = definition.config();
+
             Consumer actions = this.runtime
                 ? action -> this.dispatch(definition, action, session)
                 : _ -> {};
@@ -237,7 +255,11 @@ public final class WidgetHost {
                     mountedWidget.slot().localBounds(), 1, 1, 1,
                     options.isSelected(definition), options.drawManagementOverlay(), false
                 );
-                return new PreparedWidget(mountedWidget, null, anchorCanvas);
+                var prepared = new PreparedWidget(mountedWidget, null, anchorCanvas);
+                if (prepareKey != null) {
+                    this.prepareCache.put(definition.getId(), new PrepareCache(prepareKey, prepared));
+                }
+                return prepared;
             }
 
             double minimumScale = WidgetScaleResolver.MIN_SCALE;
@@ -283,7 +305,11 @@ public final class WidgetHost {
                 ),
                 logicalWidth, logicalHeight, scale
             );
-            return new PreparedWidget(mountedWidget, result, anchorCanvas);
+            var prepared = new PreparedWidget(mountedWidget, result, anchorCanvas);
+            if (prepareKey != null) {
+                this.prepareCache.put(definition.getId(), new PrepareCache(prepareKey, prepared));
+            }
+            return prepared;
         } catch (Exception exception) {
             log.warn("Widget {} failed during retained update", definition.getId(), exception);
             this.detach(definition.getId());
@@ -330,6 +356,7 @@ public final class WidgetHost {
     private void detach(WidgetId id) {
         var removed = this.mounted.remove(id);
         if (removed == null) return;
+        this.prepareCache.remove(id);
         if (this.scrollOffsets != null && removed.view() instanceof ScrollOffsetView scrollView) {
             this.scrollOffsets.put(id, scrollView.scrollOffset());
         }
@@ -378,6 +405,14 @@ public final class WidgetHost {
         io.wispforest.owo.ui.core.UIComponent component,
         WidgetSlotComponent slot,
         WidgetRenderSurface surface
+    ) {}
+    private record PrepareCache(PrepareKey key, PreparedWidget result) {}
+    private record PrepareKey(
+        Object widgetKey,
+        long sessionId,
+        int canvasWidth,
+        int canvasHeight,
+        WidgetHostOptions options
     ) {}
     private record PreparedWidget(
         MountedWidget mounted,

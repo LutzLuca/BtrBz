@@ -14,12 +14,17 @@ public record WidgetHostOptions(
     @Nullable Set<WidgetId> renderedWidgets,
     Map<WidgetId, String> placementProfiles
 ) {
+    private static final WidgetHostOptions RUNTIME_WITH_TOOLTIPS =
+        new WidgetHostOptions(null, false, true, null, Map.of());
+    private static final WidgetHostOptions RUNTIME_NO_TOOLTIPS =
+        new WidgetHostOptions(null, false, false, null, Map.of());
+
     public WidgetHostOptions {
         placementProfiles = Map.copyOf(placementProfiles);
     }
 
     public static WidgetHostOptions runtime(boolean allowTooltips) {
-        return new WidgetHostOptions(null, false, allowTooltips, null, Map.of());
+        return allowTooltips ? RUNTIME_WITH_TOOLTIPS : RUNTIME_NO_TOOLTIPS;
     }
 
     public static WidgetHostOptions management(

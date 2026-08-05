@@ -14,6 +14,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
+import org.jetbrains.annotations.Nullable;
 
 /** The complete typed recipe for one BtrBz widget. */
 @Getter
@@ -27,6 +28,7 @@ public final class WidgetDefinition<D, C, A> {
     private final Predicate<WidgetSession> supports;
     private final WidgetVisibility<D, C> visibility;
     private final Function<WidgetSession, D> runtimeData;
+    private final @Nullable Function<WidgetSession, Object> cacheKey;
     private final Supplier<WidgetPreview<D>> preview;
     private final Supplier<WidgetView<D, C, A>> viewFactory;
     private final Function<WidgetConfigBinding<C>, UIComponent> settingsPanel;
@@ -46,6 +48,7 @@ public final class WidgetDefinition<D, C, A> {
         this.supports = Objects.requireNonNull(builder.supports, "supports");
         this.visibility = Objects.requireNonNull(builder.visibility, "visibility");
         this.runtimeData = Objects.requireNonNull(builder.runtimeData, "runtimeData");
+        this.cacheKey = builder.cacheKey;
         this.preview = Objects.requireNonNull(builder.preview, "preview");
         this.viewFactory = Objects.requireNonNull(builder.viewFactory, "viewFactory");
         this.settingsPanel = Objects.requireNonNull(builder.settingsPanel, "settingsPanel");
@@ -85,6 +88,11 @@ public final class WidgetDefinition<D, C, A> {
         var profile = this.placementProfileResolver.apply(session);
         return this.placementProfiles.containsKey(profile) ? profile : "default";
     }
+
+    public @Nullable Object cacheKey(WidgetSession session) {
+        return this.cacheKey == null ? null : this.cacheKey.apply(session);
+    }
+
     public WidgetConfigBinding<C> binding(Runnable changed) {
         return new WidgetConfigBinding<>(
             this.currentConfig, this.freshDefaults, this.frameConfig, this.resetPreferences, changed
@@ -109,6 +117,7 @@ public final class WidgetDefinition<D, C, A> {
         private Predicate<WidgetSession> supports = _ -> true;
         private WidgetVisibility<D, C> visibility = (data, config, session) -> true;
         private Function<WidgetSession, D> runtimeData;
+        private @Nullable Function<WidgetSession, Object> cacheKey;
         private Supplier<WidgetPreview<D>> preview;
         private Supplier<WidgetView<D, C, A>> viewFactory;
         private Function<WidgetConfigBinding<C>, UIComponent> settingsPanel = _ -> null;
@@ -149,6 +158,12 @@ public final class WidgetDefinition<D, C, A> {
             this.runtimeData = runtimeData;
             return this;
         }
+
+        public Builder<D, C, A> cacheKey(Function<WidgetSession, Object> cacheKey) {
+            this.cacheKey = cacheKey;
+            return this;
+        }
+
         public Builder<D, C, A> preview(Supplier<WidgetPreview<D>> preview) {
             this.preview = preview;
             return this;
