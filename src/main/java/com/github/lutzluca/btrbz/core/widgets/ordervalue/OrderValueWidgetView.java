@@ -13,7 +13,6 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
-import org.jetbrains.annotations.Nullable;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.boldLabel;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
@@ -27,8 +26,6 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
     private final ValueLine sellClaimable = new ValueLine("Sell Offers (Claimable)", false);
     private final ValueLine sellPending = new ValueLine("Sell Offers (Pending)", false);
     private final ValueLine total = new ValueLine("Total Worth", true);
-    private @Nullable OrderValueWidgetData.Snapshot lastData;
-    private @Nullable OrderValueWidgetConfig.Snapshot lastConfig;
 
     OrderValueWidgetView() {
         this.root.allowOverflow(true);
@@ -47,13 +44,6 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        var configSnapshot = OrderValueWidgetConfig.Snapshot.of(config);
-        if (data.equals(this.lastData) && configSnapshot.equals(this.lastConfig)) {
-            return;
-        }
-        this.lastData = data;
-        this.lastConfig = configSnapshot;
-
         this.buyLocked.update(data.buyLocked(), BazaarStyles.BUY_ACCENT);
         this.buyItems.update(data.buyItems(), BazaarStyles.BUY_ACCENT);
         this.sellClaimable.update(data.sellClaimable(), BazaarStyles.SELL_ACCENT);
