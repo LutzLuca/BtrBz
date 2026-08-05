@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -32,6 +33,19 @@ public final class OrderPresetsComponent {
     private int pendingVolume = -1;
     private boolean pendingPreset;
     private boolean inTransaction;
+    private static final long CLIPBOARD_POLL_MILLIS = 250;
+    private String cachedClipboard = "";
+    private long clipboardReadAt = Long.MIN_VALUE;
+
+    public record State(
+        int maximumVolume,
+        boolean inTransaction,
+        String clipboard,
+        double purse,
+        @Nullable String productId,
+        double pricePerUnit,
+        List<Integer> volumes
+    ) implements WidgetCacheKey {}
 
     public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
@@ -58,27 +72,46 @@ public final class OrderPresetsComponent {
         return this.inTransaction;
     }
 
-    public List<PresetState> currentPresets() {
-        var purse = GameUtils.getPurse();
-        var price = Optional.ofNullable(this.currentProduct())
+    public State currentState() {
+        var product = this.currentProduct();
+        double price = Optional.ofNullable(product)
             .map(ProductIdentity::fromIndex)
             .flatMap(this.bazaarData::highestBuyOrderPrice)
-            .map(value -> value + 0.1);
+            .map(value -> value + 0.1)
+            .orElse(Double.NaN);
+        return new State(
+            this.maximumVolume,
+            this.inTransaction,
+            this.clipboard(),
+            GameUtils.getPurse().orElse(Double.NaN),
+            product == null ? null : product.productId(),
+            price,
+            List.copyOf(ConfigManager.get().widgets.orderPresets.volumes)
+        );
+    }
+
+    public List<PresetState> currentPresets() {
+        return presetsFor(this.currentState());
+    }
+
+    private static List<PresetState> presetsFor(State state) {
+        var price = Double.isNaN(state.pricePerUnit())
+            ? Optional.<Double>empty()
+            : Optional.of(state.pricePerUnit());
         OptionalInt clipboard = OptionalInt.empty();
-        String rawClipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
-        if (!rawClipboard.isBlank()) {
-            clipboard = Utils.parseUsFormattedNumber(rawClipboard)
+        if (!state.clipboard().isBlank()) {
+            clipboard = Utils.parseUsFormattedNumber(state.clipboard())
                 .map(Number::intValue)
-                .filter(value -> value > 0 && value <= this.maximumVolume)
+                .filter(value -> value > 0 && value <= state.maximumVolume())
                 .map(OptionalInt::of)
                 .getOrElse(OptionalInt.empty());
         }
         return resolvePresets(
-            ConfigManager.get().widgets.orderPresets.volumes,
-            this.maximumVolume,
+            state.volumes(),
+            state.maximumVolume(),
             clipboard,
             price,
-            purse
+            Double.isNaN(state.purse()) ? Optional.empty() : Optional.of(state.purse())
         );
     }
 
@@ -200,6 +233,15 @@ public final class OrderPresetsComponent {
 
     private @Nullable IndexedProduct currentProduct() {
         return this.productInfoProvider.getOpenedProduct();
+    }
+
+    private String clipboard() {
+        long now = System.currentTimeMillis();
+        if (now - this.clipboardReadAt >= CLIPBOARD_POLL_MILLIS) {
+            this.cachedClipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
+            this.clipboardReadAt = now;
+        }
+        return this.cachedClipboard;
     }
 
     private Optional<Integer> readMaximumVolume(ItemStack item) {
