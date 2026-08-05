@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -37,15 +36,6 @@ public final class OrderPresetsComponent {
     private String cachedClipboard = "";
     private long clipboardReadAt = Long.MIN_VALUE;
 
-    public record State(
-        int maximumVolume,
-        boolean inTransaction,
-        String clipboard,
-        double purse,
-        @Nullable String productId,
-        double pricePerUnit,
-        List<Integer> volumes
-    ) implements WidgetCacheKey {}
 
     public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this.bazaarData = bazaarData;
@@ -293,4 +283,14 @@ public final class OrderPresetsComponent {
         record InsufficientCoins(OrderPreset preset) implements Unavailable {}
         record CannotAffordSingleItem(OrderPreset preset, double missingCoins) implements Unavailable {}
     }
+
+    public record State(
+        int maximumVolume,
+        boolean inTransaction,
+        String clipboard,
+        double purse,
+        @Nullable String productId,
+        double pricePerUnit,
+        List<Integer> volumes
+    ) {}
 }

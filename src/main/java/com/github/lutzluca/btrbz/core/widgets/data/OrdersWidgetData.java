@@ -39,14 +39,6 @@ public final class OrdersWidgetData {
     private @Nullable SnapshotKey cachedKey;
     private @Nullable BazaarWidgetViewData.OrdersData cachedData;
 
-    public record SnapshotKey(
-        long orders,
-        long market,
-        long index,
-        long screen,
-        long inventory,
-        boolean tooltipsEnabled
-    ) implements WidgetCacheKey {}
 
     public OrdersWidgetData(
         BazaarData market,
@@ -224,4 +216,13 @@ public final class OrdersWidgetData {
         if (item == Items.EMERALD) return component.withStyle(ChatFormatting.GREEN);
         return component.withStyle(ChatFormatting.GRAY);
     }
+
+    public record SnapshotKey(
+        long orders,
+        long market,
+        long index,
+        long screen,
+        long inventory,
+        boolean tooltipsEnabled
+    ) {}
 }
