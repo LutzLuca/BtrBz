@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
+import com.github.lutzluca.btrbz.core.widgets.*;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
@@ -10,11 +11,6 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
-import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
-import com.github.lutzluca.btrbz.core.widgets.WidgetView;
-import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
@@ -408,7 +404,7 @@ public final class WidgetHost {
     ) {}
     private record PrepareCache(PrepareKey key, PreparedWidget result) {}
     private record PrepareKey(
-        Object widgetKey,
+        WidgetCacheKey widgetKey,
         long sessionId,
         int canvasWidth,
         int canvasHeight,

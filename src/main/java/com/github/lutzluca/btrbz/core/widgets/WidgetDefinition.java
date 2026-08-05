@@ -28,7 +28,7 @@ public final class WidgetDefinition<D, C, A> {
     private final Predicate<WidgetSession> supports;
     private final WidgetVisibility<D, C> visibility;
     private final Function<WidgetSession, D> runtimeData;
-    private final @Nullable Function<WidgetSession, Object> cacheKey;
+    private final @Nullable Function<WidgetSession, WidgetCacheKey> cacheKey;
     private final Supplier<WidgetPreview<D>> preview;
     private final Supplier<WidgetView<D, C, A>> viewFactory;
     private final Function<WidgetConfigBinding<C>, UIComponent> settingsPanel;
@@ -89,7 +89,7 @@ public final class WidgetDefinition<D, C, A> {
         return this.placementProfiles.containsKey(profile) ? profile : "default";
     }
 
-    public @Nullable Object cacheKey(WidgetSession session) {
+    public @Nullable WidgetCacheKey cacheKey(WidgetSession session) {
         return this.cacheKey == null ? null : this.cacheKey.apply(session);
     }
 
@@ -117,7 +117,7 @@ public final class WidgetDefinition<D, C, A> {
         private Predicate<WidgetSession> supports = _ -> true;
         private WidgetVisibility<D, C> visibility = (data, config, session) -> true;
         private Function<WidgetSession, D> runtimeData;
-        private @Nullable Function<WidgetSession, Object> cacheKey;
+        private @Nullable Function<WidgetSession, WidgetCacheKey> cacheKey;
         private Supplier<WidgetPreview<D>> preview;
         private Supplier<WidgetView<D, C, A>> viewFactory;
         private Function<WidgetConfigBinding<C>, UIComponent> settingsPanel = _ -> null;
@@ -159,7 +159,7 @@ public final class WidgetDefinition<D, C, A> {
             return this;
         }
 
-        public Builder<D, C, A> cacheKey(Function<WidgetSession, Object> cacheKey) {
+        public Builder<D, C, A> cacheKey(Function<WidgetSession, WidgetCacheKey> cacheKey) {
             this.cacheKey = cacheKey;
             return this;
         }
