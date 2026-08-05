@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -38,14 +39,14 @@ public final class OrdersWidgetData {
     private @Nullable SnapshotKey cachedKey;
     private @Nullable BazaarWidgetViewData.OrdersData cachedData;
 
-    private record SnapshotKey(
+    public record SnapshotKey(
         long orders,
         long market,
         long index,
         long screen,
         long inventory,
         boolean tooltipsEnabled
-    ) {}
+    ) implements WidgetCacheKey {}
 
     public OrdersWidgetData(
         BazaarData market,
@@ -57,17 +58,9 @@ public final class OrdersWidgetData {
         this.tooltipProvider = tooltipProvider;
     }
 
-
-    public BazaarWidgetViewData.OrdersData snapshot() {
-        var snapshots = this.trackedOrders.currentOrders();
-        if (snapshots.isEmpty()) {
-            this.cachedKey = null;
-            this.cachedData = null;
-            return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());
-        }
-
+    public SnapshotKey snapshotKey() {
         var screens = ScreenInfoHelper.get();
-        var key = new SnapshotKey(
+        return new SnapshotKey(
             this.trackedOrders.dataRevision(),
             this.market.marketRevision(),
             this.market.indexRevision(),
@@ -75,6 +68,10 @@ public final class OrdersWidgetData {
             screens.inventoryVersion(),
             ConfigManager.get().orderListTooltip.enabled
         );
+    }
+
+    public BazaarWidgetViewData.OrdersData snapshot() {
+        var key = this.snapshotKey();
 
         var cached = this.cachedData;
         if (cached != null && key.equals(this.cachedKey)) {
@@ -87,7 +84,7 @@ public final class OrdersWidgetData {
         return computed;
     }
 
-    private BazaarWidgetViewData.OrdersData computeSnapshot() {
+     BazaarWidgetViewData.OrdersData computeSnapshot() {
         var snapshots = this.trackedOrders.currentOrders();
         if (snapshots.isEmpty()) {
             return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());

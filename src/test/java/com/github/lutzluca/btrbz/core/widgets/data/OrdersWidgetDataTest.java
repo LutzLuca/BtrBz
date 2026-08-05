@@ -26,7 +26,7 @@ class OrdersWidgetDataTest {
         ));
         var data = new OrdersWidgetData(market, manager, null);
 
-        assertEquals(2, data.snapshot().filledOrderCount());
+        assertEquals(2, data.computeSnapshot().filledOrderCount());
     }
 
     @Nested

@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -26,6 +27,10 @@ public final class TrackedOrdersWidgetDefinition {
             .supports(WidgetSession::inBazaarContainer)
             .visibility((data, _, _) -> !data.orders().isEmpty())
             .runtimeData(_ -> provider.snapshot())
+            .cacheKey(_ -> new CacheKey(
+                provider.snapshotKey(),
+                TrackedOrdersWidgetConfig.Snapshot.of(ConfigManager.get().widgets.trackedOrders)
+            ))
             .preview(() -> new WidgetPreview<>(OrdersWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(TrackedOrdersWidgetView::new)
             .actionHandler(new TrackedOrdersActionHandler(trackedOrders))
@@ -33,4 +38,9 @@ public final class TrackedOrdersWidgetDefinition {
             .minSize(WidgetLayoutTokens.panelWidth(200), 16)
             .build();
     }
+
+    private record CacheKey(
+        OrdersWidgetData.SnapshotKey data,
+        TrackedOrdersWidgetConfig.Snapshot config
+    ) implements WidgetCacheKey {}
 }
