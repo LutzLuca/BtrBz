@@ -26,6 +26,8 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     private final TrackedOrderManager trackedOrders;
     private @Nullable SemanticKey previousKey;
     private long semanticSessionId;
+    private @Nullable SessionKey cachedKey;
+    private @Nullable WidgetSession cachedSession;
 
     public DefaultWidgetSessionProvider(
         BazaarData market,
@@ -42,6 +44,16 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     @Override
     public WidgetSession current(@Nullable Screen screen) {
         var helper = ScreenInfoHelper.get();
+        var sessionKey = new SessionKey(
+            screen,
+            helper.screenTransitionVersion(),
+            helper.inventoryVersion()
+        );
+        var cached = this.cachedSession;
+        if (cached != null && sessionKey.equals(this.cachedKey)) {
+            return cached;
+        }
+
         var current = helper.getCurrInfo();
         var previous = helper.getPrevInfo();
         boolean hud = screen == null;
@@ -83,7 +95,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             this.semanticSessionId++;
         }
 
-        return new WidgetSession(
+        var session = new WidgetSession(
             this.semanticSessionId,
             hud,
             sign,
@@ -94,6 +106,9 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             side,
             this.trackedOrders.displayRevision()
         );
+        this.cachedKey = sessionKey;
+        this.cachedSession = session;
+        return session;
     }
 
     private WidgetProductContext context(ProductIdentity identity, Optional<ItemStack> observedStack) {
@@ -122,4 +137,6 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         Optional<String> productId,
         Optional<OrderType> side
     ) {}
+
+    private record SessionKey(@Nullable Screen screen, long transition, long inventory) {}
 }
