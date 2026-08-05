@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -23,6 +24,16 @@ public final class BookmarksWidgetDefinition {
             .supports(WidgetSession::inBazaarContainer)
             .visibility((data, _, _) -> !data.bookmarks().isEmpty())
             .runtimeData(_ -> provider.snapshot())
+            .runtimeData(_ -> provider.snapshot())
+            .cacheKey(_ -> {
+                var config = ConfigManager.get().widgets.bookmarks;
+                return new CacheKey(
+                    component.dataRevision(),
+                    config.contentWidth,
+                    config.visibleRows,
+                    config.sort
+                );
+            })
             .preview(() -> new WidgetPreview<>(BookmarksWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(BookmarksWidgetView::new)
             .actionHandler(new BookmarksActionHandler(component))
@@ -30,4 +41,11 @@ public final class BookmarksWidgetDefinition {
             .minSize(WidgetLayoutTokens.panelWidth(200), 16)
             .build();
     }
+
+    private record CacheKey(
+        long data,
+        int contentWidth,
+        int visibleRows,
+        BookmarksWidgetConfig.BookmarkSort sort
+    ) implements WidgetCacheKey {}
 }
