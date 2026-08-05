@@ -12,6 +12,13 @@ public final class TrackedOrdersWidgetConfig {
     public int visibleRows = 5;
     public TrackedLayout layout = TrackedLayout.Standard;
     public TrackedSort sort = TrackedSort.Manual;
+
+    public record Snapshot(int contentWidth,int visibleRows, TrackedLayout layout, TrackedSort sort) {
+        public static Snapshot of(TrackedOrdersWidgetConfig config) {
+            return new Snapshot(config.contentWidth, config.visibleRows, config.layout, config.sort);
+        }
+    }
+
     public static void resetPreferences(TrackedOrdersWidgetConfig current, TrackedOrdersWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;

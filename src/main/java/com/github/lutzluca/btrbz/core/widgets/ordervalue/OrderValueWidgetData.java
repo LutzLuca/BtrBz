@@ -1,18 +1,32 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
+import org.jetbrains.annotations.Nullable;
+
 public final class OrderValueWidgetData {
     private final OrderValueComponent component;
+    private long cachedRevision = Long.MIN_VALUE;
+    private @Nullable Snapshot cachedSnapshot;
 
     public OrderValueWidgetData(OrderValueComponent component) {
         this.component = component;
     }
 
     public Snapshot snapshot() {
+        long revision = this.component.dataRevision();
+        var cached = this.cachedSnapshot;
+        if (cached != null && revision == this.cachedRevision) {
+            return cached;
+        }
+
         var value = this.component.currentBreakdown();
-        return new Snapshot(
-            Math.round(value.buyLocked()), Math.round(value.buyItems()), Math.round(value.sellClaimable()),
-            Math.round(value.sellPending()), Math.round(value.total())
+        var computed = new Snapshot(
+            Math.round(value.buyLocked()), Math.round(value.buyItems()),
+            Math.round(value.sellClaimable()), Math.round(value.sellPending()),
+            Math.round(value.total())
         );
+        this.cachedRevision = revision;
+        this.cachedSnapshot = computed;
+        return computed;
     }
 
     public static Snapshot preview() {

@@ -32,6 +32,7 @@ public final class ScreenInfoHelper {
     private boolean hasInventoryOwner = false;
     private long screenTransitionVersion = 0;
     private long dispatchedScreenTransitionVersion = 0;
+    private long inventoryVersion = 0;
     
     @Getter
     private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
@@ -87,6 +88,10 @@ public final class ScreenInfoHelper {
         return player != null && player.containerMenu.containerId == containerId;
     }
 
+    public long inventoryVersion() {
+        return this.inventoryVersion;
+    }
+
     private void setupInventoryWatcher() {
         this.inventoryWatcher.setOnOpen(_ -> {
             this.inventoryOwnerInfo.setScreen(this.currInfo.getScreen());
@@ -97,6 +102,7 @@ public final class ScreenInfoHelper {
             var screenInfo = this.hasInventoryOwner ? this.inventoryOwnerInfo : this.currInfo;
 
             screenInfo.markInventoryLoaded();
+            this.inventoryVersion++;
             if (screenInfo != this.currInfo && screenInfo.getScreen() == this.currInfo.getScreen()) {
                 this.currInfo.markInventoryLoaded();
             }

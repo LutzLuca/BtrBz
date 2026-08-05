@@ -12,10 +12,13 @@ import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.function.Consumer;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
+import static net.minecraft.network.chat.Component.literal;
 
 final class TrackedOrdersWidgetView implements
     WidgetView<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>,
@@ -23,6 +26,10 @@ final class TrackedOrdersWidgetView implements
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fixed(1), Sizing.content());
     private final LabelComponent status = label("", BazaarStyles.MUTED_TEXT);
     private final BazaarTrackedOrderListComponent list = new BazaarTrackedOrderListComponent();
+
+    private @Nullable BazaarWidgetViewData.OrdersData lastData;
+    private @Nullable TrackedOrdersWidgetConfig.Snapshot lastConfig;
+    private long lastSessionId = Long.MIN_VALUE;
 
     TrackedOrdersWidgetView() {
         this.root.allowOverflow(true);
@@ -59,9 +66,17 @@ final class TrackedOrdersWidgetView implements
         WidgetSession session,
         Consumer<TrackedOrdersAction> actions
     ) {
+        var configSnapshot = TrackedOrdersWidgetConfig.Snapshot.of(config);
+        if (data == this.lastData && configSnapshot.equals(this.lastConfig) && session.id() == this.lastSessionId) {
+            return;
+        }
+        this.lastData = data;
+        this.lastConfig = configSnapshot;
+        this.lastSessionId = session.id();
+
         var sorted = TrackedOrdersWidget.sortedOrders(data.orders(), config.sort);
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
-        this.status.text(net.minecraft.network.chat.Component.literal(
+        this.status.text(literal(
             TrackedOrdersWidget.headerStatus(data, sorted.size())
         ));
         this.list.update(sorted, config, true, BazaarWidgetViewData.Order::tooltipLines, actions);

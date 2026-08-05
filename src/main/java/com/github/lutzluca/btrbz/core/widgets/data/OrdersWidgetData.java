@@ -27,12 +27,25 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 /** Shared defensive order snapshots used by the HUD and tracked-orders widgets. */
 public final class OrdersWidgetData {
     private final BazaarData market;
     private final TrackedOrderManager trackedOrders;
     private final OrderTooltipProvider tooltipProvider;
+
+    private @Nullable SnapshotKey cachedKey;
+    private @Nullable BazaarWidgetViewData.OrdersData cachedData;
+
+    private record SnapshotKey(
+        long orders,
+        long market,
+        long index,
+        long screen,
+        long inventory,
+        boolean tooltipsEnabled
+    ) {}
 
     public OrdersWidgetData(
         BazaarData market,
@@ -44,7 +57,37 @@ public final class OrdersWidgetData {
         this.tooltipProvider = tooltipProvider;
     }
 
+
     public BazaarWidgetViewData.OrdersData snapshot() {
+        var snapshots = this.trackedOrders.currentOrders();
+        if (snapshots.isEmpty()) {
+            this.cachedKey = null;
+            this.cachedData = null;
+            return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());
+        }
+
+        var screens = ScreenInfoHelper.get();
+        var key = new SnapshotKey(
+            this.trackedOrders.dataRevision(),
+            this.market.marketRevision(),
+            this.market.indexRevision(),
+            screens.screenTransitionVersion(),
+            screens.inventoryVersion(),
+            ConfigManager.get().orderListTooltip.enabled
+        );
+
+        var cached = this.cachedData;
+        if (cached != null && key.equals(this.cachedKey)) {
+            return cached;
+        }
+
+        var computed = this.computeSnapshot();
+        this.cachedKey = key;
+        this.cachedData = computed;
+        return computed;
+    }
+
+    private BazaarWidgetViewData.OrdersData computeSnapshot() {
         var snapshots = this.trackedOrders.currentOrders();
         if (snapshots.isEmpty()) {
             return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());

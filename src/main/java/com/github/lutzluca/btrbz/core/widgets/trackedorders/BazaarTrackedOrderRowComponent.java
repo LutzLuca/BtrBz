@@ -46,6 +46,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private boolean interactive;
     private Consumer<TrackedOrdersAction> actions;
 
+    private @Nullable BazaarWidgetViewData.Order lastOrder;
+    private @Nullable TrackedOrdersWidgetConfig.Snapshot lastOptions;
+    private int lastIndex = -1;
+    private boolean lastInteractive;
+    private boolean initialized;
+
     BazaarTrackedOrderRowComponent(
         BazaarTrackedOrderListComponent list,
         BazaarWidgetViewData.Order order,
@@ -71,29 +77,51 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         boolean interactive,
         Consumer<TrackedOrdersAction> actions
     ) {
+        this.actions = actions;
         this.order = order;
         this.options = options;
+
+        var optionsSnapshot = TrackedOrdersWidgetConfig.Snapshot.of(options);
+        if (this.initialized
+            && order == this.lastOrder
+            && optionsSnapshot.equals(this.lastOptions)
+            && index == this.lastIndex
+            && interactive == this.lastInteractive) {
+            return;
+        }
+
+        boolean layoutChanged = this.lastOptions == null || this.lastOptions.layout() != optionsSnapshot.layout();
+
         this.productName = order.formattedItemName(false);
         this.index = index;
         this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
-        var itemStack = order.itemStack();
-        this.actions = actions;
+
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
+        var itemStack = order.itemStack();
         if (itemStack.isPresent()) {
             if (this.item == null) {
                 this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
             } else {
                 this.item.stack(itemStack.orElseThrow());
-                this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
+                if (layoutChanged) {
+                    this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
+                }
             }
         }
-        this.verticalSizing(Sizing.fixed(
-            options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
-        ));
+        if (layoutChanged) {
+            this.verticalSizing(Sizing.fixed(options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT));
+        }
+
         this.tooltip(interactive ? WidgetTooltips.wrapped(tooltip) : List.of());
         this.updateLayout();
+
+        this.initialized = true;
+        this.lastOrder = order;
+        this.lastOptions = optionsSnapshot;
+        this.lastIndex = index;
+        this.lastInteractive = interactive;
     }
 
     @Override
