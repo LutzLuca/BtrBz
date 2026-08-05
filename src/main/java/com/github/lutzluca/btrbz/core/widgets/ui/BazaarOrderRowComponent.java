@@ -7,6 +7,8 @@ import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -19,6 +21,10 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     private boolean hoverable;
     private boolean reserveScrollbarSpace;
     private boolean hoverSuppressed;
+
+    private @Nullable BazaarRow.Appearance lastAppearance;
+    private @Nullable DrawLayout drawLayout;
+    private int drawLayoutWidth = -1;
 
     BazaarOrderRowComponent(
         BazaarRow row,
@@ -34,11 +40,17 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     }
 
     void update(BazaarRow row, boolean hoverable, int height, boolean reserveScrollbarSpace) {
+        var appearance = row.appearance();
+        boolean changed = !appearance.equals(this.lastAppearance) || this.reserveScrollbarSpace != reserveScrollbarSpace;
         this.row = row;
         this.hoverable = hoverable;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.verticalSizing(Sizing.fixed(height));
-        this.tooltip(WidgetTooltips.wrapped(row.tooltip()));
+        if (changed) {
+            this.lastAppearance = appearance;
+            this.drawLayout = null;
+            this.tooltip(WidgetTooltips.wrapped(row.tooltip()));
+        }
     }
 
     @Override public boolean canFocus(FocusSource source) {
@@ -68,22 +80,45 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         boolean hovered = this.hoverable && !this.hoverSuppressed && this.isInBoundingBox(mouseX, mouseY);
         if (hovered) graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
 
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+            this.drawLayout = this.computeDrawLayout();
+            this.drawLayoutWidth = this.width;
+        }
+        var layout = this.drawLayout;
         var font = Minecraft.getInstance().font;
         int y = this.y + Math.max(0, (this.height - font.lineHeight) / 2);
-        int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.row.statusColor() != 0) {
+
+        if (layout.dotX() >= 0) {
             int dot = 4;
-            graphics.fill(x, this.y + (this.height - dot) / 2, x + dot, this.y + (this.height + dot) / 2, this.row.statusColor());
-            x += dot + 4;
+            int dotScreenX = this.x + layout.dotX();
+            graphics.fill(dotScreenX, this.y + (this.height - dot) / 2,
+                dotScreenX + dot, this.y + (this.height + dot) / 2, this.row.statusColor());
+        }
+
+        graphics.text(font, layout.prefix(), this.x + layout.prefixX(), y, this.row.prefixColor(), false);
+        graphics.text(font, layout.text(), this.x + layout.textX(), y, BazaarStyles.SECONDARY_TEXT, false);
+        if (layout.rightText() != null) {
+            graphics.text(font, layout.rightText(), this.x + layout.rightX(), y, this.row.rightColor(), false);
+        }
+    }
+
+    private DrawLayout computeDrawLayout() {
+        var font = Minecraft.getInstance().font;
+        int x = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        int dotX = -1;
+        if (this.row.statusColor() != 0) {
+            dotX = x;
+            x += 4 + 4;
         }
 
         int trailingInset = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         if (this.reserveScrollbarSpace) {
             trailingInset += WidgetLayoutTokens.SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
         }
-        int rowEnd = this.x + this.width - trailingInset;
+        int rowEnd = this.width - trailingInset;
         var rightText = Component.literal(this.row.rightText());
         var prefix = Component.literal(this.row.prefix());
+        boolean blankRight = this.row.rightText().isBlank();
 
         if (this.row.preservePrefix()) {
             var widths = priorityWidths(
@@ -91,54 +126,35 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
                 font.width(prefix),
                 font.width(rightText)
             );
-            graphics.text(font, prefix, x, y, this.row.prefixColor(), false);
+            int prefixX = x;
             x += widths.prefixWidth();
-            int rightWidth = this.row.rightText().isBlank() ? 0 : widths.rightWidth();
+            int rightWidth = blankRight ? 0 : widths.rightWidth();
             int textLimit = rowEnd - rightWidth - (rightWidth == 0 ? 0 : 3);
-            graphics.text(
-                font,
-                ellipsize(Component.literal(this.row.text()), Math.max(0, textLimit - x)),
-                x,
-                y,
-                BazaarStyles.SECONDARY_TEXT,
-                false
+            return new DrawLayout(
+                prefix.getVisualOrderText(), prefixX,
+                ellipsize(Component.literal(this.row.text()), Math.max(0, textLimit - x)), x,
+                rightWidth > 0 ? ellipsize(rightText, rightWidth) : null,
+                rowEnd - rightWidth,
+                dotX
             );
-            if (rightWidth > 0) {
-                graphics.text(
-                    font,
-                    ellipsize(rightText, rightWidth),
-                    rowEnd - rightWidth,
-                    y,
-                    this.row.rightColor(),
-                    false
-                );
-            }
-            return;
         }
 
-        int rightWidth = this.row.rightText().isBlank()
+        int rightWidth = blankRight
             ? 0
             : Math.min(font.width(rightText), Math.max(0, rowEnd - x - MINIMUM_LEFT_WIDTH - 3));
         int rightX = rowEnd - rightWidth;
-        int leftLimit = this.row.rightText().isBlank()
-            ? rowEnd
-            : rightX - 3;
+        int leftLimit = blankRight ? rowEnd : rightX - 3;
         int prefixWidth = Math.max(0, leftLimit - x);
-        graphics.text(font, ellipsize(prefix, prefixWidth), x, y, this.row.prefixColor(), false);
+        int prefixX = x;
+        var prefixSequence = ellipsize(prefix, prefixWidth);
         x += Math.min(font.width(prefix), prefixWidth);
         int textWidth = Math.max(0, leftLimit - x);
-        graphics.text(
-            font,
-            ellipsize(Component.literal(this.row.text()), textWidth),
-            x,
-            y,
-            BazaarStyles.SECONDARY_TEXT,
-            false
+        return new DrawLayout(
+            prefixSequence, prefixX,
+            ellipsize(Component.literal(this.row.text()), textWidth), x,
+            blankRight ? null : ellipsize(rightText, rightWidth), rightX,
+            dotX
         );
-
-        if (!this.row.rightText().isBlank()) {
-            graphics.text(font, ellipsize(rightText, rightWidth), rightX, y, this.row.rightColor(), false);
-        }
     }
 
     public static PriorityWidths priorityWidths(int availableWidth, int prefixWidth, int rightWidth) {
@@ -148,11 +164,33 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         return new PriorityWidths(safePrefix, Math.min(Math.max(0, rightWidth), metadataSpace));
     }
 
+    private record DrawLayout(
+        FormattedCharSequence prefix, int prefixX,
+        FormattedCharSequence text, int textX,
+        @Nullable FormattedCharSequence rightText, int rightX,
+        int dotX
+    ) {}
+
     public record PriorityWidths(int prefixWidth, int rightWidth) {}
 
     public record BazaarRow(String id, String prefix, int prefixColor, String text, String rightText, int rightColor,
                        int statusColor, List<Component> tooltip, Consumer<Boolean> clickAction,
                        boolean preservePrefix, int backgroundColor) {
+
+        public Appearance appearance() {
+            return new Appearance(
+                this.id, this.prefix, this.prefixColor, this.text, this.rightText,
+                this.rightColor, this.statusColor, this.tooltip,
+                this.preservePrefix, this.backgroundColor
+            );
+        }
+
+        public record Appearance(
+            String id, String prefix, int prefixColor, String text, String rightText,
+            int rightColor, int statusColor, List<Component> tooltip,
+            boolean preservePrefix, int backgroundColor
+        ) {}
+
         public BazaarRow(String id, String prefix, int prefixColor, String text, String rightText, int rightColor,
                     int statusColor, List<Component> tooltip, Consumer<Boolean> clickAction) {
             this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction, false, 0);
