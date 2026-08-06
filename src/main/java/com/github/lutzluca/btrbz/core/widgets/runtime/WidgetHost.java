@@ -223,6 +223,7 @@ public final class WidgetHost {
                 if (widgetKey != null) {
                     prepareKey = new PrepareKey(
                         widgetKey, session.id(),
+                        screenCanvas.x(), screenCanvas.y(),
                         screenCanvas.width(), screenCanvas.height(), options,
                         this.stateStore.frameRevision()
                     );
@@ -407,6 +408,8 @@ public final class WidgetHost {
     private record PrepareKey(
         WidgetCacheKey widgetKey,
         long sessionId,
+        int canvasX,
+        int canvasY,
         int canvasWidth,
         int canvasHeight,
         WidgetHostOptions options,

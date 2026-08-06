@@ -114,16 +114,17 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
         var itemStack = order.itemStack();
-        if (itemStack.isPresent()) {
-            if (this.item == null) {
-                this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
-            } else {
-                this.item.stack(itemStack.orElseThrow());
-                if (layoutChanged) {
-                    this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
-                }
+        if (itemStack.isEmpty()) {
+            this.item = null;
+        } else if (this.item == null) {
+            this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
+        } else {
+            this.item.stack(itemStack.orElseThrow());
+            if (layoutChanged) {
+                this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
             }
         }
+
         if (layoutChanged) {
             this.verticalSizing(Sizing.fixed(options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT));
         }
