@@ -8,15 +8,22 @@ import java.util.List;
 public final class OrderValueComponent {
     private List<UnfilledOrderInfo> unfilledOrders = List.of();
     private List<FilledOrderInfo> filledOrders = List.of();
+    private long dataRevision;
+
+    public long dataRevision() {
+        return this.dataRevision;
+    }
 
     public void sync(List<UnfilledOrderInfo> unfilledOrders, List<FilledOrderInfo> filledOrders) {
         this.unfilledOrders = List.copyOf(unfilledOrders);
         this.filledOrders = List.copyOf(filledOrders);
+        this.dataRevision++;
     }
 
     public void clear() {
         this.unfilledOrders = List.of();
         this.filledOrders = List.of();
+        this.dataRevision++;
     }
 
     public Breakdown currentBreakdown() {

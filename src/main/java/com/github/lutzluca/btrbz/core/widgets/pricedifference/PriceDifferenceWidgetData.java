@@ -13,22 +13,48 @@ public final class PriceDifferenceWidgetData {
     private static final int SELL_INSTANTLY_SLOT = 11;
     private final BazaarData market;
 
+    public record StateKey(String productName, double perItem, int quantity) {
+        static StateKey empty() {
+            return new StateKey("", 0, 0);
+        }
+    }
+
     public PriceDifferenceWidgetData(BazaarData market) {
         this.market = market;
     }
 
-    public Snapshot snapshot() {
+    public StateKey stateKey() {
         var info = ScreenInfoHelper.get().getCurrInfo();
-        var productStack = info.getItemStack(PRODUCT_SLOT);
         int quantity = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount).orElse(0);
-        if (productStack.isEmpty() || quantity <= 0) return empty();
+        if (quantity <= 0) {
+            return StateKey.empty();
+        }
+
+        var productStack = info.getItemStack(PRODUCT_SLOT);
+        if (productStack.isEmpty()) {
+            return StateKey.empty();
+        }
+
         var stack = productStack.orElseThrow();
-        var product = this.market.resolveProduct(stack);
-        var spread = this.market.productSpread(product);
-        if (spread.isEmpty()) return empty();
-        return new Snapshot(
-            stack.getHoverName().getString(), Optional.of(stack), spread.get(), quantity
-        );
+        var spread = this.market.productSpread(this.market.resolveProduct(stack));
+        if (spread.isEmpty()) {
+            return StateKey.empty();
+        }
+
+        return new StateKey(stack.getHoverName().getString(), spread.get(), quantity);
+    }
+
+    public Snapshot snapshot() {
+        return this.snapshotFor(this.stateKey());
+    }
+
+    public Snapshot snapshotFor(StateKey key) {
+        if (key.quantity() <= 0) {
+            return empty();
+        }
+        return ScreenInfoHelper.get().getCurrInfo().getItemStack(PRODUCT_SLOT)
+            .map(stack -> new Snapshot(key.productName(), Optional.of(stack), key.perItem(), key.quantity()))
+            .orElseGet(PriceDifferenceWidgetData::empty);
     }
 
     public static Snapshot preview() {

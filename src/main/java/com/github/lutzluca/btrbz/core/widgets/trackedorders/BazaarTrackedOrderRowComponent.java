@@ -18,6 +18,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -46,6 +47,23 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private boolean interactive;
     private Consumer<TrackedOrdersAction> actions;
 
+    private @Nullable BazaarWidgetViewData.Order lastOrder;
+    private @Nullable TrackedOrdersWidgetConfig.Snapshot lastOptions;
+    private int lastIndex = -1;
+    private boolean lastInteractive;
+    private boolean initialized;
+
+    private @Nullable DrawLayout drawLayout;
+    private int drawLayoutWidth = -1;
+
+    private record DrawLayout(
+        Component side, int sideX,
+        Component status, int statusX,
+        FormattedCharSequence productText,
+        @Nullable FormattedCharSequence identityText,
+        @Nullable Component marketText, int marketX
+    ) {}
+
     BazaarTrackedOrderRowComponent(
         BazaarTrackedOrderListComponent list,
         BazaarWidgetViewData.Order order,
@@ -71,29 +89,54 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         boolean interactive,
         Consumer<TrackedOrdersAction> actions
     ) {
+        this.actions = actions;
         this.order = order;
         this.options = options;
+
+        var optionsSnapshot = TrackedOrdersWidgetConfig.Snapshot.of(options);
+        if (this.initialized
+            && order == this.lastOrder
+            && optionsSnapshot.equals(this.lastOptions)
+            && index == this.lastIndex
+            && interactive == this.lastInteractive) {
+            return;
+        }
+
+        this.drawLayout = null;
+
+        boolean layoutChanged = this.lastOptions == null || this.lastOptions.layout() != optionsSnapshot.layout();
+
         this.productName = order.formattedItemName(false);
         this.index = index;
         this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
-        var itemStack = order.itemStack();
-        this.actions = actions;
+
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
-        if (itemStack.isPresent()) {
-            if (this.item == null) {
-                this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
-            } else {
-                this.item.stack(itemStack.orElseThrow());
+        var itemStack = order.itemStack();
+        if (itemStack.isEmpty()) {
+            this.item = null;
+        } else if (this.item == null) {
+            this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
+        } else {
+            this.item.stack(itemStack.orElseThrow());
+            if (layoutChanged) {
                 this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
             }
         }
-        this.verticalSizing(Sizing.fixed(
-            options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
-        ));
+
+        if (layoutChanged) {
+            this.verticalSizing(Sizing.fixed(options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT));
+        }
+
         this.tooltip(interactive ? WidgetTooltips.wrapped(tooltip) : List.of());
         this.updateLayout();
+
+        this.initialized = true;
+        this.lastOrder = order;
+        this.lastOptions = optionsSnapshot;
+        this.lastIndex = index;
+        this.lastInteractive = interactive;
     }
 
     @Override
@@ -183,45 +226,100 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     private void drawStandard(OwoUIGraphics graphics) {
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+            this.drawLayout = this.computeStandardLayout();
+            this.drawLayoutWidth = this.width;
+        }
+        var layout = this.drawLayout;
         var font = Minecraft.getInstance().font;
+
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.item != null) x += STANDARD_ICON_SIZE + TEXT_GAP;
-        int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
-        int sideX = right - font.width(side);
-        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
-        int statusX = sideX - TEXT_GAP - font.width(status);
-        graphics.text(font, ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x)),
-            x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
-        graphics.text(font, status, statusX, this.y + 1, this.order.status().color(), false);
-        graphics.text(font, side, sideX, this.y + 1, this.order.side().accentColor(), false);
+        if (this.item != null) {
+            x += STANDARD_ICON_SIZE + TEXT_GAP;
+        }
+
+        graphics.text(font, layout.productText(), x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
+        graphics.text(font, layout.status(), this.x + layout.statusX(), this.y + 1,
+            this.order.status().color(), false);
+        graphics.text(font, layout.side(), this.x + layout.sideX(), this.y + 1,
+            this.order.side().accentColor(), false);
 
         int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
-        String identity = BazaarOrderText.orderIdentity(this.order);
-        String marketText = this.firstFittingMarketText(Math.max(0,
-            right - x - font.width(identity) - TEXT_GAP));
-        int marketX = marketText.isBlank() ? right : right - font.width(marketText);
-        graphics.text(font, ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x)),
-            x, secondY, BazaarStyles.SECONDARY_TEXT, false);
-        if (!marketText.isBlank()) {
-            graphics.text(font, Component.literal(marketText), marketX, secondY, BazaarStyles.SECONDARY_TEXT, false);
+        if (layout.identityText() != null) {
+            graphics.text(font, layout.identityText(), x, secondY, BazaarStyles.SECONDARY_TEXT, false);
+        }
+        if (layout.marketText() != null) {
+            graphics.text(font, layout.marketText(), this.x + layout.marketX(), secondY,
+                BazaarStyles.SECONDARY_TEXT, false);
         }
     }
 
-    private void drawCompact(OwoUIGraphics graphics) {
+    private DrawLayout computeStandardLayout() {
         var font = Minecraft.getInstance().font;
-        int textY = this.y + Math.max(0, (this.height - COMPACT_PROGRESS_HEIGHT - font.lineHeight) / 2);
-        int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.item != null) x += COMPACT_ICON_SIZE + TEXT_GAP;
-        int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        int x = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        if (this.item != null) {
+            x += STANDARD_ICON_SIZE + TEXT_GAP;
+        }
+        int right = this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
         var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
         int sideX = right - font.width(side);
         var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
         int statusX = sideX - TEXT_GAP - font.width(status);
-        graphics.text(font, ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x)),
-            x, textY, BazaarStyles.PRIMARY_TEXT, false);
-        graphics.text(font, status, statusX, textY, this.order.status().color(), false);
-        graphics.text(font, side, sideX, textY, this.order.side().accentColor(), false);
+        var productText = ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x));
+
+        String identity = BazaarOrderText.orderIdentity(this.order);
+        String market = this.firstFittingMarketText(
+            Math.max(0, right - x - font.width(identity) - TEXT_GAP)
+        );
+        int marketX = market.isBlank() ? right : right - font.width(market);
+        var identityText = ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x));
+
+        return new DrawLayout(
+            side, sideX, status, statusX, productText,
+            identityText,
+            market.isBlank() ? null : Component.literal(market),
+            marketX
+        );
+    }
+
+
+    private void drawCompact(OwoUIGraphics graphics) {
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+            this.drawLayout = this.computeCompactLayout();
+            this.drawLayoutWidth = this.width;
+        }
+        var layout = this.drawLayout;
+        var font = Minecraft.getInstance().font;
+
+        int textY = this.y + Math.max(0, (this.height - COMPACT_PROGRESS_HEIGHT - font.lineHeight) / 2);
+        int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        if (this.item != null) {
+            x += COMPACT_ICON_SIZE + TEXT_GAP;
+        }
+
+        graphics.text(font, layout.productText(), x, textY, BazaarStyles.PRIMARY_TEXT, false);
+        graphics.text(font, layout.status(), this.x + layout.statusX(), textY,
+            this.order.status().color(), false);
+        graphics.text(font, layout.side(), this.x + layout.sideX(), textY,
+            this.order.side().accentColor(), false);
+    }
+
+    private DrawLayout computeCompactLayout() {
+        var font = Minecraft.getInstance().font;
+        int x = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+        if (this.item != null) {
+            x += COMPACT_ICON_SIZE + TEXT_GAP;
+        }
+        int right = this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
+        var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
+        int sideX = right - font.width(side);
+        var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
+        int statusX = sideX - TEXT_GAP - font.width(status);
+        var productText = ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x));
+
+        return new DrawLayout(side, sideX, status, statusX, productText, null, null, 0);
     }
 
     private String firstFittingMarketText(int availableWidth) {

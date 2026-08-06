@@ -28,6 +28,7 @@ public final class BookmarkComponent {
     private final TrackedOrderManager trackedOrders;
     private final Set<String> buyProducts = new HashSet<>();
     private final Set<String> sellProducts = new HashSet<>();
+    private long dataRevision;
 
     public BookmarkComponent(
         BazaarData bazaarData,
@@ -75,14 +76,19 @@ public final class BookmarkComponent {
 
     public boolean remove(String productId) {
         boolean changed = items().removeIf(item -> item.product().productId().equals(productId));
-        if (changed) ConfigManager.save();
+        if (changed) {
+            this.dataRevision++;
+            ConfigManager.save();
+        }
         return changed;
     }
 
     /** Uses a drop-boundary insertion index in {@code 0..size}. */
     public boolean reorder(String productId, int insertionIndex) {
         var items = items();
-        if (insertionIndex < 0 || insertionIndex > items.size()) return false;
+        if (insertionIndex < 0 || insertionIndex > items.size()) {
+            return false;
+        }
         int source = -1;
         for (int i = 0; i < items.size(); i++) {
             if (items.get(i).product().productId().equals(productId)) {
@@ -90,22 +96,28 @@ public final class BookmarkComponent {
                 break;
             }
         }
-        if (source < 0) return false;
+        if (source < 0){
+            return false;
+        }
         var item = items.remove(source);
         int target = insertionIndex > source ? insertionIndex - 1 : insertionIndex;
         items.add(Math.min(target, items.size()), item);
+        this.dataRevision++;
         ConfigManager.save();
         return true;
     }
 
     private boolean toggle(ItemStack stack) {
         var product = this.productInfoProvider.getOpenedProduct();
-        if (product == null) return false;
+        if (product == null) {
+            return false;
+        }
         if (this.contains(product.productId())) {
             this.remove(product.productId());
             return false;
         }
         items().add(new BookmarkedItem(product, stack.copy()));
+        this.dataRevision++;
         ConfigManager.save();
         return true;
     }
@@ -121,7 +133,10 @@ public final class BookmarkComponent {
                 changed = true;
             }
         }
-        if (changed) ConfigManager.save();
+        if (changed) {
+            this.dataRevision++;
+            ConfigManager.save();
+        }
     }
 
     private void rebuildOrderCache() {
@@ -133,10 +148,15 @@ public final class BookmarkComponent {
                 case Sell -> this.sellProducts.add(id);
             }
         }));
+        this.dataRevision++;
     }
 
     private static List<BookmarkedItem> items() {
         return ConfigManager.get().widgets.bookmarks.items;
+    }
+
+    public long dataRevision() {
+        return this.dataRevision;
     }
 
     public record Snapshot(

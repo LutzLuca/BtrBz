@@ -47,6 +47,7 @@ public class TrackedOrderManager {
     private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
     private final SelfUndercutDetector selfUndercutDetector = new SelfUndercutDetector();
     private long displayRevision;
+    private long dataRevision;
     private int filledOrderCount;
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
@@ -82,6 +83,7 @@ public class TrackedOrderManager {
 
         var oldSelfUndercutKey = TrackedOrderGrouping.SelfUndercutMatchKey.from(order);
         order.applyProduct(mergedProduct);
+        this.dataRevision++;
 
         if (oldKey.equals(newKey)) {
             log.debug(
@@ -150,7 +152,11 @@ public class TrackedOrderManager {
                 case UnfilledOrderInfo unfilled -> unfilledOrders.add(unfilled);
             }
         }
-        this.filledOrderCount = filledOrders.size();
+
+        if (this.filledOrderCount != filledOrders.size()) {
+            this.filledOrderCount = filledOrders.size();
+            this.dataRevision++;
+        }
 
         var unfilledCopy = new ArrayList<>(unfilledOrders);
 
@@ -161,8 +167,13 @@ public class TrackedOrderManager {
                 info -> {
                     unfilledCopy.remove(info);
                     this.updateTrackedProduct(tracked, info.product());
-                    tracked.slot = info.slotIdx();
-                    tracked.fillAmountSnapshot = info.filledAmountSnapshot();
+                    int slot = info.slotIdx();
+                    int fill = info.filledAmountSnapshot();
+                    if (tracked.slot != slot || tracked.fillAmountSnapshot != fill) {
+                        this.dataRevision++;
+                        tracked.slot = slot;
+                        tracked.fillAmountSnapshot = fill;
+                    }
                 }, () -> toRemove.add(tracked)
             );
         }
@@ -187,6 +198,7 @@ public class TrackedOrderManager {
         if (this.trackedOrders.remove(order)) {
             this.displayOrders.remove(order);
             this.displayRevision++;
+            this.dataRevision++;
             this.selfUndercutDetector.removeIfLastOrder(order, this.trackedOrders);
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
@@ -198,6 +210,9 @@ public class TrackedOrderManager {
             .toList();
 
         statusUpdates.forEach(update -> update.order().status = update.curr());
+        if (!statusUpdates.isEmpty()) {
+            this.dataRevision++;
+        }
 
         var notificationUpdates = statusUpdates.stream()
             .filter(update -> !update.prev().sameVariant(update.curr()))
@@ -305,6 +320,7 @@ public class TrackedOrderManager {
         this.displayOrders.clear();
         this.selfUndercutDetector.clear();
         this.displayRevision++;
+        this.dataRevision++;
         this.filledOrderCount = 0;
 
         log.info("Reset tracked orders (removed {})", removedSize);
@@ -326,6 +342,10 @@ public class TrackedOrderManager {
 
     public long displayRevision() {
         return this.displayRevision;
+    }
+
+    public long dataRevision() {
+        return this.dataRevision;
     }
 
     public int filledOrderCount() {
@@ -350,6 +370,7 @@ public class TrackedOrderManager {
         insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
         this.displayOrders.add(insertionIndex, order);
         this.displayRevision++;
+        this.dataRevision++;
 
         return true;
     }
@@ -358,6 +379,7 @@ public class TrackedOrderManager {
         this.trackedOrders.add(order);
         this.displayOrders.add(order);
         this.displayRevision++;
+        this.dataRevision++;
         this.onOrderAddedListeners.forEach(listener -> listener.accept(order));
     }
 
@@ -391,6 +413,7 @@ public class TrackedOrderManager {
 
     public void handleOrderFilled(OrderFilled info) {
         this.filledOrderCount++;
+        this.dataRevision++;
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
         // noinspection SimplifyStreamApiCallChains

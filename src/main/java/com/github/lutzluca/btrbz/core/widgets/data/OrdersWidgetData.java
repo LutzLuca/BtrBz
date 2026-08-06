@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -27,12 +28,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 /** Shared defensive order snapshots used by the HUD and tracked-orders widgets. */
 public final class OrdersWidgetData {
     private final BazaarData market;
     private final TrackedOrderManager trackedOrders;
     private final OrderTooltipProvider tooltipProvider;
+
+    private @Nullable SnapshotKey cachedKey;
+    private @Nullable BazaarWidgetViewData.OrdersData cachedData;
+
 
     public OrdersWidgetData(
         BazaarData market,
@@ -44,7 +50,33 @@ public final class OrdersWidgetData {
         this.tooltipProvider = tooltipProvider;
     }
 
+    public SnapshotKey snapshotKey() {
+        var screens = ScreenInfoHelper.get();
+        return new SnapshotKey(
+            this.trackedOrders.dataRevision(),
+            this.market.marketRevision(),
+            this.market.indexRevision(),
+            screens.screenTransitionVersion(),
+            screens.inventoryVersion(),
+            ConfigManager.get().orderListTooltip.enabled
+        );
+    }
+
     public BazaarWidgetViewData.OrdersData snapshot() {
+        var key = this.snapshotKey();
+
+        var cached = this.cachedData;
+        if (cached != null && key.equals(this.cachedKey)) {
+            return cached;
+        }
+
+        var computed = this.computeSnapshot();
+        this.cachedKey = key;
+        this.cachedData = computed;
+        return computed;
+    }
+
+     BazaarWidgetViewData.OrdersData computeSnapshot() {
         var snapshots = this.trackedOrders.currentOrders();
         if (snapshots.isEmpty()) {
             return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());
@@ -184,4 +216,13 @@ public final class OrdersWidgetData {
         if (item == Items.EMERALD) return component.withStyle(ChatFormatting.GREEN);
         return component.withStyle(ChatFormatting.GRAY);
     }
+
+    public record SnapshotKey(
+        long orders,
+        long market,
+        long index,
+        long screen,
+        long inventory,
+        boolean tooltipsEnabled
+    ) {}
 }

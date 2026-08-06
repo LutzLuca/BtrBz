@@ -1,13 +1,18 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import net.minecraft.resources.Identifier;
+
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 public final class DailyLimitWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_limit"));
@@ -22,10 +27,30 @@ public final class DailyLimitWidgetDefinition {
                 config -> config.frame, DailyLimitWidgetConfig::resetPreferences)
             .supports(session -> session.inAnyBazaarMenu(BazaarMenuType.Main, BazaarMenuType.ItemGroup))
             .runtimeData(_ -> data.snapshot())
+            .cacheKey(_ -> {
+                var config = ConfigManager.get().widgets.orderLimit;
+                return new CacheKey(
+                    LocalDate.now(ZoneOffset.UTC).toEpochDay(),
+                    config.usedToday,
+                    config.dailyLimit,
+                    config.lastResetEpochDay,
+                    config.numberStyle
+                );
+            })
             .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(DailyLimitWidgetView::new)
             .settingsPanel(DailyLimitWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(MINIMUM_CONTENT_WIDTH), 30)
             .build();
     }
+
+    private record CacheKey(
+        long today,
+        double usedToday,
+        double dailyLimit,
+        long lastResetEpochDay,
+        NumberStyle numberStyle
+    ) implements WidgetCacheKey {}
+
+
 }

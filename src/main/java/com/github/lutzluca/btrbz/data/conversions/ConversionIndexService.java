@@ -132,6 +132,10 @@ public final class ConversionIndexService {
         return this.currentIndex;
     }
 
+    public long indexRevision() {
+        return this.indexRevision;
+    }
+
     public Optional<IndexedProduct> productById(String productId) {
         if (productId == null || productId.isBlank()) {
             return Optional.empty();

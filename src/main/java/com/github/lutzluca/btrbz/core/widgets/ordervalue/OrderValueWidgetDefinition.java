@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -21,10 +22,19 @@ public final class OrderValueWidgetDefinition {
                 config -> config.frame, OrderValueWidgetConfig::resetPreferences)
             .supports(session -> session.inBazaarMenu(BazaarMenuType.Orders))
             .runtimeData(_ -> data.snapshot())
+            .cacheKey(_ -> new CacheKey(
+                component.dataRevision(),
+                OrderValueWidgetConfig.Snapshot.of(ConfigManager.get().widgets.orderValue)
+            ))
             .preview(() -> new WidgetPreview<>(OrderValueWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Orders), "default"))
             .viewFactory(OrderValueWidgetView::new)
             .settingsPanel(OrderValueWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(90), 32)
             .build();
     }
+
+    private record CacheKey(
+        long data,
+        OrderValueWidgetConfig.Snapshot config
+    ) implements WidgetCacheKey {}
 }

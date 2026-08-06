@@ -12,10 +12,12 @@ import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
+
 import java.util.function.Consumer;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
+import static net.minecraft.network.chat.Component.literal;
 
 final class TrackedOrdersWidgetView implements
     WidgetView<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>,
@@ -61,7 +63,7 @@ final class TrackedOrdersWidgetView implements
     ) {
         var sorted = TrackedOrdersWidget.sortedOrders(data.orders(), config.sort);
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
-        this.status.text(net.minecraft.network.chat.Component.literal(
+        this.status.text(literal(
             TrackedOrdersWidget.headerStatus(data, sorted.size())
         ));
         this.list.update(sorted, config, true, BazaarWidgetViewData.Order::tooltipLines, actions);
