@@ -34,7 +34,8 @@ public final class OrderPresetsComponent {
     private boolean inTransaction;
     private static final long CLIPBOARD_POLL_MILLIS = 250;
     private String cachedClipboard = "";
-    private long clipboardReadAt = Long.MIN_VALUE;
+    private long clipboardReadAt;
+    private boolean clipboardRead;
 
 
     public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
@@ -227,9 +228,10 @@ public final class OrderPresetsComponent {
 
     private String clipboard() {
         long now = System.currentTimeMillis();
-        if (now - this.clipboardReadAt >= CLIPBOARD_POLL_MILLIS) {
+        if (!this.clipboardRead || now - this.clipboardReadAt >= CLIPBOARD_POLL_MILLIS) {
             this.cachedClipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
             this.clipboardReadAt = now;
+            this.clipboardRead = true;
         }
         return this.cachedClipboard;
     }
