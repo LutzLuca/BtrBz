@@ -223,7 +223,8 @@ public final class WidgetHost {
                 if (widgetKey != null) {
                     prepareKey = new PrepareKey(
                         widgetKey, session.id(),
-                        screenCanvas.width(), screenCanvas.height(), options
+                        screenCanvas.width(), screenCanvas.height(), options,
+                        this.stateStore.frameRevision()
                     );
                     var cached = this.prepareCache.get(definition.getId());
                     if (cached != null && prepareKey.equals(cached.key())) {
@@ -408,7 +409,8 @@ public final class WidgetHost {
         long sessionId,
         int canvasWidth,
         int canvasHeight,
-        WidgetHostOptions options
+        WidgetHostOptions options,
+        long frameRevision
     ) {}
     private record PreparedWidget(
         MountedWidget mounted,
