@@ -47,7 +47,8 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         var sessionKey = new SessionKey(
             screen,
             helper.screenTransitionVersion(),
-            helper.inventoryVersion()
+            helper.inventoryVersion(),
+            this.trackedOrders.displayRevision()
         );
         var cached = this.cachedSession;
         if (cached != null && sessionKey.equals(this.cachedKey)) {
@@ -138,5 +139,5 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         Optional<OrderType> side
     ) {}
 
-    private record SessionKey(@Nullable Screen screen, long transition, long inventory) {}
+    private record SessionKey(@Nullable Screen screen, long transition, long inventory, long trackedRevision) {}
 }
