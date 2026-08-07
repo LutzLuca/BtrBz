@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import net.minecraft.resources.Identifier;
@@ -34,7 +35,7 @@ public final class OrderValueWidgetDefinition {
             .build();
     }
 
-    public static boolean supportsSession(com.github.lutzluca.btrbz.core.widgets.session.WidgetSession session) {
+    public static boolean supportsSession(WidgetSession session) {
         return session.inBazaarMenu(BazaarMenuType.Orders);
     }
 }

@@ -126,7 +126,7 @@ public final class WidgetRuntime {
         return new WidgetManagementContext(background, previews, rendered);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"rawtypes"})
     private static WidgetPreview<?> capture(WidgetDefinition definition, WidgetSession session) {
         return definition.captureRuntimePreview(session);
     }

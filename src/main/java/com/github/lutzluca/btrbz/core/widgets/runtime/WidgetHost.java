@@ -348,14 +348,14 @@ public final class WidgetHost {
         ) : null;
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private WidgetPreview preview(WidgetDefinition definition) {
         return (WidgetPreview) WidgetPreviewResolver.resolve(
             definition.getId(), this.capturedPreviews, definition.getPreview()
         );
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"rawtypes"})
     private MountedWidget mount(WidgetDefinition definition) {
         WidgetView view = (WidgetView) definition.getViewFactory().get();
         if (this.scrollOffsets != null && view instanceof ScrollOffsetView scrollView) {

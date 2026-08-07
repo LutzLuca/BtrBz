@@ -15,7 +15,7 @@ class ExternalTrackersTest {
     @DisplayName("UTC day")
     class UtcDay {
         @Test
-        @DisplayName("captures its initial day without invalidation and changes only on rollover")
+        @DisplayName("captures its initial day and refreshes it when read after rollover")
         void rolloverOnly() {
             var day = new AtomicLong(10);
             var tracker = new UtcDayTracker(day::get);
@@ -25,8 +25,9 @@ class ExternalTrackersTest {
             assertEquals(0, tracker.changes().revision());
             assertFalse(tracker.poll());
             day.set(11);
-            assertTrue(tracker.poll());
+            assertEquals(11, tracker.currentDay());
             assertEquals(1, tracker.changes().revision());
+            assertFalse(tracker.poll());
         }
     }
 

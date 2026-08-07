@@ -10,12 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 /** Initialized, client-thread UTC day owner. */
 @Slf4j
 public final class UtcDayTracker implements AutoCloseable {
+    private static final int POLL_TICKS = 20;
     private final LongSupplier daySupplier;
     private final CacheToken changes = CacheToken.named("external.utc-day");
     private long currentDay;
     private boolean initialized;
     private boolean failureLogged;
-    private ClientTickDispatcher.Registration registration;
+    private ClientTickDispatcher.TaskHandle taskHandle;
 
     public UtcDayTracker() {
         this(() -> LocalDate.now(ZoneOffset.UTC).toEpochDay());
@@ -33,8 +34,10 @@ public final class UtcDayTracker implements AutoCloseable {
 
     public void start() {
         this.requireInitialized();
-        if (this.registration == null) {
-            this.registration = ClientTickDispatcher.registerCancellable(_ -> this.poll());
+        if (this.taskHandle == null) {
+            this.taskHandle = ClientTickDispatcher.scheduleEvery(
+                POLL_TICKS, _ -> this.poll()
+            );
         }
     }
 
@@ -56,6 +59,7 @@ public final class UtcDayTracker implements AutoCloseable {
 
     public long currentDay() {
         this.requireInitialized();
+        this.poll();
         return this.currentDay;
     }
 
@@ -65,8 +69,8 @@ public final class UtcDayTracker implements AutoCloseable {
 
     @Override
     public void close() {
-        if (this.registration != null) this.registration.close();
-        this.registration = null;
+        if (this.taskHandle != null) this.taskHandle.close();
+        this.taskHandle = null;
     }
 
     private void requireInitialized() {

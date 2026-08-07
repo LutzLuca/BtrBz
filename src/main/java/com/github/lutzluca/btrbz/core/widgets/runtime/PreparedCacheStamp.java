@@ -70,9 +70,4 @@ record PreparedCacheStamp(
             .forEach(causes::add);
         return List.copyOf(causes);
     }
-
-    @Override
-    public long[] dependencyRevisions() {
-        return this.dependencyRevisions;
-    }
 }

@@ -16,7 +16,7 @@ public final class PurseTracker implements AutoCloseable {
     private boolean initialized;
     private boolean failureLogged;
     private int ticks;
-    private ClientTickDispatcher.Registration registration;
+    private ClientTickDispatcher.TaskHandle taskHandle;
 
     public PurseTracker(Supplier<Optional<Double>> valueSupplier) {
         this.valueSupplier = Objects.requireNonNull(valueSupplier, "valueSupplier");
@@ -30,8 +30,8 @@ public final class PurseTracker implements AutoCloseable {
 
     public void start() {
         this.requireInitialized();
-        if (this.registration == null) {
-            this.registration = ClientTickDispatcher.registerCancellable(_ -> {
+        if (this.taskHandle == null) {
+            this.taskHandle = ClientTickDispatcher.onEachTick(_ -> {
                 if (++this.ticks >= POLL_TICKS) {
                     this.ticks = 0;
                     this.poll();
@@ -67,8 +67,8 @@ public final class PurseTracker implements AutoCloseable {
 
     @Override
     public void close() {
-        if (this.registration != null) this.registration.close();
-        this.registration = null;
+        if (this.taskHandle != null) this.taskHandle.close();
+        this.taskHandle = null;
     }
 
     private void readInitial() {

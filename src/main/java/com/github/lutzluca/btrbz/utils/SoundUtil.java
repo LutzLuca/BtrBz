@@ -44,7 +44,7 @@ public class SoundUtil {
 
                     int delay = i * 3;
                     log.trace("Scheduling repeat #{} for {} with delay {} ticks", i, sound.location(), delay);
-                    ClientTickDispatcher.submit(mc -> SoundUtil.play(sound, volume), delay);
+                    ClientTickDispatcher.scheduleAfter(mc -> SoundUtil.play(sound, volume), delay);
                 }
 
                 return now;
@@ -72,7 +72,7 @@ public class SoundUtil {
         if (client.player == null) {
             log.debug("Player is null, deferring sound {} ({} retries left)", sound.location(), attemptsLeft);
             if (attemptsLeft > 0) {
-                ClientTickDispatcher.submit(mc -> SoundUtil.play(sound, volume, attemptsLeft - 1), 20);
+                ClientTickDispatcher.scheduleAfter(mc -> SoundUtil.play(sound, volume, attemptsLeft - 1), 20);
             }
             return;
         }

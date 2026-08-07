@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -44,21 +45,29 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         TrackedOrderManager trackedOrders,
         @Nullable OrderTooltipProvider tooltipProvider
     ) {
+        this(
+            market, trackedOrders, tooltipProvider,
+            ScreenInfoHelper.get().screenTransitions(), ScreenInfoHelper.get().inventoryChanges()
+        );
+    }
+
+    OrdersWidgetData(
+        BazaarData market,
+        TrackedOrderManager trackedOrders,
+        @Nullable OrderTooltipProvider tooltipProvider,
+        CacheToken screenTransitions,
+        CacheToken inventoryChanges
+    ) {
         this.market = market;
         this.trackedOrders = trackedOrders;
         this.tooltipProvider = tooltipProvider;
-        if (tooltipProvider == null) {
-            this.dependencies = CacheDependencies.of(
-                trackedOrders.dataChanges(), market.marketChanges(), market.indexChanges()
-            );
-        } else {
-            var screens = ScreenInfoHelper.get();
-            this.dependencies = CacheDependencies.of(
-                trackedOrders.dataChanges(), market.marketChanges(), market.indexChanges(),
-                screens.screenTransitions(), screens.inventoryChanges(),
-                tooltipProvider.listSettingsChanges()
-            );
-        }
+        var baseDependencies = CacheDependencies.of(
+            trackedOrders.dataChanges(), market.marketChanges(), market.indexChanges(),
+            screenTransitions, inventoryChanges
+        );
+        this.dependencies = tooltipProvider == null
+            ? baseDependencies
+            : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges()));
     }
 
     @Override

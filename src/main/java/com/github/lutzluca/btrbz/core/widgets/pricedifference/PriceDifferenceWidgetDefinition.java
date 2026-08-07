@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -26,7 +27,7 @@ public final class PriceDifferenceWidgetDefinition {
         return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID, "Price Difference")
             .config(config)
             .supports(PriceDifferenceWidgetDefinition::supportsSession)
-            .visibility((data, _, _) -> data.quantity() > 0)
+            .visibility((data, _, _) -> PriceDifferenceWidgetDefinition.isVisible(data))
             .data(provider)
             .cachePrepared()
             .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
@@ -36,7 +37,7 @@ public final class PriceDifferenceWidgetDefinition {
             .build();
     }
 
-    public static boolean supportsSession(com.github.lutzluca.btrbz.core.widgets.session.WidgetSession session) {
+    public static boolean supportsSession(WidgetSession session) {
         return session.inBazaarMenu(BazaarMenuType.Item);
     }
 

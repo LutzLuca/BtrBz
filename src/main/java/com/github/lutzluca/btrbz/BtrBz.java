@@ -193,9 +193,7 @@ public class BtrBz implements ClientModInitializer {
         widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(OrderBookPriceWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(BookmarksWidgetDefinition.create(bookmarks));
-        widgetRegistry.register(OrderPresetsWidgetDefinition.create(
-            orderPresets, BAZAAR_DATA, productInfoProvider
-        ));
+        widgetRegistry.register(OrderPresetsWidgetDefinition.create(orderPresets));
         widgetRegistry.register(DailyLimitWidgetDefinition.create(dailyLimit));
         widgetRegistry.register(PriceDifferenceWidgetDefinition.create(BAZAAR_DATA));
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, new WidgetStateStore(), sessionProvider);

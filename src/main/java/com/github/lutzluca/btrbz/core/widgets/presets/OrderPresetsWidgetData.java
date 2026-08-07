@@ -1,12 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
-import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.data.BazaarData;
 import java.util.List;
 import java.util.Objects;
 
@@ -16,15 +14,11 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
 
     public OrderPresetsWidgetData(
         OrderPresetsComponent component,
-        BazaarData market,
-        ProductInfoProvider productInfoProvider,
         WidgetConfigHandle<OrderPresetsWidgetConfig> configHandle
     ) {
         this.component = component;
-        this.dependencies = CacheDependencies.of(
-            component.stateChanges(), component.clipboardTracker().changes(),
-            component.purseTracker().changes(), productInfoProvider.changes(),
-            market.marketChanges(), configHandle.contentChanges()
+        this.dependencies = component.dataDependencies().and(
+            CacheDependencies.of(configHandle.contentChanges())
         );
     }
 

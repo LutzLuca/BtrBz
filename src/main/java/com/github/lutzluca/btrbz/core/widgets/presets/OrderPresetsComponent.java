@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
@@ -97,11 +98,15 @@ public final class OrderPresetsComponent {
         return presetsFor(this.currentState());
     }
 
-    public CacheToken stateChanges() { return this.stateChanges; }
-
-    public ClipboardTracker clipboardTracker() { return this.clipboardTracker; }
-
-    public PurseTracker purseTracker() { return this.purseTracker; }
+    public CacheDependencies dataDependencies() {
+        return CacheDependencies.of(
+            this.stateChanges,
+            this.clipboardTracker.changes(),
+            this.purseTracker.changes(),
+            this.productInfoProvider.changes(),
+            this.bazaarData.marketChanges()
+        );
+    }
 
     private static List<PresetState> presetsFor(State state) {
         var price = Double.isNaN(state.pricePerUnit())
