@@ -14,7 +14,7 @@ import net.minecraft.client.Minecraft;
 @Slf4j
 public final class ClientTickDispatcher {
 
-    private static final List<ClientTickEvents.EndTick> LISTENERS = new CopyOnWriteArrayList<>();
+    private static final List<TickRegistration> LISTENERS = new CopyOnWriteArrayList<>();
     private static final Queue<ScheduledTask> TASKS = new ConcurrentLinkedDeque<>();
 
     static {
@@ -23,8 +23,8 @@ public final class ClientTickDispatcher {
 
 
     private static void onEndTick(Minecraft client) {
-        LISTENERS.forEach(listener -> Try
-            .run(() -> listener.onEndTick(client))
+        LISTENERS.forEach(registration -> Try
+            .run(() -> registration.listener.onEndTick(client))
             .onFailure(err -> log.warn("Exception in client end tick listener", err)));
 
         var it = TASKS.iterator();
@@ -54,13 +54,10 @@ public final class ClientTickDispatcher {
             .onFailure(err -> log.warn("Exception in client tick task", err));
     }
 
-    public static void register(ClientTickEvents.EndTick listener) {
-        LISTENERS.add(listener);
-    }
-
     public static TaskHandle onEachTick(ClientTickEvents.EndTick listener) {
-        register(listener);
-        return () -> unregister(listener);
+        var registration = new TickRegistration(listener);
+        LISTENERS.add(registration);
+        return () -> LISTENERS.remove(registration);
     }
 
     public static TaskHandle scheduleEvery(
@@ -76,10 +73,6 @@ public final class ClientTickDispatcher {
         return () -> TASKS.remove(scheduled);
     }
 
-    public static void unregister(ClientTickEvents.EndTick listener) {
-        LISTENERS.remove(listener);
-    }
-
     public static void scheduleAfter(Consumer<Minecraft> task, int ticks) {
         if (ticks <= 0) {
             throw new IllegalArgumentException("ticks must be positive");
@@ -89,6 +82,11 @@ public final class ClientTickDispatcher {
     }
 
     private sealed interface ScheduledTask permits OneShotTask, IntervalTask {}
+
+    @AllArgsConstructor
+    private static final class TickRegistration {
+        private final ClientTickEvents.EndTick listener;
+    }
 
     @AllArgsConstructor
     private static final class OneShotTask implements ScheduledTask {
