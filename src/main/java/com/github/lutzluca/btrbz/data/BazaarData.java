@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -27,7 +29,7 @@ public class BazaarData {
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
     private Map<String, Product> lastProducts = Collections.emptyMap();
-    private long marketRevision;
+    private final CacheToken marketChanges = CacheToken.named("bazaar.market");
 
     public BazaarData() {
         this(new ConversionIndexService());
@@ -124,19 +126,19 @@ public class BazaarData {
         this.conversionIndexService.addConversionEventListener(listener);
     }
 
-    public long marketRevision() {
-        return this.marketRevision;
+    public CacheToken marketChanges() {
+        return this.marketChanges;
     }
 
-    public long indexRevision() {
-        return this.conversionIndexService.indexRevision();
+    public CacheToken indexChanges() {
+        return this.conversionIndexService.changes();
     }
 
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
             products == null ? Map.of() : products
         ));
-        this.marketRevision++;
+        this.marketChanges.invalidate(InvalidationReason.of("market snapshot published"));
         var snapshot = this.currentSnapshot();
 
         for (var listener : this.listeners) {

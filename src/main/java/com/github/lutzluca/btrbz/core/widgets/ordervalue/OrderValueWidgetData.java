@@ -1,32 +1,32 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
-import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 
-public final class OrderValueWidgetData {
+public final class OrderValueWidgetData implements WidgetDataSource<OrderValueWidgetData.Snapshot> {
     private final OrderValueComponent component;
-    private long cachedRevision = Long.MIN_VALUE;
-    private @Nullable Snapshot cachedSnapshot;
+    private final CacheDependencies dependencies;
 
     public OrderValueWidgetData(OrderValueComponent component) {
         this.component = component;
+        this.dependencies = CacheDependencies.of(component.dataChanges());
     }
 
-    public Snapshot snapshot() {
-        long revision = this.component.dataRevision();
-        var cached = this.cachedSnapshot;
-        if (cached != null && revision == this.cachedRevision) {
-            return cached;
-        }
+    @Override
+    public CacheDependencies cacheDependencies() { return this.dependencies; }
 
+    @Override
+    public boolean sessionSensitive() { return false; }
+
+    @Override
+    public Snapshot snapshot(WidgetSession session) {
         var value = this.component.currentBreakdown();
-        var computed = new Snapshot(
+        return new Snapshot(
             Math.round(value.buyLocked()), Math.round(value.buyItems()),
             Math.round(value.sellClaimable()), Math.round(value.sellPending()),
             Math.round(value.total())
         );
-        this.cachedRevision = revision;
-        this.cachedSnapshot = computed;
-        return computed;
     }
 
     public static Snapshot preview() {

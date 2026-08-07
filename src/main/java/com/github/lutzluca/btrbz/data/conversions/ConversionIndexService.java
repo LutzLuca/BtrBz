@@ -3,6 +3,8 @@ package com.github.lutzluca.btrbz.data.conversions;
 import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.time.Instant;
@@ -29,6 +31,7 @@ public final class ConversionIndexService {
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
     private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
+    private final CacheToken changes = CacheToken.named("conversion-index");
 
     private volatile ConversionIndex currentIndex;
     private volatile ConversionStatus.IndexLoadSource activeLoadSource;
@@ -132,8 +135,8 @@ public final class ConversionIndexService {
         return this.currentIndex;
     }
 
-    public long indexRevision() {
-        return this.indexRevision;
+    public CacheToken changes() {
+        return this.changes;
     }
 
     public Optional<IndexedProduct> productById(String productId) {
@@ -279,6 +282,7 @@ public final class ConversionIndexService {
             log.trace("Cleared product identity cache with {} mappings", size);
         }
         this.stackResolver.clear();
+        this.changes.invalidate(InvalidationReason.of("conversion index published"));
     }
 
     private void logIndexSummary(ConversionStatus.IndexLoadSource source, ConversionIndex index) {

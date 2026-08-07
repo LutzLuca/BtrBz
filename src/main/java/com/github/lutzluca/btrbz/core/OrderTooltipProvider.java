@@ -4,6 +4,8 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -35,6 +37,7 @@ public class OrderTooltipProvider {
     private final BazaarData bazaarData;
     private final OrderTooltipCache listCache;
     private final OrderTooltipCache itemCache;
+    private final CacheToken listSettingsChanges = CacheToken.named("config.order-list-tooltip");
 
     private static class OrderTooltipCache {
         private final Map<@NotNull TrackedOrder, @Nullable List<Component>> cache = new HashMap<>();
@@ -110,6 +113,24 @@ public class OrderTooltipProvider {
     public void clearCache() {
         this.listCache.clear();
         this.itemCache.clear();
+    }
+
+    public CacheToken listSettingsChanges() {
+        return this.listSettingsChanges;
+    }
+
+    public void onListSettingsChanged(String reason) {
+        this.listCache.clear();
+        this.listSettingsChanges.invalidate(InvalidationReason.of(reason));
+    }
+
+    public void onItemSettingsChanged() {
+        this.itemCache.clear();
+    }
+
+    public void onQueueDisplayModeChanged() {
+        this.itemCache.clear();
+        this.onListSettingsChanged("order queue display mode changed");
     }
 
     public List<Component> buildTooltipLines(TrackedOrder order, OrderListTooltipConfig cfg) {
@@ -295,7 +316,7 @@ public class OrderTooltipProvider {
         public boolean showOnlyWhenUndercut = false;
 
         private static void invalidateCache() {
-            BtrBz.tooltipProvider().clearCache();
+            BtrBz.tooltipProvider().onListSettingsChanged("order-list tooltip setting changed");
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
@@ -395,7 +416,7 @@ public class OrderTooltipProvider {
         public boolean showEstimatedTime = false;
 
         private static void invalidateCache() {
-            BtrBz.tooltipProvider().clearCache();
+            BtrBz.tooltipProvider().onItemSettingsChanged();
         }
 
         public Option.Builder<Boolean> createEnabledOption() {

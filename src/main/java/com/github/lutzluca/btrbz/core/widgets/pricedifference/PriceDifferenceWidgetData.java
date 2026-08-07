@@ -1,6 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.pricedifference;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -8,53 +11,46 @@ import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-public final class PriceDifferenceWidgetData {
+public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDifferenceWidgetData.Snapshot> {
     private static final int PRODUCT_SLOT = 13;
     private static final int SELL_INSTANTLY_SLOT = 11;
     private final BazaarData market;
-
-    public record StateKey(String productName, double perItem, int quantity) {
-        static StateKey empty() {
-            return new StateKey("", 0, 0);
-        }
-    }
+    private final CacheDependencies dependencies;
 
     public PriceDifferenceWidgetData(BazaarData market) {
         this.market = market;
+        var screens = ScreenInfoHelper.get();
+        this.dependencies = CacheDependencies.of(
+            screens.inventoryChanges(), market.marketChanges(), market.indexChanges()
+        );
     }
 
-    public StateKey stateKey() {
+    @Override
+    public CacheDependencies cacheDependencies() { return this.dependencies; }
+
+    @Override
+    public boolean sessionSensitive() { return false; }
+
+    @Override
+    public Snapshot snapshot(WidgetSession session) {
         var info = ScreenInfoHelper.get().getCurrInfo();
         int quantity = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount).orElse(0);
         if (quantity <= 0) {
-            return StateKey.empty();
+            return empty();
         }
 
         var productStack = info.getItemStack(PRODUCT_SLOT);
         if (productStack.isEmpty()) {
-            return StateKey.empty();
+            return empty();
         }
 
         var stack = productStack.orElseThrow();
         var spread = this.market.productSpread(this.market.resolveProduct(stack));
         if (spread.isEmpty()) {
-            return StateKey.empty();
-        }
-
-        return new StateKey(stack.getHoverName().getString(), spread.get(), quantity);
-    }
-
-    public Snapshot snapshot() {
-        return this.snapshotFor(this.stateKey());
-    }
-
-    public Snapshot snapshotFor(StateKey key) {
-        if (key.quantity() <= 0) {
             return empty();
         }
-        return ScreenInfoHelper.get().getCurrInfo().getItemStack(PRODUCT_SLOT)
-            .map(stack -> new Snapshot(key.productName(), Optional.of(stack), key.perItem(), key.quantity()))
-            .orElseGet(PriceDifferenceWidgetData::empty);
+
+        return new Snapshot(stack.getHoverName().getString(), Optional.of(stack), spread.get(), quantity);
     }
 
     public static Snapshot preview() {

@@ -1,6 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
+
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Objects;
@@ -11,14 +15,15 @@ import java.util.function.Supplier;
 public final class DailyLimitComponent {
     private final Supplier<DailyLimitWidgetConfig> configSupplier;
     private final Runnable saveAction;
-    private final LongSupplier utcEpochDay;
+    private final UtcDayTracker utcDayTracker;
+    private final CacheToken dataChanges = CacheToken.named("daily-limit.data");
 
     public DailyLimitComponent() {
-        this(
-            () -> ConfigManager.get().widgets.orderLimit,
-            ConfigManager::save,
-            () -> LocalDate.now(ZoneOffset.UTC).toEpochDay()
-        );
+        this(defaultTracker());
+    }
+
+    public DailyLimitComponent(UtcDayTracker utcDayTracker) {
+        this(() -> ConfigManager.get().widgets.orderLimit, ConfigManager::save, utcDayTracker);
     }
 
     DailyLimitComponent(
@@ -26,9 +31,17 @@ public final class DailyLimitComponent {
         Runnable saveAction,
         LongSupplier utcEpochDay
     ) {
+        this(configSupplier, saveAction, initializedTracker(utcEpochDay));
+    }
+
+    DailyLimitComponent(
+        Supplier<DailyLimitWidgetConfig> configSupplier,
+        Runnable saveAction,
+        UtcDayTracker utcDayTracker
+    ) {
         this.configSupplier = Objects.requireNonNull(configSupplier, "configSupplier");
         this.saveAction = Objects.requireNonNull(saveAction, "saveAction");
-        this.utcEpochDay = Objects.requireNonNull(utcEpochDay, "utcEpochDay");
+        this.utcDayTracker = Objects.requireNonNull(utcDayTracker, "utcDayTracker");
         this.resetForCurrentUtcDay();
     }
 
@@ -36,6 +49,7 @@ public final class DailyLimitComponent {
         this.resetForCurrentUtcDay();
         if (!Double.isFinite(amount) || amount <= 0) return;
         this.config().usedToday += amount;
+        this.dataChanges.invalidate(InvalidationReason.of("daily Bazaar usage changed"));
         this.saveAction.run();
     }
 
@@ -46,14 +60,25 @@ public final class DailyLimitComponent {
     }
 
     public boolean resetForCurrentUtcDay() {
-        return this.resetForDay(this.utcEpochDay.getAsLong());
+        return this.resetForDay(this.utcDayTracker.currentDay());
     }
 
     public boolean resetForDay(long epochDay) {
         var config = this.config();
         boolean changed = resetForDay(config, epochDay);
-        if (changed) this.saveAction.run();
+        if (changed) {
+            this.dataChanges.invalidate(InvalidationReason.of("daily Bazaar usage reset"));
+            this.saveAction.run();
+        }
         return changed;
+    }
+
+    public CacheToken dataChanges() {
+        return this.dataChanges;
+    }
+
+    public UtcDayTracker utcDayTracker() {
+        return this.utcDayTracker;
     }
 
     private DailyLimitWidgetConfig config() {
@@ -68,4 +93,14 @@ public final class DailyLimitComponent {
     }
 
     public record Usage(double used, double limit, long lastResetEpochDay) {}
+
+    private static UtcDayTracker defaultTracker() {
+        return initializedTracker(() -> LocalDate.now(ZoneOffset.UTC).toEpochDay());
+    }
+
+    private static UtcDayTracker initializedTracker(LongSupplier supplier) {
+        var tracker = new UtcDayTracker(supplier);
+        tracker.initialize();
+        return tracker;
+    }
 }

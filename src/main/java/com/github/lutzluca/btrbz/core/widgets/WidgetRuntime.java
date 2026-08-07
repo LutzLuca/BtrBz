@@ -45,6 +45,10 @@ public final class WidgetRuntime {
         return this.stateStore;
     }
 
+    public void invalidateWidgetContent(WidgetId id, String reason) {
+        this.registry.find(id).orElseThrow().getConfigHandle().invalidate(reason);
+    }
+
     public WidgetHost createHudHost() {
         return this.createHost(false);
     }

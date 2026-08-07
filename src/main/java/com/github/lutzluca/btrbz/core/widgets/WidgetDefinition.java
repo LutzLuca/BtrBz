@@ -1,8 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetPreferenceReset;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.Collections;
@@ -21,14 +24,12 @@ import org.jetbrains.annotations.Nullable;
 public final class WidgetDefinition<D, C, A> {
     private final WidgetId id;
     private final String displayName;
-    private final Supplier<C> currentConfig;
-    private final Supplier<C> freshDefaults;
-    private final Function<C, WidgetFrameConfig> frameConfig;
-    private final WidgetPreferenceReset<C> resetPreferences;
+    private final WidgetConfigHandle<C> configHandle;
     private final Predicate<WidgetSession> supports;
     private final WidgetVisibility<D, C> visibility;
-    private final Function<WidgetSession, D> runtimeData;
-    private final @Nullable Function<WidgetSession, WidgetCacheKey> cacheKey;
+    private final WidgetDataSource<D> dataSource;
+    private final boolean preparedCacheEnabled;
+    private final CacheDependencies cacheDependencies;
     private final Supplier<WidgetPreview<D>> preview;
     private final Supplier<WidgetView<D, C, A>> viewFactory;
     private final Function<WidgetConfigBinding<C>, UIComponent> settingsPanel;
@@ -41,14 +42,14 @@ public final class WidgetDefinition<D, C, A> {
     private WidgetDefinition(Builder<D, C, A> builder) {
         this.id = Objects.requireNonNull(builder.id, "id");
         this.displayName = Objects.requireNonNull(builder.displayName, "displayName");
-        this.currentConfig = Objects.requireNonNull(builder.currentConfig, "currentConfig");
-        this.freshDefaults = Objects.requireNonNull(builder.freshDefaults, "freshDefaults");
-        this.frameConfig = Objects.requireNonNull(builder.frameConfig, "frameConfig");
-        this.resetPreferences = Objects.requireNonNull(builder.resetPreferences, "resetPreferences");
+        this.configHandle = Objects.requireNonNull(builder.configHandle, "configHandle");
         this.supports = Objects.requireNonNull(builder.supports, "supports");
         this.visibility = Objects.requireNonNull(builder.visibility, "visibility");
-        this.runtimeData = Objects.requireNonNull(builder.runtimeData, "runtimeData");
-        this.cacheKey = builder.cacheKey;
+        this.dataSource = Objects.requireNonNull(builder.dataSource, "dataSource");
+        this.preparedCacheEnabled = builder.preparedCacheEnabled;
+        this.cacheDependencies = this.dataSource.cacheDependencies()
+            .and(CacheDependencies.of(this.configHandle.contentChanges()))
+            .and(builder.additionalDependencies);
         this.preview = Objects.requireNonNull(builder.preview, "preview");
         this.viewFactory = Objects.requireNonNull(builder.viewFactory, "viewFactory");
         this.settingsPanel = Objects.requireNonNull(builder.settingsPanel, "settingsPanel");
@@ -65,16 +66,16 @@ public final class WidgetDefinition<D, C, A> {
         return new Builder<>(id, displayName);
     }
 
-    public C config() { return Objects.requireNonNull(this.currentConfig.get(), "current widget config"); }
-    public C defaults() { return Objects.requireNonNull(this.freshDefaults.get(), "fresh widget defaults"); }
-    public WidgetFrameConfig frame() { return this.frameConfig.apply(this.config()); }
-    public WidgetFrameConfig defaultFrame() { return this.frameConfig.apply(this.defaults()); }
+    public C config() { return this.configHandle.current(); }
+    public C defaults() { return this.configHandle.defaults(); }
+    public WidgetFrameConfig frame() { return this.configHandle.frame(); }
+    public WidgetFrameConfig defaultFrame() { return this.configHandle.defaultFrame(); }
     public boolean supports(WidgetSession session) { return this.supports.test(session); }
     public WidgetPreview<D> captureRuntimePreview(WidgetSession session) {
         if (!this.supports(session)) {
             throw new IllegalArgumentException("Widget does not support this session: " + this.id);
         }
-        var data = Objects.requireNonNull(this.runtimeData.apply(session), "runtime widget data");
+        var data = Objects.requireNonNull(this.dataSource.snapshot(session), "runtime widget data");
         return new WidgetPreview<>(data, session, this.placementProfile(session));
     }
     public boolean isVisible(WidgetPreview<D> preview) {
@@ -89,14 +90,8 @@ public final class WidgetDefinition<D, C, A> {
         return this.placementProfiles.containsKey(profile) ? profile : "default";
     }
 
-    public @Nullable WidgetCacheKey cacheKey(WidgetSession session) {
-        return this.cacheKey == null ? null : this.cacheKey.apply(session);
-    }
-
     public WidgetConfigBinding<C> binding(Runnable changed) {
-        return new WidgetConfigBinding<>(
-            this.currentConfig, this.freshDefaults, this.frameConfig, this.resetPreferences, changed
-        );
+        return new WidgetConfigBinding<>(this.configHandle, changed);
     }
 
     public UIComponent settingsPanel(Runnable changed) {
@@ -110,14 +105,12 @@ public final class WidgetDefinition<D, C, A> {
     public static final class Builder<D, C, A> {
         private final WidgetId id;
         private final String displayName;
-        private Supplier<C> currentConfig;
-        private Supplier<C> freshDefaults;
-        private Function<C, WidgetFrameConfig> frameConfig;
-        private WidgetPreferenceReset<C> resetPreferences = (current, defaults) -> {};
+        private WidgetConfigHandle<C> configHandle;
         private Predicate<WidgetSession> supports = _ -> true;
         private WidgetVisibility<D, C> visibility = (data, config, session) -> true;
-        private Function<WidgetSession, D> runtimeData;
-        private @Nullable Function<WidgetSession, WidgetCacheKey> cacheKey;
+        private WidgetDataSource<D> dataSource;
+        private boolean preparedCacheEnabled;
+        private CacheDependencies additionalDependencies = CacheDependencies.none();
         private Supplier<WidgetPreview<D>> preview;
         private Supplier<WidgetView<D, C, A>> viewFactory;
         private Function<WidgetConfigBinding<C>, UIComponent> settingsPanel = _ -> null;
@@ -133,16 +126,8 @@ public final class WidgetDefinition<D, C, A> {
             this.placementProfiles.put("default", "Default");
         }
 
-        public Builder<D, C, A> config(
-            Supplier<C> currentConfig,
-            Supplier<C> freshDefaults,
-            Function<C, WidgetFrameConfig> frameConfig,
-            WidgetPreferenceReset<C> resetPreferences
-        ) {
-            this.currentConfig = currentConfig;
-            this.freshDefaults = freshDefaults;
-            this.frameConfig = frameConfig;
-            this.resetPreferences = resetPreferences;
+        public Builder<D, C, A> config(WidgetConfigHandle<C> configHandle) {
+            this.configHandle = configHandle;
             return this;
         }
 
@@ -154,13 +139,14 @@ public final class WidgetDefinition<D, C, A> {
             this.visibility = visibility;
             return this;
         }
-        public Builder<D, C, A> runtimeData(Function<WidgetSession, D> runtimeData) {
-            this.runtimeData = runtimeData;
+        public Builder<D, C, A> data(WidgetDataSource<D> dataSource) {
+            this.dataSource = dataSource;
             return this;
         }
 
-        public Builder<D, C, A> cacheKey(Function<WidgetSession, WidgetCacheKey> cacheKey) {
-            this.cacheKey = cacheKey;
+        public Builder<D, C, A> cachePrepared(CacheToken... additionalDependencies) {
+            this.preparedCacheEnabled = true;
+            this.additionalDependencies = CacheDependencies.of(additionalDependencies);
             return this;
         }
 

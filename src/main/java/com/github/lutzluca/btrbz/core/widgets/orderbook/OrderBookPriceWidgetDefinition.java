@@ -1,10 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import net.minecraft.resources.Identifier;
@@ -12,25 +13,19 @@ import net.minecraft.resources.Identifier;
 public final class OrderBookPriceWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_book_price"));
     private OrderBookPriceWidgetDefinition() {}
+
     public static WidgetDefinition<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction> create(
-        OrderBookWidgetData provider,
+        WidgetDataSource<OrderBookWidgetData.Snapshot> provider,
         OrderBookPriceComponent embeddedWorkflow
     ) {
+        var config = new WidgetConfigHandle<>(ID,
+            () -> ConfigManager.get().widgets.orderBookPrice, OrderBookPriceWidgetConfig::new,
+            value -> value.frame, OrderBookPriceWidgetConfig::resetPreferences);
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction>builder(ID, "Order Book Price")
-            .config(() -> ConfigManager.get().widgets.orderBookPrice, OrderBookPriceWidgetConfig::new,
-                config -> config.frame, OrderBookPriceWidgetConfig::resetPreferences)
-            .supports(session -> session.inSign() && session.product().isPresent() && session.side().isPresent())
-            .runtimeData(provider::snapshot)
-            .cacheKey(session -> {
-                var config = ConfigManager.get().widgets.orderBookPrice;
-                return new CacheKey(
-                    provider.stateKey(session),
-                    config.contentWidth,
-                    config.visibleRows,
-                    config.showOrderCount,
-                    config.sideDisplay
-                );
-            })
+            .config(config)
+            .supports(OrderBookPriceWidgetDefinition::supportsSession)
+            .data(provider)
+            .cachePrepared()
             .preview(() -> {
                 var data = OrderBookWidgetData.preview();
                 return new WidgetPreview<>(data, WidgetPreviewSessions.sign(data), "default");
@@ -42,11 +37,7 @@ public final class OrderBookPriceWidgetDefinition {
             .build();
     }
 
-    private record CacheKey(
-        OrderBookWidgetData.StateKey state,
-        int contentWidth,
-        int visibleRows,
-        boolean showOrderCount,
-        OrderBookPriceWidgetConfig.EmbeddedSideDisplay sideDisplay
-    ) implements WidgetCacheKey {}
+    public static boolean supportsSession(com.github.lutzluca.btrbz.core.widgets.session.WidgetSession session) {
+        return session.inSign() && session.product().isPresent() && session.side().isPresent();
+    }
 }

@@ -1,42 +1,33 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
+import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import net.minecraft.resources.Identifier;
-
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 public final class DailyLimitWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_limit"));
     static final int MINIMUM_CONTENT_WIDTH = 60;
     private DailyLimitWidgetDefinition() {}
+
     public static WidgetDefinition<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> create(
         DailyLimitComponent component
     ) {
-        var data = new DailyLimitWidgetData(component);
+        var config = new WidgetConfigHandle<>(ID,
+            () -> ConfigManager.get().widgets.orderLimit, DailyLimitWidgetConfig::new,
+            value -> value.frame, DailyLimitWidgetConfig::resetPreferences);
+        var data = new MemoizedWidgetDataSource<>(new DailyLimitWidgetData(component, config));
         return WidgetDefinition.<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void>builder(ID, "Daily Limit")
-            .config(() -> ConfigManager.get().widgets.orderLimit, DailyLimitWidgetConfig::new,
-                config -> config.frame, DailyLimitWidgetConfig::resetPreferences)
-            .supports(session -> session.inAnyBazaarMenu(BazaarMenuType.Main, BazaarMenuType.ItemGroup))
-            .runtimeData(_ -> data.snapshot())
-            .cacheKey(_ -> {
-                var config = ConfigManager.get().widgets.orderLimit;
-                return new CacheKey(
-                    LocalDate.now(ZoneOffset.UTC).toEpochDay(),
-                    config.usedToday,
-                    config.dailyLimit,
-                    config.lastResetEpochDay,
-                    config.numberStyle
-                );
-            })
+            .config(config)
+            .supports(DailyLimitWidgetDefinition::supportsSession)
+            .data(data)
+            .cachePrepared()
             .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(DailyLimitWidgetView::new)
             .settingsPanel(DailyLimitWidgetSettings::create)
@@ -44,13 +35,7 @@ public final class DailyLimitWidgetDefinition {
             .build();
     }
 
-    private record CacheKey(
-        long today,
-        double usedToday,
-        double dailyLimit,
-        long lastResetEpochDay,
-        NumberStyle numberStyle
-    ) implements WidgetCacheKey {}
-
-
+    public static boolean supportsSession(com.github.lutzluca.btrbz.core.widgets.session.WidgetSession session) {
+        return session.inAnyBazaarMenu(BazaarMenuType.Main, BazaarMenuType.ItemGroup);
+    }
 }

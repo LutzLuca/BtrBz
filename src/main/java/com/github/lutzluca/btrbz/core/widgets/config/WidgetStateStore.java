@@ -2,16 +2,22 @@ package com.github.lutzluca.btrbz.core.widgets.config;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /** Shared root-scale persistence plus generic access to definition-owned frame config. */
 public final class WidgetStateStore {
     private final Supplier<WidgetsConfig> configSupplier;
     private final Runnable saveAction;
-    private long frameRevision;
+    private final Map<WidgetId, CacheToken> frameChanges = new HashMap<>();
+    private final CacheToken globalFrameChanges = CacheToken.named("widget-frame.global");
 
     public WidgetStateStore() { this(() -> ConfigManager.get().widgets, ConfigManager::save); }
 
@@ -20,8 +26,15 @@ public final class WidgetStateStore {
         this.saveAction = Objects.requireNonNull(saveAction, "saveAction");
     }
 
-    public long frameRevision() {
-        return this.frameRevision;
+    public CacheToken frameChanges(WidgetId id) {
+        return this.frameChanges.computeIfAbsent(
+            Objects.requireNonNull(id, "id"),
+            key -> CacheToken.named("widget-frame." + key)
+        );
+    }
+
+    public CacheToken globalFrameChanges() {
+        return this.globalFrameChanges;
     }
 
     public double globalFineTuneScale() { return WidgetScaleResolver.clampScale(this.config().globalFineTuneScale); }
@@ -30,7 +43,7 @@ public final class WidgetStateStore {
     }
     public void setGlobalFineTuneScale(double value, boolean persist) {
         this.config().globalFineTuneScale = WidgetScaleResolver.clampScale(value);
-        this.frameRevision++;
+        this.globalFrameChanges.invalidate(InvalidationReason.of("global widget scale changed"));
         if (persist) this.saveAction.run();
     }
     public int globalBackgroundColor() { return this.config().globalBackground; }
@@ -39,7 +52,7 @@ public final class WidgetStateStore {
     }
     public void setGlobalBackgroundColor(int color, boolean persist) {
         this.config().globalBackground = color;
-        this.frameRevision++;
+        this.globalFrameChanges.invalidate(InvalidationReason.of("global widget background changed"));
         if (persist) this.saveAction.run();
     }
     public int managerPanelWidth() {
@@ -89,7 +102,7 @@ public final class WidgetStateStore {
     }
     public void setActive(WidgetDefinition<?, ?, ?> definition, boolean active, boolean persist) {
         definition.frame().enabled = active;
-        this.frameRevision++;
+        this.invalidate(definition, "widget enablement changed");
         if (persist) this.saveAction.run();
     }
     public void setPlacement(
@@ -99,7 +112,7 @@ public final class WidgetStateStore {
         boolean persist
     ) {
         definition.frame().placements.put(profile, placement);
-        this.frameRevision++;
+        this.invalidate(definition, "widget placement changed");
         if (persist) this.saveAction.run();
     }
     public void resetPlacement(WidgetDefinition<?, ?, ?> definition, String profile) {
@@ -126,7 +139,7 @@ public final class WidgetStateStore {
         boolean persist
     ) {
         definition.frame().overrideScale = enabled;
-        this.frameRevision++;
+        this.invalidate(definition, "widget scale override changed");
         if (persist) this.saveAction.run();
     }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value) {
@@ -134,7 +147,7 @@ public final class WidgetStateStore {
     }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value, boolean persist) {
         definition.frame().scale = WidgetScaleResolver.clampScale(value);
-        this.frameRevision++;
+        this.invalidate(definition, "widget scale changed");
         if (persist) this.saveAction.run();
     }
     public void resetWidgetScale(WidgetDefinition<?, ?, ?> definition) {
@@ -145,7 +158,7 @@ public final class WidgetStateStore {
         var defaults = definition.defaultFrame();
         frame.overrideScale = defaults.overrideScale;
         frame.scale = defaults.scale;
-        this.frameRevision++;
+        this.invalidate(definition, "widget scale reset");
         if (persist) this.saveAction.run();
     }
     public double requestedScale(WidgetDefinition<?, ?, ?> definition) {
@@ -170,7 +183,7 @@ public final class WidgetStateStore {
         boolean persist
     ) {
         definition.frame().overrideBackground = enabled;
-        this.frameRevision++;
+        this.invalidate(definition, "widget background override changed");
         if (persist) this.saveAction.run();
     }
     public int backgroundColor(WidgetDefinition<?, ?, ?> definition) {
@@ -183,7 +196,7 @@ public final class WidgetStateStore {
     }
     public void setBackgroundColor(WidgetDefinition<?, ?, ?> definition, int color, boolean persist) {
         definition.frame().background = color;
-        this.frameRevision++;
+        this.invalidate(definition, "widget background changed");
         if (persist) this.saveAction.run();
     }
     public void resetBackgroundColor(WidgetDefinition<?, ?, ?> definition) {
@@ -194,10 +207,34 @@ public final class WidgetStateStore {
         var defaults = definition.defaultFrame();
         frame.overrideBackground = defaults.overrideBackground;
         frame.background = defaults.background;
-        this.frameRevision++;
+        this.invalidate(definition, "widget background reset");
         if (persist) this.saveAction.run();
     }
     public void save() { this.saveAction.run(); }
+
+    public void resetFrame(WidgetDefinition<?, ?, ?> definition, boolean persist) {
+        var source = definition.defaultFrame();
+        var target = definition.frame();
+        target.enabled = source.enabled;
+        target.placements.clear();
+        target.placements.putAll(source.placements);
+        target.overrideScale = source.overrideScale;
+        target.scale = source.scale;
+        target.overrideBackground = source.overrideBackground;
+        target.background = source.background;
+        this.invalidate(definition, "widget frame reset");
+        if (persist) this.saveAction.run();
+    }
+
+    public void resetAll(WidgetDefinition<?, ?, ?> definition, boolean persist) {
+        definition.getConfigHandle().resetPreferences("all widget preferences reset");
+        this.resetFrame(definition, false);
+        if (persist) this.saveAction.run();
+    }
+
+    private void invalidate(WidgetDefinition<?, ?, ?> definition, String reason) {
+        this.frameChanges(definition.getId()).invalidate(InvalidationReason.of(reason));
+    }
 
     private WidgetsConfig config() { return this.configSupplier.get(); }
 }

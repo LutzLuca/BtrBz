@@ -1,38 +1,38 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
+import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
+import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import net.minecraft.resources.Identifier;
 
 public final class OrderPresetsWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_presets"));
     private OrderPresetsWidgetDefinition() {}
+
     public static WidgetDefinition<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction> create(
-        OrderPresetsComponent component
+        OrderPresetsComponent component,
+        BazaarData market,
+        ProductInfoProvider productInfoProvider
     ) {
-        var data = new OrderPresetsWidgetData(component);
+        var config = new WidgetConfigHandle<>(ID,
+            () -> ConfigManager.get().widgets.orderPresets, OrderPresetsWidgetConfig::new,
+            value -> value.frame, OrderPresetsWidgetConfig::resetPreferences);
+        var data = new MemoizedWidgetDataSource<>(
+            new OrderPresetsWidgetData(component, market, productInfoProvider, config)
+        );
         return WidgetDefinition.<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction>builder(ID, "Presets")
-            .config(() -> ConfigManager.get().widgets.orderPresets, OrderPresetsWidgetConfig::new,
-                config -> config.frame, OrderPresetsWidgetConfig::resetPreferences)
-            .supports(session -> session.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
-                || session.inSign() && session.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume))
-            .runtimeData(_ -> data.snapshot())
-            .cacheKey(_ -> {
-                var config = ConfigManager.get().widgets.orderPresets;
-                return new CacheKey(
-                    component.currentState(),
-                    new ConfigSnapshot(
-                        config.contentWidth, config.visibleRows,
-                        config.clipboard, config.showDisabled
-                    )
-                );
-            })
+            .config(config)
+            .supports(OrderPresetsWidgetDefinition::supportsSession)
+            .data(data)
+            .cachePrepared()
             .preview(() -> new WidgetPreview<>(OrderPresetsWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.BuyOrderSetupVolume), "default"))
             .viewFactory(OrderPresetsWidgetView::new)
             .actionHandler(new OrderPresetsActionHandler(component))
@@ -43,12 +43,8 @@ public final class OrderPresetsWidgetDefinition {
             .build();
     }
 
-    private record ConfigSnapshot(
-        int contentWidth, int visibleRows, boolean clipboard, boolean showDisabled
-    ) {}
-
-    private record CacheKey(
-        OrderPresetsComponent.State state,
-        ConfigSnapshot config
-    ) implements WidgetCacheKey {}
+    public static boolean supportsSession(com.github.lutzluca.btrbz.core.widgets.session.WidgetSession session) {
+        return session.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
+            || session.inSign() && session.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume);
+    }
 }

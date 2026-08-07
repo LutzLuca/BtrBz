@@ -43,6 +43,11 @@ public final class ClientTickDispatcher {
         LISTENERS.add(listener);
     }
 
+    public static Registration registerCancellable(ClientTickEvents.EndTick listener) {
+        register(listener);
+        return () -> unregister(listener);
+    }
+
     public static void unregister(ClientTickEvents.EndTick listener) {
         LISTENERS.remove(listener);
     }
@@ -61,5 +66,11 @@ public final class ClientTickDispatcher {
 
         int ticks;
         Consumer<Minecraft> callback;
+    }
+
+    @FunctionalInterface
+    public interface Registration extends AutoCloseable {
+        @Override
+        void close();
     }
 }
