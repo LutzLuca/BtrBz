@@ -1,17 +1,35 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.List;
 import java.util.Objects;
 
-public final class OrderPresetsWidgetData {
+public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPresetsWidgetData.Snapshot> {
     private final OrderPresetsComponent component;
+    private final CacheDependencies dependencies;
 
-    public OrderPresetsWidgetData(OrderPresetsComponent component) {
+    public OrderPresetsWidgetData(
+        OrderPresetsComponent component,
+        WidgetConfigHandle<OrderPresetsWidgetConfig> configHandle
+    ) {
         this.component = component;
+        this.dependencies = component.dataDependencies().and(
+            CacheDependencies.of(configHandle.contentChanges())
+        );
     }
 
-    public Snapshot snapshot() {
+    @Override
+    public CacheDependencies cacheDependencies() { return this.dependencies; }
+
+    @Override
+    public boolean sessionSensitive() { return false; }
+
+    @Override
+    public Snapshot snapshot(WidgetSession session) {
         return new Snapshot(this.component.currentPresets().stream().map(state -> {
             var preset = state.preset();
             String label = switch (preset) {

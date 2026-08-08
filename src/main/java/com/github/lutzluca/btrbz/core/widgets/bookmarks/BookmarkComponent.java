@@ -5,6 +5,8 @@ import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
@@ -28,7 +30,7 @@ public final class BookmarkComponent {
     private final TrackedOrderManager trackedOrders;
     private final Set<String> buyProducts = new HashSet<>();
     private final Set<String> sellProducts = new HashSet<>();
-    private long dataRevision;
+    private final CacheToken dataChanges = CacheToken.named("bookmarks.data");
 
     public BookmarkComponent(
         BazaarData bazaarData,
@@ -77,7 +79,7 @@ public final class BookmarkComponent {
     public boolean remove(String productId) {
         boolean changed = items().removeIf(item -> item.product().productId().equals(productId));
         if (changed) {
-            this.dataRevision++;
+            this.dataChanges.invalidate(InvalidationReason.of("bookmark removed"));
             ConfigManager.save();
         }
         return changed;
@@ -102,7 +104,7 @@ public final class BookmarkComponent {
         var item = items.remove(source);
         int target = insertionIndex > source ? insertionIndex - 1 : insertionIndex;
         items.add(Math.min(target, items.size()), item);
-        this.dataRevision++;
+        this.dataChanges.invalidate(InvalidationReason.of("bookmarks reordered"));
         ConfigManager.save();
         return true;
     }
@@ -117,7 +119,7 @@ public final class BookmarkComponent {
             return false;
         }
         items().add(new BookmarkedItem(product, stack.copy()));
-        this.dataRevision++;
+        this.dataChanges.invalidate(InvalidationReason.of("bookmark added"));
         ConfigManager.save();
         return true;
     }
@@ -134,7 +136,7 @@ public final class BookmarkComponent {
             }
         }
         if (changed) {
-            this.dataRevision++;
+            this.dataChanges.invalidate(InvalidationReason.of("bookmark products refreshed"));
             ConfigManager.save();
         }
     }
@@ -148,15 +150,15 @@ public final class BookmarkComponent {
                 case Sell -> this.sellProducts.add(id);
             }
         }));
-        this.dataRevision++;
+        this.dataChanges.invalidate(InvalidationReason.of("bookmark order indicators rebuilt"));
     }
 
     private static List<BookmarkedItem> items() {
         return ConfigManager.get().widgets.bookmarks.items;
     }
 
-    public long dataRevision() {
-        return this.dataRevision;
+    public CacheToken dataChanges() {
+        return this.dataChanges;
     }
 
     public record Snapshot(

@@ -32,4 +32,13 @@ public record WidgetProductContext(
     public WidgetProductContext detachedCopy() {
         return new WidgetProductContext(this.identity, this.displayName.copy(), this.itemStack());
     }
+
+    public boolean samePresentation(WidgetProductContext other) {
+        if (other == null || !this.identity.equals(other.identity)
+            || !this.displayName.equals(other.displayName)
+            || this.itemStack.isPresent() != other.itemStack.isPresent()) return false;
+        return this.itemStack.isEmpty() || ItemStack.isSameItemSameComponents(
+            this.itemStack.orElseThrow(), other.itemStack.orElseThrow()
+        );
+    }
 }

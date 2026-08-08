@@ -5,6 +5,10 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.api.ButtonOption;
 import org.junit.jupiter.api.DisplayName;
@@ -43,12 +47,24 @@ class WidgetConfigCategoryTest {
     }
 
     private static WidgetDefinition<Object, TestConfig, Void> definition(String id, String name) {
-        return WidgetDefinition.<Object, TestConfig, Void>builder(WidgetId.parse(id), name)
-            .config(TestConfig::new, TestConfig::new, value -> value.frame, (current, defaults) -> {})
-            .runtimeData(_ -> new Object())
+        var widgetId = WidgetId.parse(id);
+        var handle = new WidgetConfigHandle<>(
+            widgetId, TestConfig::new, TestConfig::new,
+            value -> value.frame, (current, defaults) -> {}
+        );
+        return WidgetDefinition.<Object, TestConfig, Void>builder(widgetId, name)
+            .config(handle)
+            .data(source())
             .preview(() -> null)
             .viewFactory(() -> null)
             .build();
+    }
+
+    private static WidgetDataSource<Object> source() {
+        return new WidgetDataSource<>() {
+            @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
+            @Override public Object snapshot(WidgetSession session) { return new Object(); }
+        };
     }
 
     private static final class TestConfig {

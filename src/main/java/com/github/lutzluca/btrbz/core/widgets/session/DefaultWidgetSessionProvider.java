@@ -2,13 +2,13 @@ package com.github.lutzluca.btrbz.core.widgets.session;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,35 +23,39 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     private final BazaarData market;
     private final ProductInfoProvider productInfoProvider;
     private final OrderBookPriceComponent orderBookPrice;
-    private final TrackedOrderManager trackedOrders;
-    private @Nullable SemanticKey previousKey;
+    private final CacheToken contextChanges = CacheToken.named("widget-session.context");
+    private @Nullable Screen cachedScreen;
+    private long cachedTransitionRevision = Long.MIN_VALUE;
+    private long cachedInventoryRevision = Long.MIN_VALUE;
+    private long cachedIndexRevision = Long.MIN_VALUE;
+    private long cachedProductRevision = Long.MIN_VALUE;
     private long semanticSessionId;
-    private @Nullable SessionKey cachedKey;
     private @Nullable WidgetSession cachedSession;
 
     public DefaultWidgetSessionProvider(
         BazaarData market,
         ProductInfoProvider productInfoProvider,
-        OrderBookPriceComponent orderBookPrice,
-        TrackedOrderManager trackedOrders
+        OrderBookPriceComponent orderBookPrice
     ) {
         this.market = Objects.requireNonNull(market, "market");
         this.productInfoProvider = Objects.requireNonNull(productInfoProvider, "productInfoProvider");
         this.orderBookPrice = Objects.requireNonNull(orderBookPrice, "orderBookPrice");
-        this.trackedOrders = Objects.requireNonNull(trackedOrders, "trackedOrders");
     }
 
     @Override
     public WidgetSession current(@Nullable Screen screen) {
         var helper = ScreenInfoHelper.get();
-        var sessionKey = new SessionKey(
-            screen,
-            helper.screenTransitionVersion(),
-            helper.inventoryVersion(),
-            this.trackedOrders.displayRevision()
-        );
+        long transitionRevision = helper.screenTransitions().revision();
+        long inventoryRevision = helper.inventoryChanges().revision();
+        long indexRevision = this.market.indexChanges().revision();
+        long productRevision = this.productInfoProvider.changes().revision();
         var cached = this.cachedSession;
-        if (cached != null && sessionKey.equals(this.cachedKey)) {
+        if (cached != null
+            && this.cachedScreen == screen
+            && this.cachedTransitionRevision == transitionRevision
+            && this.cachedInventoryRevision == inventoryRevision
+            && this.cachedIndexRevision == indexRevision
+            && this.cachedProductRevision == productRevision) {
             return cached;
         }
 
@@ -65,16 +69,14 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
 
         if (screen instanceof OrderBookScreen orderBookScreen) {
             product = Optional.of(this.context(
-                orderBookScreen.product(),
-                Component.literal(orderBookScreen.productName()),
+                orderBookScreen.product(), Component.literal(orderBookScreen.productName()),
                 previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
             ));
         } else if (sign) {
             var workflow = this.orderBookPrice.currentWorkflow();
             product = workflow.map(OrderBookPriceComponent.Workflow::product)
                 .map(identity -> this.context(
-                    identity,
-                    previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
+                    identity, previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
                 ));
             side = workflow.map(OrderBookPriceComponent.Workflow::side);
         } else if (this.productInfoProvider.getOpenedProduct() != null) {
@@ -84,32 +86,34 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             ));
         }
 
-        var currMenu = current.getMenuType();
-        var prevMenu = previous.getMenuType();
-        var key = new SemanticKey(
-            helper.screenTransitionVersion(), hud, sign, orderBook,
-            currMenu, prevMenu,
-            product.map(WidgetProductContext::productId), side
+        var candidate = new WidgetSession(
+            this.semanticSessionId, hud, sign, orderBook,
+            current.getMenuType(), previous.getMenuType(), product, side,
+            this.contextChanges.revision()
         );
-        if (!key.equals(this.previousKey)) {
-            this.previousKey = key;
+        if (cached == null || !candidate.sameSemanticContext(cached)) {
             this.semanticSessionId++;
+        }
+        if (cached == null || !candidate.samePresentationContext(cached)) {
+            this.contextChanges.invalidate(InvalidationReason.of("widget session presentation changed"));
         }
 
         var session = new WidgetSession(
-            this.semanticSessionId,
-            hud,
-            sign,
-            orderBook,
-            currMenu,
-            prevMenu,
-            product,
-            side,
-            this.trackedOrders.displayRevision()
+            this.semanticSessionId, hud, sign, orderBook,
+            current.getMenuType(), previous.getMenuType(), product, side,
+            this.contextChanges.revision()
         );
-        this.cachedKey = sessionKey;
+        this.cachedScreen = screen;
+        this.cachedTransitionRevision = transitionRevision;
+        this.cachedInventoryRevision = inventoryRevision;
+        this.cachedIndexRevision = indexRevision;
+        this.cachedProductRevision = productRevision;
         this.cachedSession = session;
         return session;
+    }
+
+    public CacheToken contextChanges() {
+        return this.contextChanges;
     }
 
     private WidgetProductContext context(ProductIdentity identity, Optional<ItemStack> observedStack) {
@@ -122,22 +126,8 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         Optional<ItemStack> observedStack
     ) {
         return new WidgetProductContext(
-            identity,
-            displayName,
+            identity, displayName,
             this.market.productStack(identity).or(() -> observedStack.map(ItemStack::copy))
         );
     }
-
-    private record SemanticKey(
-        long transition,
-        boolean hud,
-        boolean sign,
-        boolean orderBook,
-        Optional<BazaarMenuType> menu,
-        Optional<BazaarMenuType> previousMenu,
-        Optional<String> productId,
-        Optional<OrderType> side
-    ) {}
-
-    private record SessionKey(@Nullable Screen screen, long transition, long inventory, long trackedRevision) {}
 }

@@ -3,7 +3,10 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -31,49 +34,55 @@ import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
 /** Shared defensive order snapshots used by the HUD and tracked-orders widgets. */
-public final class OrdersWidgetData {
+public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetViewData.OrdersData> {
     private final BazaarData market;
     private final TrackedOrderManager trackedOrders;
-    private final OrderTooltipProvider tooltipProvider;
-
-    private @Nullable SnapshotKey cachedKey;
-    private @Nullable BazaarWidgetViewData.OrdersData cachedData;
-
+    private final @Nullable OrderTooltipProvider tooltipProvider;
+    private final CacheDependencies dependencies;
 
     public OrdersWidgetData(
         BazaarData market,
         TrackedOrderManager trackedOrders,
-        OrderTooltipProvider tooltipProvider
+        @Nullable OrderTooltipProvider tooltipProvider
+    ) {
+        this(
+            market, trackedOrders, tooltipProvider,
+            ScreenInfoHelper.get().screenTransitions(), ScreenInfoHelper.get().inventoryChanges()
+        );
+    }
+
+    OrdersWidgetData(
+        BazaarData market,
+        TrackedOrderManager trackedOrders,
+        @Nullable OrderTooltipProvider tooltipProvider,
+        CacheToken screenTransitions,
+        CacheToken inventoryChanges
     ) {
         this.market = market;
         this.trackedOrders = trackedOrders;
         this.tooltipProvider = tooltipProvider;
-    }
-
-    public SnapshotKey snapshotKey() {
-        var screens = ScreenInfoHelper.get();
-        return new SnapshotKey(
-            this.trackedOrders.dataRevision(),
-            this.market.marketRevision(),
-            this.market.indexRevision(),
-            screens.screenTransitionVersion(),
-            screens.inventoryVersion(),
-            ConfigManager.get().orderListTooltip.enabled
+        var baseDependencies = CacheDependencies.of(
+            trackedOrders.dataChanges(), market.marketChanges(), market.indexChanges(),
+            screenTransitions, inventoryChanges
         );
+        this.dependencies = tooltipProvider == null
+            ? baseDependencies
+            : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges()));
     }
 
-    public BazaarWidgetViewData.OrdersData snapshot() {
-        var key = this.snapshotKey();
+    @Override
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
-        var cached = this.cachedData;
-        if (cached != null && key.equals(this.cachedKey)) {
-            return cached;
-        }
+    @Override
+    public boolean sessionSensitive() {
+        return false;
+    }
 
-        var computed = this.computeSnapshot();
-        this.cachedKey = key;
-        this.cachedData = computed;
-        return computed;
+    @Override
+    public BazaarWidgetViewData.OrdersData snapshot(WidgetSession session) {
+        return this.computeSnapshot();
     }
 
      BazaarWidgetViewData.OrdersData computeSnapshot() {
@@ -95,7 +104,7 @@ public final class OrdersWidgetData {
             var product = snapshot.product();
             var marketInfo = this.marketInfo(product, snapshot.type(), snapshot.pricePerUnit());
             List<Component> tooltip = Optional.ofNullable(live.get(snapshot.id()))
-                .filter(_ -> ConfigManager.get().orderListTooltip.enabled)
+                .filter(_ -> this.tooltipProvider != null && ConfigManager.get().orderListTooltip.enabled)
                 .map(order -> this.tooltipProvider.getCachedTooltip(order, ConfigManager.get().orderListTooltip))
                 .orElseGet(List::of);
             return new BazaarWidgetViewData.Order(
@@ -217,12 +226,4 @@ public final class OrdersWidgetData {
         return component.withStyle(ChatFormatting.GRAY);
     }
 
-    public record SnapshotKey(
-        long orders,
-        long market,
-        long index,
-        long screen,
-        long inventory,
-        boolean tooltipsEnabled
-    ) {}
 }

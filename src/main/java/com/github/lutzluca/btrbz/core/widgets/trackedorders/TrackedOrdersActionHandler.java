@@ -12,7 +12,6 @@ public final class TrackedOrdersActionHandler implements WidgetActionHandler<Tra
     @Override
     public void handle(TrackedOrdersAction action, WidgetSession source, WidgetSession current) {
         if (!source.sameWorkflow(current)
-            || source.trackedRevision() != current.trackedRevision()
             || ConfigManager.get().widgets.trackedOrders.sort != TrackedOrdersWidgetConfig.TrackedSort.Manual) return;
         switch (action) {
             case TrackedOrdersAction.Reorder reorder -> {

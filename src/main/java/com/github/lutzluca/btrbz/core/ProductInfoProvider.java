@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -27,6 +29,7 @@ import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import io.vavr.control.Try;
 import java.net.URI;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -70,6 +73,11 @@ public final class ProductInfoProvider {
 
     @Getter
     private @Nullable IndexedProduct openedProduct;
+    private final CacheToken changes = CacheToken.named("product-info.opened-product");
+
+    public CacheToken changes() {
+        return this.changes;
+    }
 
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -116,11 +124,11 @@ public final class ProductInfoProvider {
 
                 product.ifPresentOrElse(
                     resolved -> {
-                        this.openedProduct = resolved;
+                        this.setOpenedProduct(resolved, "Bazaar product opened");
                         log.debug("Opened product: {}", resolved);
                     },
                     () -> {
-                        this.openedProduct = null;
+                        this.setOpenedProduct(null, "Bazaar product resolution cleared");
                         log.warn("No product resolved for Bazaar item screen");
                     }
                 );
@@ -157,9 +165,15 @@ public final class ProductInfoProvider {
                     "Leaving product flow, clearing product: {}",
                     this.openedProduct
                 );
-                this.openedProduct = null;
+                this.setOpenedProduct(null, "left Bazaar product workflow");
             }
         });
+    }
+
+    private void setOpenedProduct(@Nullable IndexedProduct product, String reason) {
+        if (Objects.equals(this.openedProduct, product)) return;
+        this.openedProduct = product;
+        this.changes.invalidate(InvalidationReason.of(reason));
     }
 
     private void registerSlotHooks() {

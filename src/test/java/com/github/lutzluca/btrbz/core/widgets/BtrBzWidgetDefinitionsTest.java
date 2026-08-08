@@ -44,55 +44,53 @@ class BtrBzWidgetDefinitionsTest {
 
     @Test
     void definitionsAcceptOnlyTheirSemanticSessions() {
-        assertTrue(BazaarOrdersWidgetDefinition.create(null).supports(
+        assertTrue(BazaarOrdersWidgetDefinition.supportsSession(
             session(true, false, false, null, null, false)
         ));
-        assertTrue(TrackedOrdersWidgetDefinition.create(null, null).supports(
+        assertTrue(TrackedOrdersWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Item, null, false)
         ));
-        assertTrue(OrderValueWidgetDefinition.create(null).supports(
+        assertTrue(OrderValueWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Orders, null, false)
         ));
-        assertTrue(OrderBookWidgetDefinition.create(new OrderBookWidgetData(null), null).supports(
+        assertTrue(OrderBookWidgetDefinition.supportsSession(
             session(false, false, true, null, null, true)
         ));
-        assertTrue(OrderBookPriceWidgetDefinition.create(new OrderBookWidgetData(null), null).supports(
+        assertTrue(OrderBookPriceWidgetDefinition.supportsSession(
             session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)
         ));
-        assertTrue(BookmarksWidgetDefinition.create(null).supports(
+        assertTrue(BookmarksWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Main, null, false)
         ));
-        assertTrue(OrderPresetsWidgetDefinition.create(null).supports(
+        assertTrue(OrderPresetsWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.BuyOrderSetupVolume, null, false)
         ));
-        assertTrue(OrderPresetsWidgetDefinition.create(null).supports(
+        assertTrue(OrderPresetsWidgetDefinition.supportsSession(
             session(false, true, false, null, BazaarMenuType.BuyOrderSetupVolume, false)
         ));
-        assertTrue(DailyLimitWidgetDefinition.create(null).supports(
+        assertTrue(DailyLimitWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.ItemGroup, null, false)
         ));
-        assertTrue(PriceDifferenceWidgetDefinition.create(null).supports(
+        assertTrue(PriceDifferenceWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Item, null, false)
         ));
 
         var invalid = session(false, false, false, BazaarMenuType.Settings, null, false);
-        assertFalse(OrderValueWidgetDefinition.create(null).supports(invalid));
-        assertFalse(DailyLimitWidgetDefinition.create(null).supports(invalid));
-        assertFalse(PriceDifferenceWidgetDefinition.create(null).supports(invalid));
+        assertFalse(OrderValueWidgetDefinition.supportsSession(invalid));
+        assertFalse(DailyLimitWidgetDefinition.supportsSession(invalid));
+        assertFalse(PriceDifferenceWidgetDefinition.supportsSession(invalid));
 
         var staleMenuOnCustomScreen = session(false, false, true, BazaarMenuType.Orders, null, true);
-        assertFalse(OrderValueWidgetDefinition.create(null).supports(staleMenuOnCustomScreen));
-        assertTrue(OrderBookWidgetDefinition.create(new OrderBookWidgetData(null), null).supports(staleMenuOnCustomScreen));
+        assertFalse(OrderValueWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
+        assertTrue(OrderBookWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
     }
 
     @Test
     void priceDifferenceVisibilityUsesItsOwnSnapshot() {
-        var definition = PriceDifferenceWidgetDefinition.create(null);
         var unavailable = new PriceDifferenceWidgetData.Snapshot("Unavailable", Optional.empty(), 0, 0);
         var available = new PriceDifferenceWidgetData.Snapshot("Available", Optional.empty(), 1, 1);
-        var session = session(false, false, false, BazaarMenuType.Item, null, false);
-        assertFalse(definition.getVisibility().test(unavailable, new PriceDifferenceWidgetConfig(), session));
-        assertTrue(definition.getVisibility().test(available, new PriceDifferenceWidgetConfig(), session));
+        assertFalse(PriceDifferenceWidgetDefinition.isVisible(unavailable));
+        assertTrue(PriceDifferenceWidgetDefinition.isVisible(available));
     }
 
     private static WidgetSession session(

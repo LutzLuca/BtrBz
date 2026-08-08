@@ -1,13 +1,14 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
@@ -17,20 +18,20 @@ import net.minecraft.resources.Identifier;
 public final class TrackedOrdersWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "tracked_orders_list"));
     private TrackedOrdersWidgetDefinition() {}
+
     public static WidgetDefinition<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction> create(
-        OrdersWidgetData provider,
+        WidgetDataSource<BazaarWidgetViewData.OrdersData> provider,
         TrackedOrderManager trackedOrders
     ) {
+        var config = new WidgetConfigHandle<>(ID,
+            () -> ConfigManager.get().widgets.trackedOrders, TrackedOrdersWidgetConfig::new,
+            value -> value.frame, TrackedOrdersWidgetConfig::resetPreferences);
         return WidgetDefinition.<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>builder(ID, "Tracked Orders")
-            .config(() -> ConfigManager.get().widgets.trackedOrders, TrackedOrdersWidgetConfig::new,
-                config -> config.frame, TrackedOrdersWidgetConfig::resetPreferences)
-            .supports(WidgetSession::inBazaarContainer)
+            .config(config)
+            .supports(TrackedOrdersWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> !data.orders().isEmpty())
-            .runtimeData(_ -> provider.snapshot())
-            .cacheKey(_ -> new CacheKey(
-                provider.snapshotKey(),
-                TrackedOrdersWidgetConfig.Snapshot.of(ConfigManager.get().widgets.trackedOrders)
-            ))
+            .data(provider)
+            .cachePrepared()
             .preview(() -> new WidgetPreview<>(OrdersWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(TrackedOrdersWidgetView::new)
             .actionHandler(new TrackedOrdersActionHandler(trackedOrders))
@@ -39,8 +40,5 @@ public final class TrackedOrdersWidgetDefinition {
             .build();
     }
 
-    private record CacheKey(
-        OrdersWidgetData.SnapshotKey data,
-        TrackedOrdersWidgetConfig.Snapshot config
-    ) implements WidgetCacheKey {}
+    public static boolean supportsSession(WidgetSession session) { return session.inBazaarContainer(); }
 }
