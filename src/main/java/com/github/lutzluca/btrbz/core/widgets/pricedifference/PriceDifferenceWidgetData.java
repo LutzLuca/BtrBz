@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -50,12 +51,12 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
             return empty();
         }
 
-        return new Snapshot(stack.getHoverName().getString(), Optional.of(stack), spread.get(), quantity);
+        return new Snapshot(stack.getHoverName(), Optional.of(stack), spread.get(), quantity);
     }
 
     public static Snapshot preview() {
         return new Snapshot(
-            "Enchanted Diamond", Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640
+            Component.literal("Enchanted Diamond"), Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640
         );
     }
 
@@ -70,12 +71,18 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
     }
 
     private static Snapshot empty() {
-        return new Snapshot("", Optional.empty(), 0, 0);
+        return new Snapshot(Component.empty(), Optional.empty(), 0, 0);
     }
 
-    public record Snapshot(String productName, Optional<ItemStack> itemStack, double perItem, int quantity) {
+    public record Snapshot(Component productName, Optional<ItemStack> itemStack, double perItem, int quantity) {
         public Snapshot {
+            productName = productName.copy();
             itemStack = itemStack.map(ItemStack::copy);
+        }
+
+        @Override
+        public Component productName() {
+            return this.productName.copy();
         }
 
         @Override

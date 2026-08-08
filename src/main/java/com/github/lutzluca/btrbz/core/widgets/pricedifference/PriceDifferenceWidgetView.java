@@ -50,7 +50,7 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.productName.text(Component.literal(data.productName()));
+        this.productName.text(data.productName());
         this.product.clearChildren();
         var itemStack = data.itemStack();
         if (itemStack.isPresent()) {

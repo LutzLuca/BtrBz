@@ -87,8 +87,8 @@ class BtrBzWidgetDefinitionsTest {
 
     @Test
     void priceDifferenceVisibilityUsesItsOwnSnapshot() {
-        var unavailable = new PriceDifferenceWidgetData.Snapshot("Unavailable", Optional.empty(), 0, 0);
-        var available = new PriceDifferenceWidgetData.Snapshot("Available", Optional.empty(), 1, 1);
+        var unavailable = new PriceDifferenceWidgetData.Snapshot(Component.literal("Unavailable"), Optional.empty(), 0, 0);
+        var available = new PriceDifferenceWidgetData.Snapshot(Component.literal("Available"), Optional.empty(), 1, 1);
         assertFalse(PriceDifferenceWidgetDefinition.isVisible(unavailable));
         assertTrue(PriceDifferenceWidgetDefinition.isVisible(available));
     }
