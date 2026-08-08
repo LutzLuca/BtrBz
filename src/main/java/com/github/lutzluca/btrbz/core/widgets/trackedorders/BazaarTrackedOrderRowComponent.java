@@ -33,7 +33,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     static final int COMPACT_HEIGHT = 16;
     private static final int STANDARD_ICON_SIZE = 16;
     private static final int COMPACT_ICON_SIZE = 12;
-    private static final int TEXT_GAP = 3;
+    private static final int TEXT_GAP = WidgetLayoutTokens.ORDER_TEXT_GAP;
     private static final int STANDARD_PROGRESS_HEIGHT = 2;
     private static final int COMPACT_PROGRESS_HEIGHT = 1;
 

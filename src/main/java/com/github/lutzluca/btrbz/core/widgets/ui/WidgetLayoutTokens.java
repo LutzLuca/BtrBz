@@ -12,6 +12,7 @@ public final class WidgetLayoutTokens {
 
     public static final int ROW_HORIZONTAL_PADDING = 3;
     public static final int ROW_VERTICAL_PADDING = 1;
+    public static final int ORDER_TEXT_GAP = 3;
     public static final int ROW_ACCENT_WIDTH = 2;
     public static final int SCROLLBAR_THICKNESS = 6;
     public static final int SCROLLBAR_CONTENT_GAP = 2;

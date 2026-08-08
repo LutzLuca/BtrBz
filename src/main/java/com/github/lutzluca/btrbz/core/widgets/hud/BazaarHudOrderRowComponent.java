@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -24,11 +25,11 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 /** Two-line HUD row with categorical state above order identity and market position. */
 final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     static final int ICON_SIZE = 16;
-    static final int ICON_CELL_WIDTH = 18;
+    static final int LEFT_PADDING = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING - 1;
+    static final int RIGHT_PADDING = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING - 1;
+    static final int ICON_CELL_WIDTH = LEFT_PADDING
+        + ICON_SIZE + WidgetLayoutTokens.ORDER_TEXT_GAP;
     static final int HEIGHT = 20;
-
-    private static final int TEXT_GAP = 4;
-    private static final int HORIZONTAL_PADDING = 1;
 
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
@@ -60,7 +61,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     public void layout(Size space) {
         if (this.item == null) return;
         this.itemComponent().inflate(Size.of(ICON_SIZE, ICON_SIZE));
-        int iconX = this.x + (ICON_CELL_WIDTH - ICON_SIZE) / 2;
+        int iconX = this.x + LEFT_PADDING;
         int iconY = this.y + (HEIGHT - ICON_SIZE) / 2;
         this.itemComponent().mount(this, iconX, iconY);
     }
@@ -78,18 +79,21 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
         var font = Minecraft.getInstance().font;
-        int x = this.x + HORIZONTAL_PADDING;
+        int x = this.x + LEFT_PADDING;
         if (this.item != null) {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
-            x = this.x + ICON_CELL_WIDTH;
+            x += ICON_SIZE + WidgetLayoutTokens.ORDER_TEXT_GAP;
         }
 
         var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
         var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
-        int right = this.x + this.width - HORIZONTAL_PADDING;
+        int right = this.x + this.width - RIGHT_PADDING;
         int sideX = right - font.width(side);
-        int statusX = sideX - TEXT_GAP - font.width(status);
-        graphics.text(font, ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x)),
+        int statusX = sideX - WidgetLayoutTokens.ORDER_TEXT_GAP - font.width(status);
+        graphics.text(font, ellipsize(this.productName, Math.max(
+            0,
+            statusX - WidgetLayoutTokens.ORDER_TEXT_GAP - x
+        )),
             x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
         graphics.text(font, status, statusX, this.y + 1, this.order.status().color(), false);
         graphics.text(font, side, sideX, this.y + 1, this.order.side().accentColor(), false);
@@ -101,14 +105,17 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         );
         String marketText = firstFittingMarketText(
             marketCandidates,
-            Math.max(0, right - x - font.width(identity) - TEXT_GAP)
+            Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP)
         );
         int marketX = marketText.isBlank() ? right : right - font.width(marketText);
 
         if (!identity.isBlank()) {
             graphics.text(
                 font,
-                ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x)),
+                ellipsize(Component.literal(identity), Math.max(
+                    0,
+                    marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x
+                )),
                 x,
                 secondY,
                 BazaarStyles.SECONDARY_TEXT,
