@@ -55,6 +55,6 @@ public abstract class SlotItemProjectionMixin {
         var slots = containerScreen.getMenu().slots;
         int idx = slot.index;
 
-        return idx < slots.size() && slots.get(idx) == slot;
+        return idx >= 0 && idx < slots.size() && slots.get(idx) == slot;
     }
 }
