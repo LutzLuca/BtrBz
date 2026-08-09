@@ -332,24 +332,33 @@ public final class Utils {
             throw new IllegalArgumentException("places must be >= 0");
         }
 
-        var compact = compactValue(value);
+        var compact = compactValue(value, places);
         return formatDecimal(compact.value(), places, false) + compact.suffix();
     }
 
     public static String formatCompact(double value) {
-        var compact = compactValue(value);
+        int places = Math.abs(value) >= 1_000_000_000 ? 2 : 1;
+        var compact = compactValue(value, places);
         var formatter = NumberFormat.getNumberInstance(Locale.US);
         formatter.setMinimumFractionDigits(0);
-        formatter.setMaximumFractionDigits(Math.abs(value) >= 1_000_000_000 ? 2 : 1);
+        formatter.setMaximumFractionDigits(places);
         formatter.setGroupingUsed(false);
         return formatter.format(compact.value()) + compact.suffix();
     }
 
-    private static CompactValue compactValue(double value) {
+    private static CompactValue compactValue(double value, int places) {
         double absolute = Math.abs(value);
-        if (absolute >= 1_000_000_000) return new CompactValue(value / 1_000_000_000d, "B");
-        if (absolute >= 1_000_000) return new CompactValue(value / 1_000_000d, "M");
-        if (absolute >= 1_000) return new CompactValue(value / 1_000d, "k");
+        double rollover = 1_000d - 0.5d * Math.pow(10d, -places);
+
+        if (absolute >= 1_000_000d * rollover) {
+            return new CompactValue(value / 1_000_000_000d, "B");
+        }
+        if (absolute >= 1_000d * rollover) {
+            return new CompactValue(value / 1_000_000d, "M");
+        }
+        if (absolute >= rollover) {
+            return new CompactValue(value / 1_000d, "k");
+        }
         return new CompactValue(value, "");
     }
 
