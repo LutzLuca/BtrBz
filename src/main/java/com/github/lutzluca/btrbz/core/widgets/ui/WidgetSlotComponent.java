@@ -168,11 +168,13 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
     @Override
     public boolean onMouseScroll(double mouseX, double mouseY, double amount) {
         if (!this.visible) return false;
-        return this.child.onMouseScroll(
+        boolean handled = this.child.onMouseScroll(
             this.logicalAbsoluteX(mouseX) - this.child.x(),
             this.logicalAbsoluteY(mouseY) - this.child.y(),
             amount
         );
+        if (handled) this.tooltipDelay.reset();
+        return handled;
     }
 
     @Override
