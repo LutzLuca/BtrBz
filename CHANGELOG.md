@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.2-alpha] - 2026-08-09
+
+### Fixed
+
+- Fixed crashes when SkyblockAddons renders virtual equipment or container-preview slots
+
 ## [0.10.1-alpha] - 2026-08-04
 
 ### Added
