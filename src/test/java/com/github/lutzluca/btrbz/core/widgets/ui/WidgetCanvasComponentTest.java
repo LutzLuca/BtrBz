@@ -105,7 +105,6 @@ class WidgetCanvasComponentTest {
         var slot = new WidgetSlotComponent(
             WidgetId.parse(id),
             child,
-            new WidgetRenderSurface(),
             0,
             new WidgetBounds(x, y, physicalWidth, physicalHeight),
             logicalWidth,

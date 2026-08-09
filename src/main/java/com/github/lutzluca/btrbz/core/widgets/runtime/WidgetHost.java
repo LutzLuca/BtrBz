@@ -7,7 +7,6 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetChrome;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetRenderSurface;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
@@ -362,9 +361,8 @@ public final class WidgetHost {
             scrollView.scrollOffset(this.scrollOffsets.getOrDefault(definition.getId(), 0.0));
         }
         var component = WidgetChrome.wrap(view.root());
-        var surface = new WidgetRenderSurface();
         var slot = new WidgetSlotComponent(
-            definition.getId(), component, surface, this.stateStore.backgroundColor(definition),
+            definition.getId(), component, this.stateStore.backgroundColor(definition),
             new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false
         );
         CacheDependencies dependencies = definition.getCacheDependencies()
@@ -372,7 +370,7 @@ public final class WidgetHost {
                 this.stateStore.frameChanges(definition.getId()),
                 this.stateStore.globalFrameChanges()
             ));
-        return new MountedWidget(definition, view, component, slot, surface, dependencies);
+        return new MountedWidget(definition, view, component, slot, dependencies);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -407,8 +405,6 @@ public final class WidgetHost {
         }
         try { removed.view().close(); }
         catch (RuntimeException exception) { log.warn("Failed to close widget view {}", id, exception); }
-        try { removed.surface().close(); }
-        catch (RuntimeException exception) { log.warn("Failed to close widget render surface {}", id, exception); }
     }
 
     private WidgetSession currentSession(@Nullable Screen screen) {
@@ -449,7 +445,6 @@ public final class WidgetHost {
         private final WidgetView<?, ?, ?> view;
         private final io.wispforest.owo.ui.core.UIComponent component;
         private final WidgetSlotComponent slot;
-        private final WidgetRenderSurface surface;
         private final CacheDependencies dependencies;
         private @Nullable PreparedCacheEntry preparedCache;
         private long[] preparedDependencyRevisions = new long[0];
@@ -466,21 +461,18 @@ public final class WidgetHost {
             WidgetView<?, ?, ?> view,
             io.wispforest.owo.ui.core.UIComponent component,
             WidgetSlotComponent slot,
-            WidgetRenderSurface surface,
             CacheDependencies dependencies
         ) {
             this.definition = definition;
             this.view = view;
             this.component = component;
             this.slot = slot;
-            this.surface = surface;
             this.dependencies = dependencies;
         }
 
         private WidgetView<?, ?, ?> view() { return this.view; }
         private io.wispforest.owo.ui.core.UIComponent component() { return this.component; }
         private WidgetSlotComponent slot() { return this.slot; }
-        private WidgetRenderSurface surface() { return this.surface; }
 
         private void recordMiss(
             @Nullable PreparedCacheEntry cached,

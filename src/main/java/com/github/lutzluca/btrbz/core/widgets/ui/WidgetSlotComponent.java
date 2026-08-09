@@ -20,7 +20,6 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
     private final WidgetId widgetId;
     private final UIComponent child;
     private WidgetBounds localBounds;
-    private final WidgetRenderSurface renderSurface;
     private int backgroundColor;
     private int logicalWidth;
     private int logicalHeight;
@@ -35,7 +34,6 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
     public WidgetSlotComponent(
         WidgetId widgetId,
         UIComponent child,
-        WidgetRenderSurface renderSurface,
         int backgroundColor,
         WidgetBounds localBounds,
         int logicalWidth,
@@ -47,7 +45,6 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         super(Sizing.fixed(localBounds.width()), Sizing.fixed(localBounds.height()));
         this.widgetId = widgetId;
         this.child = child;
-        this.renderSurface = renderSurface;
         this.backgroundColor = backgroundColor;
         this.localBounds = localBounds;
         this.logicalWidth = Math.max(1, logicalWidth);
@@ -151,8 +148,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
 
         return this.activeMouseTarget.onMouseDrag(
             this.eventFor(this.activeMouseTarget, click),
-            deltaX / this.safeScale(),
-            deltaY / this.safeScale()
+            deltaX / this.scale,
+            deltaY / this.scale
         );
     }
 
@@ -185,37 +182,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         int childMouseX = this.drawManagementOverlay ? this.x - 1 : logicalMouseX;
         int childMouseY = this.drawManagementOverlay ? this.y - 1 : logicalMouseY;
 
-        graphics.push();
         try {
-            graphics.translate(this.x, this.y);
-            graphics.getMatrixStack().scale((float) this.scale, (float) this.scale);
-            WidgetSurfaces.drawRoundedPanel(
-                graphics,
-                0,
-                0,
-                this.logicalWidth,
-                this.logicalHeight,
-                this.backgroundColor,
-                WidgetChrome.CORNER_RADIUS
-            );
-        } finally {
-            graphics.pop();
-        }
-
-        try {
-            this.renderSurface.render(
-                graphics,
-                this.child,
-                this.logicalWidth,
-                this.logicalHeight,
-                childMouseX,
-                childMouseY,
-                partialTicks,
-                delta,
-                this.x,
-                this.y,
-                this.scale
-            );
+            this.drawWidget(graphics, childMouseX, childMouseY, partialTicks, delta);
         } catch (RuntimeException exception) {
             log.warn("Widget {} failed while rendering", this.widgetId, exception);
         }
@@ -291,15 +259,49 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         );
     }
 
+    private void drawWidget(
+        OwoUIGraphics graphics,
+        int mouseX,
+        int mouseY,
+        float partialTicks,
+        float delta
+    ) {
+        graphics.push();
+        try {
+            graphics.translate(this.x, this.y);
+            graphics.getMatrixStack().scale((float) this.scale, (float) this.scale);
+            WidgetSurfaces.drawRoundedPanel(
+                graphics,
+                0,
+                0,
+                this.logicalWidth,
+                this.logicalHeight,
+                this.backgroundColor,
+                WidgetChrome.CORNER_RADIUS
+            );
+
+            graphics.translate(-this.child.x(), -this.child.y());
+            graphics.enableScissor(
+                this.child.x(),
+                this.child.y(),
+                this.child.x() + this.logicalWidth,
+                this.child.y() + this.logicalHeight
+            );
+            try {
+                this.child.draw(graphics, mouseX, mouseY, partialTicks, delta);
+            } finally {
+                graphics.disableScissor();
+            }
+        } finally {
+            graphics.pop();
+        }
+    }
+
     private int logicalAbsoluteX(double physicalX) {
-        return this.x + (int) Math.floor(physicalX / this.safeScale());
+        return this.x + (int) Math.floor(physicalX / this.scale);
     }
 
     private int logicalAbsoluteY(double physicalY) {
-        return this.y + (int) Math.floor(physicalY / this.safeScale());
-    }
-
-    private double safeScale() {
-        return Math.max(0.0001, this.scale);
+        return this.y + (int) Math.floor(physicalY / this.scale);
     }
 }

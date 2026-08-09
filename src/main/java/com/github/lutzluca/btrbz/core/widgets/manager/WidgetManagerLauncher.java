@@ -8,7 +8,6 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetRenderSurface;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -39,7 +38,6 @@ public final class WidgetManagerLauncher {
 
     private final WidgetRuntime runtime;
     private final WidgetStateStore stateStore;
-    private final WidgetRenderSurface renderSurface = new WidgetRenderSurface();
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private FlowLayout button;
     private WidgetSlotComponent slot;
@@ -146,7 +144,6 @@ public final class WidgetManagerLauncher {
         this.button = null;
         this.slot = null;
         if (current != null) current.dispose();
-        this.renderSurface.close();
     }
 
     private void ensureAdapter() {
@@ -165,7 +162,6 @@ public final class WidgetManagerLauncher {
         this.slot = new WidgetSlotComponent(
             ID,
             this.button,
-            this.renderSurface,
             0x00000000,
             new WidgetBounds(0, 0, SIZE, SIZE),
             SIZE,
