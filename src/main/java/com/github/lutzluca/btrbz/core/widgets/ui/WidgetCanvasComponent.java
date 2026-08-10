@@ -14,6 +14,7 @@ import java.util.List;
 
 public final class WidgetCanvasComponent extends BaseParentUIComponent {
     private final List<WidgetSlotComponent> slots = new ArrayList<>();
+    private final List<WidgetSlotComponent> visibleSlots = new ArrayList<>();
     private final List<UIComponent> slotView = Collections.unmodifiableList(this.slots);
 
     public WidgetCanvasComponent(Sizing horizontalSizing, Sizing verticalSizing) {
@@ -22,11 +23,15 @@ public final class WidgetCanvasComponent extends BaseParentUIComponent {
     }
 
     public void synchronizeSlots(List<WidgetSlotComponent> newSlots) {
-        for (var slot : List.copyOf(this.slots)) {
+        for (var slot : this.slots) {
             if (!newSlots.contains(slot)) slot.dismount(DismountReason.REMOVED);
         }
         this.slots.clear();
         this.slots.addAll(newSlots);
+        this.visibleSlots.clear();
+        for (var slot : this.slots) {
+            if (slot.visible()) this.visibleSlots.add(slot);
+        }
         this.updateLayout();
     }
 
@@ -46,6 +51,7 @@ public final class WidgetCanvasComponent extends BaseParentUIComponent {
     @Override
     public ParentUIComponent removeChild(UIComponent child) {
         if (this.slots.remove(child)) {
+            this.visibleSlots.remove(child);
             child.dismount(DismountReason.REMOVED);
             this.updateLayout();
         }
@@ -56,10 +62,7 @@ public final class WidgetCanvasComponent extends BaseParentUIComponent {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
-        this.drawChildren(
-            graphics, mouseX, mouseY, partialTicks, delta,
-            this.slots.stream().filter(WidgetSlotComponent::visible).toList()
-        );
+        this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, this.visibleSlots);
     }
 
     @Override
@@ -75,7 +78,9 @@ public final class WidgetCanvasComponent extends BaseParentUIComponent {
         int mouseX,
         int mouseY
     ) {
-        if (slots.stream().anyMatch(WidgetSlotComponent::ownsMouseCapture)) return null;
+        for (var slot : slots) {
+            if (slot.ownsMouseCapture()) return null;
+        }
 
         for (int index = slots.size() - 1; index >= 0; index--) {
             var slot = slots.get(index);

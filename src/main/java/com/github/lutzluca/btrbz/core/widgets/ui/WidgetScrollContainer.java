@@ -11,9 +11,10 @@ import org.jetbrains.annotations.Nullable;
 
 /** A retained widget scroll container which owns its scroll and thumb-capture state. */
 public final class WidgetScrollContainer<C extends UIComponent> extends ScrollContainer<C> {
-    private static final double WHEEL_SCROLL_DISTANCE = 12.0;
+    private static final double WHEEL_SCROLL_DISTANCE = 15.0;
     private static final double SMOOTH_SCROLL_DURATION_SECONDS = 0.25;
     private static final double TICKS_PER_SECOND = 20.0;
+    private static final int MINIMUM_SCROLLBAR_LENGTH = 8;
 
     private final RetainedScrollState retainedScroll = new RetainedScrollState();
     private boolean interactive;
@@ -70,6 +71,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         this.scrollbaring = this.interactive && this.thumbCaptured;
         if (!this.interactive) this.lastScrollbarInteractTime = 0L;
+        this.fixedScrollbarLength = this.resolveScrollbarLength();
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
         this.rememberState();
     }
@@ -223,4 +225,13 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         return Math.max(0.0, Math.min(maximum, offset));
     }
 
+    private int resolveScrollbarLength() {
+        int trackLength = Math.max(0, this.height - this.padding.get().vertical());
+        if (trackLength == 0) return 0;
+
+        int calculatedLength = this.childSize <= 0
+            ? trackLength
+            : (int) Math.min(Math.floor((double) this.height / this.childSize * trackLength), trackLength);
+        return Math.min(trackLength, Math.max(MINIMUM_SCROLLBAR_LENGTH, calculatedLength));
+    }
 }

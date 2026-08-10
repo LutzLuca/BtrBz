@@ -47,12 +47,12 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.options = options;
         this.productName = order.formattedItemName(options.abbreviateEnchanted);
         var itemStack = order.itemStack();
-        if (itemStack.isPresent()) {
-            if (this.item == null) {
-                this.item = BazaarUi.item(itemStack.orElseThrow(), ICON_SIZE);
-            } else {
-                this.item.stack(itemStack.orElseThrow());
-            }
+        if (itemStack.isEmpty()) {
+            this.clearItem();
+        } else if (this.item == null) {
+            this.item = BazaarUi.item(itemStack.orElseThrow(), ICON_SIZE);
+        } else {
+            this.item.stack(itemStack.orElseThrow());
         }
         this.updateLayout();
     }
@@ -144,5 +144,11 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
     private ItemComponent itemComponent() {
         return Objects.requireNonNull(this.item, "item");
+    }
+
+    private void clearItem() {
+        if (this.item == null) return;
+        if (this.item.hasParent()) this.item.dismount(DismountReason.REMOVED);
+        this.item = null;
     }
 }

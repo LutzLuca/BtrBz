@@ -30,6 +30,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     private final int insertionOutlineColor;
     private final int insertionInset;
     private final int insertionHeight;
+    private int viewportHeight;
     private boolean interactive;
     private boolean reorderable;
     private @Nullable K pendingDragKey;
@@ -59,6 +60,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.insertionOutlineColor = insertionOutlineColor;
         this.insertionInset = insertionInset;
         this.insertionHeight = insertionHeight;
+        this.viewportHeight = Math.max(1, viewportHeight);
         this.allowOverflow(true);
     }
 
@@ -72,7 +74,6 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         boolean interactive,
         boolean reorderable
     ) {
-        this.dirty = true;
         var ordered = this.retainedRows.reconcile(
             models,
             keyExtractor,
@@ -88,9 +89,12 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.interactive = interactive;
         this.reorderable = interactive && reorderable;
         if (!this.reorderable) this.cancelDrag();
-        this.verticalSizing(Sizing.fixed(Math.max(1, viewportHeight)));
+        int normalizedHeight = Math.max(1, viewportHeight);
+        if (this.viewportHeight != normalizedHeight) {
+            this.viewportHeight = normalizedHeight;
+            this.verticalSizing(Sizing.fixed(normalizedHeight));
+        }
         this.scrollList.updateRows(this.rows, viewportHeight, interactive);
-        this.updateLayout();
     }
 
     @Override

@@ -115,7 +115,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
         var itemStack = order.itemStack();
         if (itemStack.isEmpty()) {
-            this.item = null;
+            this.clearItem();
         } else if (this.item == null) {
             this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
         } else {
@@ -356,5 +356,11 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     private ItemComponent itemComponent() {
         return Objects.requireNonNull(this.item, "item");
+    }
+
+    private void clearItem() {
+        if (this.item == null) return;
+        if (this.item.hasParent()) this.item.dismount(DismountReason.REMOVED);
+        this.item = null;
     }
 }

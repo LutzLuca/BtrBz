@@ -8,17 +8,15 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /** A retained keyed list for ordinary Bazaar rows. */
 public final class BazaarOrderListComponent extends BaseParentUIComponent {
     private final WidgetScrollListComponent scrollList;
-    private final Map<String, BazaarOrderRowComponent> rowsById = new LinkedHashMap<>();
+    private final RetainedRows<String, BazaarOrderRowComponent> retainedRows = new RetainedRows<>();
     private final List<BazaarOrderRowComponent> rows = new ArrayList<>();
     private final List<UIComponent> children;
+    private int viewportHeight;
 
     public BazaarOrderListComponent(boolean hoverable, int rowHeight, int height) {
         super(Sizing.fill(100), Sizing.fixed(height));
@@ -26,6 +24,7 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
             height, WidgetLayoutTokens.LIST_GAP, hoverable, BazaarStyles.SCROLLBAR
         );
         this.children = Collections.singletonList(this.scrollList);
+        this.viewportHeight = Math.max(1, height);
         this.allowOverflow(true);
     }
 
@@ -35,24 +34,21 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
         int rowHeight,
         int height
     ) {
-        this.dirty = true;
         boolean reserveScrollbarSpace = WidgetLayoutTokens.listViewportHeight(rowHeight, rowData.size()) > height;
-        var retainedIds = new HashSet<String>();
-        var ordered = new ArrayList<BazaarOrderRowComponent>(rowData.size());
-        for (var data : rowData) {
-            if (!retainedIds.add(data.id())) throw new IllegalArgumentException("Duplicate Bazaar row id: " + data.id());
-            var row = this.rowsById.computeIfAbsent(
-                data.id(), _ -> new BazaarOrderRowComponent(data, hoverable, rowHeight, reserveScrollbarSpace)
-            );
-            row.update(data, hoverable, rowHeight, reserveScrollbarSpace);
-            ordered.add(row);
-        }
-        this.rowsById.keySet().removeIf(id -> !retainedIds.contains(id));
+        var ordered = this.retainedRows.reconcile(
+            rowData,
+            BazaarOrderRowComponent.BazaarRow::id,
+            (data, _) -> new BazaarOrderRowComponent(data, hoverable, rowHeight, reserveScrollbarSpace),
+            (row, data, _) -> row.update(data, hoverable, rowHeight, reserveScrollbarSpace)
+        );
         this.rows.clear();
         this.rows.addAll(ordered);
-        this.verticalSizing(Sizing.fixed(Math.max(1, height)));
+        int normalizedHeight = Math.max(1, height);
+        if (this.viewportHeight != normalizedHeight) {
+            this.viewportHeight = normalizedHeight;
+            this.verticalSizing(Sizing.fixed(normalizedHeight));
+        }
         this.scrollList.updateRows(this.rows, height, hoverable);
-        this.updateLayout();
     }
 
     @Override
