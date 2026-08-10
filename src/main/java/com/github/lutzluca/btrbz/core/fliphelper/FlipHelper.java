@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.fliphelper;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -384,7 +385,7 @@ public class FlipHelper {
                     ConfigScreen.example(
                         "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")
                 ),
-                    ConfigScreen.ConfigImage.FLIP_HELPER
+                    ConfigImages.FLIP_HELPER
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

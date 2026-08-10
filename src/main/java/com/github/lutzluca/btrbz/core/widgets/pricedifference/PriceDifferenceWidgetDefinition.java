@@ -25,6 +25,7 @@ public final class PriceDifferenceWidgetDefinition {
             value -> value.frame, PriceDifferenceWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new PriceDifferenceWidgetData(market));
         return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID, "Price Difference")
+            .description("Shows the per-item and total difference between the entered price and the current market price.")
             .config(config)
             .supports(PriceDifferenceWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> PriceDifferenceWidgetDefinition.isVisible(data))

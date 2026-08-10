@@ -23,6 +23,7 @@ import lombok.Getter;
 public final class WidgetDefinition<D, C, A> {
     private final WidgetId id;
     private final String displayName;
+    private final String description;
     private final WidgetConfigHandle<C> configHandle;
     private final Predicate<WidgetSession> supports;
     private final WidgetVisibility<D, C> visibility;
@@ -41,6 +42,7 @@ public final class WidgetDefinition<D, C, A> {
     private WidgetDefinition(Builder<D, C, A> builder) {
         this.id = Objects.requireNonNull(builder.id, "id");
         this.displayName = Objects.requireNonNull(builder.displayName, "displayName");
+        this.description = Objects.requireNonNull(builder.description, "description");
         this.configHandle = Objects.requireNonNull(builder.configHandle, "configHandle");
         this.supports = Objects.requireNonNull(builder.supports, "supports");
         this.visibility = Objects.requireNonNull(builder.visibility, "visibility");
@@ -104,6 +106,7 @@ public final class WidgetDefinition<D, C, A> {
     public static final class Builder<D, C, A> {
         private final WidgetId id;
         private final String displayName;
+        private String description = "";
         private WidgetConfigHandle<C> configHandle;
         private Predicate<WidgetSession> supports = _ -> true;
         private WidgetVisibility<D, C> visibility = (data, config, session) -> true;
@@ -127,6 +130,11 @@ public final class WidgetDefinition<D, C, A> {
 
         public Builder<D, C, A> config(WidgetConfigHandle<C> configHandle) {
             this.configHandle = configHandle;
+            return this;
+        }
+
+        public Builder<D, C, A> description(String description) {
+            this.description = description;
             return this;
         }
 

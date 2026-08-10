@@ -26,6 +26,7 @@ public final class OrderPresetsWidgetDefinition {
             new OrderPresetsWidgetData(component, config)
         );
         return WidgetDefinition.<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction>builder(ID, "Presets")
+            .description("Offers reusable quantity presets when choosing how many items to buy or sell.")
             .config(config)
             .supports(OrderPresetsWidgetDefinition::supportsSession)
             .data(data)

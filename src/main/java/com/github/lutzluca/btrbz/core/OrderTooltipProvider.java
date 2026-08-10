@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
@@ -399,7 +400,7 @@ public class OrderTooltipProvider {
                 .name(Component.literal("Tracked Orders Tooltips"))
                 .description(ConfigScreen.createDescription(
                     "Choose which status, estimated queue, and market details appear when hovering entries in the Tracked Orders widget.",
-                    ConfigScreen.ConfigImage.ORDER_LIST_TOOLTIP
+                    ConfigImages.TRACKED_ORDER_TOOLTIPS
                 ))
                 .options(root.build())
                 .collapsed(true)
@@ -516,7 +517,7 @@ public class OrderTooltipProvider {
                 .name(Component.literal("Order Item Tooltips"))
                 .description(ConfigScreen.createDescription(
                     "Choose which status, estimated queue, market, and fill-time details appear when hovering an order item on the Bazaar Orders page.",
-                    ConfigScreen.ConfigImage.ORDER_TOOLTIP
+                    ConfigImages.ORDER_TOOLTIP
                 ))
                 .options(root.build())
                 .collapsed(true)

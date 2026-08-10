@@ -24,6 +24,7 @@ public final class OrderValueWidgetDefinition {
             value -> value.frame, OrderValueWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(new OrderValueWidgetData(component));
         return WidgetDefinition.<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void>builder(ID, "Order Value")
+            .description("Summarizes coins locked in buy orders and value waiting in sell orders.")
             .config(config)
             .supports(OrderValueWidgetDefinition::supportsSession)
             .data(data)

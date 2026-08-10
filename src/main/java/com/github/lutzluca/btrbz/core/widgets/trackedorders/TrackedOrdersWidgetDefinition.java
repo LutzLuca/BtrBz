@@ -27,6 +27,8 @@ public final class TrackedOrdersWidgetDefinition {
             () -> ConfigManager.get().widgets.trackedOrders, TrackedOrdersWidgetConfig::new,
             value -> value.frame, TrackedOrdersWidgetConfig::resetPreferences);
         return WidgetDefinition.<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>builder(ID, "Tracked Orders")
+            .description("Shows tracked orders inside Bazaar screens with status, fill progress, and queue details. "
+                + "The fill-progress bar is a snapshot and may not reflect the current live state.")
             .config(config)
             .supports(TrackedOrdersWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> !data.orders().isEmpty())

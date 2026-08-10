@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.trackedorders;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
@@ -540,7 +541,7 @@ public class TrackedOrderManager {
                     .name(Component.literal("Order Notifications"))
                     .description(ConfigScreen.createDescription(
                         "Enable order-status notifications and configure behavior shared by every notification type.",
-                        ConfigScreen.ConfigImage.ORDER_NOTIFICATION
+                    ConfigImages.ORDER_NOTIFICATION
                     ))
                     .options(rootGroup.build())
                     .collapsed(true)

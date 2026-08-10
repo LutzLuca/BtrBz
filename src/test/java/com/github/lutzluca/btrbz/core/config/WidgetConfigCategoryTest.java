@@ -9,27 +9,31 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
-import dev.isxander.yacl3.api.ButtonOption;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 
 @DisplayName("YACL widget category")
 class WidgetConfigCategoryTest {
     @Test
-    @DisplayName("provides config-only controls for the widget manager launcher")
-    void containsWidgetManagerControls() {
-        var options = ConfigScreen.widgetManagerOptions(new WidgetsConfig());
+    @DisplayName("maps config images to their widgets without constructing the UI")
+    void mapsWidgetImages() {
+        var images = Map.of(
+            "btrbz:bazaar_orders", ConfigImages.TRACKED_ORDERS_HUD,
+            "btrbz:tracked_orders_list", ConfigImages.TRACKED_ORDERS_BAZAAR,
+            "btrbz:order_value", ConfigImages.ORDER_VALUE_OVERVIEW,
+            "btrbz:order_book", ConfigImages.ORDER_BOOK_SCREEN,
+            "btrbz:order_book_price", ConfigImages.ORDER_BOOK_SIGN,
+            "btrbz:bookmarks", ConfigImages.BOOKMARKS,
+            "btrbz:order_presets", ConfigImages.ORDER_PRESETS,
+            "btrbz:order_limit", ConfigImages.ORDER_LIMIT,
+            "btrbz:price_diff", ConfigImages.PRICE_DIFF
+        );
 
-        assertEquals(3, options.size());
-        assertFalse(options.getFirst() instanceof ButtonOption);
-        assertInstanceOf(ButtonOption.class, options.get(1));
-        assertInstanceOf(ButtonOption.class, options.getLast());
+        images.forEach((id, image) -> assertEquals(image, ConfigImages.forWidget(WidgetId.parse(id))));
     }
 
     @Test

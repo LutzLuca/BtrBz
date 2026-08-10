@@ -23,6 +23,7 @@ public final class OrderBookWidgetDefinition {
             () -> ConfigManager.get().widgets.orderBookScreen, OrderBookWidgetConfig::new,
             value -> value.frame, OrderBookWidgetConfig::resetPreferences);
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction>builder(ID, "Order Book")
+            .description("Shows buy and sell price levels beside Bazaar screens and lets you select a price.")
             .config(config)
             .supports(OrderBookWidgetDefinition::supportsSession)
             .data(provider)

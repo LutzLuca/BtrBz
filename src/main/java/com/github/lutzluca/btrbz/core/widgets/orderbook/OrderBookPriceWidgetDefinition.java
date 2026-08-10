@@ -23,6 +23,7 @@ public final class OrderBookPriceWidgetDefinition {
             () -> ConfigManager.get().widgets.orderBookPrice, OrderBookPriceWidgetConfig::new,
             value -> value.frame, OrderBookPriceWidgetConfig::resetPreferences);
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction>builder(ID, "Order Book Price")
+            .description("Shows the current order book while entering a price and lets you select a price.")
             .config(config)
             .supports(OrderBookPriceWidgetDefinition::supportsSession)
             .data(provider)

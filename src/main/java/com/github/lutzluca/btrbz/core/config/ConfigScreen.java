@@ -1,6 +1,10 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
@@ -17,12 +21,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 
 public class ConfigScreen {
 
@@ -103,7 +103,7 @@ public class ConfigScreen {
 
     static List<ButtonOption> widgetOptions(WidgetRegistry registry) {
         return registry.all().stream()
-            .map(definition -> widgetOption(definition.getDisplayName(), definition.getId()))
+            .map(ConfigScreen::widgetOption)
             .toList();
     }
 
@@ -120,7 +120,8 @@ public class ConfigScreen {
             .name(Component.literal("Open Widget Manager"))
             .text(Component.literal("Open"))
             .description(createDescription(
-                "Open the widget manager without using the Bazaar quick-access button."
+                "Open the widget manager without using the Bazaar quick-access button.",
+                ConfigImages.WIDGET_MANAGER_BUTTON
             ))
             .action(screen -> Minecraft.getInstance().setScreen(
                 BtrBz.widgetRuntime().createManagementScreen(screen)
@@ -137,13 +138,23 @@ public class ConfigScreen {
         return List.of(showLauncher, openManager, resetPosition);
     }
 
-    private static ButtonOption widgetOption(String name, WidgetId id) {
+    private static ButtonOption widgetOption(WidgetDefinition<?, ?, ?> definition) {
+        String name = definition.getDisplayName();
+        WidgetId id = definition.getId();
+        String responsibility = definition.getDescription().isBlank()
+            ? "Open the Widget Manager focused on " + name + "."
+            : definition.getDescription();
+        Component description = paragraphs(
+            Component.literal(responsibility),
+            Component.literal("Configure its placement and settings in the Widget Manager.")
+        );
+        var image = ConfigImages.forWidget(id);
         return ButtonOption.createBuilder()
             .name(Component.literal(name))
             .text(Component.literal("Configure"))
-            .description(OptionDescription.of(Component.literal(
-                "Open the widget manager focused on " + name + "."
-            )))
+            .description(image == null
+                ? createDescription(description)
+                : createDescription(description, image))
             .action(screen -> Minecraft.getInstance().setScreen(
                 BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)
             ))
@@ -158,16 +169,12 @@ public class ConfigScreen {
         return OptionDescription.of(text);
     }
 
-    public static OptionDescription createDescription(String text, ConfigImage image) {
+    public static OptionDescription createDescription(String text, ConfigImages image) {
         return createDescription(Component.literal(text), image);
     }
 
-    public static OptionDescription createDescription(Component text, ConfigImage image) {
-        return OptionDescription
-            .createBuilder()
-            .text(text)
-            .image(image.identifier, image.width, image.height)
-            .build();
+    public static OptionDescription createDescription(Component text, ConfigImages image) {
+        return image.description(text);
     }
 
     public static Component paragraphs(Component... paragraphs) {
@@ -226,32 +233,6 @@ public class ConfigScreen {
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
         return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
-    }
-
-    public enum ConfigImage {
-        PRICE_ALERT("alert-registration-and-firing.png", 658, 202),
-        FLIP_HELPER("flip-helper.png", 994, 654),
-        ORDER_LIST_TOOLTIP("order-list-tooltips.png", 710, 399),
-        ORDER_NOTIFICATION("order-notifications.png", 661, 235),
-        ORDER_PROTECTION("order-protection-blocking.png", 1092, 614),
-        ORDER_STATUS("order-status-highlight.png", 423, 238),
-        ORDER_TOOLTIP("order-tooltip.png", 542, 305),
-        PRODUCT_INFO_PAPER("product-info-paper.png", 622, 350),
-        PRODUCT_INFO("product-info.png", 588, 218),
-        REOPEN_LAST_ORDER("reopen-last-order.png", 578, 325);
-
-        private final Identifier identifier;
-        private final int width;
-        private final int height;
-
-        ConfigImage(String fileName, int width, int height) {
-            this.identifier = Identifier.fromNamespaceAndPath(
-                BtrBz.MOD_ID,
-                "textures/gui/config/" + fileName
-            );
-            this.width = width;
-            this.height = height;
-        }
     }
 
     public static final class OptionGrouping {

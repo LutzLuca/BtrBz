@@ -24,6 +24,7 @@ public final class BazaarOrdersWidgetDefinition {
             () -> ConfigManager.get().widgets.bazaarOrders, BazaarOrdersWidgetConfig::new,
             value -> value.frame, BazaarOrdersWidgetConfig::resetPreferences);
         return WidgetDefinition.<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void>builder(ID, "Bazaar Orders")
+            .description("Shows tracked Bazaar orders on the HUD with their status, amount, price, and market position.")
             .config(config)
             .supports(BazaarOrdersWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> !data.orders().isEmpty() || data.filledOrderCount() > 0)

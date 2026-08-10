@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
@@ -105,7 +106,7 @@ public class OrderHighlightManager {
                         "Color-code your orders on the Bazaar Orders page so their current status is easy to scan."),
                     highlightLegend()
                 ),
-                    ConfigScreen.ConfigImage.ORDER_STATUS
+                    ConfigImages.ORDER_STATUS
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

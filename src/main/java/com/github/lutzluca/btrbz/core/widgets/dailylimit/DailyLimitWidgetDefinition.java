@@ -25,6 +25,7 @@ public final class DailyLimitWidgetDefinition {
             value -> value.frame, DailyLimitWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(new DailyLimitWidgetData(component, config));
         return WidgetDefinition.<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void>builder(ID, "Daily Limit")
+            .description("Tracks your estimated daily Bazaar transaction value against Hypixel's limit.")
             .config(config)
             .supports(DailyLimitWidgetDefinition::supportsSession)
             .data(data)
