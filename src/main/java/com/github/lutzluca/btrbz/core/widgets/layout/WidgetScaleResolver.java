@@ -7,7 +7,8 @@ public final class WidgetScaleResolver {
     public static final double MIN_SCALE = 0.5;
     public static final double MAX_SCALE = 2.0;
 
-    private WidgetScaleResolver() {}
+    private WidgetScaleResolver() {
+    }
 
     public static double automaticGuiScale() {
         var window = Minecraft.getInstance().getWindow();
@@ -54,7 +55,10 @@ public final class WidgetScaleResolver {
     }
 
     public static double clampScale(double value) {
-        if (!Double.isFinite(value)) return 1.0;
+        if (!Double.isFinite(value)) {
+            return 1.0;
+        }
+
         return WidgetMath.clamp(value, MIN_SCALE, MAX_SCALE);
     }
 
@@ -72,7 +76,10 @@ public final class WidgetScaleResolver {
     private static double fitDimension(double scale, int available, int logicalSize) {
         int safeAvailable = Math.max(1, available);
         int safeLogicalSize = Math.max(1, logicalSize);
-        if (Math.ceil(safeLogicalSize * scale) <= safeAvailable) return scale;
+
+        if (Math.ceil(safeLogicalSize * scale) <= safeAvailable) {
+            return scale;
+        }
 
         return Math.min(scale, Math.nextDown(safeAvailable / (double) safeLogicalSize));
     }

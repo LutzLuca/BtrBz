@@ -20,15 +20,19 @@ import org.jetbrains.annotations.Nullable;
 /** The only boundary that classifies concrete Minecraft and BtrBz screens. */
 public final class DefaultWidgetSessionProvider implements WidgetSessionProvider {
     private static final int PRODUCT_SLOT = 13;
+
     private final BazaarData market;
     private final ProductInfoProvider productInfoProvider;
     private final OrderBookPriceComponent orderBookPrice;
+
     private final CacheToken contextChanges = CacheToken.named("widget-session.context");
+
     private @Nullable Screen cachedScreen;
     private long cachedTransitionRevision = Long.MIN_VALUE;
     private long cachedInventoryRevision = Long.MIN_VALUE;
     private long cachedIndexRevision = Long.MIN_VALUE;
     private long cachedProductRevision = Long.MIN_VALUE;
+
     private long semanticSessionId;
     private @Nullable WidgetSession cachedSession;
 
@@ -49,7 +53,9 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         long inventoryRevision = helper.inventoryChanges().revision();
         long indexRevision = this.market.indexChanges().revision();
         long productRevision = this.productInfoProvider.changes().revision();
+
         var cached = this.cachedSession;
+
         if (cached != null
             && this.cachedScreen == screen
             && this.cachedTransitionRevision == transitionRevision
@@ -64,6 +70,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         boolean hud = screen == null;
         boolean sign = screen instanceof SignEditScreen;
         boolean orderBook = screen instanceof OrderBookScreen;
+
         Optional<WidgetProductContext> product = Optional.empty();
         Optional<OrderType> side = Optional.empty();
 
@@ -91,9 +98,11 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             current.getMenuType(), previous.getMenuType(), product, side,
             this.contextChanges.revision()
         );
+
         if (cached == null || !candidate.sameSemanticContext(cached)) {
             this.semanticSessionId++;
         }
+
         if (cached == null || !candidate.samePresentationContext(cached)) {
             this.contextChanges.invalidate(InvalidationReason.of("widget session presentation changed"));
         }
@@ -103,12 +112,14 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
             current.getMenuType(), previous.getMenuType(), product, side,
             this.contextChanges.revision()
         );
+
         this.cachedScreen = screen;
         this.cachedTransitionRevision = transitionRevision;
         this.cachedInventoryRevision = inventoryRevision;
         this.cachedIndexRevision = indexRevision;
         this.cachedProductRevision = productRevision;
         this.cachedSession = session;
+
         return session;
     }
 

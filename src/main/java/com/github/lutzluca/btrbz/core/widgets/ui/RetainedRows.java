@@ -20,16 +20,24 @@ public final class RetainedRows<K, C> {
     ) {
         var retainedKeys = new HashSet<K>();
         var ordered = new ArrayList<C>(models.size());
+
         for (int index = 0; index < models.size(); index++) {
             int rowIndex = index;
             var model = models.get(index);
             var key = keyExtractor.apply(model);
-            if (!retainedKeys.add(key)) throw new IllegalArgumentException("Duplicate retained row key: " + key);
+
+            if (!retainedKeys.add(key)) {
+                throw new IllegalArgumentException("Duplicate retained row key: " + key);
+            }
+
             var row = this.byKey.computeIfAbsent(key, _ -> factory.apply(model, rowIndex));
+
             updater.update(row, model, rowIndex);
             ordered.add(row);
         }
+
         this.byKey.keySet().removeIf(key -> !retainedKeys.contains(key));
+
         return ordered;
     }
 

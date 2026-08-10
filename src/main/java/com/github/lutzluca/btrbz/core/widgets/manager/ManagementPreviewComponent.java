@@ -23,6 +23,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
 
     private WidgetCanvas canvas = new WidgetCanvas(0, 0, 1, 1);
     private List<WidgetRenderResult> lastResults = List.of();
+
     private DragState dragState;
     private boolean dragMoved = false;
     private double dragStartX = 0.0;
@@ -31,6 +32,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     ManagementPreviewComponent(WidgetManagementScreen screen, WidgetHost host) {
         this.screen = screen;
         this.host = host;
+
         this.sizing(Sizing.expand(100), Sizing.fill(100));
         this.cursorStyle(CursorStyle.HAND);
     }
@@ -68,12 +70,18 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     }
 
     boolean beginDrag(double absoluteX, double absoluteY, int button) {
-        if (button != InputConstants.MOUSE_BUTTON_LEFT) return false;
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
+            return false;
+        }
 
         var result = this.hitResult(absoluteX, absoluteY);
-        if (result == null) return false;
+
+        if (result == null) {
+            return false;
+        }
 
         boolean alreadySelected = result.definition().getId().equals(this.screen.selectedWidget());
+
         this.dragMoved = false;
         this.dragStartX = absoluteX;
         this.dragStartY = absoluteY;
@@ -90,6 +98,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             result.bounds().width(),
             result.bounds().height()
         );
+
         return true;
     }
 
@@ -99,7 +108,9 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     }
 
     boolean dragTo(double absoluteMouseX, double absoluteMouseY) {
-        if (this.dragState == null) return false;
+        if (this.dragState == null) {
+            return false;
+        }
 
         if (Math.abs(absoluteMouseX - this.dragStartX) > DRAG_THRESHOLD
             || Math.abs(absoluteMouseY - this.dragStartY) > DRAG_THRESHOLD) {
@@ -123,6 +134,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             placement,
             false
         );
+
         return true;
     }
 
@@ -132,11 +144,17 @@ final class ManagementPreviewComponent extends BaseUIComponent {
     }
 
     boolean endDrag() {
-        if (this.dragState == null) return false;
+        if (this.dragState == null) {
+            return false;
+        }
 
-        if (this.dragMoved) this.screen.markDirty();
+        if (this.dragMoved) {
+            this.screen.markDirty();
+        }
+
         this.dragState = null;
         this.dragMoved = false;
+
         return true;
     }
 

@@ -23,7 +23,9 @@ public record WidgetProductContext(
     }
 
     @Override
-    public Component displayName() { return this.displayName.copy(); }
+    public Component displayName() {
+        return this.displayName.copy();
+    }
 
     public String productId() {
         return this.identity.bazaarProductId().orElse(this.identity.strippedName());
@@ -36,7 +38,10 @@ public record WidgetProductContext(
     public boolean samePresentation(WidgetProductContext other) {
         if (other == null || !this.identity.equals(other.identity)
             || !this.displayName.equals(other.displayName)
-            || this.itemStack.isPresent() != other.itemStack.isPresent()) return false;
+            || this.itemStack.isPresent() != other.itemStack.isPresent()) {
+            return false;
+        }
+
         return this.itemStack.isEmpty() || ItemStack.isSameItemSameComponents(
             this.itemStack.orElseThrow(), other.itemStack.orElseThrow()
         );

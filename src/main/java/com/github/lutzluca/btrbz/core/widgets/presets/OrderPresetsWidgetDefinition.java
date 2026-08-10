@@ -14,7 +14,9 @@ import net.minecraft.resources.Identifier;
 
 public final class OrderPresetsWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_presets"));
-    private OrderPresetsWidgetDefinition() {}
+
+    private OrderPresetsWidgetDefinition() {
+    }
 
     public static WidgetDefinition<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction> create(
         OrderPresetsComponent component
@@ -25,6 +27,7 @@ public final class OrderPresetsWidgetDefinition {
         var data = new MemoizedWidgetDataSource<>(
             new OrderPresetsWidgetData(component, config)
         );
+
         return WidgetDefinition.<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction>builder(ID, "Presets")
             .description("Offers reusable quantity presets when choosing how many items to buy or sell.")
             .config(config)

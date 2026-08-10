@@ -42,10 +42,18 @@ public final class OrderBookPriceComponent {
     public Optional<Workflow> currentWorkflow() {
         var current = ScreenInfoHelper.get().getCurrInfo();
         var previous = ScreenInfoHelper.get().getPrevInfo();
-        if (!(current.getScreen() instanceof SignEditScreen)) return Optional.empty();
+
+        if (!(current.getScreen() instanceof SignEditScreen)) {
+            return Optional.empty();
+        }
+
         var product = this.resolveProduct(previous);
         var side = this.resolveSide(previous);
-        if (product.isEmpty() || side.isEmpty()) return Optional.empty();
+
+        if (product.isEmpty() || side.isEmpty()) {
+            return Optional.empty();
+        }
+
         return Optional.of(new Workflow(ProductIdentity.fromIndex(product.get()), side.get()));
     }
 
@@ -54,9 +62,12 @@ public final class OrderBookPriceComponent {
             var lists = this.bazaarData.getOrderLists(workflow.product());
             var levels = new ArrayList<PriceLevel>();
             double cumulative = 0;
+
             var summaries = workflow.side() == OrderType.Buy ? lists.buyOrders() : lists.sellOffers();
+
             for (var summary : summaries) {
                 cumulative += summary.getAmount();
+
                 levels.add(new PriceLevel(
                     summary.getPricePerUnit(),
                     summary.getAmount(),
@@ -64,6 +75,7 @@ public final class OrderBookPriceComponent {
                     cumulative
                 ));
             }
+
             return new Snapshot(workflow, levels);
         });
     }
@@ -71,21 +83,32 @@ public final class OrderBookPriceComponent {
     public boolean selectPrice(double rawPrice, boolean copyOnly) {
         var workflow = this.currentWorkflow();
         var current = ScreenInfoHelper.get().getCurrInfo();
-        if (workflow.isEmpty() || !(current.getScreen() instanceof SignEditScreen sign)) return false;
+
+        if (workflow.isEmpty() || !(current.getScreen() instanceof SignEditScreen sign)) {
+            return false;
+        }
+
         if (copyOnly) {
             String formatted = Utils.formatDecimal(rawPrice, 1, false);
+
             GameUtils.copyToClipboard(formatted);
+
             Notifier.notifyPlayer(Notifier.prefix()
                 .append(Component.literal("Copied price ").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(formatted).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
                 .append(Component.literal(" to clipboard").withStyle(ChatFormatting.GRAY)));
+
             return true;
         }
+
         double adjusted = adjustPrice(rawPrice, workflow.get().side());
+
         if (ScreenInfoHelper.get().getPrevInfo().inMenu(BazaarMenuType.OrderOptions)) {
             this.flipSubmissionTracker.recordSubmittedFlip(workflow.get().product(), adjusted);
         }
+
         GameUtils.submitSignValue(sign, Utils.formatDecimal(adjusted, 1, false));
+
         return true;
     }
 
@@ -97,14 +120,19 @@ public final class OrderBookPriceComponent {
         if (previous.inMenu(BazaarMenuType.OrderOptions)) {
             return this.flipProductContext.getSelectedProduct();
         }
+
         return Optional.ofNullable(this.productInfoProvider.getOpenedProduct());
     }
 
     private Optional<OrderType> resolveSide(ScreenInfo previous) {
-        if (previous.inMenu(BazaarMenuType.BuyOrderSetupPrice)) return Optional.of(OrderType.Buy);
+        if (previous.inMenu(BazaarMenuType.BuyOrderSetupPrice)) {
+            return Optional.of(OrderType.Buy);
+        }
+
         if (previous.inMenu(BazaarMenuType.SellOfferSetup, BazaarMenuType.OrderOptions)) {
             return Optional.of(OrderType.Sell);
         }
+
         return Optional.empty();
     }
 

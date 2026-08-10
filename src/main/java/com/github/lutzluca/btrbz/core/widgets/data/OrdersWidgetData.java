@@ -62,6 +62,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         this.market = market;
         this.trackedOrders = trackedOrders;
         this.tooltipProvider = tooltipProvider;
+
         var baseDependencies = CacheDependencies.of(
             trackedOrders.dataChanges(), market.marketChanges(), market.indexChanges(),
             screenTransitions, inventoryChanges
@@ -86,8 +87,9 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         return this.computeSnapshot();
     }
 
-     BazaarWidgetViewData.OrdersData computeSnapshot() {
+    BazaarWidgetViewData.OrdersData computeSnapshot() {
         var snapshots = this.trackedOrders.currentOrders();
+
         if (snapshots.isEmpty()) {
             return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());
         }
@@ -95,11 +97,14 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         var screenInfo = ScreenInfoHelper.get().getCurrInfo();
         Map<TrackedOrderId, TrackedOrder> live = new HashMap<>();
         this.trackedOrders.getTrackedOrders().forEach(order -> live.put(order.id(), order));
+
         Map<TrackedOrderId, Long> creationSequence = new HashMap<>();
         var canonicalOrder = this.trackedOrders.creationOrder();
+
         for (int index = 0; index < canonicalOrder.size(); index++) {
             creationSequence.put(canonicalOrder.get(index), (long) index);
         }
+
         var orders = snapshots.stream().map(snapshot -> {
             var status = status(snapshot.status());
             var product = snapshot.product();
@@ -108,6 +113,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
                 .filter(_ -> this.tooltipProvider != null && ConfigManager.get().orderListTooltip.enabled)
                 .map(order -> this.tooltipProvider.getCachedTooltip(order, ConfigManager.get().orderListTooltip))
                 .orElseGet(List::of);
+
             return new BazaarWidgetViewData.Order(
                 snapshot.id(),
                 snapshot.type() == OrderType.Buy ? BazaarWidgetViewData.OrderSide.Buy : BazaarWidgetViewData.OrderSide.Sell,
@@ -126,6 +132,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
                 creationSequence.getOrDefault(snapshot.id(), 0L)
             );
         }).toList();
+
         return new BazaarWidgetViewData.OrdersData(orders, this.trackedOrders.filledOrderCount());
     }
 
@@ -151,7 +158,11 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             ? this.market.highestBuyOrderPrice(product)
             : this.market.lowestSellOfferPrice(product);
         var queue = this.market.calculateQueuePosition(product, side, unitPrice);
-        if (best.isEmpty() && queue.isEmpty()) return Optional.empty();
+
+        if (best.isEmpty() && queue.isEmpty()) {
+            return Optional.empty();
+        }
+
         return Optional.of(new BazaarWidgetViewData.MarketInfo(
             best.map(OptionalDouble::of).orElseGet(OptionalDouble::empty),
             best.map(value -> OptionalDouble.of(Math.abs(value - unitPrice))).orElseGet(OptionalDouble::empty),
@@ -213,6 +224,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             case Matched -> Optional.of(BazaarWidgetViewData.MarketInfo.queue(3, total * 18L));
             case Top, Unknown -> Optional.empty();
         };
+
         return new BazaarWidgetViewData.Order(
             id, side, name, styled(name, item), Optional.of(new ItemStack(item)), price, total,
             Optional.of(new BazaarWidgetViewData.FillProgress(filled, total)), status, market, tooltip
@@ -221,10 +233,19 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
 
     private static Component styled(String name, Item item) {
         var component = Component.literal(name);
-        if (item == Items.COOKIE) return component.withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-        if (item == Items.DIAMOND) return component.withStyle(ChatFormatting.AQUA);
-        if (item == Items.EMERALD) return component.withStyle(ChatFormatting.GREEN);
+
+        if (item == Items.COOKIE) {
+            return component.withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        }
+
+        if (item == Items.DIAMOND) {
+            return component.withStyle(ChatFormatting.AQUA);
+        }
+
+        if (item == Items.EMERALD) {
+            return component.withStyle(ChatFormatting.GREEN);
+        }
+
         return component.withStyle(ChatFormatting.GRAY);
     }
-
 }

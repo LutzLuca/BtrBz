@@ -40,10 +40,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     private final BazaarTrackedOrderListComponent list;
     private @Nullable ItemComponent item;
+
     private BazaarWidgetViewData.Order order;
     private TrackedOrdersWidgetConfig options;
     private Component productName;
     private int index;
+
     private boolean reorderable;
     private boolean interactive;
     private Consumer<TrackedOrdersAction> actions;
@@ -78,7 +80,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
         ));
         this.list = list;
+
         this.allowOverflow(true);
+
         this.update(order, options, tooltip, index, interactive, actions);
     }
 
@@ -95,6 +99,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.options = options;
 
         var optionsSnapshot = TrackedOrdersWidgetConfig.Snapshot.of(options);
+
         if (this.initialized
             && order == this.lastOrder
             && optionsSnapshot.equals(this.lastOptions)
@@ -114,7 +119,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
+
         this.item = BazaarUi.reconcileItem(this.item, order.itemStack(), iconSize);
+
         if (layoutChanged && this.item != null) {
             this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
         }
@@ -135,11 +142,15 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     @Override
     public void layout(Size space) {
-        if (this.item == null) return;
+        if (this.item == null) {
+            return;
+        }
+
         boolean compact = this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact;
         int iconSize = compact ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
         int progressHeight = compact ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;
         int iconX = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
         this.itemComponent().inflate(Size.of(iconSize, iconSize));
         this.itemComponent().mount(
             this,
@@ -148,7 +159,8 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         );
     }
 
-    @Override public List<UIComponent> children() {
+    @Override
+    public List<UIComponent> children() {
         return this.item == null ? List.of() : List.of(this.itemComponent());
     }
 
@@ -167,24 +179,37 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         if (!this.reorderable || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return super.onMouseDown(click, doubled);
         }
+
         return this.list.beginDrag(this.order.id(), this.index);
     }
 
     @Override
     public boolean onMouseDrag(MouseButtonEvent click, double deltaX, double deltaY) {
-        if (!this.reorderable || !this.list.trackingDrag(this.order.id())) return false;
+        if (!this.reorderable || !this.list.trackingDrag(this.order.id())) {
+            return false;
+        }
+
         this.list.dragPointer(this.y + (int) click.y());
+
         return true;
     }
 
     @Override
     public boolean onMouseUp(MouseButtonEvent click) {
-        if (!this.reorderable || !this.list.trackingDrag(this.order.id())) return false;
+        if (!this.reorderable || !this.list.trackingDrag(this.order.id())) {
+            return false;
+        }
+
         var result = this.list.finishDrag().orElse(null);
-        if (result == null) return false;
+
+        if (result == null) {
+            return false;
+        }
+
         if (result.moved()) {
             this.actions.accept(new TrackedOrdersAction.Reorder(result.key(), result.dropIndex()));
         }
+
         return true;
     }
 
@@ -198,10 +223,13 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
+
         boolean hovered = this.interactive && this.list.isHovered(this.order.id());
+
         if (hovered) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
         }
+
         if (this.list.dragging(this.order.id())) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_DRAG);
         } else if (this.order.status() == BazaarWidgetViewData.OrderStatus.Undercut) {
@@ -211,11 +239,13 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         if (this.item != null) {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
         }
+
         if (this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact) {
             this.drawCompact(graphics);
         } else {
             this.drawStandard(graphics);
         }
+
         this.drawProgress(graphics);
     }
 
@@ -224,10 +254,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             this.drawLayout = this.computeStandardLayout();
             this.drawLayoutWidth = this.width;
         }
+
         var layout = this.drawLayout;
         var font = Minecraft.getInstance().font;
 
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
         if (this.item != null) {
             x += STANDARD_ICON_SIZE + TEXT_GAP;
         }
@@ -239,9 +271,11 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             this.order.side().accentColor(), false);
 
         int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
+
         if (layout.identityText() != null) {
             graphics.text(font, layout.identityText(), x, secondY, BazaarStyles.SECONDARY_TEXT, false);
         }
+
         if (layout.marketText() != null) {
             graphics.text(font, layout.marketText(), this.x + layout.marketX(), secondY,
                 BazaarStyles.SECONDARY_TEXT, false);
@@ -251,15 +285,18 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private DrawLayout computeStandardLayout() {
         var font = Minecraft.getInstance().font;
         int x = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
         if (this.item != null) {
             x += STANDARD_ICON_SIZE + TEXT_GAP;
         }
+
         int right = this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
 
         var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
         int sideX = right - font.width(side);
         var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
         int statusX = sideX - TEXT_GAP - font.width(status);
+
         var productText = ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x));
 
         String identity = BazaarOrderText.orderIdentity(this.order);
@@ -268,6 +305,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             Math.max(0, right - x - font.width(identity) - TEXT_GAP)
         );
         int marketX = market.isBlank() ? right : right - font.width(market);
+
         var identityText = ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x));
 
         return new DrawLayout(
@@ -278,17 +316,18 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         );
     }
 
-
     private void drawCompact(OwoUIGraphics graphics) {
         if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
             this.drawLayout = this.computeCompactLayout();
             this.drawLayoutWidth = this.width;
         }
+
         var layout = this.drawLayout;
         var font = Minecraft.getInstance().font;
 
         int textY = this.y + Math.max(0, (this.height - COMPACT_PROGRESS_HEIGHT - font.lineHeight) / 2);
         int x = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
         if (this.item != null) {
             x += COMPACT_ICON_SIZE + TEXT_GAP;
         }
@@ -303,28 +342,35 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private DrawLayout computeCompactLayout() {
         var font = Minecraft.getInstance().font;
         int x = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
+
         if (this.item != null) {
             x += COMPACT_ICON_SIZE + TEXT_GAP;
         }
+
         int right = this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
 
         var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
         int sideX = right - font.width(side);
         var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
         int statusX = sideX - TEXT_GAP - font.width(status);
+
         var productText = ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x));
 
         return new DrawLayout(side, sideX, status, statusX, productText, null, null, 0);
     }
 
     private void drawProgress(OwoUIGraphics graphics) {
-        if (this.order.liveProgress().isEmpty()) return;
+        if (this.order.liveProgress().isEmpty()) {
+            return;
+        }
+
         var progress = this.order.liveProgress().orElseThrow();
         int progressHeight = this.options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;
         int left = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         int top = this.y + this.height - progressHeight;
+
         graphics.fill(left, top, right, top + progressHeight, BazaarStyles.PROGRESS_TRACK);
         graphics.fill(left, top, left + progressFillWidth(right - left, progress.fraction()),
             top + progressHeight, BazaarStyles.PROGRESS_FILL);
@@ -339,7 +385,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         return WidgetMath.portion(availableWidth, fraction);
     }
 
-    com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId orderId() { return this.order.id(); }
+    com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId orderId() {
+        return this.order.id();
+    }
 
     private ItemComponent itemComponent() {
         return Objects.requireNonNull(this.item, "item");

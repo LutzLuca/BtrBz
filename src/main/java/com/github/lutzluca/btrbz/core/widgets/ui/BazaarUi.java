@@ -19,7 +19,8 @@ import java.util.List;
 import java.util.Optional;
 
 public final class BazaarUi {
-    private BazaarUi() {}
+    private BazaarUi() {
+    }
 
     public static RetainedFlowLayout panel(int width) {
         var panel = RetainedFlowLayout.vertical(Sizing.fixed(width), Sizing.content());
@@ -32,7 +33,13 @@ public final class BazaarUi {
         var line = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
         line.verticalAlignment(VerticalAlignment.CENTER);
         line.gap(3);
-        for (var component : components) if (component != null) line.child(component);
+
+        for (var component : components) {
+            if (component != null) {
+                line.child(component);
+            }
+        }
+
         return line;
     }
 
@@ -43,7 +50,9 @@ public final class BazaarUi {
         return label;
     }
 
-    public static LabelComponent text(String value, int color) { return label(value, color); }
+    public static LabelComponent text(String value, int color) {
+        return label(value, color);
+    }
 
     public static LabelComponent boldLabel(String value, int color) {
         var label = new BazaarLabelComponent(Component.literal(value).withStyle(ChatFormatting.BOLD));
@@ -59,7 +68,9 @@ public final class BazaarUi {
         return spacer;
     }
 
-    public static ItemComponent icon(ItemStack stack) { return item(stack, 16); }
+    public static ItemComponent icon(ItemStack stack) {
+        return item(stack, 16);
+    }
 
     public static ItemComponent item(ItemStack stack, int size) {
         var item = UIComponents.item(stack);
@@ -78,39 +89,64 @@ public final class BazaarUi {
             if (current != null && current.hasParent()) {
                 current.dismount(UIComponent.DismountReason.REMOVED);
             }
+
             return null;
         }
 
-        if (current == null) return item(next.orElseThrow(), size);
+        if (current == null) {
+            return item(next.orElseThrow(), size);
+        }
+
         current.stack(next.orElseThrow());
+
         return current;
     }
 
     public static String firstFittingText(List<String> candidates, int maximumWidth) {
         var font = Minecraft.getInstance().font;
         int availableWidth = Math.max(0, maximumWidth);
+
         for (var candidate : candidates) {
-            if (font.width(candidate) <= availableWidth) return candidate;
+            if (font.width(candidate) <= availableWidth) {
+                return candidate;
+            }
         }
+
         return "";
     }
 
     public static FormattedCharSequence ellipsize(Component text, int maxWidth) {
         var font = Minecraft.getInstance().font;
-        if (maxWidth <= 0) return FormattedCharSequence.EMPTY;
-        if (font.width(text) <= maxWidth) return text.getVisualOrderText();
+
+        if (maxWidth <= 0) {
+            return FormattedCharSequence.EMPTY;
+        }
+
+        if (font.width(text) <= maxWidth) {
+            return text.getVisualOrderText();
+        }
+
         var ellipsis = FormattedText.of("…", text.getStyle());
         int ellipsisWidth = font.width(ellipsis);
-        if (ellipsisWidth > maxWidth) return FormattedCharSequence.EMPTY;
+        if (ellipsisWidth > maxWidth) {
+            return FormattedCharSequence.EMPTY;
+        }
+
         var trimmed = font.substrByWidth(text, maxWidth - ellipsisWidth);
+
         return Language.getInstance().getVisualOrder(FormattedText.composite(trimmed, ellipsis));
     }
 
     public static String truncate(String value, int maxWidth) {
         var font = Minecraft.getInstance().font;
-        if (font.width(value) <= maxWidth) return value;
+
+        if (font.width(value) <= maxWidth) {
+            return value;
+        }
+
         String ellipsis = "…";
         int target = Math.max(0, maxWidth - font.width(ellipsis));
+
         return font.plainSubstrByWidth(value, target).stripTrailing() + ellipsis;
     }
 }

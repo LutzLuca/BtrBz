@@ -16,8 +16,10 @@ import java.util.List;
 public final class WidgetScrollListComponent extends BaseParentUIComponent {
     private final RetainedFlowLayout rowLayout;
     private final WidgetScrollContainer<RetainedFlowLayout> scroller;
+
     private final List<UIComponent> rows = new ArrayList<>();
     private final List<UIComponent> children;
+
     private int viewportHeight;
     private boolean interactive;
 
@@ -26,31 +28,40 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
         this.rowLayout = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         this.rowLayout.allowOverflow(true);
         this.rowLayout.gap(rowGap);
+
         this.scroller = new WidgetScrollContainer<>(
             Sizing.fill(100), Sizing.fill(100), this.rowLayout, interactive
         );
         this.scroller.scrollbarThiccness(WidgetLayoutTokens.SCROLLBAR_THICKNESS);
         this.scroller.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(scrollbarColor)));
+
         this.children = Collections.singletonList(this.scroller);
         this.viewportHeight = Math.max(1, viewportHeight);
         this.interactive = interactive;
+
         this.allowOverflow(true);
     }
 
     public void updateRows(List<? extends UIComponent> rows, int viewportHeight, boolean interactive) {
         int normalizedHeight = Math.max(1, viewportHeight);
+
         if (this.viewportHeight != normalizedHeight) {
             this.viewportHeight = normalizedHeight;
             this.verticalSizing(Sizing.fixed(normalizedHeight));
         }
+
         if (this.interactive != interactive) {
             this.interactive = interactive;
             this.scroller.interactive(interactive);
         }
-        if (sameRows(this.rows, rows)) return;
+
+        if (sameRows(this.rows, rows)) {
+            return;
+        }
 
         this.rows.clear();
         this.rows.addAll(rows);
+
         this.rowLayout.clearChildren();
         this.rowLayout.children(this.rows);
     }
@@ -102,10 +113,16 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
     }
 
     private static boolean sameRows(List<UIComponent> current, List<? extends UIComponent> updated) {
-        if (current.size() != updated.size()) return false;
-        for (int index = 0; index < current.size(); index++) {
-            if (current.get(index) != updated.get(index)) return false;
+        if (current.size() != updated.size()) {
+            return false;
         }
+
+        for (int index = 0; index < current.size(); index++) {
+            if (current.get(index) != updated.get(index)) {
+                return false;
+            }
+        }
+
         return true;
     }
 }

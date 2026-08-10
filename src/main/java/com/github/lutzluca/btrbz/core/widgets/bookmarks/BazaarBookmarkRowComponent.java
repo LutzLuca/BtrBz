@@ -26,8 +26,10 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
     private final BazaarBookmarkListComponent list;
     private final ItemComponent item;
+
     private BookmarksWidgetData.Bookmark bookmark;
     private Component productName;
+
     private boolean interactive;
     private boolean reorderable;
     private boolean reserveScrollbarSpace;
@@ -46,7 +48,9 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
         this.list = list;
         this.item = BazaarUi.item(bookmark.itemStack(), ICON_SIZE);
+
         this.allowOverflow(true);
+
         this.update(bookmark, options, interactive, reserveScrollbarSpace, index, actions);
     }
 
@@ -65,7 +69,9 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.index = index;
         this.actions = actions;
+
         this.item.stack(bookmark.itemStack());
+
         this.updateLayout();
     }
 
@@ -157,6 +163,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         if (this.list.dragging(this.bookmark.productId())) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_DRAG);
         }
+
         this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));
 
         var font = Minecraft.getInstance().font;

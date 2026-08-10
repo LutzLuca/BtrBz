@@ -20,18 +20,28 @@ public final class CacheDependencies {
     public static CacheDependencies of(CacheToken... tokens) {
         Objects.requireNonNull(tokens, "tokens");
         var unique = new LinkedHashSet<CacheToken>();
+
         for (var token : tokens) {
             unique.add(Objects.requireNonNull(token, "token"));
         }
+
         return unique.isEmpty() ? NONE : new CacheDependencies(List.copyOf(unique));
     }
 
     public CacheDependencies and(CacheDependencies other) {
         Objects.requireNonNull(other, "other");
-        if (other.tokens.isEmpty()) return this;
-        if (this.tokens.isEmpty()) return other;
+
+        if (other.tokens.isEmpty()) {
+            return this;
+        }
+
+        if (this.tokens.isEmpty()) {
+            return other;
+        }
+
         var combined = new LinkedHashSet<>(this.tokens);
         combined.addAll(other.tokens);
+
         return new CacheDependencies(List.copyOf(combined));
     }
 

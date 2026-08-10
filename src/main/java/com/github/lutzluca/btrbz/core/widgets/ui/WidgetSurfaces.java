@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
+
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Surface;
 import org.joml.Matrix3x2f;
 
@@ -20,7 +22,7 @@ public final class WidgetSurfaces {
     }
 
     public static void drawRoundedPanel(
-        io.wispforest.owo.ui.core.OwoUIGraphics context,
+        OwoUIGraphics context,
         int x,
         int y,
         int width,

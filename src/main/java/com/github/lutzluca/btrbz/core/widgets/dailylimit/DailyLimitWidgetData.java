@@ -20,14 +20,19 @@ public final class DailyLimitWidgetData implements WidgetDataSource<DailyLimitWi
     }
 
     @Override
-    public CacheDependencies cacheDependencies() { return this.dependencies; }
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
     @Override
-    public boolean sessionSensitive() { return false; }
+    public boolean sessionSensitive() {
+        return false;
+    }
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
         var usage = this.component.currentUsage();
+
         return new Snapshot(Math.round(usage.used()), Math.round(usage.limit()));
     }
 
@@ -37,7 +42,9 @@ public final class DailyLimitWidgetData implements WidgetDataSource<DailyLimitWi
 
     public record Snapshot(long used, long limit) {
         public Snapshot {
-            if (used < 0 || limit <= 0) throw new IllegalArgumentException("limit values must be positive");
+            if (used < 0 || limit <= 0) {
+                throw new IllegalArgumentException("limit values must be positive");
+            }
         }
     }
 }

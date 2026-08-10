@@ -9,8 +9,12 @@ public final class SignEditScreenTransitionState {
     }
 
     public boolean consumeSuspendedRemoval() {
-        if (!this.suspended) return false;
+        if (!this.suspended) {
+            return false;
+        }
+
         this.suspended = false;
+
         return true;
     }
 }

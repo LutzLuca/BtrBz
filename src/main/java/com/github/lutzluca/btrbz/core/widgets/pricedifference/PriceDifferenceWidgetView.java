@@ -25,15 +25,18 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 
 final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
+
     private final RetainedFlowLayout product = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
     private final LabelComponent productName = text("", BazaarStyles.PRIMARY_TEXT);
+
     private final ValueLine perItem = new ValueLine(0);
     private final ValueLine total = new ValueLine(1);
 
     PriceDifferenceWidgetView() {
         this.root.allowOverflow(true);
         this.root.gap(WidgetLayoutTokens.LINE_GAP);
+
         this.product.verticalAlignment(VerticalAlignment.CENTER);
         this.product.gap(3);
     }
@@ -52,27 +55,35 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
     ) {
         this.productName.text(data.productName());
         this.product.clearChildren();
+
         var itemStack = data.itemStack();
+
         if (itemStack.isPresent()) {
             var stack = itemStack.orElseThrow();
+
             if (this.item == null) {
                 this.item = icon(stack);
             } else {
                 this.item.stack(stack);
             }
+
             this.product.child(this.item);
         }
+
         this.product.child(this.productName);
+
         int color = data.total() >= 0 ? BazaarStyles.BUY_ACCENT : BazaarStyles.STATUS_UNDERCUT;
         String perItemValue = signed(data.perItem());
         String totalLabel = "Total (" + BazaarWidgetViewData.formatInt(data.quantity()) + " items)";
         String totalValue = signed(data.total());
+
         this.perItem.update("Per item", perItemValue, color);
         this.total.update(
             totalLabel,
             totalValue,
             color
         );
+
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.root.clearChildren();
         this.root.child(this.product);
@@ -91,6 +102,7 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
 
         private ValueLine(int labelInset) {
             this.label.margins(Insets.left(labelInset));
+
             this.root.child(this.label);
             this.root.child(spacer());
             this.root.child(this.value);

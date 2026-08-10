@@ -14,8 +14,10 @@ final class WidgetManagerPanelState {
 
     private int x;
     private int y;
+
     private boolean initialized;
     private boolean userPositioned;
+
     private boolean dragging;
     private double pointerOffsetX;
     private double pointerOffsetY;
@@ -83,18 +85,25 @@ final class WidgetManagerPanelState {
         int panelWidth,
         int panelHeight
     ) {
-        if (!this.dragging) return false;
+        if (!this.dragging) {
+            return false;
+        }
 
         this.x = (int) Math.round(pointerX - this.pointerOffsetX);
         this.y = (int) Math.round(pointerY - this.pointerOffsetY);
         this.userPositioned = true;
         this.clampToViewport(viewportWidth, viewportHeight, panelWidth, panelHeight);
+
         return true;
     }
 
     boolean endDrag() {
-        if (!this.dragging) return false;
+        if (!this.dragging) {
+            return false;
+        }
+
         this.dragging = false;
+
         return true;
     }
 

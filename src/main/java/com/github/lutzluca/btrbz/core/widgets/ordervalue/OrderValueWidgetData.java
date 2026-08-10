@@ -14,14 +14,19 @@ public final class OrderValueWidgetData implements WidgetDataSource<OrderValueWi
     }
 
     @Override
-    public CacheDependencies cacheDependencies() { return this.dependencies; }
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
     @Override
-    public boolean sessionSensitive() { return false; }
+    public boolean sessionSensitive() {
+        return false;
+    }
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
         var value = this.component.currentBreakdown();
+
         return new Snapshot(
             Math.round(value.buyLocked()), Math.round(value.buyItems()),
             Math.round(value.sellClaimable()), Math.round(value.sellPending()),

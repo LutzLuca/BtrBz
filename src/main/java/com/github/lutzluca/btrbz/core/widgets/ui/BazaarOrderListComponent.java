@@ -13,9 +13,11 @@ import java.util.List;
 /** A retained keyed list for ordinary Bazaar rows. */
 public final class BazaarOrderListComponent extends BaseParentUIComponent {
     private final WidgetScrollListComponent scrollList;
+
     private final RetainedRows<String, BazaarOrderRowComponent> retainedRows = new RetainedRows<>();
     private final List<BazaarOrderRowComponent> rows = new ArrayList<>();
     private final List<UIComponent> children;
+
     private int viewportHeight;
 
     public BazaarOrderListComponent(boolean hoverable, int rowHeight, int height) {
@@ -23,8 +25,10 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
         this.scrollList = new WidgetScrollListComponent(
             height, WidgetLayoutTokens.LIST_GAP, hoverable, BazaarStyles.SCROLLBAR
         );
+
         this.children = Collections.singletonList(this.scrollList);
         this.viewportHeight = Math.max(1, height);
+
         this.allowOverflow(true);
     }
 
@@ -41,13 +45,17 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
             (data, _) -> new BazaarOrderRowComponent(data, hoverable, rowHeight, reserveScrollbarSpace),
             (row, data, _) -> row.update(data, hoverable, rowHeight, reserveScrollbarSpace)
         );
+
         this.rows.clear();
         this.rows.addAll(ordered);
+
         int normalizedHeight = Math.max(1, height);
+
         if (this.viewportHeight != normalizedHeight) {
             this.viewportHeight = normalizedHeight;
             this.verticalSizing(Sizing.fixed(normalizedHeight));
         }
+
         this.scrollList.updateRows(this.rows, height, hoverable);
     }
 
@@ -70,9 +78,14 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
+
         boolean suppressRowHover = this.scrollList.scrollbarOwnsMouseCapture()
             || this.scrollList.isPointerOverScrollbar(mouseX, mouseY);
-        for (var row : this.rows) row.suppressHover(suppressRowHover);
+
+        for (var row : this.rows) {
+            row.suppressHover(suppressRowHover);
+        }
+
         this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, this.children);
     }
 }

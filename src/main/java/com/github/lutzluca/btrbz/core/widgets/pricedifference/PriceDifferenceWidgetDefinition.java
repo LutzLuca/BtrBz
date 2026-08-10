@@ -15,7 +15,9 @@ import net.minecraft.resources.Identifier;
 
 public final class PriceDifferenceWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "price_diff"));
-    private PriceDifferenceWidgetDefinition() {}
+
+    private PriceDifferenceWidgetDefinition() {
+    }
 
     public static WidgetDefinition<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> create(
         BazaarData market
@@ -24,6 +26,7 @@ public final class PriceDifferenceWidgetDefinition {
             () -> ConfigManager.get().widgets.priceDiff, PriceDifferenceWidgetConfig::new,
             value -> value.frame, PriceDifferenceWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new PriceDifferenceWidgetData(market));
+
         return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID, "Price Difference")
             .description("Shows the per-item and total difference between the entered price and the current market price.")
             .config(config)
@@ -42,5 +45,7 @@ public final class PriceDifferenceWidgetDefinition {
         return session.inBazaarMenu(BazaarMenuType.Item);
     }
 
-    public static boolean isVisible(PriceDifferenceWidgetData.Snapshot data) { return data.quantity() > 0; }
+    public static boolean isVisible(PriceDifferenceWidgetData.Snapshot data) {
+        return data.quantity() > 0;
+    }
 }

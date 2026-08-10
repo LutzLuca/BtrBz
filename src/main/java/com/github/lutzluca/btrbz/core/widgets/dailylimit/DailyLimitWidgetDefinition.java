@@ -15,7 +15,9 @@ import net.minecraft.resources.Identifier;
 public final class DailyLimitWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_limit"));
     static final int MINIMUM_CONTENT_WIDTH = 60;
-    private DailyLimitWidgetDefinition() {}
+
+    private DailyLimitWidgetDefinition() {
+    }
 
     public static WidgetDefinition<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> create(
         DailyLimitComponent component
@@ -24,6 +26,7 @@ public final class DailyLimitWidgetDefinition {
             () -> ConfigManager.get().widgets.orderLimit, DailyLimitWidgetConfig::new,
             value -> value.frame, DailyLimitWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(new DailyLimitWidgetData(component, config));
+
         return WidgetDefinition.<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void>builder(ID, "Daily Limit")
             .description("Tracks your estimated daily Bazaar transaction value against Hypixel's limit.")
             .config(config)

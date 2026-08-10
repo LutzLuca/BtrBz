@@ -38,11 +38,15 @@ public final class WidgetHost {
     private final WidgetStateStore stateStore;
     private final boolean runtime;
     private final boolean runtimePlacementDragging;
+
     private final @Nullable WidgetSessionProvider sessionProvider;
     private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
     private final @Nullable Map<WidgetId, Double> scrollOffsets;
+
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
+
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
+
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private List<RuntimeWidgetHit> runtimeWidgetHits = List.of();
     private @Nullable RuntimePlacementDrag runtimePlacementDrag;
@@ -60,6 +64,7 @@ public final class WidgetHost {
         this.stateStore = stateStore;
         this.runtime = runtime;
         this.runtimePlacementDragging = runtimePlacementDragging;
+
         this.sessionProvider = sessionProvider;
         this.capturedPreviews = capturedPreviews == null ? null : Map.copyOf(capturedPreviews);
         this.scrollOffsets = scrollOffsets;
@@ -102,7 +107,9 @@ public final class WidgetHost {
         @Nullable Screen screen
     ) {
         this.ensureAdapter();
+
         WidgetSession runtimeSession = this.runtime ? this.currentSession(screen) : null;
+
         var attached = new HashSet<WidgetId>();
         var orderedSlots = new ArrayList<WidgetSlotComponent>();
         var results = new ArrayList<WidgetRenderResult>();
@@ -110,13 +117,23 @@ public final class WidgetHost {
 
         for (var definition : this.definitions) {
             boolean requested = options.shouldRender(definition.getId(), definition.frame().enabled);
-            if (!requested || this.runtime && !definition.supports(runtimeSession)) continue;
+
+            if (!requested || this.runtime && !definition.supports(runtimeSession)) {
+                continue;
+            }
+
             var prepared = this.prepare(definition, canvas, options, runtimeSession);
-            if (prepared == null) continue;
+
+            if (prepared == null) {
+                continue;
+            }
+
             attached.add(definition.getId());
             orderedSlots.add(prepared.mounted().slot());
+
             if (prepared.result() != null) {
                 results.add(prepared.result());
+
                 if (this.runtimePlacementDragging) {
                     hits.add(new RuntimeWidgetHit(prepared.result(), prepared.anchorCanvas()));
                 }
@@ -125,12 +142,15 @@ public final class WidgetHost {
 
         this.detachMissing(attached);
         this.runtimeWidgetHits = List.copyOf(hits);
+
         this.adapter.rootComponent.synchronizeSlots(orderedSlots);
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
         this.adapter.extractRenderState(graphics, mouseX, mouseY, partialTicks);
+
         if (options.allowTooltips() && this.runtimePlacementDrag == null) {
             this.adapter.drawTooltip(graphics, mouseX, mouseY, partialTicks);
         }
+
         return List.copyOf(results);
     }
 
@@ -139,11 +159,16 @@ public final class WidgetHost {
         this.capturedMouseButtons.clear();
         this.runtimeWidgetHits = List.of();
         this.runtimePlacementDrag = null;
+
         var current = this.adapter;
         this.adapter = null;
+
         if (current != null) {
-            try { current.dispose(); }
-            catch (RuntimeException exception) { log.warn("Failed to dispose widget host adapter", exception); }
+            try {
+                current.dispose();
+            } catch (RuntimeException exception) {
+                log.warn("Failed to dispose widget host adapter", exception);
+            }
         }
     }
 
@@ -156,25 +181,35 @@ public final class WidgetHost {
     }
 
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-        if (this.adapter == null) return false;
+        if (this.adapter == null) {
+            return false;
+        }
+
         if (this.canBeginRuntimePlacementDrag(click)) {
             var hit = this.runtimeHitAt(click.x(), click.y());
+
             if (hit != null) {
                 var result = hit.result();
+
                 this.runtimePlacementDrag = new RuntimePlacementDrag(
                     result.definition(), result.placementProfile(), hit.anchorCanvas(),
                     click.x() - result.bounds().x(), click.y() - result.bounds().y(),
                     result.bounds().width(), result.bounds().height(), click.button()
                 );
+
                 this.capturedMouseButtons.add(click.button());
+
                 return true;
             }
         }
+
         boolean handled = this.adapter.mouseClicked(click, doubled);
+
         if (handled) {
             this.capturedMouseButtons.add(click.button());
             return true;
         }
+
         return false;
     }
 
@@ -186,7 +221,9 @@ public final class WidgetHost {
             this.stateStore.save();
             return true;
         }
+
         boolean captured = this.capturedMouseButtons.remove(click.button());
+
         return this.adapter == null ? captured : this.adapter.mouseReleased(click) || captured;
     }
 
@@ -195,7 +232,9 @@ public final class WidgetHost {
             this.updateRuntimePlacement(click.x(), click.y());
             return true;
         }
+
         boolean captured = this.capturedMouseButtons.contains(click.button());
+
         return this.adapter == null ? captured : this.adapter.mouseDragged(click, deltaX, deltaY) || captured;
     }
 
@@ -203,7 +242,9 @@ public final class WidgetHost {
         return this.adapter != null && this.adapter.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    public boolean keyPressed(KeyEvent input) { return this.adapter != null && this.adapter.keyPressed(input); }
+    public boolean keyPressed(KeyEvent input) {
+        return this.adapter != null && this.adapter.keyPressed(input);
+    }
 
     private void ensureAdapter() {
         if (this.adapter == null) {
@@ -221,15 +262,19 @@ public final class WidgetHost {
         try {
             WidgetPreview preview = this.runtime ? null : this.preview(definition);
             WidgetSession session = this.runtime ? runtimeSession : preview.session();
+
             var mountedWidget = this.mounted.computeIfAbsent(
                 definition.getId(), _ -> this.mount(definition)
             );
+
             String initialProfile = this.runtime
                 ? definition.placementProfile(session)
                 : preview.placementProfile();
             String profile = options.placementProfile(definition, initialProfile);
+
             var cached = mountedWidget.preparedCache;
             boolean preparedCaching = this.runtime && definition.isPreparedCacheEnabled();
+
             if (preparedCaching && cached != null && cached.stamp().matches(
                 session, screenCanvas, options, profile, mountedWidget.dependencies
             )) {
@@ -244,19 +289,25 @@ public final class WidgetHost {
             Object data = this.runtime ? definition.getDataSource().snapshot(session) : preview.data();
             Object config = definition.config();
             long generation = mountedWidget.generation + 1;
+
             Consumer actions = this.runtime
                 ? action -> this.dispatch(mountedWidget, generation, action)
                 : _ -> {};
+
             ((WidgetView) mountedWidget.view()).update(data, config, session, actions);
+
             boolean visible = !this.runtime || definition.getVisibility().test(data, config, session);
             var anchorCanvas = screenCanvas;
+
             if (!visible) {
                 mountedWidget.slot().update(
                     this.stateStore.backgroundColor(definition),
                     mountedWidget.slot().localBounds(), 1, 1, 1,
                     options.isSelected(definition), options.drawManagementOverlay(), false
                 );
+
                 var prepared = new PreparedWidget(mountedWidget, null, anchorCanvas);
+
                 this.publishPreparation(
                     mountedWidget, preparedCaching, session, screenCanvas, options,
                     profile, generation, prepared
@@ -270,38 +321,48 @@ public final class WidgetHost {
                 requestedScale, minimumScale, anchorCanvas.width(), anchorCanvas.height(),
                 definition.getMinWidth(), definition.getMinHeight()
             );
+
             var component = mountedWidget.component();
+
             component.inflate(Size.of(
                 Math.max(1, (int) Math.floor(anchorCanvas.width() / scale)),
                 Math.max(1, (int) Math.floor(anchorCanvas.height() / scale))
             ));
+
             int logicalWidth = Math.max(definition.getMinWidth(), component.width());
             int logicalHeight = Math.max(definition.getMinHeight(), component.height());
+
             scale = WidgetScaleResolver.fitToCanvas(
                 requestedScale, minimumScale, anchorCanvas.width(), anchorCanvas.height(),
                 logicalWidth, logicalHeight
             );
+
             if (!WidgetScaleResolver.fitsCanvas(
                 scale, anchorCanvas.width(), anchorCanvas.height(), logicalWidth, logicalHeight
             )) {
                 mountedWidget.clearPreparation();
                 return null;
             }
+
             int scaledWidth = Math.max(1, (int) Math.ceil(logicalWidth * scale));
             int scaledHeight = Math.max(1, (int) Math.ceil(logicalHeight * scale));
+
             var resolved = this.stateStore.placement(definition, profile).resolve(
                 anchorCanvas.width(), anchorCanvas.height(), scaledWidth, scaledHeight
             );
+
             var localBounds = new WidgetBounds(
                 anchorCanvas.x() - screenCanvas.x() + resolved.x(),
                 anchorCanvas.y() - screenCanvas.y() + resolved.y(),
                 resolved.width(), resolved.height()
             );
+
             mountedWidget.slot().update(
                 this.stateStore.backgroundColor(definition),
                 localBounds, logicalWidth, logicalHeight, scale,
                 options.isSelected(definition), options.drawManagementOverlay(), true
             );
+
             var result = new WidgetRenderResult(
                 definition, profile,
                 new WidgetBounds(
@@ -310,7 +371,9 @@ public final class WidgetHost {
                 ),
                 logicalWidth, logicalHeight, scale
             );
+
             var prepared = new PreparedWidget(mountedWidget, result, anchorCanvas);
+
             this.publishPreparation(
                 mountedWidget, preparedCaching, session, screenCanvas, options,
                 profile, generation, prepared
@@ -334,10 +397,12 @@ public final class WidgetHost {
         PreparedWidget prepared
     ) {
         long[] revisions = CacheRevisions.capture(mountedWidget.dependencies);
+
         mountedWidget.generation = generation;
         mountedWidget.preparedSessionId = session.id();
         mountedWidget.preparedSessionContextRevision = session.contextRevision();
         mountedWidget.preparedDependencyRevisions = revisions;
+
         mountedWidget.preparedCache = preparedCaching ? new PreparedCacheEntry(
             new PreparedCacheStamp(
                 session.id(), session.contextRevision(),
@@ -357,19 +422,23 @@ public final class WidgetHost {
     @SuppressWarnings({"rawtypes"})
     private MountedWidget mount(WidgetDefinition definition) {
         WidgetView view = (WidgetView) definition.getViewFactory().get();
+
         if (this.scrollOffsets != null && view instanceof ScrollOffsetView scrollView) {
             scrollView.scrollOffset(this.scrollOffsets.getOrDefault(definition.getId(), 0.0));
         }
+
         var component = WidgetChrome.wrap(view.root());
         var slot = new WidgetSlotComponent(
             definition.getId(), component, this.stateStore.backgroundColor(definition),
             new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false
         );
+
         CacheDependencies dependencies = definition.getCacheDependencies()
             .and(CacheDependencies.of(
                 this.stateStore.frameChanges(definition.getId()),
                 this.stateStore.globalFrameChanges()
             ));
+
         return new MountedWidget(definition, view, component, slot, dependencies);
     }
 
@@ -378,10 +447,17 @@ public final class WidgetHost {
         if (generation != mountedWidget.generation
             || !CacheRevisions.match(
                 mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies
-            )) return;
+            )) {
+            return;
+        }
+
         var current = this.currentSession(Minecraft.getInstance().screen);
+
         if (mountedWidget.preparedSessionId != current.id()
-            || mountedWidget.preparedSessionContextRevision != current.contextRevision()) return;
+            || mountedWidget.preparedSessionContextRevision != current.contextRevision()) {
+            return;
+        }
+
         try {
             ((WidgetActionHandler) mountedWidget.definition.getActionHandler())
                 .handle(action, current, current);
@@ -392,19 +468,30 @@ public final class WidgetHost {
 
     private void detachMissing(Set<WidgetId> attached) {
         for (var id : List.copyOf(this.mounted.keySet())) {
-            if (!attached.contains(id)) this.detach(id);
+            if (!attached.contains(id)) {
+                this.detach(id);
+            }
         }
     }
 
     private void detach(WidgetId id) {
         var removed = this.mounted.remove(id);
-        if (removed == null) return;
+
+        if (removed == null) {
+            return;
+        }
+
         removed.clearPreparation();
+
         if (this.scrollOffsets != null && removed.view() instanceof ScrollOffsetView scrollView) {
             this.scrollOffsets.put(id, scrollView.scrollOffset());
         }
-        try { removed.view().close(); }
-        catch (RuntimeException exception) { log.warn("Failed to close widget view {}", id, exception); }
+
+        try {
+            removed.view().close();
+        } catch (RuntimeException exception) {
+            log.warn("Failed to close widget view {}", id, exception);
+        }
     }
 
     private WidgetSession currentSession(@Nullable Screen screen) {
@@ -414,8 +501,12 @@ public final class WidgetHost {
     private @Nullable RuntimeWidgetHit runtimeHitAt(double x, double y) {
         for (int index = this.runtimeWidgetHits.size() - 1; index >= 0; index--) {
             var hit = this.runtimeWidgetHits.get(index);
-            if (hit.result().bounds().contains(x, y)) return hit;
+
+            if (hit.result().bounds().contains(x, y)) {
+                return hit;
+            }
         }
+
         return null;
     }
 
@@ -428,9 +519,14 @@ public final class WidgetHost {
 
     private void updateRuntimePlacement(double mouseX, double mouseY) {
         var drag = this.runtimePlacementDrag;
-        if (drag == null) return;
+
+        if (drag == null) {
+            return;
+        }
+
         int x = (int) Math.round(mouseX - drag.pointerOffsetX() - drag.anchorCanvas().x());
         int y = (int) Math.round(mouseY - drag.pointerOffsetY() - drag.anchorCanvas().y());
+
         this.stateStore.setPlacement(
             drag.definition(), drag.placementProfile(),
             WidgetPlacement.fromAbsolute(
@@ -445,12 +541,15 @@ public final class WidgetHost {
         private final WidgetView<?, ?, ?> view;
         private final io.wispforest.owo.ui.core.UIComponent component;
         private final WidgetSlotComponent slot;
+
         private final CacheDependencies dependencies;
         private @Nullable PreparedCacheEntry preparedCache;
+
         private long[] preparedDependencyRevisions = new long[0];
         private long preparedSessionId = Long.MIN_VALUE;
         private long preparedSessionContextRevision = Long.MIN_VALUE;
         private long generation;
+
         private long hits;
         private long misses;
         private long coldMisses;
@@ -467,12 +566,21 @@ public final class WidgetHost {
             this.view = view;
             this.component = component;
             this.slot = slot;
+
             this.dependencies = dependencies;
         }
 
-        private WidgetView<?, ?, ?> view() { return this.view; }
-        private io.wispforest.owo.ui.core.UIComponent component() { return this.component; }
-        private WidgetSlotComponent slot() { return this.slot; }
+        private WidgetView<?, ?, ?> view() {
+            return this.view;
+        }
+
+        private io.wispforest.owo.ui.core.UIComponent component() {
+            return this.component;
+        }
+
+        private WidgetSlotComponent slot() {
+            return this.slot;
+        }
 
         private void recordMiss(
             @Nullable PreparedCacheEntry cached,
@@ -482,11 +590,13 @@ public final class WidgetHost {
             String profile
         ) {
             this.misses++;
+
             if (cached == null) {
                 this.coldMisses++;
                 this.lastMissCauses = List.of(WidgetCacheMissCause.direct("cold cache"));
                 return;
             }
+
             this.lastMissCauses = cached.stamp().missCauses(
                 session, canvas, options, profile, this.dependencies
             );

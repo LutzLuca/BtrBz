@@ -5,7 +5,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class BookmarksWidget {
-    private BookmarksWidget() {}
+    private BookmarksWidget() {
+    }
 
     public static List<BookmarksWidgetData.Bookmark> sortedBookmarks(
         List<BookmarksWidgetData.Bookmark> source,

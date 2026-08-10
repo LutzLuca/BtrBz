@@ -13,14 +13,23 @@ final class WidgetManagerEditSession implements AutoCloseable {
     }
 
     void markDirty() {
-        if (this.closed) throw new IllegalStateException("Widget manager edit session is closed");
+        if (this.closed) {
+            throw new IllegalStateException("Widget manager edit session is closed");
+        }
+
         this.dirty = true;
     }
 
     @Override
     public void close() {
-        if (this.closed) return;
+        if (this.closed) {
+            return;
+        }
+
         this.closed = true;
-        if (this.dirty) this.save.run();
+
+        if (this.dirty) {
+            this.save.run();
+        }
     }
 }

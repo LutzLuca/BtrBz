@@ -19,13 +19,20 @@ public final class ScrollSafeDiscreteSliderComponent extends DiscreteSliderCompo
         double step
     ) {
         super(horizontalSizing, min, max);
-        if (!Double.isFinite(step) || step <= 0) throw new IllegalArgumentException("step must be positive");
+
+        if (!Double.isFinite(step) || step <= 0) {
+            throw new IllegalArgumentException("step must be positive");
+        }
+
         this.step = step;
     }
 
     @Override
     public double discreteValue() {
-        if (this.step <= 0) return super.discreteValue();
+        if (this.step <= 0) {
+            return super.discreteValue();
+        }
+
         return snapToStep(super.discreteValue(), this.min, this.max, this.step);
     }
 
@@ -34,6 +41,7 @@ public final class ScrollSafeDiscreteSliderComponent extends DiscreteSliderCompo
         if (this.step > 0 && this.max > this.min) {
             this.value = (this.discreteValue() - this.min) / (this.max - this.min);
         }
+
         super.applyValue();
     }
 

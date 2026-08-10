@@ -34,6 +34,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
     private Component productName;
+
     private @Nullable ItemComponent item;
 
     BazaarHudOrderRowComponent(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
@@ -46,20 +47,26 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.order = order;
         this.options = options;
         this.productName = order.formattedItemName(options.abbreviateEnchanted);
+
         this.item = BazaarUi.reconcileItem(this.item, order.itemStack(), ICON_SIZE);
+
         this.updateLayout();
     }
 
     @Override
     public void layout(Size space) {
-        if (this.item == null) return;
+        if (this.item == null) {
+            return;
+        }
+
         this.itemComponent().inflate(Size.of(ICON_SIZE, ICON_SIZE));
         int iconX = this.x + LEFT_PADDING;
         int iconY = this.y + (HEIGHT - ICON_SIZE) / 2;
         this.itemComponent().mount(this, iconX, iconY);
     }
 
-    @Override public List<UIComponent> children() {
+    @Override
+    public List<UIComponent> children() {
         return this.item == null ? List.of() : List.of(this.itemComponent());
     }
 
@@ -71,8 +78,10 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
+
         var font = Minecraft.getInstance().font;
         int x = this.x + LEFT_PADDING;
+
         if (this.item != null) {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
             x += ICON_SIZE + WidgetLayoutTokens.ORDER_TEXT_GAP;
@@ -115,6 +124,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
                 false
             );
         }
+
         if (!marketText.isBlank()) {
             graphics.text(
                 font,

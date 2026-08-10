@@ -17,16 +17,20 @@ import java.util.List;
 @Slf4j
 public final class WidgetSlotComponent extends BaseParentUIComponent {
     private static final long TOOLTIP_DELAY_MILLIS = 200;
+
     private final WidgetId widgetId;
     private final UIComponent child;
+
     private WidgetBounds localBounds;
     private int backgroundColor;
     private int logicalWidth;
     private int logicalHeight;
     private double scale;
+
     private boolean selected;
     private boolean drawManagementOverlay;
     private boolean visible = true;
+
     private @Nullable UIComponent activeMouseTarget;
     private final TooltipDelayState<UIComponent> tooltipDelay =
         new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
@@ -45,13 +49,16 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         super(Sizing.fixed(localBounds.width()), Sizing.fixed(localBounds.height()));
         this.widgetId = widgetId;
         this.child = child;
+
         this.backgroundColor = backgroundColor;
         this.localBounds = localBounds;
         this.logicalWidth = Math.max(1, logicalWidth);
         this.logicalHeight = Math.max(1, logicalHeight);
         this.scale = scale;
+
         this.selected = selected;
         this.drawManagementOverlay = drawManagementOverlay;
+
         this.allowOverflow(true);
     }
 
@@ -63,9 +70,13 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         return this.widgetId;
     }
 
-    public boolean visible() { return this.visible; }
+    public boolean visible() {
+        return this.visible;
+    }
 
-    boolean ownsMouseCapture() { return this.activeMouseTarget != null; }
+    boolean ownsMouseCapture() {
+        return this.activeMouseTarget != null;
+    }
 
     public void update(
         int backgroundColor,
@@ -82,12 +93,15 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         this.logicalWidth = Math.max(1, logicalWidth);
         this.logicalHeight = Math.max(1, logicalHeight);
         this.scale = scale;
+
         this.selected = selected;
         this.drawManagementOverlay = drawManagementOverlay;
+
         if (this.visible && !visible) {
             this.activeMouseTarget = null;
             this.tooltipDelay.reset();
         }
+
         this.visible = visible;
         this.sizing(Sizing.fixed(Math.max(1, localBounds.width())), Sizing.fixed(Math.max(1, localBounds.height())));
     }
@@ -124,17 +138,28 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
 
     @Override
     public boolean onMouseDown(MouseButtonEvent click, boolean doubled) {
-        if (!this.visible) return false;
+        if (!this.visible) {
+            return false;
+        }
+
         var target = this.targetAt(click.x(), click.y());
-        if (target == null) return false;
+
+        if (target == null) {
+            return false;
+        }
 
         UIComponent candidate = target;
+
         while (candidate != null && candidate != this) {
             if (candidate.onMouseDown(this.eventFor(candidate, click), doubled)) {
                 this.activeMouseTarget = candidate;
                 return true;
             }
-            if (candidate == this.child) break;
+
+            if (candidate == this.child) {
+                break;
+            }
+
             candidate = candidate.parent();
         }
 
@@ -144,7 +169,9 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
 
     @Override
     public boolean onMouseDrag(MouseButtonEvent click, double deltaX, double deltaY) {
-        if (!this.visible || this.activeMouseTarget == null) return false;
+        if (!this.visible || this.activeMouseTarget == null) {
+            return false;
+        }
 
         return this.activeMouseTarget.onMouseDrag(
             this.eventFor(this.activeMouseTarget, click),
@@ -155,28 +182,41 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
 
     @Override
     public boolean onMouseUp(MouseButtonEvent click) {
-        if (!this.visible || this.activeMouseTarget == null) return false;
+        if (!this.visible || this.activeMouseTarget == null) {
+            return false;
+        }
 
         var target = this.activeMouseTarget;
         this.activeMouseTarget = null;
+
         return target.onMouseUp(this.eventFor(target, click));
     }
 
     @Override
     public boolean onMouseScroll(double mouseX, double mouseY, double amount) {
-        if (!this.visible) return false;
+        if (!this.visible) {
+            return false;
+        }
+
         boolean handled = this.child.onMouseScroll(
             this.logicalAbsoluteX(mouseX) - this.child.x(),
             this.logicalAbsoluteY(mouseY) - this.child.y(),
             amount
         );
-        if (handled) this.tooltipDelay.reset();
+
+        if (handled) {
+            this.tooltipDelay.reset();
+        }
+
         return handled;
     }
 
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
-        if (!this.visible) return;
+        if (!this.visible) {
+            return;
+        }
+
         int logicalMouseX = this.logicalAbsoluteX(mouseX - this.x);
         int logicalMouseY = this.logicalAbsoluteY(mouseY - this.y);
         int childMouseX = this.drawManagementOverlay ? this.x - 1 : logicalMouseX;
@@ -193,6 +233,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         if (this.drawManagementOverlay) {
             int color = this.selected ? 0xFFEBCB5B : 0x66FFFFFF;
             graphics.drawRectOutline(this.x - 1, this.y - 1, this.width + 2, this.height + 2, color);
+
             if (this.selected) {
                 graphics.fill(this.x - 3, this.y - 3, this.x + 5, this.y + 5, 0xFFEBCB5B);
                 graphics.drawRectOutline(this.x - 3, this.y - 3, 8, 8, 0xFF1A1C22);
@@ -210,7 +251,10 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         int logicalMouseX = this.logicalAbsoluteX(mouseX - this.x);
         int logicalMouseY = this.logicalAbsoluteY(mouseY - this.y);
         var target = this.logicalTooltipTargetAt(logicalMouseX, logicalMouseY);
-        if (!this.tooltipDelay.ready(target, System.nanoTime())) return;
+
+        if (!this.tooltipDelay.ready(target, System.nanoTime())) {
+            return;
+        }
 
         context.push();
         try {
@@ -243,8 +287,14 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
             : this.child.isInBoundingBox(logicalX, logicalY) ? this.child : null;
 
         while (target != null && target != this) {
-            if (target.shouldDrawTooltip(logicalX, logicalY)) return target;
-            if (target == this.child) break;
+            if (target.shouldDrawTooltip(logicalX, logicalY)) {
+                return target;
+            }
+
+            if (target == this.child) {
+                break;
+            }
+
             target = target.parent();
         }
 

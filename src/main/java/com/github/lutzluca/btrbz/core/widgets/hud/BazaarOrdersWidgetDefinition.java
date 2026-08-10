@@ -15,7 +15,9 @@ import net.minecraft.resources.Identifier;
 
 public final class BazaarOrdersWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "bazaar_orders"));
-    private BazaarOrdersWidgetDefinition() {}
+
+    private BazaarOrdersWidgetDefinition() {
+    }
 
     public static WidgetDefinition<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void> create(
         WidgetDataSource<BazaarWidgetViewData.OrdersData> provider
@@ -23,6 +25,7 @@ public final class BazaarOrdersWidgetDefinition {
         var config = new WidgetConfigHandle<>(ID,
             () -> ConfigManager.get().widgets.bazaarOrders, BazaarOrdersWidgetConfig::new,
             value -> value.frame, BazaarOrdersWidgetConfig::resetPreferences);
+
         return WidgetDefinition.<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void>builder(ID, "Bazaar Orders")
             .description("Shows tracked Bazaar orders on the HUD with their status, amount, price, and market position.")
             .config(config)
@@ -37,5 +40,7 @@ public final class BazaarOrdersWidgetDefinition {
             .build();
     }
 
-    public static boolean supportsSession(WidgetSession session) { return session.inHud(); }
+    public static boolean supportsSession(WidgetSession session) {
+        return session.inHud();
+    }
 }

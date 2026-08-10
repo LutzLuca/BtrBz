@@ -38,7 +38,10 @@ public final class RestorableVerticalScrollContainer<C extends UIComponent> exte
     @Override
     public void layout(Size space) {
         super.layout(space);
-        if (Double.isNaN(this.pendingScrollOffset)) return;
+
+        if (Double.isNaN(this.pendingScrollOffset)) {
+            return;
+        }
 
         double restored = WidgetMath.clamp(this.pendingScrollOffset, 0.0, this.maxScroll);
         this.scrollOffset = restored;

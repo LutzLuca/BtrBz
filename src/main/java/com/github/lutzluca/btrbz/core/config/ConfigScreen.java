@@ -146,7 +146,7 @@ public class ConfigScreen {
     private static ButtonOption widgetOption(WidgetDefinition<?, ?, ?> definition) {
         String name = definition.getDisplayName();
         WidgetId id = definition.getId();
-        
+
         String responsibility = definition.getDescription().isBlank()
             ? "Open the Widget Manager focused on " + name + "."
             : definition.getDescription();

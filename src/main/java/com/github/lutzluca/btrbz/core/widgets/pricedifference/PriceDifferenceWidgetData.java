@@ -21,21 +21,27 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
     public PriceDifferenceWidgetData(BazaarData market) {
         this.market = market;
         var screens = ScreenInfoHelper.get();
+
         this.dependencies = CacheDependencies.of(
             screens.inventoryChanges(), market.marketChanges(), market.indexChanges()
         );
     }
 
     @Override
-    public CacheDependencies cacheDependencies() { return this.dependencies; }
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
     @Override
-    public boolean sessionSensitive() { return false; }
+    public boolean sessionSensitive() {
+        return false;
+    }
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
         var info = ScreenInfoHelper.get().getCurrInfo();
         int quantity = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount).orElse(0);
+
         if (quantity <= 0) {
             return empty();
         }

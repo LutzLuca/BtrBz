@@ -17,7 +17,9 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
 public final class BazaarOrderRowComponent extends BaseUIComponent {
     private static final int MINIMUM_LEFT_WIDTH = 24;
+
     private BazaarRow row;
+
     private boolean hoverable;
     private boolean reserveScrollbarSpace;
     private boolean hoverSuppressed;
@@ -33,19 +35,28 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         boolean reserveScrollbarSpace
     ) {
         this.row = row;
+
         this.hoverable = hoverable;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
+
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
-        if (!row.tooltip().isEmpty()) this.tooltip(WidgetTooltips.wrapped(row.tooltip()));
+
+        if (!row.tooltip().isEmpty()) {
+            this.tooltip(WidgetTooltips.wrapped(row.tooltip()));
+        }
     }
 
     void update(BazaarRow row, boolean hoverable, int height, boolean reserveScrollbarSpace) {
         var appearance = row.appearance();
         boolean changed = !appearance.equals(this.lastAppearance) || this.reserveScrollbarSpace != reserveScrollbarSpace;
+
         this.row = row;
+
         this.hoverable = hoverable;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
+
         this.verticalSizing(Sizing.fixed(height));
+
         if (changed) {
             this.lastAppearance = appearance;
             this.drawLayout = null;
@@ -53,37 +64,51 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         }
     }
 
-    @Override public boolean canFocus(FocusSource source) {
+    @Override
+    public boolean canFocus(FocusSource source) {
         return this.row.clickAction() != null && source == FocusSource.MOUSE_CLICK;
     }
 
-    @Override public boolean onMouseDown(MouseButtonEvent click, boolean doubled) {
-        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.onMouseDown(click, doubled);
+    @Override
+    public boolean onMouseDown(MouseButtonEvent click, boolean doubled) {
+        if (click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+            return super.onMouseDown(click, doubled);
+        }
+
         if (this.hoverable && this.row.clickAction() != null) {
             this.row.clickAction().accept(click.hasControlDown());
             return true;
         }
+
         return super.onMouseDown(click, doubled);
     }
 
-    void suppressHover(boolean suppress) { this.hoverSuppressed = suppress; }
+    void suppressHover(boolean suppress) {
+        this.hoverSuppressed = suppress;
+    }
 
     @Override
     public boolean shouldDrawTooltip(double mouseX, double mouseY) {
         return !this.hoverSuppressed && super.shouldDrawTooltip(mouseX, mouseY);
     }
 
-    @Override public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+    @Override
+    public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         if (this.row.backgroundColor() != 0) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, this.row.backgroundColor());
         }
+
         boolean hovered = this.hoverable && !this.hoverSuppressed && this.isInBoundingBox(mouseX, mouseY);
-        if (hovered) graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
+
+        if (hovered) {
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
+        }
 
         if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
             this.drawLayout = this.computeDrawLayout();
             this.drawLayoutWidth = this.width;
         }
+
         var layout = this.drawLayout;
         var font = Minecraft.getInstance().font;
         int y = this.y + Math.max(0, (this.height - font.lineHeight) / 2);
@@ -97,6 +122,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
         graphics.text(font, layout.prefix(), this.x + layout.prefixX(), y, this.row.prefixColor(), false);
         graphics.text(font, layout.text(), this.x + layout.textX(), y, BazaarStyles.SECONDARY_TEXT, false);
+
         if (layout.rightText() != null) {
             graphics.text(font, layout.rightText(), this.x + layout.rightX(), y, this.row.rightColor(), false);
         }
@@ -106,6 +132,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         var font = Minecraft.getInstance().font;
         int x = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         int dotX = -1;
+
         if (this.row.statusColor() != 0) {
             dotX = x;
             x += 4 + 4;
@@ -125,8 +152,10 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             );
             int prefixX = x;
             x += widths.prefixWidth();
+
             int rightWidth = blankRight ? 0 : widths.rightWidth();
             int textLimit = rowEnd - rightWidth - (rightWidth == 0 ? 0 : 3);
+
             return new DrawLayout(
                 prefix.getVisualOrderText(), prefixX,
                 ellipsize(Component.literal(this.row.text()), Math.max(0, textLimit - x)), x,
@@ -144,8 +173,11 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         int prefixWidth = Math.max(0, leftLimit - x);
         int prefixX = x;
         var prefixSequence = ellipsize(prefix, prefixWidth);
+
         x += Math.min(font.width(prefix), prefixWidth);
+
         int textWidth = Math.max(0, leftLimit - x);
+
         return new DrawLayout(
             prefixSequence, prefixX,
             ellipsize(Component.literal(this.row.text()), textWidth), x,
@@ -170,9 +202,19 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
     public record PriorityWidths(int prefixWidth, int rightWidth) {}
 
-    public record BazaarRow(String id, String prefix, int prefixColor, String text, String rightText, int rightColor,
-                       int statusColor, List<Component> tooltip, Consumer<Boolean> clickAction,
-                       boolean preservePrefix, int backgroundColor) {
+    public record BazaarRow(
+        String id,
+        String prefix,
+        int prefixColor,
+        String text,
+        String rightText,
+        int rightColor,
+        int statusColor,
+        List<Component> tooltip,
+        Consumer<Boolean> clickAction,
+        boolean preservePrefix,
+        int backgroundColor
+    ) {
 
         public Appearance appearance() {
             return new Appearance(
@@ -188,14 +230,32 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             boolean preservePrefix, int backgroundColor
         ) {}
 
-        public BazaarRow(String id, String prefix, int prefixColor, String text, String rightText, int rightColor,
-                    int statusColor, List<Component> tooltip, Consumer<Boolean> clickAction) {
+        public BazaarRow(
+            String id,
+            String prefix,
+            int prefixColor,
+            String text,
+            String rightText,
+            int rightColor,
+            int statusColor,
+            List<Component> tooltip,
+            Consumer<Boolean> clickAction
+        ) {
             this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction, false, 0);
         }
 
-        public BazaarRow(String id, String prefix, int prefixColor, String text, String rightText, int rightColor,
-                    int statusColor, List<Component> tooltip, Consumer<Boolean> clickAction,
-                    boolean preservePrefix) {
+        public BazaarRow(
+            String id,
+            String prefix,
+            int prefixColor,
+            String text,
+            String rightText,
+            int rightColor,
+            int statusColor,
+            List<Component> tooltip,
+            Consumer<Boolean> clickAction,
+            boolean preservePrefix
+        ) {
             this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction, preservePrefix, 0);
         }
     }
