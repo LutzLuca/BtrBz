@@ -11,10 +11,15 @@ import org.jetbrains.annotations.Nullable;
 
 /** A retained widget scroll container which owns its scroll and thumb-capture state. */
 public final class WidgetScrollContainer<C extends UIComponent> extends ScrollContainer<C> {
+    private static final double WHEEL_SCROLL_DISTANCE = 12.0;
+    private static final double SMOOTH_SCROLL_DURATION_SECONDS = 0.25;
+    private static final double TICKS_PER_SECOND = 20.0;
+
     private final RetainedScrollState retainedScroll = new RetainedScrollState();
     private boolean interactive;
     private boolean thumbCaptured;
     private long retainedVisibleUntil;
+    private double smoothScrollTimeRemaining;
 
     public WidgetScrollContainer(
         Sizing horizontalSizing,
@@ -38,6 +43,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         double restoredOffset = this.retainedScroll.restore(this.maxScroll);
         this.scrollOffset = restoredOffset;
         this.currentScrollPosition = restoredOffset;
+        this.smoothScrollTimeRemaining = 0.0;
         this.scrollbaring = this.interactive && this.thumbCaptured;
         this.lastScrollbarInteractTime = this.interactive ? this.retainedVisibleUntil : 0L;
         this.updateChildPosition();
@@ -45,7 +51,18 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
 
     @Override
     protected void parentUpdate(float delta, int mouseX, int mouseY) {
+        double previousPosition = this.currentScrollPosition;
         super.parentUpdate(delta, mouseX, mouseY);
+        double elapsedSeconds = Math.max(0.0, delta) / TICKS_PER_SECOND;
+        if (elapsedSeconds >= this.smoothScrollTimeRemaining) {
+            this.currentScrollPosition = this.scrollOffset;
+            this.smoothScrollTimeRemaining = 0.0;
+        } else {
+            double progress = elapsedSeconds / this.smoothScrollTimeRemaining;
+            this.currentScrollPosition = previousPosition
+                + (this.scrollOffset - previousPosition) * progress;
+            this.smoothScrollTimeRemaining -= elapsedSeconds;
+        }
         this.updateChildPosition();
     }
 
@@ -65,9 +82,27 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     @Override
     public boolean onMouseScroll(double mouseX, double mouseY, double amount) {
         if (!this.interactive) return false;
-        boolean handled = super.onMouseScroll(mouseX, mouseY, amount);
+        if (this.child.onMouseScroll(this.x + mouseX - this.child.x(), this.y + mouseY - this.child.y(), amount)) {
+            return true;
+        }
+
+        this.scrollBy(-amount * WHEEL_SCROLL_DISTANCE, false, true);
         this.rememberState();
-        return handled;
+        return true;
+    }
+
+    @Override
+    protected void scrollBy(double offset, boolean instant, boolean showScrollbar) {
+        double targetOffset = clamp(this.scrollOffset + offset, this.maxScroll);
+        boolean changed = targetOffset != this.scrollOffset;
+        this.scrollOffset = targetOffset;
+        if (instant) {
+            this.currentScrollPosition = this.scrollOffset;
+            this.smoothScrollTimeRemaining = 0.0;
+        } else if (changed) {
+            this.smoothScrollTimeRemaining = SMOOTH_SCROLL_DURATION_SECONDS;
+        }
+        if (showScrollbar) this.lastScrollbarInteractTime = System.currentTimeMillis() + 1250L;
     }
 
     @Override
@@ -143,6 +178,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         double restoredOffset = this.retainedScroll.restore(this.maxScroll);
         this.scrollOffset = restoredOffset;
         this.currentScrollPosition = restoredOffset;
+        this.smoothScrollTimeRemaining = 0.0;
         this.updateChildPosition();
     }
 
@@ -161,6 +197,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         double targetOffset = this.maxScroll * Math.max(0.0, Math.min(1.0, progress + delta));
         this.scrollOffset = targetOffset;
         this.currentScrollPosition = targetOffset;
+        this.smoothScrollTimeRemaining = 0.0;
         this.updateChildPosition();
         this.rememberState();
     }
@@ -181,4 +218,9 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         this.retainedScroll.remember(this.scrollOffset);
         this.retainedVisibleUntil = this.lastScrollbarInteractTime;
     }
+
+    private static double clamp(double offset, double maximum) {
+        return Math.max(0.0, Math.min(maximum, offset));
+    }
+
 }
