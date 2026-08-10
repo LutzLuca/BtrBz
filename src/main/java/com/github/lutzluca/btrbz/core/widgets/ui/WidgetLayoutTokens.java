@@ -48,4 +48,14 @@ public final class WidgetLayoutTokens {
     public static int panelWidth(int contentWidth) {
         return Math.max(1, contentWidth) + PANEL_HORIZONTAL_PADDING * 2;
     }
+
+    public static int rowTrailingInset(boolean reserveScrollbarSpace) {
+        return ROW_HORIZONTAL_PADDING + (reserveScrollbarSpace
+            ? SCROLLBAR_THICKNESS + SCROLLBAR_CONTENT_GAP
+            : 0);
+    }
+
+    public static boolean requiresScrollbar(int rowHeight, int rowCount, int viewportHeight) {
+        return listViewportHeight(rowHeight, rowCount) > viewportHeight;
+    }
 }

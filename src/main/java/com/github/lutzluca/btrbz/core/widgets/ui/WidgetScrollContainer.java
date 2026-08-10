@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -95,7 +96,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
 
     @Override
     protected void scrollBy(double offset, boolean instant, boolean showScrollbar) {
-        double targetOffset = clamp(this.scrollOffset + offset, this.maxScroll);
+        double targetOffset = WidgetMath.clamp(this.scrollOffset + offset, 0.0, this.maxScroll);
         boolean changed = targetOffset != this.scrollOffset;
         this.scrollOffset = targetOffset;
         if (instant) {
@@ -196,7 +197,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     public void scrollByProgress(double delta) {
         if (!this.interactive) return;
         double progress = this.maxScroll <= 0 ? 0.0 : this.scrollOffset / this.maxScroll;
-        double targetOffset = this.maxScroll * Math.max(0.0, Math.min(1.0, progress + delta));
+        double targetOffset = this.maxScroll * WidgetMath.unit(progress + delta);
         this.scrollOffset = targetOffset;
         this.currentScrollPosition = targetOffset;
         this.smoothScrollTimeRemaining = 0.0;
@@ -221,10 +222,6 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         this.retainedVisibleUntil = this.lastScrollbarInteractTime;
     }
 
-    private static double clamp(double offset, double maximum) {
-        return Math.max(0.0, Math.min(maximum, offset));
-    }
-
     private int resolveScrollbarLength() {
         int trackLength = Math.max(0, this.height - this.padding.get().vertical());
         if (trackLength == 0) return 0;
@@ -232,6 +229,6 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         int calculatedLength = this.childSize <= 0
             ? trackLength
             : (int) Math.min(Math.floor((double) this.height / this.childSize * trackLength), trackLength);
-        return Math.min(trackLength, Math.max(MINIMUM_SCROLLBAR_LENGTH, calculatedLength));
+        return WidgetMath.clamp(calculatedLength, Math.min(MINIMUM_SCROLLBAR_LENGTH, trackLength), trackLength);
     }
 }

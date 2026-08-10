@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
@@ -113,16 +114,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         int iconSize = options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
             ? COMPACT_ICON_SIZE : STANDARD_ICON_SIZE;
-        var itemStack = order.itemStack();
-        if (itemStack.isEmpty()) {
-            this.clearItem();
-        } else if (this.item == null) {
-            this.item = BazaarUi.item(itemStack.orElseThrow(), iconSize);
-        } else {
-            this.item.stack(itemStack.orElseThrow());
-            if (layoutChanged) {
-                this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
-            }
+        this.item = BazaarUi.reconcileItem(this.item, order.itemStack(), iconSize);
+        if (layoutChanged && this.item != null) {
+            this.item.sizing(Sizing.fixed(iconSize), Sizing.fixed(iconSize));
         }
 
         if (layoutChanged) {
@@ -269,7 +263,8 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         var productText = ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x));
 
         String identity = BazaarOrderText.orderIdentity(this.order);
-        String market = this.firstFittingMarketText(
+        String market = BazaarUi.firstFittingText(
+            BazaarOrderText.marketPositionCandidates(this.order, true, true),
             Math.max(0, right - x - font.width(identity) - TEXT_GAP)
         );
         int marketX = market.isBlank() ? right : right - font.width(market);
@@ -322,14 +317,6 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         return new DrawLayout(side, sideX, status, statusX, productText, null, null, 0);
     }
 
-    private String firstFittingMarketText(int availableWidth) {
-        var font = Minecraft.getInstance().font;
-        for (var candidate : BazaarOrderText.marketPositionCandidates(this.order, true, true)) {
-            if (font.width(candidate) <= availableWidth) return candidate;
-        }
-        return "";
-    }
-
     private void drawProgress(OwoUIGraphics graphics) {
         if (this.order.liveProgress().isEmpty()) return;
         var progress = this.order.liveProgress().orElseThrow();
@@ -349,18 +336,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     static int progressFillWidth(int availableWidth, double fraction) {
-        return (int) Math.round(Math.max(0, availableWidth) * Math.max(0, Math.min(1, fraction)));
+        return WidgetMath.portion(availableWidth, fraction);
     }
 
     com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId orderId() { return this.order.id(); }
 
     private ItemComponent itemComponent() {
         return Objects.requireNonNull(this.item, "item");
-    }
-
-    private void clearItem() {
-        if (this.item == null) return;
-        if (this.item.hasParent()) this.item.dismount(DismountReason.REMOVED);
-        this.item = null;
     }
 }

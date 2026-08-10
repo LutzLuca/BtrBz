@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 
 /**
  * Tracks the widget-manager panel independently from the owo component tree so
@@ -99,11 +99,11 @@ final class WidgetManagerPanelState {
     }
 
     static int configuredWidth(int value) {
-        return WidgetPlacement.clampInt(value, MINIMUM_WIDTH, MAXIMUM_WIDTH);
+        return WidgetMath.clamp(value, MINIMUM_WIDTH, MAXIMUM_WIDTH);
     }
 
     static int configuredHeightPercent(int value) {
-        return WidgetPlacement.clampInt(value, MINIMUM_HEIGHT_PERCENT, MAXIMUM_HEIGHT_PERCENT);
+        return WidgetMath.clamp(value, MINIMUM_HEIGHT_PERCENT, MAXIMUM_HEIGHT_PERCENT);
     }
 
     private void clampToViewport(
@@ -117,6 +117,6 @@ final class WidgetManagerPanelState {
     }
 
     private static int clampToViewport(int value, int maximum) {
-        return WidgetPlacement.clampInt(value, 0, Math.max(0, maximum));
+        return WidgetMath.clamp(value, 0, Math.max(0, maximum));
     }
 }

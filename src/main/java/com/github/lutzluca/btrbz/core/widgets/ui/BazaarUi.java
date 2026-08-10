@@ -13,6 +13,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
 
 public final class BazaarUi {
     private BazaarUi() {}
@@ -63,6 +67,32 @@ public final class BazaarUi {
         item.showOverlay(false);
         item.setTooltipFromStack(false);
         return item;
+    }
+
+    public static @Nullable ItemComponent reconcileItem(
+        @Nullable ItemComponent current,
+        Optional<ItemStack> next,
+        int size
+    ) {
+        if (next.isEmpty()) {
+            if (current != null && current.hasParent()) {
+                current.dismount(UIComponent.DismountReason.REMOVED);
+            }
+            return null;
+        }
+
+        if (current == null) return item(next.orElseThrow(), size);
+        current.stack(next.orElseThrow());
+        return current;
+    }
+
+    public static String firstFittingText(List<String> candidates, int maximumWidth) {
+        var font = Minecraft.getInstance().font;
+        int availableWidth = Math.max(0, maximumWidth);
+        for (var candidate : candidates) {
+            if (font.width(candidate) <= availableWidth) return candidate;
+        }
+        return "";
     }
 
     public static FormattedCharSequence ellipsize(Component text, int maxWidth) {

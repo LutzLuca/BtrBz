@@ -46,14 +46,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.order = order;
         this.options = options;
         this.productName = order.formattedItemName(options.abbreviateEnchanted);
-        var itemStack = order.itemStack();
-        if (itemStack.isEmpty()) {
-            this.clearItem();
-        } else if (this.item == null) {
-            this.item = BazaarUi.item(itemStack.orElseThrow(), ICON_SIZE);
-        } else {
-            this.item.stack(itemStack.orElseThrow());
-        }
+        this.item = BazaarUi.reconcileItem(this.item, order.itemStack(), ICON_SIZE);
         this.updateLayout();
     }
 
@@ -103,7 +96,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         var marketCandidates = BazaarOrderText.marketPositionCandidates(
             this.order, this.options.showQueue, this.options.showUndercutGap
         );
-        String marketText = firstFittingMarketText(
+        String marketText = BazaarUi.firstFittingText(
             marketCandidates,
             Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP)
         );
@@ -134,21 +127,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         }
     }
 
-    private static String firstFittingMarketText(List<String> candidates, int availableWidth) {
-        var font = Minecraft.getInstance().font;
-        for (var candidate : candidates) {
-            if (font.width(candidate) <= availableWidth) return candidate;
-        }
-        return "";
-    }
-
     private ItemComponent itemComponent() {
         return Objects.requireNonNull(this.item, "item");
-    }
-
-    private void clearItem() {
-        if (this.item == null) return;
-        if (this.item.hasParent()) this.item.dismount(DismountReason.REMOVED);
-        this.item = null;
     }
 }

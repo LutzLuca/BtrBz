@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import io.wispforest.owo.ui.component.DiscreteSliderComponent;
 import io.wispforest.owo.ui.core.Sizing;
 
@@ -42,7 +43,6 @@ public final class ScrollSafeDiscreteSliderComponent extends DiscreteSliderCompo
     }
 
     static double snapToStep(double value, double min, double max, double step) {
-        double snapped = min + Math.round((value - min) / step) * step;
-        return Math.max(min, Math.min(max, snapped));
+        return WidgetMath.snap(value, min, max, step);
     }
 }

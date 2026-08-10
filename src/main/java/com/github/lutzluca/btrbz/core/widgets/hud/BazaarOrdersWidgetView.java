@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
+import com.github.lutzluca.btrbz.core.widgets.ui.RetainedRows;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -13,11 +14,8 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -65,7 +63,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
         private final LabelComponent count = label("", BazaarStyles.MUTED_TEXT);
         private final LabelComponent empty = label("", BazaarStyles.MUTED_TEXT);
         private final RetainedFlowLayout rows = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
-        private final Map<TrackedOrderId, BazaarHudOrderRowComponent> rowsById = new HashMap<>();
+        private final RetainedRows<TrackedOrderId, BazaarHudOrderRowComponent> retainedRows = new RetainedRows<>();
         private final Overflow overflow = new Overflow();
 
         private Detailed() {
@@ -86,20 +84,14 @@ final class BazaarOrdersWidgetView implements WidgetView<
             ));
             this.empty.text(Component.literal(BazaarHudWidget.emptyText(data)));
             int visible = Math.min(config.supportedVisibleOrders(), data.orders().size());
+            var orderedRows = this.retainedRows.reconcile(
+                data.orders().subList(0, visible),
+                BazaarWidgetViewData.Order::id,
+                (order, _) -> new BazaarHudOrderRowComponent(order, config),
+                (row, order, _) -> row.update(order, config)
+            );
             this.rows.clearChildren();
-            for (int index = 0; index < visible; index++) {
-                var order = data.orders().get(index);
-                var row = this.rowsById.computeIfAbsent(
-                    order.id(), _ -> new BazaarHudOrderRowComponent(order, config)
-                );
-                row.update(order, config);
-                this.rows.child(row);
-            }
-
-            var currentIds = data.orders().stream()
-                .map(BazaarWidgetViewData.Order::id)
-                .collect(Collectors.toSet());
-            this.rowsById.keySet().removeIf(id -> !currentIds.contains(id));
+            this.rows.children(orderedRows);
 
             this.root.clearChildren();
             this.root.child(this.header);

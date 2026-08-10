@@ -111,10 +111,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             x += 4 + 4;
         }
 
-        int trailingInset = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (this.reserveScrollbarSpace) {
-            trailingInset += WidgetLayoutTokens.SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
-        }
+        int trailingInset = WidgetLayoutTokens.rowTrailingInset(this.reserveScrollbarSpace);
         int rowEnd = this.width - trailingInset;
         var rightText = Component.literal(this.row.rightText());
         var prefix = Component.literal(this.row.prefix());

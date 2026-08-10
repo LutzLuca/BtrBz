@@ -29,13 +29,13 @@ class BazaarBookmarkLayoutTest {
         void addsScrollbarWidthAndContentGap() {
             assertEquals(
                 WidgetLayoutTokens.ROW_HORIZONTAL_PADDING,
-                BazaarBookmarkRowComponent.trailingInset(false)
+                WidgetLayoutTokens.rowTrailingInset(false)
             );
             assertEquals(
                 WidgetLayoutTokens.ROW_HORIZONTAL_PADDING
                     + WidgetLayoutTokens.SCROLLBAR_THICKNESS
                     + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP,
-                BazaarBookmarkRowComponent.trailingInset(true)
+                WidgetLayoutTokens.rowTrailingInset(true)
             );
         }
     }

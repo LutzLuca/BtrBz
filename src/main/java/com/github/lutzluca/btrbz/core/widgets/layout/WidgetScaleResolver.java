@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.layout;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import net.minecraft.client.Minecraft;
 
 public final class WidgetScaleResolver {
@@ -54,7 +55,7 @@ public final class WidgetScaleResolver {
 
     public static double clampScale(double value) {
         if (!Double.isFinite(value)) return 1.0;
-        return Math.max(MIN_SCALE, Math.min(MAX_SCALE, value));
+        return WidgetMath.clamp(value, MIN_SCALE, MAX_SCALE);
     }
 
     public static boolean fitsCanvas(

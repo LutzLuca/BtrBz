@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
@@ -117,7 +118,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
                 snapshot.pricePerUnit(),
                 snapshot.volume(),
                 Optional.of(new BazaarWidgetViewData.FillProgress(
-                    Math.max(0, Math.min(snapshot.fillAmountSnapshot(), snapshot.volume())), snapshot.volume()
+                    WidgetMath.clamp(snapshot.fillAmountSnapshot(), 0, snapshot.volume()), snapshot.volume()
                 )),
                 status,
                 marketInfo,

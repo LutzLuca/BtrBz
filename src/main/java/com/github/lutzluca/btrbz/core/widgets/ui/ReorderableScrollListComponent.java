@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.ParentUIComponent;
@@ -235,7 +236,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
 
     private void drawInsertionIndicator(OwoUIGraphics graphics) {
         if (!this.reorderable || this.draggedKey == null || this.rows.isEmpty()) return;
-        int gap = Math.max(0, Math.min(this.dropIndex, this.rows.size()));
+        int gap = WidgetMath.clamp(this.dropIndex, 0, this.rows.size());
         int lineY = gap == 0 ? this.rows.getFirst().y() - 1
             : gap == this.rows.size() ? this.rows.getLast().y() + this.rows.getLast().height()
             : this.rows.get(gap).y() - 1;
@@ -256,7 +257,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
 
     public static OptionalInt visibleInsertionIndicatorY(int lineY, int viewportTop, int viewportBottom) {
         if (lineY < viewportTop - 1 || lineY > viewportBottom + 1) return OptionalInt.empty();
-        return OptionalInt.of(Math.max(viewportTop, Math.min(viewportBottom, lineY)));
+        return OptionalInt.of(WidgetMath.clamp(lineY, viewportTop, viewportBottom));
     }
 
     @FunctionalInterface

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.Size;
 import io.wispforest.owo.ui.core.Sizing;
@@ -39,7 +40,7 @@ public final class RestorableVerticalScrollContainer<C extends UIComponent> exte
         super.layout(space);
         if (Double.isNaN(this.pendingScrollOffset)) return;
 
-        double restored = Math.min(this.pendingScrollOffset, this.maxScroll + 0.5);
+        double restored = WidgetMath.clamp(this.pendingScrollOffset, 0.0, this.maxScroll);
         this.scrollOffset = restored;
         this.currentScrollPosition = restored;
         this.pendingScrollOffset = Double.NaN;

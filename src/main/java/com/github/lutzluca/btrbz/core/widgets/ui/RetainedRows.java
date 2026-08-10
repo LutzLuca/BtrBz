@@ -9,10 +9,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /** Keyed reconciliation used by retained widget lists without leaking row state into widgets. */
-final class RetainedRows<K, C> {
+public final class RetainedRows<K, C> {
     private final Map<K, C> byKey = new LinkedHashMap<>();
 
-    <M> List<C> reconcile(
+    public <M> List<C> reconcile(
         List<M> models,
         Function<M, K> keyExtractor,
         BiFunction<M, Integer, C> factory,
@@ -38,7 +38,7 @@ final class RetainedRows<K, C> {
     }
 
     @FunctionalInterface
-    interface RowUpdater<C, M> {
+    public interface RowUpdater<C, M> {
         void update(C component, M model, int index);
     }
 }

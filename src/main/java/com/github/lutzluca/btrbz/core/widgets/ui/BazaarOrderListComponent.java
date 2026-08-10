@@ -34,7 +34,7 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
         int rowHeight,
         int height
     ) {
-        boolean reserveScrollbarSpace = WidgetLayoutTokens.listViewportHeight(rowHeight, rowData.size()) > height;
+        boolean reserveScrollbarSpace = WidgetLayoutTokens.requiresScrollbar(rowHeight, rowData.size(), height);
         var ordered = this.retainedRows.reconcile(
             rowData,
             BazaarOrderRowComponent.BazaarRow::id,

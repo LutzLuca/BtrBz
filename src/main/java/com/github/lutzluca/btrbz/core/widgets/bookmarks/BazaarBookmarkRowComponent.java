@@ -144,7 +144,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         int textX = this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING + ICON_SIZE + 3;
         int indicatorCount = (this.bookmark.buyOrder() ? 1 : 0) + (this.bookmark.sellOrder() ? 1 : 0);
         int indicatorWidth = indicatorCount == 0 ? 0 : indicatorCount * DOT_SIZE + (indicatorCount - 1) * 3;
-        int trailingInset = trailingInset(this.reserveScrollbarSpace);
+        int trailingInset = WidgetLayoutTokens.rowTrailingInset(this.reserveScrollbarSpace);
         int available = Math.max(0, this.x + this.width - trailingInset
             - indicatorWidth - 4 - textX);
         graphics.text(font, ellipsize(this.productName, available), textX,
@@ -159,13 +159,5 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         if (this.bookmark.sellOrder()) {
             graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, BazaarStyles.SELL_ACCENT);
         }
-    }
-
-    static int trailingInset(boolean reserveScrollbarSpace) {
-        int inset = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
-        if (reserveScrollbarSpace) {
-            inset += WidgetLayoutTokens.SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
-        }
-        return inset;
     }
 }
