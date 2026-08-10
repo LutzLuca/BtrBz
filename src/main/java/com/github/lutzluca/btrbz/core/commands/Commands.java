@@ -8,27 +8,20 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
-import net.minecraft.client.Minecraft;
 
 public class Commands {
 
     public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands
         .literal("btrbz")
-        .executes((ctx) -> {
+        .executes((_) -> {
             ConfigScreen.open();
             return 1;
         });
 
     public static void registerAll(BazaarData bazaarData, WidgetRuntime widgetRuntime) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            rootCommand.then(ClientCommands.literal("widgets").executes(_ -> {
-                var client = Minecraft.getInstance();
-                client.schedule(() -> client.setScreen(
-                    widgetRuntime.createManagementScreen(client.screen)
-                ));
-                return 1;
-            }));
             dispatcher.register(rootCommand);
+            dispatcher.register(WidgetCommand.get(widgetRuntime));
             dispatcher.register(AlertCommand.get(bazaarData));
             dispatcher.register(ConversionCommand.get(bazaarData));
             dispatcher.register(TrackedOrderCommand.get());
