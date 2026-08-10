@@ -435,7 +435,7 @@ public class BazaarOrderActions {
                     .name(Component.literal("Cancelled Order Actions"))
                     .description(ConfigScreen.createDescription(
                         "Copy the remaining amount or reopen the product page of the last cancelled buy order.",
-                    ConfigImages.REOPEN_LAST_ORDER
+                    ConfigImages.ReopenLastOrder
                     ))
                     .options(rootGroup.build())
                     .collapsed(true)

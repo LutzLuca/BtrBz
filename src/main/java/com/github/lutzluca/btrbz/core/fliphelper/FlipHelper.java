@@ -336,9 +336,9 @@ public class FlipHelper {
 
         @Override
         public boolean matches(SlotView view) {
-            var config = ConfigManager.get();
-            boolean tracksFlipProduct = config.widgets.orderBookPrice.frame.enabled;
-            return (config.flipHelper.enabled || tracksFlipProduct)
+            var cfg = ConfigManager.get();
+            boolean tracksFlipProduct = cfg.widgets.orderBookPrice.frame.enabled;
+            return (cfg.flipHelper.enabled || tracksFlipProduct)
                 && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }
@@ -385,7 +385,7 @@ public class FlipHelper {
                     ConfigScreen.example(
                         "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")
                 ),
-                    ConfigImages.FLIP_HELPER
+                    ConfigImages.FlipHelper
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

@@ -493,7 +493,7 @@ public class OrderProtectionManager {
                 .name(Component.literal("Order Protection"))
                 .description(ConfigScreen.createDescription(
                     "Prevent accidental orders at unusually aggressive prices before they are submitted to the Bazaar.",
-                    ConfigImages.ORDER_PROTECTION
+                    ConfigImages.OrderProtection
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

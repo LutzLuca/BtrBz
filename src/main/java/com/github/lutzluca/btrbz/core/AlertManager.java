@@ -333,7 +333,7 @@ public class AlertManager {
                             .literal(" reaches 4M coins or less.")
                             .withStyle(ChatFormatting.GRAY)))
                 ),
-                    ConfigImages.PRICE_ALERT
+                    ConfigImages.PriceAlert
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

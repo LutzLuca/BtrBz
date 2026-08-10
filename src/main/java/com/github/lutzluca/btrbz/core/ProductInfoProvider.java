@@ -543,7 +543,7 @@ public final class ProductInfoProvider {
                 .name(Component.literal("Show Product Info Paper on Product Page"))
                 .description(ConfigScreen.createDescription(
                     "Open the selected product on your preferred information site when clicking the Product Info paper in its Bazaar menu.",
-                    ConfigImages.PRODUCT_INFO_PAPER
+                    ConfigImages.ProductInfoPaper
                 ))
                 .binding(true, () -> this.itemClickEnabled, val -> this.itemClickEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
@@ -641,7 +641,7 @@ public final class ProductInfoProvider {
                 .name(Component.literal("Product Information"))
                 .description(ConfigScreen.createDescription(
                     "View current prices in item tooltips or open a Bazaar product on an external information site.",
-                    ConfigImages.PRODUCT_INFO
+                    ConfigImages.ProductInfo
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

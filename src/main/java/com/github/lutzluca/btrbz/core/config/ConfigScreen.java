@@ -46,7 +46,7 @@ public class ConfigScreen {
 
     public static Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(
-            ConfigManager.HANDLER, (defaults, cfg, builder) -> {
+            ConfigManager.HANDLER, (_, _, builder) -> {
                 builder.title(Component.literal(BtrBz.MOD_ID));
                 buildCategories(builder, config);
 
@@ -108,6 +108,8 @@ public class ConfigScreen {
     }
 
     static List<Option<?>> widgetManagerOptions(WidgetsConfig config) {
+        var widgetRuntime = BtrBz.widgetRuntime();
+
         var showLauncher = Option.<Boolean>createBuilder()
             .name(Component.literal("Show Widget Manager Button in Bazaar"))
             .description(createDescription(
@@ -116,31 +118,35 @@ public class ConfigScreen {
             .binding(true, () -> config.managerLauncherVisible, value -> config.managerLauncherVisible = value)
             .controller(ConfigScreen::createBooleanController)
             .build();
+
         var openManager = ButtonOption.createBuilder()
             .name(Component.literal("Open Widget Manager"))
             .text(Component.literal("Open"))
             .description(createDescription(
                 "Open the widget manager without using the Bazaar quick-access button.",
-                ConfigImages.WIDGET_MANAGER_BUTTON
+                ConfigImages.WidgetManagerButton
             ))
-            .action(screen -> Minecraft.getInstance().setScreen(
-                BtrBz.widgetRuntime().createManagementScreen(screen)
+            .action((screen, _) -> Minecraft.getInstance().setScreen(
+                widgetRuntime.createManagementScreen(screen)
             ))
             .build();
+
         var resetPosition = ButtonOption.createBuilder()
             .name(Component.literal("Reset Widget Manager Button Position"))
             .text(Component.literal("Reset"))
             .description(createDescription(
                 "Restore the Bazaar quick-access button to its default position."
             ))
-            .action(_ -> BtrBz.widgetRuntime().stateStore().resetManagerLauncherPosition(true))
+            .action((_, _) -> widgetRuntime.stateStore().resetManagerLauncherPosition(true))
             .build();
+
         return List.of(showLauncher, openManager, resetPosition);
     }
 
     private static ButtonOption widgetOption(WidgetDefinition<?, ?, ?> definition) {
         String name = definition.getDisplayName();
         WidgetId id = definition.getId();
+        
         String responsibility = definition.getDescription().isBlank()
             ? "Open the Widget Manager focused on " + name + "."
             : definition.getDescription();
@@ -149,13 +155,16 @@ public class ConfigScreen {
             Component.literal("Configure its placement and settings in the Widget Manager.")
         );
         var image = ConfigImages.forWidget(id);
+
+        var optionDescription = image == null
+            ? createDescription(description)
+            : createDescription(description, image);
+
         return ButtonOption.createBuilder()
             .name(Component.literal(name))
             .text(Component.literal("Configure"))
-            .description(image == null
-                ? createDescription(description)
-                : createDescription(description, image))
-            .action(screen -> Minecraft.getInstance().setScreen(
+            .description(optionDescription)
+            .action((screen, _) -> Minecraft.getInstance().setScreen(
                 BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)
             ))
             .build();

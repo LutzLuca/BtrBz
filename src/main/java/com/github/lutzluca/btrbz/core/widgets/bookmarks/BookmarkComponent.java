@@ -40,7 +40,10 @@ public final class BookmarkComponent {
         this.bazaarData = bazaarData;
         this.productInfoProvider = productInfoProvider;
         this.trackedOrders = trackedOrders;
-        if (items().removeIf(Objects::isNull)) ConfigManager.save();
+        if (items().removeIf(Objects::isNull)) {
+            ConfigManager.save();
+        }
+
         this.rebuildOrderCache();
         trackedOrders.addOnOrderAddedListener(_ -> this.rebuildOrderCache());
         trackedOrders.addOnOrderRemovedListener(_ -> this.rebuildOrderCache());

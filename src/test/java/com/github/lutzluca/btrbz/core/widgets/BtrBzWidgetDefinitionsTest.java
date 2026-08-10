@@ -4,11 +4,9 @@ import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinitio
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;

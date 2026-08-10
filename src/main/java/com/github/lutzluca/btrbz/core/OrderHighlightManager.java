@@ -106,7 +106,7 @@ public class OrderHighlightManager {
                         "Color-code your orders on the Bazaar Orders page so their current status is easy to scan."),
                     highlightLegend()
                 ),
-                    ConfigImages.ORDER_STATUS
+                    ConfigImages.OrderStatus
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

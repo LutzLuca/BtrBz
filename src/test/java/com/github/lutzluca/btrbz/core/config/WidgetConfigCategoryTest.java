@@ -22,15 +22,15 @@ class WidgetConfigCategoryTest {
     @DisplayName("maps config images to their widgets without constructing the UI")
     void mapsWidgetImages() {
         var images = Map.of(
-            "btrbz:bazaar_orders", ConfigImages.TRACKED_ORDERS_HUD,
-            "btrbz:tracked_orders_list", ConfigImages.TRACKED_ORDERS_BAZAAR,
-            "btrbz:order_value", ConfigImages.ORDER_VALUE_OVERVIEW,
-            "btrbz:order_book", ConfigImages.ORDER_BOOK_SCREEN,
-            "btrbz:order_book_price", ConfigImages.ORDER_BOOK_SIGN,
-            "btrbz:bookmarks", ConfigImages.BOOKMARKS,
-            "btrbz:order_presets", ConfigImages.ORDER_PRESETS,
-            "btrbz:order_limit", ConfigImages.ORDER_LIMIT,
-            "btrbz:price_diff", ConfigImages.PRICE_DIFF
+            "btrbz:bazaar_orders", ConfigImages.TrackedOrdersHud,
+            "btrbz:tracked_orders_list", ConfigImages.TrackedOrdersBazaar,
+            "btrbz:order_value", ConfigImages.OrderValueOverView,
+            "btrbz:order_book", ConfigImages.OrderBookScreen,
+            "btrbz:order_book_price", ConfigImages.OrderBookSign,
+            "btrbz:bookmarks", ConfigImages.Bookmarks,
+            "btrbz:order_presets", ConfigImages.OrderPresets,
+            "btrbz:order_limit", ConfigImages.OrderLimit,
+            "btrbz:price_diff", ConfigImages.PriceDiff
         );
 
         images.forEach((id, image) -> assertEquals(image, ConfigImages.forWidget(WidgetId.parse(id))));
