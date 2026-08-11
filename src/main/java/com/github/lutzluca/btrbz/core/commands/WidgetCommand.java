@@ -7,11 +7,14 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 
 public class WidgetCommand {
+
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(WidgetRuntime runtime) {
-        return ClientCommands.literal("widgets").executes(_ -> {
+        return Commands.rootCommand.then(ClientCommands
+            .literal("widgets")
+            .executes(_ -> {
                 var client = Minecraft.getInstance();
                 client.schedule(() -> client.setScreen(runtime.createManagementScreen(client.screen)));
                 return 1;
-            });
+            }));
     }
 }
