@@ -115,7 +115,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
             return true;
         }
 
-        if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT) {
+        if (click.button() == InputConstants.MOUSE_BUTTON_RIGHT && click.hasControlDown()) {
             this.actions.accept(new BookmarksAction.Remove(this.bookmark.productId()));
             return true;
         }
