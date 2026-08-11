@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
@@ -59,7 +58,7 @@ public class ConfigScreen {
         var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
             .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
-            .options(widgetManagerOptions(config.widgets))
+            .options(widgetManagerOptions())
             .options(widgetOptions(BtrBz.widgetRuntime().registry()));
         var widgets = widgetBuilder.build();
 
@@ -107,17 +106,8 @@ public class ConfigScreen {
             .toList();
     }
 
-    static List<Option<?>> widgetManagerOptions(WidgetsConfig config) {
+    static List<Option<?>> widgetManagerOptions() {
         var widgetRuntime = BtrBz.widgetRuntime();
-
-        var showLauncher = Option.<Boolean>createBuilder()
-            .name(Component.literal("Show Widget Manager Button in Bazaar"))
-            .description(createDescription(
-                "Show the draggable quick-access button in Bazaar screens. This does not disable the widget manager."
-            ))
-            .binding(true, () -> config.managerLauncherVisible, value -> config.managerLauncherVisible = value)
-            .controller(ConfigScreen::createBooleanController)
-            .build();
 
         var openManager = ButtonOption.createBuilder()
             .name(Component.literal("Open Widget Manager"))
@@ -140,7 +130,7 @@ public class ConfigScreen {
             .action((_, _) -> widgetRuntime.stateStore().resetManagerLauncherPosition(true))
             .build();
 
-        return List.of(showLauncher, openManager, resetPosition);
+        return List.of(openManager, resetPosition);
     }
 
     private static ButtonOption widgetOption(WidgetDefinition<?, ?, ?> definition) {
