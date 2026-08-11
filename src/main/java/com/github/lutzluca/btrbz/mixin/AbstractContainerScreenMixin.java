@@ -60,6 +60,12 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        // Only Bazaar containers can host screen widgets. Rendering this host for other containers
+        // would alternate the shared session provider between screen and HUD contexts every frame.
+        if (!ScreenInfoHelper.inBazaar()) {
+            return;
+        }
+
         var client = Minecraft.getInstance();
         var canvas = new WidgetCanvas(
             0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
