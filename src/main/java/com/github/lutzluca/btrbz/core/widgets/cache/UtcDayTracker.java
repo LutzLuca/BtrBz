@@ -11,11 +11,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class UtcDayTracker implements AutoCloseable {
     private static final int POLL_TICKS = 20;
+
     private final LongSupplier daySupplier;
     private final CacheToken changes = CacheToken.named("external.utc-day");
+
     private long currentDay;
     private boolean initialized;
     private boolean failureLogged;
+
     private ClientTickDispatcher.TaskHandle taskHandle;
 
     public UtcDayTracker() {
@@ -27,13 +30,17 @@ public final class UtcDayTracker implements AutoCloseable {
     }
 
     public void initialize() {
-        if (this.initialized) return;
+        if (this.initialized) {
+            return;
+        }
+
         this.currentDay = this.daySupplier.getAsLong();
         this.initialized = true;
     }
 
     public void start() {
         this.requireInitialized();
+
         if (this.taskHandle == null) {
             this.taskHandle = ClientTickDispatcher.scheduleEvery(
                 POLL_TICKS, _ -> this.poll()
@@ -43,16 +50,26 @@ public final class UtcDayTracker implements AutoCloseable {
 
     public boolean poll() {
         this.requireInitialized();
+
         try {
             long next = this.daySupplier.getAsLong();
             this.failureLogged = false;
-            if (next == this.currentDay) return false;
+
+            if (next == this.currentDay) {
+                return false;
+            }
+
             this.currentDay = next;
             this.changes.invalidate(InvalidationReason.of("UTC day changed"));
+
             return true;
         } catch (RuntimeException exception) {
-            if (!this.failureLogged) log.warn("Failed to poll UTC day; keeping the last value", exception);
+            if (!this.failureLogged) {
+                log.warn("Failed to poll UTC day; keeping the last value", exception);
+            }
+
             this.failureLogged = true;
+
             return false;
         }
     }
@@ -60,6 +77,7 @@ public final class UtcDayTracker implements AutoCloseable {
     public long currentDay() {
         this.requireInitialized();
         this.poll();
+
         return this.currentDay;
     }
 
@@ -69,11 +87,16 @@ public final class UtcDayTracker implements AutoCloseable {
 
     @Override
     public void close() {
-        if (this.taskHandle != null) this.taskHandle.close();
+        if (this.taskHandle != null) {
+            this.taskHandle.close();
+        }
+
         this.taskHandle = null;
     }
 
     private void requireInitialized() {
-        if (!this.initialized) throw new IllegalStateException("UTC day tracker is not initialized");
+        if (!this.initialized) {
+            throw new IllegalStateException("UTC day tracker is not initialized");
+        }
     }
 }

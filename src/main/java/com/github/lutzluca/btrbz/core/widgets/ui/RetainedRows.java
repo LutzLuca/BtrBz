@@ -9,10 +9,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /** Keyed reconciliation used by retained widget lists without leaking row state into widgets. */
-final class RetainedRows<K, C> {
+public final class RetainedRows<K, C> {
     private final Map<K, C> byKey = new LinkedHashMap<>();
 
-    <M> List<C> reconcile(
+    public <M> List<C> reconcile(
         List<M> models,
         Function<M, K> keyExtractor,
         BiFunction<M, Integer, C> factory,
@@ -20,16 +20,24 @@ final class RetainedRows<K, C> {
     ) {
         var retainedKeys = new HashSet<K>();
         var ordered = new ArrayList<C>(models.size());
+
         for (int index = 0; index < models.size(); index++) {
             int rowIndex = index;
             var model = models.get(index);
             var key = keyExtractor.apply(model);
-            if (!retainedKeys.add(key)) throw new IllegalArgumentException("Duplicate retained row key: " + key);
+
+            if (!retainedKeys.add(key)) {
+                throw new IllegalArgumentException("Duplicate retained row key: " + key);
+            }
+
             var row = this.byKey.computeIfAbsent(key, _ -> factory.apply(model, rowIndex));
+
             updater.update(row, model, rowIndex);
             ordered.add(row);
         }
+
         this.byKey.keySet().removeIf(key -> !retainedKeys.contains(key));
+
         return ordered;
     }
 
@@ -38,7 +46,7 @@ final class RetainedRows<K, C> {
     }
 
     @FunctionalInterface
-    interface RowUpdater<C, M> {
+    public interface RowUpdater<C, M> {
         void update(C component, M model, int index);
     }
 }

@@ -35,10 +35,6 @@ public final class OrderBookScreen extends Screen {
         return this.product;
     }
 
-    public String productId() {
-        return this.product.bazaarProductId().orElse(this.product.strippedName());
-    }
-
     public String productName() {
         return this.productName;
     }
@@ -57,13 +53,13 @@ public final class OrderBookScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        // The screen deliberately supplies its own dimmed background.
+        graphics.fill(0, 0, this.width, this.height, 0x80000000);
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        graphics.fill(0, 0, this.width, this.height, 0x80000000);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+
         this.host.render(
             graphics,
             mouseX,

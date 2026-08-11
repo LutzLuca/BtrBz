@@ -17,7 +17,9 @@ import net.minecraft.resources.Identifier;
 
 public final class TrackedOrdersWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "tracked_orders_list"));
-    private TrackedOrdersWidgetDefinition() {}
+
+    private TrackedOrdersWidgetDefinition() {
+    }
 
     public static WidgetDefinition<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction> create(
         WidgetDataSource<BazaarWidgetViewData.OrdersData> provider,
@@ -26,7 +28,10 @@ public final class TrackedOrdersWidgetDefinition {
         var config = new WidgetConfigHandle<>(ID,
             () -> ConfigManager.get().widgets.trackedOrders, TrackedOrdersWidgetConfig::new,
             value -> value.frame, TrackedOrdersWidgetConfig::resetPreferences);
+
         return WidgetDefinition.<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>builder(ID, "Tracked Orders")
+            .description("Shows tracked orders inside Bazaar screens with status, fill progress, and queue details. "
+                + "The fill-progress bar is a snapshot and may not reflect the current live state.")
             .config(config)
             .supports(TrackedOrdersWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> !data.orders().isEmpty())
@@ -40,5 +45,7 @@ public final class TrackedOrdersWidgetDefinition {
             .build();
     }
 
-    public static boolean supportsSession(WidgetSession session) { return session.inBazaarContainer(); }
+    public static boolean supportsSession(WidgetSession session) {
+        return session.inBazaarContainer();
+    }
 }

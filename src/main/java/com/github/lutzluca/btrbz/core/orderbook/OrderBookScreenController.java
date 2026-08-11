@@ -20,13 +20,14 @@ import org.jetbrains.annotations.Nullable;
 
 /** Gated slot hook that opens the BtrBz-owned full Order Book host screen. */
 public final class OrderBookScreenController {
-    private static final int SLOT = 8;
-    private static final BazaarMenuType[] MENUS = {
+    private static final int CONTROLLER_SLOT = 8;
+    private static final BazaarMenuType[] SUPPORTED_MENUS = {
         BazaarMenuType.Item,
         BazaarMenuType.BuyOrderSetupVolume,
         BazaarMenuType.BuyOrderSetupPrice,
         BazaarMenuType.SellOfferSetup
     };
+
     private final ProductInfoProvider productInfoProvider;
     private final WidgetRuntime runtime;
 
@@ -36,10 +37,10 @@ public final class OrderBookScreenController {
     ) {
         this.productInfoProvider = productInfoProvider;
         this.runtime = runtime;
-        SlotHookRegistry.register(new Hook());
+        SlotHookRegistry.register(new ControllerHook());
     }
 
-    private final class Hook implements SlotHook {
+    private final class ControllerHook implements SlotHook {
         private @Nullable ItemStack displayStack;
 
         @Override
@@ -62,15 +63,22 @@ public final class OrderBookScreenController {
                     Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
                 );
             }
+
             return this.displayStack.copy();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigManager.get().widgets.orderBookScreen.frame.enabled) return SlotClickResult.Pass;
+            if (!ConfigManager.get().widgets.orderBookScreen.frame.enabled) {
+                return SlotClickResult.Pass;
+            }
+
             var product = productInfoProvider.getOpenedProduct();
-            if (product == null) return SlotClickResult.Pass;
+            if (product == null) {
+                return SlotClickResult.Pass;
+            }
             var identity = ProductIdentity.fromIndex(product);
+
             Minecraft.getInstance().setScreen(new OrderBookScreen(
                 context.view().getCurrInfo().getScreen(),
                 identity,
@@ -88,8 +96,16 @@ public final class OrderBookScreenController {
         int slot,
         @Nullable BazaarMenuType menu
     ) {
-        if (!enabled || !productAvailable || playerInventorySlot || slot != SLOT || menu == null) return false;
-        for (var supported : MENUS) if (supported == menu) return true;
+        if (!enabled || !productAvailable || playerInventorySlot || slot != CONTROLLER_SLOT || menu == null) {
+            return false;
+        }
+
+        for (var supported : SUPPORTED_MENUS) {
+            if (supported == menu) {
+                return true;
+            }
+        }
+
         return false;
     }
 }

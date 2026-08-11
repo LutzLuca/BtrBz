@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;

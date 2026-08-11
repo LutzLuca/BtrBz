@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -492,7 +493,7 @@ public class OrderProtectionManager {
                 .name(Component.literal("Order Protection"))
                 .description(ConfigScreen.createDescription(
                     "Prevent accidental orders at unusually aggressive prices before they are submitted to the Bazaar.",
-                    ConfigScreen.ConfigImage.ORDER_PROTECTION
+                    ConfigImages.OrderProtection
                 ))
                 .options(rootGroup.build())
                 .collapsed(true)

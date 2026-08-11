@@ -40,6 +40,7 @@ public final class OrderValueComponent {
         double buyItems = 0;
         double sellClaimable = 0;
         double sellPending = 0;
+
         for (var order : unfilledOrders) {
             int remaining = order.volume() - order.filledAmountSnapshot();
             switch (order.type()) {
@@ -53,12 +54,14 @@ public final class OrderValueComponent {
                 }
             }
         }
+
         for (var order : filledOrders) {
             switch (order.type()) {
                 case Buy -> buyItems += order.unclaimed() * order.pricePerUnit();
                 case Sell -> sellClaimable += order.unclaimed();
             }
         }
+
         return new Breakdown(buyLocked, buyItems, sellClaimable, sellPending);
     }
 

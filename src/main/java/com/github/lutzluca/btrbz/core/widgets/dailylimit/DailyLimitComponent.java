@@ -47,7 +47,11 @@ public final class DailyLimitComponent {
 
     public void onTransaction(double amount) {
         this.resetForCurrentUtcDay();
-        if (!Double.isFinite(amount) || amount <= 0) return;
+
+        if (!Double.isFinite(amount) || amount <= 0) {
+            return;
+        }
+
         this.config().usedToday += amount;
         this.dataChanges.invalidate(InvalidationReason.of("daily Bazaar usage changed"));
         this.saveAction.run();
@@ -56,6 +60,7 @@ public final class DailyLimitComponent {
     public Usage currentUsage() {
         this.resetForCurrentUtcDay();
         var config = this.config();
+
         return new Usage(config.usedToday, config.dailyLimit, config.lastResetEpochDay);
     }
 
@@ -66,10 +71,12 @@ public final class DailyLimitComponent {
     public boolean resetForDay(long epochDay) {
         var config = this.config();
         boolean changed = resetForDay(config, epochDay);
+
         if (changed) {
             this.dataChanges.invalidate(InvalidationReason.of("daily Bazaar usage reset"));
             this.saveAction.run();
         }
+
         return changed;
     }
 
@@ -86,9 +93,13 @@ public final class DailyLimitComponent {
     }
 
     public static boolean resetForDay(DailyLimitWidgetConfig config, long epochDay) {
-        if (config.lastResetEpochDay == epochDay) return false;
+        if (config.lastResetEpochDay == epochDay) {
+            return false;
+        }
+
         config.usedToday = 0;
         config.lastResetEpochDay = epochDay;
+
         return true;
     }
 
@@ -101,6 +112,7 @@ public final class DailyLimitComponent {
     private static UtcDayTracker initializedTracker(LongSupplier supplier) {
         var tracker = new UtcDayTracker(supplier);
         tracker.initialize();
+
         return tracker;
     }
 }

@@ -4,11 +4,9 @@ import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinitio
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
@@ -87,8 +85,8 @@ class BtrBzWidgetDefinitionsTest {
 
     @Test
     void priceDifferenceVisibilityUsesItsOwnSnapshot() {
-        var unavailable = new PriceDifferenceWidgetData.Snapshot("Unavailable", Optional.empty(), 0, 0);
-        var available = new PriceDifferenceWidgetData.Snapshot("Available", Optional.empty(), 1, 1);
+        var unavailable = new PriceDifferenceWidgetData.Snapshot(Component.literal("Unavailable"), Optional.empty(), 0, 0);
+        var available = new PriceDifferenceWidgetData.Snapshot(Component.literal("Available"), Optional.empty(), 1, 1);
         assertFalse(PriceDifferenceWidgetDefinition.isVisible(unavailable));
         assertTrue(PriceDifferenceWidgetDefinition.isVisible(available));
     }

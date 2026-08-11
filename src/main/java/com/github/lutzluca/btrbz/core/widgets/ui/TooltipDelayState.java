@@ -8,7 +8,10 @@ public final class TooltipDelayState<T> {
     private long hoverStartedAt;
 
     public TooltipDelayState(long delayMillis) {
-        if (delayMillis < 0) throw new IllegalArgumentException("Tooltip delay cannot be negative");
+        if (delayMillis < 0) {
+            throw new IllegalArgumentException("Tooltip delay cannot be negative");
+        }
+
         this.delayNanos = delayMillis * 1_000_000L;
     }
 
@@ -17,11 +20,13 @@ public final class TooltipDelayState<T> {
             this.reset();
             return false;
         }
+
         if (this.target != target) {
             this.target = target;
             this.hoverStartedAt = nowNanos;
             return this.delayNanos == 0;
         }
+
         return nowNanos - this.hoverStartedAt >= this.delayNanos;
     }
 

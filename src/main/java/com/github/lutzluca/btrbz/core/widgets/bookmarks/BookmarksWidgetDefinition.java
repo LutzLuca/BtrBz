@@ -14,7 +14,9 @@ import net.minecraft.resources.Identifier;
 
 public final class BookmarksWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "bookmarks"));
-    private BookmarksWidgetDefinition() {}
+
+    private BookmarksWidgetDefinition() {
+    }
 
     public static WidgetDefinition<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction> create(
         BookmarkComponent component
@@ -23,7 +25,9 @@ public final class BookmarksWidgetDefinition {
             () -> ConfigManager.get().widgets.bookmarks, BookmarksWidgetConfig::new,
             value -> value.frame, BookmarksWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new BookmarksWidgetData(component));
+
         return WidgetDefinition.<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction>builder(ID, "Bookmarks")
+            .description("Provides quick access to bookmarked Bazaar products and marks products with active orders.")
             .config(config)
             .supports(BookmarksWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> !data.bookmarks().isEmpty())
@@ -37,5 +41,7 @@ public final class BookmarksWidgetDefinition {
             .build();
     }
 
-    public static boolean supportsSession(WidgetSession session) { return session.inBazaarContainer(); }
+    public static boolean supportsSession(WidgetSession session) {
+        return session.inBazaarContainer();
+    }
 }

@@ -23,40 +23,52 @@ import lombok.Getter;
 public final class WidgetDefinition<D, C, A> {
     private final WidgetId id;
     private final String displayName;
+    private final String description;
+
     private final WidgetConfigHandle<C> configHandle;
     private final Predicate<WidgetSession> supports;
     private final WidgetVisibility<D, C> visibility;
+
     private final WidgetDataSource<D> dataSource;
     private final boolean preparedCacheEnabled;
     private final CacheDependencies cacheDependencies;
+
     private final Supplier<WidgetPreview<D>> preview;
     private final Supplier<WidgetView<D, C, A>> viewFactory;
     private final Function<WidgetConfigBinding<C>, UIComponent> settingsPanel;
     private final WidgetActionHandler<A> actionHandler;
+
     private final Map<String, String> placementProfiles;
     private final Function<WidgetSession, String> placementProfileResolver;
+
     private final int minWidth;
     private final int minHeight;
 
     private WidgetDefinition(Builder<D, C, A> builder) {
         this.id = Objects.requireNonNull(builder.id, "id");
         this.displayName = Objects.requireNonNull(builder.displayName, "displayName");
+        this.description = Objects.requireNonNull(builder.description, "description");
+
         this.configHandle = Objects.requireNonNull(builder.configHandle, "configHandle");
         this.supports = Objects.requireNonNull(builder.supports, "supports");
         this.visibility = Objects.requireNonNull(builder.visibility, "visibility");
+
         this.dataSource = Objects.requireNonNull(builder.dataSource, "dataSource");
         this.preparedCacheEnabled = builder.preparedCacheEnabled;
         this.cacheDependencies = this.dataSource.cacheDependencies()
             .and(CacheDependencies.of(this.configHandle.contentChanges()))
             .and(builder.additionalDependencies);
+
         this.preview = Objects.requireNonNull(builder.preview, "preview");
         this.viewFactory = Objects.requireNonNull(builder.viewFactory, "viewFactory");
         this.settingsPanel = Objects.requireNonNull(builder.settingsPanel, "settingsPanel");
         this.actionHandler = Objects.requireNonNull(builder.actionHandler, "actionHandler");
+
         this.placementProfiles = Collections.unmodifiableMap(new LinkedHashMap<>(builder.placementProfiles));
         this.placementProfileResolver = Objects.requireNonNull(
-            builder.placementProfileResolver, "placementProfileResolver"
+                builder.placementProfileResolver, "placementProfileResolver"
         );
+
         this.minWidth = Math.max(1, builder.minWidth);
         this.minHeight = Math.max(1, builder.minHeight);
     }
@@ -65,25 +77,47 @@ public final class WidgetDefinition<D, C, A> {
         return new Builder<>(id, displayName);
     }
 
-    public C config() { return this.configHandle.current(); }
-    public C defaults() { return this.configHandle.defaults(); }
-    public WidgetFrameConfig frame() { return this.configHandle.frame(); }
-    public WidgetFrameConfig defaultFrame() { return this.configHandle.defaultFrame(); }
-    public boolean supports(WidgetSession session) { return this.supports.test(session); }
+    public C config() {
+        return this.configHandle.current();
+    }
+
+    public C defaults() {
+        return this.configHandle.defaults();
+    }
+
+    public WidgetFrameConfig frame() {
+        return this.configHandle.frame();
+    }
+
+    public WidgetFrameConfig defaultFrame() {
+        return this.configHandle.defaultFrame();
+    }
+
+    public boolean supports(WidgetSession session) {
+        return this.supports.test(session);
+    }
+
     public WidgetPreview<D> captureRuntimePreview(WidgetSession session) {
         if (!this.supports(session)) {
             throw new IllegalArgumentException("Widget does not support this session: " + this.id);
         }
+
         var data = Objects.requireNonNull(this.dataSource.snapshot(session), "runtime widget data");
         return new WidgetPreview<>(data, session, this.placementProfile(session));
     }
+
     public boolean isVisible(WidgetPreview<D> preview) {
         return this.visibility.test(preview.data(), this.config(), preview.session());
     }
-    public List<String> placementProfileKeys() { return List.copyOf(this.placementProfiles.keySet()); }
+
+    public List<String> placementProfileKeys() {
+        return List.copyOf(this.placementProfiles.keySet());
+    }
+
     public String placementProfileLabel(String profile) {
         return this.placementProfiles.getOrDefault(profile, this.placementProfiles.get("default"));
     }
+
     public String placementProfile(WidgetSession session) {
         var profile = this.placementProfileResolver.apply(session);
         return this.placementProfiles.containsKey(profile) ? profile : "default";
@@ -97,25 +131,27 @@ public final class WidgetDefinition<D, C, A> {
         return this.settingsPanel.apply(this.binding(changed));
     }
 
-    private static <A> WidgetActionHandler<A> noOpHandler() {
-        return (action, source, current) -> {};
-    }
-
     public static final class Builder<D, C, A> {
         private final WidgetId id;
         private final String displayName;
+        private String description = "";
+
         private WidgetConfigHandle<C> configHandle;
         private Predicate<WidgetSession> supports = _ -> true;
         private WidgetVisibility<D, C> visibility = (data, config, session) -> true;
+
         private WidgetDataSource<D> dataSource;
         private boolean preparedCacheEnabled;
         private CacheDependencies additionalDependencies = CacheDependencies.none();
+
         private Supplier<WidgetPreview<D>> preview;
         private Supplier<WidgetView<D, C, A>> viewFactory;
         private Function<WidgetConfigBinding<C>, UIComponent> settingsPanel = _ -> null;
-        private WidgetActionHandler<A> actionHandler = noOpHandler();
+        private WidgetActionHandler<A> actionHandler = (action, source, current) -> {};
+
         private final Map<String, String> placementProfiles = new LinkedHashMap<>();
         private Function<WidgetSession, String> placementProfileResolver = WidgetSession::placementProfile;
+
         private int minWidth = 48;
         private int minHeight = 16;
 
@@ -130,14 +166,21 @@ public final class WidgetDefinition<D, C, A> {
             return this;
         }
 
+        public Builder<D, C, A> description(String description) {
+            this.description = description;
+            return this;
+        }
+
         public Builder<D, C, A> supports(Predicate<WidgetSession> supports) {
             this.supports = supports;
             return this;
         }
+
         public Builder<D, C, A> visibility(WidgetVisibility<D, C> visibility) {
             this.visibility = visibility;
             return this;
         }
+
         public Builder<D, C, A> data(WidgetDataSource<D> dataSource) {
             this.dataSource = dataSource;
             return this;
@@ -153,31 +196,40 @@ public final class WidgetDefinition<D, C, A> {
             this.preview = preview;
             return this;
         }
+
         public Builder<D, C, A> viewFactory(Supplier<WidgetView<D, C, A>> viewFactory) {
             this.viewFactory = viewFactory;
             return this;
         }
+
         public Builder<D, C, A> settingsPanel(Function<WidgetConfigBinding<C>, UIComponent> settingsPanel) {
             this.settingsPanel = settingsPanel;
             return this;
         }
+
         public Builder<D, C, A> actionHandler(WidgetActionHandler<A> actionHandler) {
             this.actionHandler = actionHandler;
             return this;
         }
+
         public Builder<D, C, A> placementProfile(String key, String label) {
             this.placementProfiles.put(key, label);
             return this;
         }
+
         public Builder<D, C, A> placementProfileResolver(Function<WidgetSession, String> resolver) {
             this.placementProfileResolver = resolver;
             return this;
         }
+
         public Builder<D, C, A> minSize(int width, int height) {
             this.minWidth = width;
             this.minHeight = height;
             return this;
         }
-        public WidgetDefinition<D, C, A> build() { return new WidgetDefinition<>(this); }
+
+        public WidgetDefinition<D, C, A> build() {
+            return new WidgetDefinition<>(this);
+        }
     }
 }

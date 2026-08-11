@@ -54,8 +54,13 @@ public final class BookmarksWidgetConfig {
             this(product, ItemStackTemplate.fromNonEmptyStack(itemStack));
         }
 
-        public String productName() { return this.product.strippedName(); }
-        public ItemStack itemStack() { return this.itemTemplate.create(); }
+        public String productName() {
+            return this.product.strippedName();
+        }
+
+        public ItemStack itemStack() {
+            return this.itemTemplate.create();
+        }
 
         @Slf4j
         public static final class GsonAdapter implements JsonSerializer<BookmarkedItem>,

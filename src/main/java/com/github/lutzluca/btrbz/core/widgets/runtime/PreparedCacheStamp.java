@@ -59,15 +59,35 @@ record PreparedCacheStamp(
         CacheDependencies dependencies
     ) {
         var causes = new ArrayList<WidgetCacheMissCause>();
-        if (this.sessionId != session.id()) causes.add(WidgetCacheMissCause.direct("semantic session changed"));
-        if (this.sessionContextRevision != session.contextRevision()) causes.add(WidgetCacheMissCause.direct("session context changed"));
-        if (this.canvasX != canvas.x() || this.canvasY != canvas.y()) causes.add(WidgetCacheMissCause.direct("canvas origin changed"));
-        if (this.canvasWidth != canvas.width() || this.canvasHeight != canvas.height()) causes.add(WidgetCacheMissCause.direct("canvas size changed"));
-        if (!this.options.equals(currentOptions)) causes.add(WidgetCacheMissCause.direct("host options changed"));
-        if (!this.placementProfile.equals(profile)) causes.add(WidgetCacheMissCause.direct("placement profile changed"));
+
+        if (this.sessionId != session.id()) {
+            causes.add(WidgetCacheMissCause.direct("semantic session changed"));
+        }
+
+        if (this.sessionContextRevision != session.contextRevision()) {
+            causes.add(WidgetCacheMissCause.direct("session context changed"));
+        }
+
+        if (this.canvasX != canvas.x() || this.canvasY != canvas.y()) {
+            causes.add(WidgetCacheMissCause.direct("canvas origin changed"));
+        }
+
+        if (this.canvasWidth != canvas.width() || this.canvasHeight != canvas.height()) {
+            causes.add(WidgetCacheMissCause.direct("canvas size changed"));
+        }
+
+        if (!this.options.equals(currentOptions)) {
+            causes.add(WidgetCacheMissCause.direct("host options changed"));
+        }
+
+        if (!this.placementProfile.equals(profile)) {
+            causes.add(WidgetCacheMissCause.direct("placement profile changed"));
+        }
+
         CacheRevisions.changes(this.dependencyRevisions, dependencies).stream()
             .map(WidgetCacheMissCause::dependency)
             .forEach(causes::add);
+
         return List.copyOf(causes);
     }
 }

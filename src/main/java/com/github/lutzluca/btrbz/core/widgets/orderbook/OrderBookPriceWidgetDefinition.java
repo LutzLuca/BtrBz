@@ -13,7 +13,9 @@ import net.minecraft.resources.Identifier;
 
 public final class OrderBookPriceWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_book_price"));
-    private OrderBookPriceWidgetDefinition() {}
+
+    private OrderBookPriceWidgetDefinition() {
+    }
 
     public static WidgetDefinition<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction> create(
         WidgetDataSource<OrderBookWidgetData.Snapshot> provider,
@@ -22,7 +24,9 @@ public final class OrderBookPriceWidgetDefinition {
         var config = new WidgetConfigHandle<>(ID,
             () -> ConfigManager.get().widgets.orderBookPrice, OrderBookPriceWidgetConfig::new,
             value -> value.frame, OrderBookPriceWidgetConfig::resetPreferences);
+
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction>builder(ID, "Order Book Price")
+            .description("Shows the current order book while entering a price and lets you select a price.")
             .config(config)
             .supports(OrderBookPriceWidgetDefinition::supportsSession)
             .data(provider)

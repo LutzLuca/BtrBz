@@ -14,7 +14,9 @@ import net.minecraft.resources.Identifier;
 
 public final class OrderValueWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_value"));
-    private OrderValueWidgetDefinition() {}
+
+    private OrderValueWidgetDefinition() {
+    }
 
     public static WidgetDefinition<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void> create(
         OrderValueComponent component
@@ -23,7 +25,9 @@ public final class OrderValueWidgetDefinition {
             () -> ConfigManager.get().widgets.orderValue, OrderValueWidgetConfig::new,
             value -> value.frame, OrderValueWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(new OrderValueWidgetData(component));
+
         return WidgetDefinition.<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void>builder(ID, "Order Value")
+            .description("Summarizes coins locked in buy orders and value waiting in sell orders.")
             .config(config)
             .supports(OrderValueWidgetDefinition::supportsSession)
             .data(data)

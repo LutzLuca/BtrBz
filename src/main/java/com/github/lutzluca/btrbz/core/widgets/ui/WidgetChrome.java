@@ -9,7 +9,8 @@ import io.wispforest.owo.ui.core.UIComponent;
 public final class WidgetChrome {
     static final int CORNER_RADIUS = 5;
 
-    private WidgetChrome() {}
+    private WidgetChrome() {
+    }
 
     public static UIComponent wrap(UIComponent content) {
         FlowLayout layout = UIContainers.verticalFlow(Sizing.content(), Sizing.content());
@@ -19,7 +20,11 @@ public final class WidgetChrome {
         ));
         layout.allowOverflow(true);
         layout.child(content);
-        if (content.tooltip() != null) layout.tooltip(content.tooltip());
+
+        if (content.tooltip() != null) {
+            layout.tooltip(content.tooltip());
+        }
+
         return layout;
     }
 }

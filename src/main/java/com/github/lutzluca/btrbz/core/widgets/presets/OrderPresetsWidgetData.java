@@ -23,10 +23,14 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
     }
 
     @Override
-    public CacheDependencies cacheDependencies() { return this.dependencies; }
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
     @Override
-    public boolean sessionSensitive() { return false; }
+    public boolean sessionSensitive() {
+        return false;
+    }
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
@@ -37,6 +41,7 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
                 case OrderPreset.Clipboard clipboard -> BazaarWidgetViewData.formatInt(clipboard.amount());
                 case OrderPreset.Fixed fixed -> BazaarWidgetViewData.formatInt(fixed.amount());
             };
+
             String tooltip = switch (state) {
                 case OrderPresetsComponent.PresetState.Available available ->
                     preset instanceof OrderPreset.Maximum
@@ -48,6 +53,7 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
                 case OrderPresetsComponent.PresetState.CannotAffordSingleItem unavailable ->
                     "Missing " + BazaarWidgetViewData.formatCompact(unavailable.missingCoins()) + " coins";
             };
+
             return new Preset(
                 preset, label, tooltip, state instanceof OrderPresetsComponent.PresetState.Available
             );

@@ -24,17 +24,22 @@ final class TrackedOrdersWidgetView implements
     ScrollOffsetView {
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fixed(1), Sizing.content());
     private final LabelComponent status = label("", BazaarStyles.MUTED_TEXT);
+
     private final BazaarTrackedOrderListComponent list = new BazaarTrackedOrderListComponent();
 
     TrackedOrdersWidgetView() {
         this.root.allowOverflow(true);
         this.root.gap(WidgetLayoutTokens.SECTION_GAP);
+
         var header = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
+
         header.allowOverflow(true);
         header.verticalAlignment(VerticalAlignment.CENTER);
+
         header.child(label("Tracked Orders", BazaarStyles.PRIMARY_TEXT));
         header.child(spacer());
         header.child(this.status);
+
         this.root.child(header);
         this.root.child(this.list);
     }
@@ -62,10 +67,13 @@ final class TrackedOrdersWidgetView implements
         Consumer<TrackedOrdersAction> actions
     ) {
         var sorted = TrackedOrdersWidget.sortedOrders(data.orders(), config.sort);
+
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
+
         this.status.text(literal(
             TrackedOrdersWidget.headerStatus(data, sorted.size())
         ));
+
         this.list.update(sorted, config, true, BazaarWidgetViewData.Order::tooltipLines, actions);
     }
 }

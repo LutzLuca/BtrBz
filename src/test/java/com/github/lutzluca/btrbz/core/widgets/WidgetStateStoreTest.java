@@ -44,7 +44,7 @@ class WidgetStateStoreTest {
         assertTrue(config.orderLimit.frame.enabled);
         assertFalse(config.orderPresets.showDisabled);
         assertEquals(210, config.managerPanelWidth);
-        assertEquals(75, config.managerPanelHeightPercent);
+        assertEquals(85, config.managerPanelHeightPercent);
         assertFalse(config.runtimeDragging);
         assertTrue(config.managerLauncherVisible);
         assertEquals(

@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

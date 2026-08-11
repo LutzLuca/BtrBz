@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import org.junit.jupiter.api.Test;
 
 import java.util.OptionalInt;

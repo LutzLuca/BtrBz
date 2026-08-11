@@ -5,7 +5,8 @@ import java.util.ArrayList;
 
 /** Pure order-book presentation decisions shared by the retained full and embedded views. */
 public final class OrderBookWidget {
-    private OrderBookWidget() {}
+    private OrderBookWidget() {
+    }
 
     static boolean showsEmbeddedSide(
         OrderBookPriceWidgetConfig options,
@@ -31,8 +32,15 @@ public final class OrderBookWidget {
         OrderBookWidgetData.Snapshot book
     ) {
         int visibleSides = 0;
-        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Buy)) visibleSides++;
-        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Sell)) visibleSides++;
+
+        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Buy)) {
+            visibleSides++;
+        }
+
+        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Sell)) {
+            visibleSides++;
+        }
+
         return visibleSides;
     }
 
@@ -52,7 +60,11 @@ public final class OrderBookWidget {
     ) {
         var parts = new ArrayList<String>();
         parts.add(entry.quantityText() + " items");
-        if (options.showOrderCount) parts.add(entry.orders() + " orders");
+
+        if (options.showOrderCount) {
+            parts.add(entry.orders() + " orders");
+        }
+
         return String.join(" · ", parts);
     }
 }
