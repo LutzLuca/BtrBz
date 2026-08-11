@@ -7,6 +7,7 @@ import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Size;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,6 +96,12 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     @Override
     public boolean canFocus(FocusSource source) {
         return this.interactive && super.canFocus(source);
+    }
+
+    @Override
+    public boolean onKeyPress(KeyEvent input) {
+        // Runtime widget lists use pointer scrolling; leave keyboard input to the host screen.
+        return false;
     }
 
     @Override
