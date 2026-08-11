@@ -110,6 +110,10 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (!ScreenInfoHelper.inBazaar()) {
+            return;
+        }
+
         if (this.btrbz$widgetHost().keyPressed(event)) {
             cir.setReturnValue(true);
         }
@@ -117,6 +121,10 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
     private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
+        if (!ScreenInfoHelper.inBazaar()) {
+            return;
+        }
+
         if (this.btrbz$widgetHost().mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
         }
@@ -124,6 +132,10 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (!ScreenInfoHelper.inBazaar()) {
+            return;
+        }
+
         if (this.btrbz$managerLauncher().mouseClicked(event)
             || this.btrbz$widgetHost().mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
@@ -132,6 +144,10 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (!ScreenInfoHelper.inBazaar()) {
+            return;
+        }
+
         var client = Minecraft.getInstance();
         var canvas = new WidgetCanvas(
             0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
@@ -144,6 +160,10 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
     private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
+        if (!ScreenInfoHelper.inBazaar()) {
+            return;
+        }
+
         var client = Minecraft.getInstance();
         var canvas = new WidgetCanvas(
             0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
