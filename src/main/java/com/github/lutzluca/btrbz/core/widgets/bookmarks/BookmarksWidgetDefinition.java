@@ -27,7 +27,8 @@ public final class BookmarksWidgetDefinition {
         var provider = new MemoizedWidgetDataSource<>(new BookmarksWidgetData(component));
 
         return WidgetDefinition.<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction>builder(ID, "Bookmarks")
-            .description("Provides quick access to bookmarked Bazaar products and marks products with active orders.")
+            .description("Provides quick access to bookmarked Bazaar products and marks products with active orders. "
+                + "Remove a bookmark with Ctrl + right-click.")
             .config(config)
             .supports(BookmarksWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> !data.bookmarks().isEmpty())

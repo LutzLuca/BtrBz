@@ -117,6 +117,10 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             this.dragMoved = true;
         }
 
+        if (!this.dragMoved) {
+            return true;
+        }
+
         int localDropX = (int) Math.round(absoluteMouseX - this.dragState.pointerOffsetX() - this.canvas.x());
         int localDropY = (int) Math.round(absoluteMouseY - this.dragState.pointerOffsetY() - this.canvas.y());
 

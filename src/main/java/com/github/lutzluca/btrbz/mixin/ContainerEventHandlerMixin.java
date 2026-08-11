@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,16 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 // never dispatches to this bytecode, so these injections never run for those screens.
 @Mixin(ContainerEventHandler.class)
 public interface ContainerEventHandlerMixin {
-
-    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-    private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (Minecraft.getInstance().screen instanceof SignEditScreen
-            && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
-            && owner.btrbz$widgetHost().keyPressed(event)) {
-            cir.setReturnValue(true);
-        }
-    }
-
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
     private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt,
             CallbackInfoReturnable<Boolean> cir) {
