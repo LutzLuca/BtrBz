@@ -421,11 +421,6 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             return true;
         }
 
-        if (input.key() == InputConstants.KEY_B && !input.hasControlDown() && !input.hasAltDown()) {
-            this.setSidebarMinimized(!this.sidebarMinimized);
-            return true;
-        }
-
         return super.keyPressed(input);
     }
 
