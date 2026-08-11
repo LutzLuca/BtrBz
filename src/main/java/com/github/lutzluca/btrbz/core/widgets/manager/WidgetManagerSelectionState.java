@@ -13,6 +13,7 @@ final class WidgetManagerSelectionState {
 
     WidgetManagerSelectionState(WidgetManagementLaunchState launchState) {
         Objects.requireNonNull(launchState, "launchState");
+
         this.selectedWidget = launchState.selectedWidget();
         this.renderedWidgets.addAll(launchState.renderedWidgets());
     }
@@ -27,17 +28,24 @@ final class WidgetManagerSelectionState {
 
     boolean select(WidgetId id) {
         Objects.requireNonNull(id, "id");
+
         boolean changed = this.renderedWidgets.add(id);
+
         if (!id.equals(this.selectedWidget)) {
             this.selectedWidget = id;
             changed = true;
         }
+
         return changed;
     }
 
     boolean clearSelection() {
-        if (this.selectedWidget == null) return false;
+        if (this.selectedWidget == null) {
+            return false;
+        }
+
         this.selectedWidget = null;
+
         return true;
     }
 

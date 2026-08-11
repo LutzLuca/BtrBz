@@ -11,10 +11,13 @@ import java.util.function.Supplier;
 /** Owns one widget's persisted content configuration and its change token. */
 public final class WidgetConfigHandle<C> {
     private final WidgetId id;
+
     private final Supplier<C> currentConfig;
     private final Supplier<C> freshDefaults;
+
     private final Function<C, WidgetFrameConfig> frameConfig;
     private final WidgetPreferenceReset<C> preferenceReset;
+
     private final CacheToken contentChanges;
 
     public WidgetConfigHandle(
@@ -25,10 +28,13 @@ public final class WidgetConfigHandle<C> {
         WidgetPreferenceReset<C> preferenceReset
     ) {
         this.id = Objects.requireNonNull(id, "id");
+
         this.currentConfig = Objects.requireNonNull(currentConfig, "currentConfig");
         this.freshDefaults = Objects.requireNonNull(freshDefaults, "freshDefaults");
+
         this.frameConfig = Objects.requireNonNull(frameConfig, "frameConfig");
         this.preferenceReset = Objects.requireNonNull(preferenceReset, "preferenceReset");
+
         this.contentChanges = CacheToken.named("config.widget." + id);
     }
 

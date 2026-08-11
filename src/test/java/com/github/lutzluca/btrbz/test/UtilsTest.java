@@ -117,6 +117,12 @@ class UtilsTest {
         }
 
         @Test
+        void promotesValuesThatRoundIntoTheNextTier() {
+            assertEquals("1M", Utils.formatCompact(999_950));
+            assertEquals("1.0M", Utils.formatCompact(999_950, 1));
+        }
+
+        @Test
         void formatsZero() {
             assertEquals("0", Utils.formatCompact(0, 0));
         }

@@ -28,4 +28,19 @@ class TooltipDelayStateTest {
         assertFalse(state.ready(null, 300_000_000L));
         assertFalse(state.ready(target, 400_000_000L));
     }
+
+    @Test
+    void explicitResetRestartsTheDelayForTheSameTarget() {
+        var state = new TooltipDelayState<Object>(200);
+        var target = new Object();
+
+        assertFalse(state.ready(target, 1_000_000_000L));
+        assertTrue(state.ready(target, 1_200_000_000L));
+
+        state.reset();
+
+        assertFalse(state.ready(target, 1_300_000_000L));
+        assertFalse(state.ready(target, 1_499_999_999L));
+        assertTrue(state.ready(target, 1_500_000_000L));
+    }
 }

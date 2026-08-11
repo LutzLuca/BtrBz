@@ -20,7 +20,8 @@ import java.util.OptionalLong;
 public final class BazaarWidgetViewData {
     private static final NumberFormat INTEGER_FORMAT = NumberFormat.getIntegerInstance(Locale.US);
 
-    private BazaarWidgetViewData() {}
+    private BazaarWidgetViewData() {
+    }
 
     public static String formatInt(long value) {
         return INTEGER_FORMAT.format(value);
@@ -82,7 +83,10 @@ public final class BazaarWidgetViewData {
         public OrdersData {
             orders = List.copyOf(orders);
             counts = Objects.requireNonNull(counts, "counts");
-            if (filledOrderCount < 0) throw new IllegalArgumentException("filledOrderCount must be non-negative");
+
+            if (filledOrderCount < 0) {
+                throw new IllegalArgumentException("filledOrderCount must be non-negative");
+            }
         }
 
         public OrdersData(List<Order> orders) {
@@ -100,6 +104,7 @@ public final class BazaarWidgetViewData {
             int matched = 0;
             int undercut = 0;
             int unknown = 0;
+
             for (var order : orders) {
                 switch (order.status()) {
                     case Top -> top++;
@@ -108,6 +113,7 @@ public final class BazaarWidgetViewData {
                     case Unknown -> unknown++;
                 }
             }
+
             return new StatusCounts(top, matched, undercut, unknown);
         }
 
@@ -136,7 +142,11 @@ public final class BazaarWidgetViewData {
             Objects.requireNonNull(itemName, "itemName");
             formattedItemName = Objects.requireNonNull(formattedItemName, "formattedItemName").copy();
             itemStack = itemStack.map(ItemStack::copy);
-            if (totalAmount < 0) throw new IllegalArgumentException("totalAmount must be non-negative");
+
+            if (totalAmount < 0) {
+                throw new IllegalArgumentException("totalAmount must be non-negative");
+            }
+
             liveProgress = Objects.requireNonNull(liveProgress, "liveProgress");
             liveProgress.ifPresent(progress -> {
                 if (progress.total() != totalAmount) {
@@ -190,7 +200,9 @@ public final class BazaarWidgetViewData {
         }
 
         @Override
-        public Component formattedItemName() { return this.formattedItemName.copy(); }
+        public Component formattedItemName() {
+            return this.formattedItemName.copy();
+        }
 
         @Override
         public List<Component> tooltipLines() {
@@ -215,7 +227,10 @@ public final class BazaarWidgetViewData {
         }
 
         public Component formattedItemName(boolean abbreviateEnchanted) {
-            if (!abbreviateEnchanted) return this.formattedItemName.copy();
+            if (!abbreviateEnchanted) {
+                return this.formattedItemName.copy();
+            }
+
             return Component.literal(BazaarHudOptions.productName(this.itemName, abbreviateEnchanted))
                 .setStyle(this.formattedItemName.getStyle());
         }
@@ -223,7 +238,10 @@ public final class BazaarWidgetViewData {
 
     public record FillProgress(int filled, int total) {
         public FillProgress {
-            if (total < 0) throw new IllegalArgumentException("total must be non-negative");
+            if (total < 0) {
+                throw new IllegalArgumentException("total must be non-negative");
+            }
+
             if (filled < 0 || filled > total) {
                 throw new IllegalArgumentException("filled must be between zero and total");
             }

@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.trackedorders;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
@@ -56,7 +57,7 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
     private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
-        (unfilledOrders, filledOrders) -> { };
+        (_, _) -> { };
 
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -171,6 +172,7 @@ public class TrackedOrderManager {
                     this.updateTrackedProduct(tracked, info.product());
                     int slot = info.slotIdx();
                     int fill = info.filledAmountSnapshot();
+
                     if (tracked.slot != slot || tracked.fillAmountSnapshot != fill) {
                         tracked.slot = slot;
                         tracked.fillAmountSnapshot = fill;
@@ -358,15 +360,18 @@ public class TrackedOrderManager {
         }
 
         var order = matchingOrder.get();
-        int sourceIndex = this.displayOrders.indexOf(order);
-        int insertionIndex = dropIndex > sourceIndex ? dropIndex - 1 : dropIndex;
-        if (insertionIndex == sourceIndex) return false;
+        int sourceIdx = this.displayOrders.indexOf(order);
+        int insertionIdx = dropIndex > sourceIdx ? dropIndex - 1 : dropIndex;
 
-        this.displayOrders.remove(sourceIndex);
-        insertionIndex = Math.min(insertionIndex, this.displayOrders.size());
-        this.displayOrders.add(insertionIndex, order);
+        if (insertionIdx == sourceIdx) {
+            return false;
+        }
+
+        this.displayOrders.remove(sourceIdx);
+        insertionIdx = Math.min(insertionIdx, this.displayOrders.size());
+        this.displayOrders.add(insertionIdx, order);
+
         this.dataChanges.invalidate(InvalidationReason.of("tracked orders reordered"));
-
         return true;
     }
 
@@ -540,7 +545,7 @@ public class TrackedOrderManager {
                     .name(Component.literal("Order Notifications"))
                     .description(ConfigScreen.createDescription(
                         "Enable order-status notifications and configure behavior shared by every notification type.",
-                        ConfigScreen.ConfigImage.ORDER_NOTIFICATION
+                    ConfigImages.OrderNotification
                     ))
                     .options(rootGroup.build())
                     .collapsed(true)

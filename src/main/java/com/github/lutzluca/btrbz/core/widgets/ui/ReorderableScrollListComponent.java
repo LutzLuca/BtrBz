@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.ParentUIComponent;
@@ -23,15 +24,20 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
 
     private final WidgetScrollListComponent scrollList;
     private final List<UIComponent> children;
+
     private final RetainedRows<K, UIComponent> retainedRows = new RetainedRows<>();
     private final List<UIComponent> rows = new ArrayList<>();
     private final List<UIComponent> rowView = Collections.unmodifiableList(this.rows);
+
     private final int insertionColor;
     private final int insertionOutlineColor;
     private final int insertionInset;
     private final int insertionHeight;
+
+    private int viewportHeight;
     private boolean interactive;
     private boolean reorderable;
+
     private @Nullable K pendingDragKey;
     private @Nullable K draggedKey;
     private long dragReadyAt;
@@ -55,10 +61,14 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
             viewportHeight, rowGap, interactive, scrollbarColor
         );
         this.children = Collections.singletonList(this.scrollList);
+
         this.insertionColor = insertionColor;
         this.insertionOutlineColor = insertionOutlineColor;
         this.insertionInset = insertionInset;
         this.insertionHeight = insertionHeight;
+
+        this.viewportHeight = Math.max(1, viewportHeight);
+
         this.allowOverflow(true);
     }
 
@@ -72,25 +82,36 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         boolean interactive,
         boolean reorderable
     ) {
-        this.dirty = true;
         var ordered = this.retainedRows.reconcile(
             models,
             keyExtractor,
             (model, index) -> factory.apply(model, index),
             (row, model, index) -> updater.update((C) row, model, index)
         );
+
         if ((this.pendingDragKey != null && !this.retainedRows.contains(this.pendingDragKey))
             || (this.draggedKey != null && !this.retainedRows.contains(this.draggedKey))) {
             this.cancelDrag();
         }
+
         this.rows.clear();
         this.rows.addAll(ordered);
+
         this.interactive = interactive;
         this.reorderable = interactive && reorderable;
-        if (!this.reorderable) this.cancelDrag();
-        this.verticalSizing(Sizing.fixed(Math.max(1, viewportHeight)));
+
+        if (!this.reorderable) {
+            this.cancelDrag();
+        }
+
+        int normalizedHeight = Math.max(1, viewportHeight);
+
+        if (this.viewportHeight != normalizedHeight) {
+            this.viewportHeight = normalizedHeight;
+            this.verticalSizing(Sizing.fixed(normalizedHeight));
+        }
+
         this.scrollList.updateRows(this.rows, viewportHeight, interactive);
-        this.updateLayout();
     }
 
     @Override
@@ -120,7 +141,8 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.drawInsertionIndicator(graphics);
     }
 
-    protected void beforeChildrenDraw(int mouseX, int mouseY) {}
+    protected void beforeChildrenDraw(int mouseX, int mouseY) {
+    }
 
     protected final WidgetScrollListComponent scrollList() {
         return this.scrollList;
@@ -143,7 +165,10 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     }
 
     public final boolean beginDrag(K key, int index) {
-        if (!this.reorderable || !this.retainedRows.contains(key)) return false;
+        if (!this.reorderable || !this.retainedRows.contains(key)) {
+            return false;
+        }
+
         this.pendingDragKey = key;
         this.draggedKey = null;
         this.dragReadyAt = System.currentTimeMillis() + DRAG_HOLD_MILLIS;
@@ -151,6 +176,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.dropIndex = this.dragStartIndex;
         this.pendingDragMoved = false;
         this.dragMoved = false;
+
         return true;
     }
 
@@ -173,18 +199,27 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
             this.pendingDragMoved = true;
             this.activatePendingDragIfReady(System.currentTimeMillis());
         }
-        if (this.draggedKey == null) return;
+
+        if (this.draggedKey == null) {
+            return;
+        }
+
         this.dragMoved = true;
         this.updateDropIndex(pointerY);
     }
 
     public final Optional<ReorderResult<K>> finishDrag() {
         K key = this.draggedKey != null ? this.draggedKey : this.pendingDragKey;
-        if (key == null) return Optional.empty();
+
+        if (key == null) {
+            return Optional.empty();
+        }
+
         var result = new ReorderResult<>(
             key, this.dragStartIndex, this.dropIndex, this.dragMoved
         );
         this.cancelDrag();
+
         return Optional.of(result);
     }
 
@@ -199,7 +234,10 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     }
 
     private void activatePendingDragIfReady(long now) {
-        if (this.pendingDragKey == null || now < this.dragReadyAt) return;
+        if (this.pendingDragKey == null || now < this.dragReadyAt) {
+            return;
+        }
+
         this.draggedKey = this.pendingDragKey;
         this.pendingDragKey = null;
         this.dragMoved = this.pendingDragMoved;
@@ -207,8 +245,12 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     }
 
     private void updateDropIndex(int pointerY) {
-        if (!this.reorderable || this.draggedKey == null) return;
+        if (!this.reorderable || this.draggedKey == null) {
+            return;
+        }
+
         int gap = this.rows.size();
+
         for (int index = 0; index < this.rows.size(); index++) {
             var row = this.rows.get(index);
             if (pointerY < row.y() + row.height() / 2) {
@@ -216,12 +258,19 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
                 break;
             }
         }
+
         this.dropIndex = gap;
     }
 
     private void autoScroll(int mouseX, int mouseY) {
-        if (!this.reorderable || this.draggedKey == null) return;
-        if (mouseX < this.scrollList.x() || mouseX > this.scrollList.x() + this.scrollList.width()) return;
+        if (!this.reorderable || this.draggedKey == null) {
+            return;
+        }
+
+        if (mouseX < this.scrollList.x() || mouseX > this.scrollList.x() + this.scrollList.width()) {
+            return;
+        }
+
         if (mouseY < this.scrollList.y() + AUTO_SCROLL_THRESHOLD) {
             this.scrollList.scrollByProgress(-AUTO_SCROLL_STEP);
         } else if (mouseY > this.scrollList.y() + this.scrollList.height() - AUTO_SCROLL_THRESHOLD) {
@@ -230,18 +279,26 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     }
 
     private void drawInsertionIndicator(OwoUIGraphics graphics) {
-        if (!this.reorderable || this.draggedKey == null || this.rows.isEmpty()) return;
-        int gap = Math.max(0, Math.min(this.dropIndex, this.rows.size()));
+        if (!this.reorderable || this.draggedKey == null || this.rows.isEmpty()) {
+            return;
+        }
+
+        int gap = WidgetMath.clamp(this.dropIndex, 0, this.rows.size());
         int lineY = gap == 0 ? this.rows.getFirst().y() - 1
             : gap == this.rows.size() ? this.rows.getLast().y() + this.rows.getLast().height()
             : this.rows.get(gap).y() - 1;
         int viewportTop = this.scrollList.y();
         int viewportBottom = this.scrollList.y() + this.scrollList.height() - 1;
         var visibleLineY = visibleInsertionIndicatorY(lineY, viewportTop, viewportBottom);
-        if (visibleLineY.isEmpty()) return;
+
+        if (visibleLineY.isEmpty()) {
+            return;
+        }
+
         lineY = visibleLineY.getAsInt();
         int left = this.scrollList.x() + this.insertionInset;
         int right = this.scrollList.x() + this.scrollList.width() - this.insertionInset - 2;
+
         if (this.insertionOutlineColor != 0) {
             graphics.fill(left - 2, Math.max(viewportTop, lineY - 1), right + 2,
                 Math.min(viewportBottom + 1, lineY + 3), this.insertionOutlineColor);
@@ -251,8 +308,11 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     }
 
     public static OptionalInt visibleInsertionIndicatorY(int lineY, int viewportTop, int viewportBottom) {
-        if (lineY < viewportTop - 1 || lineY > viewportBottom + 1) return OptionalInt.empty();
-        return OptionalInt.of(Math.max(viewportTop, Math.min(viewportBottom, lineY)));
+        if (lineY < viewportTop - 1 || lineY > viewportBottom + 1) {
+            return OptionalInt.empty();
+        }
+
+        return OptionalInt.of(WidgetMath.clamp(lineY, viewportTop, viewportBottom));
     }
 
     @FunctionalInterface

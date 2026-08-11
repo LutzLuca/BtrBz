@@ -38,6 +38,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
         Consumer<TrackedOrdersAction> actions
     ) {
         this.interactive = interactive;
+
         this.reconcileRows(
             orders,
             BazaarWidgetViewData.Order::id,
@@ -66,9 +67,12 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             this.hoveredId = null;
             return;
         }
+
         this.hoveredId = null;
+
         for (var component : this.rows()) {
             var row = (BazaarTrackedOrderRowComponent) component;
+
             if (row.isInBoundingBox(mouseX, mouseY)) {
                 this.hoveredId = row.orderId();
                 break;

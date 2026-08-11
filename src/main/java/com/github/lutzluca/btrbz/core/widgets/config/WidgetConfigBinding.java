@@ -41,5 +41,4 @@ public final class WidgetConfigBinding<C> {
         this.handle.resetPreferences("widget preferences reset");
         this.changed.run();
     }
-
 }

@@ -13,7 +13,9 @@ import net.minecraft.resources.Identifier;
 
 public final class OrderBookWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_book"));
-    private OrderBookWidgetDefinition() {}
+
+    private OrderBookWidgetDefinition() {
+    }
 
     public static WidgetDefinition<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction> create(
         WidgetDataSource<OrderBookWidgetData.Snapshot> provider,
@@ -22,7 +24,9 @@ public final class OrderBookWidgetDefinition {
         var config = new WidgetConfigHandle<>(ID,
             () -> ConfigManager.get().widgets.orderBookScreen, OrderBookWidgetConfig::new,
             value -> value.frame, OrderBookWidgetConfig::resetPreferences);
+
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction>builder(ID, "Order Book")
+            .description("Shows buy and sell price levels beside Bazaar screens and lets you select a price.")
             .config(config)
             .supports(OrderBookWidgetDefinition::supportsSession)
             .data(provider)

@@ -24,7 +24,9 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
     }
 
     @Override
-    public CacheDependencies cacheDependencies() { return this.dependencies; }
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
     @Override
     public Snapshot snapshot(WidgetSession session) {

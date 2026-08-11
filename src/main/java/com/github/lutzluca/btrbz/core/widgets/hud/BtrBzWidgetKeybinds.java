@@ -16,7 +16,8 @@ public final class BtrBzWidgetKeybinds {
         Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widgets")
     );
 
-    private BtrBzWidgetKeybinds() {}
+    private BtrBzWidgetKeybinds() {
+    }
 
     public static void register() {
         var toggleHud = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -25,14 +26,19 @@ public final class BtrBzWidgetKeybinds {
             InputConstants.KEY_H,
             CATEGORY
         ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleHud.consumeClick()) {
-                if (client.screen != null || client.player == null || client.level == null) continue;
+                if (client.screen != null || client.player == null || client.level == null) {
+                    continue;
+                }
+
                 var definition = BtrBz.widgetRuntime().registry()
                     .find(BazaarOrdersWidgetDefinition.ID)
                     .orElseThrow();
                 var store = BtrBz.widgetRuntime().stateStore();
                 boolean enabled = !store.isActive(definition);
+
                 store.setActive(definition, enabled);
                 Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
                     "Bazaar Orders HUD " + (enabled ? "enabled" : "disabled")

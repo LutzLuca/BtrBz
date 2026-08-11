@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.wispforest.owo.ui.core.OwoUIPipelines;
@@ -12,10 +13,12 @@ import org.joml.Matrix3x2f;
 final class RoundedRectangleElementRenderState implements GuiElementRenderState {
     private final Matrix3x2f pose;
     private final @Nullable ScreenRectangle scissorArea;
+
     private final int x;
     private final int y;
     private final int width;
     private final int height;
+
     private final int color;
     private final float[] perimeter;
 
@@ -32,10 +35,12 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
     ) {
         this.pose = pose;
         this.scissorArea = scissorArea;
+
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+
         this.color = color;
         this.perimeter = buildPerimeter(x, y, width, height, radius, cornerSegments);
     }
@@ -86,8 +91,9 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
         int radius,
         int cornerSegments
     ) {
-        int safeRadius = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+        int safeRadius = WidgetMath.clamp(radius, 0, Math.max(0, Math.min(width, height) / 2));
         int safeSegments = Math.max(1, cornerSegments);
+
         float[] points = new float[(5 + safeSegments * 4) * 2];
         int offset = 0;
 
@@ -117,6 +123,7 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
         int segments
     ) {
         double angleStep = Math.toRadians(endDegrees - startDegrees) / segments;
+
         for (int i = 1; i <= segments; i++) {
             double angle = Math.toRadians(startDegrees) + angleStep * i;
             offset = put(
@@ -126,12 +133,14 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
                 (float) (centerY + Math.sin(angle) * radius)
             );
         }
+
         return offset;
     }
 
     private static int put(float[] points, int offset, float x, float y) {
         points[offset] = x;
         points[offset + 1] = y;
+
         return offset + 2;
     }
 }

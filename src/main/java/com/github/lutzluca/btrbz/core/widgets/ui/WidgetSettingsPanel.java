@@ -12,11 +12,14 @@ import java.util.function.ToIntFunction;
 import net.minecraft.network.chat.Component;
 
 public final class WidgetSettingsPanel {
-    private WidgetSettingsPanel() {}
+    private WidgetSettingsPanel() {
+    }
 
     public static FlowLayout panel() {
         var panel = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
+
         panel.gap(5);
+
         return panel;
     }
 
@@ -38,6 +41,7 @@ public final class WidgetSettingsPanel {
             setter.accept(config, (int) Math.round(value))
         ));
         slider.tooltip(WidgetTooltips.wrapped(description));
+
         panel.child(slider);
     }
 
@@ -53,6 +57,7 @@ public final class WidgetSettingsPanel {
         checkbox.checked(getter.apply(binding.current()));
         checkbox.onChanged().subscribe(value -> binding.mutate(config -> setter.accept(config, value)));
         checkbox.tooltip(WidgetTooltips.wrapped(description));
+
         panel.child(checkbox);
     }
 
@@ -64,7 +69,8 @@ public final class WidgetSettingsPanel {
         BiConsumer<C, E> setter,
         String description
     ) {
-        enumeration(panel, label, binding, getter, setter, description, () -> {});
+        enumeration(panel, label, binding, getter, setter, description, () -> {
+        });
     }
 
     public static <C, E extends Enum<E>> void enumeration(
@@ -80,14 +86,17 @@ public final class WidgetSettingsPanel {
             var current = getter.apply(binding.current());
             var values = current.getDeclaringClass().getEnumConstants();
             var next = values[(current.ordinal() + 1) % values.length];
+
             binding.mutate(config -> setter.accept(config, next));
             button.setMessage(enumMessage(label, next));
             afterChange.run();
         });
+
         control.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));
         control.textShadow(false);
         control.sizing(Sizing.fill(100), Sizing.fixed(20));
         control.tooltip(WidgetTooltips.wrapped(description));
+
         panel.child(control);
     }
 
@@ -98,11 +107,17 @@ public final class WidgetSettingsPanel {
     static String enumLabel(Enum<?> value) {
         var name = value.name();
         var display = new StringBuilder();
+
         for (int index = 0; index < name.length(); index++) {
             char character = name.charAt(index);
-            if (index > 0 && Character.isUpperCase(character)) display.append(' ');
+
+            if (index > 0 && Character.isUpperCase(character)) {
+                display.append(' ');
+            }
+
             display.append(index == 0 ? Character.toUpperCase(character) : Character.toLowerCase(character));
         }
+
         return display.toString();
     }
 }

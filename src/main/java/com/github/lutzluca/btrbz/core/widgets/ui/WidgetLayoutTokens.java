@@ -12,6 +12,7 @@ public final class WidgetLayoutTokens {
 
     public static final int ROW_HORIZONTAL_PADDING = 3;
     public static final int ROW_VERTICAL_PADDING = 1;
+    public static final int ORDER_TEXT_GAP = 3;
     public static final int ROW_ACCENT_WIDTH = 2;
     public static final int SCROLLBAR_THICKNESS = 6;
     public static final int SCROLLBAR_CONTENT_GAP = 2;
@@ -46,5 +47,15 @@ public final class WidgetLayoutTokens {
 
     public static int panelWidth(int contentWidth) {
         return Math.max(1, contentWidth) + PANEL_HORIZONTAL_PADDING * 2;
+    }
+
+    public static int rowTrailingInset(boolean reserveScrollbarSpace) {
+        return ROW_HORIZONTAL_PADDING + (reserveScrollbarSpace
+            ? SCROLLBAR_THICKNESS + SCROLLBAR_CONTENT_GAP
+            : 0);
+    }
+
+    public static boolean requiresScrollbar(int rowHeight, int rowCount, int viewportHeight) {
+        return listViewportHeight(rowHeight, rowCount) > viewportHeight;
     }
 }

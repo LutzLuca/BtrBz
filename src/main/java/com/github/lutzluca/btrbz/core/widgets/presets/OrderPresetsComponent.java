@@ -31,15 +31,20 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public final class OrderPresetsComponent {
     private static final int CUSTOM_AMOUNT_SLOT = 16;
+
     private final BazaarData bazaarData;
     private final ProductInfoProvider productInfoProvider;
     private final ClipboardTracker clipboardTracker;
     private final PurseTracker purseTracker;
+
     private final CacheToken stateChanges = CacheToken.named("order-presets.state");
+
     private int maximumVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
     private int pendingVolume = -1;
+
     private boolean pendingPreset;
     private boolean inTransaction;
+
     public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
         this(bazaarData, productInfoProvider, initializedClipboardTracker(), initializedPurseTracker());
     }
@@ -54,18 +59,25 @@ public final class OrderPresetsComponent {
         this.productInfoProvider = productInfoProvider;
         this.clipboardTracker = clipboardTracker;
         this.purseTracker = purseTracker;
+
         var configured = ConfigManager.get().widgets.orderPresets.volumes;
         var normalized = normalizeConfiguredVolumes(configured);
+
         if (!configured.equals(normalized)) {
             configured.clear();
             configured.addAll(normalized);
             ConfigManager.save();
         }
+
         ScreenInfoHelper.registerOnSwitch(this::onScreenSwitch);
+
         ScreenInfoHelper.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.BuyOrderSetupVolume),
             (info, inventory) -> {
-                if (ScreenInfoHelper.get().getPrevInfo().inMenu(BazaarMenuType.BuyOrderSetupPrice)) return;
+                if (ScreenInfoHelper.get().getPrevInfo().inMenu(BazaarMenuType.BuyOrderSetupPrice)) {
+                    return;
+                }
+
                 inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::readMaximumVolume)
                     .ifPresent(value -> this.setMaximumVolume(value, "maximum order volume loaded"));
             }
@@ -83,6 +95,7 @@ public final class OrderPresetsComponent {
             .flatMap(this.bazaarData::highestBuyOrderPrice)
             .map(value -> value + 0.1)
             .orElse(Double.NaN);
+
         return new State(
             this.maximumVolume,
             this.inTransaction,
@@ -113,6 +126,7 @@ public final class OrderPresetsComponent {
             ? Optional.<Double>empty()
             : Optional.of(state.pricePerUnit());
         OptionalInt clipboard = OptionalInt.empty();
+
         if (!state.clipboard().isBlank()) {
             clipboard = Utils.parseUsFormattedNumber(state.clipboard())
                 .map(Number::intValue)
@@ -120,6 +134,7 @@ public final class OrderPresetsComponent {
                 .map(OptionalInt::of)
                 .getOrElse(OptionalInt.empty());
         }
+
         return resolvePresets(
             state.volumes(),
             state.maximumVolume(),
@@ -141,9 +156,11 @@ public final class OrderPresetsComponent {
             .map(value -> (OrderPreset) new OrderPreset.Fixed(value))
             .collect(Collectors.toCollection(ArrayList::new));
         presets.addFirst(new OrderPreset.Maximum());
+
         if (clipboardVolume.isPresent()) {
             presets.add(1, new OrderPreset.Clipboard(clipboardVolume.getAsInt()));
         }
+
         return presets.stream().map(preset -> switch (preset) {
             case OrderPreset.Maximum _ -> resolveMaximum(
                 preset, maximumVolume, pricePerUnit, purse
@@ -169,10 +186,18 @@ public final class OrderPresetsComponent {
         int volume = switch (preset) {
             case OrderPreset.Maximum _ -> {
                 var product = this.currentProduct();
-                if (product == null) yield 0;
+
+                if (product == null) {
+                    yield 0;
+                }
+
                 var price = this.bazaarData.highestBuyOrderPrice(ProductIdentity.fromIndex(product))
                     .map(value -> value + 0.1);
-                if (price.isEmpty()) yield 0;
+
+                if (price.isEmpty()) {
+                    yield 0;
+                }
+
                 yield GameUtils.getPurse()
                     .map(purse -> calculateMaximum(purse, price.get(), this.maximumVolume))
                     .orElse(0);
@@ -180,22 +205,33 @@ public final class OrderPresetsComponent {
             case OrderPreset.Clipboard clipboard -> clipboard.amount();
             case OrderPreset.Fixed fixed -> fixed.amount();
         };
-        if (volume <= 0) return false;
+
+        if (volume <= 0) {
+            return false;
+        }
 
         var client = Minecraft.getInstance();
         var current = ScreenInfoHelper.get().getCurrInfo();
         var container = current.getGenericContainerScreen();
-        if (!(current.getScreen() instanceof SignEditScreen) && container.isEmpty()) return false;
-        if (client.player == null || client.gameMode == null) return false;
+
+        if (!(current.getScreen() instanceof SignEditScreen) && container.isEmpty()) {
+            return false;
+        }
+
+        if (client.player == null || client.gameMode == null) {
+            return false;
+        }
 
         this.pendingPreset = true;
         this.pendingVolume = volume;
+
         if (current.getScreen() instanceof SignEditScreen sign) {
             GameUtils.submitSignValue(sign, String.valueOf(volume));
             this.pendingPreset = false;
             this.pendingVolume = -1;
             return true;
         }
+
         client.gameMode.handleContainerInput(
             container.get().getMenu().containerId,
             CUSTOM_AMOUNT_SLOT,
@@ -217,6 +253,7 @@ public final class OrderPresetsComponent {
             this.stateChanges.invalidate(InvalidationReason.of("order preset transaction started"));
             return;
         }
+
         if (previous.inMenu(BazaarMenuType.BuyOrderSetupVolume)
             && current.getScreen() instanceof SignEditScreen sign
             && this.pendingPreset
@@ -226,8 +263,12 @@ public final class OrderPresetsComponent {
             this.pendingVolume = -1;
             return;
         }
+
         if (this.inTransaction && previous.getScreen() instanceof SignEditScreen
-            && current.getScreen() == null) return;
+            && current.getScreen() == null) {
+            return;
+        }
+
         boolean orderFlow = current.inMenu(
             BazaarMenuType.BuyOrderSetupVolume,
             BazaarMenuType.BuyOrderSetupPrice,
@@ -236,7 +277,10 @@ public final class OrderPresetsComponent {
             BazaarMenuType.BuyOrderSetupVolume,
             BazaarMenuType.BuyOrderSetupPrice
         );
-        if (this.inTransaction && !orderFlow) this.cancel();
+
+        if (this.inTransaction && !orderFlow) {
+            this.cancel();
+        }
     }
 
     private void cancel() {
@@ -252,7 +296,10 @@ public final class OrderPresetsComponent {
     }
 
     private void setMaximumVolume(int value, String reason) {
-        if (this.maximumVolume == value) return;
+        if (this.maximumVolume == value) {
+            return;
+        }
+
         this.maximumVolume = value;
         this.stateChanges.invalidate(InvalidationReason.of(reason));
     }
@@ -271,9 +318,18 @@ public final class OrderPresetsComponent {
         Optional<Double> price,
         Optional<Double> purse
     ) {
-        if (price.isEmpty()) return new PresetState.Available(preset, amount);
-        if (purse.isEmpty()) return new PresetState.PurseUnavailable(preset);
-        if (amount * price.get() > purse.get()) return new PresetState.InsufficientCoins(preset);
+        if (price.isEmpty()) {
+            return new PresetState.Available(preset, amount);
+        }
+
+        if (purse.isEmpty()) {
+            return new PresetState.PurseUnavailable(preset);
+        }
+
+        if (amount * price.get() > purse.get()) {
+            return new PresetState.InsufficientCoins(preset);
+        }
+
         return new PresetState.Available(preset, amount);
     }
 
@@ -283,12 +339,20 @@ public final class OrderPresetsComponent {
         Optional<Double> price,
         Optional<Double> purse
     ) {
-        if (price.isEmpty()) return new PresetState.PriceUnavailable(preset);
-        if (purse.isEmpty()) return new PresetState.PurseUnavailable(preset);
+        if (price.isEmpty()) {
+            return new PresetState.PriceUnavailable(preset);
+        }
+
+        if (purse.isEmpty()) {
+            return new PresetState.PurseUnavailable(preset);
+        }
+
         int volume = calculateMaximum(purse.get(), price.get(), maximumVolume);
+
         if (volume <= 0) {
             return new PresetState.CannotAffordSingleItem(preset, price.get() - purse.get());
         }
+
         return new PresetState.Available(preset, volume);
     }
 
@@ -298,12 +362,18 @@ public final class OrderPresetsComponent {
 
     public sealed interface PresetState permits PresetState.Available, PresetState.Unavailable {
         OrderPreset preset();
+
         record Available(OrderPreset preset, int resolvedVolume) implements PresetState {}
+
         sealed interface Unavailable extends PresetState permits PriceUnavailable,
             PurseUnavailable, InsufficientCoins, CannotAffordSingleItem {}
+
         record PriceUnavailable(OrderPreset preset) implements Unavailable {}
+
         record PurseUnavailable(OrderPreset preset) implements Unavailable {}
+
         record InsufficientCoins(OrderPreset preset) implements Unavailable {}
+
         record CannotAffordSingleItem(OrderPreset preset, double missingCoins) implements Unavailable {}
     }
 
@@ -320,12 +390,14 @@ public final class OrderPresetsComponent {
     private static ClipboardTracker initializedClipboardTracker() {
         var tracker = new ClipboardTracker(() -> Minecraft.getInstance().keyboardHandler.getClipboard());
         tracker.initialize();
+
         return tracker;
     }
 
     private static PurseTracker initializedPurseTracker() {
         var tracker = new PurseTracker(GameUtils::getPurse);
         tracker.initialize();
+
         return tracker;
     }
 }

@@ -100,29 +100,45 @@ public final class WidgetRuntime {
         WidgetSession session,
         List<WidgetDefinition<?, ?, ?>> definitions
     ) {
-        if (containerScreen) return session.inBazaarContainer();
+        if (containerScreen) {
+            return session.inBazaarContainer();
+        }
+
         return signScreen && definitions.stream().anyMatch(definition -> definition.supports(session));
     }
 
     private @Nullable WidgetManagementContext captureManagementContext(@Nullable Screen screen) {
-        if (!this.canOpenContextualManager(screen)) return null;
+        if (!this.canOpenContextualManager(screen)) {
+            return null;
+        }
+
         var session = this.sessionProvider.current(screen);
         var frozenSession = session.detachedCopy();
 
         var previews = new LinkedHashMap<WidgetId, WidgetPreview<?>>();
         var rendered = new LinkedHashSet<WidgetId>();
+
         for (var definition : this.registry.all()) {
-            if (!definition.frame().enabled || !definition.supports(frozenSession)) continue;
+            if (!definition.frame().enabled || !definition.supports(frozenSession)) {
+                continue;
+            }
+
             try {
                 var preview = capture(definition, frozenSession);
-                if (!visible(definition, preview)) continue;
+
+                if (!visible(definition, preview)) {
+                    continue;
+                }
+
                 previews.put(definition.getId(), preview);
                 rendered.add(definition.getId());
             } catch (RuntimeException exception) {
                 log.warn("Failed to freeze widget {} for management", definition.getId(), exception);
             }
         }
+
         var background = screen instanceof AbstractContainerScreen<?> container ? container : null;
+
         return new WidgetManagementContext(background, previews, rendered);
     }
 

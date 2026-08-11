@@ -1,9 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.layout;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
+
 public record WidgetPlacement(double x, double y) {
     public WidgetPlacement {
-        x = clamp01(x);
-        y = clamp01(y);
+        x = WidgetMath.unit(x);
+        y = WidgetMath.unit(y);
     }
 
     public static WidgetPlacement topLeft(double x, double y) {
@@ -14,8 +16,8 @@ public record WidgetPlacement(double x, double y) {
         int maxX = Math.max(0, canvasWidth - Math.max(0, scaledWidgetWidth));
         int maxY = Math.max(0, canvasHeight - Math.max(0, scaledWidgetHeight));
 
-        int absoluteX = clampInt((int) Math.round(this.x * Math.max(1, canvasWidth)), 0, maxX);
-        int absoluteY = clampInt((int) Math.round(this.y * Math.max(1, canvasHeight)), 0, maxY);
+        int absoluteX = WidgetMath.clamp((int) Math.round(this.x * Math.max(1, canvasWidth)), 0, maxX);
+        int absoluteY = WidgetMath.clamp((int) Math.round(this.y * Math.max(1, canvasHeight)), 0, maxY);
 
         return new WidgetBounds(absoluteX, absoluteY, Math.max(0, scaledWidgetWidth), Math.max(0, scaledWidgetHeight));
     }
@@ -31,21 +33,12 @@ public record WidgetPlacement(double x, double y) {
         int maxX = Math.max(0, canvasWidth - Math.max(0, scaledWidgetWidth));
         int maxY = Math.max(0, canvasHeight - Math.max(0, scaledWidgetHeight));
 
-        int clampedX = clampInt(absoluteX, 0, maxX);
-        int clampedY = clampInt(absoluteY, 0, maxY);
+        int clampedX = WidgetMath.clamp(absoluteX, 0, maxX);
+        int clampedY = WidgetMath.clamp(absoluteY, 0, maxY);
 
         double relativeX = clampedX / (double) Math.max(1, canvasWidth);
         double relativeY = clampedY / (double) Math.max(1, canvasHeight);
 
         return topLeft(relativeX, relativeY);
-    }
-
-    public static double clamp01(double value) {
-        if (Double.isNaN(value) || Double.isInfinite(value)) return 0.0;
-        return Math.max(0.0, Math.min(1.0, value));
-    }
-
-    public static int clampInt(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
     }
 }

@@ -23,10 +23,14 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
     }
 
     @Override
-    public CacheDependencies cacheDependencies() { return this.dependencies; }
+    public CacheDependencies cacheDependencies() {
+        return this.dependencies;
+    }
 
     @Override
-    public boolean sessionSensitive() { return false; }
+    public boolean sessionSensitive() {
+        return false;
+    }
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
@@ -61,9 +65,19 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
 
     private static Component styled(String name, Item item) {
         var component = Component.literal(name);
-        if (item == Items.COOKIE) return component.withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-        if (item == Items.DIAMOND) return component.withStyle(ChatFormatting.AQUA);
-        if (item == Items.EMERALD) return component.withStyle(ChatFormatting.GREEN);
+
+        if (item == Items.COOKIE) {
+            return component.withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        }
+
+        if (item == Items.DIAMOND) {
+            return component.withStyle(ChatFormatting.AQUA);
+        }
+
+        if (item == Items.EMERALD) {
+            return component.withStyle(ChatFormatting.GREEN);
+        }
+
         return component.withStyle(ChatFormatting.GRAY);
     }
 
@@ -94,10 +108,15 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
         }
 
         @Override
-        public Component formattedProductName() { return this.formattedProductName.copy(); }
+        public Component formattedProductName() {
+            return this.formattedProductName.copy();
+        }
 
         public Component formattedProductName(boolean abbreviateEnchanted) {
-            if (!abbreviateEnchanted) return this.formattedProductName.copy();
+            if (!abbreviateEnchanted) {
+                return this.formattedProductName.copy();
+            }
+
             return Component.literal(BazaarHudOptions.productName(this.productName, abbreviateEnchanted))
                 .setStyle(this.formattedProductName.getStyle());
         }

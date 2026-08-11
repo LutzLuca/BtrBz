@@ -19,9 +19,11 @@ class BazaarHudOrderRowComponentTest {
     }
 
     @Test
-    void hudRowCentersIconWithCompactHorizontalInsets() {
+    void hudRowKeepsItsHeightWhileSharingHorizontalSpacing() {
         assertEquals(20, BazaarHudOrderRowComponent.HEIGHT);
-        assertEquals(18, BazaarHudOrderRowComponent.ICON_CELL_WIDTH);
+        assertEquals(21, BazaarHudOrderRowComponent.ICON_CELL_WIDTH);
+        assertEquals(2, BazaarHudOrderRowComponent.LEFT_PADDING);
+        assertEquals(2, BazaarHudOrderRowComponent.RIGHT_PADDING);
     }
 
     @Test

@@ -13,6 +13,7 @@ public final class CacheToken {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Cache token name must not be blank");
         }
+
         this.name = name;
     }
 

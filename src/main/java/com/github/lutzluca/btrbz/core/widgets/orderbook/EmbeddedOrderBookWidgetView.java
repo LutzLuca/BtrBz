@@ -29,10 +29,12 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
     OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction
 > {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
+
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
     private final LabelComponent itemName = text("", BazaarStyles.PRIMARY_TEXT);
     private final LabelComponent prices = text("Prices", BazaarStyles.MUTED_TEXT);
+
     private final RetainedFlowLayout sides = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final Side buy = new Side("Buy", BazaarStyles.BUY_ACCENT, BazaarWidgetViewData.OrderSide.Buy);
     private final Side sell = new Side("Sell", BazaarStyles.SELL_ACCENT, BazaarWidgetViewData.OrderSide.Sell);
@@ -40,8 +42,10 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
     EmbeddedOrderBookWidgetView() {
         this.root.allowOverflow(true);
         this.root.gap(0);
+
         this.header.verticalAlignment(VerticalAlignment.CENTER);
         this.header.gap(3);
+
         this.sides.gap(4);
     }
 
@@ -58,29 +62,39 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
         Consumer<OrderBookAction> actions
     ) {
         this.root.horizontalSizing(Sizing.fixed(OrderBookWidget.embeddedContentWidth(config, data)));
+
         this.itemName.text(Component.literal(data.itemName()));
         this.header.clearChildren();
+
         var itemStack = data.itemStack();
+
         if (itemStack.isPresent()) {
             var stack = itemStack.orElseThrow();
+
             if (this.item == null) {
                 this.item = icon(stack);
             } else {
                 this.item.stack(stack);
             }
+
             this.header.child(this.item);
         }
+
         this.header.child(this.itemName);
         this.header.child(this.prices);
 
         var workflowSide = session.side().orElseThrow();
         boolean single = OrderBookWidget.embeddedVisibleSideCount(config, data) <= 1;
+
         this.buy.update(data.buyOffers(), config, workflowSide, single, actions);
         this.sell.update(data.sellOffers(), config, workflowSide, single, actions);
+
         this.sides.clearChildren();
+
         if (OrderBookWidget.showsEmbeddedSide(config, data, BazaarWidgetViewData.OrderSide.Buy)) {
             this.sides.child(this.buy.root);
         }
+
         if (OrderBookWidget.showsEmbeddedSide(config, data, BazaarWidgetViewData.OrderSide.Sell)) {
             this.sides.child(this.sell.root);
         }
@@ -97,13 +111,16 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
     private static final class Side {
         private final int color;
         private final BazaarWidgetViewData.OrderSide side;
+
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.expand(50), Sizing.content());
         private final BazaarOrderListComponent list = new BazaarOrderListComponent(true, 1, 1);
 
         private Side(String title, int color, BazaarWidgetViewData.OrderSide side) {
             this.color = color;
             this.side = side;
+
             this.root.gap(0);
+
             this.root.child(label(title, color));
             this.root.child(this.list);
         }
@@ -116,13 +133,17 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
             Consumer<OrderBookAction> actions
         ) {
             this.root.horizontalSizing(single ? Sizing.fill(100) : Sizing.expand(50));
+
             var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
+
             for (int index = 0; index < entries.size(); index++) {
                 var entry = entries.get(index);
                 double submittedPrice = OrderBookPriceComponent.adjustPrice(entry.price(), workflowSide);
+
                 String adjustment = Double.compare(submittedPrice, entry.price()) == 0
                     ? ""
                     : workflowSide == OrderType.Buy ? " (+0.1)" : " (-0.1)";
+
                 rows.add(new BazaarOrderRowComponent.BazaarRow(
                     this.side.name() + "-" + Double.doubleToLongBits(entry.price()) + "-" + index,
                     entry.priceText(), this.color, "", OrderBookWidget.embeddedMetadata(entry, config),
@@ -139,7 +160,9 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
                     true
                 ));
             }
+
             int rowHeight = rowHeight();
+
             this.list.update(
                 rows,
                 true,

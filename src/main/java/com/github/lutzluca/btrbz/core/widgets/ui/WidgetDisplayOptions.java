@@ -4,5 +4,8 @@ package com.github.lutzluca.btrbz.core.widgets.ui;
 public final class WidgetDisplayOptions {
     private WidgetDisplayOptions() {}
 
-    public enum NumberStyle { Compact, Exact }
+    public enum NumberStyle {
+        Compact,
+        Exact
+    }
 }

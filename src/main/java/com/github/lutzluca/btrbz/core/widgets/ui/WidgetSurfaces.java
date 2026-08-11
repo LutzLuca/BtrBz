@@ -1,5 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
+
+import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Surface;
 import org.joml.Matrix3x2f;
 
@@ -19,7 +22,7 @@ public final class WidgetSurfaces {
     }
 
     public static void drawRoundedPanel(
-        io.wispforest.owo.ui.core.OwoUIGraphics context,
+        OwoUIGraphics context,
         int x,
         int y,
         int width,
@@ -27,7 +30,7 @@ public final class WidgetSurfaces {
         int color,
         int radius
     ) {
-        int resolvedRadius = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+        int resolvedRadius = WidgetMath.clamp(radius, 0, Math.max(0, Math.min(width, height) / 2));
 
         if (resolvedRadius == 0) {
             context.fill(x, y, x + width, y + height, color);

@@ -8,7 +8,6 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetRenderSurface;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -39,12 +38,14 @@ public final class WidgetManagerLauncher {
 
     private final WidgetRuntime runtime;
     private final WidgetStateStore stateStore;
-    private final WidgetRenderSurface renderSurface = new WidgetRenderSurface();
+
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private FlowLayout button;
     private WidgetSlotComponent slot;
+
     private WidgetBounds bounds = new WidgetBounds(0, 0, SIZE, SIZE);
     private boolean visible;
+
     private boolean captured;
     private boolean dragging;
     private double startX;
@@ -67,16 +68,22 @@ public final class WidgetManagerLauncher {
     ) {
         this.visible = this.stateStore.managerLauncherVisible()
             && this.runtime.canOpenContextualManager(screen);
-        if (!this.visible) return;
+
+        if (!this.visible) {
+            return;
+        }
 
         this.ensureAdapter();
+
         var layout = WidgetManagerLauncherLayout.resolve(
             canvas,
             this.stateStore.managerLauncherPosition(),
             SIZE,
             this.stateStore.requestedGlobalScale()
         );
+
         this.bounds = layout.screenBounds();
+
         this.slot.update(
             0x00000000,
             layout.localBounds(),
@@ -87,9 +94,11 @@ public final class WidgetManagerLauncher {
             false,
             true
         );
+
         this.adapter.rootComponent.synchronizeSlots(List.of(this.slot));
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
         this.adapter.extractRenderState(graphics, mouseX, mouseY, delta);
+
         if (!this.captured) {
             this.adapter.drawTooltip(graphics, mouseX, mouseY, delta);
         }
@@ -97,7 +106,9 @@ public final class WidgetManagerLauncher {
 
     public boolean mouseClicked(MouseButtonEvent click) {
         if (!this.visible || click.button() != InputConstants.MOUSE_BUTTON_LEFT
-            || !this.bounds.contains(click.x(), click.y())) return false;
+            || !this.bounds.contains(click.x(), click.y())) {
+            return false;
+        }
 
         this.captured = true;
         this.dragging = false;
@@ -105,35 +116,52 @@ public final class WidgetManagerLauncher {
         this.startY = click.y();
         this.pointerOffsetX = click.x() - this.bounds.x();
         this.pointerOffsetY = click.y() - this.bounds.y();
+
         return true;
     }
 
     public boolean mouseDragged(MouseButtonEvent click, WidgetCanvas canvas) {
-        if (!this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) return false;
+        if (!this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+            return false;
+        }
+
         if (Math.abs(click.x() - this.startX) > DRAG_THRESHOLD
             || Math.abs(click.y() - this.startY) > DRAG_THRESHOLD) {
             this.dragging = true;
         }
-        if (this.dragging) this.updatePlacement(click.x(), click.y(), canvas);
+
+        if (this.dragging) {
+            this.updatePlacement(click.x(), click.y(), canvas);
+        }
+
         return true;
     }
 
     public boolean mouseReleased(MouseButtonEvent click, WidgetCanvas canvas, Screen screen) {
-        if (!this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) return false;
+        if (!this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+            return false;
+        }
+
         boolean moved = this.dragging;
+
         if (moved) {
             this.updatePlacement(click.x(), click.y(), canvas);
             this.stateStore.save();
         }
+
         this.captured = false;
         this.dragging = false;
+
         if (!moved) {
             var manager = this.runtime.createManagementScreen(screen);
+
             if (screen instanceof WidgetManagerLauncherOwner owner) {
                 owner.btrbz$prepareManagerTransition();
             }
+
             Minecraft.getInstance().setScreen(manager);
         }
+
         return true;
     }
 
@@ -145,12 +173,17 @@ public final class WidgetManagerLauncher {
         this.adapter = null;
         this.button = null;
         this.slot = null;
-        if (current != null) current.dispose();
-        this.renderSurface.close();
+
+        if (current != null) {
+            current.dispose();
+        }
     }
 
     private void ensureAdapter() {
-        if (this.adapter != null) return;
+        if (this.adapter != null) {
+            return;
+        }
+
         this.adapter = OwoUIAdapter.createWithoutScreen(0, 0, 1, 1, WidgetCanvasComponent::new);
 
         this.button = UIContainers.verticalFlow(Sizing.fixed(SIZE), Sizing.fixed(SIZE));
@@ -158,14 +191,15 @@ public final class WidgetManagerLauncher {
         this.button.surface(WidgetSurfaces.roundedPanel(0xE0222730, 5));
         this.button.cursorStyle(CursorStyle.HAND);
         this.button.tooltip(Component.literal("Open widget manager"));
+
         var icon = UIComponents.texture(ICON, 0, 0, 1024, 1024, 1024, 1024);
         icon.sizing(Sizing.fixed(ICON_SIZE), Sizing.fixed(ICON_SIZE));
         icon.blend(true);
         this.button.child(icon);
+
         this.slot = new WidgetSlotComponent(
             ID,
             this.button,
-            this.renderSurface,
             0x00000000,
             new WidgetBounds(0, 0, SIZE, SIZE),
             SIZE,

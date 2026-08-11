@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import io.wispforest.owo.ui.component.DiscreteSliderComponent;
 import io.wispforest.owo.ui.core.Sizing;
 
@@ -18,13 +19,20 @@ public final class ScrollSafeDiscreteSliderComponent extends DiscreteSliderCompo
         double step
     ) {
         super(horizontalSizing, min, max);
-        if (!Double.isFinite(step) || step <= 0) throw new IllegalArgumentException("step must be positive");
+
+        if (!Double.isFinite(step) || step <= 0) {
+            throw new IllegalArgumentException("step must be positive");
+        }
+
         this.step = step;
     }
 
     @Override
     public double discreteValue() {
-        if (this.step <= 0) return super.discreteValue();
+        if (this.step <= 0) {
+            return super.discreteValue();
+        }
+
         return snapToStep(super.discreteValue(), this.min, this.max, this.step);
     }
 
@@ -33,6 +41,7 @@ public final class ScrollSafeDiscreteSliderComponent extends DiscreteSliderCompo
         if (this.step > 0 && this.max > this.min) {
             this.value = (this.discreteValue() - this.min) / (this.max - this.min);
         }
+
         super.applyValue();
     }
 
@@ -42,7 +51,6 @@ public final class ScrollSafeDiscreteSliderComponent extends DiscreteSliderCompo
     }
 
     static double snapToStep(double value, double min, double max, double step) {
-        double snapped = min + Math.round((value - min) / step) * step;
-        return Math.max(min, Math.min(max, snapped));
+        return WidgetMath.snap(value, min, max, step);
     }
 }

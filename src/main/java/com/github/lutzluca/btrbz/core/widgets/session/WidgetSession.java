@@ -10,13 +10,17 @@ public final class WidgetSession {
     public static final String DEFAULT_PLACEMENT_PROFILE = "default";
 
     private final long id;
+
     private final boolean hud;
     private final boolean sign;
     private final boolean orderBook;
+
     private final Optional<BazaarMenuType> menu;
     private final Optional<BazaarMenuType> previousMenu;
+
     private final Optional<WidgetProductContext> product;
     private final Optional<OrderType> side;
+
     private final long contextRevision;
 
     public WidgetSession(
@@ -31,23 +35,47 @@ public final class WidgetSession {
         long contextRevision
     ) {
         this.id = id;
+
         this.hud = hud;
         this.sign = sign;
         this.orderBook = orderBook;
+
         this.menu = Objects.requireNonNull(menu, "menu");
         this.previousMenu = Objects.requireNonNull(previousMenu, "previousMenu");
+
         this.product = Objects.requireNonNull(product, "product");
         this.side = Objects.requireNonNull(side, "side");
+
         this.contextRevision = contextRevision;
     }
 
-    public long id() { return this.id; }
-    public boolean inHud() { return this.hud; }
-    public boolean inSign() { return this.sign; }
-    public boolean inOrderBook() { return this.orderBook; }
-    public Optional<WidgetProductContext> product() { return this.product; }
-    public Optional<OrderType> side() { return this.side; }
-    public long contextRevision() { return this.contextRevision; }
+    public long id() {
+        return this.id;
+    }
+
+    public boolean inHud() {
+        return this.hud;
+    }
+
+    public boolean inSign() {
+        return this.sign;
+    }
+
+    public boolean inOrderBook() {
+        return this.orderBook;
+    }
+
+    public Optional<WidgetProductContext> product() {
+        return this.product;
+    }
+
+    public Optional<OrderType> side() {
+        return this.side;
+    }
+
+    public long contextRevision() {
+        return this.contextRevision;
+    }
 
     public boolean inBazaarContainer() {
         return this.inContainerBazaarContext() && this.menu.isPresent();
@@ -58,17 +86,28 @@ public final class WidgetSession {
     }
 
     public boolean inAnyBazaarMenu(BazaarMenuType... menus) {
-        if (!this.inBazaarContainer() || this.menu.isEmpty()) return false;
-        var current = this.menu.orElseThrow();
-        for (var candidate : menus) {
-            if (candidate == current) return true;
+        if (!this.inBazaarContainer() || this.menu.isEmpty()) {
+            return false;
         }
+
+        var current = this.menu.orElseThrow();
+
+        for (var candidate : menus) {
+            if (candidate == current) {
+                return true;
+            }
+        }
+
         return false;
     }
 
     public boolean inAnyBazaarMenu(BazaarMenuType first, BazaarMenuType second) {
-        if (!this.inBazaarContainer() || this.menu.isEmpty()) return false;
+        if (!this.inBazaarContainer() || this.menu.isEmpty()) {
+            return false;
+        }
+
         var current = this.menu.orElseThrow();
+
         return current == first || current == second;
     }
 

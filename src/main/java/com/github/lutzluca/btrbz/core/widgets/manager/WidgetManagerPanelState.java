@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 
 /**
  * Tracks the widget-manager panel independently from the owo component tree so
@@ -14,8 +14,10 @@ final class WidgetManagerPanelState {
 
     private int x;
     private int y;
+
     private boolean initialized;
     private boolean userPositioned;
+
     private boolean dragging;
     private double pointerOffsetX;
     private double pointerOffsetY;
@@ -83,27 +85,34 @@ final class WidgetManagerPanelState {
         int panelWidth,
         int panelHeight
     ) {
-        if (!this.dragging) return false;
+        if (!this.dragging) {
+            return false;
+        }
 
         this.x = (int) Math.round(pointerX - this.pointerOffsetX);
         this.y = (int) Math.round(pointerY - this.pointerOffsetY);
         this.userPositioned = true;
         this.clampToViewport(viewportWidth, viewportHeight, panelWidth, panelHeight);
+
         return true;
     }
 
     boolean endDrag() {
-        if (!this.dragging) return false;
+        if (!this.dragging) {
+            return false;
+        }
+
         this.dragging = false;
+
         return true;
     }
 
     static int configuredWidth(int value) {
-        return WidgetPlacement.clampInt(value, MINIMUM_WIDTH, MAXIMUM_WIDTH);
+        return WidgetMath.clamp(value, MINIMUM_WIDTH, MAXIMUM_WIDTH);
     }
 
     static int configuredHeightPercent(int value) {
-        return WidgetPlacement.clampInt(value, MINIMUM_HEIGHT_PERCENT, MAXIMUM_HEIGHT_PERCENT);
+        return WidgetMath.clamp(value, MINIMUM_HEIGHT_PERCENT, MAXIMUM_HEIGHT_PERCENT);
     }
 
     private void clampToViewport(
@@ -117,6 +126,6 @@ final class WidgetManagerPanelState {
     }
 
     private static int clampToViewport(int value, int maximum) {
-        return WidgetPlacement.clampInt(value, 0, Math.max(0, maximum));
+        return WidgetMath.clamp(value, 0, Math.max(0, maximum));
     }
 }

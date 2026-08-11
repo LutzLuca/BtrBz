@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
@@ -17,7 +18,7 @@ public final class BazaarOrdersWidgetConfig {
     public boolean showUndercutGap = false;
 
     public int supportedVisibleOrders() {
-        return Math.max(MIN_VISIBLE_ORDERS, Math.min(MAX_VISIBLE_ORDERS, this.visibleOrders));
+        return WidgetMath.clamp(this.visibleOrders, MIN_VISIBLE_ORDERS, MAX_VISIBLE_ORDERS);
     }
 
     public static void resetPreferences(BazaarOrdersWidgetConfig current, BazaarOrdersWidgetConfig defaults) {

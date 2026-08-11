@@ -12,7 +12,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.resources.Identifier;
 
 public final class HudWidgetBridge {
-    private HudWidgetBridge() {}
+    private HudWidgetBridge() {
+    }
 
     public static void register(Identifier elementId, WidgetHost host) {
         HudElementRegistry.addLast(elementId, (context, tickCounter) -> {
@@ -27,10 +28,16 @@ public final class HudWidgetBridge {
             client.options.keyPlayerList.isDown(),
             client.getDebugOverlay().showDebugScreen(),
             client.level == null
-        )) return;
+        )) {
+            return;
+        }
+
         boolean generalContainer = client.screen instanceof AbstractContainerScreen<?>
             && !ScreenInfoHelper.inBazaar();
-        if (client.screen != null && !(client.screen instanceof ChatScreen) && !generalContainer) return;
+
+        if (client.screen != null && !(client.screen instanceof ChatScreen) && !generalContainer) {
+            return;
+        }
 
         var window = client.getWindow();
         host.render(
