@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.3-alpha] - 2026-08-12
+
+### Fixed
+
+- Fixed Bazaar product-page slot actions not appearing, including bookmarks, Product Info, and the Order Book button
+
 ## [0.10.2-alpha] - 2026-08-09
 
 ### Fixed
