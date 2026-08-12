@@ -90,6 +90,11 @@ public final class ScreenInfoHelper {
             var screenInfo = this.hasInventoryOwner ? this.inventoryOwnerInfo : this.currInfo;
 
             screenInfo.markInventoryLoaded();
+            if (screenInfo != this.currInfo
+                && screenInfo.getScreen() == this.currInfo.getScreen()) {
+                this.currInfo.markInventoryLoaded();
+            }
+
             log.trace("Inventory loaded: '{}'", inventory.title);
 
             this.screenLoadListenerEntries.forEach(entry ->
