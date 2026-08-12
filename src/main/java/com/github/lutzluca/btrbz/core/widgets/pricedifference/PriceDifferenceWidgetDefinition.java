@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import net.minecraft.resources.Identifier;
 
 public final class PriceDifferenceWidgetDefinition {
@@ -23,10 +24,19 @@ public final class PriceDifferenceWidgetDefinition {
             .supports(session -> session.inBazaarMenu(BazaarMenuType.Item))
             .visibility((data, _, _) -> data.quantity() > 0)
             .runtimeData(_ -> provider.snapshot())
+            .cacheKey(_ -> new CacheKey(
+                provider.stateKey(),
+                ConfigManager.get().widgets.priceDiff.contentWidth
+            ))
             .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(PriceDifferenceWidgetView::new)
             .settingsPanel(PriceDifferenceWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(80), 36)
             .build();
     }
+
+    private record CacheKey(
+        PriceDifferenceWidgetData.StateKey state,
+        int contentWidth
+    ) implements WidgetCacheKey {}
 }

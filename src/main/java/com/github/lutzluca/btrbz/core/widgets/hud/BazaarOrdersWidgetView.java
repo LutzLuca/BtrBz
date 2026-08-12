@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -94,7 +95,10 @@ final class BazaarOrdersWidgetView implements WidgetView<
                 row.update(order, config);
                 this.rows.child(row);
             }
-            var currentIds = data.orders().stream().map(BazaarWidgetViewData.Order::id).toList();
+
+            var currentIds = data.orders().stream()
+                .map(BazaarWidgetViewData.Order::id)
+                .collect(Collectors.toSet());
             this.rowsById.keySet().removeIf(id -> !currentIds.contains(id));
 
             this.root.clearChildren();
@@ -199,12 +203,15 @@ final class BazaarOrdersWidgetView implements WidgetView<
         }
 
         private void update(List<BazaarWidgetViewData.Order> orders) {
-            long[] counts = {
-                count(orders, BazaarWidgetViewData.OrderStatus.Undercut),
-                count(orders, BazaarWidgetViewData.OrderStatus.Matched),
-                count(orders, BazaarWidgetViewData.OrderStatus.Top),
-                count(orders, BazaarWidgetViewData.OrderStatus.Unknown)
-            };
+            long[] counts = new long[4];
+            for (var order : orders) {
+                switch (order.status()) {
+                    case Undercut -> counts[0]++;
+                    case Matched -> counts[1]++;
+                    case Top -> counts[2]++;
+                    case Unknown -> counts[3]++;
+                }
+            }
             this.more.text(Component.literal("+" + orders.size() + " more ·"));
             this.root.clearChildren();
             this.root.child(this.more);
@@ -213,10 +220,6 @@ final class BazaarOrdersWidgetView implements WidgetView<
                 this.statuses.get(index).update(counts[index]);
                 this.root.child(this.statuses.get(index).root);
             }
-        }
-
-        private static long count(List<BazaarWidgetViewData.Order> orders, BazaarWidgetViewData.OrderStatus status) {
-            return orders.stream().filter(order -> order.status() == status).count();
         }
     }
 

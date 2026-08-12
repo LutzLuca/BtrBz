@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -22,6 +23,16 @@ public final class OrderPresetsWidgetDefinition {
             .supports(session -> session.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
                 || session.inSign() && session.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume))
             .runtimeData(_ -> data.snapshot())
+            .cacheKey(_ -> {
+                var config = ConfigManager.get().widgets.orderPresets;
+                return new CacheKey(
+                    component.currentState(),
+                    new ConfigSnapshot(
+                        config.contentWidth, config.visibleRows,
+                        config.clipboard, config.showDisabled
+                    )
+                );
+            })
             .preview(() -> new WidgetPreview<>(OrderPresetsWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.BuyOrderSetupVolume), "default"))
             .viewFactory(OrderPresetsWidgetView::new)
             .actionHandler(new OrderPresetsActionHandler(component))
@@ -31,4 +42,13 @@ public final class OrderPresetsWidgetDefinition {
             .minSize(WidgetLayoutTokens.panelWidth(40), 42)
             .build();
     }
+
+    private record ConfigSnapshot(
+        int contentWidth, int visibleRows, boolean clipboard, boolean showDisabled
+    ) {}
+
+    private record CacheKey(
+        OrderPresetsComponent.State state,
+        ConfigSnapshot config
+    ) implements WidgetCacheKey {}
 }

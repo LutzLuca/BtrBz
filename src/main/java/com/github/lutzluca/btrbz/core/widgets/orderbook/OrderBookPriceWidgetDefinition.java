@@ -1,11 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetCacheKey;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
-import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import net.minecraft.resources.Identifier;
 
@@ -21,6 +21,16 @@ public final class OrderBookPriceWidgetDefinition {
                 config -> config.frame, OrderBookPriceWidgetConfig::resetPreferences)
             .supports(session -> session.inSign() && session.product().isPresent() && session.side().isPresent())
             .runtimeData(provider::snapshot)
+            .cacheKey(session -> {
+                var config = ConfigManager.get().widgets.orderBookPrice;
+                return new CacheKey(
+                    provider.stateKey(session),
+                    config.contentWidth,
+                    config.visibleRows,
+                    config.showOrderCount,
+                    config.sideDisplay
+                );
+            })
             .preview(() -> {
                 var data = OrderBookWidgetData.preview();
                 return new WidgetPreview<>(data, WidgetPreviewSessions.sign(data), "default");
@@ -31,4 +41,12 @@ public final class OrderBookPriceWidgetDefinition {
             .minSize(WidgetLayoutTokens.panelWidth(118), 48)
             .build();
     }
+
+    private record CacheKey(
+        OrderBookWidgetData.StateKey state,
+        int contentWidth,
+        int visibleRows,
+        boolean showOrderCount,
+        OrderBookPriceWidgetConfig.EmbeddedSideDisplay sideDisplay
+    ) implements WidgetCacheKey {}
 }

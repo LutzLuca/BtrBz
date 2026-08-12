@@ -5,11 +5,13 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.Nullable;
 
 /** Shared order-book snapshots for the custom-screen and sign widgets. */
 public final class OrderBookWidgetData {
@@ -17,6 +19,14 @@ public final class OrderBookWidgetData {
 
     public OrderBookWidgetData(BazaarData market) {
         this.market = market;
+    }
+
+    public StateKey stateKey(WidgetSession session) {
+        return new StateKey(
+            session.product().map(WidgetProductContext::productId).orElse(null),
+            this.market.marketRevision(),
+            this.market.indexRevision()
+        );
     }
 
     public Snapshot snapshot(WidgetSession session) {
@@ -87,6 +97,12 @@ public final class OrderBookWidgetData {
             return BazaarWidgetViewData.formatInt(this.quantity);
         }
     }
+
+    public record StateKey(
+        @Nullable String productId,
+        long marketRevision,
+        long indexRevision
+    ) {}
 
     public record Snapshot(
         String itemName,

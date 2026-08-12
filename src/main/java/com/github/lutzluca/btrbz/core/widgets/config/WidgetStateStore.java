@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 public final class WidgetStateStore {
     private final Supplier<WidgetsConfig> configSupplier;
     private final Runnable saveAction;
+    private long frameRevision;
 
     public WidgetStateStore() { this(() -> ConfigManager.get().widgets, ConfigManager::save); }
 
@@ -19,12 +20,17 @@ public final class WidgetStateStore {
         this.saveAction = Objects.requireNonNull(saveAction, "saveAction");
     }
 
+    public long frameRevision() {
+        return this.frameRevision;
+    }
+
     public double globalFineTuneScale() { return WidgetScaleResolver.clampScale(this.config().globalFineTuneScale); }
     public void setGlobalFineTuneScale(double value) {
         this.setGlobalFineTuneScale(value, true);
     }
     public void setGlobalFineTuneScale(double value, boolean persist) {
         this.config().globalFineTuneScale = WidgetScaleResolver.clampScale(value);
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public int globalBackgroundColor() { return this.config().globalBackground; }
@@ -33,6 +39,7 @@ public final class WidgetStateStore {
     }
     public void setGlobalBackgroundColor(int color, boolean persist) {
         this.config().globalBackground = color;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public int managerPanelWidth() {
@@ -82,6 +89,7 @@ public final class WidgetStateStore {
     }
     public void setActive(WidgetDefinition<?, ?, ?> definition, boolean active, boolean persist) {
         definition.frame().enabled = active;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public void setPlacement(
@@ -91,6 +99,7 @@ public final class WidgetStateStore {
         boolean persist
     ) {
         definition.frame().placements.put(profile, placement);
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public void resetPlacement(WidgetDefinition<?, ?, ?> definition, String profile) {
@@ -117,6 +126,7 @@ public final class WidgetStateStore {
         boolean persist
     ) {
         definition.frame().overrideScale = enabled;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value) {
@@ -124,6 +134,7 @@ public final class WidgetStateStore {
     }
     public void setWidgetScale(WidgetDefinition<?, ?, ?> definition, double value, boolean persist) {
         definition.frame().scale = WidgetScaleResolver.clampScale(value);
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public void resetWidgetScale(WidgetDefinition<?, ?, ?> definition) {
@@ -134,6 +145,7 @@ public final class WidgetStateStore {
         var defaults = definition.defaultFrame();
         frame.overrideScale = defaults.overrideScale;
         frame.scale = defaults.scale;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public double requestedScale(WidgetDefinition<?, ?, ?> definition) {
@@ -158,6 +170,7 @@ public final class WidgetStateStore {
         boolean persist
     ) {
         definition.frame().overrideBackground = enabled;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public int backgroundColor(WidgetDefinition<?, ?, ?> definition) {
@@ -170,6 +183,7 @@ public final class WidgetStateStore {
     }
     public void setBackgroundColor(WidgetDefinition<?, ?, ?> definition, int color, boolean persist) {
         definition.frame().background = color;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public void resetBackgroundColor(WidgetDefinition<?, ?, ?> definition) {
@@ -180,6 +194,7 @@ public final class WidgetStateStore {
         var defaults = definition.defaultFrame();
         frame.overrideBackground = defaults.overrideBackground;
         frame.background = defaults.background;
+        this.frameRevision++;
         if (persist) this.saveAction.run();
     }
     public void save() { this.saveAction.run(); }

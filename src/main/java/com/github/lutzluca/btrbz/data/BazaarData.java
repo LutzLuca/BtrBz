@@ -27,6 +27,7 @@ public class BazaarData {
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
     private Map<String, Product> lastProducts = Collections.emptyMap();
+    private long marketRevision;
 
     public BazaarData() {
         this(new ConversionIndexService());
@@ -123,10 +124,19 @@ public class BazaarData {
         this.conversionIndexService.addConversionEventListener(listener);
     }
 
+    public long marketRevision() {
+        return this.marketRevision;
+    }
+
+    public long indexRevision() {
+        return this.conversionIndexService.indexRevision();
+    }
+
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
             products == null ? Map.of() : products
         ));
+        this.marketRevision++;
         var snapshot = this.currentSnapshot();
 
         for (var listener : this.listeners) {
