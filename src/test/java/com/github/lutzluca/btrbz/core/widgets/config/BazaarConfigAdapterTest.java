@@ -29,6 +29,12 @@ class BazaarConfigAdapterTest {
         assertEquals(240, options.orderValue().contentWidth());
         assertFalse(options.orderBook().showHeader());
         assertFalse(options.embeddedOrderBook().showSell());
+        assertTrue(options.orderBook().showItem());
+        assertTrue(options.embeddedOrderBook().showItem());
+        assertEquals(
+            BazaarWidgetOptions.EmbeddedSideDisplay.Relevant,
+            options.embeddedOrderBook().sideDisplay()
+        );
         assertFalse(options.bookmarks().showIndicators());
         assertFalse(options.presets().clipboard());
         assertEquals(95, options.orderLimit().criticalThreshold());

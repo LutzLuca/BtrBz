@@ -56,23 +56,24 @@ public final class WidgetRuntime {
     }
 
     public WidgetHost createHudHost() {
-        return this.createHost(this.registry.hud());
+        return this.createHost(this.registry.hud(), false);
     }
 
     public WidgetHost createBazaarHost() {
-        return this.createHost(this.registry.bazaar());
+        return this.createHost(this.registry.bazaar(), true);
     }
 
     public WidgetHost createContainerHost() {
-        return this.createHost(this.registry.container());
+        return this.createHost(this.registry.container(), true);
     }
 
-    private WidgetHost createHost(List<WidgetDefinition<?, ?>> definitions) {
+    private WidgetHost createHost(List<WidgetDefinition<?, ?>> definitions, boolean placementDragging) {
         this.requireInitialized();
         return WidgetHost.runtime(
             definitions,
             this.stateStore,
-            this.sessionProvider
+            this.sessionProvider,
+            placementDragging
         );
     }
 

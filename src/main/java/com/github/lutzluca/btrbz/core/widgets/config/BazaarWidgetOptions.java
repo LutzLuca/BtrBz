@@ -46,8 +46,10 @@ public record BazaarWidgetOptions(
             ),
             new OrderValue(205, ValueDisplay.Detailed, NumberStyle.Compact, true, ColorMode.Semantic,
                 true, true, true, true),
-            new OrderBook(330, 5, BookLayout.Split, NumberStyle.Exact, true, true),
-            new EmbeddedOrderBook(240, 3, EmbeddedBookLayout.Split, true, true, true, true, true),
+            new OrderBook(330, 5, BookLayout.Split, NumberStyle.Exact, true, true, true),
+            new EmbeddedOrderBook(
+                240, 3, true, true, true, true, true, true, EmbeddedSideDisplay.Relevant
+            ),
             new Bookmarks(200, 6, BookmarkSort.Manual, true, true, false),
             new Presets(100, true, true, true, true),
             new OrderLimit(180, LimitDisplay.UsedLimit, NumberStyle.Compact, true, 75, 90),
@@ -100,18 +102,20 @@ public record BazaarWidgetOptions(
         BookLayout layout,
         NumberStyle numberStyle,
         boolean showOrderCount,
-        boolean showHeader
+        boolean showHeader,
+        boolean showItem
     ) {}
 
     public record EmbeddedOrderBook(
         int contentWidth,
         int visibleRows,
-        EmbeddedBookLayout layout,
         boolean showBuy,
         boolean showSell,
         boolean showAmounts,
         boolean showOrderCount,
-        boolean showHeader
+        boolean showHeader,
+        boolean showItem,
+        EmbeddedSideDisplay sideDisplay
     ) {}
 
     public record Bookmarks(
@@ -158,7 +162,7 @@ public record BazaarWidgetOptions(
     public enum ValueDisplay { Detailed, Summary }
     public enum ColorMode { Semantic, Neutral }
     public enum BookLayout { Split, BuyOnly, SellOnly }
-    public enum EmbeddedBookLayout { Split, Stacked }
+    public enum EmbeddedSideDisplay { Relevant, Both }
     public enum BookmarkSort { Manual, Alphabetical }
     public enum LimitDisplay { UsedLimit, Remaining, Percentage, Compact }
     public enum DiffDisplay { Both, PerItem, Total }

@@ -42,7 +42,8 @@ public final class OrderBookWidget {
         header.allowOverflow(true);
         header.verticalAlignment(VerticalAlignment.CENTER);
         header.gap(WidgetLayoutTokens.HEADER_GAP);
-        header.child(icon(snapshot.iconCopy()));
+        var productIcon = snapshot.iconCopy();
+        if (options.showItem() && !productIcon.isEmpty()) header.child(icon(productIcon));
         header.child(label(snapshot.itemName(), BazaarStyles.PRIMARY_TEXT));
         header.child(label("Order Book", BazaarStyles.MUTED_TEXT));
         if (options.showHeader()) layout.child(header);
@@ -77,29 +78,61 @@ public final class OrderBookWidget {
         WidgetScrollState sellScroll,
         Consumer<BazaarAction> actions
     ) {
-        int effectiveWidth = options.layout() == BazaarWidgetOptions.EmbeddedBookLayout.Stacked
-            ? Math.max(180, (options.contentWidth() - 4) / 2)
-            : options.contentWidth();
+        int effectiveWidth = embeddedContentWidth(options, book);
         var root = panel(effectiveWidth);
         if (options.showHeader()) {
+            var productIcon = book.iconCopy();
             root.child(line(
-                icon(book.iconCopy()),
+                options.showItem() && !productIcon.isEmpty() ? icon(productIcon) : null,
                 text(book.itemName(), BazaarStyles.PRIMARY_TEXT),
                 text("Prices", BazaarStyles.MUTED_TEXT)
             ));
         }
-        var sides = options.layout() == BazaarWidgetOptions.EmbeddedBookLayout.Split
-            ? UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content())
-            : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
+        var sides = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
         sides.gap(4);
-        if (options.showBuy()) sides.child(embeddedSide(
-            "Buy", book.buyOffers(), BazaarStyles.BUY_ACCENT, options, buyScroll, interactive, actions
+        boolean singleVisibleSide = embeddedVisibleSideCount(options, book) <= 1;
+        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Buy)) sides.child(embeddedSide(
+            "Buy", book.buyOffers(), BazaarStyles.BUY_ACCENT, options, buyScroll,
+            singleVisibleSide, interactive, actions
         ));
-        if (options.showSell()) sides.child(embeddedSide(
-            "Sell", book.sellOffers(), BazaarStyles.SELL_ACCENT, options, sellScroll, interactive, actions
+        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Sell)) sides.child(embeddedSide(
+            "Sell", book.sellOffers(), BazaarStyles.SELL_ACCENT, options, sellScroll,
+            singleVisibleSide, interactive, actions
         ));
         root.child(sides);
         return root;
+    }
+
+    static boolean showsEmbeddedSide(
+        BazaarWidgetOptions.EmbeddedOrderBook options,
+        BazaarWidgetViewData.OrderBookData book,
+        BazaarWidgetViewData.OrderSide side
+    ) {
+        boolean configured = side == BazaarWidgetViewData.OrderSide.Buy
+            ? options.showBuy()
+            : options.showSell();
+        return configured && (options.sideDisplay() == BazaarWidgetOptions.EmbeddedSideDisplay.Both
+            || book.appropriateSide().isEmpty()
+            || book.appropriateSide().filter(side::equals).isPresent());
+    }
+
+    static int embeddedContentWidth(
+        BazaarWidgetOptions.EmbeddedOrderBook options,
+        BazaarWidgetViewData.OrderBookData book
+    ) {
+        return embeddedVisibleSideCount(options, book) <= 1
+            ? Math.max(1, (options.contentWidth() - 4) / 2)
+            : options.contentWidth();
+    }
+
+    static int embeddedVisibleSideCount(
+        BazaarWidgetOptions.EmbeddedOrderBook options,
+        BazaarWidgetViewData.OrderBookData book
+    ) {
+        int visibleSides = 0;
+        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Buy)) visibleSides++;
+        if (showsEmbeddedSide(options, book, BazaarWidgetViewData.OrderSide.Sell)) visibleSides++;
+        return visibleSides;
     }
 
     public static int contentWidth(BazaarWidgetOptions.OrderBook options) {
@@ -157,13 +190,12 @@ public final class OrderBookWidget {
         int color,
         BazaarWidgetOptions.EmbeddedOrderBook options,
         WidgetScrollState scrollState,
+        boolean singleVisibleSide,
         boolean interactive,
         Consumer<BazaarAction> actions
     ) {
         var side = UIContainers.verticalFlow(
-            options.layout() == BazaarWidgetOptions.EmbeddedBookLayout.Split
-                ? Sizing.expand(50)
-                : Sizing.fill(100),
+            singleVisibleSide ? Sizing.fill(100) : Sizing.expand(50),
             Sizing.content()
         );
         side.gap(WidgetLayoutTokens.LINE_GAP);
@@ -171,8 +203,7 @@ public final class OrderBookWidget {
         var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
         for (int index = 0; index < entries.size(); index++) {
             var entry = entries.get(index);
-            String tail = (options.showAmounts() ? entry.quantityText() : "")
-                + (options.showOrderCount() ? " ×" + entry.orders() : "");
+            String tail = embeddedMetadata(entry, options);
             rows.add(new BazaarOrderRowComponent.BazaarRow(
                 title + "-price-" + index,
                 entry.priceText(),
@@ -199,6 +230,16 @@ public final class OrderBookWidget {
             scrollState
         ));
         return side;
+    }
+
+    static String embeddedMetadata(
+        BazaarWidgetViewData.OrderBookEntry entry,
+        BazaarWidgetOptions.EmbeddedOrderBook options
+    ) {
+        var parts = new ArrayList<String>();
+        if (options.showAmounts()) parts.add(entry.quantityText());
+        if (options.showOrderCount()) parts.add(entry.orders() + " ord");
+        return String.join(" · ", parts);
     }
 
     private static int rowHeight() {

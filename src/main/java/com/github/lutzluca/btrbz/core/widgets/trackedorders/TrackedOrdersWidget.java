@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 import com.github.lutzluca.btrbz.core.widgets.action.BazaarAction;
 import com.github.lutzluca.btrbz.core.widgets.config.BazaarWidgetOptions;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudWidget;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.widgets.framework.ui.WidgetScrollState;
@@ -40,12 +39,9 @@ public final class TrackedOrdersWidget {
         header.verticalAlignment(VerticalAlignment.CENTER);
         header.child(label("Tracked Orders", BazaarStyles.PRIMARY_TEXT));
         header.child(spacer());
-        header.child(label(sorted.size() + " active", BazaarStyles.MUTED_TEXT));
+        header.child(label(headerStatus(data, sorted.size(), options.showStatusSummary()), BazaarStyles.MUTED_TEXT));
         layout.child(header);
 
-        if (options.showStatusSummary()) {
-            layout.child(BazaarHudWidget.statusCountsStrip(data, options.contentWidth()));
-        }
         layout.child(new BazaarTrackedOrderListComponent(
             sorted,
             options,
@@ -57,6 +53,15 @@ public final class TrackedOrdersWidget {
             actions
         ));
         return layout;
+    }
+
+    static String headerStatus(
+        BazaarWidgetViewData.OrdersData data,
+        int activeOrderCount,
+        boolean showFilledCount
+    ) {
+        String active = activeOrderCount + " active";
+        return showFilledCount ? active + " · " + data.filledOrderCount() + " filled" : active;
     }
 
     public static List<BazaarWidgetViewData.Order> sortedOrders(

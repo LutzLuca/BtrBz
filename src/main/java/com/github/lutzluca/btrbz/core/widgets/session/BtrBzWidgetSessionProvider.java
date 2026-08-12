@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetCanvas;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetScreenSession;
 import com.github.lutzluca.btrbz.widgets.framework.WidgetScreenSessionProvider;
+import java.util.EnumMap;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
@@ -21,8 +22,9 @@ public final class BtrBzWidgetSessionProvider implements WidgetScreenSessionProv
     private final ProductInfoProvider productInfoProvider;
     private final OrderBookPriceComponent orderBookPrice;
     private final TrackedOrderManager trackedOrders;
-    private SemanticKey lastSemanticKey;
-    private long semanticSessionId;
+    private final EnumMap<BtrBzWidgetSession.HostKind, SemanticState> semanticStates =
+        new EnumMap<>(BtrBzWidgetSession.HostKind.class);
+    private long nextSemanticSessionId;
 
     public BtrBzWidgetSessionProvider(
         ProductInfoProvider productInfoProvider,
@@ -60,12 +62,13 @@ public final class BtrBzWidgetSessionProvider implements WidgetScreenSessionProv
             helper.screenTransitionVersion(), host, current.getMenuType(), previous.getMenuType(),
             current.inventoryLoaded(), productId, side, content
         );
-        if (!semanticKey.equals(this.lastSemanticKey)) {
-            this.lastSemanticKey = semanticKey;
-            this.semanticSessionId++;
+        var semanticState = this.semanticStates.get(host);
+        if (semanticState == null || !semanticKey.equals(semanticState.key())) {
+            semanticState = new SemanticState(++this.nextSemanticSessionId, semanticKey);
+            this.semanticStates.put(host, semanticState);
         }
         return new BtrBzWidgetSession(
-            this.semanticSessionId,
+            semanticState.id(),
             host,
             current.getMenuType(),
             previous.getMenuType(),
@@ -101,4 +104,6 @@ public final class BtrBzWidgetSessionProvider implements WidgetScreenSessionProv
         Optional<OrderType> side,
         WidgetCanvas contentCanvas
     ) {}
+
+    private record SemanticState(long id, SemanticKey key) {}
 }

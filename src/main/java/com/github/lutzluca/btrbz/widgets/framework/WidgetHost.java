@@ -20,6 +20,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import lombok.extern.slf4j.Slf4j;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ public class WidgetHost {
     private final List<WidgetDefinition<?, ?>> definitions;
     private final WidgetStateStore stateStore;
     private final boolean runtime;
+    private final boolean runtimePlacementDragging;
     private final @Nullable WidgetScreenSessionProvider sessionProvider;
     private final Map<WidgetId, WidgetRenderSurface> renderSurfaces = new HashMap<>();
     private final Map<WidgetId, WidgetInstanceState> instanceStates = new HashMap<>();
@@ -41,28 +43,34 @@ public class WidgetHost {
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
 
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
+    private List<RuntimeWidgetHit> runtimeWidgetHits = List.of();
+    private @Nullable RuntimePlacementDrag runtimePlacementDrag;
 
     private WidgetHost(
         List<WidgetDefinition<?, ?>> definitions,
         WidgetStateStore stateStore,
         boolean runtime,
+        boolean runtimePlacementDragging,
         @Nullable WidgetScreenSessionProvider sessionProvider
     ) {
         this.definitions = List.copyOf(definitions);
         this.stateStore = stateStore;
         this.runtime = runtime;
+        this.runtimePlacementDragging = runtimePlacementDragging;
         this.sessionProvider = sessionProvider;
     }
 
     public static WidgetHost runtime(
         List<WidgetDefinition<?, ?>> definitions,
         WidgetStateStore stateStore,
-        WidgetScreenSessionProvider sessionProvider
+        WidgetScreenSessionProvider sessionProvider,
+        boolean placementDragging
     ) {
         return new WidgetHost(
             definitions,
             stateStore,
             true,
+            placementDragging,
             java.util.Objects.requireNonNull(sessionProvider, "sessionProvider")
         );
     }
@@ -71,7 +79,7 @@ public class WidgetHost {
         List<WidgetDefinition<?, ?>> definitions,
         WidgetStateStore stateStore
     ) {
-        return new WidgetHost(definitions, stateStore, false, null);
+        return new WidgetHost(definitions, stateStore, false, false, null);
     }
 
     public List<WidgetRenderResult> render(
@@ -88,6 +96,7 @@ public class WidgetHost {
         if (session != null) this.detachChangedSessions(session);
         var slots = new ArrayList<WidgetSlotComponent>();
         var results = new ArrayList<WidgetRenderResult>();
+        var runtimeHits = new ArrayList<RuntimeWidgetHit>();
         var nowAttached = new HashSet<WidgetId>();
 
         for (var definition : this.definitions) {
@@ -95,8 +104,13 @@ public class WidgetHost {
             if (prepared == null) continue;
             slots.add(prepared.slot());
             results.add(prepared.result());
+            if (this.runtimePlacementDragging) {
+                runtimeHits.add(new RuntimeWidgetHit(prepared.result(), prepared.anchorCanvas()));
+            }
             nowAttached.add(definition.getId());
         }
+
+        this.runtimeWidgetHits = List.copyOf(runtimeHits);
 
         this.detachMissing(nowAttached);
         for (var id : nowAttached) {
@@ -117,6 +131,8 @@ public class WidgetHost {
         this.instanceStates.values().forEach(WidgetInstanceState::clear);
         this.instanceStates.clear();
         this.capturedMouseButtons.clear();
+        this.runtimeWidgetHits = List.of();
+        this.runtimePlacementDrag = null;
 
         var adapter = this.adapter;
         this.adapter = null;
@@ -143,11 +159,37 @@ public class WidgetHost {
         if (this.adapter == null) return false;
 
         boolean handled = this.adapter.mouseClicked(click, doubled);
-        if (handled) this.capturedMouseButtons.add(click.button());
-        return handled;
+        if (handled) {
+            this.capturedMouseButtons.add(click.button());
+            return true;
+        }
+        if (!this.runtimePlacementDragging || click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+
+        var hit = this.runtimeHitAt(click.x(), click.y());
+        if (hit == null) return false;
+        var result = hit.result();
+        this.runtimePlacementDrag = new RuntimePlacementDrag(
+            result.definition(),
+            result.placementProfile(),
+            hit.anchorCanvas(),
+            click.x() - result.bounds().x(),
+            click.y() - result.bounds().y(),
+            result.bounds().width(),
+            result.bounds().height(),
+            click.button()
+        );
+        this.capturedMouseButtons.add(click.button());
+        return true;
     }
 
     public boolean mouseReleased(MouseButtonEvent click) {
+        if (this.runtimePlacementDrag != null && this.runtimePlacementDrag.button() == click.button()) {
+            this.updateRuntimePlacement(click.x(), click.y());
+            this.runtimePlacementDrag = null;
+            this.capturedMouseButtons.remove(click.button());
+            this.stateStore.save();
+            return true;
+        }
         boolean captured = this.capturedMouseButtons.remove(click.button());
         return this.adapter == null
             ? captured
@@ -155,6 +197,10 @@ public class WidgetHost {
     }
 
     public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
+        if (this.runtimePlacementDrag != null && this.runtimePlacementDrag.button() == click.button()) {
+            this.updateRuntimePlacement(click.x(), click.y());
+            return true;
+        }
         boolean captured = this.capturedMouseButtons.contains(click.button());
         return this.adapter == null
             ? captured
@@ -268,7 +314,8 @@ public class WidgetHost {
             );
             return new PreparedWidget(
                 slot,
-                new WidgetRenderResult(definition, profile, absoluteBounds, logicalWidth, logicalHeight, scale)
+                new WidgetRenderResult(definition, profile, absoluteBounds, logicalWidth, logicalHeight, scale),
+                anchorCanvas
             );
         } catch (Exception exception) {
             this.logWidgetFailure(definition, exception);
@@ -378,7 +425,8 @@ public class WidgetHost {
                 logicalWidth,
                 logicalHeight,
                 scale
-            )
+            ),
+            canvas
         );
     }
 
@@ -390,6 +438,10 @@ public class WidgetHost {
             this.attachedWidgets.remove(id);
             var state = this.instanceStates.remove(id);
             if (state != null) state.clear();
+            if (this.runtimePlacementDrag != null
+                && this.runtimePlacementDrag.definition().getId().equals(id)) {
+                this.runtimePlacementDrag = null;
+            }
         }
     }
 
@@ -425,5 +477,55 @@ public class WidgetHost {
         return this.renderSurfaces.computeIfAbsent(widgetId, _ -> new WidgetRenderSurface());
     }
 
-    private record PreparedWidget(WidgetSlotComponent slot, WidgetRenderResult result) {}
+    private @Nullable RuntimeWidgetHit runtimeHitAt(double absoluteX, double absoluteY) {
+        for (int index = this.runtimeWidgetHits.size() - 1; index >= 0; index--) {
+            var hit = this.runtimeWidgetHits.get(index);
+            if (hit.result().bounds().contains(absoluteX, absoluteY)) return hit;
+        }
+        return null;
+    }
+
+    private void updateRuntimePlacement(double absoluteMouseX, double absoluteMouseY) {
+        var drag = this.runtimePlacementDrag;
+        if (drag == null) return;
+
+        int localX = (int) Math.round(
+            absoluteMouseX - drag.pointerOffsetX() - drag.anchorCanvas().x()
+        );
+        int localY = (int) Math.round(
+            absoluteMouseY - drag.pointerOffsetY() - drag.anchorCanvas().y()
+        );
+        this.stateStore.setPlacement(
+            drag.definition(),
+            drag.placementProfile(),
+            WidgetPlacement.fromAbsolute(
+                localX,
+                localY,
+                drag.anchorCanvas().width(),
+                drag.anchorCanvas().height(),
+                drag.scaledWidth(),
+                drag.scaledHeight()
+            ),
+            false
+        );
+    }
+
+    private record PreparedWidget(
+        WidgetSlotComponent slot,
+        WidgetRenderResult result,
+        WidgetCanvas anchorCanvas
+    ) {}
+
+    private record RuntimeWidgetHit(WidgetRenderResult result, WidgetCanvas anchorCanvas) {}
+
+    private record RuntimePlacementDrag(
+        WidgetDefinition<?, ?> definition,
+        String placementProfile,
+        WidgetCanvas anchorCanvas,
+        double pointerOffsetX,
+        double pointerOffsetY,
+        int scaledWidth,
+        int scaledHeight,
+        int button
+    ) {}
 }

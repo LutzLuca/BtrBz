@@ -37,7 +37,8 @@ public final class BazaarWidgetPreviewData {
             "Booster Cookie",
             new ItemStack(Items.COOKIE),
             levels(BazaarWidgetViewData.OrderSide.Buy, 9_811_000.1),
-            levels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0)
+            levels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0),
+            Optional.of(BazaarWidgetViewData.OrderSide.Sell)
         );
     }
 

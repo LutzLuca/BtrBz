@@ -123,6 +123,7 @@ class BazaarPresentationTest {
             layout,
             BazaarWidgetOptions.NumberStyle.Exact,
             true,
+            true,
             true
         );
     }

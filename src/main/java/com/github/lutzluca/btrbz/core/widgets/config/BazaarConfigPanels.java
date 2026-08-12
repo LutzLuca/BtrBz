@@ -16,10 +16,13 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /** Builds feature-owned controls for the widget manager. */
 public final class BazaarConfigPanels {
-
+    private static final Pattern ENUM_WORD_BOUNDARY = Pattern.compile(
+        "(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])"
+    );
 
     public UIComponent create(WidgetId id) {
         if (id.equals(BazaarWidgets.BAZAAR_ORDERS_ID)) return this.hud();
@@ -58,7 +61,7 @@ public final class BazaarConfigPanels {
         this.enumeration(panel, "Density", () -> values.layout, value -> values.layout = value);
         this.enumeration(panel, "Sort order", () -> values.sort, value -> values.sort = value);
         this.bool(panel, "Abbreviate Enchanted", () -> values.abbreviateEnchanted, value -> values.abbreviateEnchanted = value);
-        this.bool(panel, "Show status summary", () -> values.showStatusSummary, value -> values.showStatusSummary = value);
+        this.bool(panel, "Show filled count", () -> values.showStatusSummary, value -> values.showStatusSummary = value);
         this.bool(panel, "Show ItemStacks", () -> values.showItem, value -> values.showItem = value);
         this.bool(panel, "Show volume", () -> values.showVolume, value -> values.showVolume = value);
         this.enumeration(panel, "Price display", () -> values.priceDisplay, value -> values.priceDisplay = value);
@@ -91,6 +94,7 @@ public final class BazaarConfigPanels {
         this.enumeration(panel, "Volume format", () -> values.numberStyle, value -> values.numberStyle = value);
         this.bool(panel, "Show order count", () -> values.showOrderCount, value -> values.showOrderCount = value);
         this.bool(panel, "Show product header", () -> values.showHeader, value -> values.showHeader = value);
+        this.bool(panel, "Show ItemStack", () -> values.showItem, value -> values.showItem = value);
         return panel;
     }
 
@@ -99,12 +103,13 @@ public final class BazaarConfigPanels {
         var values = ConfigManager.get().widgets.orderBookPrice;
         this.integer(panel, "Content width", () -> values.contentWidth, value -> values.contentWidth = value, 240, 360);
         this.integer(panel, "Levels per side", () -> values.visibleRows, value -> values.visibleRows = value, 1, 10);
-        this.enumeration(panel, "Layout", () -> values.layout, value -> values.layout = value);
         this.bool(panel, "Show buy offers", () -> values.showBuy, value -> values.showBuy = value);
         this.bool(panel, "Show sell offers", () -> values.showSell, value -> values.showSell = value);
         this.bool(panel, "Show amounts", () -> values.showAmounts, value -> values.showAmounts = value);
         this.bool(panel, "Show order count", () -> values.showOrderCount, value -> values.showOrderCount = value);
         this.bool(panel, "Show product header", () -> values.showHeader, value -> values.showHeader = value);
+        this.bool(panel, "Show ItemStack", () -> values.showItem, value -> values.showItem = value);
+        this.enumeration(panel, "Sides", () -> values.sideDisplay, value -> values.sideDisplay = value);
         return panel;
     }
 
@@ -265,12 +270,21 @@ public final class BazaarConfigPanels {
     }
 
     private static Component enumMessage(String label, Enum<?> value) {
-        var words = value.name().toLowerCase(java.util.Locale.ROOT).split("_");
+        return Component.literal(label + ": " + enumLabel(value));
+    }
+
+    static String enumLabel(Enum<?> value) {
+        var words = ENUM_WORD_BOUNDARY.split(value.name().replace('_', ' '));
         var display = new StringBuilder();
         for (var word : words) {
             if (!display.isEmpty()) display.append(' ');
-            display.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+            if (word.equalsIgnoreCase("and") || word.equalsIgnoreCase("or")) {
+                display.append(word.toLowerCase(java.util.Locale.ROOT));
+            } else {
+                display.append(Character.toUpperCase(word.charAt(0)))
+                    .append(word.substring(1).toLowerCase(java.util.Locale.ROOT));
+            }
         }
-        return Component.literal(label + ": " + display);
+        return display.toString();
     }
 }

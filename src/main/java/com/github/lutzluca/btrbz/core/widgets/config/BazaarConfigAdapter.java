@@ -39,12 +39,12 @@ public final class BazaarConfigAdapter {
             ),
             new BazaarWidgetOptions.OrderBook(
                 book.contentWidth, book.visibleRows, book.layout, book.numberStyle,
-                book.showOrderCount, book.showHeader
+                book.showOrderCount, book.showHeader, book.showItem
             ),
             new BazaarWidgetOptions.EmbeddedOrderBook(
-                embedded.contentWidth, embedded.visibleRows, embedded.layout, embedded.showBuy,
-                embedded.showSell, embedded.showAmounts, embedded.showOrderCount,
-                embedded.showHeader
+                embedded.contentWidth, embedded.visibleRows, embedded.showBuy, embedded.showSell,
+                embedded.showAmounts, embedded.showOrderCount,
+                embedded.showHeader, embedded.showItem, embedded.sideDisplay
             ),
             new BazaarWidgetOptions.Bookmarks(
                 bookmarks.contentWidth, bookmarks.visibleRows, bookmarks.sort,

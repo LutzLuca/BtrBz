@@ -71,7 +71,7 @@ public final class OrderBookScreenController {
             var identity = ProductIdentity.fromIndex(product);
             var icon = context.view().getCurrInfo().getItemStack(PRODUCT_SLOT)
                 .map(ItemStack::copy)
-                .orElseGet(() -> new ItemStack(Items.BOOK));
+                .orElse(ItemStack.EMPTY);
             Minecraft.getInstance().setScreen(new OrderBookScreen(
                 context.view().getCurrInfo().getScreen(),
                 identity,

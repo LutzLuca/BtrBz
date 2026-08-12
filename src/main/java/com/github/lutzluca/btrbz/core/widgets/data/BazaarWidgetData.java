@@ -100,7 +100,7 @@ public final class BazaarWidgetData {
                 snapshot.id(),
                 snapshot.type() == OrderType.Buy ? BazaarWidgetViewData.OrderSide.Buy : BazaarWidgetViewData.OrderSide.Sell,
                 snapshot.productName(),
-                Component.literal(product.visualName()),
+                Utils.legacyFormattedComponent(product.visualName()),
                 icon,
                 Math.round(snapshot.pricePerUnit()),
                 snapshot.volume(),
@@ -132,7 +132,8 @@ public final class BazaarWidgetData {
         var session = (BtrBzWidgetSession) context.session();
         ProductIdentity product = null;
         String name = "Order Book";
-        ItemStack icon = new ItemStack(Items.BOOK);
+        ItemStack icon = ItemStack.EMPTY;
+        Optional<BazaarWidgetViewData.OrderSide> appropriateSide = Optional.empty();
         if (session.host() == BtrBzWidgetSession.HostKind.OrderBook
             && ScreenInfoHelper.get().getCurrInfo().getScreen() instanceof OrderBookScreen screen) {
             product = screen.product();
@@ -145,8 +146,15 @@ public final class BazaarWidgetData {
                 name = product.visualName();
                 icon = currentProductIcon();
             }
+            appropriateSide = session.side().map(side -> side == OrderType.Buy
+                ? BazaarWidgetViewData.OrderSide.Buy
+                : BazaarWidgetViewData.OrderSide.Sell);
         }
-        if (product == null) return new BazaarWidgetViewData.OrderBookData(name, icon, List.of(), List.of());
+        if (product == null) {
+            return new BazaarWidgetViewData.OrderBookData(
+                name, icon, List.of(), List.of(), appropriateSide
+            );
+        }
         var lists = this.market.getOrderLists(product);
         return new BazaarWidgetViewData.OrderBookData(
             name,
@@ -162,7 +170,8 @@ public final class BazaarWidgetData {
                 summary.getPricePerUnit(),
                 (int) summary.getAmount(),
                 (int) summary.getOrders()
-            )).toList()
+            )).toList(),
+            appropriateSide
         );
     }
 
@@ -171,7 +180,7 @@ public final class BazaarWidgetData {
             new BazaarWidgetViewData.Bookmark(
                 bookmark.productId(),
                 bookmark.productName(),
-                Component.literal(bookmark.formattedName()),
+                Utils.legacyFormattedComponent(bookmark.formattedName()),
                 bookmark.itemStack(),
                 bookmark.hasBuyOrder(),
                 bookmark.hasSellOffer()
@@ -251,7 +260,7 @@ public final class BazaarWidgetData {
         return ScreenInfoHelper.get().getPrevInfo().getItemStack(PRODUCT_SLOT)
             .or(() -> ScreenInfoHelper.get().getCurrInfo().getItemStack(PRODUCT_SLOT))
             .map(ItemStack::copy)
-            .orElseGet(() -> new ItemStack(Items.BOOK));
+            .orElse(ItemStack.EMPTY);
     }
 
     private Optional<BazaarWidgetViewData.MarketInfo> marketInfo(

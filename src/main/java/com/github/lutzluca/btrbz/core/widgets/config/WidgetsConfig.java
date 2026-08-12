@@ -107,6 +107,7 @@ public final class WidgetsConfig {
         public BazaarWidgetOptions.NumberStyle numberStyle = BazaarWidgetOptions.NumberStyle.Exact;
         public boolean showOrderCount = true;
         public boolean showHeader = true;
+        public boolean showItem = true;
 
         public OrderBookConfig() {
             this.position = WidgetPlacement.topLeft(0.55, 0.34);
@@ -116,13 +117,14 @@ public final class WidgetsConfig {
     public static final class OrderBookPriceConfig extends SinglePlacementConfig {
         public int contentWidth = 240;
         public int visibleRows = 3;
-        public BazaarWidgetOptions.EmbeddedBookLayout layout =
-            BazaarWidgetOptions.EmbeddedBookLayout.Split;
         public boolean showBuy = true;
         public boolean showSell = true;
         public boolean showAmounts = true;
         public boolean showOrderCount = true;
         public boolean showHeader = true;
+        public boolean showItem = true;
+        public BazaarWidgetOptions.EmbeddedSideDisplay sideDisplay =
+            BazaarWidgetOptions.EmbeddedSideDisplay.Relevant;
 
         public OrderBookPriceConfig() {
             this.position = WidgetPlacement.topLeft(0.04, 0.50);
