@@ -555,7 +555,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.sidebarContent.child(label("Reset every setting for this widget?", 0xFFE06C75));
         this.sidebarContent.child(button("Confirm entire reset", _ -> {
-            selected.binding(this::markDirty).resetAll();
+            this.stateStore.resetAll(selected, false);
+            this.markDirty();
             this.pendingResetConfirmation = null;
             this.rebuildSidebar();
         }));

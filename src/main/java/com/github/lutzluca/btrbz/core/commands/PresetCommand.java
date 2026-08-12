@@ -1,8 +1,10 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -37,6 +39,9 @@ public class PresetCommand {
                     });
 
                     if (added) {
+                        BtrBz.widgetRuntime().invalidateWidgetContent(
+                            OrderPresetsWidgetDefinition.ID, "preset volume added by command"
+                        );
                         Notifier.notifyPlayer(Notifier
                             .prefix()
                             .append(Component.literal("Added preset ").withStyle(ChatFormatting.GRAY))
@@ -70,6 +75,9 @@ public class PresetCommand {
                         );
 
                         if (removed) {
+                            BtrBz.widgetRuntime().invalidateWidgetContent(
+                                OrderPresetsWidgetDefinition.ID, "preset volume removed by command"
+                            );
                             Notifier.notifyPlayer(Notifier
                                 .prefix()
                                 .append(Component.literal("Removed preset ").withStyle(ChatFormatting.GRAY))
@@ -130,7 +138,7 @@ public class PresetCommand {
 
             .then(ClientCommands.literal("clear").executes(ctx -> {
                 int count = ConfigManager.get().widgets.orderPresets.volumes.size();
-                ConfigManager.updateIfChanged(cfg -> {
+                boolean cleared = ConfigManager.updateIfChanged(cfg -> {
                     if (cfg.widgets.orderPresets.volumes.isEmpty()) {
                         return false;
                     }
@@ -138,6 +146,11 @@ public class PresetCommand {
                     cfg.widgets.orderPresets.volumes.clear();
                     return true;
                 });
+                if (cleared) {
+                    BtrBz.widgetRuntime().invalidateWidgetContent(
+                        OrderPresetsWidgetDefinition.ID, "preset volumes cleared by command"
+                    );
+                }
 
                 Notifier.notifyPlayer(Notifier
                     .prefix()

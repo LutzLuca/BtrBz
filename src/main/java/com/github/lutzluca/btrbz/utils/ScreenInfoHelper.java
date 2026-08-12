@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.List;
@@ -33,6 +35,8 @@ public final class ScreenInfoHelper {
     private long screenTransitionVersion = 0;
     private long dispatchedScreenTransitionVersion = 0;
     private long inventoryVersion = 0;
+    private final CacheToken screenTransitions = CacheToken.named("screen.transition");
+    private final CacheToken inventoryChanges = CacheToken.named("screen.inventory");
     
     @Getter
     private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
@@ -47,8 +51,8 @@ public final class ScreenInfoHelper {
         return INSTANCE;
     }
 
-    public long screenTransitionVersion() {
-        return this.screenTransitionVersion;
+    public CacheToken screenTransitions() {
+        return this.screenTransitions;
     }
 
     public static boolean inMenu(BazaarMenuType menu) {
@@ -88,8 +92,8 @@ public final class ScreenInfoHelper {
         return player != null && player.containerMenu.containerId == containerId;
     }
 
-    public long inventoryVersion() {
-        return this.inventoryVersion;
+    public CacheToken inventoryChanges() {
+        return this.inventoryChanges;
     }
 
     private void setupInventoryWatcher() {
@@ -107,6 +111,7 @@ public final class ScreenInfoHelper {
                 this.currInfo.markInventoryLoaded();
             }
 
+            this.inventoryChanges.invalidate(InvalidationReason.of("screen inventory loaded"));
             log.trace("Inventory loaded: '{}'", inventory.title);
 
             this.screenLoadListenerEntries.forEach(entry ->
@@ -162,6 +167,7 @@ public final class ScreenInfoHelper {
 
         this.currInfo.setScreen(screen);
         this.screenTransitionVersion++;
+        this.screenTransitions.invalidate(InvalidationReason.of("screen transitioned"));
     }
 
     private void closeInventoryForTransition(@Nullable Screen nextScreen) {

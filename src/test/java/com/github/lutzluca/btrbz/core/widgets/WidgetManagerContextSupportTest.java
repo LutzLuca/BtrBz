@@ -3,6 +3,11 @@ package com.github.lutzluca.btrbz.core.widgets;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -21,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("Widget manager contextual support")
 class WidgetManagerContextSupportTest {
     private final List<WidgetDefinition<?, ?, ?>> definitions = List.of(
-        OrderPresetsWidgetDefinition.create(null),
-        OrderBookPriceWidgetDefinition.create(new OrderBookWidgetData(null), null)
+        definition("btrbz:presets", OrderPresetsWidgetDefinition::supportsSession),
+        definition("btrbz:book", OrderBookPriceWidgetDefinition::supportsSession)
     );
 
     @Nested
@@ -65,5 +70,30 @@ class WidgetManagerContextSupportTest {
             Optional.empty(), previousMenu, product,
             product.isPresent() ? Optional.of(OrderType.Buy) : Optional.empty(), 1
         );
+    }
+
+    private static WidgetDefinition<Object, TestConfig, Void> definition(
+        String idValue,
+        java.util.function.Predicate<WidgetSession> supports
+    ) {
+        var id = WidgetId.parse(idValue);
+        var handle = new WidgetConfigHandle<>(
+            id, TestConfig::new, TestConfig::new,
+            value -> value.frame, (current, defaults) -> {}
+        );
+        return WidgetDefinition.<Object, TestConfig, Void>builder(id, idValue)
+            .config(handle)
+            .supports(supports)
+            .data(new WidgetDataSource<>() {
+                @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
+                @Override public Object snapshot(WidgetSession session) { return new Object(); }
+            })
+            .preview(() -> null)
+            .viewFactory(() -> null)
+            .build();
+    }
+
+    private static final class TestConfig {
+        private final WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0, 0));
     }
 }

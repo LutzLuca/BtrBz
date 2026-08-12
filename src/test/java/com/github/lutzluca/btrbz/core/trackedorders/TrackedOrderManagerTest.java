@@ -78,10 +78,10 @@ class TrackedOrderManagerTest {
             var second = trackedOrder(ProductIdentity.fromName("Second"), 2.0);
             manager.addTrackedOrder(first);
             manager.addTrackedOrder(second);
-            long revision = manager.displayRevision();
+            long revision = manager.dataChanges().revision();
 
             assertFalse(manager.reorder(first.id(), 1));
-            assertEquals(revision, manager.displayRevision());
+            assertEquals(revision, manager.dataChanges().revision());
             assertEquals(
                 List.of(first.id(), second.id()),
                 manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList()

@@ -32,6 +32,10 @@ import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
 import com.github.lutzluca.btrbz.core.widgets.session.DefaultWidgetSessionProvider;
+import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
+import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
+import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -52,6 +56,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -138,14 +143,33 @@ public class BtrBz implements ClientModInitializer {
         var flipProductContext = new FlipProductContext();
         var flipSubmissionTracker = new FlipSubmissionTracker();
 
+        var utcDayTracker = new UtcDayTracker();
+        var clipboardTracker = new ClipboardTracker(
+            () -> Minecraft.getInstance().keyboardHandler.getClipboard()
+        );
+        var purseTracker = new PurseTracker(GameUtils::getPurse);
+        utcDayTracker.initialize();
+        clipboardTracker.initialize();
+        purseTracker.initialize();
+        utcDayTracker.start();
+        clipboardTracker.start();
+        purseTracker.start();
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            utcDayTracker.close();
+            clipboardTracker.close();
+            purseTracker.close();
+        });
+
         var bookmarks = new BookmarkComponent(
             BAZAAR_DATA,
             productInfoProvider,
             this.orderManager
         );
         var orderValue = new OrderValueComponent();
-        var dailyLimit = new DailyLimitComponent();
-        var orderPresets = new OrderPresetsComponent(BAZAAR_DATA, productInfoProvider);
+        var dailyLimit = new DailyLimitComponent(utcDayTracker);
+        var orderPresets = new OrderPresetsComponent(
+            BAZAAR_DATA, productInfoProvider, clipboardTracker, purseTracker
+        );
         var orderBookPrice = new OrderBookPriceComponent(
             BAZAAR_DATA,
             productInfoProvider,
@@ -156,13 +180,12 @@ public class BtrBz implements ClientModInitializer {
         var sessionProvider = new DefaultWidgetSessionProvider(
             BAZAAR_DATA,
             productInfoProvider,
-            orderBookPrice,
-            this.orderManager
+            orderBookPrice
         );
-        var ordersWidgetData = new OrdersWidgetData(
+        var ordersWidgetData = new MemoizedWidgetDataSource<>(new OrdersWidgetData(
             BAZAAR_DATA, this.orderManager, this.tooltipProvider
-        );
-        var orderBookWidgetData = new OrderBookWidgetData(BAZAAR_DATA);
+        ));
+        var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(BAZAAR_DATA));
         var widgetRegistry = new WidgetRegistry();
         widgetRegistry.register(BazaarOrdersWidgetDefinition.create(ordersWidgetData));
         widgetRegistry.register(TrackedOrdersWidgetDefinition.create(ordersWidgetData, this.orderManager));

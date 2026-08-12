@@ -4,6 +4,10 @@ import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
@@ -110,14 +114,42 @@ class WidgetStateStoreTest {
     }
 
     @Test
+    void frameTokensSeparatePerWidgetGlobalAndManagerOnlyState() {
+        var config = new WidgetsConfig();
+        var store = new WidgetStateStore(() -> config, () -> {});
+        var bookmarks = bookmarksDefinition(() -> config.bookmarks);
+        var otherId = WidgetId.parse("btrbz:other");
+        var bookmarksToken = store.frameChanges(bookmarks.getId());
+        var otherToken = store.frameChanges(otherId);
+
+        store.setPlacement(bookmarks, "default", WidgetPlacement.topLeft(0.2, 0.3), false);
+
+        assertEquals(1, bookmarksToken.revision());
+        assertEquals(0, otherToken.revision());
+        assertEquals(0, store.globalFrameChanges().revision());
+
+        store.setGlobalFineTuneScale(1.2, false);
+        assertEquals(1, store.globalFrameChanges().revision());
+        assertEquals(1, bookmarksToken.revision());
+        assertEquals(0, otherToken.revision());
+
+        store.setManagerPanelWidth(180, false);
+        assertEquals(1, store.globalFrameChanges().revision());
+        assertEquals(1, bookmarksToken.revision());
+    }
+
+    @Test
     void placementProfilesAreResolvedWithoutWidgetIdSwitches() {
         var config = new WidgetsConfig();
         var store = new WidgetStateStore(() -> config, () -> {});
         var definition = WidgetDefinition.<Object, OrderPresetsWidgetConfig, Void>builder(
                 WidgetId.parse("btrbz:order_presets"), "Order Presets")
-            .config(() -> config.orderPresets, OrderPresetsWidgetConfig::new,
-                value -> value.frame, OrderPresetsWidgetConfig::resetPreferences)
-            .runtimeData(_ -> new Object())
+            .config(new WidgetConfigHandle<>(
+                WidgetId.parse("btrbz:order_presets"), () -> config.orderPresets,
+                OrderPresetsWidgetConfig::new, value -> value.frame,
+                OrderPresetsWidgetConfig::resetPreferences
+            ))
+            .data(source())
             .preview(() -> null)
             .viewFactory(() -> null)
             .placementProfile("sign", "Sign")
@@ -197,13 +229,22 @@ class WidgetStateStoreTest {
     private static WidgetDefinition<Object, BookmarksWidgetConfig, Void> bookmarksDefinition(
         java.util.function.Supplier<BookmarksWidgetConfig> supplier
     ) {
-        return WidgetDefinition.<Object, BookmarksWidgetConfig, Void>builder(
-                WidgetId.parse("btrbz:bookmarks"), "Bookmarks")
-            .config(supplier, BookmarksWidgetConfig::new,
-                value -> value.frame, BookmarksWidgetConfig::resetPreferences)
-            .runtimeData(_ -> new Object())
+        var id = WidgetId.parse("btrbz:bookmarks");
+        return WidgetDefinition.<Object, BookmarksWidgetConfig, Void>builder(id, "Bookmarks")
+            .config(new WidgetConfigHandle<>(
+                id, supplier, BookmarksWidgetConfig::new,
+                value -> value.frame, BookmarksWidgetConfig::resetPreferences
+            ))
+            .data(source())
             .preview(() -> null)
             .viewFactory(() -> null)
             .build();
+    }
+
+    private static WidgetDataSource<Object> source() {
+        return new WidgetDataSource<>() {
+            @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
+            @Override public Object snapshot(WidgetSession session) { return new Object(); }
+        };
     }
 }

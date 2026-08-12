@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
 import com.github.lutzluca.btrbz.core.widgets.*;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
@@ -28,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 
 /** Retained runtime/preview host for the single ordered widget registry. */
@@ -42,7 +43,6 @@ public final class WidgetHost {
     private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
     private final @Nullable Map<WidgetId, Double> scrollOffsets;
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
-    private final Map<WidgetId, PrepareCache> prepareCache = new HashMap<>();
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private List<RuntimeWidgetHit> runtimeWidgetHits = List.of();
@@ -148,6 +148,14 @@ public final class WidgetHost {
         }
     }
 
+    public Map<WidgetId, WidgetCacheDiagnostics> cacheDiagnostics() {
+        var diagnostics = new LinkedHashMap<WidgetId, WidgetCacheDiagnostics>();
+        this.mounted.forEach((id, widget) -> diagnostics.put(id, new WidgetCacheDiagnostics(
+            widget.hits, widget.misses, widget.coldMisses, widget.lastMissCauses
+        )));
+        return Map.copyOf(diagnostics);
+    }
+
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         if (this.adapter == null) return false;
         if (this.canBeginRuntimePlacementDrag(click)) {
@@ -217,35 +225,31 @@ public final class WidgetHost {
             var mountedWidget = this.mounted.computeIfAbsent(
                 definition.getId(), _ -> this.mount(definition)
             );
-            PrepareKey prepareKey = null;
-            if (this.runtime && session != null) {
-                var widgetKey = definition.cacheKey(session);
-                if (widgetKey != null) {
-                    prepareKey = new PrepareKey(
-                        widgetKey, session.id(),
-                        screenCanvas.x(), screenCanvas.y(),
-                        screenCanvas.width(), screenCanvas.height(), options,
-                        this.stateStore.frameRevision()
-                    );
-                    var cached = this.prepareCache.get(definition.getId());
-                    if (cached != null && prepareKey.equals(cached.key())) {
-                        return cached.result();
-                    }
-                }
-            }
-
-            Object data = this.runtime ? definition.getRuntimeData().apply(session) : preview.data();
-            Object config = definition.config();
-
-            Consumer actions = this.runtime
-                ? action -> this.dispatch(definition, action, session)
-                : _ -> {};
-            ((WidgetView) mountedWidget.view()).update(data, config, session, actions);
-            boolean visible = !this.runtime || definition.getVisibility().test(data, config, session);
             String initialProfile = this.runtime
                 ? definition.placementProfile(session)
                 : preview.placementProfile();
             String profile = options.placementProfile(definition, initialProfile);
+            var cached = mountedWidget.preparedCache;
+            boolean preparedCaching = this.runtime && definition.isPreparedCacheEnabled();
+            if (preparedCaching && cached != null && cached.stamp().matches(
+                session, screenCanvas, options, profile, mountedWidget.dependencies
+            )) {
+                mountedWidget.hits++;
+                return cached.prepared();
+            }
+
+            if (preparedCaching) {
+                mountedWidget.recordMiss(cached, session, screenCanvas, options, profile);
+            }
+
+            Object data = this.runtime ? definition.getDataSource().snapshot(session) : preview.data();
+            Object config = definition.config();
+            long generation = mountedWidget.generation + 1;
+            Consumer actions = this.runtime
+                ? action -> this.dispatch(mountedWidget, generation, action)
+                : _ -> {};
+            ((WidgetView) mountedWidget.view()).update(data, config, session, actions);
+            boolean visible = !this.runtime || definition.getVisibility().test(data, config, session);
             var anchorCanvas = screenCanvas;
             if (!visible) {
                 mountedWidget.slot().update(
@@ -254,9 +258,10 @@ public final class WidgetHost {
                     options.isSelected(definition), options.drawManagementOverlay(), false
                 );
                 var prepared = new PreparedWidget(mountedWidget, null, anchorCanvas);
-                if (prepareKey != null) {
-                    this.prepareCache.put(definition.getId(), new PrepareCache(prepareKey, prepared));
-                }
+                this.publishPreparation(
+                    mountedWidget, preparedCaching, session, screenCanvas, options,
+                    profile, generation, prepared
+                );
                 return prepared;
             }
 
@@ -279,7 +284,10 @@ public final class WidgetHost {
             );
             if (!WidgetScaleResolver.fitsCanvas(
                 scale, anchorCanvas.width(), anchorCanvas.height(), logicalWidth, logicalHeight
-            )) return null;
+            )) {
+                mountedWidget.clearPreparation();
+                return null;
+            }
             int scaledWidth = Math.max(1, (int) Math.ceil(logicalWidth * scale));
             int scaledHeight = Math.max(1, (int) Math.ceil(logicalHeight * scale));
             var resolved = this.stateStore.placement(definition, profile).resolve(
@@ -304,9 +312,10 @@ public final class WidgetHost {
                 logicalWidth, logicalHeight, scale
             );
             var prepared = new PreparedWidget(mountedWidget, result, anchorCanvas);
-            if (prepareKey != null) {
-                this.prepareCache.put(definition.getId(), new PrepareCache(prepareKey, prepared));
-            }
+            this.publishPreparation(
+                mountedWidget, preparedCaching, session, screenCanvas, options,
+                profile, generation, prepared
+            );
             return prepared;
         } catch (Exception exception) {
             log.warn("Widget {} failed during retained update", definition.getId(), exception);
@@ -315,14 +324,38 @@ public final class WidgetHost {
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    private void publishPreparation(
+        MountedWidget mountedWidget,
+        boolean preparedCaching,
+        WidgetSession session,
+        WidgetCanvas canvas,
+        WidgetHostOptions options,
+        String placementProfile,
+        long generation,
+        PreparedWidget prepared
+    ) {
+        long[] revisions = CacheRevisions.capture(mountedWidget.dependencies);
+        mountedWidget.generation = generation;
+        mountedWidget.preparedSessionId = session.id();
+        mountedWidget.preparedSessionContextRevision = session.contextRevision();
+        mountedWidget.preparedDependencyRevisions = revisions;
+        mountedWidget.preparedCache = preparedCaching ? new PreparedCacheEntry(
+            new PreparedCacheStamp(
+                session.id(), session.contextRevision(),
+                canvas.x(), canvas.y(), canvas.width(), canvas.height(), options,
+                placementProfile, revisions
+            ), prepared
+        ) : null;
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private WidgetPreview preview(WidgetDefinition definition) {
         return (WidgetPreview) WidgetPreviewResolver.resolve(
             definition.getId(), this.capturedPreviews, definition.getPreview()
         );
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"rawtypes"})
     private MountedWidget mount(WidgetDefinition definition) {
         WidgetView view = (WidgetView) definition.getViewFactory().get();
         if (this.scrollOffsets != null && view instanceof ScrollOffsetView scrollView) {
@@ -334,15 +367,29 @@ public final class WidgetHost {
             definition.getId(), component, surface, this.stateStore.backgroundColor(definition),
             new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false
         );
-        return new MountedWidget(definition, view, component, slot, surface);
+        CacheDependencies dependencies = definition.getCacheDependencies()
+            .and(CacheDependencies.of(
+                this.stateStore.frameChanges(definition.getId()),
+                this.stateStore.globalFrameChanges()
+            ));
+        return new MountedWidget(definition, view, component, slot, surface, dependencies);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void dispatch(WidgetDefinition definition, Object action, WidgetSession source) {
+    private void dispatch(MountedWidget mountedWidget, long generation, Object action) {
+        if (generation != mountedWidget.generation
+            || !CacheRevisions.match(
+                mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies
+            )) return;
         var current = this.currentSession(Minecraft.getInstance().screen);
-        if (source.id() != current.id()) return;
-        try { definition.getActionHandler().handle(action, source, current); }
-        catch (Exception exception) { log.warn("Widget action failed for {}", definition.getId(), exception); }
+        if (mountedWidget.preparedSessionId != current.id()
+            || mountedWidget.preparedSessionContextRevision != current.contextRevision()) return;
+        try {
+            ((WidgetActionHandler) mountedWidget.definition.getActionHandler())
+                .handle(action, current, current);
+        } catch (Exception exception) {
+            log.warn("Widget action failed for {}", mountedWidget.definition.getId(), exception);
+        }
     }
 
     private void detachMissing(Set<WidgetId> attached) {
@@ -354,7 +401,7 @@ public final class WidgetHost {
     private void detach(WidgetId id) {
         var removed = this.mounted.remove(id);
         if (removed == null) return;
-        this.prepareCache.remove(id);
+        removed.clearPreparation();
         if (this.scrollOffsets != null && removed.view() instanceof ScrollOffsetView scrollView) {
             this.scrollOffsets.put(id, scrollView.scrollOffset());
         }
@@ -397,24 +444,72 @@ public final class WidgetHost {
         );
     }
 
-    private record MountedWidget(
-        WidgetDefinition<?, ?, ?> definition,
-        WidgetView<?, ?, ?> view,
-        io.wispforest.owo.ui.core.UIComponent component,
-        WidgetSlotComponent slot,
-        WidgetRenderSurface surface
-    ) {}
-    private record PrepareCache(PrepareKey key, PreparedWidget result) {}
-    private record PrepareKey(
-        WidgetCacheKey widgetKey,
-        long sessionId,
-        int canvasX,
-        int canvasY,
-        int canvasWidth,
-        int canvasHeight,
-        WidgetHostOptions options,
-        long frameRevision
-    ) {}
+    private static final class MountedWidget {
+        private final WidgetDefinition<?, ?, ?> definition;
+        private final WidgetView<?, ?, ?> view;
+        private final io.wispforest.owo.ui.core.UIComponent component;
+        private final WidgetSlotComponent slot;
+        private final WidgetRenderSurface surface;
+        private final CacheDependencies dependencies;
+        private @Nullable PreparedCacheEntry preparedCache;
+        private long[] preparedDependencyRevisions = new long[0];
+        private long preparedSessionId = Long.MIN_VALUE;
+        private long preparedSessionContextRevision = Long.MIN_VALUE;
+        private long generation;
+        private long hits;
+        private long misses;
+        private long coldMisses;
+        private List<WidgetCacheMissCause> lastMissCauses = List.of();
+
+        private MountedWidget(
+            WidgetDefinition<?, ?, ?> definition,
+            WidgetView<?, ?, ?> view,
+            io.wispforest.owo.ui.core.UIComponent component,
+            WidgetSlotComponent slot,
+            WidgetRenderSurface surface,
+            CacheDependencies dependencies
+        ) {
+            this.definition = definition;
+            this.view = view;
+            this.component = component;
+            this.slot = slot;
+            this.surface = surface;
+            this.dependencies = dependencies;
+        }
+
+        private WidgetView<?, ?, ?> view() { return this.view; }
+        private io.wispforest.owo.ui.core.UIComponent component() { return this.component; }
+        private WidgetSlotComponent slot() { return this.slot; }
+        private WidgetRenderSurface surface() { return this.surface; }
+
+        private void recordMiss(
+            @Nullable PreparedCacheEntry cached,
+            WidgetSession session,
+            WidgetCanvas canvas,
+            WidgetHostOptions options,
+            String profile
+        ) {
+            this.misses++;
+            if (cached == null) {
+                this.coldMisses++;
+                this.lastMissCauses = List.of(WidgetCacheMissCause.direct("cold cache"));
+                return;
+            }
+            this.lastMissCauses = cached.stamp().missCauses(
+                session, canvas, options, profile, this.dependencies
+            );
+        }
+
+        private void clearPreparation() {
+            this.preparedCache = null;
+            this.preparedDependencyRevisions = new long[0];
+            this.preparedSessionId = Long.MIN_VALUE;
+            this.preparedSessionContextRevision = Long.MIN_VALUE;
+            this.generation++;
+        }
+    }
+
+    private record PreparedCacheEntry(PreparedCacheStamp stamp, PreparedWidget prepared) {}
     private record PreparedWidget(
         MountedWidget mounted,
         @Nullable WidgetRenderResult result,

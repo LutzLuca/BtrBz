@@ -45,6 +45,10 @@ public final class WidgetRuntime {
         return this.stateStore;
     }
 
+    public void invalidateWidgetContent(WidgetId id, String reason) {
+        this.registry.find(id).orElseThrow().getConfigHandle().invalidate(reason);
+    }
+
     public WidgetHost createHudHost() {
         return this.createHost(false);
     }
@@ -122,7 +126,7 @@ public final class WidgetRuntime {
         return new WidgetManagementContext(background, previews, rendered);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"rawtypes"})
     private static WidgetPreview<?> capture(WidgetDefinition definition, WidgetSession session) {
         return definition.captureRuntimePreview(session);
     }

@@ -2,6 +2,11 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -28,19 +33,27 @@ public final class OrderPresetsComponent {
     private static final int CUSTOM_AMOUNT_SLOT = 16;
     private final BazaarData bazaarData;
     private final ProductInfoProvider productInfoProvider;
+    private final ClipboardTracker clipboardTracker;
+    private final PurseTracker purseTracker;
+    private final CacheToken stateChanges = CacheToken.named("order-presets.state");
     private int maximumVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
     private int pendingVolume = -1;
     private boolean pendingPreset;
     private boolean inTransaction;
-    private static final long CLIPBOARD_POLL_MILLIS = 250;
-    private String cachedClipboard = "";
-    private long clipboardReadAt;
-    private boolean clipboardRead;
-
-
     public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
+        this(bazaarData, productInfoProvider, initializedClipboardTracker(), initializedPurseTracker());
+    }
+
+    public OrderPresetsComponent(
+        BazaarData bazaarData,
+        ProductInfoProvider productInfoProvider,
+        ClipboardTracker clipboardTracker,
+        PurseTracker purseTracker
+    ) {
         this.bazaarData = bazaarData;
         this.productInfoProvider = productInfoProvider;
+        this.clipboardTracker = clipboardTracker;
+        this.purseTracker = purseTracker;
         var configured = ConfigManager.get().widgets.orderPresets.volumes;
         var normalized = normalizeConfiguredVolumes(configured);
         if (!configured.equals(normalized)) {
@@ -54,7 +67,7 @@ public final class OrderPresetsComponent {
             (info, inventory) -> {
                 if (ScreenInfoHelper.get().getPrevInfo().inMenu(BazaarMenuType.BuyOrderSetupPrice)) return;
                 inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::readMaximumVolume)
-                    .ifPresent(value -> this.maximumVolume = value);
+                    .ifPresent(value -> this.setMaximumVolume(value, "maximum order volume loaded"));
             }
         );
     }
@@ -73,8 +86,8 @@ public final class OrderPresetsComponent {
         return new State(
             this.maximumVolume,
             this.inTransaction,
-            this.clipboard(),
-            GameUtils.getPurse().orElse(Double.NaN),
+            this.clipboardTracker.value(),
+            this.purseTracker.value().orElse(Double.NaN),
             product == null ? null : product.productId(),
             price,
             List.copyOf(ConfigManager.get().widgets.orderPresets.volumes)
@@ -83,6 +96,16 @@ public final class OrderPresetsComponent {
 
     public List<PresetState> currentPresets() {
         return presetsFor(this.currentState());
+    }
+
+    public CacheDependencies dataDependencies() {
+        return CacheDependencies.of(
+            this.stateChanges,
+            this.clipboardTracker.changes(),
+            this.purseTracker.changes(),
+            this.productInfoProvider.changes(),
+            this.bazaarData.marketChanges()
+        );
     }
 
     private static List<PresetState> presetsFor(State state) {
@@ -191,6 +214,7 @@ public final class OrderPresetsComponent {
                 .flatMap(this::readMaximumVolume)
                 .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
             this.inTransaction = true;
+            this.stateChanges.invalidate(InvalidationReason.of("order preset transaction started"));
             return;
         }
         if (previous.inMenu(BazaarMenuType.BuyOrderSetupVolume)
@@ -220,20 +244,17 @@ public final class OrderPresetsComponent {
         this.pendingPreset = false;
         this.pendingVolume = -1;
         this.maximumVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
+        this.stateChanges.invalidate(InvalidationReason.of("order preset transaction ended"));
     }
 
     private @Nullable IndexedProduct currentProduct() {
         return this.productInfoProvider.getOpenedProduct();
     }
 
-    private String clipboard() {
-        long now = System.currentTimeMillis();
-        if (!this.clipboardRead || now - this.clipboardReadAt >= CLIPBOARD_POLL_MILLIS) {
-            this.cachedClipboard = Minecraft.getInstance().keyboardHandler.getClipboard();
-            this.clipboardReadAt = now;
-            this.clipboardRead = true;
-        }
-        return this.cachedClipboard;
+    private void setMaximumVolume(int value, String reason) {
+        if (this.maximumVolume == value) return;
+        this.maximumVolume = value;
+        this.stateChanges.invalidate(InvalidationReason.of(reason));
     }
 
     private Optional<Integer> readMaximumVolume(ItemStack item) {
@@ -295,4 +316,16 @@ public final class OrderPresetsComponent {
         double pricePerUnit,
         List<Integer> volumes
     ) {}
+
+    private static ClipboardTracker initializedClipboardTracker() {
+        var tracker = new ClipboardTracker(() -> Minecraft.getInstance().keyboardHandler.getClipboard());
+        tracker.initialize();
+        return tracker;
+    }
+
+    private static PurseTracker initializedPurseTracker() {
+        var tracker = new PurseTracker(GameUtils::getPurse);
+        tracker.initialize();
+        return tracker;
+    }
 }

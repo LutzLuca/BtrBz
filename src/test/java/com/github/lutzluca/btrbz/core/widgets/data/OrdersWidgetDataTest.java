@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -24,7 +25,10 @@ class OrdersWidgetDataTest {
             new FilledOrderInfo("First", OrderType.Buy, 1, 10.0, 1, 1, 0),
             new FilledOrderInfo("Second", OrderType.Sell, 1, 20.0, 1, 20, 1)
         ));
-        var data = new OrdersWidgetData(market, manager, null);
+        var data = new OrdersWidgetData(
+            market, manager, null,
+            CacheToken.named("test.screen"), CacheToken.named("test.inventory")
+        );
 
         assertEquals(2, data.computeSnapshot().filledOrderCount());
     }

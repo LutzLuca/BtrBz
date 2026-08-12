@@ -1,13 +1,32 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
-public final class DailyLimitWidgetData {
-    private final DailyLimitComponent component;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 
-    public DailyLimitWidgetData(DailyLimitComponent component) {
+public final class DailyLimitWidgetData implements WidgetDataSource<DailyLimitWidgetData.Snapshot> {
+    private final DailyLimitComponent component;
+    private final CacheDependencies dependencies;
+
+    public DailyLimitWidgetData(
+        DailyLimitComponent component,
+        WidgetConfigHandle<DailyLimitWidgetConfig> configHandle
+    ) {
         this.component = component;
+        this.dependencies = CacheDependencies.of(
+            component.dataChanges(), component.utcDayTracker().changes(), configHandle.contentChanges()
+        );
     }
 
-    public Snapshot snapshot() {
+    @Override
+    public CacheDependencies cacheDependencies() { return this.dependencies; }
+
+    @Override
+    public boolean sessionSensitive() { return false; }
+
+    @Override
+    public Snapshot snapshot(WidgetSession session) {
         var usage = this.component.currentUsage();
         return new Snapshot(Math.round(usage.used()), Math.round(usage.limit()));
     }

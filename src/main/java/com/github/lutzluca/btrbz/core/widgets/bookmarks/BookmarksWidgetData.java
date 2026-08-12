@@ -1,6 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
 import java.util.Objects;
@@ -10,14 +13,23 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-public final class BookmarksWidgetData {
+public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidgetData.Snapshot> {
     private final BookmarkComponent component;
+    private final CacheDependencies dependencies;
 
     public BookmarksWidgetData(BookmarkComponent component) {
         this.component = component;
+        this.dependencies = CacheDependencies.of(component.dataChanges());
     }
 
-    public Snapshot snapshot() {
+    @Override
+    public CacheDependencies cacheDependencies() { return this.dependencies; }
+
+    @Override
+    public boolean sessionSensitive() { return false; }
+
+    @Override
+    public Snapshot snapshot(WidgetSession session) {
         return new Snapshot(this.component.currentBookmarks().stream().map(bookmark ->
             new Bookmark(
                 bookmark.productId(), bookmark.productName(), Utils.legacyFormattedComponent(bookmark.formattedName()),
