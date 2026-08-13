@@ -21,7 +21,6 @@ public final class ClientTickDispatcher {
         ClientTickEvents.END_CLIENT_TICK.register(ClientTickDispatcher::onEndTick);
     }
 
-
     private static void onEndTick(Minecraft client) {
         LISTENERS.forEach(listener -> Try
             .run(() -> listener.onEndTick(client))
@@ -54,7 +53,6 @@ public final class ClientTickDispatcher {
     public static void submit(Consumer<Minecraft> task, int ticks) {
         TASKS.add(new ScheduledTask(ticks, task));
     }
-
 
     @AllArgsConstructor
     private static class ScheduledTask {

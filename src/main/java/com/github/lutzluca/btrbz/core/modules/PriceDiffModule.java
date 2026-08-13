@@ -54,8 +54,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
                 .withStyle(ChatFormatting.GOLD),
             Component
                 .literal("Total diff: " + Utils.formatCompact(totalDiff, 1) + " coins")
-                .withStyle(ChatFormatting.YELLOW)
-        );
+                .withStyle(ChatFormatting.YELLOW));
 
         var widget = new LabelWidget(0, 0, lines);
         widget.setAutoSize(true);
@@ -101,8 +100,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
             productName,
             productStack,
             priceDiffOpt.get(),
-            listedCount
-        ));
+            listedCount));
     }
 
     private Optional<Integer> parseListedCount(ItemStack sellStack) {
@@ -156,7 +154,8 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Price Difference Overlay"))
                 .description(ConfigScreen.createDescription(
-                    "Show the current market spread (best sell-offer price minus best buy-order price) per item and for the sellable amount in your inventory."))
+                    "Show the current market spread (best sell-offer price minus best buy-order price) per "
+                        + "item and for the sellable amount in your inventory."))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -169,8 +168,7 @@ public class PriceDiffModule extends Module<PriceDiffConfig> {
                 .name(Component.literal("Price Difference Overlay"))
                 .description(ConfigScreen.createDescription(
                     "Display the current Bazaar spread per item and across the sellable amount in your inventory.",
-                    ConfigScreen.ConfigImage.PRICE_DIFFERENCE
-                ))
+                    ConfigScreen.ConfigImage.PRICE_DIFFERENCE))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

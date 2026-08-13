@@ -8,7 +8,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 public interface TooltipProvider {
     /**
      * Render tooltip at the given mouse position.
-     * 
+     *
      * @param graphics Gui graphics context
      * @param mouseX Mouse X coordinate
      * @param mouseY Mouse Y coordinate
@@ -20,4 +20,3 @@ public interface TooltipProvider {
      */
     void resetHover();
 }
-

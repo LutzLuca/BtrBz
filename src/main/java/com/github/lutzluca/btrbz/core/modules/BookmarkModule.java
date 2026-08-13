@@ -136,8 +136,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 product,
                 itemStack,
                 this.orderBuySet,
-                this.orderSellSet
-            ));
+                this.orderSellSet));
         }
         return true;
     }
@@ -150,8 +149,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 item.productName(),
                 item.itemStack(),
                 this.orderBuySet.contains(item.product().productId()),
-                this.orderSellSet.contains(item.product().productId())
-            ))
+                this.orderSellSet.contains(item.product().productId())))
             .toList();
     }
 
@@ -170,8 +168,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
     public boolean removeBookmark(String productId) {
         boolean removed = this.updateConfigIfChanged(cfg -> Utils.removeMatching(
             cfg.bookmarkedItems,
-            item -> item.product().productId().equals(productId)
-        ));
+            item -> item.product().productId().equals(productId)));
         if (removed) {
             this.rebuildBookmarkList();
         }
@@ -182,8 +179,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         boolean moved = this.updateConfigIfChanged(cfg -> Utils.moveMatching(
             cfg.bookmarkedItems,
             item -> item.product().productId().equals(productId),
-            targetIndex
-        ));
+            targetIndex));
         if (moved) {
             this.rebuildBookmarkList();
         }
@@ -214,8 +210,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         this.rebuildBookmarkList();
         log.debug(
             "Refreshed {} bookmarked product references after conversion index update",
-            this.configState.bookmarkedItems.size()
-        );
+            this.configState.bookmarkedItems.size());
     }
 
     private void rebuildBookmarkList() {
@@ -233,8 +228,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 item.product(),
                 item.itemStack(),
                 this.orderBuySet,
-                this.orderSellSet
-            ))
+                this.orderSellSet))
             .map(Renderable.class::cast)
             .toList();
     }
@@ -265,15 +259,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             .setMaxVisibleItems(ConfigManager.get().bookmark.maxVisibleChildren);
 
         widget.onItemClick((self, item, idx) -> this.openBookmark(
-                ((BookmarkedItemRenderable) item).getProduct().productId()
-            ))
+            ((BookmarkedItemRenderable) item).getProduct().productId()))
             .onReorder((self, fromIdx, toIdx) -> this.moveBookmark(
                 ((BookmarkedItemRenderable) self.getItems().get(toIdx)).getProduct().productId(),
-                toIdx
-            ))
+                toIdx))
             .onItemRemoved((self, item, idx) -> this.removeBookmark(
-                ((BookmarkedItemRenderable) item).getProduct().productId()
-            ))
+                ((BookmarkedItemRenderable) item).getProduct().productId()))
             .onDragEnd((self, pos) -> this.updateConfig(cfg -> cfg.position = pos));
 
         widget.setItems(this.bookmarkRenderables());
@@ -289,7 +280,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
 
     public final class BookmarkedItemHook implements SlotHook {
 
-        private BookmarkedItemHook() { }
+        private BookmarkedItemHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -372,8 +363,12 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         private final Set<String> orderBuySet;
         private final Set<String> orderSellSet;
 
-        public BookmarkedItemRenderable(IndexedProduct product, ItemStack itemStack,
-                Set<String> orderBuySet, Set<String> orderSellSet) {
+        public BookmarkedItemRenderable(
+            IndexedProduct product,
+            ItemStack itemStack,
+            Set<String> orderBuySet,
+            Set<String> orderSellSet
+        ) {
             this.product = product;
             this.productName = product.strippedName();
             this.itemStack = itemStack;
@@ -390,8 +385,13 @@ public class BookmarkModule extends Module<BookMarkConfig> {
         @Override
         public void render(
             GuiGraphicsExtractor graphics,
-            int x, int y, int width, int height,
-            int mouseX, int mouseY, float delta,
+            int x,
+            int y,
+            int width,
+            int height,
+            int mouseX,
+            int mouseY,
+            float delta,
             boolean hovered
         ) {
             var font = Minecraft.getInstance().font;
@@ -538,8 +538,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                     log.warn(
                         "Skipping bookmark {} with invalid item id {}",
                         product,
-                        itemIdString.get()
-                    );
+                        itemIdString.get());
                     return null;
                 }
 
@@ -573,8 +572,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 try {
                     return Optional.of(ctx.deserialize(
                         GsonUtils.required(obj, "product", "Bookmark"),
-                        IndexedProduct.class
-                    ));
+                        IndexedProduct.class));
                 } catch (RuntimeException err) {
                     log.warn("Skipping bookmark with invalid product", err);
                     return Optional.empty();
@@ -604,15 +602,15 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-
         public Option.Builder<Boolean> createShowEverywhereOption() {
             return Option
-                    .<Boolean>createBuilder()
-                    .name(Component.literal("Show Throughout the Bazaar"))
-                    .description(OptionDescription.of(Component.literal(
-                            "Show the bookmark list in every Bazaar menu. When off, it remains visible in the main Bazaar, Bazaar Orders page, product groups, and product pages.")))
-                    .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
-                    .controller(ConfigScreen::createBooleanController);
+                .<Boolean>createBuilder()
+                .name(Component.literal("Show Throughout the Bazaar"))
+                .description(OptionDescription.of(Component.literal(
+                    "Show the bookmark list in every Bazaar menu. When off, it remains visible in the "
+                        + "main Bazaar, Bazaar Orders page, product groups, and product pages.")))
+                .binding(true, () -> this.showEverywhere, enabled -> this.showEverywhere = enabled)
+                .controller(ConfigScreen::createBooleanController);
         }
 
         public Option.Builder<Integer> createMaxVisibleOption() {
@@ -628,8 +626,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                             .getInstance()
                             .getModule(BookmarkModule.class)
                             .updateChildrenCount();
-                    }
-                )
+                    })
                 .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(3, 14).step(1));
         }
 
@@ -644,8 +641,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                         .append(Component.literal(" dot for tracked buy orders and a "))
                         .append(Component.literal("gold").withStyle(ChatFormatting.GOLD))
                         .append(Component.literal(" dot for tracked sell offers.")),
-                    ConfigScreen.note("Both dots appear when a product has both order types.")
-                )))
+                    ConfigScreen.note("Both dots appear when a product has both order types."))))
                 .binding(true, () -> this.showOrderIndicators, val -> this.showOrderIndicators = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -654,8 +650,7 @@ public class BookmarkModule extends Module<BookMarkConfig> {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
                 this.createShowEverywhereOption(),
                 this.createMaxVisibleOption(),
-                this.createShowOrderIndicatorsOption()
-            );
+                this.createShowOrderIndicatorsOption());
 
             return OptionGroup
                 .createBuilder()
@@ -666,10 +661,8 @@ public class BookmarkModule extends Module<BookMarkConfig> {
                         "Click the product icon on its Bazaar page to toggle a bookmark."),
                     ConfigScreen.text(
                         "Click an overlay entry to open it, drag to reorder, or Ctrl+right-click to remove it."),
-                    ConfigScreen.note("Requires a Cookie Buff to open a bookmark.")
-                ),
-                    ConfigScreen.ConfigImage.BOOKMARKS
-                ))
+                    ConfigScreen.note("Requires a Cookie Buff to open a bookmark.")),
+                    ConfigScreen.ConfigImage.BOOKMARKS))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

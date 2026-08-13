@@ -31,14 +31,16 @@ public class LabelWidget extends DraggableWidget {
     }
 
     public LabelWidget(
-        int defaultX, int defaultY,
+        int defaultX,
+        int defaultY,
         Component text
     ) {
         this(defaultX, defaultY, Collections.singletonList(text));
     }
 
     public LabelWidget(
-        int defaultX, int defaultY,
+        int defaultX,
+        int defaultY,
         List<Component> lines
     ) {
         super(defaultX, defaultY, 100, 50);
@@ -75,7 +77,9 @@ public class LabelWidget extends DraggableWidget {
 
         int maxWidth = 0;
         for (Component line : currentLines) {
-            if (line == null) continue;
+            if (line == null) {
+                continue;
+            }
             int lineWidth = this.client.font.width(line);
             maxWidth = Math.max(maxWidth, lineWidth);
         }
@@ -85,7 +89,9 @@ public class LabelWidget extends DraggableWidget {
     }
 
     private void ensureCache() {
-        if (this.cacheValid) return;
+        if (this.cacheValid) {
+            return;
+        }
 
         this.cachedVisualLines = new ArrayList<>(this.lines.size());
         this.cachedLineWidths = new int[this.lines.size()];
@@ -105,7 +111,13 @@ public class LabelWidget extends DraggableWidget {
     }
 
     @Override
-    protected void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
+    protected void renderContent(
+        GuiGraphicsExtractor graphics,
+        int mouseX,
+        int mouseY,
+        float delta,
+        RenderContext ctx
+    ) {
         this.ensureCache();
 
         int x = this.getX();
@@ -119,7 +131,9 @@ public class LabelWidget extends DraggableWidget {
         int startY = y + this.padding;
         for (int i = 0; i < this.cachedVisualLines.size(); i++) {
             FormattedCharSequence visualLine = this.cachedVisualLines.get(i);
-            if (visualLine == FormattedCharSequence.EMPTY) continue;
+            if (visualLine == FormattedCharSequence.EMPTY) {
+                continue;
+            }
 
             int lineY = startY + i * lineHeight;
             int lineWidth = this.cachedLineWidths[i];

@@ -51,8 +51,10 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
-    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback =
-        (unfilledOrders, filledOrders) -> { };
+    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = (
+        unfilledOrders,
+        filledOrders
+    ) -> {};
 
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -62,9 +64,8 @@ public class TrackedOrderManager {
     }
 
     private void refreshTrackedOrderProducts() {
-        this.trackedOrders.forEach(order ->
-            this.updateTrackedProduct(order, this.productUpdater.resolveCurrentProduct(order))
-        );
+        this.trackedOrders
+            .forEach(order -> this.updateTrackedProduct(order, this.productUpdater.resolveCurrentProduct(order)));
     }
 
     private void updateTrackedProduct(TrackedOrder order, ProductIdentity product) {
@@ -86,8 +87,7 @@ public class TrackedOrderManager {
                 "Updated tracked order display name for {} from '{}' to '{}'",
                 newKey,
                 oldProductName,
-                order.productName
-            );
+                order.productName);
             this.notifyOrderUpdated(order);
             return;
         }
@@ -100,8 +100,7 @@ public class TrackedOrderManager {
             "Updated tracked order identity from {} to {} using UI product '{}'",
             oldKey,
             newKey,
-            order.uiProductName
-        );
+            order.uiProductName);
         this.notifyOrderUpdated(order);
     }
 
@@ -160,16 +159,14 @@ public class TrackedOrderManager {
                     this.updateTrackedProduct(tracked, info.product());
                     tracked.slot = info.slotIdx();
                     tracked.fillAmountSnapshot = info.filledAmountSnapshot();
-                }, () -> toRemove.add(tracked)
-            );
+                }, () -> toRemove.add(tracked));
         }
 
         log.debug(
             "Tracked orders: {}, toRemove: {}, toAdd: {}",
             this.trackedOrders,
             toRemove,
-            unfilledOrders
-        );
+            unfilledOrders);
 
         toRemove.forEach(this::removeTrackedOrder);
         unfilledCopy
@@ -212,7 +209,7 @@ public class TrackedOrderManager {
     // Accepted as a known limitation (for now).
     private void sendNotifications(List<StatusUpdate> statusUpdates, MarketSnapshot snapshot) {
         var cfg = ConfigManager.get().trackedOrders;
-        if(!cfg.enabled) {
+        if (!cfg.enabled) {
             return;
         }
 
@@ -221,13 +218,13 @@ public class TrackedOrderManager {
         Map<TrackedOrderGrouping.GroupMatchKey, List<StatusUpdate>> statusGroups = statusUpdates.stream()
             .collect(Collectors.groupingBy(update -> TrackedOrderGrouping.GroupMatchKey.from(update.order())));
 
-        for(var entry : statusGroups.entrySet()) {
+        for (var entry : statusGroups.entrySet()) {
             var updates = entry.getValue();
             var orders = orderGroups.get(entry.getKey());
-            
-            if(orders.size() == 1) {
+
+            if (orders.size() == 1) {
                 var statusUpdate = updates.getFirst();
-                if(this.shouldNotify(statusUpdate)) {
+                if (this.shouldNotify(statusUpdate)) {
                     Notifier.notifyOrderStatus(statusUpdate, bazaarData);
                 }
                 continue;
@@ -245,17 +242,17 @@ public class TrackedOrderManager {
         MarketSnapshot snapshot
     ) {
         var cfg = ConfigManager.get().trackedOrders;
-        
-        if(!cfg.groupOrders) {
+
+        if (!cfg.groupOrders) {
             updates.stream()
                 .filter(this::shouldNotify)
                 .forEach(update -> Notifier.notifyOrderStatus(update, bazaarData));
-            return;   
+            return;
         }
 
         GroupStatus curr = this.statusEvaluator.getCurrentGroupStatus(key, orders, snapshot);
-        
-        if(curr == null) {
+
+        if (curr == null) {
             log.warn("Group ({}) has no settled status, skipping group notification", key);
             return;
         }
@@ -361,8 +358,7 @@ public class TrackedOrderManager {
                 order.pricePerUnit,
                 order.status,
                 order.slot,
-                order.fillAmountSnapshot
-            );
+                order.fillAmountSnapshot);
         }
     }
 
@@ -382,9 +378,7 @@ public class TrackedOrderManager {
             .ifPresentOrElse(
                 this::removeTrackedOrder, () -> Notifier.notifyChatCommand(
                     "No matching tracked order found for filled order message. Resync orders",
-                    "managebazaarorders"
-                )
-            );
+                    "managebazaarorders"));
     }
 
     public void addOutstandingOrder(OutstandingOrderInfo info) {
@@ -401,15 +395,14 @@ public class TrackedOrderManager {
 
                     Notifier.notifyChatCommand(
                         String.format(
-                            "Failed to find a matching outstanding order for: %s for %sx %s totalling %s | click to resync tracked orders",
+                            "Failed to find a matching outstanding order for: %s for %sx %s totalling %s "
+                                + "| click to resync tracked orders",
                             info.type() == OrderType.Buy ? "Buy Order" : "Sell Offer",
                             info.volume(),
                             info.productName(),
-                            Utils.formatDecimal(info.total(), 1, true)
-                        ), "managebazaarorders"
-                    );
-                }
-            );
+                            Utils.formatDecimal(info.total(), 1, true)),
+                        "managebazaarorders");
+                });
     }
 
     private void resolveSelfUndercutStates(MarketSnapshot snapshot) {
@@ -424,8 +417,7 @@ public class TrackedOrderManager {
                 event.key(),
                 event.bestPrice(),
                 event.secondBestPrice(),
-                this.bazaarData
-            );
+                this.bazaarData);
         }
     }
 
@@ -457,20 +449,17 @@ public class TrackedOrderManager {
             var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption())
                 .addOptions(
                     this.createNotifyBestOnPriorityRegain(),
-                    this.createSoundBestOption()
-                );
+                    this.createSoundBestOption());
 
             var notifyMatchedGroup = new OptionGrouping(this.createNotifyMatchedOption())
                 .addOptions(
                     this.createGotoMatchedOption(),
-                    this.createSoundMatchedOption()
-                );
+                    this.createSoundMatchedOption());
 
             var notifyUndercutGroup = new OptionGrouping(this.createNotifyUndercutOption())
                 .addOptions(
                     this.createGotoUndercutOption(),
-                    this.createSoundUndercutOption()
-                );
+                    this.createSoundUndercutOption());
 
             var queueGroup = new OptionGrouping(this.createShowQueueInfoOption())
                 .addOptions(this.createQueueDisplayModeOption());
@@ -484,14 +473,12 @@ public class TrackedOrderManager {
                 .addOptions(
                     this.createGroupOrdersOption(),
                     this.createIncludePricePerUnitOption(),
-                    this.createNotifySelfUndercutOption()
-                )
+                    this.createNotifySelfUndercutOption())
                 .controlGroups(
                     notifyBestGroup,
                     notifyMatchedGroup,
                     notifyUndercutGroup,
-                    queueGroup
-                );
+                    queueGroup);
 
             return List.of(
                 OptionGroup
@@ -499,8 +486,7 @@ public class TrackedOrderManager {
                     .name(Component.literal("Order Notifications"))
                     .description(ConfigScreen.createDescription(
                         "Enable order-status notifications and configure behavior shared by every notification type.",
-                        ConfigScreen.ConfigImage.ORDER_NOTIFICATION
-                    ))
+                        ConfigScreen.ConfigImage.ORDER_NOTIFICATION))
                     .options(rootGroup.build())
                     .collapsed(true)
                     .build(),
@@ -533,14 +519,14 @@ public class TrackedOrderManager {
                     .name(Component.literal("Notification Queue Information"))
                     .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                         ConfigScreen.text(
-                            "Add estimated competing orders and items ahead of yours to matched and undercut notifications."),
+                            "Add estimated competing orders and items ahead of yours to matched and undercut "
+                                + "notifications."),
                         ConfigScreen.note(
-                            "The estimate comes from Hypixel's aggregated order book and is not your exact queue position.")
-                    )))
+                            "The estimate comes from Hypixel's aggregated order book and is not your exact "
+                                + "queue position."))))
                     .options(queueOptions)
                     .collapsed(true)
-                    .build()
-            );
+                    .build());
         }
 
         private Option.Builder<Action> createGotoMatchedOption() {
@@ -552,13 +538,11 @@ public class TrackedOrderManager {
                         "Choose where the link at the end of a matched-order notification goes."),
                     ConfigScreen.example(matchedNotificationExample()),
                     notificationLinkNote(),
-                    ConfigScreen.requires("Notify When Order Is Matched")
-                )))
+                    ConfigScreen.requires("Notify When Order Is Matched"))))
                 .binding(
                     Action.Order,
                     () -> this.gotoOnMatched != null ? this.gotoOnMatched : Action.Order,
-                    action -> this.gotoOnMatched = action
-                )
+                    action -> this.gotoOnMatched = action)
                 .controller(Action::controller);
         }
 
@@ -623,13 +607,11 @@ public class TrackedOrderManager {
                         "Choose where the link at the end of an undercut-order notification goes."),
                     ConfigScreen.example(undercutNotificationExample()),
                     notificationLinkNote(),
-                    ConfigScreen.requires("Notify When Order Is Undercut")
-                )))
+                    ConfigScreen.requires("Notify When Order Is Undercut"))))
                 .binding(
                     Action.Order,
                     () -> this.gotoOnUndercut != null ? this.gotoOnUndercut : Action.Order,
-                    action -> this.gotoOnUndercut = action
-                )
+                    action -> this.gotoOnUndercut = action)
                 .controller(Action::controller);
         }
 
@@ -640,9 +622,9 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.showQueueInfo, val -> this.showQueueInfo = val)
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Add estimated competing orders and items ahead of yours to matched and undercut notifications."),
-                    ConfigScreen.note("This is an order-book estimate, not an exact queue position.")
-                )))
+                        "Add estimated competing orders and items ahead of yours to matched and undercut "
+                            + "notifications."),
+                    ConfigScreen.note("This is an order-book estimate, not an exact queue position."))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -656,12 +638,10 @@ public class TrackedOrderManager {
                     mode -> {
                         this.queueDisplayMode = mode;
                         BtrBz.tooltipProvider().clearCache();
-                    }
-                )
+                    })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show item counts only, or both order and item counts."),
-                    ConfigScreen.requires("Show Queue Info")
-                )))
+                    ConfigScreen.requires("Show Queue Info"))))
                 .controller(QueueDisplayMode::controller);
         }
 
@@ -682,13 +662,12 @@ public class TrackedOrderManager {
                 .binding(
                     true,
                     () -> this.onlyOnPriorityRegain,
-                    val -> this.onlyOnPriorityRegain = val
-                )
+                    val -> this.onlyOnPriorityRegain = val)
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Skip the initial top-position message and notify only after an order loses and later regains the best price."),
-                    ConfigScreen.requires("Notify When Order Becomes Top")
-                )))
+                        "Skip the initial top-position message and notify only after an order loses and later "
+                            + "regains the best price."),
+                    ConfigScreen.requires("Notify When Order Becomes Top"))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -719,8 +698,7 @@ public class TrackedOrderManager {
                 .binding(false, () -> this.soundBest, val -> this.soundBest = val)
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Play a sound with the top-position notification."),
-                    ConfigScreen.requires("Notify When Order Becomes Top")
-                )))
+                    ConfigScreen.requires("Notify When Order Becomes Top"))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -731,8 +709,7 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.soundMatched, val -> this.soundMatched = val)
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Play a sound when an order begins sharing the best price."),
-                    ConfigScreen.requires("Notify When Order Is Matched")
-                )))
+                    ConfigScreen.requires("Notify When Order Is Matched"))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -743,8 +720,7 @@ public class TrackedOrderManager {
                 .binding(true, () -> this.soundUndercut, val -> this.soundUndercut = val)
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Play a sound when another order takes priority over yours."),
-                    ConfigScreen.requires("Notify When Order Is Undercut")
-                )))
+                    ConfigScreen.requires("Notify When Order Is Undercut"))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -757,8 +733,7 @@ public class TrackedOrderManager {
                     ConfigScreen.text(
                         "Combine your orders for the same product, side, and price into one notification."),
                     ConfigScreen.note(
-                        "Some unusual grouped-order status transitions are not fully tested.")
-                )))
+                        "Some unusual grouped-order status transitions are not fully tested."))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -768,7 +743,8 @@ public class TrackedOrderManager {
                 .name(Component.literal("Warn When Your Orders Compete"))
                 .binding(true, () -> this.notifySelfUndercut, val -> this.notifySelfUndercut = val)
                 .description(OptionDescription.of(Component.literal(
-                    "Send a separate notification when one of your own orders undercuts another order for the same product.")))
+                    "Send a separate notification when one of your own orders undercuts another order for "
+                        + "the same product.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 

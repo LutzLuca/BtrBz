@@ -122,10 +122,8 @@ public final class ProductInfoProvider {
                     () -> {
                         this.openedProduct = null;
                         log.warn("No product resolved for Bazaar item screen");
-                    }
-                );
-            }
-        );
+                    });
+            });
 
         ScreenInfoHelper.registerOnSwitch(curr -> {
             this.productLookupCache.clear();
@@ -147,16 +145,14 @@ public final class ProductInfoProvider {
             if (transientFlowClose) {
                 log.debug(
                     "Preserving product context on transient flow close: {}",
-                    this.openedProduct
-                );
+                    this.openedProduct);
                 return;
             }
 
             if (closed || leftToNonFlowBazaar) {
                 log.debug(
                     "Leaving product flow, clearing product: {}",
-                    this.openedProduct
-                );
+                    this.openedProduct);
                 this.openedProduct = null;
             }
         });
@@ -180,8 +176,7 @@ public final class ProductInfoProvider {
             Component
                 .literal("Product Info")
                 .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-                .withStyle(style -> style.withItalic(false))
-        );
+                .withStyle(style -> style.withItalic(false)));
 
         var loreLines = Stream.of(
             Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
@@ -193,8 +188,8 @@ public final class ProductInfoProvider {
                 .withStyle(style -> style.withItalic(false))
                 .append(Component
                     .literal(cfg.site.displayName())
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-        ).<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
+                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)))
+            .<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
         item.set(DataComponents.LORE, new ItemLore(loreLines));
 
@@ -357,7 +352,7 @@ public final class ProductInfoProvider {
         var client = Minecraft.getInstance();
         //?} else {
         /*var client = Minecraft.getInstance().gui;
-         *///?}
+        *///?}
 
         client.setScreen(new ConfirmLinkScreen(
             confirmed -> {
@@ -374,8 +369,7 @@ public final class ProductInfoProvider {
 
                 var prev = ScreenInfoHelper.get().getPrevInfo();
                 client.setScreen(prev != null ? prev.getScreen() : null);
-            }, link, true
-        ));
+            }, link, true));
     }
 
     private ProductIdentity resolveProduct(ItemStack stack) {
@@ -422,7 +416,7 @@ public final class ProductInfoProvider {
     private record CachedPrice(
         @Nullable Double sellOfferPrice,
         @Nullable Double buyOrderPrice
-    ) { }
+    ) {}
 
     private record CachedProductLookup(
         ProductIdentity product,
@@ -437,7 +431,7 @@ public final class ProductInfoProvider {
 
     public final class InfoSiteButtonHook implements SlotHook {
 
-        private InfoSiteButtonHook() { }
+        private InfoSiteButtonHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -459,15 +453,14 @@ public final class ProductInfoProvider {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var cfg = ConfigManager.get().productInfo;
             ProductInfoProvider.this.confirmAndOpen(
-                cfg.site.format(ProductInfoProvider.this.openedProduct.productId())
-            );
+                cfg.site.format(ProductInfoProvider.this.openedProduct.productId()));
             return SlotClickResult.Consume;
         }
     }
 
     public final class ProductLookupHook implements SlotHook {
 
-        private ProductLookupHook() { }
+        private ProductLookupHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -527,9 +520,9 @@ public final class ProductInfoProvider {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Product Info Paper on Product Page"))
                 .description(ConfigScreen.createDescription(
-                    "Open the selected product on your preferred information site when clicking the Product Info paper in its Bazaar menu.",
-                    ConfigScreen.ConfigImage.PRODUCT_INFO_PAPER
-                ))
+                    "Open the selected product on your preferred information site when clicking the Product "
+                        + "Info paper in its Bazaar menu.",
+                    ConfigScreen.ConfigImage.PRODUCT_INFO_PAPER))
                 .binding(true, () -> this.itemClickEnabled, val -> this.itemClickEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -550,14 +543,13 @@ public final class ProductInfoProvider {
                 .name(Component.literal("Lookup Bazaar Menu Items"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Allow Product Lookup Click on items inside Bazaar menus. A normal click keeps its usual Bazaar or bookmark action."),
-                    ConfigScreen.requires("Enable Product Lookup Click")
-                )))
+                        "Allow Product Lookup Click on items inside Bazaar menus. "
+                            + "A normal click keeps its usual Bazaar or bookmark action."),
+                    ConfigScreen.requires("Enable Product Lookup Click"))))
                 .binding(
                     true,
                     () -> this.ctrlShiftOnBazaarItems,
-                    val -> this.ctrlShiftOnBazaarItems = val
-                )
+                    val -> this.ctrlShiftOnBazaarItems = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -568,8 +560,7 @@ public final class ProductInfoProvider {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "Allow Product Lookup Click in inventories and chests outside the Bazaar."),
-                    ConfigScreen.requires("Enable Product Lookup Click")
-                )))
+                    ConfigScreen.requires("Enable Product Lookup Click"))))
                 .binding(false, () -> this.showOutsideBazaar, val -> this.showOutsideBazaar = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -581,13 +572,12 @@ public final class ProductInfoProvider {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "Add the best current buy-order and sell-offer prices to Bazaar product tooltips."),
-                    ConfigScreen.note("Hold Shift over a stack to show its total value instead of the per-item value.")
-                )))
+                    ConfigScreen
+                        .note("Hold Shift over a stack to show its total value instead of the per-item value."))))
                 .binding(
                     true,
                     () -> this.priceTooltipEnabled,
-                    val -> this.priceTooltipEnabled = val
-                )
+                    val -> this.priceTooltipEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -600,8 +590,7 @@ public final class ProductInfoProvider {
                 .binding(
                     InfoProviderSite.SkyblockBz,
                     () -> this.site != null ? this.site : InfoProviderSite.SkyblockBz,
-                    site -> this.site = site
-                )
+                    site -> this.site = site)
                 .controller(InfoProviderSite::controller);
         }
 
@@ -610,24 +599,21 @@ public final class ProductInfoProvider {
 
             var ctrlShiftGroup = new OptionGrouping(this.createCtrlShiftOption()).addOptions(
                 this.createCtrlShiftOnBazaarItemsOption(),
-                this.createShowOutsideBazaarOption()
-            );
+                this.createShowOutsideBazaarOption());
 
             var rootGroup = new OptionGrouping(enabledBuilder)
                 .addOptions(this.createItemClickOption())
                 .addSubgroups(ctrlShiftGroup)
                 .addOptions(
                     this.createPriceTooltipOption(),
-                    this.createSiteOption()
-                );
+                    this.createSiteOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Product Information"))
                 .description(ConfigScreen.createDescription(
                     "View current prices in item tooltips or open a Bazaar product on an external information site.",
-                    ConfigScreen.ConfigImage.PRODUCT_INFO
-                ))
+                    ConfigScreen.ConfigImage.PRODUCT_INFO))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();
@@ -653,8 +639,7 @@ public final class ProductInfoProvider {
             return this.cache(
                 stack,
                 ProductInfoProvider.this.resolveProductForLookup(stack),
-                ProductInfoProvider.this.isStackInPlayerInventory(stack)
-            );
+                ProductInfoProvider.this.isStackInPlayerInventory(stack));
         }
 
         CachedProductLookup get(SlotView view) {
@@ -667,8 +652,7 @@ public final class ProductInfoProvider {
             return this.cache(
                 stack,
                 ProductInfoProvider.this.resolveProductForLookup(view),
-                view.playerInventorySlot()
-            );
+                view.playerInventorySlot());
         }
 
         private CachedProductLookup cache(
@@ -681,8 +665,7 @@ public final class ProductInfoProvider {
             if (data.contains(product)) {
                 prices = new CachedPrice(
                     data.lowestSellOfferPrice(product).orElse(null),
-                    data.highestBuyOrderPrice(product).orElse(null)
-                );
+                    data.highestBuyOrderPrice(product).orElse(null));
             }
 
             var cached = new CachedProductLookup(product, playerInventoryStack, prices);

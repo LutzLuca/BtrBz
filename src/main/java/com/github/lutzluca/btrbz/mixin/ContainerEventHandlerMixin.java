@@ -27,8 +27,13 @@ public interface ContainerEventHandlerMixin {
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt,
-            CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseScrolled(
+        double mouseX,
+        double mouseY,
+        double hAmt,
+        double vAmt,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
@@ -36,8 +41,11 @@ public interface ContainerEventHandlerMixin {
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(MouseButtonEvent event, boolean doubleClick,
-            CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseClicked(
+        MouseButtonEvent event,
+        boolean doubleClick,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null && wm.mouseClicked(event, doubleClick)) {
             cir.setReturnValue(true);
@@ -53,8 +61,12 @@ public interface ContainerEventHandlerMixin {
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
-    private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY,
-            CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseDragged(
+        MouseButtonEvent event,
+        double deltaX,
+        double deltaY,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);

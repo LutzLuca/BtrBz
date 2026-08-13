@@ -40,10 +40,8 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
             Component
                 .literal(this.formatAmount(usage.used()) + " / " + Utils.formatCompact(
                     usage.limit(),
-                    0
-                ))
-                .withStyle(ChatFormatting.GREEN)
-        );
+                    0))
+                .withStyle(ChatFormatting.GREEN));
 
         var widget = new LabelWidget(0, 0, lines)
             .setAutoSize(true)
@@ -75,16 +73,14 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         log.debug(
             "Added {} coins to daily limit usage (now {})",
             transactionAmount,
-            this.configState.usedToday
-        );
+            this.configState.usedToday);
     }
 
     public DailyLimitUsage currentUsage() {
         return new DailyLimitUsage(
             this.configState.usedToday,
             this.configState.dailyLimit,
-            this.configState.lastResetEpochDay
-        );
+            this.configState.lastResetEpochDay);
     }
 
     private void resetOrderLimitOnNewDay() {
@@ -124,7 +120,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
         return Utils.formatCompact(amount, places);
     }
 
-    public record DailyLimitUsage(double used, double limit, long lastResetEpochDay) { }
+    public record DailyLimitUsage(double used, double limit, long lastResetEpochDay) {}
 
     public static class OrderLimitConfig {
 
@@ -154,8 +150,7 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
                 .name(Component.literal("Use Compact Display"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Abbreviate large values in the overlay."),
-                    ConfigScreen.example("1,250,000 is displayed as 1.3M.")
-                )))
+                    ConfigScreen.example("1,250,000 is displayed as 1.3M."))))
                 .binding(true, () -> this.useCompact, val -> this.useCompact = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -169,14 +164,13 @@ public class OrderLimitModule extends Module<OrderLimitModule.OrderLimitConfig> 
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show BtrBz's estimate of your daily Bazaar usage."),
                     ConfigScreen.note(
-                        "The counter resets at 00:00 UTC and may differ from Hypixel if transactions were not observed."),
+                        "The counter resets at 00:00 UTC and may differ from Hypixel if transactions "
+                            + "were not observed."),
                     Component
                         .literal("For accurate estimates, configure your Bazaar tax rate with ")
                         .append(ConfigScreen.command("/btrbz tax set <rate>"))
-                        .append(Component.literal("."))
-                ),
-                    ConfigScreen.ConfigImage.DAILY_LIMIT
-                ))
+                        .append(Component.literal("."))),
+                    ConfigScreen.ConfigImage.DAILY_LIMIT))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

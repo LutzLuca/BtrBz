@@ -39,8 +39,7 @@ class ProductIdentityTest {
             var product = ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 "TROUBLED_BUBBLE",
-                ChatFormatting.GOLD + "Troubled Bubble"
-            );
+                ChatFormatting.GOLD + "Troubled Bubble");
 
             assertEquals(ChatFormatting.GOLD + "Troubled Bubble", product.visualName());
         }

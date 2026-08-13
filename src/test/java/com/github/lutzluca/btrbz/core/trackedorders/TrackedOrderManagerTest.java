@@ -63,8 +63,7 @@ class TrackedOrderManagerTest {
 
             assertEquals(
                 List.of(second.id(), first.id(), third.id()),
-                manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList()
-            );
+                manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList());
             assertFalse(manager.reorder(new TrackedOrderId(UUID.randomUUID()), 0));
         }
 
@@ -89,8 +88,7 @@ class TrackedOrderManagerTest {
                 .toList());
             var snapshotsById = manager.currentOrders().stream().collect(Collectors.toMap(
                 TrackedOrderManager.TrackedOrderSnapshot::id,
-                snapshot -> snapshot
-            ));
+                snapshot -> snapshot));
             assertEquals(5, snapshotsById.get(first.id()).slot());
             assertEquals(2, snapshotsById.get(first.id()).fillAmountSnapshot());
             assertEquals(6, snapshotsById.get(second.id()).slot());
@@ -108,15 +106,13 @@ class TrackedOrderManagerTest {
             setSummaries(
                 marketProduct,
                 List.of(summary(marketProduct, 10.0, 64, 1)),
-                List.of(summary(marketProduct, 12.5, 64, 1))
-            );
+                List.of(summary(marketProduct, 12.5, 64, 1)));
             var data = data(Map.of("TROUBLED_BUBBLE", marketProduct));
 
             var spread = data.productSpread(ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 "TROUBLED_BUBBLE",
-                null
-            ));
+                null));
 
             assertEquals(2.5, spread.orElseThrow());
         }
@@ -127,15 +123,13 @@ class TrackedOrderManagerTest {
             setSummaries(
                 marketProduct,
                 List.of(summary(marketProduct, 10.0, 64, 1)),
-                List.of()
-            );
+                List.of());
             var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
             var evaluator = new TrackedOrderStatusEvaluator();
             var order = trackedOrder(ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 "TROUBLED_BUBBLE",
-                ChatFormatting.GOLD + "Troubled Bubble"
-            ));
+                ChatFormatting.GOLD + "Troubled Bubble"));
 
             var updates = evaluator.computeStatusUpdates(List.of(order), snapshot).toList();
 
@@ -149,15 +143,13 @@ class TrackedOrderManagerTest {
             setSummaries(
                 marketProduct,
                 List.of(summary(marketProduct, 10.0, 64, 1)),
-                List.of()
-            );
+                List.of());
             var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
             var evaluator = new TrackedOrderStatusEvaluator();
             var order = trackedOrder(ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 null,
-                ChatFormatting.GOLD + "Troubled Bubble"
-            ));
+                ChatFormatting.GOLD + "Troubled Bubble"));
 
             assertTrue(evaluator.computeStatusUpdates(List.of(order), snapshot).toList().isEmpty());
         }
@@ -168,15 +160,13 @@ class TrackedOrderManagerTest {
             setSummaries(
                 marketProduct,
                 List.of(summary(marketProduct, 12.0, 64, 1)),
-                List.of()
-            );
+                List.of());
             var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
             var evaluator = new TrackedOrderStatusEvaluator();
             var order = trackedOrder(ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 "TROUBLED_BUBBLE",
-                null
-            ));
+                null));
             order.status = new OrderStatus.Undercut(1.0);
 
             var updates = evaluator.computeStatusUpdates(List.of(order), snapshot).toList();
@@ -193,15 +183,13 @@ class TrackedOrderManagerTest {
             setSummaries(
                 marketProduct,
                 List.of(summary(marketProduct, 10.0, 0, 2)),
-                List.of()
-            );
+                List.of());
             var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
             var evaluator = new TrackedOrderStatusEvaluator();
             var order = trackedOrder(ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 "TROUBLED_BUBBLE",
-                null
-            ));
+                null));
 
             var updates = evaluator.computeStatusUpdates(List.of(order), snapshot).toList();
 
@@ -218,12 +206,10 @@ class TrackedOrderManagerTest {
         void runtimeProductsWithIdsGroupByBazaarProductIdFirst() {
             var first = TrackedOrderGrouping.productKey(
                 ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null),
-                "Troubled Bubble"
-            );
+                "Troubled Bubble");
             var second = TrackedOrderGrouping.productKey(
                 ProductIdentity.fromRuntime("Different UI Text", "TROUBLED_BUBBLE", null),
-                "Different UI Text"
-            );
+                "Different UI Text");
 
             assertEquals(first, second);
         }
@@ -233,8 +219,7 @@ class TrackedOrderManagerTest {
             var first = TrackedOrderGrouping.productKey(ProductIdentity.fromName("Troubled Bubble"), "Troubled Bubble");
             var second = TrackedOrderGrouping.productKey(
                 ProductIdentity.fromName("Different UI Text"),
-                "  troubled   bubble  "
-            );
+                "  troubled   bubble  ");
 
             assertEquals(first, second);
         }
@@ -251,8 +236,7 @@ class TrackedOrderManagerTest {
             var incoming = ProductIdentity.fromRuntime(
                 "Troubled Bubble",
                 "TROUBLED_BUBBLE",
-                ChatFormatting.GOLD + "Troubled Bubble"
-            );
+                ChatFormatting.GOLD + "Troubled Bubble");
 
             assertEquals(incoming, updater.strongestProduct(current, incoming, "Troubled Bubble"));
         }
@@ -278,16 +262,13 @@ class TrackedOrderManagerTest {
                 marketProduct,
                 List.of(
                     summary(marketProduct, 10.0, 1, 1),
-                    summary(marketProduct, 9.0, 1, 1)
-                ),
-                List.of()
-            );
+                    summary(marketProduct, 9.0, 1, 1)),
+                List.of());
             var snapshot = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
             var detector = new SelfUndercutDetector();
             var orders = List.of(
                 trackedOrder(ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null), 10.0),
-                trackedOrder(ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null), 9.0)
-            );
+                trackedOrder(ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null), 9.0));
 
             var first = detector.resolve(orders, snapshot);
             var second = detector.resolve(orders, snapshot);
@@ -312,8 +293,7 @@ class TrackedOrderManagerTest {
             pricePerUnit,
             0,
             0,
-            0
-        ));
+            0));
     }
 
     private static OrderInfo.UnfilledOrderInfo unfilledOrder(
@@ -329,8 +309,7 @@ class TrackedOrderManagerTest {
             10.0,
             filledAmount,
             0,
-            slot
-        );
+            slot);
     }
 
     private static MarketSnapshot snapshot(Map<String, Product> products) {

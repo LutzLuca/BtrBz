@@ -20,12 +20,10 @@ class OrderValueModuleTest {
         void separatesLockedPendingAndClaimableValues() {
             var unfilled = List.of(
                 new UnfilledOrderInfo("Buy Product", OrderType.Buy, 10, 5.0, 4, 2, 0),
-                new UnfilledOrderInfo("Sell Product", OrderType.Sell, 8, 7.0, 3, 11, 1)
-            );
+                new UnfilledOrderInfo("Sell Product", OrderType.Sell, 8, 7.0, 3, 11, 1));
             var filled = List.of(
                 new FilledOrderInfo("Filled Buy", OrderType.Buy, 3, 4.0, 3, 3, 2),
-                new FilledOrderInfo("Filled Sell", OrderType.Sell, 1, 9.0, 1, 13, 3)
-            );
+                new FilledOrderInfo("Filled Sell", OrderType.Sell, 1, 9.0, 1, 13, 3));
 
             var breakdown = OrderValueModule.calculateBreakdown(unfilled, filled);
 

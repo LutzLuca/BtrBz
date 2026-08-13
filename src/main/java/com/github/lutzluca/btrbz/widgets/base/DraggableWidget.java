@@ -31,8 +31,10 @@ public abstract class DraggableWidget extends AbstractWidget {
     protected TooltipProvider tooltipProvider;
 
     public DraggableWidget(
-        int defaultX, int defaultY,
-        int width, int height
+        int defaultX,
+        int defaultY,
+        int width,
+        int height
     ) {
         super(defaultX, defaultY, width, height);
     }
@@ -46,7 +48,9 @@ public abstract class DraggableWidget extends AbstractWidget {
     public void renderWidget(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx) {
         this.renderContent(graphics, mouseX, mouseY, delta, ctx);
 
-        boolean canShowTooltip = this.isMouseOver(this.client.mouseHandler.xpos(), this.client.mouseHandler.ypos()) && !this.isDragging && ctx.canShowTooltips();
+        boolean canShowTooltip = this.isMouseOver(this.client.mouseHandler.xpos(), this.client.mouseHandler.ypos())
+            && !this.isDragging
+            && ctx.canShowTooltips();
 
         if (this.tooltipProvider != null && !canShowTooltip) {
             this.tooltipProvider.resetHover();
@@ -57,7 +61,13 @@ public abstract class DraggableWidget extends AbstractWidget {
         }
     }
 
-    protected abstract void renderContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, RenderContext ctx);
+    protected abstract void renderContent(
+        GuiGraphicsExtractor graphics,
+        int mouseX,
+        int mouseY,
+        float delta,
+        RenderContext ctx
+    );
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
@@ -82,8 +92,7 @@ public abstract class DraggableWidget extends AbstractWidget {
 
         double distanceFromStart = Math.sqrt(
             Math.pow(event.x() - this.dragStartX, 2) +
-            Math.pow(event.y() - this.dragStartY, 2)
-        );
+                Math.pow(event.y() - this.dragStartY, 2));
         long dragDuration = System.currentTimeMillis() - this.dragStartTime;
 
         if (!this.isDragging && (distanceFromStart >= this.dragThreshold || dragDuration >= this.dragTimeThreshold)) {
@@ -92,8 +101,8 @@ public abstract class DraggableWidget extends AbstractWidget {
         }
 
         if (this.isDragging) {
-            int newX = this.initialX + (int)(event.x() - this.dragStartX);
-            int newY = this.initialY + (int)(event.y() - this.dragStartY);
+            int newX = this.initialX + (int) (event.x() - this.dragStartX);
+            int newY = this.initialY + (int) (event.y() - this.dragStartY);
 
             this.setX(this.constrainX(newX));
             this.setY(this.constrainY(newY));
@@ -173,10 +182,10 @@ public abstract class DraggableWidget extends AbstractWidget {
     }
 
     public boolean containsPoint(double x, double y) {
-        return x >= this.x &&
-               x < this.x + this.width &&
-               y >= this.y &&
-               y < this.y + this.height;
+        return x >= this.x
+            && x < this.x + this.width
+            && y >= this.y
+            && y < this.y + this.height;
     }
 
     protected void onDragStart() {}

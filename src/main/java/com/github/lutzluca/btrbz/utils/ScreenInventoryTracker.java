@@ -87,7 +87,8 @@ public class ScreenInventoryTracker {
         switch (packet) {
             case ClientboundOpenScreenPacket openPacket -> this.handleOpenScreen(openPacket);
             case ClientboundContainerSetSlotPacket slotPacket -> this.handleSlotUpdate(slotPacket);
-            default -> { }
+            default -> {
+            }
         }
     }
 
@@ -100,8 +101,7 @@ public class ScreenInventoryTracker {
         if (slotCount == null) {
             log.error(
                 "Unknown screen handler type for inventory '{}'. Ignoring this inventory.",
-                title
-            );
+                title);
             return;
         }
 

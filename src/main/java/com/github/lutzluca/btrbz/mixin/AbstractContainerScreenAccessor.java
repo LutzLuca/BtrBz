@@ -21,5 +21,6 @@ public interface AbstractContainerScreenAccessor {
     int getImageHeight();
 
     @Accessor("hoveredSlot")
-    @Nullable Slot getHoveredSlot();
+    @Nullable
+    Slot getHoveredSlot();
 }

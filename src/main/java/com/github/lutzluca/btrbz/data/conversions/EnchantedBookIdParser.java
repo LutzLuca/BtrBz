@@ -16,9 +16,10 @@ final class EnchantedBookIdParser {
      * - <enchantment name> <roman-or-arabic-level>
      */
     private static final Pattern ACTION_PREFIX = Pattern.compile("^(BUY|SELL)\\s+", Pattern.CASE_INSENSITIVE);
-    private static final Pattern DISPLAY_NAME = Pattern.compile("^(.+?)\\s+([IVXLCDM]+|\\d+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DISPLAY_NAME = Pattern.compile("^(.+?)\\s+([IVXLCDM]+|\\d+)$",
+        Pattern.CASE_INSENSITIVE);
 
-    private EnchantedBookIdParser() { }
+    private EnchantedBookIdParser() {}
 
     static boolean isGenericBookId(String rawProductId) {
         return GENERIC_BOOK_ID.equals(normalizeToken(rawProductId));
@@ -106,7 +107,7 @@ final class EnchantedBookIdParser {
     private static Optional<Integer> parseArabicLevel(String level) {
         try {
             return Optional.of(Integer.parseInt(level));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return Optional.empty();
         }
     }
@@ -123,5 +124,5 @@ final class EnchantedBookIdParser {
             .replaceAll("^_+|_+$", "");
     }
 
-    private record ParsedDisplayName(String enchantmentName, int level) { }
+    private record ParsedDisplayName(String enchantmentName, int level) {}
 }

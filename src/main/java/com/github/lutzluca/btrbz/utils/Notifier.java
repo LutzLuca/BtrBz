@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -64,8 +65,9 @@ public class Notifier {
             }
             case Matched _ -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-                var matchedMsg = singleMsg(order, cfg, bazaarData, Component.literal("was ").withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
+                var matchedMsg = singleMsg(order, cfg, bazaarData,
+                    Component.literal("was ").withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE)));
 
                 if (cfg.showQueueInfo && !(update.prev() instanceof OrderStatus.Top)) {
                     bazaarData
@@ -73,17 +75,18 @@ public class Notifier {
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - 1),
                             Math.max(0, info.itemsAhead - order.volume),
-                            cfg
-                        ));
+                            cfg));
                 }
                 yield matchedMsg;
             }
             case Undercut undercut -> {
                 SoundUtil.playSoundIf(cfg.soundUndercut, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
-                var undercutMsg = singleMsg(order, cfg, bazaarData, Component.literal("was ").withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
-                    .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(Utils.formatDecimal(undercut.amount, 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
+                var undercutMsg = singleMsg(order, cfg, bazaarData,
+                    Component.literal("was ").withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
+                        .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
+                        .append(Component.literal(Utils.formatDecimal(undercut.amount, 1, true) + " coins!")
+                            .withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
                     bazaarData
@@ -106,8 +109,10 @@ public class Notifier {
     }
 
     public static void notifyGroupOrderStatus(
-        GroupKey key, List<TrackedOrder> allOrders,
-        GroupStatus curr, GroupStatus prev,
+        GroupKey key,
+        List<TrackedOrder> allOrders,
+        GroupStatus curr,
+        GroupStatus prev,
         BazaarData bazaarData
     ) {
         var cfg = ConfigManager.get().trackedOrders;
@@ -121,14 +126,15 @@ public class Notifier {
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("UNDERCUT ").withStyle(ChatFormatting.RED))
                         .append(Component.literal("by ").withStyle(ChatFormatting.GRAY))
-                        .append(Component.literal(Utils.formatDecimal(undercut.amount(), 1, true) + " coins!").withStyle(ChatFormatting.GOLD)));
+                        .append(Component.literal(Utils.formatDecimal(undercut.amount(), 1, true) + " coins!")
+                            .withStyle(ChatFormatting.GOLD)));
 
                 if (cfg.showQueueInfo) {
                     bazaarData
                         .calculateQueuePosition(key.product(), key.type(), key.pricePerUnit())
                         .ifPresent(info -> appendQueueInfo(undercutMsg, info.ordersAhead, info.itemsAhead, cfg));
                 }
-                
+
                 yield undercutMsg;
             }
             case GroupStatus.Matched _ -> {
@@ -143,22 +149,22 @@ public class Notifier {
                         .ifPresent(info -> appendQueueInfo(matchedMsg,
                             Math.max(0, info.ordersAhead - groupSize),
                             Math.max(0, info.itemsAhead - totalVolume),
-                            cfg
-                        ));
+                            cfg));
                 }
-                
+
                 yield matchedMsg;
             }
             case GroupStatus.SelfMatched selfMatched -> {
                 SoundUtil.playSoundIf(cfg.soundMatched, SoundEvents.NOTE_BLOCK_CHIME, 0.5f, 1);
-                
+
                 yield groupMsg(key, selfMatched.orderCount(), totalVolume, cfg, bazaarData,
                     Component.literal("were ").withStyle(ChatFormatting.GRAY)
                         .append(Component.literal("SELF-MATCHED!").withStyle(ChatFormatting.BLUE)));
             }
         };
 
-        if ((curr instanceof GroupStatus.Matched || curr instanceof GroupStatus.SelfMatched) && cfg.gotoOnMatched != Action.None) {
+        if ((curr instanceof GroupStatus.Matched || curr instanceof GroupStatus.SelfMatched)
+            && cfg.gotoOnMatched != Action.None) {
             applyGotoAction(msg, cfg.gotoOnMatched, key.productName());
         }
         if (curr instanceof GroupStatus.Undercut && cfg.gotoOnUndercut != Action.None) {
@@ -316,7 +322,7 @@ public class Notifier {
             .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
             .append(coinComponent(args.price()))
             .append(Component
-                .literal(" (" + args.type().name().toLowerCase() + ")")
+                .literal(" (" + args.type().name().toLowerCase(Locale.ROOT) + ")")
                 .withStyle(ChatFormatting.DARK_GRAY))
             .append(Component.literal(". Use ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal("/btrbz alert list").withStyle(ChatFormatting.AQUA))

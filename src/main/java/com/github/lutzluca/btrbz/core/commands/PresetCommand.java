@@ -21,8 +21,7 @@ public class PresetCommand {
             .then(ClientCommands.literal("add").then(ClientCommands
                 .argument(
                     "volume",
-                    IntegerArgumentType.integer(1, GameUtils.GLOBAL_MAX_ORDER_VOLUME)
-                )
+                    IntegerArgumentType.integer(1, GameUtils.GLOBAL_MAX_ORDER_VOLUME))
                 .executes(ctx -> {
                     int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
@@ -66,9 +65,8 @@ public class PresetCommand {
                     .executes(ctx -> {
                         int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
-                        boolean removed = ConfigManager.updateIfChanged(cfg ->
-                            cfg.orderPresets.presets.remove(Integer.valueOf(volume))
-                        );
+                        boolean removed = ConfigManager
+                            .updateIfChanged(cfg -> cfg.orderPresets.presets.remove(Integer.valueOf(volume)));
 
                         if (removed) {
                             Notifier.notifyPlayer(Notifier

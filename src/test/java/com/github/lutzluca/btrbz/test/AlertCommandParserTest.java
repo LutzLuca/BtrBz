@@ -38,18 +38,15 @@ class AlertCommandParserTest {
         @Test
         void sellOrderWithExplicitReference() throws ParseException {
             AlertCommand cmd = AlertCommandParserTest.this.parser.parse(
-                "EYE_OF_THE_ENDER sell-offer order + 2m - 10k"
-            );
+                "EYE_OF_THE_ENDER sell-offer order + 2m - 10k");
 
             PriceExpression expected = new Binary(
                 new Binary(
                     new Reference(ReferenceType.Order),
                     BinaryOperator.Add,
-                    new Literal(2_000_000.0)
-                ),
+                    new Literal(2_000_000.0)),
                 BinaryOperator.Subtract,
-                new Literal(10_000.0)
-            );
+                new Literal(10_000.0));
 
             assertEquals("EYE_OF_THE_ENDER", cmd.productId());
             assertEquals(AlertType.SellOffer, cmd.type());
@@ -86,8 +83,7 @@ class AlertCommandParserTest {
             PriceExpression expected = new Binary(
                 new Literal(120_000_000.0),
                 BinaryOperator.Divide,
-                new Literal(2.0)
-            );
+                new Literal(2.0));
 
             assertEquals(expected, cmd.expr());
         }
@@ -99,18 +95,21 @@ class AlertCommandParserTest {
             PriceExpression expected = new Binary(
                 new Binary(new Literal(2_000_000.0), BinaryOperator.Add, new Literal(10_000.0)),
                 BinaryOperator.Multiply,
-                new Literal(2.0)
-            );
+                new Literal(2.0));
 
             assertEquals(expected, cmd.expr());
         }
 
         @Test
         void numberFormattingVariations() throws ParseException {
-            assertEquals(new Literal(120_123_123.3), AlertCommandParserTest.this.parser.parse("ITEM buy-order 120,123,123.3").expr());
-            assertEquals(new Literal(120_123_123.3), AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_123_123.3").expr());
-            assertEquals(new Literal(15_300_000_000.0), AlertCommandParserTest.this.parser.parse("ITEM buy-order 15.3b").expr());
-            assertEquals(new Literal(12_000_000.0), AlertCommandParserTest.this.parser.parse("ITEM buy-order 12m").expr());
+            assertEquals(new Literal(120_123_123.3),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120,123,123.3").expr());
+            assertEquals(new Literal(120_123_123.3),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_123_123.3").expr());
+            assertEquals(new Literal(15_300_000_000.0),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 15.3b").expr());
+            assertEquals(new Literal(12_000_000.0),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 12m").expr());
             assertEquals(new Literal(10_000.0), AlertCommandParserTest.this.parser.parse("ITEM buy-order 10k").expr());
         }
 
@@ -118,8 +117,7 @@ class AlertCommandParserTest {
         void numberRounding() throws ParseException {
             assertEquals(
                 new Literal(120_123_123.4),
-                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_123_123.3791").expr()
-            );
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_123_123.3791").expr());
             assertEquals(new Literal(100.5), AlertCommandParserTest.this.parser.parse("ITEM buy-order 100.45").expr());
         }
 
@@ -130,8 +128,7 @@ class AlertCommandParserTest {
             PriceExpression expected = new Binary(
                 new Reference(ReferenceType.Insta),
                 BinaryOperator.Divide,
-                new Literal(2.0)
-            );
+                new Literal(2.0));
 
             assertEquals(expected, cmd.expr());
         }
@@ -153,12 +150,10 @@ class AlertCommandParserTest {
         void ambiguousBuyAndSellIdentifiersAreRejected() {
             assertThrows(
                 ParseException.class,
-                () -> AlertCommandParserTest.this.parser.parse("ITEM buy 100k")
-            );
+                () -> AlertCommandParserTest.this.parser.parse("ITEM buy 100k"));
             assertThrows(
                 ParseException.class,
-                () -> AlertCommandParserTest.this.parser.parse("ITEM sell 100k")
-            );
+                () -> AlertCommandParserTest.this.parser.parse("ITEM sell 100k"));
         }
     }
 }

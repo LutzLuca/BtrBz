@@ -45,7 +45,7 @@ public class OrderBookScreenController {
     public final class OrderBookButtonHook implements SlotHook {
         private @Nullable ItemStack cachedDisplayStack = null;
 
-        private OrderBookButtonHook() { }
+        private OrderBookButtonHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -64,8 +64,7 @@ public class OrderBookScreenController {
             var book = new ItemStack(Items.BOOK);
             book.set(
                 DataComponents.CUSTOM_NAME,
-                Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
-            );
+                Component.literal("Open Order Book").withStyle(style -> style.withItalic(false)));
 
             this.cachedDisplayStack = book;
             return this.cachedDisplayStack.copy();
@@ -88,13 +87,12 @@ public class OrderBookScreenController {
             var orderBookScreen = new OrderBookScreen(
                 ctx.view().getCurrInfo().getScreen(),
                 title,
-                orders
-            );
+                orders);
             //? if <26.2 {
             Minecraft.getInstance().setScreen(orderBookScreen);
             //?} else {
             /*Minecraft.getInstance().gui.setScreen(orderBookScreen);
-             *///?}
+            *///?}
             return SlotClickResult.Consume;
         }
     }
@@ -108,7 +106,8 @@ public class OrderBookScreenController {
                 .<Boolean>createBuilder()
                 .name(Component.nullToEmpty("Enable Order Book"))
                 .description(OptionDescription.of(Component.literal(
-                    "Add an Open Order Book button to product, buy-order amount, buy-order price, and sell-offer screens.")))
+                    "Add an Open Order Book button to product, buy-order amount, buy-order price, "
+                        + "and sell-offer screens.")))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -123,10 +122,8 @@ public class OrderBookScreenController {
                     ConfigScreen.text(
                         "Open a detailed view of current buy orders and sell offers for the selected product."),
                     ConfigScreen.note(
-                        "Click a listed price to copy it and return to the Bazaar screen.")
-                ),
-                    ConfigScreen.ConfigImage.ORDER_BOOK
-                ))
+                        "Click a listed price to copy it and return to the Bazaar screen.")),
+                    ConfigScreen.ConfigImage.ORDER_BOOK))
                 .options(root.build())
                 .collapsed(true)
                 .build();

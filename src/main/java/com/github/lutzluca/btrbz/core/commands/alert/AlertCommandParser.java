@@ -51,8 +51,7 @@ public class AlertCommandParser {
             now,
             productId.toUpperCase(Locale.US),
             alertType,
-            this.parsePriceExpression(priceExpression.toLowerCase(Locale.US))
-        );
+            this.parsePriceExpression(priceExpression.toLowerCase(Locale.US)));
     }
 
     private PriceExpression parsePriceExpression(String expression) throws ParseException {
@@ -170,16 +169,14 @@ public class AlertCommandParser {
                 .of(() -> data
                     .resolveProductId(this.productId)
                     .orElseThrow(() -> new IllegalArgumentException(
-                        "Invalid or unrecognized product id " + '"' + this.productId + '"'
-                    )))
+                        "Invalid or unrecognized product id " + '"' + this.productId + '"')))
                 .flatMap(product -> this.expr
                     .resolve(product, this.type, data)
                     .map(price -> new ResolvedAlertArgs(
                         this.timestamp,
                         product,
                         this.type,
-                        price
-                    )));
+                        price)));
         }
     }
 
@@ -205,8 +202,7 @@ public class AlertCommandParser {
                     "Price Expression evaluates to an invalid price of " + '"' + Utils.formatDecimal(
                         this.price,
                         1,
-                        true
-                    ) + '"' + ". Expected a positive price"));
+                        true) + '"' + ". Expected a positive price"));
             }
 
             return Try.success(this);
@@ -225,7 +221,7 @@ public class AlertCommandParser {
         private final List<String> tokens;
         private int pos;
 
-        public Tokenizer(String expression) {
+        Tokenizer(String expression) {
             this.tokens = new ArrayList<>();
             this.pos = 0;
 

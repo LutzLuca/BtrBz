@@ -288,8 +288,7 @@ class UtilsTest {
                     + ChatFormatting.BOLD.toString()
                     + ChatFormatting.ITALIC
                     + "Habanero Tactics",
-                Utils.legacyFormattedText(text)
-            );
+                Utils.legacyFormattedText(text));
         }
 
         @Test
@@ -300,8 +299,7 @@ class UtilsTest {
 
             assertEquals(
                 Optional.of(ChatFormatting.LIGHT_PURPLE + ChatFormatting.BOLD.toString() + "Bank III"),
-                Utils.matchingLegacySuffix(text, "Bank III")
-            );
+                Utils.matchingLegacySuffix(text, "Bank III"));
         }
     }
 }

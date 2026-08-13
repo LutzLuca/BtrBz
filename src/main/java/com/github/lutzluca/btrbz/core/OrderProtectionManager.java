@@ -149,8 +149,7 @@ public class OrderProtectionManager {
             .map(orderInfo -> OrderValidator.validate(
                 orderInfo,
                 this.bazaarData,
-                ConfigManager.get().orderProtection
-            ))
+                ConfigManager.get().orderProtection))
             .onSuccess(pendingOrder -> {
                 this.validationCache.put(rawStack, pendingOrder);
                 this.validationFailureCache.remove(rawStack);
@@ -158,20 +157,17 @@ public class OrderProtectionManager {
                 log.trace(
                     "Validated: {} - {}",
                     pendingOrder.orderInfo().product().bazaarProductId().orElse(pendingOrder.orderInfo().productName()),
-                    pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED"
-                );
+                    pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED");
             })
             .onFailure(err -> {
                 this.validationCache.remove(rawStack);
                 this.validationFailureCache.put(
                     rawStack,
-                    ValidationResult.blocked(VALIDATION_FAILURE_REASON)
-                );
+                    ValidationResult.blocked(VALIDATION_FAILURE_REASON));
                 log.warn(
                     "Failed to parse or validate confirmation item '{}'",
                     rawStack.getHoverName().getString(),
-                    err
-                );
+                    err);
             });
     }
 
@@ -185,7 +181,7 @@ public class OrderProtectionManager {
 
     public final class ConfirmationHook implements SlotHook {
 
-        private ConfirmationHook() { }
+        private ConfirmationHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -240,11 +236,15 @@ public class OrderProtectionManager {
 
     public record PendingOrderData(
         OutstandingOrderInfo orderInfo, ValidationResult validationResult
-    ) { }
+    ) {}
 
     private static final class OrderValidator {
 
-        public static PendingOrderData validate(OutstandingOrderInfo info, BazaarData bazaarData, OrderProtectionConfig cfg) {
+        public static PendingOrderData validate(
+            OutstandingOrderInfo info,
+            BazaarData bazaarData,
+            OrderProtectionConfig cfg
+        ) {
             if (!cfg.enabled || (!cfg.blockUndercutPercentage && !cfg.blockUndercutOfOpposing)) {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
@@ -254,8 +254,7 @@ public class OrderProtectionManager {
                 log.warn("Order protection blocked unresolved product '{}'", info.productName());
                 return new PendingOrderData(
                     info,
-                    ValidationResult.blocked("Unknown or unresolved product: " + info.productName())
-                );
+                    ValidationResult.blocked("Unknown or unresolved product: " + info.productName()));
             }
 
             var prices = bazaarData.getMarketPrices(ProductIdentity.fromIndex(product.get()));
@@ -288,8 +287,7 @@ public class OrderProtectionManager {
                 return ValidationResult.blocked(String.format(
                     "Your Sell Offer price of (%s) is \nbelow the insta sell price of (%s)",
                     Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestBuy.get(), 1, true)
-                ));
+                    Utils.formatDecimal(bestBuy.get(), 1, true)));
             }
 
             if (bestSell.isPresent() && cfg.blockUndercutPercentage) {
@@ -298,8 +296,7 @@ public class OrderProtectionManager {
                     return ValidationResult.blocked(String.format(
                         "Undercuts by %s%% (max %s%%)",
                         Utils.formatDecimal(undercut, 1, true),
-                        Utils.formatDecimal(cfg.maxSellOfferUndercut, 1, true)
-                    ));
+                        Utils.formatDecimal(cfg.maxSellOfferUndercut, 1, true)));
                 }
             }
 
@@ -317,8 +314,7 @@ public class OrderProtectionManager {
                 return ValidationResult.blocked(String.format(
                     "Your Buy Order price of (%s) is \nabove the insta buy price of (%s)",
                     Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestSell.get(), 1, true)
-                ));
+                    Utils.formatDecimal(bestSell.get(), 1, true)));
             }
 
             if (bestBuy.isPresent() && cfg.blockUndercutPercentage) {
@@ -328,8 +324,7 @@ public class OrderProtectionManager {
                     return ValidationResult.blocked(String.format(
                         "Undercuts by %s%% (max %s%%)",
                         Utils.formatDecimal(undercut, 1, true),
-                        Utils.formatDecimal(cfg.maxBuyOrderUndercut, 1, true)
-                    ));
+                        Utils.formatDecimal(cfg.maxBuyOrderUndercut, 1, true)));
                 }
             }
 
@@ -367,8 +362,7 @@ public class OrderProtectionManager {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "Check new order prices and stop submissions that match an enabled safety rule."),
-                    ConfigScreen.note("Hold Ctrl while confirming to override a block.")
-                )))
+                    ConfigScreen.note("Hold Ctrl while confirming to override a block."))))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -399,17 +393,18 @@ public class OrderProtectionManager {
                 .name(Component.literal("Limit Price Undercutting"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block prices that improve on the current best order by the allowed percentage or more. The buy-order and sell-offer limits below apply only while this is enabled."),
+                        "Block prices that improve on the current best order by the allowed percentage or "
+                            + "more. The buy-order and sell-offer limits below apply only while this is enabled."),
                     ConfigScreen.example(
-                        "At a best price of 15M, a 100K change is about 0.67%. With a 15% limit, the blocked difference begins at 2.25M."),
+                        "At a best price of 15M, a 100K change is about 0.67%. "
+                            + "With a 15% limit, the blocked difference begins at 2.25M."),
                     ConfigScreen.note(
-                        "Known limitation: fixed 0.1-coin price steps make percentage checks unreliable for very cheap items. Moving from 0.5 to 0.6 coins is already a 20% increase.")
-                )))
+                        "Known limitation: fixed 0.1-coin price steps make percentage checks unreliable "
+                            + "for very cheap items. Moving from 0.5 to 0.6 coins is already a 20% increase."))))
                 .binding(
                     true,
                     () -> this.blockUndercutPercentage,
-                    val -> this.blockUndercutPercentage = val
-                )
+                    val -> this.blockUndercutPercentage = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -421,13 +416,11 @@ public class OrderProtectionManager {
                     ConfigScreen.text(
                         "Block a buy order when it is this percentage or more above the best current buy-order price."),
                     ConfigScreen.example(
-                        "With a best price of 15M and a 5% limit, 15.75M or more is blocked.")
-                )))
+                        "With a best price of 15M and a 5% limit, 15.75M or more is blocked."))))
                 .binding(
                     this.maxBuyOrderUndercut,
                     () -> this.maxBuyOrderUndercut,
-                    val -> this.maxBuyOrderUndercut = val
-                )
+                    val -> this.maxBuyOrderUndercut = val)
                 .controller(opt -> DoubleSliderControllerBuilder
                     .create(opt)
                     .range(0.0, 100.0)
@@ -440,15 +433,14 @@ public class OrderProtectionManager {
                 .name(Component.literal("Maximum Sell-Offer Reduction (%)"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block a sell offer when it is this percentage or more below the best current sell-offer price."),
+                        "Block a sell offer when it is this percentage or more below the best current "
+                            + "sell-offer price."),
                     ConfigScreen.example(
-                        "With a best price of 15M and a 5% limit, 14.25M or less is blocked.")
-                )))
+                        "With a best price of 15M and a 5% limit, 14.25M or less is blocked."))))
                 .binding(
                     this.maxSellOfferUndercut,
                     () -> this.maxSellOfferUndercut,
-                    val -> this.maxSellOfferUndercut = val
-                )
+                    val -> this.maxSellOfferUndercut = val)
                 .controller(opt -> DoubleSliderControllerBuilder
                     .create(opt)
                     .range(0.0, 100.0)
@@ -461,30 +453,28 @@ public class OrderProtectionManager {
                 .name(Component.literal("Block Orders at Instant-Trade Prices"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block buy orders priced at or above the best sell offer, and sell offers priced at or below the best buy order. Use an instant trade instead."),
+                        "Block buy orders priced at or above the best sell offer, and sell offers priced at "
+                            + "or below the best buy order. Use an instant trade instead."),
                     ConfigScreen.example(
-                        "If the best buy order is 100 and the best sell offer is 105, a sell offer of 100 or less and a buy order of 105 or more are blocked.")
-                )))
+                        "If the best buy order is 100 and the best sell offer is 105, a sell offer of 100 "
+                            + "or less and a buy order of 105 or more are blocked."))))
                 .binding(
                     true,
                     () -> this.blockUndercutOfOpposing,
-                    val -> this.blockUndercutOfOpposing = val
-                )
+                    val -> this.blockUndercutOfOpposing = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
             var undercutGroup = new OptionGrouping(this.createBlockUndercutPercentageOption()).addOptions(
                 this.createMaxSellOfferUndercutOption(),
-                this.createMaxBuyOrderUndercutOption()
-            );
+                this.createMaxBuyOrderUndercutOption());
 
             var rootGroup = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
                     this.createShowChatMessageOption(),
                     this.createSoundOnBlockedOption(),
-                    this.createBlockUndercutOfOpposingOption()
-                )
+                    this.createBlockUndercutOfOpposingOption())
                 .addSubgroups(undercutGroup);
 
             return OptionGroup
@@ -492,8 +482,7 @@ public class OrderProtectionManager {
                 .name(Component.literal("Order Protection"))
                 .description(ConfigScreen.createDescription(
                     "Prevent accidental orders at unusually aggressive prices before they are submitted to the Bazaar.",
-                    ConfigScreen.ConfigImage.ORDER_PROTECTION
-                ))
+                    ConfigScreen.ConfigImage.ORDER_PROTECTION))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

@@ -20,28 +20,25 @@ public class DrawContextMixin {
     @Unique
     private static final Identifier BOOKMARK_ICON = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID,
-        "textures/bookmark.png"
-    );
+        "textures/bookmark.png");
     @Unique
     private static final Identifier BOOKMARK_STAR = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID,
-        "textures/bookmark-star.png"
-    );
+        "textures/bookmark-star.png");
 
     @Unique
     private static final Identifier GREEN_CHECK = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID,
-        "textures/green-check.png"
-    );
+        "textures/green-check.png");
     @Unique
     private static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID,
-        "textures/red-cross.png"
-    );
+        "textures/red-cross.png");
 
     @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;III)V", at = @At("TAIL"))
     private void drawIndicator(ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
-        @Nullable var isBookmarked = stack.get(BtrBz.BOOKMARKED);
+        @Nullable
+        var isBookmarked = stack.get(BtrBz.BOOKMARKED);
 
         GuiGraphicsExtractor context = (GuiGraphicsExtractor) (Object) this;
         int iconSize = 8;
@@ -58,8 +55,7 @@ public class DrawContextMixin {
                 iconSize,
                 iconSize,
                 iconSize,
-                iconSize
-            );
+                iconSize);
         }
 
         var info = BtrBz.orderProtectionManager().getVisualOrderInfo(stack);
@@ -72,7 +68,6 @@ public class DrawContextMixin {
             int iconX = x + 16 - iconSize;
             int iconY = y;
 
-
             context.blit(
                 RenderPipelines.GUI_TEXTURED,
                 texture,
@@ -83,8 +78,7 @@ public class DrawContextMixin {
                 iconSize,
                 iconSize,
                 iconSize,
-                iconSize
-            );
+                iconSize);
         }
     }
 }

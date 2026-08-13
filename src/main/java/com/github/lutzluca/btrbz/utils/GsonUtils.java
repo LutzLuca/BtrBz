@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public final class GsonUtils {
 
-    private GsonUtils() { }
+    private GsonUtils() {}
 
     public static JsonElement required(JsonObject obj, String name, String subject) {
         if (obj == null || !obj.has(name) || obj.get(name).isJsonNull()) {

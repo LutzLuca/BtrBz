@@ -36,12 +36,11 @@ final class ConversionLoader {
 
     private static final Identifier BUNDLED_INDEX_ID = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID,
-        "conversion-index.json"
-    );
+        "conversion-index.json");
 
-    private ConversionLoader() { }
+    private ConversionLoader() {}
 
-    record LoadResult(ConversionIndex index, ConversionStatus.IndexLoadSource source) { }
+    record LoadResult(ConversionIndex index, ConversionStatus.IndexLoadSource source) {}
 
     record IndexSnapshot(
         int schemaVersion,
@@ -59,8 +58,7 @@ final class ConversionLoader {
                 index.generatedAt(),
                 index.neuCommit().orElse(null),
                 index.products(),
-                index.missingProductIds()
-            );
+                index.missingProductIds());
         }
 
         ConversionIndex toIndex() throws IOException {
@@ -78,8 +76,7 @@ final class ConversionLoader {
                     this.generatedAt,
                     this.neuCommit,
                     this.products,
-                    this.missingProductIds
-                );
+                    this.missingProductIds);
             } catch (IllegalArgumentException err) {
                 throw new IOException("Invalid conversion index", err);
             }

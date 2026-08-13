@@ -42,8 +42,7 @@ public abstract class AbstractContainerScreenMixin {
         int mouseX,
         int mouseY,
         CallbackInfo ci
-    )
-    {
+    ) {
         if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
             return;
         }
@@ -72,7 +71,13 @@ public abstract class AbstractContainerScreenMixin {
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt, CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseScrolled(
+        double mouseX,
+        double mouseY,
+        double hAmt,
+        double vAmt,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null && wm.mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
             cir.setReturnValue(true);
@@ -96,7 +101,12 @@ public abstract class AbstractContainerScreenMixin {
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
-    private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY, CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseDragged(
+        MouseButtonEvent event,
+        double deltaX,
+        double deltaY,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         var wm = ModuleManager.getInstance().getWidgetManager();
         if (wm != null && wm.mouseDragged(event, deltaX, deltaY)) {
             cir.setReturnValue(true);

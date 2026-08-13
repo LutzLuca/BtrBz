@@ -19,9 +19,7 @@ public final class FlipSubmissionTracker implements AutoCloseable {
     }
 
     public Optional<SubmittedFlip> consume(ProductIdentity product) {
-        return this.pendingFlips.removeFirstMatch(entry ->
-            this.sameProduct(entry.product(), product)
-        );
+        return this.pendingFlips.removeFirstMatch(entry -> this.sameProduct(entry.product(), product));
     }
 
     private boolean sameProduct(ProductIdentity first, ProductIdentity second) {
@@ -36,5 +34,5 @@ public final class FlipSubmissionTracker implements AutoCloseable {
         this.pendingFlips.close();
     }
 
-    public record SubmittedFlip(ProductIdentity product, double pricePerUnit) { }
+    public record SubmittedFlip(ProductIdentity product, double pricePerUnit) {}
 }

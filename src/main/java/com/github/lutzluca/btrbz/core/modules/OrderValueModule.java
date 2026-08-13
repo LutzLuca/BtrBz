@@ -85,8 +85,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
         log.debug(
             "Calculating breakdown with unfilled orders: {} - filled orders: {}",
             unfilledOrders,
-            filledOrders
-        );
+            filledOrders);
         double lockedInBuyOrders = 0.0;
         double itemsFromBuyOrders = 0.0;
         double coinsFromSellOffers = 0.0;
@@ -118,8 +117,7 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
             lockedInBuyOrders,
             itemsFromBuyOrders,
             coinsFromSellOffers,
-            pendingSellOffers
-        );
+            pendingSellOffers);
     }
 
     private List<Component> getLines(OrderValueBreakdown breakdown) {
@@ -129,31 +127,26 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
             Component
                 .literal("Buy Orders (Locked): " + Utils.formatCompact(
                     breakdown.lockedInBuyOrders(),
-                    1
-                ) + " coins")
+                    1) + " coins")
                 .withStyle(ChatFormatting.YELLOW),
             Component
                 .literal("Buy Orders (Items): " + Utils.formatCompact(
                     breakdown.itemsFromBuyOrders(),
-                    1
-                ) + " coins")
+                    1) + " coins")
                 .withStyle(ChatFormatting.AQUA),
             Component
                 .literal("Sell Offers (Claimable): " + Utils.formatCompact(
                     breakdown.coinsFromSellOffers(),
-                    1
-                ) + " coins")
+                    1) + " coins")
                 .withStyle(ChatFormatting.GREEN),
             Component
                 .literal("Sell Offers (Pending): " + Utils.formatCompact(
                     breakdown.pendingSellOffers(),
-                    1
-                ) + " coins")
+                    1) + " coins")
                 .withStyle(ChatFormatting.YELLOW),
             Component
                 .literal("Total Worth: " + Utils.formatCompact(breakdown.total(), 1) + " coins")
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
-        );
+                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
     }
 
     public record OrderValueBreakdown(
@@ -204,10 +197,9 @@ public class OrderValueModule extends Module<OrderValueModule.OrderValueOverlayC
                     ConfigScreen.text(
                         "Summarize coins tied up in active orders and available from filled orders."),
                     ConfigScreen.note(
-                        "Pending and claimable items are valued at their own order price, not the current market price.")
-                ),
-                    ConfigScreen.ConfigImage.ORDER_VALUE
-                ))
+                        "Pending and claimable items are valued at their own order price, "
+                            + "not the current market price.")),
+                    ConfigScreen.ConfigImage.ORDER_VALUE))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();
