@@ -152,6 +152,22 @@ class CoflnetBazaarClientTest {
     }
 
     @Test
+    void subtractsCloudflareAgeFromLocalCacheLifetime() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            calls.incrementAndGet();
+            exchange.getResponseHeaders().add("Age", "60");
+            json(exchange, 200, SNAPSHOT_JSON, "public, max-age=60");
+        });
+        CoflnetBazaarClient client = client(server);
+
+        assertTrue(get(client.snapshot("BOOSTER_COOKIE")).isPresent());
+        assertTrue(get(client.snapshot("BOOSTER_COOKIE")).isPresent());
+
+        assertEquals(2, calls.get());
+    }
+
+    @Test
     void mapsNoContentSnapshotToEmptyOptional() throws Exception {
         HttpServer server = server(exchange -> empty(exchange, 204, "max-age=360"));
         CoflnetBazaarClient client = client(server);

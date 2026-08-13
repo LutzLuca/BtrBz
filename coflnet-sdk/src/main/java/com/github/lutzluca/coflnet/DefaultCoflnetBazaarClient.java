@@ -300,7 +300,8 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             return Optional.empty();
         }
         String value = cacheControl.get();
-        if (value.toLowerCase(Locale.ROOT).contains("no-store")) {
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.contains("no-store") || normalized.contains("no-cache")) {
             return Optional.of(0L);
         }
         Matcher matcher = MAX_AGE.matcher(value);
@@ -308,7 +309,20 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             return Optional.empty();
         }
         try {
-            return Optional.of(Long.parseLong(matcher.group(1)));
+            long maxAge = Long.parseLong(matcher.group(1));
+            long responseAge = response.headers()
+                    .firstValue("Age")
+                    .flatMap(DefaultCoflnetBazaarClient::nonNegativeLong)
+                    .orElse(0L);
+            return Optional.of(Math.max(0, maxAge - responseAge));
+        } catch (NumberFormatException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<Long> nonNegativeLong(String value) {
+        try {
+            return Optional.of(Math.max(0, Long.parseLong(value.trim())));
         } catch (NumberFormatException ignored) {
             return Optional.empty();
         }
