@@ -44,3 +44,5 @@ Branch: `feat/bazaar-item-info-screen` (based on `feat/new-widget-system`)
 - `91e8401` - add Bazaar history chart geometry and state provider.
 - `505425b` - honor Coflnet edge-cache age.
 - `8c59dc6` - add the hotkey-triggered Bazaar Item Info screen.
+- `7cfc63e` - reject malformed history responses and serialize SDK shutdown.
+- `641c1b0` - serialize provider notifications and constrain the responsive header.
