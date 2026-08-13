@@ -22,3 +22,5 @@ stonecutter {
 }
 
 rootProject.name = "BtrBz"
+
+include("coflnet-sdk")

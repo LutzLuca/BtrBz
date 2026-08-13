@@ -57,6 +57,9 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
 
+    implementation(project(":coflnet-sdk"))
+    include(project(":coflnet-sdk"))
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
