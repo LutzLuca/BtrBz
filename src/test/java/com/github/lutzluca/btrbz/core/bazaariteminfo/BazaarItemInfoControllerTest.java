@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.bazaariteminfo;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.coflnet.HistoryRange;
@@ -26,5 +27,11 @@ class BazaarItemInfoControllerTest {
         assertTrue(BazaarItemInfoRange.Hour.sdkRange() == HistoryRange.Preset.HOUR);
         assertTrue(BazaarItemInfoRange.Day.sdkRange() == HistoryRange.Preset.DAY);
         assertTrue(BazaarItemInfoRange.Week.sdkRange() == HistoryRange.Preset.WEEK);
+    }
+
+    @Test
+    void headerNameWidthFitsTheResponsivePanel() {
+        assertEquals(201, BazaarItemInfoScreen.headerNameWidth(320));
+        assertTrue(BazaarItemInfoScreen.headerNameWidth(854) > 201);
     }
 }

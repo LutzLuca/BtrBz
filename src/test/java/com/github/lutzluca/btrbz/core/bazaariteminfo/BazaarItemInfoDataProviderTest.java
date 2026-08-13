@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -97,6 +100,43 @@ class BazaarItemInfoDataProviderTest {
         var loading = provider.state().orElseThrow();
         assertTrue(assertInstanceOf(Loading.class, loading.currentPrices()).previous().isPresent());
         assertTrue(assertInstanceOf(Loading.class, loading.history()).previous().isEmpty());
+    }
+
+    @Test
+    void serializesConcurrentStateNotifications() throws Exception {
+        var client = new FakeClient();
+        var delivered = new CopyOnWriteArrayList<BazaarItemInfoViewData.ScreenState>();
+        var partialListenerEntered = new CountDownLatch(1);
+        var releasePartialListener = new CountDownLatch(1);
+        var provider = new BazaarItemInfoDataProvider(client, state -> {
+            if (state.currentPrices() instanceof Success<?> && state.history() instanceof Loading<?>) {
+                partialListenerEntered.countDown();
+                try {
+                    assertTrue(releasePartialListener.await(3, TimeUnit.SECONDS));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(interrupted);
+                }
+            }
+            delivered.add(state);
+        });
+
+        provider.load("ITEM", HistoryRange.Preset.DAY);
+        var snapshotThread = new Thread(() ->
+            client.snapshotRequests.getFirst().complete(Optional.of(snapshot(7, 8))));
+        snapshotThread.start();
+        assertTrue(partialListenerEntered.await(3, TimeUnit.SECONDS));
+
+        var historyThread = new Thread(() ->
+            client.historyRequests.getFirst().complete(List.of(point(1))));
+        historyThread.start();
+        releasePartialListener.countDown();
+        snapshotThread.join(3_000);
+        historyThread.join(3_000);
+
+        var last = delivered.getLast();
+        assertInstanceOf(Success.class, last.currentPrices());
+        assertInstanceOf(Success.class, last.history());
     }
 
     private static BazaarSnapshot snapshot(double buy, double sell) {

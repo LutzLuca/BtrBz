@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 public final class BazaarItemInfoDataProvider {
     private final CoflnetBazaarClient client;
     private final Consumer<ScreenState> stateListener;
+    private final Object notificationLock = new Object();
 
     private long requestGeneration;
     private volatile ScreenState state;
@@ -153,7 +154,14 @@ public final class BazaarItemInfoDataProvider {
     }
 
     private void notifyState(ScreenState next) {
-        this.stateListener.accept(next);
+        synchronized (this.notificationLock) {
+            synchronized (this) {
+                if (this.state != next) {
+                    return;
+                }
+            }
+            this.stateListener.accept(next);
+        }
     }
 
     static String errorMessage(Throwable error) {

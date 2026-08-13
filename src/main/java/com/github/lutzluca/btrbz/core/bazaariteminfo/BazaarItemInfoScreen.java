@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.coflnet.CoflnetBazaarClient;
 import io.vavr.control.Try;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
@@ -37,6 +36,10 @@ import org.jetbrains.annotations.Nullable;
 /** Full-screen Coflnet Bazaar snapshot and history view for a resolved hovered item. */
 public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private static final String COFLNET_ITEM_URL = "https://sky.coflnet.com/item/%s";
+    private static final int ROOT_PADDING = 16;
+    private static final int PANEL_WIDTH_PERCENT = 86;
+    private static final int PANEL_HORIZONTAL_PADDING = 10;
+    private static final int HEADER_ICON_SIZE = 20;
     private static final int PANEL_COLOR = 0xEE181B22;
     private static final int BUTTON_NORMAL = 0xFF2C3340;
     private static final int BUTTON_HOVER = 0xFF384252;
@@ -98,10 +101,10 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     protected void build(FlowLayout root) {
         root.horizontalAlignment(HorizontalAlignment.CENTER);
         root.verticalAlignment(VerticalAlignment.CENTER);
-        root.padding(Insets.of(16));
+        root.padding(Insets.of(ROOT_PADDING));
 
-        var panel = UIContainers.verticalFlow(Sizing.fill(86), Sizing.fill(88));
-        panel.padding(Insets.both(10, 9));
+        var panel = UIContainers.verticalFlow(Sizing.fill(PANEL_WIDTH_PERCENT), Sizing.fill(88));
+        panel.padding(Insets.both(PANEL_HORIZONTAL_PADDING, 9));
         panel.gap(WidgetLayoutTokens.SECTION_GAP + 2);
         panel.surface(WidgetSurfaces.roundedPanel(PANEL_COLOR, 6));
 
@@ -126,13 +129,24 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         header.verticalAlignment(VerticalAlignment.CENTER);
         header.gap(WidgetLayoutTokens.HEADER_GAP);
 
-        header.child(BazaarUi.item(this.itemStack, 20));
-        var itemName = UIComponents.label(Utils.legacyFormattedComponent(this.product.visualName()));
+        header.child(BazaarUi.item(this.itemStack, HEADER_ICON_SIZE));
+        var itemName = UIComponents.label(Component.literal(BazaarUi.truncate(
+            this.product.strippedName(),
+            headerNameWidth(this.width)
+        )));
+        itemName.color(BazaarStyles.color(BazaarStyles.PRIMARY_TEXT));
         itemName.shadow(false);
         header.child(itemName);
-        header.child(BazaarUi.spacer());
-        header.child(BazaarUi.label(this.productTag, BazaarStyles.MUTED_TEXT));
         return header;
+    }
+
+    static int headerNameWidth(int screenWidth) {
+        int rootContentWidth = Math.max(0, screenWidth - 2 * ROOT_PADDING);
+        int panelWidth = rootContentWidth * PANEL_WIDTH_PERCENT / 100;
+        return Math.max(
+            0,
+            panelWidth - 2 * PANEL_HORIZONTAL_PADDING - HEADER_ICON_SIZE - WidgetLayoutTokens.HEADER_GAP
+        );
     }
 
     private FlowLayout currentPrices() {
