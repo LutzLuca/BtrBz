@@ -43,8 +43,7 @@ public class TimedStore<T> implements AutoCloseable {
             this::cleanupExpired,
             timeToLiveMs,
             timeToLiveMs,
-            TimeUnit.MILLISECONDS
-        );
+            TimeUnit.MILLISECONDS);
     }
 
     public void add(T item) {
@@ -55,7 +54,7 @@ public class TimedStore<T> implements AutoCloseable {
 
     public Optional<T> removeFirstMatch(Predicate<T> predicate) {
         synchronized (this.entries) {
-            for (var it = this.entries.iterator(); it.hasNext(); ) {
+            for (var it = this.entries.iterator(); it.hasNext();) {
                 var curr = it.next();
                 if (curr.expiresAt < this.clock.getAsLong()) {
                     log.trace("removed expired timedstore entry: {}", curr);
@@ -90,8 +89,7 @@ public class TimedStore<T> implements AutoCloseable {
             var expired = Utils.removeIfAndReturn(this.entries, entry -> entry.expiresAt < now);
             log.trace(
                 "removed {} expired timedstore entry: {}",
-                expired.size(), expired
-            );
+                expired.size(), expired);
         }
     }
 
@@ -110,5 +108,5 @@ public class TimedStore<T> implements AutoCloseable {
         this.scheduler.shutdownNow();
     }
 
-    private record Entry<T>(T value, long expiresAt) { }
+    private record Entry<T>(T value, long expiresAt) {}
 }

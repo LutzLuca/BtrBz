@@ -13,4 +13,4 @@ public record SlotClickContext(
     @NotNull ContainerInput actionType,
     int button,
     @NotNull SlotInputModifiers modifiers
-) { }
+) {}

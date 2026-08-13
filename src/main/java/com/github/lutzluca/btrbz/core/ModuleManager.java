@@ -44,8 +44,7 @@ public class ModuleManager {
 
             ScreenInfoHelper.registerOnLoaded(
                 info -> true,
-                (info, _) -> instance.revalidateModules(info)
-            );
+                (info, _) -> instance.revalidateModules(info));
         }
 
         return instance;
@@ -79,8 +78,7 @@ public class ModuleManager {
             .peek(module -> {
                 log.trace(
                     "Module {} now displays after inventory load",
-                    module.getClass().getSimpleName()
-                );
+                    module.getClass().getSimpleName());
                 module.setDisplayed(true);
             })
             .flatMap(module -> module.createWidget(info).stream())
@@ -113,15 +111,15 @@ public class ModuleManager {
         try {
             Object value = field.get(ConfigManager.get());
             if (value == null) {
-                throw new IllegalStateException("Config field '" + field.getName() + "' is null. " + "Ensure the field is initialized in the Config class");
+                throw new IllegalStateException("Config field '" + field.getName() + "' is null. "
+                    + "Ensure the field is initialized in the Config class");
             }
 
             this.castModule(module).applyConfigState(value);
             log.debug(
                 "Applied config value '{}' to module: {}",
                 value,
-                module.getClass().getName()
-            );
+                module.getClass().getName());
         } catch (IllegalAccessException err) {
             throw new RuntimeException("Failed to access config field: " + field.getName(), err);
         }
@@ -138,8 +136,7 @@ public class ModuleManager {
                     "Validating `@BindModule` annotation for config field '{}' with type '{}' for module '{}'",
                     field.getName(),
                     field.getType().getSimpleName(),
-                    moduleClass.getName()
-                );
+                    moduleClass.getName());
 
                 this.validateBinding(field, moduleClass);
                 this.moduleBindings.put(moduleClass, field);
@@ -167,8 +164,7 @@ public class ModuleManager {
                 stateClass.getSimpleName(),
                 stateClass.getSimpleName(),
                 fieldType.getSimpleName(),
-                moduleClass.getName()
-            ));
+                moduleClass.getName()));
         }
     }
 

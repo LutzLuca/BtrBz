@@ -59,8 +59,7 @@ final class TrackedOrderProductUpdater {
                 "Ignoring conflicting tracked order identity update for UI product '{}': current={}, incoming={}",
                 uiProductName,
                 current,
-                incoming
-            );
+                incoming);
             return current;
         }
 
@@ -86,8 +85,7 @@ final class TrackedOrderProductUpdater {
             "Ignoring weaker tracked order identity update for UI product '{}': current={}, incoming={}",
             uiProductName,
             current,
-            incoming
-        );
+            incoming);
     }
 
     private static boolean sameIdentity(Optional<String> currentId, Optional<String> incomingId) {

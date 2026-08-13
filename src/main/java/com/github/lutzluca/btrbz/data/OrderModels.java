@@ -14,7 +14,7 @@ import java.util.UUID;
 
 public final class OrderModels {
 
-    private OrderModels() { }
+    private OrderModels() {}
 
     public enum OrderType {
         Sell,
@@ -82,8 +82,7 @@ public final class OrderModels {
                     pricePerUnit,
                     filledAmountSnapshot,
                     unclaimed,
-                    slotIdx
-                );
+                    slotIdx);
             }
 
             public UnfilledOrderInfo withProduct(ProductIdentity product) {
@@ -95,8 +94,7 @@ public final class OrderModels {
                     this.pricePerUnit,
                     this.filledAmountSnapshot,
                     this.unclaimed,
-                    this.slotIdx
-                );
+                    this.slotIdx);
             }
         }
 
@@ -128,8 +126,7 @@ public final class OrderModels {
                     pricePerUnit,
                     filledAmountSnapshot,
                     unclaimed,
-                    slotIdx
-                );
+                    slotIdx);
             }
 
             public FilledOrderInfo withProduct(ProductIdentity product) {
@@ -141,13 +138,12 @@ public final class OrderModels {
                     this.pricePerUnit,
                     this.filledAmountSnapshot,
                     this.unclaimed,
-                    this.slotIdx
-                );
+                    this.slotIdx);
             }
         }
     }
 
-    public sealed abstract static class OrderStatus permits OrderStatus.Unknown,
+    public abstract static sealed class OrderStatus permits OrderStatus.Unknown,
         OrderStatus.Top,
         OrderStatus.Matched,
         OrderStatus.Undercut {
@@ -166,11 +162,11 @@ public final class OrderModels {
             return other != null && this.getClass() == other.getClass();
         }
 
-        public static final class Unknown extends OrderStatus { }
+        public static final class Unknown extends OrderStatus {}
 
-        public static final class Top extends OrderStatus { }
+        public static final class Top extends OrderStatus {}
 
-        public static final class Matched extends OrderStatus { }
+        public static final class Matched extends OrderStatus {}
 
         @AllArgsConstructor
         public static final class Undercut extends OrderStatus {
@@ -242,14 +238,10 @@ public final class OrderModels {
         }
 
         public boolean matches(OrderInfo info) {
-            // @formatter:off
-            return (
-                this.productsMatch(info)
+            return (this.productsMatch(info)
                 && this.type == info.type()
                 && this.volume == info.volume()
-                && Double.compare(this.pricePerUnit, info.pricePerUnit()) == 0
-            );
-            // @formatter:on
+                && Double.compare(this.pricePerUnit, info.pricePerUnit()) == 0);
         }
 
         public void applyProduct(ProductIdentity product) {
@@ -313,8 +305,7 @@ public final class OrderModels {
                 this.type,
                 this.volume,
                 this.pricePerUnit,
-                this.total
-            );
+                this.total);
         }
 
         public String productName() {
@@ -322,12 +313,11 @@ public final class OrderModels {
         }
 
         public boolean matches(BazaarMessage.OrderSetup setupInfo) {
-            // @formatter:off
-            return Utils.normalizeDisplayName(this.uiProductName).equals(Utils.normalizeDisplayName(setupInfo.productName()))
-                && this.type == setupInfo.type() 
-                && this.volume == setupInfo.volume() 
-                && Double.compare(this.total,setupInfo.total()) == 0;
-            // @formatter:on
+            return Utils.normalizeDisplayName(this.uiProductName)
+                .equals(Utils.normalizeDisplayName(setupInfo.productName()))
+                && this.type == setupInfo.type()
+                && this.volume == setupInfo.volume()
+                && Double.compare(this.total, setupInfo.total()) == 0;
         }
     }
 }

@@ -22,8 +22,7 @@ class ConversionIndexTest {
         void resolvesProductByIdAndUniqueName() {
             var index = indexWith(
                 "ENCHANTED_DIAMOND",
-                new ConversionProductEntry("§aEnchanted Diamond", new ProductNameSource.Neu("ENCHANTED_DIAMOND"))
-            );
+                new ConversionProductEntry("§aEnchanted Diamond", new ProductNameSource.Neu("ENCHANTED_DIAMOND")));
 
             var byId = index.product("ENCHANTED_DIAMOND");
             var byName = index.uniqueProductByName("enchanted diamond");
@@ -77,9 +76,7 @@ class ConversionIndexTest {
                 null,
                 java.util.Map.of(
                     "ENCHANTMENT_SHARPNESS_5",
-                    new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))
-                )
-            );
+                    new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))));
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
@@ -102,10 +99,8 @@ class ConversionIndexTest {
                 "abc",
                 java.util.Map.of(
                     "KNOWN",
-                    new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))
-                ),
-                Set.of("MISSING")
-            );
+                    new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))),
+                Set.of("MISSING"));
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
@@ -153,8 +148,7 @@ class ConversionIndexTest {
 
             var error = assertThrows(
                 RuntimeException.class,
-                () -> ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class)
-            );
+                () -> ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class));
             var cause = assertInstanceOf(IllegalArgumentException.class, error.getCause());
             assertEquals("formattedName must contain a visible name", cause.getMessage());
         }
@@ -173,9 +167,7 @@ class ConversionIndexTest {
                     -1,
                     "now",
                     null,
-                    java.util.Map.of()
-                )
-            );
+                    java.util.Map.of()));
         }
     }
 

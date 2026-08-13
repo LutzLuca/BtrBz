@@ -16,7 +16,19 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AbstractWidget implements LayoutElement, GuiEventListener, Renderable {
     @Getter
     @Setter
-    protected int x, y, width, height;
+    protected int x;
+
+    @Getter
+    @Setter
+    protected int y;
+
+    @Getter
+    @Setter
+    protected int width;
+
+    @Getter
+    @Setter
+    protected int height;
 
     @Getter
     @Setter

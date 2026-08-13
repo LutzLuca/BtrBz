@@ -22,10 +22,7 @@ class ConversionIndexServiceTest {
                 Map.of(
                     "ENCHANTMENT_HECATOMB_10", new ConversionProductEntry(
                         "Custom Fallback",
-                        new ProductNameSource.Derived()
-                    )
-                )
-            );
+                        new ProductNameSource.Derived())));
 
             var service = new ConversionIndexService(rawIndex);
 

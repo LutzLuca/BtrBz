@@ -10,5 +10,5 @@ public sealed interface ProductNameSource permits ProductNameSource.Neu, Product
         }
     }
 
-    record Derived() implements ProductNameSource { }
+    record Derived() implements ProductNameSource {}
 }

@@ -23,8 +23,7 @@ class EnchantedBookIdParserTest {
 
             assertEquals(
                 "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookIdParser.fromCustomData(customData).orElseThrow()
-            );
+                EnchantedBookIdParser.fromCustomData(customData).orElseThrow());
         }
 
         @Test
@@ -55,32 +54,28 @@ class EnchantedBookIdParserTest {
         void derivesIdFromRomanLevel() {
             assertEquals(
                 "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookIdParser.fromDisplayName("Quick Bite V").orElseThrow()
-            );
+                EnchantedBookIdParser.fromDisplayName("Quick Bite V").orElseThrow());
         }
 
         @Test
         void stripsBazaarActionPrefix() {
             assertEquals(
                 "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookIdParser.fromDisplayName("SELL Quick Bite V").orElseThrow()
-            );
+                EnchantedBookIdParser.fromDisplayName("SELL Quick Bite V").orElseThrow());
         }
 
         @Test
         void derivesIdFromArabicLevel() {
             assertEquals(
                 "ENCHANTMENT_COUNTER_STRIKE_5",
-                EnchantedBookIdParser.fromDisplayName("Counter-Strike 5").orElseThrow()
-            );
+                EnchantedBookIdParser.fromDisplayName("Counter-Strike 5").orElseThrow());
         }
 
         @Test
         void derivesCanonicalNameFromArabicLevel() {
             assertEquals(
                 "Turbo-Cacti V",
-                EnchantedBookIdParser.canonicalDisplayName("Turbo-Cacti 5").orElseThrow()
-            );
+                EnchantedBookIdParser.canonicalDisplayName("Turbo-Cacti 5").orElseThrow());
         }
 
         @Test

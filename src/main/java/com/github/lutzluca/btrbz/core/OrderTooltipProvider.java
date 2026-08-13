@@ -40,7 +40,7 @@ public class OrderTooltipProvider {
         private final Map<@NotNull TrackedOrder, @Nullable List<Component>> cache = new HashMap<>();
         private final String name;
 
-        public OrderTooltipCache(String name) {
+        OrderTooltipCache(String name) {
             this.name = name;
             log.info("Initializing OrderTooltipCache for {}", name);
         }
@@ -132,17 +132,15 @@ public class OrderTooltipProvider {
             var queueInfo = this.bazaarData.calculateQueuePosition(
                 product,
                 order.type,
-                order.pricePerUnit
-            );
+                order.pricePerUnit);
 
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
-                    .literal("Queue: ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(GameUtils.buildQueueComponent(
-                        orderQueueInfo.ordersAhead, 
-                        orderQueueInfo.itemsAhead,
-                        ConfigManager.get().trackedOrders.queueDisplayMode
-                    ))));
+                .literal("Queue: ")
+                .withStyle(ChatFormatting.GRAY)
+                .append(GameUtils.buildQueueComponent(
+                    orderQueueInfo.ordersAhead,
+                    orderQueueInfo.itemsAhead,
+                    ConfigManager.get().trackedOrders.queueDisplayMode))));
         }
 
         lines.add(Component.empty());
@@ -187,17 +185,15 @@ public class OrderTooltipProvider {
             var queueInfo = this.bazaarData.calculateQueuePosition(
                 product,
                 order.type,
-                order.pricePerUnit
-            );
+                order.pricePerUnit);
 
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
-                    .literal("Queue: ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(GameUtils.buildQueueComponent(
-                        orderQueueInfo.ordersAhead, 
-                        orderQueueInfo.itemsAhead,
-                        ConfigManager.get().trackedOrders.queueDisplayMode
-                    ))));
+                .literal("Queue: ")
+                .withStyle(ChatFormatting.GRAY)
+                .append(GameUtils.buildQueueComponent(
+                    orderQueueInfo.ordersAhead,
+                    orderQueueInfo.itemsAhead,
+                    ConfigManager.get().trackedOrders.queueDisplayMode))));
         }
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {
@@ -240,13 +236,13 @@ public class OrderTooltipProvider {
     private static Component statusLine(TrackedOrder order) {
         return switch (order.status) {
             case OrderStatus.Top _ -> Component.literal("Best Price!")
-                    .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+                .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
             case OrderStatus.Matched _ -> Component.literal("Matched!")
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
+                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
             case OrderStatus.Undercut _ -> Component.literal("Undercut!")
-                    .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
             case OrderStatus.Unknown _ -> Component.literal("Status Unknown")
-                    .withStyle(ChatFormatting.GRAY);
+                .withStyle(ChatFormatting.GRAY);
         };
     }
 
@@ -332,8 +328,7 @@ public class OrderTooltipProvider {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "When an order is undercut, show estimated competing orders and items ahead of it."),
-                    ConfigScreen.note("This is an order-book estimate, not an exact queue position.")
-                )))
+                    ConfigScreen.note("This is an order-book estimate, not an exact queue position."))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -358,8 +353,7 @@ public class OrderTooltipProvider {
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show current market prices only after this order is undercut."),
-                    ConfigScreen.requires("Show Current Prices")
-                )))
+                    ConfigScreen.requires("Show Current Prices"))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -370,19 +364,17 @@ public class OrderTooltipProvider {
             var root = new OptionGrouping(this.createEnabledOption())
                 .addOptions(
                     this.createStatusOption(),
-                    this.createQueueOption()
-                )
+                    this.createQueueOption())
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order List Tooltips"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Choose which status, estimated queue, and market details appear when hovering entries in the Tracked Orders Overlay."),
-                    ConfigScreen.requires("Enable Tracked Orders Overlay")
-                ),
-                    ConfigScreen.ConfigImage.ORDER_LIST_TOOLTIP
-                ))
+                        "Choose which status, estimated queue, and market details appear when hovering entries "
+                            + "in the Tracked Orders Overlay."),
+                    ConfigScreen.requires("Enable Tracked Orders Overlay")),
+                    ConfigScreen.ConfigImage.ORDER_LIST_TOOLTIP))
                 .options(root.build())
                 .collapsed(true)
                 .build();
@@ -435,8 +427,7 @@ public class OrderTooltipProvider {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "When an order is undercut, show estimated competing orders and items ahead of it."),
-                    ConfigScreen.note("This is an order-book estimate, not an exact queue position.")
-                )))
+                    ConfigScreen.note("This is an order-book estimate, not an exact queue position."))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -461,8 +452,7 @@ public class OrderTooltipProvider {
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show current market prices only after this order is undercut."),
-                    ConfigScreen.requires("Show Current Prices")
-                )))
+                    ConfigScreen.requires("Show Current Prices"))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -475,10 +465,11 @@ public class OrderTooltipProvider {
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Estimate how long a top-position order may take to fill using its remaining volume and the product's weekly moving volume."),
+                        "Estimate how long a top-position order may take to fill using its remaining volume "
+                            + "and the product's weekly moving volume."),
                     ConfigScreen.note(
-                        "Market changes and delayed UI updates can make this inaccurate. Treat it as a rough guide, not a countdown.")
-                )))
+                        "Market changes and delayed UI updates can make this inaccurate. "
+                            + "Treat it as a rough guide, not a countdown."))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -490,16 +481,15 @@ public class OrderTooltipProvider {
                 .addOptions(
                     this.createStatusOption(),
                     this.createQueueOption(),
-                    this.createEstimatedTimeOption()
-                )
+                    this.createEstimatedTimeOption())
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order Item Tooltips"))
                 .description(ConfigScreen.createDescription(
-                    "Choose which status, estimated queue, market, and fill-time details appear when hovering an order item on the Bazaar Orders page.",
-                    ConfigScreen.ConfigImage.ORDER_TOOLTIP
-                ))
+                    "Choose which status, estimated queue, market, and fill-time details appear when hovering "
+                        + "an order item on the Bazaar Orders page.",
+                    ConfigScreen.ConfigImage.ORDER_TOOLTIP))
                 .options(root.build())
                 .collapsed(true)
                 .build();

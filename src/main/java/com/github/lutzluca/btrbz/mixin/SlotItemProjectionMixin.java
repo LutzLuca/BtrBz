@@ -33,7 +33,7 @@ public abstract class SlotItemProjectionMixin {
         }
 
         var raw = cir.getReturnValue();
-        var proj =  VirtualSlotProjection.project(slot, raw, btrbz$SHARED_VIEW, btrbz$SHARED_CONTEXT);
+        var proj = VirtualSlotProjection.project(slot, raw, btrbz$SHARED_VIEW, btrbz$SHARED_CONTEXT);
 
         if (proj != raw) {
             cir.setReturnValue(proj);

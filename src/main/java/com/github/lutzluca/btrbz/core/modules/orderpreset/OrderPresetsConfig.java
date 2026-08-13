@@ -41,8 +41,7 @@ public class OrderPresetsConfig {
                 ConfigScreen.text(
                     "Show preset amounts beside the menu used to choose a buy-order amount."),
                 ConfigScreen.note(
-                    "This setting is independent from Show Beside Order Amount Sign.")
-            )))
+                    "This setting is independent from Show Beside Order Amount Sign."))))
             .binding(true, () -> this.enableOnContainer, enabled -> this.enableOnContainer = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -55,8 +54,7 @@ public class OrderPresetsConfig {
                 ConfigScreen.text(
                     "Show preset amounts while entering the buy-order amount on the sign."),
                 ConfigScreen.note(
-                    "This can remain enabled when Show in Order Amount Menu is off.")
-            )))
+                    "This can remain enabled when Show in Order Amount Menu is off."))))
             .binding(true, () -> this.enableOnSign, enabled -> this.enableOnSign = enabled)
             .controller(ConfigScreen::createBooleanController);
     }
@@ -76,8 +74,7 @@ public class OrderPresetsConfig {
             .addOptions(
                 this.createEnableContainerOption(),
                 this.createEnableSignOption(),
-                this.createHideUnaffordablePresetsOption()
-            );
+                this.createHideUnaffordablePresetsOption());
 
         return OptionGroup
             .createBuilder()
@@ -94,10 +91,8 @@ public class OrderPresetsConfig {
                     .append(Component.literal("Max").withStyle(ChatFormatting.GOLD))
                     .append(Component.literal(", plus ").withStyle(ChatFormatting.GRAY))
                     .append(Component.literal("Clipboard").withStyle(ChatFormatting.BLUE))
-                    .append(Component.literal(" when it contains a valid amount.").withStyle(ChatFormatting.GRAY)))
-            ),
-                ConfigScreen.ConfigImage.ORDER_PRESETS
-            ))
+                    .append(Component.literal(" when it contains a valid amount.").withStyle(ChatFormatting.GRAY)))),
+                ConfigScreen.ConfigImage.ORDER_PRESETS))
             .options(rootGroup.build())
             .collapsed(true)
             .build();

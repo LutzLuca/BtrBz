@@ -6,7 +6,8 @@ import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
-import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderItemTooltipConfig;
+import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderListTooltipConfig;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.modules.BindModule;
 import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
@@ -84,10 +85,10 @@ public class Config {
     public AlertConfig alert = new AlertConfig();
 
     @SerialEntry
-    public OrderTooltipProvider.OrderListTooltipConfig orderListTooltip = new OrderTooltipProvider.OrderListTooltipConfig();
+    public OrderListTooltipConfig orderListTooltip = new OrderListTooltipConfig();
 
     @SerialEntry
-    public OrderTooltipProvider.OrderItemTooltipConfig orderItemTooltip = new OrderTooltipProvider.OrderItemTooltipConfig();
+    public OrderItemTooltipConfig orderItemTooltip = new OrderItemTooltipConfig();
 
     @SerialEntry
     public ChatFilterManager.ChatFilterConfig chatFilter = new ChatFilterManager.ChatFilterConfig();

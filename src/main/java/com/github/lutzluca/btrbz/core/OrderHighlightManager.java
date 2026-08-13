@@ -103,10 +103,8 @@ public class OrderHighlightManager {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "Color-code your orders on the Bazaar Orders page so their current status is easy to scan."),
-                    highlightLegend()
-                ),
-                    ConfigScreen.ConfigImage.ORDER_STATUS
-                ))
+                    highlightLegend()),
+                    ConfigScreen.ConfigImage.ORDER_STATUS))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

@@ -112,8 +112,7 @@ public class AlertManager {
     public void removeAlert(UUID id) {
         var removed = Utils.removeIfAndReturn(
             ConfigManager.get().alert.alerts,
-            alert -> alert.id.equals(id)
-        );
+            alert -> alert.id.equals(id));
 
         if (removed.isEmpty()) {
             Notifier.notifyPlayer(Notifier
@@ -131,7 +130,9 @@ public class AlertManager {
                     .literal("Wait, what? Multiple alerts with the same ID? ")
                     .withStyle(ChatFormatting.GRAY))
                 .append(Component
-                    .literal("You're either 1 in 5.3 undecillion (that's a 1 with 36 zeros) lucky, or you've been messin' with the config. ")
+                    .literal(
+                        "You're either 1 in 5.3 undecillion (that's a 1 with 36 zeros) lucky, "
+                            + "or you've been messin' with the config. ")
                     .withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.ITALIC))
                 .append(Component
                     .literal("Either way, they're all history now!")
@@ -190,7 +191,8 @@ public class AlertManager {
         public Try<Optional<Double>> getAssociatedPrice(MarketSnapshot snapshot) {
             var identity = ProductIdentity.fromIndex(this.product);
             if (!snapshot.contains(identity)) {
-                return Try.failure(new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
+                return Try.failure(
+                    new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
             }
 
             var prices = snapshot.getMarketPrices(identity);
@@ -215,11 +217,9 @@ public class AlertManager {
         }
 
         public boolean matches(ResolvedAlertArgs args) {
-            // @formatter:off
             return this.productId().equals(args.productId())
                 && this.type == args.type()
                 && Double.compare(this.price, args.price()) == 0;
-            // @formatter:on
         }
 
         public static final class GsonAdapter implements JsonSerializer<Alert>, JsonDeserializer<Alert> {
@@ -262,16 +262,14 @@ public class AlertManager {
                     product,
                     ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class),
                     GsonUtils.required(obj, "price", "Alert").getAsDouble(),
-                    GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L)
-                );
+                    GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
             }
 
             private static Optional<IndexedProduct> product(JsonObject obj, JsonDeserializationContext ctx) {
                 try {
                     return Optional.of(ctx.deserialize(
                         GsonUtils.required(obj, "product", "Alert"),
-                        IndexedProduct.class
-                    ));
+                        IndexedProduct.class));
                 } catch (RuntimeException err) {
                     log.warn("Skipping alert with invalid product", err);
                     return Optional.empty();
@@ -294,8 +292,7 @@ public class AlertManager {
                     ConfigScreen.text(
                         "Check configured price targets and notify you when a target is reached."),
                     ConfigScreen.note(
-                        "Alerts that become valid while this is off may fire immediately when it is enabled again.")
-                )))
+                        "Alerts that become valid while this is off may fire immediately when it is enabled again."))))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -330,10 +327,8 @@ public class AlertManager {
                             .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
                         .append(Component
                             .literal(" reaches 4M coins or less.")
-                            .withStyle(ChatFormatting.GRAY)))
-                ),
-                    ConfigScreen.ConfigImage.PRICE_ALERT
-                ))
+                            .withStyle(ChatFormatting.GRAY)))),
+                    ConfigScreen.ConfigImage.PRICE_ALERT))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

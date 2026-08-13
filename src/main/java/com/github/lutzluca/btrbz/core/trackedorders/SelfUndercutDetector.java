@@ -33,8 +33,7 @@ final class SelfUndercutDetector {
         log.debug(
             "Removed last order for {}: {}",
             removedOrder.product.bazaarProductId().orElse(removedOrder.productName),
-            removedLastOrder
-        );
+            removedLastOrder);
         if (removedLastOrder) {
             this.state.remove(key);
         }
@@ -71,13 +70,11 @@ final class SelfUndercutDetector {
 
                 this.state.put(key, new SelfUndercutPricePair(
                     undercut.bestPrice(),
-                    undercut.secondBestPrice()
-                ));
+                    undercut.secondBestPrice()));
                 events.add(new SelfUndercutEvent(
                     displayKey.get(),
                     undercut.bestPrice(),
-                    undercut.secondBestPrice()
-                ));
+                    undercut.secondBestPrice()));
                 continue;
             }
 
@@ -154,8 +151,7 @@ final class SelfUndercutDetector {
                 "Top bucket count mismatch for {}: API orders={}, local tracked={}",
                 product,
                 topBucket.getOrders(),
-                playerCountAtBest
-            );
+                playerCountAtBest);
             return new SelfUndercutResult.NotUndercut();
         }
 
@@ -172,23 +168,22 @@ final class SelfUndercutDetector {
                 "Second bucket count mismatch for {}: API orders={}, local tracked={}",
                 product,
                 secondBucket.getOrders(),
-                playerCountAtSecondBest
-            );
+                playerCountAtSecondBest);
             return new SelfUndercutResult.NotUndercut();
         }
 
         return new SelfUndercutResult.Undercut(bestPlayerPrice, secondBestPlayerPrice);
     }
 
-    record SelfUndercutEvent(SelfUndercutKey key, double bestPrice, double secondBestPrice) { }
+    record SelfUndercutEvent(SelfUndercutKey key, double bestPrice, double secondBestPrice) {}
 
-    private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) { }
+    private record SelfUndercutPricePair(double bestPrice, double secondBestPrice) {}
 
     private sealed interface SelfUndercutResult {
 
-        record Undercut(double bestPrice, double secondBestPrice) implements SelfUndercutResult { }
+        record Undercut(double bestPrice, double secondBestPrice) implements SelfUndercutResult {}
 
-        record NotUndercut() implements SelfUndercutResult { }
+        record NotUndercut() implements SelfUndercutResult {}
 
         default boolean isSelfUndercut() {
             return this instanceof Undercut;

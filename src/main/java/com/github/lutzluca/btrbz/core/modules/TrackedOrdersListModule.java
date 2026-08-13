@@ -29,7 +29,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
-
 @Slf4j
 public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
@@ -131,7 +130,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
 
     @Override
     public boolean shouldDisplay(ScreenInfo info) {
-        return this.configState.enabled && (info.inMenu(BazaarMenuType.Orders) || this.configState.showInBazaar && info.inBazaar());
+        return this.configState.enabled
+            && (info.inMenu(BazaarMenuType.Orders) || this.configState.showInBazaar && info.inBazaar());
     }
 
     @Override
@@ -147,8 +147,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             position.y(),
             175,
             250,
-            "Tracked Orders"
-        );
+            "Tracked Orders");
         this.list.setItemHeight(14)
             .setItemSpacing(1)
             .setRemovable(false)
@@ -172,7 +171,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
             newEntry.ifPresent(entry -> this.onWidgetHoverEnter(entry.getSlotIdx()));
 
             if (oldEntry.isEmpty() && newEntry.isEmpty() && (oldIdx >= 0 || newIdx >= 0)) {
-                log.warn("Hover change callback could not resolve items at indices: oldIdx={}, newIdx={}, items.size()={}",
+                log.warn(
+                    "Hover change callback could not resolve items at indices: oldIdx={}, newIdx={}, items.size()={}",
                     oldIdx, newIdx, self.size());
             }
         });
@@ -199,7 +199,8 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Throughout the Bazaar"))
                 .description(OptionDescription.of(Component.literal(
-                    "Keep the tracked-orders list visible across Bazaar menus instead of showing it only on the Bazaar Orders page.")))
+                    "Keep the tracked-orders list visible across Bazaar menus instead of showing it only "
+                        + "on the Bazaar Orders page.")))
                 .binding(true, () -> this.showInBazaar, enabled -> this.showInBazaar = enabled)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -217,8 +218,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
                             .getInstance()
                             .getModule(TrackedOrdersListModule.class)
                             .updateChildrenCount();
-                    }
-                )
+                    })
                 .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(5, 10).step(1));
         }
 
@@ -235,16 +235,15 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         public OptionGroup getGroup() {
             var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(
                 this.createInBazaarOption(),
-                this.createMaxVisibleOption()
-            );
+                this.createMaxVisibleOption());
 
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Tracked Orders Overlay"))
                 .description(ConfigScreen.createDescription(
-                    "List your tracked orders and show additional information when hovering an entry. The same details can also appear when hovering order items on the Bazaar Orders page.",
-                    ConfigScreen.ConfigImage.TRACKED_ORDER_OVERLAY
-                ))
+                    "List your tracked orders and show additional information when hovering an entry. "
+                        + "The same details can also appear when hovering order items on the Bazaar Orders page.",
+                    ConfigScreen.ConfigImage.TRACKED_ORDER_OVERLAY))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();
@@ -256,7 +255,7 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         @Getter
         private final TrackedOrder order;
 
-        public OrderEntryRenderable(TrackedOrder order) {
+        OrderEntryRenderable(TrackedOrder order) {
             this.order = order;
         }
 
@@ -271,7 +270,17 @@ public class TrackedOrdersListModule extends Module<OrderListConfig> {
         }
 
         @Override
-        public void render(GuiGraphicsExtractor context, int x, int y, int w, int h, int mouseX, int mouseY, float delta, boolean hovered) {
+        public void render(
+            GuiGraphicsExtractor context,
+            int x,
+            int y,
+            int w,
+            int h,
+            int mouseX,
+            int mouseY,
+            float delta,
+            boolean hovered
+        ) {
             var textRenderer = Minecraft.getInstance().font;
 
             String typeText = order.type == OrderType.Sell ? "Sell" : "Buy";

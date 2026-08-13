@@ -43,8 +43,7 @@ class AlertConfigSerializationTest {
             var serialized = AlertConfigSerializationTest.this.gson.toJsonTree(alert).getAsJsonObject();
             var reparsed = AlertConfigSerializationTest.this.gson.fromJson(
                 serialized,
-                Alert.class
-            );
+                Alert.class);
 
             assertTrue(serialized.has("product"));
             assertFalse(serialized.has("productId"));
@@ -52,12 +51,10 @@ class AlertConfigSerializationTest {
             assertFalse(serialized.has("strippedName"));
             assertEquals(
                 "ENCHANTED_DIAMOND",
-                serialized.getAsJsonObject("product").get("productId").getAsString()
-            );
+                serialized.getAsJsonObject("product").get("productId").getAsString());
             assertEquals(
                 "§aEnchanted Diamond",
-                serialized.getAsJsonObject("product").get("formattedName").getAsString()
-            );
+                serialized.getAsJsonObject("product").get("formattedName").getAsString());
             assertFalse(serialized.getAsJsonObject("product").has("strippedName"));
             assertEquals(alert.id, reparsed.id);
             assertEquals(alert.createdAt, reparsed.createdAt);

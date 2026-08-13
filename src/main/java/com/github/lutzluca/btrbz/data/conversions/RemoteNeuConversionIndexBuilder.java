@@ -47,10 +47,9 @@ final class RemoteNeuConversionIndexBuilder {
 
     private static final URI HYPIXEL_BAZAAR_URI = URI.create("https://api.hypixel.net/v2/skyblock/bazaar");
     private static final URI NEU_COMMIT_URI = URI.create(
-        "https://api.github.com/repos/NotEnoughUpdates/NotEnoughUpdates-REPO/commits/master"
-    );
-    private static final String NEU_ZIP_URL =
-        "https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO/archive/%s.zip";
+        "https://api.github.com/repos/NotEnoughUpdates/NotEnoughUpdates-REPO/commits/master");
+    private static final String NEU_ZIP_URL = "https://github.com/NotEnoughUpdates/"
+        + "NotEnoughUpdates-REPO/archive/%s.zip";
 
     // Bazaar still exposes a few legacy product ids whose NEU item json uses a different id
     // Direct NEU item files are checked first, so these aliases only cover known mismatches
@@ -67,12 +66,11 @@ final class RemoteNeuConversionIndexBuilder {
         Map.entry("SAND:1", "SAND-1"),
         Map.entry("BAZAAR_COOKIE", "BOOSTER_COOKIE"),
         Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK"),
-        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1")
-    );
+        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1"));
 
-    private RemoteNeuConversionIndexBuilder() { }
+    private RemoteNeuConversionIndexBuilder() {}
 
-    record BuildResult(ConversionIndex index, boolean changed) { }
+    record BuildResult(ConversionIndex index, boolean changed) {}
 
     static BuildResult build(ConversionIndex current) throws ConversionRefreshException {
         return build(current, false);
@@ -85,8 +83,7 @@ final class RemoteNeuConversionIndexBuilder {
         if (canReuseEntries && current.products().keySet().equals(productIds)) {
             log.debug(
                 "NEU commit and Bazaar product list unchanged; keeping current conversion index with {} products",
-                current.size()
-            );
+                current.size());
             return new BuildResult(current, false);
         }
 
@@ -99,8 +96,7 @@ final class RemoteNeuConversionIndexBuilder {
         if (carriedForwardCount > 0) {
             log.warn(
                 "Carried forward {} stale conversion entries from the active index; they remain marked as missing",
-                carriedForwardCount
-            );
+                carriedForwardCount);
         }
 
         var index = new ConversionIndex(
@@ -109,8 +105,7 @@ final class RemoteNeuConversionIndexBuilder {
             Instant.now().toString(),
             neuCommit,
             products,
-            missingProductIds
-        );
+            missingProductIds);
         var counts = index.sourceCounts();
         log.info(
             "Built Bazaar conversion index from {} products: neu={}, derived={}, missing={}, neuCommit={}",
@@ -118,8 +113,7 @@ final class RemoteNeuConversionIndexBuilder {
             counts.neu(),
             counts.derived(),
             index.missingProductIds().size(),
-            neuCommit
-        );
+            neuCommit);
         return new BuildResult(index, true);
     }
 
@@ -207,8 +201,7 @@ final class RemoteNeuConversionIndexBuilder {
             throw new ConversionRefreshException(
                 ConversionRefreshException.Phase.NeuZip,
                 "Failed to create temporary NEU zip file",
-                err
-            );
+                err);
         }
 
         try {
@@ -261,13 +254,11 @@ final class RemoteNeuConversionIndexBuilder {
                     "Read {} Bazaar conversion entries from NEU commit {} (staticAliases={})",
                     productEntries.size(),
                     commit,
-                    staticAliasCount
-                );
+                    staticAliasCount);
                 if (!derivedFallbackExamples.isEmpty()) {
                     log.info(
                         "Derived Bazaar conversion names used during refresh; sample: {}",
-                        derivedFallbackExamples
-                    );
+                        derivedFallbackExamples);
                 }
                 return productEntries;
             }
@@ -299,8 +290,7 @@ final class RemoteNeuConversionIndexBuilder {
         log.warn(
             "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata: {}",
             missing.size(),
-            missing
-        );
+            missing);
 
         if (allowPartial) {
             return Set.copyOf(missing);
@@ -308,8 +298,7 @@ final class RemoteNeuConversionIndexBuilder {
 
         throw new ConversionRefreshException(
             ConversionRefreshException.Phase.Validate,
-            "Built conversion index is incomplete: missing " + missing.size() + " products"
-        );
+            "Built conversion index is incomplete: missing " + missing.size() + " products");
     }
 
     private static Optional<ConversionProductEntry> resolveEntry(
@@ -360,8 +349,7 @@ final class RemoteNeuConversionIndexBuilder {
         return readNeuFormattedName(zip, itemEntry)
             .map(formattedName -> new ConversionProductEntry(
                 formattedName,
-                new ProductNameSource.Neu(neuId)
-            ));
+                new ProductNameSource.Neu(neuId)));
     }
 
     static Optional<ConversionProductEntry> derivedEnchantmentEntry(String productId) {
@@ -388,7 +376,7 @@ final class RemoteNeuConversionIndexBuilder {
         int level;
         try {
             level = Integer.parseInt(levelText);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return Optional.empty();
         }
 
@@ -421,7 +409,8 @@ final class RemoteNeuConversionIndexBuilder {
 
     private static List<BazaarStock> readBazaarStocks(ZipFile zip, ZipEntry entry) throws IOException {
         try (Reader reader = new InputStreamReader(zip.getInputStream(entry), StandardCharsets.UTF_8)) {
-            return GSON.fromJson(reader, new TypeToken<List<BazaarStock>>() { }.getType());
+            return GSON.fromJson(reader, new TypeToken<List<BazaarStock>>() {
+            }.getType());
         }
     }
 

@@ -22,8 +22,7 @@ public final class ConfigManager {
                 .registerTypeAdapter(Alert.class, new Alert.GsonAdapter())
                 .registerTypeAdapter(BookmarkedItem.class, new BookmarkedItem.GsonAdapter())
                 .registerTypeAdapter(IndexedProduct.class, new IndexedProduct.GsonAdapter())
-                .registerTypeAdapter(Position.class, new Position.GsonAdapter())
-            )
+                .registerTypeAdapter(Position.class, new Position.GsonAdapter()))
             .setPath(FabricLoader
                 .getInstance()
                 .getConfigDir()
@@ -31,7 +30,7 @@ public final class ConfigManager {
             .build())
         .build();
 
-    private ConfigManager() { }
+    private ConfigManager() {}
 
     public static void load() {
         if (!HANDLER.load()) {

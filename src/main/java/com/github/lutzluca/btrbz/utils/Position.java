@@ -32,7 +32,8 @@ public record Position(int x, int y) {
         }
 
         @Override
-        public Position deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx) throws JsonParseException {
+        public Position deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext ctx)
+            throws JsonParseException {
             if (json == null || json.isJsonNull()) {
                 return null;
             }
@@ -40,8 +41,7 @@ public record Position(int x, int y) {
             JsonObject object = json.getAsJsonObject();
             return new Position(
                 GsonUtils.required(object, "x", "Position").getAsInt(),
-                GsonUtils.required(object, "y", "Position").getAsInt()
-            );
+                GsonUtils.required(object, "y", "Position").getAsInt());
         }
     }
 }

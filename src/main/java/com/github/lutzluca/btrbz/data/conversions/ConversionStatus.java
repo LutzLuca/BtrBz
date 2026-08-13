@@ -35,7 +35,6 @@ public record ConversionStatus(
             index.generatedAt(),
             lastSuccessfulRefreshAt,
             lastFailure,
-            refreshInFlight
-        );
+            refreshInFlight);
     }
 }

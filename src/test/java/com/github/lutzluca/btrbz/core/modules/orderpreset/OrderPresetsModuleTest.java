@@ -24,15 +24,13 @@ class OrderPresetsModuleTest {
                 OptionalInt.of(3),
                 Optional.of(10.0),
                 Optional.of(55.0),
-                false
-            );
+                false);
 
             assertEquals(List.of(
                 new PresetState.Available(new OrderPreset.Max(), 5),
                 new PresetState.Available(new OrderPreset.Clipboard(3), 3),
                 new PresetState.Available(new OrderPreset.Volume(2), 2),
-                new PresetState.InsufficientCoins(new OrderPreset.Volume(10))
-            ), states);
+                new PresetState.InsufficientCoins(new OrderPreset.Volume(10))), states);
         }
 
         @Test
@@ -43,13 +41,11 @@ class OrderPresetsModuleTest {
                 OptionalInt.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                false
-            );
+                false);
 
             assertEquals(List.of(
                 new PresetState.PriceUnavailable(new OrderPreset.Max()),
-                new PresetState.Available(new OrderPreset.Volume(2), 2)
-            ), states);
+                new PresetState.Available(new OrderPreset.Volume(2), 2)), states);
         }
 
         @Test
@@ -60,25 +56,21 @@ class OrderPresetsModuleTest {
                 OptionalInt.empty(),
                 Optional.of(10.0),
                 Optional.empty(),
-                false
-            );
+                false);
             var insufficientCoins = OrderPresetsModule.resolvePresets(
                 List.of(2),
                 1_000,
                 OptionalInt.empty(),
                 Optional.of(10.0),
                 Optional.of(5.0),
-                false
-            );
+                false);
 
             assertEquals(List.of(
                 new PresetState.PurseUnavailable(new OrderPreset.Max()),
-                new PresetState.PurseUnavailable(new OrderPreset.Volume(2))
-            ), missingPurse);
+                new PresetState.PurseUnavailable(new OrderPreset.Volume(2))), missingPurse);
             assertEquals(List.of(
                 new PresetState.CannotAffordSingleItem(new OrderPreset.Max(), 5.0),
-                new PresetState.InsufficientCoins(new OrderPreset.Volume(2))
-            ), insufficientCoins);
+                new PresetState.InsufficientCoins(new OrderPreset.Volume(2))), insufficientCoins);
         }
 
         @Test
@@ -89,13 +81,11 @@ class OrderPresetsModuleTest {
                 OptionalInt.empty(),
                 Optional.of(10.0),
                 Optional.of(55.0),
-                true
-            );
+                true);
 
             assertEquals(List.of(
                 new PresetState.Available(new OrderPreset.Max(), 5),
-                new PresetState.Available(new OrderPreset.Volume(2), 2)
-            ), states);
+                new PresetState.Available(new OrderPreset.Volume(2), 2)), states);
         }
     }
 }

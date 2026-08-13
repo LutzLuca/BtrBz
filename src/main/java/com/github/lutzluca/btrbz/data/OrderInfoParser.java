@@ -23,13 +23,12 @@ import net.minecraft.world.item.ItemStack;
 @Slf4j
 public final class OrderInfoParser {
 
-    private OrderInfoParser() { }
+    private OrderInfoParser() {}
 
     public static Try<BazaarMessage> parseBazaarMessage(String bazaarMsg) {
         if (!bazaarMsg.startsWith("[Bazaar]")) {
             return Try.failure(new IllegalArgumentException(
-                "Unhandled bazaar message format: " + bazaarMsg
-            ));
+                "Unhandled bazaar message format: " + bazaarMsg));
         }
 
         var msg = bazaarMsg.replace("[Bazaar]", "").trim();
@@ -38,32 +37,28 @@ public final class OrderInfoParser {
             return parseFilledOrderMessage(msg).onFailure(err -> logParseError(
                 "filled order",
                 msg,
-                err
-            ));
+                err));
         }
 
         if (msg.contains("Setup!")) {
             return parseSetupOrderMessage(msg).onFailure(err -> logParseError(
                 "setup order",
                 msg,
-                err
-            ));
+                err));
         }
 
         if (msg.startsWith("Bought") || msg.startsWith("Sold")) {
             return parseInstaOrderMessage(msg).onFailure(err -> logParseError(
                 "insta order",
                 msg,
-                err
-            ));
+                err));
         }
 
         if (msg.startsWith("Order Flipped!")) {
             return parseFlippedOrderMessage(msg).onFailure(err -> logParseError(
                 "flipped order",
                 msg,
-                err
-            ));
+                err));
         }
 
         log.trace("Unhandled bazaar message format: '{}'", msg);
@@ -166,7 +161,8 @@ public final class OrderInfoParser {
             var fragment = msg.substring(action.length()).trim();
 
             var parsed = parseItemWithValue(fragment, "Insta " + action);
-            return isBuy ? new InstaBuy(parsed.volume, parsed.productName, parsed.value)
+            return isBuy
+                ? new InstaBuy(parsed.volume, parsed.productName, parsed.value)
                 : new InstaSell(parsed.volume, parsed.productName, parsed.value);
         });
     }
@@ -196,13 +192,11 @@ public final class OrderInfoParser {
                 case UnfilledOrderInfo unfilled -> unfilled.withProduct(bazaarData.resolveProduct(
                     item,
                     unfilled.uiProductName(),
-                    formattedProductNameFromOrderTitle(item.getHoverName(), unfilled.uiProductName()).orElse(null)
-                ));
+                    formattedProductNameFromOrderTitle(item.getHoverName(), unfilled.uiProductName()).orElse(null)));
                 case FilledOrderInfo filled -> filled.withProduct(bazaarData.resolveProduct(
                     item,
                     filled.uiProductName(),
-                    formattedProductNameFromOrderTitle(item.getHoverName(), filled.uiProductName()).orElse(null)
-                ));
+                    formattedProductNameFromOrderTitle(item.getHoverName(), filled.uiProductName()).orElse(null)));
             });
     }
 
@@ -237,8 +231,7 @@ public final class OrderInfoParser {
             if (additionalInfo.isFailure()) {
                 throw new IllegalArgumentException(
                     "Failed to parse out the additional Order info from the lore of the item",
-                    additionalInfo.getCause()
-                );
+                    additionalInfo.getCause());
             }
 
             var details = additionalInfo.get();
@@ -251,8 +244,7 @@ public final class OrderInfoParser {
                     details.pricePerUnit,
                     details.filledAmount,
                     details.unclaimed,
-                    slotIdx
-                );
+                    slotIdx);
             }
 
             return new UnfilledOrderInfo(
@@ -263,8 +255,7 @@ public final class OrderInfoParser {
                 details.pricePerUnit,
                 details.filledAmount,
                 details.unclaimed,
-                slotIdx
-            );
+                slotIdx);
         });
     }
 
@@ -333,8 +324,7 @@ public final class OrderInfoParser {
                 volume,
                 filledAmount,
                 unclaimed,
-                filled != null && filled
-            );
+                filled != null && filled);
         });
     }
 
@@ -357,9 +347,7 @@ public final class OrderInfoParser {
                 info.uiProductName(),
                 formattedProductNameFromConfirmationLore(
                     GameUtils.getLoreComponents(item),
-                    info.uiProductName()
-                ).orElse(null)
-            )));
+                    info.uiProductName()).orElse(null))));
     }
 
     static Optional<String> formattedProductNameFromOrderTitle(Component title, String productName) {
@@ -460,11 +448,11 @@ public final class OrderInfoParser {
         });
     }
 
-    private record ParsedItem(int volume, String productName, double value) { }
+    private record ParsedItem(int volume, String productName, double value) {}
 
-    private record ParsedVolume(int volume, String productName) { }
+    private record ParsedVolume(int volume, String productName) {}
 
     private record OrderDetails(
         double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled
-    ) { }
+    ) {}
 }

@@ -146,8 +146,7 @@ public class AlertCommand {
                 .limit(100)
                 .forEach(product -> builder.suggest(
                     product.productId(),
-                    new LiteralMessage(product.strippedName())
-                ));
+                    new LiteralMessage(product.strippedName())));
             return builder.buildFuture();
         };
     }

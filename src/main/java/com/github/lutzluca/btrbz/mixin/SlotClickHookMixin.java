@@ -22,8 +22,7 @@ public abstract class SlotClickHookMixin {
     @Inject(
         method = "slotClicked(Lnet/minecraft/world/inventory/Slot;IILnet/minecraft/world/inventory/ContainerInput;)V",
         at = @At("HEAD"),
-        cancellable = true
-    )
+        cancellable = true)
     private void onSlotClicked(
         Slot slot,
         int slotId,
@@ -49,8 +48,7 @@ public abstract class SlotClickHookMixin {
             new SlotView(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw),
             type,
             button,
-            SlotInputModifiers.from(Minecraft.getInstance())
-        );
+            SlotInputModifiers.from(Minecraft.getInstance()));
         return SlotHookRegistry.handleClick(ctx);
     }
 }

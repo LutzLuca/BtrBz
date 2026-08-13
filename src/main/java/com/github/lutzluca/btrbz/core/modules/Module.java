@@ -21,7 +21,7 @@ public abstract class Module<T> {
         this.configState = state;
     }
 
-    public void onLoad() { }
+    public void onLoad() {}
 
     public abstract boolean shouldDisplay(ScreenInfo info);
 

@@ -18,7 +18,9 @@ public class MessageQueue {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> MessageQueue.flush(client));
     }
 
-    public static void sendOrQueue(String message) { sendOrQueue(message, Level.Info); }
+    public static void sendOrQueue(String message) {
+        sendOrQueue(message, Level.Info);
+    }
 
     public static void sendOrQueue(String message, Level level) {
         var msg = Notifier.prefix().append(Component.literal(message).withStyle(level.color));
@@ -67,5 +69,5 @@ public class MessageQueue {
         public final ChatFormatting color;
     }
 
-    private record Entry(String msg, Level level) { }
+    private record Entry(String msg, Level level) {}
 }

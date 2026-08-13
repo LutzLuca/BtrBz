@@ -12,7 +12,11 @@ logs/
 
 # idea
 
-.idea/
+.idea/*
+!.idea/codeStyles/
+.idea/codeStyles/*
+!.idea/codeStyles/Project.xml
+!.idea/codeStyles/codeStyleConfig.xml
 *.iml
 *.ipr
 *.iws
@@ -42,3 +46,4 @@ replay_*.log
 
 node_modules/
 references/
+tmp/

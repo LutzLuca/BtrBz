@@ -34,7 +34,6 @@ import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-
 @Slf4j
 public class FlipHelper {
 
@@ -134,8 +133,7 @@ public class FlipHelper {
                 .withStyle(ChatFormatting.GRAY)
                 .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
                 .append(Component.literal(" coins each").withStyle(ChatFormatting.GRAY))
-                .withStyle(style -> style.withItalic(false))
-        );
+                .withStyle(style -> style.withItalic(false)));
         return customHelperItem;
     }
 
@@ -208,8 +206,7 @@ public class FlipHelper {
             if (flipPrice.isEmpty()) {
                 log.warn(
                     "Could not resolve price for product {}",
-                    this.potentialFlipProduct.getProduct()
-                );
+                    this.potentialFlipProduct.getProduct());
                 this.clearPendingFlipState();
                 return;
             }
@@ -217,8 +214,7 @@ public class FlipHelper {
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
             this.flipSubmissionTracker.recordSubmittedFlip(
                 ProductIdentity.fromIndex(this.potentialFlipProduct.getProduct()),
-                flipPrice.get()
-            );
+                flipPrice.get());
             GameUtils.submitSignValue(signEditScreen, formatted);
 
             this.clearPendingFlipState();
@@ -232,8 +228,7 @@ public class FlipHelper {
             log.debug(
                 "Flip completed without a recorded price for {}x {}; relying on Bazaar Orders sync",
                 flipped.volume(),
-                flipped.productName()
-            );
+                flipped.productName());
             return;
         }
 
@@ -248,24 +243,21 @@ public class FlipHelper {
             pricePerUnit,
             0,
             0,
-            -1
-        );
+            -1);
         BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, entry.product()));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",
             flipped.volume(),
             entry.product(),
-            Utils.formatDecimal(pricePerUnit, 1, true)
-        );
+            Utils.formatDecimal(pricePerUnit, 1, true));
     }
 
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
             log.debug(
                 "Destroying `potentialFlipProduct` {}",
-                this.potentialFlipProduct.getProduct()
-            );
+                this.potentialFlipProduct.getProduct());
             this.potentialFlipProduct.destroy();
         }
         this.cachedHelperDisplay = null;
@@ -275,7 +267,7 @@ public class FlipHelper {
 
     public final class OrderFlipHook implements SlotHook {
 
-        private OrderFlipHook() { }
+        private OrderFlipHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -312,8 +304,7 @@ public class FlipHelper {
 
                 log.debug(
                     "Ignoring flip execution click because it's price could not be resolved: '{}'",
-                    FlipHelper.this.potentialFlipProduct == null ? "no product selected" : "price not available"
-                );
+                    FlipHelper.this.potentialFlipProduct == null ? "no product selected" : "price not available");
                 return SlotClickResult.Pass;
             }
 
@@ -322,8 +313,7 @@ public class FlipHelper {
                 FLIP_ORDER_ITEM_SLOT_IDX,
                 ctx.button(),
                 ContainerInput.PICKUP,
-                player
-            );
+                player);
             FlipHelper.this.pendingFlip = true;
             return SlotClickResult.Consume;
         }
@@ -331,7 +321,7 @@ public class FlipHelper {
 
     public final class OrderProductObserverHook implements SlotHook {
 
-        private OrderProductObserverHook() { }
+        private OrderProductObserverHook() {}
 
         @Override
         public boolean matches(SlotView view) {
@@ -348,8 +338,7 @@ public class FlipHelper {
             var orderInfo = OrderInfoParser.parseOrderInfo(
                 ctx.view().getRawStack(),
                 ctx.view().slotIdx(),
-                FlipHelper.this.bazaarData
-            );
+                FlipHelper.this.bazaarData);
             if (orderInfo.isSuccess()) {
                 FlipHelper.this.onOrderClick(orderInfo.get());
             }
@@ -358,7 +347,7 @@ public class FlipHelper {
         }
     }
 
-    private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) { }
+    private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) {}
 
     public static class FlipHelperConfig {
 
@@ -370,7 +359,8 @@ public class FlipHelper {
                 .name(Component.literal("Enable Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(ConfigScreen.createDescription(
-                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins below the current lowest offer."))
+                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins "
+                        + "below the current lowest offer."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -383,10 +373,8 @@ public class FlipHelper {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Turn a filled buy order into a sell offer with fewer clicks."),
                     ConfigScreen.example(
-                        "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")
-                ),
-                    ConfigScreen.ConfigImage.FLIP_HELPER
-                ))
+                        "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")),
+                    ConfigScreen.ConfigImage.FLIP_HELPER))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

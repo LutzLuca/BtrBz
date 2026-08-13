@@ -10,7 +10,6 @@ public record SelfUndercutKey(String productName, ProductIdentity product, Order
         return new SelfUndercutKey(
             order.productName,
             order.product,
-            order.type
-        );
+            order.type);
     }
 }

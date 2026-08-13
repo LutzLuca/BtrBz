@@ -48,8 +48,7 @@ class OrderModelsTest {
             1234.5,
             12,
             0,
-            3
-        ));
+            3));
 
         @Test
         void matchesEquivalentOrderInfo() {
@@ -71,8 +70,7 @@ class OrderModelsTest {
                 1234.5,
                 0,
                 0,
-                3
-            ));
+                3));
 
             var parsed = new OrderInfo.UnfilledOrderInfo(
                 indexedIdentity("ENCHANTED_HOPPER", "New Display"),
@@ -82,8 +80,7 @@ class OrderModelsTest {
                 1234.5,
                 0,
                 0,
-                3
-            );
+                3);
 
             assertTrue(tracked.matches(parsed));
         }
@@ -98,8 +95,7 @@ class OrderModelsTest {
                 1234.5,
                 0,
                 0,
-                3
-            ));
+                3));
 
             var parsed = new OrderInfo.UnfilledOrderInfo(
                 indexedIdentity("OTHER_HOPPER", "Enchanted Hopper"),
@@ -109,8 +105,7 @@ class OrderModelsTest {
                 1234.5,
                 0,
                 0,
-                3
-            );
+                3);
 
             assertFalse(tracked.matches(parsed));
         }
@@ -125,8 +120,7 @@ class OrderModelsTest {
                 1234.5,
                 0,
                 0,
-                3
-            ));
+                3));
 
             assertTrue(tracked.matches(unfilledInfo("Enchanted Hopper", OrderType.Buy, 64, 1234.5)));
         }
@@ -155,8 +149,7 @@ class OrderModelsTest {
                 0.0,
                 0,
                 0,
-                7
-            ));
+                7));
 
             assertFalse(zeroTrackedOrder.matches(unfilledInfo("Heat Core", OrderType.Sell, 1, -0.0)));
         }
@@ -180,8 +173,7 @@ class OrderModelsTest {
             OrderType.Sell,
             12,
             825000.0,
-            9_900_000.0
-        );
+            9_900_000.0);
 
         @Test
         void matchesEquivalentSetupMessage() {
@@ -196,8 +188,7 @@ class OrderModelsTest {
                 OrderType.Sell,
                 2,
                 5_649_851.4,
-                11_299_702.8
-            );
+                11_299_702.8);
 
             assertTrue(outstanding.matches(setup(OrderType.Sell, 2, "Warped Stone", 11_299_702.8)));
         }

@@ -27,16 +27,14 @@ public class ConfigScreen {
         var client = Minecraft.getInstance();
         client.schedule(() -> client.setScreen(ConfigScreen.create(
             client.screen,
-            ConfigManager.get()
-        )));
+            ConfigManager.get())));
     }
     //?} else {
     /*public static void open() {
         var client = Minecraft.getInstance();
         client.schedule(() -> client.gui.setScreen(ConfigScreen.create(
             client.gui.screen(),
-            ConfigManager.get()
-        )));
+            ConfigManager.get())));
     }
     *///?}
 
@@ -47,8 +45,7 @@ public class ConfigScreen {
                 buildCategories(builder, config);
 
                 return builder;
-            }
-        ).generateScreen(parent);
+            }).generateScreen(parent);
     }
 
     private static void buildCategories(Builder builder, Config config) {
@@ -210,8 +207,7 @@ public class ConfigScreen {
         ConfigImage(String fileName, int width, int height) {
             this.identifier = Identifier.fromNamespaceAndPath(
                 BtrBz.MOD_ID,
-                "textures/gui/config/" + fileName
-            );
+                "textures/gui/config/" + fileName);
             this.width = width;
             this.height = height;
         }
@@ -280,7 +276,9 @@ public class ConfigScreen {
         }
 
         private void propagateAvailability() {
-            if (this.controllerOption == null) { return; }
+            if (this.controllerOption == null) {
+                return;
+            }
 
             boolean childAvailable = this.controllerOption.available() && this.controllerOption.pendingValue();
             this.children.forEach(child -> child.setAvailable(childAvailable));
