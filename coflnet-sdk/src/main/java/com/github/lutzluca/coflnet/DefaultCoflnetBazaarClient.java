@@ -131,11 +131,13 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             return;
         }
 
-        requestExecutor.shutdownNow();
         CoflnetApiException closeFailure = new CoflnetApiException(
                 "Coflnet client is closed", -1, baseUri, null
         );
         synchronized (stateLock) {
+            // Serialize shutdown with load(), which submits work while holding this lock.
+            // This prevents an accepted load from racing into a rejected executor submission.
+            requestExecutor.shutdownNow();
             inFlight.values().forEach(future -> future.completeExceptionally(closeFailure));
             inFlight.clear();
             cache.clear();
@@ -269,7 +271,10 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                 }
                 case HISTORY -> {
                     List<BazaarHistoryPoint> points = gson.fromJson(body, HISTORY_LIST);
-                    yield points == null ? List.of() : List.copyOf(points);
+                    if (points == null) {
+                        throw new IllegalStateException("History response was JSON null");
+                    }
+                    yield List.copyOf(points);
                 }
             };
         } catch (RuntimeException malformed) {

@@ -217,6 +217,35 @@ class CoflnetBazaarClientTest {
     }
 
     @Test
+    void rejectsNullHistoryAsMalformedWithoutCachingIt() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> json(
+                exchange,
+                200,
+                calls.incrementAndGet() == 1 ? "null" : "[]",
+                "max-age=3600"
+        ));
+        CoflnetBazaarClient client = client(server);
+
+        CompletionException completion = assertThrows(CompletionException.class,
+                () -> client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK).toCompletableFuture().join());
+        assertInstanceOf(CoflnetApiException.class, completion.getCause());
+        assertTrue(get(client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK)).isEmpty());
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void requestsAfterCloseFailThroughTheCompletionStage() {
+        CoflnetBazaarClient client = CoflnetBazaarClient.create();
+        clients.add(client);
+        client.close();
+
+        CompletionException completion = assertThrows(CompletionException.class,
+                () -> client.snapshot("GOLD_BLOCK").toCompletableFuture().join());
+        assertInstanceOf(CoflnetApiException.class, completion.getCause());
+    }
+
+    @Test
     void validatesTagsAndCustomRangesBeforeIssuingRequests() {
         assertThrows(IllegalArgumentException.class,
                 () -> CoflnetBazaarClient.create().snapshot("../snapshot"));
