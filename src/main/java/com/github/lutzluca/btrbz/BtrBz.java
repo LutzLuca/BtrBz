@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.core.bazaariteminfo.BazaarItemInfoController;
 import com.github.lutzluca.btrbz.core.commands.Commands;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper;
@@ -14,29 +15,32 @@ import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
-import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudHintController;
-import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarkComponent;
-import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
-import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
-import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
-import com.github.lutzluca.btrbz.core.widgets.session.DefaultWidgetSessionProvider;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
+import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
+import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.session.DefaultWidgetSessionProvider;
+import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -49,6 +53,7 @@ import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.coflnet.CoflnetBazaarClient;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -65,10 +70,6 @@ import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.Identifier;
-import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
-import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
-import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -87,6 +88,7 @@ public class BtrBz implements ClientModInitializer {
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
     private WidgetRuntime widgetRuntime;
+    private BazaarItemInfoController bazaarItemInfoController;
     private boolean automaticConversionFailureNotified;
 
     public static TrackedOrderManager orderManager() {
@@ -111,6 +113,10 @@ public class BtrBz implements ClientModInitializer {
 
     public static WidgetRuntime widgetRuntime() {
         return instance.widgetRuntime;
+    }
+
+    public static BazaarItemInfoController bazaarItemInfoController() {
+        return instance.bazaarItemInfoController;
     }
 
     @Override
@@ -203,6 +209,11 @@ public class BtrBz implements ClientModInitializer {
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
         new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
+        this.bazaarItemInfoController = new BazaarItemInfoController(
+            BAZAAR_DATA,
+            CoflnetBazaarClient.create()
+        );
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> this.bazaarItemInfoController.close());
         Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidget, widgetStateStore, hudHint::dismiss);

@@ -2,5 +2,7 @@
   "key.category.btrbz.widgets": "BtrBz Widgets",
   "key.btrbz.toggle_bazaar_orders_hud": "Toggle Bazaar Orders HUD",
   "message.btrbz.bazaar_orders_hud_hint": "The Bazaar Orders HUD is enabled by default. Press %s to disable it. You can change this key under Controls > BtrBz Widgets.",
-  "text.btrbz.bazaar_orders_hud_hint": "Press %s to disable this HUD"
+  "text.btrbz.bazaar_orders_hud_hint": "Press %s to disable this HUD",
+  "key.category.btrbz.bazaar_item_info": "BtrBz Bazaar Item Info",
+  "key.btrbz.open_bazaar_item_info": "Open Bazaar Item Info"
 }

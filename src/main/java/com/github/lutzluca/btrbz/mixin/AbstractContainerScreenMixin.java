@@ -118,6 +118,14 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (BtrBz.bazaarItemInfoController().handleContainerKey(
+            (AbstractContainerScreen<?>) (Object) this,
+            event
+        )) {
+            cir.setReturnValue(true);
+            return;
+        }
+
         if (!ScreenInfoHelper.inBazaar()) {
             return;
         }
