@@ -3,8 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.ui;
 import java.util.OptionalInt;
 
 public final class WidgetColorFormat {
-    private WidgetColorFormat() {
-    }
+    private WidgetColorFormat() {}
 
     public static String formatArgb(int argb) {
         return String.format("#%08X", argb);

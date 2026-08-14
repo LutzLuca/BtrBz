@@ -7,7 +7,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("External widget state trackers")
 class ExternalTrackersTest {
@@ -54,7 +56,9 @@ class ExternalTrackersTest {
         void failureKeepsValue() {
             var value = new AtomicReference<>("64");
             var tracker = new ClipboardTracker(() -> {
-                if (value.get() == null) throw new IllegalStateException("unavailable");
+                if (value.get() == null) {
+                    throw new IllegalStateException("unavailable");
+                }
                 return value.get();
             });
             tracker.initialize();

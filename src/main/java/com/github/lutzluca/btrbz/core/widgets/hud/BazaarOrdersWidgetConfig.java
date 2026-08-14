@@ -8,7 +8,10 @@ public final class BazaarOrdersWidgetConfig {
     public static final int MIN_VISIBLE_ORDERS = 1;
     public static final int MAX_VISIBLE_ORDERS = 10;
 
-    public enum HudMode { Detailed, StatusCounts }
+    public enum HudMode {
+        Detailed, StatusCounts
+    }
+
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(1, 0.006));
     public HudMode mode = HudMode.Detailed;
     public int visibleOrders = 4;

@@ -8,7 +8,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DisplayName("Memoized widget data source")
 class MemoizedWidgetDataSourceTest {
@@ -80,8 +83,7 @@ class MemoizedWidgetDataSourceTest {
     private static WidgetSession session(long id, long contextRevision) {
         return new WidgetSession(
             id, true, false, false,
-            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), contextRevision
-        );
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), contextRevision);
     }
 
     private static final class TestSource implements WidgetDataSource<Object> {
@@ -95,13 +97,22 @@ class MemoizedWidgetDataSourceTest {
             this.sessionSensitive = sessionSensitive;
         }
 
-        @Override public CacheDependencies cacheDependencies() { return this.dependencies; }
-        @Override public boolean sessionSensitive() { return this.sessionSensitive; }
+        @Override
+        public CacheDependencies cacheDependencies() {
+            return this.dependencies;
+        }
+
+        @Override
+        public boolean sessionSensitive() {
+            return this.sessionSensitive;
+        }
 
         @Override
         public Object snapshot(WidgetSession session) {
             this.calls.incrementAndGet();
-            if (this.fail.get()) throw new IllegalStateException("expected failure");
+            if (this.fail.get()) {
+                throw new IllegalStateException("expected failure");
+            }
             return new Object();
         }
     }

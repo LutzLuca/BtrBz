@@ -56,8 +56,7 @@ class WidgetCanvasComponentTest {
             20,
             100,
             100,
-            1.0
-        );
+            1.0);
         var captureClick = new MouseButtonEvent(25, 25, new MouseButtonInfo(0, 0));
         var slots = List.of(tooltipSlot, captureSlot);
 
@@ -111,8 +110,7 @@ class WidgetCanvasComponentTest {
             logicalHeight,
             scale,
             false,
-            false
-        );
+            false);
         slot.mount(null, x, y);
         slot.inflate(Size.of(physicalWidth, physicalHeight));
         return slot;

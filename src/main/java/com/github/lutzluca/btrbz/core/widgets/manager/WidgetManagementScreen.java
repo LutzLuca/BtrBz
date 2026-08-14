@@ -69,8 +69,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private final Map<WidgetId, String> previewProfiles = new LinkedHashMap<>();
 
-    private final TooltipDelayState<UIComponent> tooltipDelay =
-        new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
+    private final TooltipDelayState<UIComponent> tooltipDelay = new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
 
     private FlowLayout root;
     private ManagementPreviewComponent preview;
@@ -104,8 +103,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             registry,
             stateStore,
             WidgetManagementLaunchState.configure(initiallySelectedWidget),
-            null
-        );
+            null);
     }
 
     public WidgetManagementScreen(
@@ -119,8 +117,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             registry,
             stateStore,
             WidgetManagementLaunchState.contextual(context.initiallyRendered()),
-            context
-        );
+            context);
     }
 
     public WidgetManagementScreen(
@@ -135,8 +132,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             registry,
             stateStore,
             WidgetManagementLaunchState.contextual(context.initiallyRendered(), initiallySelectedWidget),
-            context
-        );
+            context);
     }
 
     private WidgetManagementScreen(
@@ -174,8 +170,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 definition.getId(),
                 frozenPreview == null
                     ? WidgetSession.DEFAULT_PLACEMENT_PROFILE
-                    : frozenPreview.placementProfile()
-            );
+                    : frozenPreview.placementProfile());
         }
     }
 
@@ -205,7 +200,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         return this.stateStore;
     }
 
-    @Nullable WidgetId selectedWidget() {
+    @Nullable
+    WidgetId selectedWidget() {
         return this.selectionState.selectedWidget();
     }
 
@@ -228,8 +224,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     String placementProfile(WidgetDefinition<?, ?, ?> definition) {
         return this.previewProfiles.getOrDefault(
             definition.getId(),
-            WidgetSession.DEFAULT_PLACEMENT_PROFILE
-        );
+            WidgetSession.DEFAULT_PLACEMENT_PROFILE);
     }
 
     void selectWidget(WidgetId id) {
@@ -290,8 +285,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.height,
             this.sidebarWidth(),
             this.sidebarHeight(),
-            SIDEBAR_MARGIN
-        );
+            SIDEBAR_MARGIN);
         this.applySidebarPosition();
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
@@ -374,8 +368,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 this.width,
                 this.height,
                 this.sidebarWidth(),
-                this.sidebarHeight()
-            );
+                this.sidebarHeight());
             this.applySidebarPosition();
             return handled;
         }
@@ -434,15 +427,13 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.height,
             this.sidebarWidth(),
             this.sidebarHeight(),
-            SIDEBAR_MARGIN
-        );
+            SIDEBAR_MARGIN);
 
         this.sidebar = UIContainers.verticalFlow(
             Sizing.fixed(this.sidebarWidth()),
             this.sidebarMinimized
                 ? Sizing.fixed(this.sidebarHeight())
-                : Sizing.fill(this.sidebarHeightPercent())
-        );
+                : Sizing.fill(this.sidebarHeightPercent()));
 
         this.sidebar.positioning(Positioning.absolute(this.sidebarPosition.x(), this.sidebarPosition.y()));
         this.sidebar.surface(WidgetSurfaces.roundedPanel(0xF0181B22, 6));
@@ -468,8 +459,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.width,
             this.height,
             this.sidebarHeight(),
-            SIDEBAR_MARGIN
-        );
+            SIDEBAR_MARGIN);
 
         if (this.sidebar == null) {
             return;
@@ -479,8 +469,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             Sizing.fixed(this.sidebarWidth()),
             minimized
                 ? Sizing.fixed(this.sidebarHeight())
-                : Sizing.fill(this.sidebarHeightPercent())
-        );
+                : Sizing.fill(this.sidebarHeightPercent()));
         this.applySidebarPosition();
         this.rebuildSidebar();
     }
@@ -510,8 +499,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private int sidebarHeightPercent() {
         return WidgetManagerPanelState.configuredHeightPercent(
-            this.stateStore.managerPanelHeightPercent()
-        );
+            this.stateStore.managerPanelHeightPercent());
     }
 
     private int sidebarHeight() {
@@ -551,8 +539,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.sidebarContent.padding(Insets.right(8));
         this.sidebarContent.allowOverflow(true);
         this.sidebarScroller = new RestorableVerticalScrollContainer<>(
-            Sizing.fill(100), Sizing.expand(100), this.sidebarContent
-        );
+            Sizing.fill(100), Sizing.expand(100), this.sidebarContent);
         this.sidebarScroller.scrollbarThiccness(4);
 
         var selectedWidget = this.selectionState.selectedWidget();
@@ -611,8 +598,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.markDirty();
         });
         resetPosition.tooltip(WidgetTooltips.wrapped(
-            "Restores only the selected placement profile to its default position."
-        ));
+            "Restores only the selected placement profile to its default position."));
         this.sidebarContent.child(resetPosition);
 
         var configurationPanel = selected.settingsPanel(this::markDirty);
@@ -624,8 +610,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 this.rebuildSidebar();
             });
             resetContent.tooltip(WidgetTooltips.wrapped(
-                "Restores this widget's content settings while preserving placement and appearance."
-            ));
+                "Restores this widget's content settings while preserving placement and appearance."));
             this.sidebarContent.child(resetContent);
         }
 
@@ -639,8 +624,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 this.rebuildSidebar();
             });
             reset.tooltip(WidgetTooltips.wrapped(
-                "Restores enabled state, appearance, every placement profile, and all content settings."
-            ));
+                "Restores enabled state, appearance, every placement profile, and all content settings."));
             this.sidebarContent.child(reset);
             return;
         }
@@ -662,13 +646,11 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.sidebarContent.child(label("Widget Manager", 0xFFB8C0CF));
 
         var launcherVisible = UIComponents.smallCheckbox(
-            Component.literal("Show quick-access button")
-        );
+            Component.literal("Show quick-access button"));
         launcherVisible.checked(this.stateStore.managerLauncherVisible());
         launcherVisible.tooltip(WidgetTooltips.wrapped(
             "Shows the draggable widget manager button on supported Bazaar screens. "
-                + "Its size follows the global widget scale."
-        ));
+                + "Its size follows the global widget scale."));
         launcherVisible.onChanged().subscribe(value -> {
             this.stateStore.setManagerLauncherVisible(value, false);
             this.markDirty();
@@ -678,38 +660,33 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var width = new ScrollSafeDiscreteSliderComponent(
             Sizing.fill(100),
             WidgetManagerPanelState.MINIMUM_WIDTH,
-            WidgetManagerPanelState.MAXIMUM_WIDTH
-        );
+            WidgetManagerPanelState.MAXIMUM_WIDTH);
         width.decimalPlaces(0);
         width.setFromDiscreteValue(this.expandedSidebarWidth());
         width.message(value -> Component.literal("Panel width " + value));
         width.onChanged().subscribe(value -> this.resizeSidebar(
             (int) Math.round(value),
-            this.sidebarHeightPercent()
-        ));
+            this.sidebarHeightPercent()));
         width.tooltip(WidgetTooltips.wrapped("Changes the width of the widget manager panel."));
         this.sidebarContent.child(width);
 
         var height = new ScrollSafeDiscreteSliderComponent(
             Sizing.fill(100),
             WidgetManagerPanelState.MINIMUM_HEIGHT_PERCENT,
-            WidgetManagerPanelState.MAXIMUM_HEIGHT_PERCENT
-        );
+            WidgetManagerPanelState.MAXIMUM_HEIGHT_PERCENT);
         height.decimalPlaces(0);
         height.setFromDiscreteValue(this.sidebarHeightPercent());
         height.message(value -> Component.literal("Panel height " + value + "%"));
         height.onChanged().subscribe(value -> this.resizeSidebar(
             this.expandedSidebarWidth(),
-            (int) Math.round(value)
-        ));
+            (int) Math.round(value)));
         height.tooltip(WidgetTooltips.wrapped("Changes how much of the screen height the manager panel can use."));
         this.sidebarContent.child(height);
 
         var runtimeDragging = UIComponents.smallCheckbox(Component.literal("Enable runtime Alt-dragging"));
         runtimeDragging.checked(this.stateStore.runtimeDragging());
         runtimeDragging.tooltip(WidgetTooltips.wrapped(
-            "Convenience feature only; not recommended for regular use because interactions may behave unexpectedly."
-        ));
+            "Convenience feature only; not recommended for regular use because interactions may behave unexpectedly."));
         runtimeDragging.onChanged().subscribe(value -> {
             this.stateStore.setRuntimeDragging(value, false);
             this.markDirty();
@@ -731,8 +708,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.width,
             this.height,
             this.sidebarHeight(),
-            SIDEBAR_MARGIN
-        );
+            SIDEBAR_MARGIN);
 
         if (this.sidebar == null) {
             return;
@@ -740,8 +716,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.sidebar.sizing(
             Sizing.fixed(this.sidebarWidth()),
-            Sizing.fill(this.sidebarHeightPercent())
-        );
+            Sizing.fill(this.sidebarHeightPercent()));
         this.applySidebarPosition();
     }
 
@@ -764,8 +739,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         String tooltip = this.sidebarMinimized ? "Maximize widget manager" : "Minimize widget manager";
         this.sidebarSizeButton = UIComponents.button(
             Component.literal(buttonText),
-            _ -> this.setSidebarMinimized(!this.sidebarMinimized)
-        );
+            _ -> this.setSidebarMinimized(!this.sidebarMinimized));
         this.sidebarSizeButton.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF465066, 0xFF20242D));
         this.sidebarSizeButton.textShadow(false);
         this.sidebarSizeButton.sizing(Sizing.fixed(HEADER_HEIGHT), Sizing.fixed(HEADER_HEIGHT));
@@ -778,8 +752,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.sidebarContent.child(label("Global appearance", 0xFFB8C0CF));
 
         var slider = new ScrollSafeDiscreteSliderComponent(
-            Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP
-        );
+            Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP);
 
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.globalFineTuneScale());
@@ -791,8 +764,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         });
 
         slider.tooltip(WidgetTooltips.wrapped(
-            "Fine-tunes the scale of every widget unless that widget has its own scale override."
-        ));
+            "Fine-tunes the scale of every widget unless that widget has its own scale override."));
 
         this.sidebarContent.child(slider);
 
@@ -803,8 +775,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             color -> {
                 this.stateStore.setGlobalBackgroundColor(color, false);
                 this.markDirty();
-            }
-        );
+            });
     }
 
     private void addPlacementProfileControl(WidgetDefinition<?, ?, ?> selected) {
@@ -821,8 +792,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             button.setMessage(Component.literal("Placement: " + selected.placementProfileLabel(next)));
         });
         control.tooltip(WidgetTooltips.wrapped(
-            "Cycles through the screen-specific placements available for this widget."
-        ));
+            "Cycles through the screen-specific placements available for this widget."));
         this.sidebarContent.child(control);
     }
 
@@ -830,8 +800,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var override = UIComponents.smallCheckbox(Component.literal("Override scale"));
         override.checked(this.stateStore.hasWidgetScaleOverride(selected));
         override.tooltip(WidgetTooltips.wrapped(
-            "Uses a scale for this widget instead of the global widget scale."
-        ));
+            "Uses a scale for this widget instead of the global widget scale."));
         override.onChanged().subscribe(value -> {
             this.stateStore.setWidgetScaleOverride(selected, value, false);
             this.markDirty();
@@ -844,8 +813,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         var slider = new ScrollSafeDiscreteSliderComponent(
-            Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP
-        );
+            Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP);
         slider.decimalPlaces(2);
         slider.setFromDiscreteValue(this.stateStore.widgetScale(selected));
         slider.message(value -> Component.literal("Widget scale " + value));
@@ -861,8 +829,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var enabled = UIComponents.smallCheckbox(Component.literal("Enable"));
         enabled.checked(this.stateStore.isActive(selected));
         enabled.tooltip(WidgetTooltips.wrapped(
-            "Controls whether this widget appears during normal gameplay. Its manager preview is independent."
-        ));
+            "Controls whether this widget appears during normal gameplay. Its manager preview is independent."));
         enabled.onChanged().subscribe(value -> {
             this.stateStore.setActive(selected, value, false);
             this.markDirty();
@@ -874,8 +841,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var override = UIComponents.smallCheckbox(Component.literal("Override background"));
         override.checked(this.stateStore.hasBackgroundOverride(selected));
         override.tooltip(WidgetTooltips.wrapped(
-            "Uses a background color for this widget instead of the global widget background."
-        ));
+            "Uses a background color for this widget instead of the global widget background."));
         override.onChanged().subscribe(value -> {
             this.stateStore.setBackgroundOverride(selected, value, false);
             this.markDirty();
@@ -892,8 +858,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             color -> {
                 this.stateStore.setBackgroundColor(selected, color, false);
                 this.markDirty();
-            }
-        );
+            });
     }
 
     private void addColorEditor(IntSupplier currentColor, IntConsumer changeColor) {
@@ -913,13 +878,11 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         hex.setFilter(text -> text.matches("#?[0-9a-fA-F]{0,8}"));
         hex.text(WidgetColorFormat.formatArgb(value));
         hex.tooltip(WidgetTooltips.wrapped(
-            "ARGB color in hexadecimal form: alpha, red, green, and blue. Alpha controls opacity."
-        ));
+            "ARGB color in hexadecimal form: alpha, red, green, and blue. Alpha controls opacity."));
         picker.tooltip(WidgetTooltips.wrapped(
-            "Selects the color and opacity used by the widget background."
-        ));
+            "Selects the color and opacity used by the widget background."));
 
-        var synchronizing = new boolean[] {false};
+        var synchronizing = new boolean[]{false};
 
         hex.onChanged().subscribe(text -> {
             int current = currentColor.getAsInt();
@@ -962,8 +925,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         var rendered = UIComponents.smallCheckbox(Component.literal("Preview"));
 
         rendered.tooltip(WidgetTooltips.wrapped(
-            "Controls whether this widget is rendered on the manager canvas. This does not enable it in gameplay."
-        ));
+            "Controls whether this widget is rendered on the manager canvas. This does not enable it in gameplay."));
         rendered.checked(this.selectionState.renderedWidgets().contains(definition.getId()));
         rendered.onChanged().subscribe(value -> this.selectionState.setRendered(definition.getId(), value));
 

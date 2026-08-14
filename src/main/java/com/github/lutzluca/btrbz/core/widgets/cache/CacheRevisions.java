@@ -5,8 +5,7 @@ import java.util.List;
 
 /** Allocation-free revision matching plus miss-only capture and diagnostics. */
 public final class CacheRevisions {
-    private CacheRevisions() {
-    }
+    private CacheRevisions() {}
 
     public static boolean match(long[] captured, CacheDependencies current) {
         var tokens = current.tokens();
@@ -44,8 +43,7 @@ public final class CacheRevisions {
             long previous = index < captured.length ? captured[index] : Long.MIN_VALUE;
             if (previous != token.revision()) {
                 changes.add(new ChangedDependency(
-                    token.name(), previous, token.revision(), token.lastReason()
-                ));
+                    token.name(), previous, token.revision(), token.lastReason()));
             }
         }
 

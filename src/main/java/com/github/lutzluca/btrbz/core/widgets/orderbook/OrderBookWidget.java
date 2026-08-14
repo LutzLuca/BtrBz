@@ -5,8 +5,7 @@ import java.util.ArrayList;
 
 /** Pure order-book presentation decisions shared by the retained full and embedded views. */
 public final class OrderBookWidget {
-    private OrderBookWidget() {
-    }
+    private OrderBookWidget() {}
 
     static boolean showsEmbeddedSide(
         OrderBookPriceWidgetConfig options,

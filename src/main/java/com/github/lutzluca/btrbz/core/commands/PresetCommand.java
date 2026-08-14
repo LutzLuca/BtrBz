@@ -22,8 +22,7 @@ public class PresetCommand {
             .then(ClientCommands.literal("add").then(ClientCommands
                 .argument(
                     "volume",
-                    IntegerArgumentType.integer(1, GameUtils.GLOBAL_MAX_ORDER_VOLUME)
-                )
+                    IntegerArgumentType.integer(1, GameUtils.GLOBAL_MAX_ORDER_VOLUME))
                 .executes(ctx -> {
                     int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
@@ -40,8 +39,7 @@ public class PresetCommand {
 
                     if (added) {
                         BtrBz.widgetRuntime().invalidateWidgetContent(
-                            OrderPresetsWidgetDefinition.ID, "preset volume added by command"
-                        );
+                            OrderPresetsWidgetDefinition.ID, "preset volume added by command");
                         Notifier.notifyPlayer(Notifier
                             .prefix()
                             .append(Component.literal("Added preset ").withStyle(ChatFormatting.GRAY))
@@ -70,14 +68,12 @@ public class PresetCommand {
                     .executes(ctx -> {
                         int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
-                        boolean removed = ConfigManager.updateIfChanged(cfg ->
-                            cfg.widgets.orderPresets.volumes.remove(Integer.valueOf(volume))
-                        );
+                        boolean removed = ConfigManager
+                            .updateIfChanged(cfg -> cfg.widgets.orderPresets.volumes.remove(Integer.valueOf(volume)));
 
                         if (removed) {
                             BtrBz.widgetRuntime().invalidateWidgetContent(
-                                OrderPresetsWidgetDefinition.ID, "preset volume removed by command"
-                            );
+                                OrderPresetsWidgetDefinition.ID, "preset volume removed by command");
                             Notifier.notifyPlayer(Notifier
                                 .prefix()
                                 .append(Component.literal("Removed preset ").withStyle(ChatFormatting.GRAY))
@@ -148,8 +144,7 @@ public class PresetCommand {
                 });
                 if (cleared) {
                     BtrBz.widgetRuntime().invalidateWidgetContent(
-                        OrderPresetsWidgetDefinition.ID, "preset volumes cleared by command"
-                    );
+                        OrderPresetsWidgetDefinition.ID, "preset volumes cleared by command");
                 }
 
                 Notifier.notifyPlayer(Notifier

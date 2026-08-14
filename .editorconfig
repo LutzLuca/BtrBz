@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{java,gradle,kts}]
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+[*.java]
+max_line_length = 120
+ij_continuation_indent_size = 4
+ij_formatter_tags_enabled = true
+ij_formatter_off_tag = @formatter:off
+ij_formatter_on_tag = @formatter:on
+
+[*.{json,json5,xml}]
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.bat]
+end_of_line = crlf

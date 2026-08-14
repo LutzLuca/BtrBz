@@ -21,8 +21,7 @@ class RoundedRectangleElementRenderStateTest {
             width,
             height,
             radius,
-            segments
-        );
+            segments);
 
         assertEquals((5 + segments * 4) * 2, perimeter.length);
         assertEquals(perimeter[0], perimeter[perimeter.length - 2]);

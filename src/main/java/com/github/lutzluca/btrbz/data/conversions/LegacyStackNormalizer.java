@@ -18,7 +18,7 @@ import net.minecraft.world.item.component.TooltipDisplay;
  */
 final class LegacyStackNormalizer {
 
-    private LegacyStackNormalizer() { }
+    private LegacyStackNormalizer() {}
 
     static ItemStack normalize(ItemStack stack) {
         if (stack.has(DataComponents.CUSTOM_NAME)) {

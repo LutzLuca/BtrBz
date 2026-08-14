@@ -30,8 +30,7 @@ public final class OrderValueWidgetData implements WidgetDataSource<OrderValueWi
         return new Snapshot(
             Math.round(value.buyLocked()), Math.round(value.buyItems()),
             Math.round(value.sellClaimable()), Math.round(value.sellPending()),
-            Math.round(value.total())
-        );
+            Math.round(value.total()));
     }
 
     public static Snapshot preview() {

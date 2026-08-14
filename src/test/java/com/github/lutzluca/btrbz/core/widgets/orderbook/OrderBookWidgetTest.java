@@ -16,11 +16,9 @@ class OrderBookWidgetTest {
         var book = book(Optional.of(BazaarWidgetViewData.OrderSide.Sell));
 
         assertFalse(OrderBookWidget.showsEmbeddedSide(
-            options, book, BazaarWidgetViewData.OrderSide.Buy
-        ));
+            options, book, BazaarWidgetViewData.OrderSide.Buy));
         assertTrue(OrderBookWidget.showsEmbeddedSide(
-            options, book, BazaarWidgetViewData.OrderSide.Sell
-        ));
+            options, book, BazaarWidgetViewData.OrderSide.Sell));
     }
 
     @Test
@@ -28,12 +26,10 @@ class OrderBookWidgetTest {
         assertTrue(OrderBookWidget.showsEmbeddedSide(
             options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both),
             book(Optional.of(BazaarWidgetViewData.OrderSide.Sell)),
-            BazaarWidgetViewData.OrderSide.Buy
-        ));
+            BazaarWidgetViewData.OrderSide.Buy));
         assertTrue(OrderBookWidget.showsEmbeddedSide(
             options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant),
-            book(Optional.empty()), BazaarWidgetViewData.OrderSide.Buy
-        ));
+            book(Optional.empty()), BazaarWidgetViewData.OrderSide.Buy));
     }
 
     @Test
@@ -41,31 +37,24 @@ class OrderBookWidgetTest {
         var sellWorkflow = book(Optional.of(BazaarWidgetViewData.OrderSide.Sell));
 
         assertEquals(198, OrderBookWidget.embeddedContentWidth(
-            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow
-        ));
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow));
         assertEquals(1, OrderBookWidget.embeddedVisibleSideCount(
-            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow
-        ));
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant), sellWorkflow));
         assertEquals(400, OrderBookWidget.embeddedContentWidth(
-            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow
-        ));
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow));
         assertEquals(2, OrderBookWidget.embeddedVisibleSideCount(
-            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow
-        ));
+            options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Both), sellWorkflow));
     }
 
     @Test
     void embeddedMetadataLabelsOrderCountsExplicitly() {
         var entry = new OrderBookWidgetData.Entry(
-            BazaarWidgetViewData.OrderSide.Sell, 100, 424, 2
-        );
+            BazaarWidgetViewData.OrderSide.Sell, 100, 424, 2);
 
         assertEquals(
             "424 items · 2 orders",
             OrderBookWidget.embeddedMetadata(
-                entry, options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant)
-            )
-        );
+                entry, options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant)));
     }
 
     private static OrderBookPriceWidgetConfig options(
@@ -80,7 +69,6 @@ class OrderBookWidgetTest {
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
         return new OrderBookWidgetData.Snapshot(
-            "Product", Optional.empty(), List.of(), List.of(), appropriateSide
-        );
+            "Product", Optional.empty(), List.of(), List.of(), appropriateSide);
     }
 }

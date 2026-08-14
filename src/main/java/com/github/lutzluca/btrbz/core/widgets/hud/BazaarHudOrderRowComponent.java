@@ -94,8 +94,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         int statusX = sideX - WidgetLayoutTokens.ORDER_TEXT_GAP - font.width(status);
         graphics.text(font, ellipsize(this.productName, Math.max(
             0,
-            statusX - WidgetLayoutTokens.ORDER_TEXT_GAP - x
-        )),
+            statusX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
             x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
         graphics.text(font, status, statusX, this.y + 1, this.order.status().color(), false);
         graphics.text(font, side, sideX, this.y + 1, this.order.side().accentColor(), false);
@@ -103,12 +102,10 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         int secondY = this.y + 10;
         String identity = BazaarOrderText.orderIdentity(this.order);
         var marketCandidates = BazaarOrderText.marketPositionCandidates(
-            this.order, this.options.showQueue, this.options.showUndercutGap
-        );
+            this.order, this.options.showQueue, this.options.showUndercutGap);
         String marketText = BazaarUi.firstFittingText(
             marketCandidates,
-            Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP)
-        );
+            Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP));
         int marketX = marketText.isBlank() ? right : right - font.width(marketText);
 
         if (!identity.isBlank()) {
@@ -116,13 +113,11 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
                 font,
                 ellipsize(Component.literal(identity), Math.max(
                     0,
-                    marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x
-                )),
+                    marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
                 x,
                 secondY,
                 BazaarStyles.SECONDARY_TEXT,
-                false
-            );
+                false);
         }
 
         if (!marketText.isBlank()) {
@@ -132,8 +127,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
                 marketX,
                 secondY,
                 BazaarStyles.SECONDARY_TEXT,
-                false
-            );
+                false);
         }
     }
 

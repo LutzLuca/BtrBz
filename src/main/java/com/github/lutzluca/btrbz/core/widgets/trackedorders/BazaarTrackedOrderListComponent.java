@@ -26,8 +26,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             BazaarStyles.INSERTION,
             0,
             4,
-            2
-        );
+            2);
     }
 
     void update(
@@ -43,15 +42,12 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             orders,
             BazaarWidgetViewData.Order::id,
             (order, index) -> new BazaarTrackedOrderRowComponent(
-                this, order, options, tooltipProvider.apply(order), index, interactive, actions
-            ),
+                this, order, options, tooltipProvider.apply(order), index, interactive, actions),
             (row, order, index) -> row.update(
-                order, options, tooltipProvider.apply(order), index, interactive, actions
-            ),
+                order, options, tooltipProvider.apply(order), index, interactive, actions),
             viewportHeight(options, orders.size()),
             interactive,
-            options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual
-        );
+            options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual);
     }
 
     boolean isHovered(TrackedOrderId id) {
@@ -82,8 +78,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
 
     private static int viewportHeight(TrackedOrdersWidgetConfig options, int orderCount) {
         return WidgetLayoutTokens.configuredListViewportHeight(
-            rowHeight(options), orderCount, options.visibleRows, true
-        );
+            rowHeight(options), orderCount, options.visibleRows, true);
     }
 
     private static int rowHeight(TrackedOrdersWidgetConfig options) {

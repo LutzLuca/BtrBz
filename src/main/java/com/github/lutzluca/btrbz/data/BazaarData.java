@@ -136,8 +136,7 @@ public class BazaarData {
 
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
-            products == null ? Map.of() : products
-        ));
+            products == null ? Map.of() : products));
         this.marketChanges.invalidate(InvalidationReason.of("market snapshot published"));
         var snapshot = this.currentSnapshot();
 
@@ -146,8 +145,7 @@ public class BazaarData {
                 "Bazaar update listener '{}' failed while processing {} products",
                 listener.getClass().getName(),
                 snapshot.size(),
-                err
-            ));
+                err));
         }
     }
 
@@ -155,16 +153,14 @@ public class BazaarData {
         this.listeners.add(listener);
         log.trace(
             "Inserting listener for onBazaarUpdate currently, listeners registered: {}",
-            this.listeners.size()
-        );
+            this.listeners.size());
     }
 
     public void removeListener(Consumer<MarketSnapshot> listener) {
         if (this.listeners.remove(listener)) {
             log.trace(
                 "Removing listener for onBazaarUpdate currently, listeners registered: {}",
-                this.listeners.size()
-            );
+                this.listeners.size());
         }
     }
 
@@ -197,15 +193,18 @@ public class BazaarData {
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        ProductIdentity product, OrderType orderType,
+        ProductIdentity product,
+        OrderType orderType,
         double pricePerUnit
     ) {
         return this.calculateQueuePosition(product, orderType, pricePerUnit, false);
     }
 
     public Optional<OrderQueueInfo> calculateQueuePosition(
-        ProductIdentity product, OrderType orderType,
-        double pricePerUnit, boolean includeAtPrice
+        ProductIdentity product,
+        OrderType orderType,
+        double pricePerUnit,
+        boolean includeAtPrice
     ) {
         var summaries = this.currentSnapshot().summariesForOrderType(product, orderType);
         if (summaries == null || summaries.isEmpty()) {
@@ -272,7 +271,7 @@ public class BazaarData {
     public record MarketPrices(
         Optional<@Nullable Double> highestBuyOrderPrice,
         Optional<@Nullable Double> lowestSellOfferPrice
-    ) { }
+    ) {}
 
     public record OrderLists(List<Summary> buyOrders, List<Summary> sellOffers) {
         public static OrderLists empty() {
@@ -309,24 +308,22 @@ public class BazaarData {
         public MarketPrices getMarketPrices(ProductIdentity product) {
             return new MarketPrices(
                 this.highestBuyOrderPrice(product),
-                this.lowestSellOfferPrice(product)
-            );
+                this.lowestSellOfferPrice(product));
         }
 
         public Optional<Double> productSpread(ProductIdentity product) {
             return Utils.zipOptionals(
                 this.lowestSellOfferPrice(product),
-                this.highestBuyOrderPrice(product)
-            ).map(pair -> pair.getLeft() - pair.getRight());
+                this.highestBuyOrderPrice(product)).map(pair -> pair.getLeft() - pair.getRight());
         }
 
         public OrderLists getOrderLists(ProductIdentity product) {
-            // Hypixel summary names are action-based: sell_summary is actual buy orders, buy_summary is actual sell offers.
+            // Hypixel summary names are action-based: sell_summary is actual buy orders,
+            // buy_summary is actual sell offers.
             return this.rawProduct(product)
                 .map(prod -> new OrderLists(
                     Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
-                    Optional.ofNullable(prod.getBuySummary()).orElse(List.of())
-                ))
+                    Optional.ofNullable(prod.getBuySummary()).orElse(List.of())))
                 .orElse(OrderLists.empty());
         }
 
@@ -360,7 +357,8 @@ public class BazaarData {
             this.product = product;
             this.bazaarProduct = Optional.empty();
 
-            this.updater = snapshot -> this.bazaarProduct = snapshot.rawProduct(ProductIdentity.fromIndex(this.product));
+            this.updater = snapshot -> this.bazaarProduct = snapshot
+                .rawProduct(ProductIdentity.fromIndex(this.product));
             this.indexUpdater = this::refreshProduct;
         }
 
@@ -384,16 +382,14 @@ public class BazaarData {
             this.ensureInitialized();
 
             return this.bazaarProduct.flatMap(
-                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit)
-            );
+                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit));
         }
 
         public Optional<Double> getBuyOrderPrice() {
             this.ensureInitialized();
 
             return this.bazaarProduct.flatMap(
-                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit)
-            );
+                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit));
         }
 
         public void destroy() {

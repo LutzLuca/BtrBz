@@ -33,13 +33,11 @@ public final class Utils {
 
     public static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
     public static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
-    private static final Pattern ROMAN_NUMERAL_PATTERN =
-        Pattern.compile(
-            "^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$",
-            Pattern.CASE_INSENSITIVE
-        );
+    private static final Pattern ROMAN_NUMERAL_PATTERN = Pattern.compile(
+        "^M{0,3}(CM|CD|D?C{0,3})?(XC|XL|L?X{0,3})?(IX|IV|V?I{0,3})$",
+        Pattern.CASE_INSENSITIVE);
 
-    private Utils() { }
+    private Utils() {}
 
     public static String formatUtcTimestampMillis(long utcMillis) {
         Instant instant = Instant.ofEpochMilli(utcMillis);
@@ -72,8 +70,7 @@ public final class Utils {
                     tmp,
                     target,
                     StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING
-                );
+                    StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException _) {
                 return Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
             } finally {
@@ -147,16 +144,22 @@ public final class Utils {
     }
 
     public static Component legacyFormattedComponent(@Nullable String value) {
-        if (value == null || value.isEmpty()) return Component.empty();
+        if (value == null || value.isEmpty()) {
+            return Component.empty();
+        }
 
         var segments = new ArrayList<MutableComponent>();
         var style = Style.EMPTY;
         int segmentStart = 0;
         for (int index = 0; index + 1 < value.length(); index++) {
-            if (value.charAt(index) != ChatFormatting.PREFIX_CODE) continue;
+            if (value.charAt(index) != ChatFormatting.PREFIX_CODE) {
+                continue;
+            }
 
             var formatting = ChatFormatting.getByCode(value.charAt(index + 1));
-            if (formatting == null) continue;
+            if (formatting == null) {
+                continue;
+            }
 
             if (segmentStart < index) {
                 segments.add(Component.literal(value.substring(segmentStart, index)).setStyle(style));
@@ -168,7 +171,9 @@ public final class Utils {
         if (segmentStart < value.length()) {
             segments.add(Component.literal(value.substring(segmentStart)).setStyle(style));
         }
-        if (segments.isEmpty()) return Component.empty().setStyle(style);
+        if (segments.isEmpty()) {
+            return Component.empty().setStyle(style);
+        }
 
         var result = segments.getFirst();
         for (int index = 1; index < segments.size(); index++) {
@@ -319,7 +324,10 @@ public final class Utils {
         return Optional.of(Pair.of(first.get(), second.get()));
     }
 
-    public static <T, U> @NotNull Optional<@NotNull Pair<@NotNull T, @NotNull U>> zipNullables(@Nullable T first, @Nullable U second) {
+    public static <T, U> @NotNull Optional<@NotNull Pair<@NotNull T, @NotNull U>> zipNullables(
+        @Nullable T first,
+        @Nullable U second
+    ) {
         if (first == null || second == null) {
             return Optional.empty();
         }
@@ -364,7 +372,6 @@ public final class Utils {
 
     private record CompactValue(double value, String suffix) {}
 
-
     public static boolean isValidRomanNumeral(String roman) {
         return roman != null
             && !roman.isBlank()
@@ -404,7 +411,7 @@ public final class Utils {
             throw new IllegalArgumentException("Input out of bounds valid range of [1; 3999]");
         }
 
-        final int[] vals = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
+        final int[] vals = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
         final String[] symbols = {
             "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"
         };
@@ -457,5 +464,5 @@ public final class Utils {
         return String.format("%dm", minutes);
     }
 
-    private record StyledTextSegment(String content, Style style) { }
+    private record StyledTextSegment(String content, Style style) {}
 }

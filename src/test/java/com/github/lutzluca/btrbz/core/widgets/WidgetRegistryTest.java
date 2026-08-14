@@ -8,7 +8,8 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DisplayName("Widget registry")
 class WidgetRegistryTest {
@@ -39,13 +40,19 @@ class WidgetRegistryTest {
         var widgetId = WidgetId.parse(id);
         var handle = new WidgetConfigHandle<>(
             widgetId, TestConfig::new, TestConfig::new,
-            value -> value.frame, (current, defaults) -> {}
-        );
+            value -> value.frame, (current, defaults) -> {});
         return WidgetDefinition.<Object, TestConfig, Void>builder(widgetId, id)
             .config(handle)
             .data(new WidgetDataSource<>() {
-                @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
-                @Override public Object snapshot(WidgetSession session) { return new Object(); }
+                @Override
+                public CacheDependencies cacheDependencies() {
+                    return CacheDependencies.none();
+                }
+
+                @Override
+                public Object snapshot(WidgetSession session) {
+                    return new Object();
+                }
             })
             .preview(() -> null)
             .viewFactory(() -> null)

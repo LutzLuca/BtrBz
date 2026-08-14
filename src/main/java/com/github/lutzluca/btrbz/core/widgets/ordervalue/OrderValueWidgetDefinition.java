@@ -15,8 +15,7 @@ import net.minecraft.resources.Identifier;
 public final class OrderValueWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_value"));
 
-    private OrderValueWidgetDefinition() {
-    }
+    private OrderValueWidgetDefinition() {}
 
     public static WidgetDefinition<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void> create(
         OrderValueComponent component
@@ -32,7 +31,8 @@ public final class OrderValueWidgetDefinition {
             .supports(OrderValueWidgetDefinition::supportsSession)
             .data(data)
             .cachePrepared()
-            .preview(() -> new WidgetPreview<>(OrderValueWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Orders), "default"))
+            .preview(() -> new WidgetPreview<>(OrderValueWidgetData.preview(),
+                WidgetPreviewSessions.container(BazaarMenuType.Orders), "default"))
             .viewFactory(OrderValueWidgetView::new)
             .settingsPanel(OrderValueWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(90), 32)

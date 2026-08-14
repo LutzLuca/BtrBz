@@ -73,20 +73,17 @@ class IdentityScopedCacheTest {
                 firstPrimary,
                 firstSecondary,
                 "product",
-                () -> Optional.of(calls.incrementAndGet())
-            ).orElseThrow());
+                () -> Optional.of(calls.incrementAndGet())).orElseThrow());
             assertEquals(2, cache.getOrResolve(
                 secondPrimary,
                 firstSecondary,
                 "product",
-                () -> Optional.of(calls.incrementAndGet())
-            ).orElseThrow());
+                () -> Optional.of(calls.incrementAndGet())).orElseThrow());
             assertEquals(3, cache.getOrResolve(
                 secondPrimary,
                 secondSecondary,
                 "product",
-                () -> Optional.of(calls.incrementAndGet())
-            ).orElseThrow());
+                () -> Optional.of(calls.incrementAndGet())).orElseThrow());
         }
     }
 }

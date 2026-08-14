@@ -15,8 +15,7 @@ import net.minecraft.resources.Identifier;
 public final class BookmarksWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "bookmarks"));
 
-    private BookmarksWidgetDefinition() {
-    }
+    private BookmarksWidgetDefinition() {}
 
     public static WidgetDefinition<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction> create(
         BookmarkComponent component
@@ -26,7 +25,8 @@ public final class BookmarksWidgetDefinition {
             value -> value.frame, BookmarksWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new BookmarksWidgetData(component));
 
-        return WidgetDefinition.<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction>builder(ID, "Bookmarks")
+        return WidgetDefinition.<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction>builder(ID,
+            "Bookmarks")
             .description("Provides quick access to bookmarked Bazaar products and marks products with active orders. "
                 + "Remove a bookmark with Ctrl + right-click.")
             .config(config)
@@ -34,7 +34,8 @@ public final class BookmarksWidgetDefinition {
             .visibility((data, _, _) -> !data.bookmarks().isEmpty())
             .data(provider)
             .cachePrepared()
-            .preview(() -> new WidgetPreview<>(BookmarksWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
+            .preview(() -> new WidgetPreview<>(BookmarksWidgetData.preview(),
+                WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(BookmarksWidgetView::new)
             .actionHandler(new BookmarksActionHandler(component))
             .settingsPanel(BookmarksWidgetSettings::create)

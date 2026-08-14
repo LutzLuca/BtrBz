@@ -46,8 +46,7 @@ class RetainedWidgetComponentsTest {
             assertNotSame(original, recreated);
             assertThrows(IllegalArgumentException.class, () -> reconcile(
                 rows,
-                List.of(new Model("a", 1), new Model("a", 2))
-            ));
+                List.of(new Model("a", 1), new Model("a", 2))));
         }
     }
 
@@ -77,8 +76,7 @@ class RetainedWidgetComponentsTest {
             models,
             Model::id,
             (model, _) -> new TestRow(model.id()),
-            (row, model, _) -> row.value = model.value()
-        );
+            (row, model, _) -> row.value = model.value());
     }
 
     private record Model(String id, int value) {}

@@ -11,7 +11,6 @@ public record GroupKey(String productName, ProductIdentity product, OrderType ty
             order.productName,
             order.product,
             order.type,
-            order.pricePerUnit
-        );
+            order.pricePerUnit);
     }
 }

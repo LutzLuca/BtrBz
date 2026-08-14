@@ -37,8 +37,7 @@ public enum ConfigImages {
     ConfigImages(String fileName, int width, int height) {
         this.identifier = Identifier.fromNamespaceAndPath(
             BtrBz.MOD_ID,
-            "textures/gui/config/" + fileName
-        );
+            "textures/gui/config/" + fileName);
         this.width = width;
         this.height = height;
     }

@@ -27,9 +27,8 @@ import org.jetbrains.annotations.Nullable;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
 
-final class FullOrderBookWidgetView implements WidgetView<
-    OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction
-> {
+final class FullOrderBookWidgetView
+    implements WidgetView<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
@@ -44,12 +43,10 @@ final class FullOrderBookWidgetView implements WidgetView<
     private final RetainedFlowLayout footer = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final LabelComponent instruction = label(
         "Click a price to copy it and return",
-        BazaarStyles.MUTED_TEXT
-    );
+        BazaarStyles.MUTED_TEXT);
     private final ButtonComponent goBack = UIComponents.button(
         Component.literal("Go Back"),
-        _ -> this.actions.accept(new OrderBookAction.GoBack())
-    );
+        _ -> this.actions.accept(new OrderBookAction.GoBack()));
 
     private Consumer<OrderBookAction> actions = _ -> {};
 
@@ -195,8 +192,7 @@ final class FullOrderBookWidgetView implements WidgetView<
                     entry.priceText(), entry.side().accentColor(), "", metadata,
                     BazaarStyles.MUTED_TEXT, 0, List.of(),
                     copyOnly -> actions.accept(new OrderBookAction.SelectPrice(entry.price(), copyOnly)),
-                    true
-                ));
+                    true));
             }
 
             this.list.update(rows, true, rowHeight, viewportHeight);

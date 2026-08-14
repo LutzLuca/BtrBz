@@ -20,8 +20,7 @@ import java.util.OptionalLong;
 public final class BazaarWidgetViewData {
     private static final NumberFormat INTEGER_FORMAT = NumberFormat.getIntegerInstance(Locale.US);
 
-    private BazaarWidgetViewData() {
-    }
+    private BazaarWidgetViewData() {}
 
     public static String formatInt(long value) {
         return INTEGER_FORMAT.format(value);
@@ -190,8 +189,7 @@ public final class BazaarWidgetViewData {
             this(
                 id, side, itemName, formattedItemName, itemStack, unitPrice, totalAmount,
                 Optional.of(new FillProgress(liveFilledAmount, totalAmount)),
-                status, Optional.empty(), tooltipLines, 0
-            );
+                status, Optional.empty(), tooltipLines, 0);
         }
 
         @Override
@@ -276,15 +274,13 @@ public final class BazaarWidgetViewData {
         public static MarketInfo bestPrice(double bestPrice, double priceDifference) {
             return new MarketInfo(
                 OptionalDouble.of(bestPrice), OptionalDouble.of(Math.abs(priceDifference)),
-                OptionalInt.empty(), OptionalLong.empty()
-            );
+                OptionalInt.empty(), OptionalLong.empty());
         }
 
         public static MarketInfo queue(int ordersAhead, long itemsAhead) {
             return new MarketInfo(
                 OptionalDouble.empty(), OptionalDouble.empty(),
-                OptionalInt.of(Math.max(0, ordersAhead)), OptionalLong.of(Math.max(0, itemsAhead))
-            );
+                OptionalInt.of(Math.max(0, ordersAhead)), OptionalLong.of(Math.max(0, itemsAhead)));
         }
 
         public static MarketInfo bestPriceAndQueue(
@@ -295,8 +291,7 @@ public final class BazaarWidgetViewData {
         ) {
             return new MarketInfo(
                 OptionalDouble.of(bestPrice), OptionalDouble.of(Math.abs(priceDifference)),
-                OptionalInt.of(Math.max(0, ordersAhead)), OptionalLong.of(Math.max(0, itemsAhead))
-            );
+                OptionalInt.of(Math.max(0, ordersAhead)), OptionalLong.of(Math.max(0, itemsAhead)));
         }
     }
 

@@ -37,7 +37,7 @@ public final class ScreenInfoHelper {
     private long inventoryVersion = 0;
     private final CacheToken screenTransitions = CacheToken.named("screen.transition");
     private final CacheToken inventoryChanges = CacheToken.named("screen.inventory");
-    
+
     @Getter
     private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
     @Getter
@@ -114,18 +114,15 @@ public final class ScreenInfoHelper {
             this.inventoryChanges.invalidate(InvalidationReason.of("screen inventory loaded"));
             log.trace("Inventory loaded: '{}'", inventory.title);
 
-            this.screenLoadListenerEntries.forEach(entry ->
-                Try.run(() -> {
-                    if (entry.matcher.test(screenInfo)) {
-                        entry.listener.accept(screenInfo, inventory);
-                    }
-                }).onFailure(err -> log.error(
-                    "Screen load listener failed for screen '{}' and listener '{}'",
-                    screenInfo.containerName().orElse("<unknown>"),
-                    entry.listener.getClass().getName(),
-                    err
-                ))
-            );
+            this.screenLoadListenerEntries.forEach(entry -> Try.run(() -> {
+                if (entry.matcher.test(screenInfo)) {
+                    entry.listener.accept(screenInfo, inventory);
+                }
+            }).onFailure(err -> log.error(
+                "Screen load listener failed for screen '{}' and listener '{}'",
+                screenInfo.containerName().orElse("<unknown>"),
+                entry.listener.getClass().getName(),
+                err)));
         });
 
         this.inventoryWatcher.setOnClose(title -> {
@@ -138,18 +135,15 @@ public final class ScreenInfoHelper {
 
             log.trace("Inventory closed: '{}'", title);
 
-            this.screenCloseListenerEntries.forEach(entry ->
-                Try.run(() -> {
-                    if (entry.matcher.test(screenInfo)) {
-                        entry.listener.accept(screenInfo);
-                    }
-                }).onFailure(err -> log.error(
-                    "Screen close listener failed for screen '{}' and listener '{}'",
-                    screenInfo.containerName().orElse("<unknown>"),
-                    entry.listener.getClass().getName(),
-                    err
-                ))
-            );
+            this.screenCloseListenerEntries.forEach(entry -> Try.run(() -> {
+                if (entry.matcher.test(screenInfo)) {
+                    entry.listener.accept(screenInfo);
+                }
+            }).onFailure(err -> log.error(
+                "Screen close listener failed for screen '{}' and listener '{}'",
+                screenInfo.containerName().orElse("<unknown>"),
+                entry.listener.getClass().getName(),
+                err)));
         });
     }
 
@@ -176,11 +170,9 @@ public final class ScreenInfoHelper {
         }
 
         var player = Minecraft.getInstance().player;
-        if (
-            nextScreen != null
-                && player != null
-                && this.inventoryWatcher.isTrackingContainer(player.containerMenu.containerId)
-        ) {
+        if (nextScreen != null
+            && player != null
+            && this.inventoryWatcher.isTrackingContainer(player.containerMenu.containerId)) {
             return;
         }
 
@@ -195,14 +187,11 @@ public final class ScreenInfoHelper {
         this.dispatchedScreenTransitionVersion = this.screenTransitionVersion;
         var screenInfo = this.currInfo;
 
-        this.switchListeners.forEach(listener ->
-            Try.run(() -> listener.accept(screenInfo)).onFailure(err -> log.error(
-                "Screen switch listener failed for screen '{}' and listener '{}'",
-                screenInfo.containerName().orElse("<unknown>"),
-                listener.getClass().getName(),
-                err
-            ))
-        );
+        this.switchListeners.forEach(listener -> Try.run(() -> listener.accept(screenInfo)).onFailure(err -> log.error(
+            "Screen switch listener failed for screen '{}' and listener '{}'",
+            screenInfo.containerName().orElse("<unknown>"),
+            listener.getClass().getName(),
+            err)));
     }
 
     private enum BazaarCategory {
@@ -247,7 +236,6 @@ public final class ScreenInfoHelper {
 
         private static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
-
         // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
         // after the UI has been populated. Calling Item/ItemGroup.matches(info)
         // before the UI is populated, for example after `setScreen` has been called on the
@@ -269,7 +257,8 @@ public final class ScreenInfoHelper {
                     yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
                 }
                 case Orders -> (title.equals("Your Bazaar Orders") || title.equals("Co-op Bazaar Orders"));
-                case InstaBuy -> title.endsWith("➜ Instant") || title.endsWith("➜ Instant Buy");  // some item's name are too long for the title to include the "Buy" suffix
+                // Some item names are too long for the title to include the "Buy" suffix.
+                case InstaBuy -> title.endsWith("➜ Instant") || title.endsWith("➜ Instant Buy");
                 case InstaBuyConfirmation -> title.equals("Confirm Instant Buy");
                 case InstaSellConfirmation -> title.equals("Confirm Instant Sell"); // not sure if this exists
                 case BuyOrderSetupVolume -> title.equals("How many do you want?");
@@ -283,7 +272,7 @@ public final class ScreenInfoHelper {
                         yield false;
                     }
 
-                    yield info.getGenericContainerScreen().map((gcs) -> {
+                    yield info.getGenericContainerScreen().map(gcs -> {
                         final int GRAPH_PAPER_IDX = 33;
                         var handler = gcs.getMenu();
                         var inventory = handler.getContainer();
@@ -300,8 +289,9 @@ public final class ScreenInfoHelper {
                     }).orElse(false);
                 }
                 case ItemGroup -> {
-                    if (!title.contains("➜") || title.endsWith("Graphs") || title.endsWith(
-                        "Settings")) {
+                    if (!title.contains("➜") || title.endsWith("Graphs")
+                        || title.endsWith(
+                            "Settings")) {
                         yield false;
                     }
 
@@ -312,7 +302,8 @@ public final class ScreenInfoHelper {
 
                         return Try
                             .of(() -> inventory.getItem(slot))
-                            .map((itemStack) -> itemStack.getItem().equals(Items.BOOK) && itemStack.getHoverName().getString().equals("Manage Orders"))
+                            .map(itemStack -> itemStack.getItem().equals(Items.BOOK)
+                                && itemStack.getHoverName().getString().equals("Manage Orders"))
                             .getOrElse(false);
                     }).orElse(false);
                 }
@@ -404,11 +395,11 @@ public final class ScreenInfoHelper {
     private record ScreenLoadListenerEntry(
         Predicate<ScreenInfo> matcher,
         BiConsumer<ScreenInfo, Inventory> listener
-    ) { }
+    ) {}
 
     private record ScreenCloseListenerEntry(
         Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
-    ) { }
+    ) {}
 
     private static final class MenuState {
 
@@ -423,7 +414,9 @@ public final class ScreenInfoHelper {
         }
 
         public Optional<BazaarMenuType> getMenu(ScreenInfo info) {
-            if (this.verifiedMenu.isPresent()) return this.verifiedMenu;
+            if (this.verifiedMenu.isPresent()) {
+                return this.verifiedMenu;
+            }
 
             for (var menu : BazaarMenuType.VALUES) {
                 if (((this.verifiedNotMenu >> menu.ordinal()) & 1) == 1) {

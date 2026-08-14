@@ -14,12 +14,10 @@ class WidgetManagerPanelStateTest {
         assertEquals(WidgetManagerPanelState.MAXIMUM_WIDTH, WidgetManagerPanelState.configuredWidth(1_000));
         assertEquals(
             WidgetManagerPanelState.MINIMUM_HEIGHT_PERCENT,
-            WidgetManagerPanelState.configuredHeightPercent(1)
-        );
+            WidgetManagerPanelState.configuredHeightPercent(1));
         assertEquals(
             WidgetManagerPanelState.MAXIMUM_HEIGHT_PERCENT,
-            WidgetManagerPanelState.configuredHeightPercent(100)
-        );
+            WidgetManagerPanelState.configuredHeightPercent(100));
     }
 
     @Test

@@ -21,7 +21,6 @@ public final class ClientTickDispatcher {
         ClientTickEvents.END_CLIENT_TICK.register(ClientTickDispatcher::onEndTick);
     }
 
-
     private static void onEndTick(Minecraft client) {
         LISTENERS.forEach(registration -> Try
             .run(() -> registration.listener.onEndTick(client))

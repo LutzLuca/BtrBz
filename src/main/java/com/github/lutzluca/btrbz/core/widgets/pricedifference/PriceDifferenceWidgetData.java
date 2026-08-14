@@ -23,8 +23,7 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
         var screens = ScreenInfoHelper.get();
 
         this.dependencies = CacheDependencies.of(
-            screens.inventoryChanges(), market.marketChanges(), market.indexChanges()
-        );
+            screens.inventoryChanges(), market.marketChanges(), market.indexChanges());
     }
 
     @Override
@@ -62,8 +61,7 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
 
     public static Snapshot preview() {
         return new Snapshot(
-            Component.literal("Enchanted Diamond"), Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640
-        );
+            Component.literal("Enchanted Diamond"), Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640);
     }
 
     private Optional<Integer> listedCount(ItemStack stack) {
@@ -71,8 +69,7 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
             .filter(line -> line.startsWith("Inventory"))
             .findFirst()
             .flatMap(line -> Utils.parseUsFormattedNumber(
-                line.replace("Inventory:", "").replace("items", "").trim()
-            ).toJavaOptional())
+                line.replace("Inventory:", "").replace("items", "").trim()).toJavaOptional())
             .map(Number::intValue);
     }
 

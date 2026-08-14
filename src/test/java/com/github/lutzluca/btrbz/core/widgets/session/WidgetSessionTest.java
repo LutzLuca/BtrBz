@@ -4,7 +4,7 @@ import java.util.Optional;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @DisplayName("Widget session")
 class WidgetSessionTest {
@@ -13,8 +13,7 @@ class WidgetSessionTest {
     void excludesStaleMenuFromCustomScreen() {
         var session = new WidgetSession(
             8, false, false, true, Optional.of(BazaarMenuType.Orders), Optional.empty(),
-            Optional.empty(), Optional.empty(), 0
-        );
+            Optional.empty(), Optional.empty(), 0);
         assertFalse(session.inBazaarMenu(BazaarMenuType.Orders));
     }
 }

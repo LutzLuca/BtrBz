@@ -12,7 +12,6 @@ public record SlotInputModifiers(boolean controlDown, boolean shiftDown, boolean
         return new SlotInputModifiers(
             client.hasControlDown(),
             client.hasShiftDown(),
-            client.hasAltDown()
-        );
+            client.hasAltDown());
     }
 }

@@ -31,8 +31,7 @@ public final class WidgetStateStore {
     public CacheToken frameChanges(WidgetId id) {
         return this.frameChanges.computeIfAbsent(
             Objects.requireNonNull(id, "id"),
-            key -> CacheToken.named("widget-frame." + key)
-        );
+            key -> CacheToken.named("widget-frame." + key));
     }
 
     public CacheToken globalFrameChanges() {
@@ -143,8 +142,7 @@ public final class WidgetStateStore {
         var frame = definition.frame();
 
         return frame.placements.getOrDefault(profile, frame.placements.getOrDefault(
-            "default", definition.defaultFrame().placements.get("default")
-        ));
+            "default", definition.defaultFrame().placements.get("default")));
     }
 
     public boolean isActive(WidgetDefinition<?, ?, ?> definition) {
@@ -184,8 +182,7 @@ public final class WidgetStateStore {
 
     public void resetPlacement(WidgetDefinition<?, ?, ?> definition, String profile, boolean persist) {
         var fallback = definition.defaultFrame().placements.getOrDefault(
-            profile, definition.defaultFrame().placements.get("default")
-        );
+            profile, definition.defaultFrame().placements.get("default"));
 
         this.setPlacement(definition, profile, fallback, persist);
     }

@@ -71,8 +71,7 @@ final class TrackedOrdersWidgetView implements
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
 
         this.status.text(literal(
-            TrackedOrdersWidget.headerStatus(data, sorted.size())
-        ));
+            TrackedOrdersWidget.headerStatus(data, sorted.size())));
 
         this.list.update(sorted, config, true, BazaarWidgetViewData.Order::tooltipLines, actions);
     }

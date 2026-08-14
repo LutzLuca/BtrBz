@@ -16,8 +16,7 @@ import net.minecraft.resources.Identifier;
 public final class PriceDifferenceWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "price_diff"));
 
-    private PriceDifferenceWidgetDefinition() {
-    }
+    private PriceDifferenceWidgetDefinition() {}
 
     public static WidgetDefinition<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> create(
         BazaarData market
@@ -27,14 +26,17 @@ public final class PriceDifferenceWidgetDefinition {
             value -> value.frame, PriceDifferenceWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new PriceDifferenceWidgetData(market));
 
-        return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID, "Price Difference")
-            .description("Shows the per-item and total difference between the entered price and the current market price.")
+        return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID,
+            "Price Difference")
+            .description(
+                "Shows the per-item and total difference between the entered price and the current market price.")
             .config(config)
             .supports(PriceDifferenceWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> PriceDifferenceWidgetDefinition.isVisible(data))
             .data(provider)
             .cachePrepared()
-            .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
+            .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(),
+                WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(PriceDifferenceWidgetView::new)
             .settingsPanel(PriceDifferenceWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(80), 36)

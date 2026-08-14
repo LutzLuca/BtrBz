@@ -33,8 +33,7 @@ final class ProductResolver {
         return this.resolveProduct(
             stack,
             displayNameEvidence,
-            Utils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null)
-        );
+            Utils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null));
     }
 
     ProductIdentity resolveProduct(
@@ -195,7 +194,8 @@ final class ProductResolver {
             return false;
         }
 
-        // Bazaar menu shards use different item types without custom_data.id, while owned shards carry a generic family id
+        // Bazaar menu shards use different item types without custom_data.id, while owned shards carry a generic
+        // family id.
         // The specific Bazaar id therefore comes from the indexed display-name mapping
         return rawProductId == null
             || rawProductId.equals("ATTRIBUTE_SHARD")
@@ -268,8 +268,7 @@ final class ProductResolver {
     private static final class Diagnostics {
 
         private static final boolean LOG_UNKNOWN_RUNTIME_EVIDENCE = Boolean.getBoolean(
-            "btrbz.conversions.logUnknownRuntimeEvidence"
-        );
+            "btrbz.conversions.logUnknownRuntimeEvidence");
 
         private final Set<String> loggedKeys = ConcurrentHashMap.newKeySet();
 
@@ -278,8 +277,7 @@ final class ProductResolver {
                 "UNKNOWN_ID|%s|%s".formatted(productId, displayName),
                 "Observed custom_data id '{}' for display name '{}', but it is not present in the conversion index",
                 productId,
-                displayName
-            );
+                displayName);
         }
 
         void nameMismatch(String rawProductId, String parsedName, IndexedProduct resolved) {
@@ -288,13 +286,11 @@ final class ProductResolver {
                     rawProductId,
                     parsedName,
                     resolved.productId(),
-                    resolved.strippedName()
-                ),
+                    resolved.strippedName()),
                 "Resolved Bazaar product id '{}' as {}, but parsed/display name was '{}'",
                 rawProductId,
                 resolved,
-                parsedName
-            );
+                parsedName);
         }
 
         void derivedProductMissingIndex(String productId, String displayName, String source) {
@@ -303,24 +299,21 @@ final class ProductResolver {
                 "Derived Bazaar product id '{}' from {} for '{}', but it is not present in the conversion index",
                 productId,
                 source,
-                displayName
-            );
+                displayName);
         }
 
         void ambiguousName(String displayName) {
             this.logDebugOnce(
                 "AMBIGUOUS|%s".formatted(displayName),
                 "Ambiguous Bazaar product display name '{}'; refusing to choose a product id",
-                displayName
-            );
+                displayName);
         }
 
         void unresolvedName(String displayName) {
             this.logUnknownRuntimeEvidenceOnce(
                 "UNRESOLVED|%s".formatted(displayName),
                 "Could not resolve Bazaar product '{}'",
-                displayName
-            );
+                displayName);
         }
 
         void unresolvedShard(@Nullable String rawProductId, String displayName) {
@@ -328,8 +321,7 @@ final class ProductResolver {
                 "UNRESOLVED_SHARD|%s|%s".formatted(rawProductId, displayName),
                 "Could not resolve shard '{}' with stack id '{}' through the conversion index",
                 displayName,
-                rawProductId
-            );
+                rawProductId);
         }
 
         private void logUnknownRuntimeEvidenceOnce(String key, String message, Object... args) {

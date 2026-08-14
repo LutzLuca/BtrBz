@@ -14,7 +14,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Widget config binding")
 class WidgetConfigBindingTest {
@@ -31,8 +33,7 @@ class WidgetConfigBindingTest {
             var binding = new WidgetConfigBinding<>(handle(
                 WidgetId.parse("btrbz:presets"), () -> config,
                 OrderPresetsWidgetConfig::new, value -> value.frame,
-                OrderPresetsWidgetConfig::resetPreferences
-            ), changes::incrementAndGet);
+                OrderPresetsWidgetConfig::resetPreferences), changes::incrementAndGet);
 
             binding.resetPreferences();
 
@@ -52,8 +53,7 @@ class WidgetConfigBindingTest {
             var binding = new WidgetConfigBinding<>(handle(
                 WidgetId.parse("btrbz:daily"), () -> config,
                 DailyLimitWidgetConfig::new, value -> value.frame,
-                DailyLimitWidgetConfig::resetPreferences
-            ), () -> {});
+                DailyLimitWidgetConfig::resetPreferences), () -> {});
 
             binding.resetPreferences();
 
@@ -75,8 +75,7 @@ class WidgetConfigBindingTest {
             var id = WidgetId.parse("btrbz:daily");
             var handle = handle(
                 id, () -> config, DailyLimitWidgetConfig::new,
-                value -> value.frame, DailyLimitWidgetConfig::resetPreferences
-            );
+                value -> value.frame, DailyLimitWidgetConfig::resetPreferences);
             var definition = WidgetDefinition.<Object, DailyLimitWidgetConfig, Void>builder(id, "Daily")
                 .config(handle)
                 .data(source())
@@ -109,8 +108,15 @@ class WidgetConfigBindingTest {
 
     private static WidgetDataSource<Object> source() {
         return new WidgetDataSource<>() {
-            @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
-            @Override public Object snapshot(WidgetSession session) { return new Object(); }
+            @Override
+            public CacheDependencies cacheDependencies() {
+                return CacheDependencies.none();
+            }
+
+            @Override
+            public Object snapshot(WidgetSession session) {
+                return new Object();
+            }
         };
     }
 }

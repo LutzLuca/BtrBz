@@ -30,8 +30,7 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
         this.rowLayout.gap(rowGap);
 
         this.scroller = new WidgetScrollContainer<>(
-            Sizing.fill(100), Sizing.fill(100), this.rowLayout, interactive
-        );
+            Sizing.fill(100), Sizing.fill(100), this.rowLayout, interactive);
         this.scroller.scrollbarThiccness(WidgetLayoutTokens.SCROLLBAR_THICKNESS);
         this.scroller.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(scrollbarColor)));
 

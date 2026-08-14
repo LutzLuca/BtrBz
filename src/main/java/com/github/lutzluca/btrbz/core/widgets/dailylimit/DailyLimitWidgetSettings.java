@@ -1,21 +1,20 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSettingsPanel;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import net.minecraft.network.chat.Component;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.WidgetSettingsPanel.*;
-
 public final class DailyLimitWidgetSettings {
-    private DailyLimitWidgetSettings() {
-    }
+    private DailyLimitWidgetSettings() {}
 
     public static UIComponent create(WidgetConfigBinding<DailyLimitWidgetConfig> binding) {
-        var panel = panel();
+        var panel = WidgetSettingsPanel.panel();
 
-        enumeration(panel, "Number format", binding, c -> c.numberStyle, (c, v) -> c.numberStyle = v,
+        WidgetSettingsPanel.enumeration(panel, "Number format", binding, c -> c.numberStyle,
+            (c, v) -> c.numberStyle = v,
             "Compact abbreviates large values. Exact keeps the full comma-separated coin amounts.");
 
         panel.child(UIComponents.label(Component.literal("Daily coin limit")));
@@ -39,8 +38,7 @@ public final class DailyLimitWidgetSettings {
             }
         });
         limit.tooltip(com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips.wrapped(
-            "Your personal Bazaar coin limit. The used value is estimated from transactions observed by the mod."
-        ));
+            "Your personal Bazaar coin limit. The used value is estimated from transactions observed by the mod."));
 
         panel.child(limit);
 

@@ -26,41 +26,35 @@ class OrderInfoParserTest {
             @Test
             void parsesBuyOrderSetup() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Buy Order Setup! 12x Enchanted Diamond for 431,123 coins."
-                );
+                    "[Bazaar] Buy Order Setup! 12x Enchanted Diamond for 431,123 coins.");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.OrderSetup(OrderType.Buy, 12, "Enchanted Diamond", 431123.0),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void parsesSellOfferSetup() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Sell Offer Setup! 8x Heat Core for 10,400,000 coins."
-                );
+                    "[Bazaar] Sell Offer Setup! 8x Heat Core for 10,400,000 coins.");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.OrderSetup(OrderType.Sell, 8, "Heat Core", 10400000.0),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void rejectsMalformedSetupWithoutExpectedHeader() {
                 assertTrue(OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Buy Setup! 12x Enchanted Diamond for 431,123 coins."
-                ).isFailure());
+                    "[Bazaar] Buy Setup! 12x Enchanted Diamond for 431,123 coins.").isFailure());
             }
 
             @Test
             void rejectsSetupMissingBangSeparator() {
                 assertTrue(OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Buy Order Setup 12x Enchanted Diamond for 431,123 coins."
-                ).isFailure());
+                    "[Bazaar] Buy Order Setup 12x Enchanted Diamond for 431,123 coins.").isFailure());
             }
         }
 
@@ -71,47 +65,40 @@ class OrderInfoParserTest {
             @Test
             void parsesBuyOrderFilled() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Your Buy Order for 12x Enchanted Diamond was filled!"
-                );
+                    "[Bazaar] Your Buy Order for 12x Enchanted Diamond was filled!");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.OrderFilled(OrderType.Buy, 12, "Enchanted Diamond"),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void parsesSellOfferFilled() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Your Sell Offer for 5x Summoning Eye was filled!"
-                );
+                    "[Bazaar] Your Sell Offer for 5x Summoning Eye was filled!");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.OrderFilled(OrderType.Sell, 5, "Summoning Eye"),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void parsesGoToOrdersSuffixVariant() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Your Buy Order for 2,304x Mithril was filled! [Go To Orders]"
-                );
+                    "[Bazaar] Your Buy Order for 2,304x Mithril was filled! [Go To Orders]");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.OrderFilled(OrderType.Buy, 2304, "Mithril"),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void rejectsMalformedFilledMessage() {
                 assertTrue(OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Your Buy Order 12x Enchanted Diamond was filled!"
-                ).isFailure());
+                    "[Bazaar] Your Buy Order 12x Enchanted Diamond was filled!").isFailure());
             }
         }
 
@@ -122,34 +109,29 @@ class OrderInfoParserTest {
             @Test
             void parsesInstaBuy() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Bought 12x Enchanted Diamond for 123,521 coins!"
-                );
+                    "[Bazaar] Bought 12x Enchanted Diamond for 123,521 coins!");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.InstaBuy(12, "Enchanted Diamond", 123521.0),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void parsesInstaSellWithCommaFormattedValues() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Sold 1,024x Mithril for 2,560,000 coins!"
-                );
+                    "[Bazaar] Sold 1,024x Mithril for 2,560,000 coins!");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.InstaSell(1024, "Mithril", 2560000.0),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void rejectsMalformedInstaOrder() {
                 assertTrue(OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Bought Enchanted Diamond for 123,521 coins!"
-                ).isFailure());
+                    "[Bazaar] Bought Enchanted Diamond for 123,521 coins!").isFailure());
             }
         }
 
@@ -160,21 +142,18 @@ class OrderInfoParserTest {
             @Test
             void parsesFlippedOrder() {
                 var result = OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Order Flipped! 3x Enchanted Sugar for 123,521 coins of total expected profit."
-                );
+                    "[Bazaar] Order Flipped! 3x Enchanted Sugar for 123,521 coins of total expected profit.");
 
                 assertTrue(result.isSuccess());
                 assertEquals(
                     new BazaarMessage.OrderFlipped(3, "Enchanted Sugar", 123521.0),
-                    result.get()
-                );
+                    result.get());
             }
 
             @Test
             void rejectsMalformedFlippedOrder() {
                 assertTrue(OrderInfoParser.parseBazaarMessage(
-                    "[Bazaar] Order Flipped! Enchanted Sugar for 123,521 coins of total expected profit."
-                ).isFailure());
+                    "[Bazaar] Order Flipped! Enchanted Sugar for 123,521 coins of total expected profit.").isFailure());
             }
         }
 
@@ -195,8 +174,7 @@ class OrderInfoParserTest {
                 "",
                 "Order amount: 12x",
                 "",
-                "Price per unit: 35,926.9 coins"
-            ), 4);
+                "Price per unit: 35,926.9 coins"), 4);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
@@ -214,8 +192,7 @@ class OrderInfoParserTest {
             var result = OrderInfoParser.parseOrderInfo("SELL Summoning Eye", orderLore(
                 "Worth 7,500,000 coins",
                 "Offer amount: 5x",
-                "Price per unit: 1,500,000 coins"
-            ), 9);
+                "Price per unit: 1,500,000 coins"), 9);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
@@ -232,8 +209,7 @@ class OrderInfoParserTest {
                 "Worth 120,000 coins",
                 "Order amount: 64x",
                 "Filled: 17/64 (25%)",
-                "Price per unit: 1,875 coins"
-            ), 1);
+                "Price per unit: 1,875 coins"), 1);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
@@ -246,8 +222,7 @@ class OrderInfoParserTest {
                 "Worth 21.3M coins",
                 "Order amount: 51,200x",
                 "Filled: 51.2k/51.2k 100%!",
-                "Price per unit: 415.9 coins"
-            ), 6);
+                "Price per unit: 415.9 coins"), 6);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.FilledOrderInfo.class, result.get());
@@ -260,8 +235,7 @@ class OrderInfoParserTest {
                 "Worth 96,000,000 coins",
                 "Order amount: 51,200x",
                 "Filled: 3.1k/51.2k (6.1%)",
-                "Price per unit: 1,875 coins"
-            ), 1);
+                "Price per unit: 1,875 coins"), 1);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
@@ -276,8 +250,7 @@ class OrderInfoParserTest {
                 "Some unrelated line",
                 "Price per unit: 1,300,000 coins",
                 "Created: just now",
-                "You have 2 of this order to claim"
-            ), 12);
+                "You have 2 of this order to claim"), 12);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
@@ -291,8 +264,7 @@ class OrderInfoParserTest {
                 "",
                 "§7Order amount: §a4x",
                 "",
-                "§7Price per unit: §685.9 coins"
-            ), 17);
+                "§7Price per unit: §685.9 coins"), 17);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
@@ -307,8 +279,7 @@ class OrderInfoParserTest {
         void failsWhenRequiredFieldsAreMissing() {
             assertTrue(OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
                 "Worth 10,400,000 coins",
-                "Created: just now"
-            ), 12).isFailure());
+                "Created: just now"), 12).isFailure());
         }
     }
 
@@ -322,8 +293,7 @@ class OrderInfoParserTest {
                 "Bazaar",
                 "Price per unit: 35,926.9 coins",
                 "Order: 12x Enchanted Diamond",
-                "Total price: 431,123 coins"
-            ));
+                "Total price: 431,123 coins"));
 
             assertTrue(result.isSuccess());
             assertEquals("Enchanted Diamond", result.get().productName());
@@ -339,8 +309,7 @@ class OrderInfoParserTest {
                 "§8Bazaar",
                 "§7Price per unit: §685.9 coins",
                 "§7Order: §a4§7x §d§lBank III",
-                "§7Total price: §6343.6 coins"
-            ));
+                "§7Total price: §6343.6 coins"));
 
             assertTrue(result.isSuccess());
             assertEquals("Bank III", result.get().productName());
@@ -356,8 +325,7 @@ class OrderInfoParserTest {
                 "Bazaar",
                 "Price per unit: 1,500,000 coins",
                 "Selling: 5x Summoning Eye",
-                "You earn: 7,500,000 coins"
-            ));
+                "You earn: 7,500,000 coins"));
 
             assertTrue(result.isSuccess());
             assertEquals("Summoning Eye", result.get().productName());
@@ -368,8 +336,7 @@ class OrderInfoParserTest {
         void failsWhenRequiredFieldsAreMissing() {
             assertTrue(OrderInfoParser.parseSetOrderItem("Buy Order", confirmLore(
                 "Bazaar",
-                "Price per unit: 35,926.9 coins"
-            )).isFailure());
+                "Price per unit: 35,926.9 coins")).isFailure());
         }
 
         @Test
@@ -380,8 +347,7 @@ class OrderInfoParserTest {
                     .append(Component.literal("160").withStyle(ChatFormatting.GREEN))
                     .append(Component.literal("x ").withStyle(ChatFormatting.GRAY))
                     .append(Component.literal("Enchanted Gold Ingot").withStyle(ChatFormatting.GREEN))),
-                "Enchanted Gold Ingot"
-            );
+                "Enchanted Gold Ingot");
 
             assertEquals(ChatFormatting.GREEN + "Enchanted Gold Ingot", formattedName.orElseThrow());
         }

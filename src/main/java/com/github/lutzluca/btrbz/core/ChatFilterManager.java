@@ -20,8 +20,7 @@ public class ChatFilterManager {
         "[Bazaar] Submitting sell offer...",
         "[Bazaar] Executing instant sell...",
         "[Bazaar] Executing instant buy...",
-        "[Bazaar] Claiming orders..."
-    );
+        "[Bazaar] Claiming orders...");
 
     public ChatFilterManager() {
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
@@ -44,28 +43,27 @@ public class ChatFilterManager {
                 .name(Component.literal("Bazaar Chat Filter"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Hide temporary Bazaar progress messages while keeping confirmations, warnings, and errors visible."),
+                        "Hide temporary Bazaar progress messages while keeping confirmations, warnings, "
+                            + "and errors visible."),
                     Component
                         .literal("Examples hidden:\n")
                         .withStyle(ChatFormatting.GOLD)
                         .append(Component
                             .literal("• [Bazaar] Submitting buy order...\n"
                                 + "• [Bazaar] Claiming orders...")
-                            .withStyle(ChatFormatting.GRAY))
-                )))
+                            .withStyle(ChatFormatting.GRAY)))))
                 .options(List.of(
                     Option.<Boolean>createBuilder()
-                          .name(Component.literal("Filter Transient Messages"))
-                          .description(ConfigScreen.createDescription(
-                              "Hide short-lived progress messages that do not report a result. Completed-order messages, warnings, and errors remain visible."))
-                          .binding(
-                              true,
-                              () -> this.enabled,
-                              val -> this.enabled = val
-                          )
-                          .controller(ConfigScreen::createBooleanController)
-                          .build()
-                ))
+                        .name(Component.literal("Filter Transient Messages"))
+                        .description(ConfigScreen.createDescription(
+                            "Hide short-lived progress messages that do not report a result. "
+                                + "Completed-order messages, warnings, and errors remain visible."))
+                        .binding(
+                            true,
+                            () -> this.enabled,
+                            val -> this.enabled = val)
+                        .controller(ConfigScreen::createBooleanController)
+                        .build()))
                 .collapsed(true)
                 .build();
         }

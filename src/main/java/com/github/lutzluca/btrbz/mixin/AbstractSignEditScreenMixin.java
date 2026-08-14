@@ -26,12 +26,13 @@ public abstract class AbstractSignEditScreenMixin implements WidgetHostOwner, Wi
     @Unique
     private WidgetManagerLauncher btrbz$managerLauncher;
     @Unique
-    private final SignEditScreenTransitionState btrbz$managerTransition =
-        new SignEditScreenTransitionState();
+    private final SignEditScreenTransitionState btrbz$managerTransition = new SignEditScreenTransitionState();
 
     @Override
     public WidgetHost btrbz$widgetHost() {
-        if (this.btrbz$host == null) this.btrbz$host = BtrBz.widgetRuntime().createScreenHost();
+        if (this.btrbz$host == null) {
+            this.btrbz$host = BtrBz.widgetRuntime().createScreenHost();
+        }
         return this.btrbz$host;
     }
 
@@ -50,8 +51,12 @@ public abstract class AbstractSignEditScreenMixin implements WidgetHostOwner, Wi
 
     @Inject(method = "onClose", at = @At("HEAD"))
     private void onClose(CallbackInfo ci) {
-        if (this.btrbz$host != null) this.btrbz$host.dispose();
-        if (this.btrbz$managerLauncher != null) this.btrbz$managerLauncher.dispose();
+        if (this.btrbz$host != null) {
+            this.btrbz$host.dispose();
+        }
+        if (this.btrbz$managerLauncher != null) {
+            this.btrbz$managerLauncher.dispose();
+        }
     }
 
     @Inject(method = "removed", at = @At("HEAD"), require = 0, cancellable = true)
@@ -60,24 +65,25 @@ public abstract class AbstractSignEditScreenMixin implements WidgetHostOwner, Wi
             ci.cancel();
             return;
         }
-        if (this.btrbz$host != null) this.btrbz$host.dispose();
-        if (this.btrbz$managerLauncher != null) this.btrbz$managerLauncher.dispose();
+        if (this.btrbz$host != null) {
+            this.btrbz$host.dispose();
+        }
+        if (this.btrbz$managerLauncher != null) {
+            this.btrbz$managerLauncher.dispose();
+        }
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         var client = Minecraft.getInstance();
         var canvas = new WidgetCanvas(
-            0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight()
-        );
+            0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
         this.btrbz$widgetHost().render(
             graphics, mouseX, mouseY, delta,
             canvas,
-            WidgetHostOptions.runtime(true), client.screen
-        );
+            WidgetHostOptions.runtime(true), client.screen);
         this.btrbz$managerLauncher().render(
-            graphics, mouseX, mouseY, delta, canvas, (net.minecraft.client.gui.screens.Screen) (Object) this
-        );
+            graphics, mouseX, mouseY, delta, canvas, (net.minecraft.client.gui.screens.Screen) (Object) this);
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)

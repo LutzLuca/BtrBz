@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -20,8 +21,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ContainerEventHandler.class)
 public interface ContainerEventHandlerMixin {
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
-    private void onMouseScrolled(double mouseX, double mouseY, double hAmt, double vAmt,
-            CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseScrolled(
+        double mouseX,
+        double mouseY,
+        double hAmt,
+        double vAmt,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
             && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
             && owner.btrbz$widgetHost().mouseScrolled(mouseX, mouseY, hAmt, vAmt)) {
@@ -30,8 +36,11 @@ public interface ContainerEventHandlerMixin {
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(MouseButtonEvent event, boolean doubleClick,
-            CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseClicked(
+        MouseButtonEvent event,
+        boolean doubleClick,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         if (Minecraft.getInstance().screen instanceof SignEditScreen
             && Minecraft.getInstance().screen instanceof WidgetHostOwner owner
             && (Minecraft.getInstance().screen instanceof WidgetManagerLauncherOwner launcherOwner
@@ -48,15 +57,19 @@ public interface ContainerEventHandlerMixin {
             && screen instanceof WidgetHostOwner owner
             && (screen instanceof WidgetManagerLauncherOwner launcherOwner
                 && launcherOwner.btrbz$managerLauncher().mouseReleased(
-                    event, btrbz$canvas(), screen
-                ) || owner.btrbz$widgetHost().mouseReleased(event))) {
+                    event, btrbz$canvas(), screen)
+                || owner.btrbz$widgetHost().mouseReleased(event))) {
             cir.setReturnValue(true);
         }
     }
 
     @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
-    private void onMouseDragged(MouseButtonEvent event, double deltaX, double deltaY,
-            CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseDragged(
+        MouseButtonEvent event,
+        double deltaX,
+        double deltaY,
+        CallbackInfoReturnable<Boolean> cir
+    ) {
         var screen = Minecraft.getInstance().screen;
         if (screen instanceof SignEditScreen
             && screen instanceof WidgetHostOwner owner
@@ -67,6 +80,7 @@ public interface ContainerEventHandlerMixin {
         }
     }
 
+    @Unique
     private static WidgetCanvas btrbz$canvas() {
         var window = Minecraft.getInstance().getWindow();
         return new WidgetCanvas(0, 0, window.getGuiScaledWidth(), window.getGuiScaledHeight());

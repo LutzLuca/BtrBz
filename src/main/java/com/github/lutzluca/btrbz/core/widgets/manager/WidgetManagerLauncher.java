@@ -33,8 +33,7 @@ public final class WidgetManagerLauncher {
     private static final double DRAG_THRESHOLD = 2.0;
     private static final Identifier ICON = Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "icon.png");
     private static final WidgetId ID = WidgetId.of(
-        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widget_manager_launcher")
-    );
+        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widget_manager_launcher"));
 
     private final WidgetRuntime runtime;
     private final WidgetStateStore stateStore;
@@ -79,8 +78,7 @@ public final class WidgetManagerLauncher {
             canvas,
             this.stateStore.managerLauncherPosition(),
             SIZE,
-            this.stateStore.requestedGlobalScale()
-        );
+            this.stateStore.requestedGlobalScale());
 
         this.bounds = layout.screenBounds();
 
@@ -92,8 +90,7 @@ public final class WidgetManagerLauncher {
             layout.scale(),
             false,
             false,
-            true
-        );
+            true);
 
         this.adapter.rootComponent.synchronizeSlots(List.of(this.slot));
         this.adapter.moveAndResize(canvas.x(), canvas.y(), canvas.width(), canvas.height());
@@ -206,8 +203,7 @@ public final class WidgetManagerLauncher {
             SIZE,
             1.0,
             false,
-            false
-        );
+            false);
         this.adapter.rootComponent.synchronizeSlots(List.of(this.slot));
     }
 
@@ -216,9 +212,7 @@ public final class WidgetManagerLauncher {
         int y = (int) Math.round(mouseY - this.pointerOffsetY - canvas.y());
         this.stateStore.setManagerLauncherPosition(
             WidgetPlacement.fromAbsolute(
-                x, y, canvas.width(), canvas.height(), this.bounds.width(), this.bounds.height()
-            ),
-            false
-        );
+                x, y, canvas.width(), canvas.height(), this.bounds.width(), this.bounds.height()),
+            false);
     }
 }

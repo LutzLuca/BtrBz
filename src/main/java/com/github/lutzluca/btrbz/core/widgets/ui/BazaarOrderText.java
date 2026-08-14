@@ -6,8 +6,7 @@ import java.util.List;
 
 /** Shared order identity and market-position grammar for Bazaar order widgets. */
 public final class BazaarOrderText {
-    private BazaarOrderText() {
-    }
+    private BazaarOrderText() {}
 
     public static String orderIdentity(BazaarWidgetViewData.Order order) {
         return order.amountText() + "x @ " + order.unitPriceText();

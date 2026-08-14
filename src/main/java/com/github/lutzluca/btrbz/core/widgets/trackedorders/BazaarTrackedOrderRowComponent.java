@@ -77,8 +77,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         Consumer<TrackedOrdersAction> actions
     ) {
         super(Sizing.fill(100), Sizing.fixed(
-            options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT
-        ));
+            options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT));
         this.list = list;
 
         this.allowOverflow(true);
@@ -127,7 +126,8 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         }
 
         if (layoutChanged) {
-            this.verticalSizing(Sizing.fixed(options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT));
+            this.verticalSizing(Sizing.fixed(
+                options.layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact ? COMPACT_HEIGHT : STANDARD_HEIGHT));
         }
 
         this.tooltip(interactive ? WidgetTooltips.wrapped(tooltip) : List.of());
@@ -155,8 +155,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.itemComponent().mount(
             this,
             iconX,
-            this.y + Math.max(0, (this.height - progressHeight - iconSize) / 2)
-        );
+            this.y + Math.max(0, (this.height - progressHeight - iconSize) / 2));
     }
 
     @Override
@@ -302,8 +301,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         String identity = BazaarOrderText.orderIdentity(this.order);
         String market = BazaarUi.firstFittingText(
             BazaarOrderText.marketPositionCandidates(this.order, true, true),
-            Math.max(0, right - x - font.width(identity) - TEXT_GAP)
-        );
+            Math.max(0, right - x - font.width(identity) - TEXT_GAP));
         int marketX = market.isBlank() ? right : right - font.width(market);
 
         var identityText = ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x));
@@ -312,8 +310,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             side, sideX, status, statusX, productText,
             identityText,
             market.isBlank() ? null : Component.literal(market),
-            marketX
-        );
+            marketX);
     }
 
     private void drawCompact(OwoUIGraphics graphics) {

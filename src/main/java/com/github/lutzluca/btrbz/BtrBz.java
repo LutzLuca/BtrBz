@@ -74,10 +74,10 @@ public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
     public static DataComponentType<Boolean> BOOKMARKED;
-    
+
     public static final BazaarMessageDispatcher MESSAGE_DISPATCHER = new BazaarMessageDispatcher();
     private static final BazaarData BAZAAR_DATA = new BazaarData();
-    
+
     private static BtrBz instance;
 
     private TrackedOrderManager orderManager;
@@ -112,7 +112,6 @@ public class BtrBz implements ClientModInitializer {
         return instance.widgetRuntime;
     }
 
-
     @Override
     public void onInitializeClient() {
         instance = this;
@@ -120,8 +119,7 @@ public class BtrBz implements ClientModInitializer {
         BOOKMARKED = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE,
             Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build()
-        );
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
 
         ConfigManager.load();
         BAZAAR_DATA.addConversionEventListener(this::handleConversionEvent);
@@ -145,8 +143,7 @@ public class BtrBz implements ClientModInitializer {
 
         var utcDayTracker = new UtcDayTracker();
         var clipboardTracker = new ClipboardTracker(
-            () -> Minecraft.getInstance().keyboardHandler.getClipboard()
-        );
+            () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         var purseTracker = new PurseTracker(GameUtils::getPurse);
         utcDayTracker.initialize();
         clipboardTracker.initialize();
@@ -163,28 +160,23 @@ public class BtrBz implements ClientModInitializer {
         var bookmarks = new BookmarkComponent(
             BAZAAR_DATA,
             productInfoProvider,
-            this.orderManager
-        );
+            this.orderManager);
         var orderValue = new OrderValueComponent();
         var dailyLimit = new DailyLimitComponent(utcDayTracker);
         var orderPresets = new OrderPresetsComponent(
-            BAZAAR_DATA, productInfoProvider, clipboardTracker, purseTracker
-        );
+            BAZAAR_DATA, productInfoProvider, clipboardTracker, purseTracker);
         var orderBookPrice = new OrderBookPriceComponent(
             BAZAAR_DATA,
             productInfoProvider,
             flipProductContext,
-            flipSubmissionTracker
-        );
+            flipSubmissionTracker);
 
         var sessionProvider = new DefaultWidgetSessionProvider(
             BAZAAR_DATA,
             productInfoProvider,
-            orderBookPrice
-        );
+            orderBookPrice);
         var ordersWidgetData = new MemoizedWidgetDataSource<>(new OrdersWidgetData(
-            BAZAAR_DATA, this.orderManager, this.tooltipProvider
-        ));
+            BAZAAR_DATA, this.orderManager, this.tooltipProvider));
         var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(BAZAAR_DATA));
         var widgetRegistry = new WidgetRegistry();
         widgetRegistry.register(BazaarOrdersWidgetDefinition.create(ordersWidgetData));
@@ -199,8 +191,7 @@ public class BtrBz implements ClientModInitializer {
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, new WidgetStateStore(), sessionProvider);
         HudWidgetBridge.register(
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
-            this.widgetRuntime.createHudHost()
-        );
+            this.widgetRuntime.createHudHost());
         new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
         Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
         BtrBzWidgetKeybinds.register();
@@ -215,8 +206,7 @@ public class BtrBz implements ClientModInitializer {
             this.orderManager.addOutstandingOrder(setOrderInfo);
             log.trace(
                 "Stored outstanding order for {}x {}", setOrderInfo.volume(),
-                setOrderInfo.productName()
-            );
+                setOrderInfo.productName());
         };
 
         orderProtectionManager.onSetOrder((stack, pendingOrderData) -> {
@@ -225,8 +215,7 @@ public class BtrBz implements ClientModInitializer {
                 () -> OrderInfoParser
                     .parseSetOrderItem(stack, BAZAAR_DATA)
                     .onSuccess(addOutstanding)
-                    .onFailure(err -> log.warn("Failed to parse confirm item", err))
-            );
+                    .onFailure(err -> log.warn("Failed to parse confirm item", err)));
             orderActions.setReopenBazaar();
         });
 
@@ -237,8 +226,7 @@ public class BtrBz implements ClientModInitializer {
         var flipHelper = new FlipHelper(
             BAZAAR_DATA,
             flipProductContext,
-            flipSubmissionTracker
-        );
+            flipSubmissionTracker);
 
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::handleOrderFilled);
@@ -246,20 +234,16 @@ public class BtrBz implements ClientModInitializer {
 
         MESSAGE_DISPATCHER.on(
             BazaarMessage.InstaBuy.class,
-            info -> dailyLimit.onTransaction(info.total())
-        );
+            info -> dailyLimit.onTransaction(info.total()));
         MESSAGE_DISPATCHER.on(
             BazaarMessage.InstaSell.class, info -> dailyLimit
-                .onTransaction(info.total() * (1 - ConfigManager.get().tax / 100))
-        );
+                .onTransaction(info.total() * (1 - ConfigManager.get().tax / 100)));
         MESSAGE_DISPATCHER.on(
             BazaarMessage.OrderSetup.class,
-            info -> dailyLimit.onTransaction(info.total())
-        );
+            info -> dailyLimit.onTransaction(info.total()));
 
-        ClientReceiveMessageEvents.GAME.register((message, overlay) ->
-            MESSAGE_DISPATCHER.handleChatMessage(GameUtils.stripFormattingCodes(message.getString()))
-        );
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> MESSAGE_DISPATCHER
+            .handleChatMessage(GameUtils.stripFormattingCodes(message.getString())));
 
         ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
             var rawMsg = GameUtils.stripFormattingCodes(message.getString());
@@ -285,22 +269,20 @@ public class BtrBz implements ClientModInitializer {
                     .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
                     .map(entry -> OrderInfoParser
                         .parseOrderInfo(entry.getValue(), entry.getKey(), BAZAAR_DATA)
-                        .toJavaOptional()
-                    )
+                        .toJavaOptional())
                     .flatMap(Optional::stream)
                     .toList();
 
                 this.orderManager.syncOrders(parsed);
-            }
-        );
+            });
     }
 
     private void handleConversionEvent(ConversionEvent event) {
         switch (event.kind()) {
             case LoadFailure -> MessageQueue.sendOrQueue(
-                "Failed to load Bazaar conversions; some features may not work as expected. Try /btrbz conversions refresh.",
-                Level.Error
-            );
+                "Failed to load Bazaar conversions; some features may not work as expected. "
+                    + "Try /btrbz conversions refresh.",
+                Level.Error);
             case RefreshAlreadyRunning -> {
                 if (event.manual()) {
                     MessageQueue.sendOrQueue("Bazaar conversion refresh is already running", Level.Info);
@@ -318,24 +300,24 @@ public class BtrBz implements ClientModInitializer {
             }
             case PersistFailure -> {
                 if (event.manual()) {
-                    MessageQueue.sendOrQueue("Updated Bazaar conversions, but failed to cache them locally", Level.Warn);
+                    MessageQueue.sendOrQueue("Updated Bazaar conversions, but failed to cache them locally",
+                        Level.Warn);
                 }
             }
             case RefreshFailure -> {
                 if (event.manual()) {
                     MessageQueue.sendOrQueue(
                         "Failed to refresh Bazaar conversions: " + event.message(),
-                        Level.Warn
-                    );
+                        Level.Warn);
                     return;
                 }
 
                 if (!this.automaticConversionFailureNotified) {
                     this.automaticConversionFailureNotified = true;
                     MessageQueue.sendOrQueue(
-                        "BtrBz could not refresh Bazaar conversions; using bundled/cache data. Run /btrbz conversions status for details.",
-                        Level.Warn
-                    );
+                        "BtrBz could not refresh Bazaar conversions; using bundled/cache data. "
+                            + "Run /btrbz conversions status for details.",
+                        Level.Warn);
                 }
             }
         }

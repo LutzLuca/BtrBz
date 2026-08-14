@@ -53,15 +53,13 @@ final class BookmarksWidgetView implements
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
 
         boolean added = this.additions.update(
-            data.bookmarks().stream().map(BookmarksWidgetData.Bookmark::productId).toList()
-        );
+            data.bookmarks().stream().map(BookmarksWidgetData.Bookmark::productId).toList());
 
         this.list.update(
             BookmarksWidget.sortedBookmarks(data.bookmarks(), config.sort),
             config,
             true,
-            actions
-        );
+            actions);
 
         if (added) {
             this.list.flashScrollbar();

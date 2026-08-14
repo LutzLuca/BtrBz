@@ -29,8 +29,7 @@ public sealed interface PriceExpression permits Literal,
                 case "insta-sell", "instasell", "isell", "is" -> Try.success(AlertType.InstaSell);
                 default -> Try.failure(new ParseException(
                     "Unknown alert type: " + identifier
-                        + ". Use buy-order, sell-offer, insta-buy, or insta-sell."
-                ));
+                        + ". Use buy-order, sell-offer, insta-buy, or insta-sell."));
             };
         }
 
@@ -113,7 +112,8 @@ public sealed interface PriceExpression permits Literal,
 
             return price
                 .map(Try::success)
-                .orElseGet(() -> Try.failure(new IllegalStateException("The price of " + '"' + product.strippedName() + '"' + " could not be determined")));
+                .orElseGet(() -> Try.failure(new IllegalStateException(
+                    "The price of " + '"' + product.strippedName() + '"' + " could not be determined")));
         }
     }
 

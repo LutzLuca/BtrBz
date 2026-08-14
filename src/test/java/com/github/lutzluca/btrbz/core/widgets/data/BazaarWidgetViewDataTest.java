@@ -33,8 +33,7 @@ class BazaarWidgetViewDataTest {
             order("top-small", BazaarWidgetViewData.OrderStatus.Top, 1),
             order("matched", BazaarWidgetViewData.OrderStatus.Matched, 500),
             order("undercut", BazaarWidgetViewData.OrderStatus.Undercut, 12),
-            order("unknown", BazaarWidgetViewData.OrderStatus.Unknown, 99)
-        );
+            order("unknown", BazaarWidgetViewData.OrderStatus.Unknown, 99));
 
         assertEquals(new BazaarWidgetViewData.StatusCounts(2, 1, 1, 1), BazaarWidgetViewData.StatusCounts.from(orders));
         assertEquals(5, new BazaarWidgetViewData.OrdersData(orders, 3).counts().total());
@@ -56,8 +55,7 @@ class BazaarWidgetViewDataTest {
     void liveProgressNeverChangesTheStableOrderVolume() {
         var order = new BazaarWidgetViewData.Order(
             id("partially-filled"), BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
-            Optional.empty(), 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, List.of()
-        );
+            Optional.empty(), 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, List.of());
 
         assertEquals(64, order.amount());
         assertEquals(43, order.liveProgress().orElseThrow().remaining());
@@ -67,8 +65,7 @@ class BazaarWidgetViewDataTest {
     void fractionalUnitPricesRemainPreciseThroughTotalFormatting() {
         var order = new BazaarWidgetViewData.Order(
             id("fractional-price"), BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
-            Optional.empty(), 85.9, 100, 0, BazaarWidgetViewData.OrderStatus.Top, List.of()
-        );
+            Optional.empty(), 85.9, 100, 0, BazaarWidgetViewData.OrderStatus.Top, List.of());
 
         assertEquals(85.9, order.unitPrice());
         assertEquals("8.6k", order.totalPriceText());
@@ -83,8 +80,7 @@ class BazaarWidgetViewDataTest {
             formatted,
             ItemStack.EMPTY,
             true,
-            false
-        );
+            false);
 
         assertEquals("Ench. Diamond", bookmark.formattedProductName(true).getString());
         assertEquals(formatted.getStyle(), bookmark.formattedProductName(true).getStyle());
@@ -100,8 +96,7 @@ class BazaarWidgetViewDataTest {
             formatted,
             ItemStack.EMPTY,
             true,
-            false
-        );
+            false);
 
         var rendered = bookmark.formattedProductName(false);
         assertEquals(formatted, rendered);
@@ -120,8 +115,7 @@ class BazaarWidgetViewDataTest {
             volume,
             0,
             status,
-            List.of()
-        );
+            List.of());
     }
 
     private static TrackedOrderId id(String value) {

@@ -66,8 +66,7 @@ public final class WidgetDefinition<D, C, A> {
 
         this.placementProfiles = Collections.unmodifiableMap(new LinkedHashMap<>(builder.placementProfiles));
         this.placementProfileResolver = Objects.requireNonNull(
-                builder.placementProfileResolver, "placementProfileResolver"
-        );
+            builder.placementProfileResolver, "placementProfileResolver");
 
         this.minWidth = Math.max(1, builder.minWidth);
         this.minHeight = Math.max(1, builder.minHeight);

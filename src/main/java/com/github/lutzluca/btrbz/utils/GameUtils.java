@@ -42,12 +42,12 @@ public final class GameUtils {
         Minecraft.getInstance().setScreen(null);
         //?} else {
         /*Minecraft.getInstance().gui.setScreen(null);
-         *///?}
+        *///?}
     }
 
     public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
 
-    private GameUtils() { }
+    private GameUtils() {}
 
     public static String stripFormattingCodes(String text) {
         if (text == null) {
@@ -73,7 +73,9 @@ public final class GameUtils {
     }
 
     public static boolean orderScreenNonOrderItemsFilter(@Nullable ItemStack stack) {
-        if (stack == null || stack.isEmpty()) { return true; }
+        if (stack == null || stack.isEmpty()) {
+            return true;
+        }
 
         return switch (stack.getItem()) {
             case Item item when item == Items.ARROW ->
@@ -87,11 +89,15 @@ public final class GameUtils {
     public static List<String> getScoreboardLines() {
         var client = Minecraft.getInstance();
         var world = client.level;
-        if (world == null) { return List.of(); }
+        if (world == null) {
+            return List.of();
+        }
 
         Scoreboard scoreboard = world.getScoreboard();
         Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
-        if (objective == null) { return List.of(); }
+        if (objective == null) {
+            return List.of();
+        }
 
         var entries = scoreboard.listPlayerScores(objective);
 
@@ -111,7 +117,9 @@ public final class GameUtils {
 
             text = stripScoreboardFormattingCodes(text);
 
-            if (!text.isBlank()) { lines.add(text); }
+            if (!text.isBlank()) {
+                lines.add(text);
+            }
         }
 
         return lines;

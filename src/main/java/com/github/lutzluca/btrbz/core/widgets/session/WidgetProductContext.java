@@ -43,7 +43,6 @@ public record WidgetProductContext(
         }
 
         return this.itemStack.isEmpty() || ItemStack.isSameItemSameComponents(
-            this.itemStack.orElseThrow(), other.itemStack.orElseThrow()
-        );
+            this.itemStack.orElseThrow(), other.itemStack.orElseThrow());
     }
 }

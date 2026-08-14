@@ -7,8 +7,7 @@ public final class WidgetScaleResolver {
     public static final double MIN_SCALE = 0.5;
     public static final double MAX_SCALE = 2.0;
 
-    private WidgetScaleResolver() {
-    }
+    private WidgetScaleResolver() {}
 
     public static double automaticGuiScale() {
         var window = Minecraft.getInstance().getWindow();
@@ -50,8 +49,7 @@ public final class WidgetScaleResolver {
             canvasWidth,
             canvasHeight,
             logicalWidth,
-            logicalHeight
-        );
+            logicalHeight);
     }
 
     public static double clampScale(double value) {

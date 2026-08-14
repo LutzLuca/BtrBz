@@ -34,12 +34,9 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
-        return new Snapshot(this.component.currentBookmarks().stream().map(bookmark ->
-            new Bookmark(
-                bookmark.productId(), bookmark.productName(), Utils.legacyFormattedComponent(bookmark.formattedName()),
-                bookmark.itemStack(), bookmark.hasBuyOrder(), bookmark.hasSellOffer()
-            )
-        ).toList());
+        return new Snapshot(this.component.currentBookmarks().stream().map(bookmark -> new Bookmark(
+            bookmark.productId(), bookmark.productName(), Utils.legacyFormattedComponent(bookmark.formattedName()),
+            bookmark.itemStack(), bookmark.hasBuyOrder(), bookmark.hasSellOffer())).toList());
     }
 
     public static Snapshot preview() {
@@ -49,8 +46,7 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
             previewBookmark("ENCHANTED_GOLD", "Enchanted Gold Block", Items.GOLD_BLOCK, false, true),
             previewBookmark("ENCHANTED_ENDER_PEARL", "Enchanted Ender Pearl", Items.ENDER_PEARL, false, false),
             previewBookmark("ENCHANTED_BLAZE_ROD", "Enchanted Blaze Rod", Items.BLAZE_ROD, true, false),
-            previewBookmark("ENCHANTED_EMERALD", "Enchanted Emerald", Items.EMERALD, false, true)
-        ));
+            previewBookmark("ENCHANTED_EMERALD", "Enchanted Emerald", Items.EMERALD, false, true)));
     }
 
     private static Bookmark previewBookmark(
@@ -93,12 +89,17 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
             Objects.requireNonNull(productId, "productId");
             Objects.requireNonNull(productName, "productName");
             formattedProductName = Objects.requireNonNull(
-                formattedProductName, "formattedProductName"
-            ).copy();
+                formattedProductName, "formattedProductName").copy();
             itemStack = itemStack.copy();
         }
 
-        public Bookmark(String productId, String productName, ItemStack itemStack, boolean buyOrder, boolean sellOrder) {
+        public Bookmark(
+            String productId,
+            String productName,
+            ItemStack itemStack,
+            boolean buyOrder,
+            boolean sellOrder
+        ) {
             this(productId, productName, Component.literal(productName), itemStack, buyOrder, sellOrder);
         }
 

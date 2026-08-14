@@ -77,27 +77,23 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         if (screen instanceof OrderBookScreen orderBookScreen) {
             product = Optional.of(this.context(
                 orderBookScreen.product(), Component.literal(orderBookScreen.productName()),
-                previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
-            ));
+                previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))));
         } else if (sign) {
             var workflow = this.orderBookPrice.currentWorkflow();
             product = workflow.map(OrderBookPriceComponent.Workflow::product)
                 .map(identity -> this.context(
-                    identity, previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))
-                ));
+                    identity, previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))));
             side = workflow.map(OrderBookPriceComponent.Workflow::side);
         } else if (this.productInfoProvider.getOpenedProduct() != null) {
             product = Optional.of(this.context(
                 ProductIdentity.fromIndex(this.productInfoProvider.getOpenedProduct()),
-                current.getItemStack(PRODUCT_SLOT)
-            ));
+                current.getItemStack(PRODUCT_SLOT)));
         }
 
         var candidate = new WidgetSession(
             this.semanticSessionId, hud, sign, orderBook,
             current.getMenuType(), previous.getMenuType(), product, side,
-            this.contextChanges.revision()
-        );
+            this.contextChanges.revision());
 
         if (cached == null || !candidate.sameSemanticContext(cached)) {
             this.semanticSessionId++;
@@ -110,8 +106,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         var session = new WidgetSession(
             this.semanticSessionId, hud, sign, orderBook,
             current.getMenuType(), previous.getMenuType(), product, side,
-            this.contextChanges.revision()
-        );
+            this.contextChanges.revision());
 
         this.cachedScreen = screen;
         this.cachedTransitionRevision = transitionRevision;
@@ -138,7 +133,6 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     ) {
         return new WidgetProductContext(
             identity, displayName,
-            this.market.productStack(identity).or(() -> observedStack.map(ItemStack::copy))
-        );
+            this.market.productStack(identity).or(() -> observedStack.map(ItemStack::copy)));
     }
 }

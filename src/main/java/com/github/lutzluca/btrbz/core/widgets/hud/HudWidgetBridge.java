@@ -12,8 +12,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.resources.Identifier;
 
 public final class HudWidgetBridge {
-    private HudWidgetBridge() {
-    }
+    private HudWidgetBridge() {}
 
     public static void register(Identifier elementId, WidgetHost host) {
         HudElementRegistry.addLast(elementId, (context, tickCounter) -> {
@@ -27,8 +26,7 @@ public final class HudWidgetBridge {
             client.options.hideGui,
             client.options.keyPlayerList.isDown(),
             client.getDebugOverlay().showDebugScreen(),
-            client.level == null
-        )) {
+            client.level == null)) {
             return;
         }
 
@@ -47,8 +45,7 @@ public final class HudWidgetBridge {
             partialTicks,
             new WidgetCanvas(0, 0, window.getGuiScaledWidth(), window.getGuiScaledHeight()),
             WidgetHostOptions.runtime(false),
-            null
-        );
+            null);
     }
 
     static boolean shouldSuppressHud(

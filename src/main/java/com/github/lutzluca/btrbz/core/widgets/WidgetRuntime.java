@@ -63,8 +63,7 @@ public final class WidgetRuntime {
             this.stateStore,
             this.sessionProvider,
             this.scrollOffsets,
-            placementDragging
-        );
+            placementDragging);
     }
 
     public WidgetManagementScreen createManagementScreen(@Nullable Screen previousScreen) {
@@ -90,8 +89,7 @@ public final class WidgetRuntime {
             screen instanceof AbstractContainerScreen<?>,
             screen instanceof SignEditScreen,
             session,
-            this.registry.all()
-        );
+            this.registry.all());
     }
 
     static boolean contextualManagerSupported(

@@ -58,8 +58,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     ) {
         super(Sizing.fill(100), Sizing.fixed(viewportHeight));
         this.scrollList = new WidgetScrollListComponent(
-            viewportHeight, rowGap, interactive, scrollbarColor
-        );
+            viewportHeight, rowGap, interactive, scrollbarColor);
         this.children = Collections.singletonList(this.scrollList);
 
         this.insertionColor = insertionColor;
@@ -86,8 +85,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
             models,
             keyExtractor,
             (model, index) -> factory.apply(model, index),
-            (row, model, index) -> updater.update((C) row, model, index)
-        );
+            (row, model, index) -> updater.update((C) row, model, index));
 
         if ((this.pendingDragKey != null && !this.retainedRows.contains(this.pendingDragKey))
             || (this.draggedKey != null && !this.retainedRows.contains(this.draggedKey))) {
@@ -141,8 +139,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.drawInsertionIndicator(graphics);
     }
 
-    protected void beforeChildrenDraw(int mouseX, int mouseY) {
-    }
+    protected void beforeChildrenDraw(int mouseX, int mouseY) {}
 
     protected final WidgetScrollListComponent scrollList() {
         return this.scrollList;
@@ -216,8 +213,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         }
 
         var result = new ReorderResult<>(
-            key, this.dragStartIndex, this.dropIndex, this.dragMoved
-        );
+            key, this.dragStartIndex, this.dropIndex, this.dragMoved);
         this.cancelDrag();
 
         return Optional.of(result);
@@ -284,9 +280,11 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         }
 
         int gap = WidgetMath.clamp(this.dropIndex, 0, this.rows.size());
-        int lineY = gap == 0 ? this.rows.getFirst().y() - 1
-            : gap == this.rows.size() ? this.rows.getLast().y() + this.rows.getLast().height()
-            : this.rows.get(gap).y() - 1;
+        int lineY = gap == 0
+            ? this.rows.getFirst().y() - 1
+            : gap == this.rows.size()
+                ? this.rows.getLast().y() + this.rows.getLast().height()
+                : this.rows.get(gap).y() - 1;
         int viewportTop = this.scrollList.y();
         int viewportBottom = this.scrollList.y() + this.scrollList.height() - 1;
         var visibleLineY = visibleInsertionIndicatorY(lineY, viewportTop, viewportBottom);

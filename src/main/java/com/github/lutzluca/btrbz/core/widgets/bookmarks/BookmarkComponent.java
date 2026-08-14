@@ -66,8 +66,7 @@ public final class BookmarkComponent {
             item.product().formattedName(),
             item.itemStack(),
             this.buyProducts.contains(item.product().productId()),
-            this.sellProducts.contains(item.product().productId())
-        )).toList();
+            this.sellProducts.contains(item.product().productId()))).toList();
     }
 
     public boolean contains(String productId) {

@@ -19,8 +19,7 @@ class ProductResolverTest {
         void derivesEssenceProductIdFromDisplayName() {
             assertEquals(
                 "ESSENCE_WITHER",
-                ProductResolver.essenceProductId("Wither Essence").orElseThrow()
-            );
+                ProductResolver.essenceProductId("Wither Essence").orElseThrow());
         }
 
         @Test
@@ -134,24 +133,19 @@ class ProductResolverTest {
         products.put("REDSTONE", new ConversionProductEntry("Redstone", new ProductNameSource.Neu("REDSTONE")));
         products.put(
             "ENCHANTMENT_QUICK_BITE_5",
-            new ConversionProductEntry("Quick Bite V", new ProductNameSource.Neu("ENCHANTMENT_QUICK_BITE_5"))
-        );
+            new ConversionProductEntry("Quick Bite V", new ProductNameSource.Neu("ENCHANTMENT_QUICK_BITE_5")));
         products.put(
             "ENCHANTMENT_TURBO_CACTUS_5",
-            new ConversionProductEntry("Turbo-Cacti V", new ProductNameSource.Neu("TURBO_CACTUS;5"))
-        );
+            new ConversionProductEntry("Turbo-Cacti V", new ProductNameSource.Neu("TURBO_CACTUS;5")));
         products.put(
             "SHARD_PHANPYRE",
             new ConversionProductEntry(
                 "Phanpyre Shard",
-                new ProductNameSource.Neu("ATTRIBUTE_SHARD_NOCTURNAL_ANIMAL;1")
-            )
-        );
+                new ProductNameSource.Neu("ATTRIBUTE_SHARD_NOCTURNAL_ANIMAL;1")));
         return new ConversionIndexService(new ConversionIndex(
             ConversionIndex.SCHEMA_VERSION,
             "now",
             null,
-            products
-        ));
+            products));
     }
 }

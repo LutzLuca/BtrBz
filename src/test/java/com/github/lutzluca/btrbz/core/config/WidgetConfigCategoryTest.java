@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 @DisplayName("YACL widget category")
 class WidgetConfigCategoryTest {
     @Test
@@ -30,8 +29,7 @@ class WidgetConfigCategoryTest {
             "btrbz:bookmarks", ConfigImages.Bookmarks,
             "btrbz:order_presets", ConfigImages.OrderPresets,
             "btrbz:order_limit", ConfigImages.OrderLimit,
-            "btrbz:price_diff", ConfigImages.PriceDiff
-        );
+            "btrbz:price_diff", ConfigImages.PriceDiff);
 
         images.forEach((id, image) -> assertEquals(image, ConfigImages.forWidget(WidgetId.parse(id))));
     }
@@ -54,8 +52,7 @@ class WidgetConfigCategoryTest {
         var widgetId = WidgetId.parse(id);
         var handle = new WidgetConfigHandle<>(
             widgetId, TestConfig::new, TestConfig::new,
-            value -> value.frame, (current, defaults) -> {}
-        );
+            value -> value.frame, (current, defaults) -> {});
         return WidgetDefinition.<Object, TestConfig, Void>builder(widgetId, name)
             .config(handle)
             .data(source())
@@ -66,8 +63,15 @@ class WidgetConfigCategoryTest {
 
     private static WidgetDataSource<Object> source() {
         return new WidgetDataSource<>() {
-            @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
-            @Override public Object snapshot(WidgetSession session) { return new Object(); }
+            @Override
+            public CacheDependencies cacheDependencies() {
+                return CacheDependencies.none();
+            }
+
+            @Override
+            public Object snapshot(WidgetSession session) {
+                return new Object();
+            }
         };
     }
 

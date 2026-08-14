@@ -23,9 +23,8 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.boldLabel;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
 
-final class BazaarOrdersWidgetView implements WidgetView<
-    BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void
-> {
+final class BazaarOrdersWidgetView
+    implements WidgetView<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final Detailed detailed = new Detailed();
@@ -88,8 +87,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
 
         private void update(BazaarWidgetViewData.OrdersData data, BazaarOrdersWidgetConfig config) {
             this.count.text(Component.literal(
-                data.counts().total() + " active · " + data.filledOrderCount() + " filled"
-            ));
+                data.counts().total() + " active · " + data.filledOrderCount() + " filled"));
             this.empty.text(Component.literal(BazaarHudWidget.emptyText(data)));
 
             int visible = Math.min(config.supportedVisibleOrders(), data.orders().size());
@@ -97,8 +95,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
                 data.orders().subList(0, visible),
                 BazaarWidgetViewData.Order::id,
                 (order, _) -> new BazaarHudOrderRowComponent(order, config),
-                (row, order, _) -> row.update(order, config)
-            );
+                (row, order, _) -> row.update(order, config));
 
             this.rows.clearChildren();
             this.rows.children(orderedRows);
@@ -132,8 +129,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
         private final List<RetainedFlowLayout> rows = List.of(
             RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9)),
             RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9)),
-            RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9))
-        );
+            RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9)));
         private final List<UIComponent> rowSpacers = List.of(spacer(), spacer(), spacer());
 
         private Counts() {
@@ -219,8 +215,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
         private final LabelComponent more = label("", BazaarStyles.MUTED_TEXT);
         private final List<StatusCount> statuses = List.of(
             new StatusCount("outdated"), new StatusCount("matched"),
-            new StatusCount("best_order"), new StatusCount("unknown")
-        );
+            new StatusCount("best_order"), new StatusCount("unknown"));
 
         private Overflow() {
             this.root.allowOverflow(true);
@@ -269,8 +264,7 @@ final class BazaarOrdersWidgetView implements WidgetView<
 
             var icon = UIComponents.texture(
                 Identifier.fromNamespaceAndPath("btrbz", "textures/gui/status/" + iconName + ".png"),
-                0, 0, 9, 9, 9, 9
-            );
+                0, 0, 9, 9, 9, 9);
 
             icon.sizing(Sizing.fixed(9), Sizing.fixed(9));
 

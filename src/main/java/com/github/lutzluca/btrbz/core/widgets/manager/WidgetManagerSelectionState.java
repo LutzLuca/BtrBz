@@ -18,7 +18,8 @@ final class WidgetManagerSelectionState {
         this.renderedWidgets.addAll(launchState.renderedWidgets());
     }
 
-    @Nullable WidgetId selectedWidget() {
+    @Nullable
+    WidgetId selectedWidget() {
         return this.selectedWidget;
     }
 

@@ -153,8 +153,7 @@ public final class WidgetSession {
             this.previousMenu,
             this.product.map(WidgetProductContext::detachedCopy),
             this.side,
-            this.contextRevision
-        );
+            this.contextRevision);
     }
 
     private static Optional<String> productId(Optional<WidgetProductContext> product) {

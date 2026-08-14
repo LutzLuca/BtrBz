@@ -21,7 +21,9 @@ public final class IdentityScopedCache<K, V> {
         Supplier<Optional<V>> resolver
     ) {
         this.updateScope(primaryScope, secondaryScope);
-        if (this.values.containsKey(key)) return this.values.get(key);
+        if (this.values.containsKey(key)) {
+            return this.values.get(key);
+        }
 
         var resolved = resolver.get();
         this.values.put(key, resolved);

@@ -12,8 +12,7 @@ import java.util.function.ToIntFunction;
 import net.minecraft.network.chat.Component;
 
 public final class WidgetSettingsPanel {
-    private WidgetSettingsPanel() {
-    }
+    private WidgetSettingsPanel() {}
 
     public static FlowLayout panel() {
         var panel = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
@@ -37,9 +36,7 @@ public final class WidgetSettingsPanel {
         slider.decimalPlaces(0);
         slider.setFromDiscreteValue(getter.applyAsInt(binding.current()));
         slider.message(value -> Component.literal(label + " " + value));
-        slider.onChanged().subscribe(value -> binding.mutate(config ->
-            setter.accept(config, (int) Math.round(value))
-        ));
+        slider.onChanged().subscribe(value -> binding.mutate(config -> setter.accept(config, (int) Math.round(value))));
         slider.tooltip(WidgetTooltips.wrapped(description));
 
         panel.child(slider);
@@ -69,8 +66,7 @@ public final class WidgetSettingsPanel {
         BiConsumer<C, E> setter,
         String description
     ) {
-        enumeration(panel, label, binding, getter, setter, description, () -> {
-        });
+        enumeration(panel, label, binding, getter, setter, description, () -> {});
     }
 
     public static <C, E extends Enum<E>> void enumeration(

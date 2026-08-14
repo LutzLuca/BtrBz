@@ -24,13 +24,13 @@ public final class WidgetPreviewSessions {
     }
 
     public static WidgetSession sign(OrderBookWidgetData.Snapshot data) {
-        return session(false, true, false, Optional.empty(), Optional.empty(), product(data), Optional.of(OrderType.Buy));
+        return session(false, true, false, Optional.empty(), Optional.empty(), product(data),
+            Optional.of(OrderType.Buy));
     }
 
     private static Optional<WidgetProductContext> product(OrderBookWidgetData.Snapshot data) {
         return Optional.of(new WidgetProductContext(
-            ProductIdentity.fromName(data.itemName()), Component.literal(data.itemName()), data.itemStack()
-        ));
+            ProductIdentity.fromName(data.itemName()), Component.literal(data.itemName()), data.itemStack()));
     }
 
     private static WidgetSession session(

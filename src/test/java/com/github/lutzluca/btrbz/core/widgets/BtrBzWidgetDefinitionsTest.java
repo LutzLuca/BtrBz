@@ -36,42 +36,31 @@ class BtrBzWidgetDefinitionsTest {
             BookmarksWidgetDefinition.ID,
             OrderPresetsWidgetDefinition.ID,
             DailyLimitWidgetDefinition.ID,
-            PriceDifferenceWidgetDefinition.ID
-        ).stream().distinct().count());
+            PriceDifferenceWidgetDefinition.ID).stream().distinct().count());
     }
 
     @Test
     void definitionsAcceptOnlyTheirSemanticSessions() {
         assertTrue(BazaarOrdersWidgetDefinition.supportsSession(
-            session(true, false, false, null, null, false)
-        ));
+            session(true, false, false, null, null, false)));
         assertTrue(TrackedOrdersWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Item, null, false)
-        ));
+            session(false, false, false, BazaarMenuType.Item, null, false)));
         assertTrue(OrderValueWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Orders, null, false)
-        ));
+            session(false, false, false, BazaarMenuType.Orders, null, false)));
         assertTrue(OrderBookWidgetDefinition.supportsSession(
-            session(false, false, true, null, null, true)
-        ));
+            session(false, false, true, null, null, true)));
         assertTrue(OrderBookPriceWidgetDefinition.supportsSession(
-            session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)
-        ));
+            session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)));
         assertTrue(BookmarksWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Main, null, false)
-        ));
+            session(false, false, false, BazaarMenuType.Main, null, false)));
         assertTrue(OrderPresetsWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.BuyOrderSetupVolume, null, false)
-        ));
+            session(false, false, false, BazaarMenuType.BuyOrderSetupVolume, null, false)));
         assertTrue(OrderPresetsWidgetDefinition.supportsSession(
-            session(false, true, false, null, BazaarMenuType.BuyOrderSetupVolume, false)
-        ));
+            session(false, true, false, null, BazaarMenuType.BuyOrderSetupVolume, false)));
         assertTrue(DailyLimitWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.ItemGroup, null, false)
-        ));
+            session(false, false, false, BazaarMenuType.ItemGroup, null, false)));
         assertTrue(PriceDifferenceWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Item, null, false)
-        ));
+            session(false, false, false, BazaarMenuType.Item, null, false)));
 
         var invalid = session(false, false, false, BazaarMenuType.Settings, null, false);
         assertFalse(OrderValueWidgetDefinition.supportsSession(invalid));
@@ -85,7 +74,8 @@ class BtrBzWidgetDefinitionsTest {
 
     @Test
     void priceDifferenceVisibilityUsesItsOwnSnapshot() {
-        var unavailable = new PriceDifferenceWidgetData.Snapshot(Component.literal("Unavailable"), Optional.empty(), 0, 0);
+        var unavailable = new PriceDifferenceWidgetData.Snapshot(Component.literal("Unavailable"), Optional.empty(), 0,
+            0);
         var available = new PriceDifferenceWidgetData.Snapshot(Component.literal("Available"), Optional.empty(), 1, 1);
         assertFalse(PriceDifferenceWidgetDefinition.isVisible(unavailable));
         assertTrue(PriceDifferenceWidgetDefinition.isVisible(available));
@@ -101,13 +91,11 @@ class BtrBzWidgetDefinitionsTest {
     ) {
         Optional<WidgetProductContext> context = product
             ? Optional.of(new WidgetProductContext(
-                ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty()
-            ))
+                ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty()))
             : Optional.empty();
         return new WidgetSession(
             1, hud, sign, orderBook,
             Optional.ofNullable(menu), Optional.ofNullable(previous), context,
-            sign ? Optional.of(OrderType.Buy) : Optional.empty(), 1
-        );
+            sign ? Optional.of(OrderType.Buy) : Optional.empty(), 1);
     }
 }

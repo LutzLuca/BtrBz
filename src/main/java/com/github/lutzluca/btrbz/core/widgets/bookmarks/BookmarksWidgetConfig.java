@@ -28,7 +28,9 @@ import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 
 public final class BookmarksWidgetConfig {
-    public enum BookmarkSort { Manual, Alphabetical }
+    public enum BookmarkSort {
+        Manual, Alphabetical
+    }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.145, 0.516));
     public int contentWidth = 200;
@@ -114,8 +116,7 @@ public final class BookmarksWidgetConfig {
                 }
                 return new BookmarkedItem(
                     product,
-                    new ItemStackTemplate(BuiltInRegistries.ITEM.getValue(itemId), components)
-                );
+                    new ItemStackTemplate(BuiltInRegistries.ITEM.getValue(itemId), components));
             }
 
             private static Optional<IndexedProduct> readProduct(
@@ -125,8 +126,7 @@ public final class BookmarksWidgetConfig {
                 try {
                     return Optional.of(context.deserialize(
                         GsonUtils.required(object, "product", "Bookmark"),
-                        IndexedProduct.class
-                    ));
+                        IndexedProduct.class));
                 } catch (RuntimeException exception) {
                     log.warn("Skipping bookmark with invalid product", exception);
                     return Optional.empty();

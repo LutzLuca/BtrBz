@@ -2,8 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets;
 
 /** Shared numeric policies used across widget layout and interaction code. */
 public final class WidgetMath {
-    private WidgetMath() {
-    }
+    private WidgetMath() {}
 
     public static int clamp(int value, int minimum, int maximum) {
         return Math.max(minimum, Math.min(maximum, value));

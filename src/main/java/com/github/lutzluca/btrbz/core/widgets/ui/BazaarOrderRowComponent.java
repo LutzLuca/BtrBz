@@ -48,7 +48,8 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
     void update(BazaarRow row, boolean hoverable, int height, boolean reserveScrollbarSpace) {
         var appearance = row.appearance();
-        boolean changed = !appearance.equals(this.lastAppearance) || this.reserveScrollbarSpace != reserveScrollbarSpace;
+        boolean changed = !appearance.equals(this.lastAppearance)
+            || this.reserveScrollbarSpace != reserveScrollbarSpace;
 
         this.row = row;
 
@@ -148,8 +149,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             var widths = priorityWidths(
                 Math.max(0, rowEnd - x),
                 font.width(prefix),
-                font.width(rightText)
-            );
+                font.width(rightText));
             int prefixX = x;
             x += widths.prefixWidth();
 
@@ -161,8 +161,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
                 ellipsize(Component.literal(this.row.text()), Math.max(0, textLimit - x)), x,
                 rightWidth > 0 ? ellipsize(rightText, rightWidth) : null,
                 rowEnd - rightWidth,
-                dotX
-            );
+                dotX);
         }
 
         int rightWidth = blankRight
@@ -182,8 +181,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             prefixSequence, prefixX,
             ellipsize(Component.literal(this.row.text()), textWidth), x,
             blankRight ? null : ellipsize(rightText, rightWidth), rightX,
-            dotX
-        );
+            dotX);
     }
 
     public static PriorityWidths priorityWidths(int availableWidth, int prefixWidth, int rightWidth) {
@@ -220,8 +218,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             return new Appearance(
                 this.id, this.prefix, this.prefixColor, this.text, this.rightText,
                 this.rightColor, this.statusColor, this.tooltip,
-                this.preservePrefix, this.backgroundColor
-            );
+                this.preservePrefix, this.backgroundColor);
         }
 
         public record Appearance(
@@ -256,7 +253,8 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             Consumer<Boolean> clickAction,
             boolean preservePrefix
         ) {
-            this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction, preservePrefix, 0);
+            this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction,
+                preservePrefix, 0);
         }
     }
 }

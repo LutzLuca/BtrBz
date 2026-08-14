@@ -36,8 +36,7 @@ class ConversionIndexTest {
         void resolvesProductByIdAndUniqueName() {
             var index = indexWith(
                 "ENCHANTED_DIAMOND",
-                new ConversionProductEntry("§aEnchanted Diamond", new ProductNameSource.Neu("ENCHANTED_DIAMOND"))
-            );
+                new ConversionProductEntry("§aEnchanted Diamond", new ProductNameSource.Neu("ENCHANTED_DIAMOND")));
 
             var byId = index.product("ENCHANTED_DIAMOND");
             var byName = index.uniqueProductByName("enchanted diamond");
@@ -104,20 +103,16 @@ class ConversionIndexTest {
             index.products().forEach((productId, entry) -> {
                 if (entry.itemStack() != null) {
                     assertTrue(
-                        entry.itemStack().dataVersion()
-                            <= RemoteNeuConversionIndexBuilder.BASELINE_ITEM_DATA_VERSION,
-                        productId
-                    );
+                        entry.itemStack().dataVersion() <= RemoteNeuConversionIndexBuilder.BASELINE_ITEM_DATA_VERSION,
+                        productId);
                     assertDoesNotThrow(
                         () -> TagParser.parseCompoundFully(entry.itemStack().stackSnbt()),
-                        productId
-                    );
+                        productId);
                 }
                 if (entry.legacyItemStack() != null) {
                     assertDoesNotThrow(
                         () -> LegacyNbtParser.parse(entry.legacyItemStack().nbtTag()),
-                        productId
-                    );
+                        productId);
                 }
             });
         }
@@ -137,8 +132,7 @@ class ConversionIndexTest {
                 ConversionIndex.SCHEMA_VERSION,
                 "now",
                 null,
-                products
-            ).sourceCounts();
+                products).sourceCounts();
 
             assertEquals(1, counts.neu());
             assertEquals(1, counts.derived());
@@ -158,9 +152,7 @@ class ConversionIndexTest {
                 null,
                 java.util.Map.of(
                     "ENCHANTMENT_SHARPNESS_5",
-                    new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))
-                )
-            );
+                    new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))));
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
@@ -182,10 +174,8 @@ class ConversionIndexTest {
                 "abc",
                 java.util.Map.of(
                     "KNOWN",
-                    new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))
-                ),
-                Set.of("MISSING")
-            );
+                    new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))),
+                Set.of("MISSING"));
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
@@ -219,16 +209,13 @@ class ConversionIndexTest {
         void roundTripsModernProductStackData() throws Exception {
             var stackData = new ProductStackData(
                 4671,
-                "{count:1,id:\"minecraft:diamond\",components:{\"minecraft:enchantment_glint_override\":1b}}"
-            );
+                "{count:1,id:\"minecraft:diamond\",components:{\"minecraft:enchantment_glint_override\":1b}}");
             var index = indexWith(
                 "ENCHANTED_DIAMOND",
                 new ConversionProductEntry(
                     "Â§aEnchanted Diamond",
                     new ProductNameSource.Neu("ENCHANTED_DIAMOND"),
-                    stackData
-                )
-            );
+                    stackData));
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
@@ -241,25 +228,21 @@ class ConversionIndexTest {
             var stackData = new LegacyProductStackData(
                 "minecraft:diamond",
                 0,
-                "{ExtraAttributes:{id:\"ENCHANTED_DIAMOND\"},display:{Lore:[0:\"Collection Item\"]}}"
-            );
+                "{ExtraAttributes:{id:\"ENCHANTED_DIAMOND\"},display:{Lore:[0:\"Collection Item\"]}}");
             var index = indexWith(
                 "ENCHANTED_DIAMOND",
                 new ConversionProductEntry(
                     "Â§aEnchanted Diamond",
                     new ProductNameSource.Neu("ENCHANTED_DIAMOND"),
                     null,
-                    stackData
-                )
-            );
+                    stackData));
 
             var json = ConversionLoader.GSON.toJson(ConversionLoader.IndexSnapshot.fromIndex(index));
             var parsed = ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class).toIndex();
 
             assertEquals(
                 stackData,
-                parsed.legacyProductStackData("ENCHANTED_DIAMOND").orElseThrow()
-            );
+                parsed.legacyProductStackData("ENCHANTED_DIAMOND").orElseThrow());
         }
 
         @Test
@@ -280,8 +263,7 @@ class ConversionIndexTest {
 
             var error = assertThrows(
                 RuntimeException.class,
-                () -> ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class)
-            );
+                () -> ConversionLoader.GSON.fromJson(json, ConversionLoader.IndexSnapshot.class));
             var cause = assertInstanceOf(IllegalArgumentException.class, error.getCause());
             assertEquals("formattedName must contain a visible name", cause.getMessage());
         }
@@ -300,9 +282,7 @@ class ConversionIndexTest {
                     -1,
                     "now",
                     null,
-                    java.util.Map.of()
-                )
-            );
+                    java.util.Map.of()));
         }
 
         @Test
@@ -316,8 +296,7 @@ class ConversionIndexTest {
                 "minecraft:diamond",
                 0,
                 "{ExtraAttributes:{id:\"ENCHANTED_DIAMOND\"},"
-                    + "display:{Lore:[0:\"Collection Item\"],Name:\"Â§aEnchanted Diamond\"}}"
-            )));
+                    + "display:{Lore:[0:\"Collection Item\"],Name:\"Â§aEnchanted Diamond\"}}")));
 
             var serialized = fixed.getValue().toString();
             assertTrue(serialized.contains("minecraft:diamond"));
@@ -330,8 +309,7 @@ class ConversionIndexTest {
                 "minecraft:diamond",
                 0,
                 "{ExtraAttributes:{id:\"ENCHANTED_DIAMOND\"},"
-                    + "display:{Lore:[0:\"§7Collection Item\"],Name:\"§aEnchanted Diamond\"}}"
-            )));
+                    + "display:{Lore:[0:\"§7Collection Item\"],Name:\"§aEnchanted Diamond\"}}")));
             var item = assertInstanceOf(CompoundTag.class, fixed.getValue());
             var customData = item
                 .getCompoundOrEmpty("components")
@@ -349,8 +327,7 @@ class ConversionIndexTest {
                 "minecraft:paper",
                 0,
                 "{ExtraAttributes:{id:\"FINE_TOPAZ_GEM\"},"
-                    + "ItemModel:\"hypixel_skyblock:item/collections/gemstone/topaz/fine_topaz_gem\"}"
-            )));
+                    + "ItemModel:\"hypixel_skyblock:item/collections/gemstone/topaz/fine_topaz_gem\"}")));
             var item = assertInstanceOf(CompoundTag.class, fixed.getValue());
             var customData = item
                 .getCompoundOrEmpty("components")
@@ -358,8 +335,7 @@ class ConversionIndexTest {
 
             assertEquals(
                 Identifier.parse("hypixel_skyblock:item/collections/gemstone/topaz/fine_topaz_gem"),
-                LegacyStackNormalizer.itemModel(customData).orElseThrow()
-            );
+                LegacyStackNormalizer.itemModel(customData).orElseThrow());
         }
 
         @Test
@@ -387,8 +363,7 @@ class ConversionIndexTest {
             ConversionIndex.SCHEMA_VERSION,
             "now",
             null,
-            java.util.Map.of(productId, entry)
-        );
+            java.util.Map.of(productId, entry));
     }
 
     private static Dynamic<Tag> fixLegacy(LegacyProductStackData stackData) throws Exception {
@@ -401,7 +376,6 @@ class ConversionIndexTest {
             TypeReferences.LEGACY_ITEM_STACK,
             new Dynamic<Tag>(NbtOps.INSTANCE, item),
             LegacyItemStackFixer.getFirstVersion(),
-            LegacyItemStackFixer.getLatestVersion()
-        );
+            LegacyItemStackFixer.getLatestVersion());
     }
 }

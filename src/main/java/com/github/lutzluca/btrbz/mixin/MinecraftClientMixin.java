@@ -12,15 +12,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.client.Minecraft;
 //?} else {
 /*import net.minecraft.client.gui.Gui;
- *///?}
+*///?}
 
 //? if <26.2 {
 @Mixin(Minecraft.class)
 //?} else {
 /*@Mixin(Gui.class)
- *///?}
+*///?}
 public abstract class MinecraftClientMixin {
-    // @formatter:off
     /**
      * Dual injection into MinecraftClient#setScreen to support screen-aware rendering and safe callbacks.
      *
@@ -34,10 +33,9 @@ public abstract class MinecraftClientMixin {
      * - @TAIL: Fires callbacks after the screen is fully initialized.
      *   • Example issue: If callbacks run too early (e.g. in FlipHelper), calling `close()` on the screen
      *     causes a NPE on `this.client`, since the screen isn't fully set up yet.
-     * 
+     *
      * This is kinda wierd and sucks
      */
-    // @formatter:on
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"))
     private void onSetScreenHead(@Nullable Screen screen, CallbackInfo ci) {
         // The manager temporarily replaces its parent screen. Excluding it preserves the Bazaar

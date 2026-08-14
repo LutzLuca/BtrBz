@@ -5,7 +5,9 @@ import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyl
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class OrderBookWidgetConfig {
-    public enum BookLayout { Split, BuyOnly, SellOnly }
+    public enum BookLayout {
+        Split, BuyOnly, SellOnly
+    }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.29, 0.31));
     public int contentWidth = 400;
@@ -13,6 +15,7 @@ public final class OrderBookWidgetConfig {
     public BookLayout layout = BookLayout.Split;
     public NumberStyle numberStyle = NumberStyle.Exact;
     public boolean showOrderCount = true;
+
     public static void resetPreferences(OrderBookWidgetConfig current, OrderBookWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.visibleRows = defaults.visibleRows;

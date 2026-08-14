@@ -13,19 +13,16 @@ import net.minecraft.resources.Identifier;
 /** The sole widget shortcut: a remappable normal-gameplay HUD toggle, default H. */
 public final class BtrBzWidgetKeybinds {
     private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
-        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widgets")
-    );
+        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widgets"));
 
-    private BtrBzWidgetKeybinds() {
-    }
+    private BtrBzWidgetKeybinds() {}
 
     public static void register() {
         var toggleHud = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.btrbz.toggle_bazaar_orders_hud",
             InputConstants.Type.KEYSYM,
             InputConstants.KEY_H,
-            CATEGORY
-        ));
+            CATEGORY));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleHud.consumeClick()) {
@@ -41,8 +38,7 @@ public final class BtrBzWidgetKeybinds {
 
                 store.setActive(definition, enabled);
                 Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
-                    "Bazaar Orders HUD " + (enabled ? "enabled" : "disabled")
-                ).withStyle(ChatFormatting.GRAY)));
+                    "Bazaar Orders HUD " + (enabled ? "enabled" : "disabled")).withStyle(ChatFormatting.GRAY)));
             }
         });
     }

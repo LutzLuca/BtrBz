@@ -67,8 +67,7 @@ public final class OrderBookScreen extends Screen {
             delta,
             new WidgetCanvas(0, 0, this.width, this.height),
             WidgetHostOptions.runtime(true),
-            this
-        );
+            this);
     }
 
     @Override

@@ -23,8 +23,7 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
     public BazaarOrderListComponent(boolean hoverable, int rowHeight, int height) {
         super(Sizing.fill(100), Sizing.fixed(height));
         this.scrollList = new WidgetScrollListComponent(
-            height, WidgetLayoutTokens.LIST_GAP, hoverable, BazaarStyles.SCROLLBAR
-        );
+            height, WidgetLayoutTokens.LIST_GAP, hoverable, BazaarStyles.SCROLLBAR);
 
         this.children = Collections.singletonList(this.scrollList);
         this.viewportHeight = Math.max(1, height);
@@ -43,8 +42,7 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
             rowData,
             BazaarOrderRowComponent.BazaarRow::id,
             (data, _) -> new BazaarOrderRowComponent(data, hoverable, rowHeight, reserveScrollbarSpace),
-            (row, data, _) -> row.update(data, hoverable, rowHeight, reserveScrollbarSpace)
-        );
+            (row, data, _) -> row.update(data, hoverable, rowHeight, reserveScrollbarSpace));
 
         this.rows.clear();
         this.rows.addAll(ordered);

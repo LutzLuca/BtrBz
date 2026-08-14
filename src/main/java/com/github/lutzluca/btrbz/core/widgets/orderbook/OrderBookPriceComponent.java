@@ -72,8 +72,7 @@ public final class OrderBookPriceComponent {
                     summary.getPricePerUnit(),
                     summary.getAmount(),
                     (int) summary.getOrders(),
-                    cumulative
-                ));
+                    cumulative));
             }
 
             return new Snapshot(workflow, levels);
@@ -137,10 +136,12 @@ public final class OrderBookPriceComponent {
     }
 
     public record Workflow(ProductIdentity product, OrderType side) {}
+
     public record Snapshot(Workflow workflow, List<PriceLevel> levels) {
         public Snapshot {
             levels = List.copyOf(levels);
         }
     }
+
     public record PriceLevel(double price, double volume, int orders, double cumulativeVolume) {}
 }

@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 
 public final class ConversionCommand {
 
-    private ConversionCommand() { }
+    private ConversionCommand() {}
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
         return Commands.rootCommand.then(command("conversions", bazaarData));

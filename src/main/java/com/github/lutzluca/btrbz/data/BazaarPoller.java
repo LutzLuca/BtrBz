@@ -71,34 +71,31 @@ public class BazaarPoller {
     }
 
     private void fetchBazaarData() {
-        // @formatter:off
         API.getSkyBlockBazaar()
-           .whenCompleteAsync(
-               (reply, throwable) -> {
-                   if (throwable != null) {
-                       this.handleFetchError(throwable);
-                       return;
-                   }
+            .whenCompleteAsync(
+                (reply, throwable) -> {
+                    if (throwable != null) {
+                        this.handleFetchError(throwable);
+                        return;
+                    }
 
-                   if (reply == null) {
-                       this.handleFetchError(new NullPointerException("Bazaar reply is null"));
-                       return;
-                   }
+                    if (reply == null) {
+                        this.handleFetchError(new NullPointerException("Bazaar reply is null"));
+                        return;
+                    }
 
-                   if (!reply.isSuccess()) {
-                       this.handleFetchError(new IllegalStateException("Bazaar reply unsuccessful"));
-                       return;
-                   }
+                    if (!reply.isSuccess()) {
+                        this.handleFetchError(new IllegalStateException("Bazaar reply unsuccessful"));
+                        return;
+                    }
 
-                   this.processBazaarReply(reply);
-               },
-               this.scheduler
-           );
-        // @formatter:on
+                    this.processBazaarReply(reply);
+                },
+                this.scheduler);
     }
 
     private void processBazaarReply(SkyBlockBazaarReply reply) {
-        Try.of(() -> (SkyBlockBazaarReplyAccessor) reply).onSuccess((accessor) -> {
+        Try.of(() -> (SkyBlockBazaarReplyAccessor) reply).onSuccess(accessor -> {
             long currentUpdateTime = accessor.getLastUpdated();
             boolean changed = currentUpdateTime != this.lastKnownUpdateTime;
 
@@ -112,14 +109,12 @@ public class BazaarPoller {
             log.trace(
                 "Bazaar data fetched successfully - Data {}, Last Updated: {}",
                 changed ? "changed" : "unchanged",
-                Utils.formatUtcTimestampMillis(currentUpdateTime)
-            );
+                Utils.formatUtcTimestampMillis(currentUpdateTime));
         }).onFailure(err -> {
             log.warn("Reply does not implement expected accessor.", err);
             this.scheduleFetch(
                 ERROR_BACKOFF_MS,
-                "Error recovery - SkyBlockBazaarReplyAccessor cast failed"
-            );
+                "Error recovery - SkyBlockBazaarReplyAccessor cast failed");
         });
     }
 
@@ -145,18 +140,16 @@ public class BazaarPoller {
                 "Data unchanged (attempt {}/{}), retrying in {}ms",
                 this.unchangedDataRetries,
                 MAX_UNCHANGED_RETRIES,
-                UNCHANGED_DATA_BACKOFF_MS
-            );
+                UNCHANGED_DATA_BACKOFF_MS);
 
             this.scheduleFetch(
                 UNCHANGED_DATA_BACKOFF_MS,
-                String.format("Unchanged data retry #%d", this.unchangedDataRetries)
-            );
+                String.format("Unchanged data retry #%d", this.unchangedDataRetries));
         } else {
             log.warn(
-                "Bazaar data has been unchanged for {} consecutive attempts. Reverting to normal polling interval. This may indicate an API issue.",
-                MAX_UNCHANGED_RETRIES
-            );
+                "Bazaar data has been unchanged for {} consecutive attempts. Reverting to normal polling interval. "
+                    + "This may indicate an API issue.",
+                MAX_UNCHANGED_RETRIES);
 
             this.unchangedDataRetries = 0;
             long jitter = ThreadLocalRandom.current().nextLong(200, 400);
@@ -168,8 +161,7 @@ public class BazaarPoller {
         log.warn(
             "Error occurred while fetching bazaar data. Retrying in {}ms. {}",
             ERROR_BACKOFF_MS,
-            throwable.getMessage()
-        );
+            throwable.getMessage());
         this.scheduleFetch(ERROR_BACKOFF_MS, "Error recovery: API fetch error");
     }
 }

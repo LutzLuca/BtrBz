@@ -50,8 +50,7 @@ public final class OrderBookScreenController {
                 productInfoProvider.getOpenedProduct() != null,
                 view.playerInventorySlot(),
                 view.slotIdx(),
-                view.getCurrInfo().getMenuType().orElse(null)
-            );
+                view.getCurrInfo().getMenuType().orElse(null));
         }
 
         @Override
@@ -60,8 +59,7 @@ public final class OrderBookScreenController {
                 this.displayStack = new ItemStack(Items.BOOK);
                 this.displayStack.set(
                     DataComponents.CUSTOM_NAME,
-                    Component.literal("Open Order Book").withStyle(style -> style.withItalic(false))
-                );
+                    Component.literal("Open Order Book").withStyle(style -> style.withItalic(false)));
             }
 
             return this.displayStack.copy();
@@ -83,8 +81,7 @@ public final class OrderBookScreenController {
                 context.view().getCurrInfo().getScreen(),
                 identity,
                 product.formattedName(),
-                runtime.createScreenHost()
-            ));
+                runtime.createScreenHost()));
             return SlotClickResult.Consume;
         }
     }

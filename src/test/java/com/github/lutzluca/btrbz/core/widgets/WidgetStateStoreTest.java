@@ -17,7 +17,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WidgetStateStoreTest {
     @Test
@@ -49,8 +52,7 @@ class WidgetStateStoreTest {
         assertTrue(config.managerLauncherVisible);
         assertEquals(
             WidgetPlacement.topLeft(0.0, 1.0),
-            WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION
-        );
+            WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION);
         assertEquals(WidgetsConfig.DEFAULT_MANAGER_LAUNCHER_POSITION, config.managerLauncherPosition);
         assertEquals(15_000_000_000d, config.orderLimit.dailyLimit);
         assertTrue(config.bookmarks.items.isEmpty());
@@ -143,12 +145,11 @@ class WidgetStateStoreTest {
         var config = new WidgetsConfig();
         var store = new WidgetStateStore(() -> config, () -> {});
         var definition = WidgetDefinition.<Object, OrderPresetsWidgetConfig, Void>builder(
-                WidgetId.parse("btrbz:order_presets"), "Order Presets")
+            WidgetId.parse("btrbz:order_presets"), "Order Presets")
             .config(new WidgetConfigHandle<>(
                 WidgetId.parse("btrbz:order_presets"), () -> config.orderPresets,
                 OrderPresetsWidgetConfig::new, value -> value.frame,
-                OrderPresetsWidgetConfig::resetPreferences
-            ))
+                OrderPresetsWidgetConfig::resetPreferences))
             .data(source())
             .preview(() -> null)
             .viewFactory(() -> null)
@@ -168,7 +169,7 @@ class WidgetStateStoreTest {
 
     @Test
     void definitionResolvesAReplacedConfigObject() {
-        var holder = new BookmarksWidgetConfig[] {new BookmarksWidgetConfig()};
+        var holder = new BookmarksWidgetConfig[]{new BookmarksWidgetConfig()};
         var definition = bookmarksDefinition(() -> holder[0]);
         var replacement = new BookmarksWidgetConfig();
         replacement.frame.enabled = false;
@@ -233,8 +234,7 @@ class WidgetStateStoreTest {
         return WidgetDefinition.<Object, BookmarksWidgetConfig, Void>builder(id, "Bookmarks")
             .config(new WidgetConfigHandle<>(
                 id, supplier, BookmarksWidgetConfig::new,
-                value -> value.frame, BookmarksWidgetConfig::resetPreferences
-            ))
+                value -> value.frame, BookmarksWidgetConfig::resetPreferences))
             .data(source())
             .preview(() -> null)
             .viewFactory(() -> null)
@@ -243,8 +243,15 @@ class WidgetStateStoreTest {
 
     private static WidgetDataSource<Object> source() {
         return new WidgetDataSource<>() {
-            @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
-            @Override public Object snapshot(WidgetSession session) { return new Object(); }
+            @Override
+            public CacheDependencies cacheDependencies() {
+                return CacheDependencies.none();
+            }
+
+            @Override
+            public Object snapshot(WidgetSession session) {
+                return new Object();
+            }
         };
     }
 }

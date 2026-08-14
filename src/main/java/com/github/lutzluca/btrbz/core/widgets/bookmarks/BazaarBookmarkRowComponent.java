@@ -81,8 +81,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         this.item.mount(
             this,
             this.x + WidgetLayoutTokens.ROW_HORIZONTAL_PADDING,
-            this.y + (this.height - ICON_SIZE) / 2
-        );
+            this.y + (this.height - ICON_SIZE) / 2);
     }
 
     @Override

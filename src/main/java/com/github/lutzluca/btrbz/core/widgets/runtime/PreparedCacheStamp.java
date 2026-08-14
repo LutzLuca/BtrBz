@@ -29,8 +29,7 @@ record PreparedCacheStamp(
         return new PreparedCacheStamp(
             session.id(), session.contextRevision(),
             canvas.x(), canvas.y(), canvas.width(), canvas.height(), options,
-            placementProfile, CacheRevisions.capture(dependencies)
-        );
+            placementProfile, CacheRevisions.capture(dependencies));
     }
 
     public boolean matches(

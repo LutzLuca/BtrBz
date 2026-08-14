@@ -21,8 +21,7 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(
         Sizing.fixed(DailyLimitWidgetDefinition.MINIMUM_CONTENT_WIDTH),
-        Sizing.content()
-    );
+        Sizing.content());
 
     private final LabelComponent header = text("Daily Limit", BazaarStyles.PRIMARY_TEXT);
     private final LabelComponent value = text("", BazaarStyles.BUY_ACCENT);
@@ -38,8 +37,8 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         this.root.child(this.value);
 
         this.root.tooltip(WidgetTooltips.wrapped(
-            "Estimated from Bazaar transactions observed by the mod. Activity missed while data is unavailable may not be included."
-        ));
+            "Estimated from Bazaar transactions observed by the mod. Activity missed while data is unavailable "
+                + "may not be included."));
     }
 
     @Override
@@ -70,8 +69,7 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
 
             this.root.horizontalSizing(Sizing.fixed(Math.max(
                 DailyLimitWidgetDefinition.MINIMUM_CONTENT_WIDTH,
-                Math.max(font.width("Daily Limit"), font.width(display))
-            )));
+                Math.max(font.width("Daily Limit"), font.width(display)))));
         }
 
         this.root.clearChildren();

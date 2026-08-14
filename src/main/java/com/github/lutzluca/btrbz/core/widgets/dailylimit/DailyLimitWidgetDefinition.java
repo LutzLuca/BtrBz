@@ -16,8 +16,7 @@ public final class DailyLimitWidgetDefinition {
     public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "order_limit"));
     static final int MINIMUM_CONTENT_WIDTH = 60;
 
-    private DailyLimitWidgetDefinition() {
-    }
+    private DailyLimitWidgetDefinition() {}
 
     public static WidgetDefinition<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> create(
         DailyLimitComponent component
@@ -33,7 +32,8 @@ public final class DailyLimitWidgetDefinition {
             .supports(DailyLimitWidgetDefinition::supportsSession)
             .data(data)
             .cachePrepared()
-            .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(), WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
+            .preview(() -> new WidgetPreview<>(DailyLimitWidgetData.preview(),
+                WidgetPreviewSessions.container(BazaarMenuType.Main), "default"))
             .viewFactory(DailyLimitWidgetView::new)
             .settingsPanel(DailyLimitWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(MINIMUM_CONTENT_WIDTH), 30)

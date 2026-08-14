@@ -17,8 +17,7 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
             BazaarStyles.INSERTION,
             0,
             4,
-            2
-        );
+            2);
     }
 
     void update(
@@ -34,26 +33,21 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
             bookmarks,
             BookmarksWidgetData.Bookmark::productId,
             (bookmark, index) -> new BazaarBookmarkRowComponent(
-                this, bookmark, options, interactive, reserveScrollbarSpace, index, actions
-            ),
+                this, bookmark, options, interactive, reserveScrollbarSpace, index, actions),
             (row, bookmark, index) -> row.update(
-                bookmark, options, interactive, reserveScrollbarSpace, index, actions
-            ),
+                bookmark, options, interactive, reserveScrollbarSpace, index, actions),
             viewportHeight,
             interactive,
-            options.sort == BookmarksWidgetConfig.BookmarkSort.Manual
-        );
+            options.sort == BookmarksWidgetConfig.BookmarkSort.Manual);
     }
 
     static boolean reserveScrollbarSpace(int bookmarkCount, int viewportHeight) {
         return WidgetLayoutTokens.requiresScrollbar(
-            BazaarBookmarkRowComponent.HEIGHT, bookmarkCount, viewportHeight
-        );
+            BazaarBookmarkRowComponent.HEIGHT, bookmarkCount, viewportHeight);
     }
 
     private static int viewportHeight(BookmarksWidgetConfig options, int bookmarkCount) {
         return WidgetLayoutTokens.configuredListViewportHeight(
-            BazaarBookmarkRowComponent.HEIGHT, bookmarkCount, options.visibleRows, true
-        );
+            BazaarBookmarkRowComponent.HEIGHT, bookmarkCount, options.visibleRows, true);
     }
 }

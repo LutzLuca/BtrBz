@@ -18,8 +18,7 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
     ) {
         this.component = component;
         this.dependencies = component.dataDependencies().and(
-            CacheDependencies.of(configHandle.contentChanges())
-        );
+            CacheDependencies.of(configHandle.contentChanges()));
     }
 
     @Override
@@ -55,8 +54,7 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
             };
 
             return new Preset(
-                preset, label, tooltip, state instanceof OrderPresetsComponent.PresetState.Available
-            );
+                preset, label, tooltip, state instanceof OrderPresetsComponent.PresetState.Available);
         }).toList());
     }
 
@@ -66,8 +64,7 @@ public final class OrderPresetsWidgetData implements WidgetDataSource<OrderPrese
             new Preset(new OrderPreset.Clipboard(320), "320", "Clipboard", true),
             new Preset(new OrderPreset.Fixed(64), "64", "", true),
             new Preset(new OrderPreset.Fixed(1024), "1,024", "", true),
-            new Preset(new OrderPreset.Fixed(71680), "71,680", "Insufficient coins", false)
-        ));
+            new Preset(new OrderPreset.Fixed(71680), "71,680", "Insufficient coins", false)));
     }
 
     public record Preset(OrderPreset preset, String label, String tooltip, boolean available) {

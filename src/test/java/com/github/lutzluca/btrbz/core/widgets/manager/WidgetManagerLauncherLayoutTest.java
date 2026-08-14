@@ -20,8 +20,7 @@ class WidgetManagerLauncherLayoutTest {
                 new WidgetCanvas(0, 0, 320, 180),
                 WidgetPlacement.topLeft(0.0, 1.0),
                 22,
-                0.71
-            );
+                0.71);
 
             assertEquals(0.71, layout.scale());
             assertEquals(16, layout.localBounds().width());
@@ -36,8 +35,7 @@ class WidgetManagerLauncherLayoutTest {
                 new WidgetCanvas(12, 18, 320, 180),
                 WidgetPlacement.topLeft(0.5, 0.5),
                 22,
-                1.0
-            );
+                1.0);
 
             assertEquals(160, layout.localBounds().x());
             assertEquals(90, layout.localBounds().y());

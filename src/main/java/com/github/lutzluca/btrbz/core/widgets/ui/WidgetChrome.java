@@ -9,15 +9,13 @@ import io.wispforest.owo.ui.core.UIComponent;
 public final class WidgetChrome {
     static final int CORNER_RADIUS = 5;
 
-    private WidgetChrome() {
-    }
+    private WidgetChrome() {}
 
     public static UIComponent wrap(UIComponent content) {
         FlowLayout layout = UIContainers.verticalFlow(Sizing.content(), Sizing.content());
         layout.padding(Insets.both(
             WidgetLayoutTokens.PANEL_HORIZONTAL_PADDING,
-            WidgetLayoutTokens.PANEL_VERTICAL_PADDING
-        ));
+            WidgetLayoutTokens.PANEL_VERTICAL_PADDING));
         layout.allowOverflow(true);
         layout.child(content);
 

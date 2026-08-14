@@ -26,8 +26,7 @@ final class BazaarLabelComponent extends LabelComponent {
                 renderX,
                 renderY,
                 color.argb(),
-                shadow
-            ));
+                shadow));
         } finally {
             graphics.pop();
         }

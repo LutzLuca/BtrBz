@@ -35,8 +35,7 @@ final class ProductStackResolver {
         var index = this.service.currentIndex();
         var stackData = index.productStackData(productId).filter(data -> ProductStackResolver.isCompatible(
             data,
-            SharedConstants.getCurrentVersion().dataVersion().version()
-        ));
+            SharedConstants.getCurrentVersion().dataVersion().version()));
         var legacyStackData = index.legacyProductStackData(productId);
         if (stackData.isEmpty() && legacyStackData.isEmpty()) {
             return Optional.empty();
@@ -57,9 +56,7 @@ final class ProductStackResolver {
                     productId,
                     stackData,
                     legacyStackData,
-                    RegistryOps.create(NbtOps.INSTANCE, registryAccess)
-                )
-            )
+                    RegistryOps.create(NbtOps.INSTANCE, registryAccess)))
             .map(ItemStackTemplate::create);
     }
 
@@ -98,8 +95,7 @@ final class ProductStackResolver {
         template.ifPresent(_ -> log.debug(
             "Decoded product stack {} from {}",
             productId,
-            resolvedSource
-        ));
+            resolvedSource));
         return template;
     }
 
@@ -116,8 +112,7 @@ final class ProductStackResolver {
             "Failed to decode indexed product stack overlay {} from NEU data version {}",
             productId,
             stackData.dataVersion(),
-            err
-        ));
+            err));
         return result.toJavaOptional().filter(stack -> !stack.isEmpty());
     }
 
@@ -137,8 +132,7 @@ final class ProductStackResolver {
                 TypeReferences.LEGACY_ITEM_STACK,
                 new Dynamic<Tag>(registryOps, item),
                 LegacyItemStackFixer.getFirstVersion(),
-                LegacyItemStackFixer.getLatestVersion()
-            );
+                LegacyItemStackFixer.getLatestVersion());
             return LegacyStackNormalizer.normalize(ItemStack.CODEC.parse(fixed).getOrThrow());
         });
         result.onFailure(err -> log.warn("Failed to decode legacy NEU product stack {}", productId, err));

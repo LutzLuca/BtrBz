@@ -46,8 +46,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             this.y,
             this.x + this.width,
             this.y + this.height,
-            this.screen.hasBazaarBackground() ? 0x00000000 : 0x660B0D12
-        );
+            this.screen.hasBazaarBackground() ? 0x00000000 : 0x660B0D12);
         this.lastResults = this.host.render(
             graphics,
             mouseX,
@@ -57,10 +56,8 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             WidgetHostOptions.management(
                 this.screen.selectedWidget(),
                 this.screen.renderedWidgets(),
-                this.screen.previewProfiles()
-            ),
-            this.screen
-        );
+                this.screen.previewProfiles()),
+            this.screen);
     }
 
     @Override
@@ -96,8 +93,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             absoluteX - result.bounds().x(),
             absoluteY - result.bounds().y(),
             result.bounds().width(),
-            result.bounds().height()
-        );
+            result.bounds().height());
 
         return true;
     }
@@ -130,14 +126,12 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             this.canvas.width(),
             this.canvas.height(),
             this.dragState.scaledWidth(),
-            this.dragState.scaledHeight()
-        );
+            this.dragState.scaledHeight());
         this.screen.stateStore().setPlacement(
             this.dragState.definition(),
             this.dragState.placementProfile(),
             placement,
-            false
-        );
+            false);
 
         return true;
     }

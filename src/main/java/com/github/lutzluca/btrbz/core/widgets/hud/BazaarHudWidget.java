@@ -7,8 +7,7 @@ import java.util.List;
 
 /** Pure HUD presentation decisions used by the retained view. */
 public final class BazaarHudWidget {
-    private BazaarHudWidget() {
-    }
+    private BazaarHudWidget() {}
 
     public static String emptyText(BazaarWidgetViewData.OrdersData data) {
         return data.filledOrderCount() == 0 ? "No active or filled orders" : "No active orders";

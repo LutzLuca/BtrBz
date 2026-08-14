@@ -4,8 +4,13 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class TrackedOrdersWidgetConfig {
-    public enum TrackedLayout { Standard, Compact }
-    public enum TrackedSort { Manual, Newest, Status }
+    public enum TrackedLayout {
+        Standard, Compact
+    }
+
+    public enum TrackedSort {
+        Manual, Newest, Status
+    }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.145, 0.25));
     public int contentWidth = 200;
@@ -13,7 +18,7 @@ public final class TrackedOrdersWidgetConfig {
     public TrackedLayout layout = TrackedLayout.Standard;
     public TrackedSort sort = TrackedSort.Manual;
 
-    public record Snapshot(int contentWidth,int visibleRows, TrackedLayout layout, TrackedSort sort) {
+    public record Snapshot(int contentWidth, int visibleRows, TrackedLayout layout, TrackedSort sort) {
         public static Snapshot of(TrackedOrdersWidgetConfig config) {
             return new Snapshot(config.contentWidth, config.visibleRows, config.layout, config.sort);
         }

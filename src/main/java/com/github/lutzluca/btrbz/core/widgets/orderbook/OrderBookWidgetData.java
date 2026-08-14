@@ -53,14 +53,11 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
             itemStack,
             lists.buyOrders().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Buy, summary.getPricePerUnit(),
-                (int) summary.getAmount(), (int) summary.getOrders()
-            )).toList(),
+                (int) summary.getAmount(), (int) summary.getOrders())).toList(),
             lists.sellOffers().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Sell, summary.getPricePerUnit(),
-                (int) summary.getAmount(), (int) summary.getOrders()
-            )).toList(),
-            appropriateSide
-        );
+                (int) summary.getAmount(), (int) summary.getOrders())).toList(),
+            appropriateSide);
     }
 
     public static Snapshot preview() {
@@ -68,8 +65,7 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
             "Booster Cookie", Optional.of(new ItemStack(Items.COOKIE)),
             previewLevels(BazaarWidgetViewData.OrderSide.Buy, 9_811_000.1),
             previewLevels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0),
-            Optional.of(BazaarWidgetViewData.OrderSide.Sell)
-        );
+            Optional.of(BazaarWidgetViewData.OrderSide.Sell));
     }
 
     private static List<Entry> previewLevels(
@@ -82,8 +78,7 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
                 side,
                 start + (side == BazaarWidgetViewData.OrderSide.Buy ? -index : index) * 12_500,
                 18 + index * 23,
-                5 + index * 4
-            ));
+                5 + index * 4));
         }
         return values;
     }

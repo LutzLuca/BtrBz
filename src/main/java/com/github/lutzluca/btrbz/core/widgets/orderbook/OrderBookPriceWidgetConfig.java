@@ -4,7 +4,9 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class OrderBookPriceWidgetConfig {
-    public enum EmbeddedSideDisplay { Relevant, Both }
+    public enum EmbeddedSideDisplay {
+        Relevant, Both
+    }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.16, 0.11));
     public int contentWidth = 400;

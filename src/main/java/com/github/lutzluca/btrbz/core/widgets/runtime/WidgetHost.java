@@ -1,6 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
-import com.github.lutzluca.btrbz.core.widgets.*;
+import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
+import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
+import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -78,8 +83,7 @@ public final class WidgetHost {
         boolean placementDragging
     ) {
         return new WidgetHost(
-            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets
-        );
+            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets);
     }
 
     public static WidgetHost preview(
@@ -175,8 +179,7 @@ public final class WidgetHost {
     public Map<WidgetId, WidgetCacheDiagnostics> cacheDiagnostics() {
         var diagnostics = new LinkedHashMap<WidgetId, WidgetCacheDiagnostics>();
         this.mounted.forEach((id, widget) -> diagnostics.put(id, new WidgetCacheDiagnostics(
-            widget.hits, widget.misses, widget.coldMisses, widget.lastMissCauses
-        )));
+            widget.hits, widget.misses, widget.coldMisses, widget.lastMissCauses)));
         return Map.copyOf(diagnostics);
     }
 
@@ -194,8 +197,7 @@ public final class WidgetHost {
                 this.runtimePlacementDrag = new RuntimePlacementDrag(
                     result.definition(), result.placementProfile(), hit.anchorCanvas(),
                     click.x() - result.bounds().x(), click.y() - result.bounds().y(),
-                    result.bounds().width(), result.bounds().height(), click.button()
-                );
+                    result.bounds().width(), result.bounds().height(), click.button());
 
                 this.capturedMouseButtons.add(click.button());
 
@@ -264,8 +266,7 @@ public final class WidgetHost {
             WidgetSession session = this.runtime ? runtimeSession : preview.session();
 
             var mountedWidget = this.mounted.computeIfAbsent(
-                definition.getId(), _ -> this.mount(definition)
-            );
+                definition.getId(), _ -> this.mount(definition));
 
             String initialProfile = this.runtime
                 ? definition.placementProfile(session)
@@ -275,9 +276,9 @@ public final class WidgetHost {
             var cached = mountedWidget.preparedCache;
             boolean preparedCaching = this.runtime && definition.isPreparedCacheEnabled();
 
-            if (preparedCaching && cached != null && cached.stamp().matches(
-                session, screenCanvas, options, profile, mountedWidget.dependencies
-            )) {
+            if (preparedCaching && cached != null
+                && cached.stamp().matches(
+                    session, screenCanvas, options, profile, mountedWidget.dependencies)) {
                 mountedWidget.hits++;
                 return cached.prepared();
             }
@@ -303,15 +304,13 @@ public final class WidgetHost {
                 mountedWidget.slot().update(
                     this.stateStore.backgroundColor(definition),
                     mountedWidget.slot().localBounds(), 1, 1, 1,
-                    options.isSelected(definition), options.drawManagementOverlay(), false
-                );
+                    options.isSelected(definition), options.drawManagementOverlay(), false);
 
                 var prepared = new PreparedWidget(mountedWidget, null, anchorCanvas);
 
                 this.publishPreparation(
                     mountedWidget, preparedCaching, session, screenCanvas, options,
-                    profile, generation, prepared
-                );
+                    profile, generation, prepared);
                 return prepared;
             }
 
@@ -319,27 +318,23 @@ public final class WidgetHost {
             double requestedScale = Math.max(this.stateStore.requestedScale(definition), minimumScale);
             double scale = WidgetScaleResolver.fitToCanvas(
                 requestedScale, minimumScale, anchorCanvas.width(), anchorCanvas.height(),
-                definition.getMinWidth(), definition.getMinHeight()
-            );
+                definition.getMinWidth(), definition.getMinHeight());
 
             var component = mountedWidget.component();
 
             component.inflate(Size.of(
                 Math.max(1, (int) Math.floor(anchorCanvas.width() / scale)),
-                Math.max(1, (int) Math.floor(anchorCanvas.height() / scale))
-            ));
+                Math.max(1, (int) Math.floor(anchorCanvas.height() / scale))));
 
             int logicalWidth = Math.max(definition.getMinWidth(), component.width());
             int logicalHeight = Math.max(definition.getMinHeight(), component.height());
 
             scale = WidgetScaleResolver.fitToCanvas(
                 requestedScale, minimumScale, anchorCanvas.width(), anchorCanvas.height(),
-                logicalWidth, logicalHeight
-            );
+                logicalWidth, logicalHeight);
 
             if (!WidgetScaleResolver.fitsCanvas(
-                scale, anchorCanvas.width(), anchorCanvas.height(), logicalWidth, logicalHeight
-            )) {
+                scale, anchorCanvas.width(), anchorCanvas.height(), logicalWidth, logicalHeight)) {
                 mountedWidget.clearPreparation();
                 return null;
             }
@@ -348,36 +343,30 @@ public final class WidgetHost {
             int scaledHeight = Math.max(1, (int) Math.ceil(logicalHeight * scale));
 
             var resolved = this.stateStore.placement(definition, profile).resolve(
-                anchorCanvas.width(), anchorCanvas.height(), scaledWidth, scaledHeight
-            );
+                anchorCanvas.width(), anchorCanvas.height(), scaledWidth, scaledHeight);
 
             var localBounds = new WidgetBounds(
                 anchorCanvas.x() - screenCanvas.x() + resolved.x(),
                 anchorCanvas.y() - screenCanvas.y() + resolved.y(),
-                resolved.width(), resolved.height()
-            );
+                resolved.width(), resolved.height());
 
             mountedWidget.slot().update(
                 this.stateStore.backgroundColor(definition),
                 localBounds, logicalWidth, logicalHeight, scale,
-                options.isSelected(definition), options.drawManagementOverlay(), true
-            );
+                options.isSelected(definition), options.drawManagementOverlay(), true);
 
             var result = new WidgetRenderResult(
                 definition, profile,
                 new WidgetBounds(
                     screenCanvas.x() + localBounds.x(), screenCanvas.y() + localBounds.y(),
-                    localBounds.width(), localBounds.height()
-                ),
-                logicalWidth, logicalHeight, scale
-            );
+                    localBounds.width(), localBounds.height()),
+                logicalWidth, logicalHeight, scale);
 
             var prepared = new PreparedWidget(mountedWidget, result, anchorCanvas);
 
             this.publishPreparation(
                 mountedWidget, preparedCaching, session, screenCanvas, options,
-                profile, generation, prepared
-            );
+                profile, generation, prepared);
             return prepared;
         } catch (Exception exception) {
             log.warn("Widget {} failed during retained update", definition.getId(), exception);
@@ -403,20 +392,20 @@ public final class WidgetHost {
         mountedWidget.preparedSessionContextRevision = session.contextRevision();
         mountedWidget.preparedDependencyRevisions = revisions;
 
-        mountedWidget.preparedCache = preparedCaching ? new PreparedCacheEntry(
-            new PreparedCacheStamp(
-                session.id(), session.contextRevision(),
-                canvas.x(), canvas.y(), canvas.width(), canvas.height(), options,
-                placementProfile, revisions
-            ), prepared
-        ) : null;
+        mountedWidget.preparedCache = preparedCaching
+            ? new PreparedCacheEntry(
+                new PreparedCacheStamp(
+                    session.id(), session.contextRevision(),
+                    canvas.x(), canvas.y(), canvas.width(), canvas.height(), options,
+                    placementProfile, revisions),
+                prepared)
+            : null;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private WidgetPreview preview(WidgetDefinition definition) {
         return (WidgetPreview) WidgetPreviewResolver.resolve(
-            definition.getId(), this.capturedPreviews, definition.getPreview()
-        );
+            definition.getId(), this.capturedPreviews, definition.getPreview());
     }
 
     @SuppressWarnings({"rawtypes"})
@@ -430,14 +419,12 @@ public final class WidgetHost {
         var component = WidgetChrome.wrap(view.root());
         var slot = new WidgetSlotComponent(
             definition.getId(), component, this.stateStore.backgroundColor(definition),
-            new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false
-        );
+            new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false);
 
         CacheDependencies dependencies = definition.getCacheDependencies()
             .and(CacheDependencies.of(
                 this.stateStore.frameChanges(definition.getId()),
-                this.stateStore.globalFrameChanges()
-            ));
+                this.stateStore.globalFrameChanges()));
 
         return new MountedWidget(definition, view, component, slot, dependencies);
     }
@@ -446,8 +433,7 @@ public final class WidgetHost {
     private void dispatch(MountedWidget mountedWidget, long generation, Object action) {
         if (generation != mountedWidget.generation
             || !CacheRevisions.match(
-                mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies
-            )) {
+                mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies)) {
             return;
         }
 
@@ -531,9 +517,8 @@ public final class WidgetHost {
             drag.definition(), drag.placementProfile(),
             WidgetPlacement.fromAbsolute(
                 x, y, drag.anchorCanvas().width(), drag.anchorCanvas().height(),
-                drag.scaledWidth(), drag.scaledHeight()
-            ), false
-        );
+                drag.scaledWidth(), drag.scaledHeight()),
+            false);
     }
 
     private static final class MountedWidget {
@@ -598,8 +583,7 @@ public final class WidgetHost {
             }
 
             this.lastMissCauses = cached.stamp().missCauses(
-                session, canvas, options, profile, this.dependencies
-            );
+                session, canvas, options, profile, this.dependencies);
         }
 
         private void clearPreparation() {
@@ -612,12 +596,15 @@ public final class WidgetHost {
     }
 
     private record PreparedCacheEntry(PreparedCacheStamp stamp, PreparedWidget prepared) {}
+
     private record PreparedWidget(
         MountedWidget mounted,
         @Nullable WidgetRenderResult result,
         WidgetCanvas anchorCanvas
     ) {}
+
     private record RuntimeWidgetHit(WidgetRenderResult result, WidgetCanvas anchorCanvas) {}
+
     private record RuntimePlacementDrag(
         WidgetDefinition<?, ?, ?> definition,
         String placementProfile,

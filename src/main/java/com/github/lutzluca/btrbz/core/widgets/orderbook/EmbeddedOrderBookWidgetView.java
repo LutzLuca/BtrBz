@@ -25,9 +25,8 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 
-final class EmbeddedOrderBookWidgetView implements WidgetView<
-    OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction
-> {
+final class EmbeddedOrderBookWidgetView
+    implements WidgetView<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
@@ -152,13 +151,10 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
                         Component.literal(
                             "Click: submit "
                                 + BazaarWidgetViewData.formatPrice(submittedPrice)
-                                + adjustment
-                        ),
-                        Component.literal("Ctrl-click: copy " + entry.priceText())
-                    ),
+                                + adjustment),
+                        Component.literal("Ctrl-click: copy " + entry.priceText())),
                     copyOnly -> actions.accept(new OrderBookAction.SelectPrice(entry.price(), copyOnly)),
-                    true
-                ));
+                    true));
             }
 
             int rowHeight = rowHeight();
@@ -167,8 +163,7 @@ final class EmbeddedOrderBookWidgetView implements WidgetView<
                 rows,
                 true,
                 rowHeight,
-                WidgetLayoutTokens.listViewportHeight(rowHeight, config.visibleRows)
-            );
+                WidgetLayoutTokens.listViewportHeight(rowHeight, config.visibleRows));
         }
     }
 }

@@ -30,8 +30,7 @@ class BazaarHudOrderRowComponentTest {
     void readableHudMarketPositionUsesOptionalGapAndBracketedQueue() {
         var order = order(
             BazaarWidgetViewData.OrderStatus.Undercut,
-            Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(12_399_999.9, 0.1, 3, 72))
-        );
+            Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(12_399_999.9, 0.1, 3, 72)));
 
         assertEquals(
             List.of(
@@ -39,26 +38,20 @@ class BazaarHudOrderRowComponentTest {
                 "gap 0.1 · [72]",
                 "[3/72]",
                 "[72]",
-                "gap 0.1"
-            ),
+                "gap 0.1"),
             BazaarOrderText.marketPositionCandidates(
                 order,
                 true,
-                true
-            )
-        );
+                true));
         assertEquals(
             List.of("[3/72]", "[72]"),
             BazaarOrderText.marketPositionCandidates(
                 order,
                 true,
-                false
-            )
-        );
+                false));
         assertEquals(
             List.of("gap 0.1"),
-            BazaarOrderText.marketPositionCandidates(order, false, true)
-        );
+            BazaarOrderText.marketPositionCandidates(order, false, true));
     }
 
     private static BazaarWidgetViewData.Order order(Optional<BazaarWidgetViewData.MarketInfo> marketInfo) {
@@ -71,11 +64,10 @@ class BazaarHudOrderRowComponentTest {
     ) {
         return new BazaarWidgetViewData.Order(
             new com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId(
-                java.util.UUID.nameUUIDFromBytes("order".getBytes())
-            ), BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
+                java.util.UUID.nameUUIDFromBytes("order".getBytes())),
+            BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
             Optional.empty(), 12_400_000, 64,
             Optional.of(new BazaarWidgetViewData.FillProgress(21, 64)),
-            status, marketInfo, List.of()
-        );
+            status, marketInfo, List.of());
     }
 }

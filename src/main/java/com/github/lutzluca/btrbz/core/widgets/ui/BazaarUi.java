@@ -19,8 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 public final class BazaarUi {
-    private BazaarUi() {
-    }
+    private BazaarUi() {}
 
     public static RetainedFlowLayout panel(int width) {
         var panel = RetainedFlowLayout.vertical(Sizing.fixed(width), Sizing.content());

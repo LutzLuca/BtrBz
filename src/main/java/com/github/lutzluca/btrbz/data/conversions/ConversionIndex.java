@@ -22,8 +22,7 @@ public final class ConversionIndex {
         Instant.EPOCH.toString(),
         null,
         Map.of(),
-        Set.of()
-    );
+        Set.of());
 
     private final int schemaVersion;
     private final int builderVersion;
@@ -74,11 +73,9 @@ public final class ConversionIndex {
             : generatedAt;
         this.neuCommit = neuCommit == null || neuCommit.isBlank() ? null : neuCommit;
         this.products = Collections.unmodifiableMap(new LinkedHashMap<>(
-            products == null ? Map.of() : products
-        ));
+            products == null ? Map.of() : products));
         this.missingProductIds = Set.copyOf(
-            missingProductIds == null ? Set.of() : missingProductIds
-        );
+            missingProductIds == null ? Set.of() : missingProductIds);
         this.normalizedNameIndex = buildNameIndex(this.products);
     }
 

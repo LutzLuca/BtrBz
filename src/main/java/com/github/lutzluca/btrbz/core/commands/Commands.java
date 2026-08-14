@@ -13,7 +13,7 @@ public class Commands {
 
     public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands
         .literal("btrbz")
-        .executes((_) -> {
+        .executes(_ -> {
             ConfigScreen.open();
             return 1;
         });

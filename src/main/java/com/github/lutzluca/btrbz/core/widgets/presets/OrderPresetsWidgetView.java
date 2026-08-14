@@ -19,22 +19,19 @@ import net.minecraft.network.chat.Component;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.panel;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 
-final class OrderPresetsWidgetView implements WidgetView<
-    OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction
-> {
+final class OrderPresetsWidgetView
+    implements WidgetView<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction> {
     private static final int ROW_HEIGHT = 15;
     private static final int HEADER_HEIGHT = 15;
 
     private final FlowLayout root = panel(1);
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(
-        Sizing.fill(100), Sizing.fixed(HEADER_HEIGHT)
-    );
+        Sizing.fill(100), Sizing.fixed(HEADER_HEIGHT));
 
     private final BazaarOrderListComponent list = new BazaarOrderListComponent(
         true,
         ROW_HEIGHT,
-        ROW_HEIGHT
-    );
+        ROW_HEIGHT);
 
     OrderPresetsWidgetView() {
         this.root.gap(WidgetLayoutTokens.SECTION_GAP);
@@ -96,13 +93,11 @@ final class OrderPresetsWidgetView implements WidgetView<
                 tooltip,
                 click,
                 false,
-                background
-            ));
+                background));
         }
 
         int height = WidgetLayoutTokens.listViewportHeight(
-            ROW_HEIGHT, Math.min(config.visibleRows, Math.max(1, rows.size()))
-        );
+            ROW_HEIGHT, Math.min(config.visibleRows, Math.max(1, rows.size())));
 
         this.list.update(rows, true, ROW_HEIGHT, height);
     }

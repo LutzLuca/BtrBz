@@ -15,8 +15,7 @@ class DailyLimitComponentTest {
         assertEquals("11.25B / 15B", DailyLimitWidgetView.formattedValue(preview, NumberStyle.Compact));
         assertEquals(
             "11,250,000,000 / 15,000,000,000",
-            DailyLimitWidgetView.formattedValue(preview, NumberStyle.Exact)
-        );
+            DailyLimitWidgetView.formattedValue(preview, NumberStyle.Exact));
     }
 
     @Test

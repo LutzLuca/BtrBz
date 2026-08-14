@@ -23,12 +23,10 @@ class OrdersWidgetDataTest {
         var manager = new TrackedOrderManager(market);
         manager.syncOrders(List.of(
             new FilledOrderInfo("First", OrderType.Buy, 1, 10.0, 1, 1, 0),
-            new FilledOrderInfo("Second", OrderType.Sell, 1, 20.0, 1, 20, 1)
-        ));
+            new FilledOrderInfo("Second", OrderType.Sell, 1, 20.0, 1, 20, 1)));
         var data = new OrdersWidgetData(
             market, manager, null,
-            CacheToken.named("test.screen"), CacheToken.named("test.inventory")
-        );
+            CacheToken.named("test.screen"), CacheToken.named("test.inventory"));
 
         assertEquals(2, data.computeSnapshot().filledOrderCount());
     }
@@ -65,8 +63,7 @@ class OrdersWidgetDataTest {
         void rejectsDifferentProductsWithoutIds() {
             assertFalse(OrdersWidgetData.sameProduct(
                 ProductIdentity.fromName("Enchanted Diamond"),
-                ProductIdentity.fromName("Enchanted Emerald")
-            ));
+                ProductIdentity.fromName("Enchanted Emerald")));
         }
     }
 }

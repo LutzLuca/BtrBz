@@ -23,7 +23,8 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
 
-final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> {
+final class PriceDifferenceWidgetView
+    implements WidgetView<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final RetainedFlowLayout product = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
@@ -81,8 +82,7 @@ final class PriceDifferenceWidgetView implements WidgetView<PriceDifferenceWidge
         this.total.update(
             totalLabel,
             totalValue,
-            color
-        );
+            color);
 
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.root.clearChildren();

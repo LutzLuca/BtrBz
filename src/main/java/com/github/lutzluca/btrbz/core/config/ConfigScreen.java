@@ -30,8 +30,7 @@ public class ConfigScreen {
         var client = Minecraft.getInstance();
         client.schedule(() -> client.setScreen(ConfigScreen.create(
             client.screen,
-            ConfigManager.get()
-        )));
+            ConfigManager.get())));
     }
     //?} else {
     /*public static void open() {
@@ -50,8 +49,7 @@ public class ConfigScreen {
                 buildCategories(builder, config);
 
                 return builder;
-            }
-        ).generateScreen(parent);
+            }).generateScreen(parent);
     }
 
     private static void buildCategories(Builder builder, Config config) {
@@ -114,19 +112,16 @@ public class ConfigScreen {
             .text(Component.literal("Open"))
             .description(createDescription(
                 "Open the widget manager without using the Bazaar quick-access button.",
-                ConfigImages.WidgetManagerButton
-            ))
+                ConfigImages.WidgetManagerButton))
             .action((screen, _) -> Minecraft.getInstance().setScreen(
-                widgetRuntime.createManagementScreen(screen)
-            ))
+                widgetRuntime.createManagementScreen(screen)))
             .build();
 
         var resetPosition = ButtonOption.createBuilder()
             .name(Component.literal("Reset Widget Manager Button Position"))
             .text(Component.literal("Reset"))
             .description(createDescription(
-                "Restore the Bazaar quick-access button to its default position."
-            ))
+                "Restore the Bazaar quick-access button to its default position."))
             .action((_, _) -> widgetRuntime.stateStore().resetManagerLauncherPosition(true))
             .build();
 
@@ -142,8 +137,7 @@ public class ConfigScreen {
             : definition.getDescription();
         Component description = paragraphs(
             Component.literal(responsibility),
-            Component.literal("Configure its placement and settings in the Widget Manager.")
-        );
+            Component.literal("Configure its placement and settings in the Widget Manager."));
         var image = ConfigImages.forWidget(id);
 
         var optionDescription = image == null
@@ -155,8 +149,7 @@ public class ConfigScreen {
             .text(Component.literal("Configure"))
             .description(optionDescription)
             .action((screen, _) -> Minecraft.getInstance().setScreen(
-                BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)
-            ))
+                BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)))
             .build();
     }
 
@@ -297,7 +290,9 @@ public class ConfigScreen {
         }
 
         private void propagateAvailability() {
-            if (this.controllerOption == null) { return; }
+            if (this.controllerOption == null) {
+                return;
+            }
 
             boolean childAvailable = this.controllerOption.available() && this.controllerOption.pendingValue();
             this.children.forEach(child -> child.setAvailable(childAvailable));

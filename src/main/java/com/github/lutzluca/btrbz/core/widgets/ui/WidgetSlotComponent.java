@@ -32,8 +32,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
     private boolean visible = true;
 
     private @Nullable UIComponent activeMouseTarget;
-    private final TooltipDelayState<UIComponent> tooltipDelay =
-        new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
+    private final TooltipDelayState<UIComponent> tooltipDelay = new TooltipDelayState<>(TOOLTIP_DELAY_MILLIS);
 
     public WidgetSlotComponent(
         WidgetId widgetId,
@@ -176,8 +175,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         return this.activeMouseTarget.onMouseDrag(
             this.eventFor(this.activeMouseTarget, click),
             deltaX / this.scale,
-            deltaY / this.scale
-        );
+            deltaY / this.scale);
     }
 
     @Override
@@ -201,8 +199,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         boolean handled = this.child.onMouseScroll(
             this.logicalAbsoluteX(mouseX) - this.child.x(),
             this.logicalAbsoluteY(mouseY) - this.child.y(),
-            amount
-        );
+            amount);
 
         if (handled) {
             this.tooltipDelay.reset();
@@ -274,11 +271,11 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         return target != null && target != this ? target : null;
     }
 
-    @Nullable UIComponent tooltipTargetAt(double mouseX, double mouseY) {
+    @Nullable
+    UIComponent tooltipTargetAt(double mouseX, double mouseY) {
         return this.logicalTooltipTargetAt(
             this.logicalAbsoluteX(mouseX - this.x),
-            this.logicalAbsoluteY(mouseY - this.y)
-        );
+            this.logicalAbsoluteY(mouseY - this.y));
     }
 
     private @Nullable UIComponent logicalTooltipTargetAt(int logicalX, int logicalY) {
@@ -305,8 +302,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         return new MouseButtonEvent(
             this.logicalAbsoluteX(click.x()) - target.x(),
             this.logicalAbsoluteY(click.y()) - target.y(),
-            click.buttonInfo()
-        );
+            click.buttonInfo());
     }
 
     private void drawWidget(
@@ -327,16 +323,14 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
                 this.logicalWidth,
                 this.logicalHeight,
                 this.backgroundColor,
-                WidgetChrome.CORNER_RADIUS
-            );
+                WidgetChrome.CORNER_RADIUS);
 
             graphics.translate(-this.child.x(), -this.child.y());
             graphics.enableScissor(
                 this.child.x(),
                 this.child.y(),
                 this.child.x() + this.logicalWidth,
-                this.child.y() + this.logicalHeight
-            );
+                this.child.y() + this.logicalHeight);
             try {
                 this.child.draw(graphics, mouseX, mouseY, partialTicks, delta);
             } finally {

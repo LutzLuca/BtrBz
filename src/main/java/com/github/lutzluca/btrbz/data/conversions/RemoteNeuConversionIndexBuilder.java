@@ -49,10 +49,9 @@ final class RemoteNeuConversionIndexBuilder {
 
     private static final URI HYPIXEL_BAZAAR_URI = URI.create("https://api.hypixel.net/v2/skyblock/bazaar");
     private static final URI NEU_COMMIT_URI = URI.create(
-        "https://api.github.com/repos/NotEnoughUpdates/NotEnoughUpdates-REPO/commits/master"
-    );
-    private static final String NEU_ZIP_URL =
-        "https://github.com/NotEnoughUpdates/NotEnoughUpdates-REPO/archive/%s.zip";
+        "https://api.github.com/repos/NotEnoughUpdates/NotEnoughUpdates-REPO/commits/master");
+    private static final String NEU_ZIP_URL = "https://github.com/NotEnoughUpdates/NotEnoughUpdates-"
+        + "REPO/archive/%s.zip";
 
     // Bazaar still exposes a few legacy product ids whose NEU item json uses a different id
     // Direct NEU item files are checked first, so these aliases only cover known mismatches
@@ -69,12 +68,11 @@ final class RemoteNeuConversionIndexBuilder {
         Map.entry("SAND:1", "SAND-1"),
         Map.entry("BAZAAR_COOKIE", "BOOSTER_COOKIE"),
         Map.entry("ENCHANTED_CARROT_ON_A_STICK", "ENCHANTED_CARROT_STICK"),
-        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1")
-    );
+        Map.entry("SHARD_WETWING", "ATTRIBUTE_SHARD_HUMANOID_RULER_NEW;1"));
 
-    private RemoteNeuConversionIndexBuilder() { }
+    private RemoteNeuConversionIndexBuilder() {}
 
-    record BuildResult(ConversionIndex index, boolean changed) { }
+    record BuildResult(ConversionIndex index, boolean changed) {}
 
     static BuildResult build(ConversionIndex current) throws ConversionRefreshException {
         return build(current, BASELINE_ITEM_DATA_VERSION, false);
@@ -96,8 +94,7 @@ final class RemoteNeuConversionIndexBuilder {
         log.debug(
             "Checking remote Bazaar/NEU conversion sources (builderVersion={}, maxDataVersion={})",
             BUILDER_VERSION,
-            maxDataVersion
-        );
+            maxDataVersion);
         var productIds = fetchBazaarProductIds();
         log.debug("Fetched {} product ids from the Hypixel Bazaar API", productIds.size());
         var neuCommit = fetchNeuCommit();
@@ -111,8 +108,7 @@ final class RemoteNeuConversionIndexBuilder {
                     + "with {} products (overlays={}, legacy={})",
                 current.size(),
                 overlays,
-                legacy
-            );
+                legacy);
             return new BuildResult(current, false);
         }
 
@@ -121,8 +117,7 @@ final class RemoteNeuConversionIndexBuilder {
             productIds.size(),
             canReuseEntries,
             neuCommit,
-            maxDataVersion
-        );
+            maxDataVersion);
 
         var products = canReuseEntries
             ? reusableEntries(current, productIds)
@@ -133,8 +128,7 @@ final class RemoteNeuConversionIndexBuilder {
         if (carriedForwardCount > 0) {
             log.warn(
                 "Carried forward {} stale conversion entries from the active index; they remain marked as missing",
-                carriedForwardCount
-            );
+                carriedForwardCount);
         }
 
         var index = new ConversionIndex(
@@ -143,8 +137,7 @@ final class RemoteNeuConversionIndexBuilder {
             Instant.now().toString(),
             neuCommit,
             products,
-            missingProductIds
-        );
+            missingProductIds);
         var counts = index.sourceCounts();
         long overlays = index.products().values().stream().filter(entry -> entry.itemStack() != null).count();
         long legacy = index.products().values().stream().filter(entry -> entry.legacyItemStack() != null).count();
@@ -162,8 +155,7 @@ final class RemoteNeuConversionIndexBuilder {
             legacy,
             covered,
             index.size(),
-            neuCommit
-        );
+            neuCommit);
         return new BuildResult(index, true);
     }
 
@@ -255,8 +247,7 @@ final class RemoteNeuConversionIndexBuilder {
             throw new ConversionRefreshException(
                 ConversionRefreshException.Phase.NeuZip,
                 "Failed to create temporary NEU zip file",
-                err
-            );
+                err);
         }
 
         try {
@@ -299,8 +290,7 @@ final class RemoteNeuConversionIndexBuilder {
                         overlaysByNeuId,
                         stockIds,
                         productId,
-                        maxDataVersion
-                    );
+                        maxDataVersion);
                     if (productEntry.isEmpty()) {
                         continue;
                     }
@@ -319,8 +309,7 @@ final class RemoteNeuConversionIndexBuilder {
                         log.debug(
                             "Processed {}/{} Bazaar products from the NEU repository",
                             processed,
-                            productIds.size()
-                        );
+                            productIds.size());
                     }
                 }
 
@@ -331,13 +320,11 @@ final class RemoteNeuConversionIndexBuilder {
                     commit,
                     productEntries.values().stream().filter(entry -> entry.itemStack() != null).count(),
                     productEntries.values().stream().filter(entry -> entry.legacyItemStack() != null).count(),
-                    staticAliasCount
-                );
+                    staticAliasCount);
                 if (!derivedFallbackExamples.isEmpty()) {
                     log.info(
                         "Derived Bazaar conversion names used during refresh; sample: {}",
-                        derivedFallbackExamples
-                    );
+                        derivedFallbackExamples);
                 }
                 return productEntries;
             }
@@ -368,10 +355,10 @@ final class RemoteNeuConversionIndexBuilder {
 
         var sample = missing.stream().limit(LOG_SAMPLE_LIMIT).toList();
         log.warn(
-            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata. Sample: {}",
+            "Could not complete Bazaar conversion index refresh; {} products are missing NEU display metadata. "
+                + "Sample: {}",
             missing.size(),
-            sample
-        );
+            sample);
         if (log.isDebugEnabled()) {
             log.debug("Missing Bazaar conversion products: {}", missing);
         }
@@ -382,8 +369,7 @@ final class RemoteNeuConversionIndexBuilder {
 
         throw new ConversionRefreshException(
             ConversionRefreshException.Phase.Validate,
-            "Built conversion index is incomplete: missing " + missing.size() + " products"
-        );
+            "Built conversion index is incomplete: missing " + missing.size() + " products");
     }
 
     private static Optional<ConversionProductEntry> resolveEntry(
@@ -402,8 +388,7 @@ final class RemoteNeuConversionIndexBuilder {
                 overlaysByNeuId,
                 productId,
                 productId,
-                maxDataVersion
-            );
+                maxDataVersion);
             return entry.isPresent()
                 ? entry
                 : derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
@@ -417,8 +402,7 @@ final class RemoteNeuConversionIndexBuilder {
                 overlaysByNeuId,
                 productId,
                 stockNeuId,
-                maxDataVersion
-            );
+                maxDataVersion);
         }
 
         var aliasNeuId = STATIC_NEU_ALIASES.get(productId);
@@ -429,8 +413,7 @@ final class RemoteNeuConversionIndexBuilder {
                 overlaysByNeuId,
                 productId,
                 aliasNeuId,
-                maxDataVersion
-            );
+                maxDataVersion);
         }
 
         return derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
@@ -455,8 +438,7 @@ final class RemoteNeuConversionIndexBuilder {
             overlaysByNeuId,
             productId,
             neuId,
-            maxDataVersion
-        );
+            maxDataVersion);
         return entry.isPresent()
             ? entry
             : derivedEnchantmentEntry(zip, overlaysByNeuId, productId, maxDataVersion);
@@ -475,15 +457,13 @@ final class RemoteNeuConversionIndexBuilder {
             overlaysByNeuId,
             neuId,
             productId.startsWith("ENCHANTMENT_") ? "ENCHANTED_BOOK" : null,
-            maxDataVersion
-        ).orElse(null);
+            maxDataVersion).orElse(null);
         return readNeuItemData(zip, itemEntry)
             .map(item -> new ConversionProductEntry(
                 item.formattedName(),
                 new ProductNameSource.Neu(neuId),
                 itemStack,
-                item.legacyStack()
-            ));
+                item.legacyStack()));
     }
 
     private static Optional<ConversionProductEntry> derivedEnchantmentEntry(
@@ -497,8 +477,7 @@ final class RemoteNeuConversionIndexBuilder {
             overlaysByNeuId,
             "ENCHANTED_BOOK",
             null,
-            maxDataVersion
-        ).orElse(null);
+            maxDataVersion).orElse(null);
         return deriveEnchantmentDisplayName(productId)
             .map(name -> new ConversionProductEntry(name, new ProductNameSource.Derived(), itemStack));
     }
@@ -625,7 +604,8 @@ final class RemoteNeuConversionIndexBuilder {
 
     private static List<BazaarStock> readBazaarStocks(ZipFile zip, ZipEntry entry) throws IOException {
         try (Reader reader = new InputStreamReader(zip.getInputStream(entry), StandardCharsets.UTF_8)) {
-            return GSON.fromJson(reader, new TypeToken<List<BazaarStock>>() { }.getType());
+            return GSON.fromJson(reader, new TypeToken<List<BazaarStock>>() {
+            }.getType());
         }
     }
 
@@ -747,7 +727,7 @@ final class RemoteNeuConversionIndexBuilder {
         String id;
     }
 
-    private record NeuItemData(String formattedName, LegacyProductStackData legacyStack) { }
+    private record NeuItemData(String formattedName, LegacyProductStackData legacyStack) {}
 
-    private record ItemOverlayEntry(int dataVersion, ZipEntry entry) { }
+    private record ItemOverlayEntry(int dataVersion, ZipEntry entry) {}
 }

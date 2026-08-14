@@ -21,8 +21,7 @@ public class ClientPlayNetworkHandlerMixin {
             log.debug(
                 "Skipping inventory tracking for inactive container {} ('{}')",
                 packet.getContainerId(),
-                packet.getTitle().getString()
-            );
+                packet.getTitle().getString());
             return;
         }
 

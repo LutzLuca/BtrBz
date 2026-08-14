@@ -17,8 +17,7 @@ public final class WidgetSurfaces {
             component.width(),
             component.height(),
             color,
-            radius
-        );
+            radius);
     }
 
     public static void drawRoundedPanel(
@@ -46,8 +45,7 @@ public final class WidgetSurfaces {
             height,
             resolvedRadius,
             Math.max(8, resolvedRadius * 2),
-            color
-        ));
+            color));
     }
 
 }

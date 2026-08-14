@@ -26,8 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WidgetManagerContextSupportTest {
     private final List<WidgetDefinition<?, ?, ?>> definitions = List.of(
         definition("btrbz:presets", OrderPresetsWidgetDefinition::supportsSession),
-        definition("btrbz:book", OrderBookPriceWidgetDefinition::supportsSession)
-    );
+        definition("btrbz:book", OrderBookPriceWidgetDefinition::supportsSession));
 
     @Nested
     @DisplayName("sign workflows")
@@ -44,8 +43,7 @@ class WidgetManagerContextSupportTest {
         @DisplayName("accepts the order-book price sign")
         void acceptsOrderBookSign() {
             var product = new WidgetProductContext(
-                ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty()
-            );
+                ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty());
             var session = session(Optional.of(product), Optional.of(BazaarMenuType.BuyOrderSetupPrice));
 
             assertTrue(WidgetRuntime.contextualManagerSupported(false, true, session, definitions));
@@ -67,8 +65,7 @@ class WidgetManagerContextSupportTest {
         return new WidgetSession(
             1, false, true, false,
             Optional.empty(), previousMenu, product,
-            product.isPresent() ? Optional.of(OrderType.Buy) : Optional.empty(), 1
-        );
+            product.isPresent() ? Optional.of(OrderType.Buy) : Optional.empty(), 1);
     }
 
     private static WidgetDefinition<Object, TestConfig, Void> definition(
@@ -78,14 +75,20 @@ class WidgetManagerContextSupportTest {
         var id = WidgetId.parse(idValue);
         var handle = new WidgetConfigHandle<>(
             id, TestConfig::new, TestConfig::new,
-            value -> value.frame, (current, defaults) -> {}
-        );
+            value -> value.frame, (current, defaults) -> {});
         return WidgetDefinition.<Object, TestConfig, Void>builder(id, idValue)
             .config(handle)
             .supports(supports)
             .data(new WidgetDataSource<>() {
-                @Override public CacheDependencies cacheDependencies() { return CacheDependencies.none(); }
-                @Override public Object snapshot(WidgetSession session) { return new Object(); }
+                @Override
+                public CacheDependencies cacheDependencies() {
+                    return CacheDependencies.none();
+                }
+
+                @Override
+                public Object snapshot(WidgetSession session) {
+                    return new Object();
+                }
             })
             .preview(() -> null)
             .viewFactory(() -> null)

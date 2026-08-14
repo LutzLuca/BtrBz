@@ -80,8 +80,7 @@ public final class OrderPresetsComponent {
 
                 inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::readMaximumVolume)
                     .ifPresent(value -> this.setMaximumVolume(value, "maximum order volume loaded"));
-            }
-        );
+            });
     }
 
     public boolean inTransaction() {
@@ -103,8 +102,7 @@ public final class OrderPresetsComponent {
             this.purseTracker.value().orElse(Double.NaN),
             product == null ? null : product.productId(),
             price,
-            List.copyOf(ConfigManager.get().widgets.orderPresets.volumes)
-        );
+            List.copyOf(ConfigManager.get().widgets.orderPresets.volumes));
     }
 
     public List<PresetState> currentPresets() {
@@ -117,8 +115,7 @@ public final class OrderPresetsComponent {
             this.clipboardTracker.changes(),
             this.purseTracker.changes(),
             this.productInfoProvider.changes(),
-            this.bazaarData.marketChanges()
-        );
+            this.bazaarData.marketChanges());
     }
 
     private static List<PresetState> presetsFor(State state) {
@@ -140,8 +137,7 @@ public final class OrderPresetsComponent {
             state.maximumVolume(),
             clipboard,
             price,
-            Double.isNaN(state.purse()) ? Optional.empty() : Optional.of(state.purse())
-        );
+            Double.isNaN(state.purse()) ? Optional.empty() : Optional.of(state.purse()));
     }
 
     public static List<PresetState> resolvePresets(
@@ -163,14 +159,11 @@ public final class OrderPresetsComponent {
 
         return presets.stream().map(preset -> switch (preset) {
             case OrderPreset.Maximum _ -> resolveMaximum(
-                preset, maximumVolume, pricePerUnit, purse
-            );
+                preset, maximumVolume, pricePerUnit, purse);
             case OrderPreset.Clipboard clipboard -> resolveAmount(
-                preset, clipboard.amount(), pricePerUnit, purse
-            );
+                preset, clipboard.amount(), pricePerUnit, purse);
             case OrderPreset.Fixed fixed -> resolveAmount(
-                preset, fixed.amount(), pricePerUnit, purse
-            );
+                preset, fixed.amount(), pricePerUnit, purse);
         }).toList();
     }
 
@@ -237,8 +230,7 @@ public final class OrderPresetsComponent {
             CUSTOM_AMOUNT_SLOT,
             1,
             ContainerInput.PICKUP,
-            client.player
-        );
+            client.player);
         return true;
     }
 
@@ -272,11 +264,10 @@ public final class OrderPresetsComponent {
         boolean orderFlow = current.inMenu(
             BazaarMenuType.BuyOrderSetupVolume,
             BazaarMenuType.BuyOrderSetupPrice,
-            BazaarMenuType.BuyOrderConfirmation
-        ) || current.getScreen() instanceof SignEditScreen && previous.inMenu(
-            BazaarMenuType.BuyOrderSetupVolume,
-            BazaarMenuType.BuyOrderSetupPrice
-        );
+            BazaarMenuType.BuyOrderConfirmation)
+            || current.getScreen() instanceof SignEditScreen && previous.inMenu(
+                BazaarMenuType.BuyOrderSetupVolume,
+                BazaarMenuType.BuyOrderSetupPrice);
 
         if (this.inTransaction && !orderFlow) {
             this.cancel();

@@ -41,51 +41,43 @@ class BazaarPresentationTest {
     void exactPriceKeepsItsFullWidthBeforeMetadata() {
         assertEquals(
             new BazaarOrderRowComponent.PriorityWidths(62, 25),
-            BazaarOrderRowComponent.priorityWidths(90, 62, 55)
-        );
+            BazaarOrderRowComponent.priorityWidths(90, 62, 55));
         assertEquals(
             new BazaarOrderRowComponent.PriorityWidths(62, 0),
-            BazaarOrderRowComponent.priorityWidths(55, 62, 55)
-        );
+            BazaarOrderRowComponent.priorityWidths(55, 62, 55));
     }
 
     @Test
     void compactHudShowsOnlyNonZeroStatusesInUrgencyOrder() {
         var data = new BazaarWidgetViewData.OrdersData(List.of(
             order("best", BazaarWidgetViewData.OrderStatus.Top),
-            order("undercut", BazaarWidgetViewData.OrderStatus.Undercut)
-        ));
+            order("undercut", BazaarWidgetViewData.OrderStatus.Undercut)));
 
         assertEquals(
             List.of("Undercut", "Best"),
             BazaarHudWidget.visibleStatusEntries(data).stream()
                 .map(BazaarHudWidget.StatusEntry::label)
-                .toList()
-        );
+                .toList());
     }
 
     @Test
     void compactHudPlacesFilledBeforeUnknown() {
         var data = new BazaarWidgetViewData.OrdersData(
-            List.of(order("unknown", BazaarWidgetViewData.OrderStatus.Unknown)), 2
-        );
+            List.of(order("unknown", BazaarWidgetViewData.OrderStatus.Unknown)), 2);
 
         assertEquals(
             List.of("Filled", "Unknown"),
             BazaarHudWidget.visibleStatusEntries(data).stream()
                 .map(BazaarHudWidget.StatusEntry::label)
-                .toList()
-        );
+                .toList());
     }
 
     @Test
     void detailedHudDistinguishesFullyEmptyFromFilledHistory() {
         assertEquals("No active or filled orders", BazaarHudWidget.emptyText(
-            new BazaarWidgetViewData.OrdersData(List.of(), 0)
-        ));
+            new BazaarWidgetViewData.OrdersData(List.of(), 0)));
         assertEquals("No active orders", BazaarHudWidget.emptyText(
-            new BazaarWidgetViewData.OrdersData(List.of(), 2)
-        ));
+            new BazaarWidgetViewData.OrdersData(List.of(), 2)));
     }
 
     @Test
@@ -95,8 +87,7 @@ class BazaarPresentationTest {
         var manual = List.of(fresh, old);
 
         assertEquals(List.of(fresh, old), TrackedOrdersWidget.sortedOrders(
-            manual, TrackedOrdersWidgetConfig.TrackedSort.Newest
-        ));
+            manual, TrackedOrdersWidgetConfig.TrackedSort.Newest));
         assertEquals(List.of(fresh, old), manual);
     }
 
@@ -106,11 +97,9 @@ class BazaarPresentationTest {
         var alpha = bookmark("a", "alpha");
         var manual = List.of(zed, alpha);
         assertEquals(List.of(alpha, zed), BookmarksWidget.sortedBookmarks(
-            manual, BookmarksWidgetConfig.BookmarkSort.Alphabetical
-        ));
+            manual, BookmarksWidgetConfig.BookmarkSort.Alphabetical));
         assertEquals(List.of(zed, alpha), BookmarksWidget.sortedBookmarks(
-            manual, BookmarksWidgetConfig.BookmarkSort.Manual
-        ));
+            manual, BookmarksWidgetConfig.BookmarkSort.Manual));
     }
 
     private static OrderBookWidgetConfig options(
@@ -130,12 +119,11 @@ class BazaarPresentationTest {
     private static BazaarWidgetViewData.Order order(String id, BazaarWidgetViewData.OrderStatus status, long sequence) {
         return new BazaarWidgetViewData.Order(
             new com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId(
-                java.util.UUID.nameUUIDFromBytes(id.getBytes())
-            ), BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
+                java.util.UUID.nameUUIDFromBytes(id.getBytes())),
+            BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
             java.util.Optional.empty(), 1, 1,
             java.util.Optional.of(new BazaarWidgetViewData.FillProgress(0, 1)),
-            status, java.util.Optional.empty(), List.of(), sequence
-        );
+            status, java.util.Optional.empty(), List.of(), sequence);
     }
 
     private static BookmarksWidgetData.Bookmark bookmark(String id, String name) {

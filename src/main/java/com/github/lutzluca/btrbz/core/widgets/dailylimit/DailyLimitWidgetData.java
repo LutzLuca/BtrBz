@@ -15,8 +15,7 @@ public final class DailyLimitWidgetData implements WidgetDataSource<DailyLimitWi
     ) {
         this.component = component;
         this.dependencies = CacheDependencies.of(
-            component.dataChanges(), component.utcDayTracker().changes(), configHandle.contentChanges()
-        );
+            component.dataChanges(), component.utcDayTracker().changes(), configHandle.contentChanges());
     }
 
     @Override

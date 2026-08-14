@@ -31,8 +31,7 @@ class WidgetPreviewResolverTest {
                 () -> {
                     fallbackCalls.incrementAndGet();
                     return preview("sample");
-                }
-            );
+                });
 
             assertSame(captured, resolved);
             assertEquals(0, fallbackCalls.get());

@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 
 public final class OrderBookActionHandler implements WidgetActionHandler<OrderBookAction> {
     private final OrderBookPriceComponent embeddedWorkflow;
+
     public OrderBookActionHandler(OrderBookPriceComponent embeddedWorkflow) {
         this.embeddedWorkflow = embeddedWorkflow;
     }
@@ -21,8 +22,7 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
             case OrderBookAction.SelectPrice select -> {
                 if (current.inOrderBook()) {
                     Minecraft.getInstance().keyboardHandler.setClipboard(
-                        Utils.formatDecimal(select.price(), 1, false)
-                    );
+                        Utils.formatDecimal(select.price(), 1, false));
                     var screen = Minecraft.getInstance().screen;
 
                     if (screen != null) {

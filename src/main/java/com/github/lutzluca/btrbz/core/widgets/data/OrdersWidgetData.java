@@ -48,8 +48,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
     ) {
         this(
             market, trackedOrders, tooltipProvider,
-            ScreenInfoHelper.get().screenTransitions(), ScreenInfoHelper.get().inventoryChanges()
-        );
+            ScreenInfoHelper.get().screenTransitions(), ScreenInfoHelper.get().inventoryChanges());
     }
 
     OrdersWidgetData(
@@ -65,8 +64,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
 
         var baseDependencies = CacheDependencies.of(
             trackedOrders.dataChanges(), market.marketChanges(), market.indexChanges(),
-            screenTransitions, inventoryChanges
-        );
+            screenTransitions, inventoryChanges);
         this.dependencies = tooltipProvider == null
             ? baseDependencies
             : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges()));
@@ -116,7 +114,8 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
 
             return new BazaarWidgetViewData.Order(
                 snapshot.id(),
-                snapshot.type() == OrderType.Buy ? BazaarWidgetViewData.OrderSide.Buy : BazaarWidgetViewData.OrderSide.Sell,
+                snapshot.type() == OrderType.Buy
+                    ? BazaarWidgetViewData.OrderSide.Buy : BazaarWidgetViewData.OrderSide.Sell,
                 snapshot.productName(),
                 Utils.legacyFormattedComponent(product.visualName()),
                 this.market.productStack(product)
@@ -124,13 +123,11 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
                 snapshot.pricePerUnit(),
                 snapshot.volume(),
                 Optional.of(new BazaarWidgetViewData.FillProgress(
-                    WidgetMath.clamp(snapshot.fillAmountSnapshot(), 0, snapshot.volume()), snapshot.volume()
-                )),
+                    WidgetMath.clamp(snapshot.fillAmountSnapshot(), 0, snapshot.volume()), snapshot.volume())),
                 status,
                 marketInfo,
                 tooltip,
-                creationSequence.getOrDefault(snapshot.id(), 0L)
-            );
+                creationSequence.getOrDefault(snapshot.id(), 0L));
         }).toList();
 
         return new BazaarWidgetViewData.OrdersData(orders, this.trackedOrders.filledOrderCount());
@@ -138,15 +135,23 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
 
     public static BazaarWidgetViewData.OrdersData preview() {
         return new BazaarWidgetViewData.OrdersData(List.of(
-            previewOrder("cookie", BazaarWidgetViewData.OrderSide.Buy, "Booster Cookie", Items.COOKIE, 9_825_000, 4, 1, BazaarWidgetViewData.OrderStatus.Matched),
-            previewOrder("diamond", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Diamond", Items.DIAMOND, 1_234, 640, 0, BazaarWidgetViewData.OrderStatus.Top),
-            previewOrder("gold", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Gold Block", Items.GOLD_BLOCK, 182_400, 32, 18, BazaarWidgetViewData.OrderStatus.Matched),
-            previewOrder("pearl", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Ender Pearl", Items.ENDER_PEARL, 1_840, 2_048, 512, BazaarWidgetViewData.OrderStatus.Undercut),
-            previewOrder("blaze", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Blaze Rod", Items.BLAZE_ROD, 1_950_000, 8, 0, BazaarWidgetViewData.OrderStatus.Unknown),
-            previewOrder("quartz", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Quartz", Items.QUARTZ, 2_175, 1_280, 960, BazaarWidgetViewData.OrderStatus.Top),
-            previewOrder("emerald", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Emerald", Items.EMERALD, 1_118, 3_584, 1_792, BazaarWidgetViewData.OrderStatus.Matched),
-            previewOrder("cane", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Sugar Cane", Items.SUGAR_CANE, 85_500, 96, 24, BazaarWidgetViewData.OrderStatus.Undercut)
-        ), 3);
+            previewOrder("cookie", BazaarWidgetViewData.OrderSide.Buy, "Booster Cookie", Items.COOKIE, 9_825_000, 4, 1,
+                BazaarWidgetViewData.OrderStatus.Matched),
+            previewOrder("diamond", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Diamond", Items.DIAMOND, 1_234, 640,
+                0, BazaarWidgetViewData.OrderStatus.Top),
+            previewOrder("gold", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Gold Block", Items.GOLD_BLOCK, 182_400,
+                32, 18, BazaarWidgetViewData.OrderStatus.Matched),
+            previewOrder("pearl", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Ender Pearl", Items.ENDER_PEARL,
+                1_840, 2_048, 512, BazaarWidgetViewData.OrderStatus.Undercut),
+            previewOrder("blaze", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Blaze Rod", Items.BLAZE_ROD, 1_950_000,
+                8, 0, BazaarWidgetViewData.OrderStatus.Unknown),
+            previewOrder("quartz", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Quartz", Items.QUARTZ, 2_175, 1_280,
+                960, BazaarWidgetViewData.OrderStatus.Top),
+            previewOrder("emerald", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Emerald", Items.EMERALD, 1_118,
+                3_584, 1_792, BazaarWidgetViewData.OrderStatus.Matched),
+            previewOrder("cane", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Sugar Cane", Items.SUGAR_CANE, 85_500,
+                96, 24, BazaarWidgetViewData.OrderStatus.Undercut)),
+            3);
     }
 
     private Optional<BazaarWidgetViewData.MarketInfo> marketInfo(
@@ -167,8 +172,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             best.map(OptionalDouble::of).orElseGet(OptionalDouble::empty),
             best.map(value -> OptionalDouble.of(Math.abs(value - unitPrice))).orElseGet(OptionalDouble::empty),
             queue.map(value -> OptionalInt.of(value.ordersAhead)).orElseGet(OptionalInt::empty),
-            queue.map(value -> OptionalLong.of(value.itemsAhead)).orElseGet(OptionalLong::empty)
-        ));
+            queue.map(value -> OptionalLong.of(value.itemsAhead)).orElseGet(OptionalLong::empty)));
     }
 
     private Optional<ItemStack> observedProductStack(
@@ -217,8 +221,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         List<Component> tooltip = List.of(
             Component.literal(status.label()),
             Component.literal("Volume: " + BazaarWidgetViewData.formatInt(total)),
-            Component.literal("Price each: " + BazaarWidgetViewData.formatPrice(price))
-        );
+            Component.literal("Price each: " + BazaarWidgetViewData.formatPrice(price)));
         Optional<BazaarWidgetViewData.MarketInfo> market = switch (status) {
             case Undercut -> Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(price + 0.1, 0.1, 1, total));
             case Matched -> Optional.of(BazaarWidgetViewData.MarketInfo.queue(3, total * 18L));
@@ -227,8 +230,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
 
         return new BazaarWidgetViewData.Order(
             id, side, name, styled(name, item), Optional.of(new ItemStack(item)), price, total,
-            Optional.of(new BazaarWidgetViewData.FillProgress(filled, total)), status, market, tooltip
-        );
+            Optional.of(new BazaarWidgetViewData.FillProgress(filled, total)), status, market, tooltip);
     }
 
     private static Component styled(String name, Item item) {

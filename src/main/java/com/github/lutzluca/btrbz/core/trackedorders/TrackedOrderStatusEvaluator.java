@@ -26,33 +26,32 @@ final class TrackedOrderStatusEvaluator {
             .flatMap(Optional::stream)
             .filter(trackedStatus -> this.hasStatusChanged(
                 trackedStatus.order().status,
-                trackedStatus.status()
-            ))
+                trackedStatus.status()))
             .map(trackedStatus -> new StatusUpdate(
                 trackedStatus.order(),
                 trackedStatus.status(),
-                trackedStatus.order().status
-            ));
+                trackedStatus.order().status));
     }
 
-    @Nullable GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, MarketSnapshot snapshot) {
+    @Nullable
+    GroupStatus getCurrentGroupStatus(GroupKey key, List<TrackedOrder> orders, MarketSnapshot snapshot) {
         boolean hasMatched = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Matched);
         boolean hasUndercut = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Undercut);
         boolean hasUnknown = orders.stream().anyMatch(order -> order.status instanceof OrderStatus.Unknown);
 
         if (hasUnknown) {
             log.warn(
-                "Group ({}) has Unknown-status order after poll. Likely unresolved product name, skipping group notification",
-                key
-            );
+                "Group ({}) has Unknown-status order after poll. Likely unresolved product name, "
+                    + "skipping group notification",
+                key);
             return null;
         }
 
         if (hasMatched && hasUndercut) {
             log.warn(
-                "Group ({}) has both Matched and Undercut orders. This must be a logic error, skipping group notification",
-                key
-            );
+                "Group ({}) has both Matched and Undercut orders. This must be a logic error, "
+                    + "skipping group notification",
+                key);
             return null;
         }
 
@@ -73,7 +72,8 @@ final class TrackedOrderStatusEvaluator {
             : new GroupStatus.Matched();
     }
 
-    @Nullable GroupStatus getPreviousGroupStatus(
+    @Nullable
+    GroupStatus getPreviousGroupStatus(
         GroupKey key,
         List<TrackedOrder> orders,
         List<StatusUpdate> updates
@@ -102,8 +102,7 @@ final class TrackedOrderStatusEvaluator {
             "Group ({}) had no prior matched group state. currently tracked orders: {} | updates: {}",
             key,
             orders,
-            updates
-        );
+            updates);
         return null;
     }
 
@@ -177,5 +176,5 @@ final class TrackedOrderStatusEvaluator {
             && Double.compare(previousUndercut.amount, currentUndercut.amount) != 0;
     }
 
-    private record TrackedStatus(TrackedOrder order, OrderStatus status) { }
+    private record TrackedStatus(TrackedOrder order, OrderStatus status) {}
 }

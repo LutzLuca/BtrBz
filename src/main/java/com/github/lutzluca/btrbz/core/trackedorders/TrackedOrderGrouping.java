@@ -7,13 +7,13 @@ import com.github.lutzluca.btrbz.utils.Utils;
 
 final class TrackedOrderGrouping {
 
-    private TrackedOrderGrouping() { }
+    private TrackedOrderGrouping() {}
 
-    sealed interface ProductGroupKey permits MarketProductKey, NameProductKey { }
+    sealed interface ProductGroupKey permits MarketProductKey, NameProductKey {}
 
-    record MarketProductKey(String productId) implements ProductGroupKey { }
+    record MarketProductKey(String productId) implements ProductGroupKey {}
 
-    record NameProductKey(String normalizedName) implements ProductGroupKey { }
+    record NameProductKey(String normalizedName) implements ProductGroupKey {}
 
     record GroupMatchKey(ProductGroupKey product, OrderType type, double pricePerUnit) {
 
@@ -21,8 +21,7 @@ final class TrackedOrderGrouping {
             return new GroupMatchKey(
                 productKey(order.product, order.uiProductName),
                 order.type,
-                order.pricePerUnit
-            );
+                order.pricePerUnit);
         }
     }
 
@@ -31,8 +30,7 @@ final class TrackedOrderGrouping {
         static SelfUndercutMatchKey from(TrackedOrder order) {
             return new SelfUndercutMatchKey(
                 productKey(order.product, order.uiProductName),
-                order.type
-            );
+                order.type);
         }
     }
 

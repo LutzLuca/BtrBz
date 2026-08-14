@@ -18,18 +18,15 @@ record WidgetManagerLauncherLayout(WidgetBounds localBounds, WidgetBounds screen
             canvas.width(),
             canvas.height(),
             logicalSize,
-            logicalSize
-        );
+            logicalSize);
         int physicalSize = Math.max(1, (int) Math.ceil(logicalSize * scale));
         var localBounds = placement.resolve(
-            canvas.width(), canvas.height(), physicalSize, physicalSize
-        );
+            canvas.width(), canvas.height(), physicalSize, physicalSize);
         var screenBounds = new WidgetBounds(
             canvas.x() + localBounds.x(),
             canvas.y() + localBounds.y(),
             localBounds.width(),
-            localBounds.height()
-        );
+            localBounds.height());
         return new WidgetManagerLauncherLayout(localBounds, screenBounds, scale);
     }
 }

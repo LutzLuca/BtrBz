@@ -13,7 +13,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Prepared widget cache stamps")
 class PreparedCacheStampTest {
@@ -67,12 +69,10 @@ class PreparedCacheStampTest {
     void directDiagnostics() {
         var stamp = PreparedCacheStamp.capture(session, canvas, options, "default", dependencies);
         var changedOptions = WidgetHostOptions.management(
-            WidgetId.parse("btrbz:test"), Set.of(), Map.of()
-        );
+            WidgetId.parse("btrbz:test"), Set.of(), Map.of());
         var causes = stamp.missCauses(
             session(2, 3), new WidgetCanvas(11, 21, 301, 201),
-            changedOptions, "sign", dependencies
-        ).stream().map(WidgetCacheMissCause::description).toList();
+            changedOptions, "sign", dependencies).stream().map(WidgetCacheMissCause::description).toList();
 
         assertTrue(causes.contains("semantic session changed"));
         assertTrue(causes.contains("session context changed"));
@@ -85,7 +85,6 @@ class PreparedCacheStampTest {
     private static WidgetSession session(long id, long contextRevision) {
         return new WidgetSession(
             id, true, false, false,
-            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), contextRevision
-        );
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), contextRevision);
     }
 }

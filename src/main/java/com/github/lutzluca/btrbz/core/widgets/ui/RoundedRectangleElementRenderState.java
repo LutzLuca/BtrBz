@@ -50,8 +50,7 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
         vertices.addVertexWith2DPose(
             this.pose,
             this.x + this.width / 2f,
-            this.y + this.height / 2f
-        ).setColor(this.color);
+            this.y + this.height / 2f).setColor(this.color);
 
         for (int i = 0; i < this.perimeter.length; i += 2) {
             vertices.addVertexWith2DPose(this.pose, this.perimeter[i], this.perimeter[i + 1])
@@ -104,7 +103,8 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
         offset = putArc(points, offset, x + safeRadius, y + height - safeRadius, safeRadius, 180, 90, safeSegments);
 
         offset = put(points, offset, x + width - safeRadius, y + height);
-        offset = putArc(points, offset, x + width - safeRadius, y + height - safeRadius, safeRadius, 90, 0, safeSegments);
+        offset = putArc(points, offset, x + width - safeRadius, y + height - safeRadius, safeRadius, 90, 0,
+            safeSegments);
 
         offset = put(points, offset, x + width, y + safeRadius);
         offset = putArc(points, offset, x + width - safeRadius, y + safeRadius, safeRadius, 0, -90, safeSegments);
@@ -130,8 +130,7 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
                 points,
                 offset,
                 (float) (centerX + Math.cos(angle) * radius),
-                (float) (centerY + Math.sin(angle) * radius)
-            );
+                (float) (centerY + Math.sin(angle) * radius));
         }
 
         return offset;

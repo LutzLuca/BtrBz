@@ -28,8 +28,7 @@ class BazaarWidgetViewDataSnapshotTest {
             Optional.of(new BazaarWidgetViewData.FillProgress(0, 2)),
             BazaarWidgetViewData.OrderStatus.Top,
             Optional.empty(),
-            List.of(tooltip)
-        );
+            List.of(tooltip));
         var snapshot = new BazaarWidgetViewData.OrdersData(List.of(order));
 
         name.append(" changed");
