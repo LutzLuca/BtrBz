@@ -1,8 +1,6 @@
 # Changelog
 
-# Changelog
-
-## [TBD] - TBA
+## [0.11.0-alpha] - 2026-08-15
 
 ### Added
 
@@ -21,7 +19,7 @@
 * Widgets now adjust to the current Minecraft GUI scale and shrink when they would not fit on screen
 * Reworked the layouts and controls for Tracked Orders, Order Value, Full Order Book, Order Book Price Entry, Bookmarks, Order Presets, Daily Bazaar Limit, and Price Difference
 * Bookmark and tracked-order lists now keep their scroll positions when moving between supported screens
-* Bazaar widgets now associated item stacks for products with unusual or legacy item data
+* Bazaar widgets now use associated item stacks for products with unusual or legacy item data
 * BtrBz now requires `owo-lib`
 * Dropped Minecraft 26.2 support (as `owo-lib` is yet to release for 26.2)
 * Reduced repeated widget updates while browsing Bazaar menus
@@ -42,6 +40,7 @@
 * Added shared retained components for lists, rows, scrolling, tooltips, placement, and widget frames
 * Updated Bazaar item-stack resolution to use compatible NEU overlays with converted legacy NEU data as a fallback
 * Expanded tests for widget configuration, placement, scaling, caching, previews, sessions, interactions, retained components, and Bazaar item conversion
+* Added automated Java formatting and code-style checks
 
 ### Breaking
 
