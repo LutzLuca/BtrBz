@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
+import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -64,7 +66,24 @@ class TrackedOrderManagerTest {
             assertEquals(
                 List.of(second.id(), first.id(), third.id()),
                 manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList());
+            assertEquals(List.of(first.id(), second.id(), third.id()), manager.creationOrder());
             assertFalse(manager.reorder(new TrackedOrderId(UUID.randomUUID()), 0));
+        }
+
+        @Test
+        void ignoresAnEffectiveNoOpWithoutAdvancingTheRevision() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            var first = trackedOrder(ProductIdentity.fromName("First"), 1.0);
+            var second = trackedOrder(ProductIdentity.fromName("Second"), 2.0);
+            manager.addTrackedOrder(first);
+            manager.addTrackedOrder(second);
+            long revision = manager.dataChanges().revision();
+
+            assertFalse(manager.reorder(first.id(), 1));
+            assertEquals(revision, manager.dataChanges().revision());
+            assertEquals(
+                List.of(first.id(), second.id()),
+                manager.currentOrders().stream().map(TrackedOrderManager.TrackedOrderSnapshot::id).toList());
         }
 
         @Test
@@ -93,6 +112,72 @@ class TrackedOrderManagerTest {
             assertEquals(2, snapshotsById.get(first.id()).fillAmountSnapshot());
             assertEquals(6, snapshotsById.get(second.id()).slot());
             assertEquals(7, snapshotsById.get(second.id()).fillAmountSnapshot());
+        }
+    }
+
+    @Nested
+    @DisplayName("filled order count")
+    class FilledOrderCount {
+
+        @Test
+        void incrementsForEachMatchingFillAndRemovesOneOrder() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            manager.addTrackedOrder(trackedOrder(ProductIdentity.fromName("Troubled Bubble")));
+            manager.addTrackedOrder(trackedOrder(ProductIdentity.fromName("Troubled Bubble")));
+            var filled = new OrderFilled(OrderType.Buy, 1, "Troubled Bubble");
+
+            manager.handleOrderFilled(filled);
+
+            assertEquals(1, manager.filledOrderCount());
+            assertEquals(1, manager.currentOrders().size());
+
+            manager.handleOrderFilled(filled);
+
+            assertEquals(2, manager.filledOrderCount());
+            assertTrue(manager.currentOrders().isEmpty());
+        }
+
+        @Test
+        void incrementsWhenNoTrackedOrderMatches() {
+            var manager = new TrackedOrderManager(new BazaarData());
+
+            manager.handleOrderFilled(new OrderFilled(OrderType.Sell, 64, "Untracked Product"));
+
+            assertEquals(1, manager.filledOrderCount());
+            assertTrue(manager.currentOrders().isEmpty());
+        }
+
+        @Test
+        void screenSyncReplacesTheProvisionalCount() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            manager.addTrackedOrder(trackedOrder(ProductIdentity.fromName("Troubled Bubble")));
+            manager.addTrackedOrder(trackedOrder(ProductIdentity.fromName("Troubled Bubble")));
+            var filledMessage = new OrderFilled(OrderType.Buy, 1, "Troubled Bubble");
+            manager.handleOrderFilled(filledMessage);
+            manager.handleOrderFilled(filledMessage);
+            assertEquals(2, manager.filledOrderCount());
+
+            manager.syncOrders(List.of(filledOrder("First"), filledOrder("Second"), filledOrder("Third")));
+            assertEquals(3, manager.filledOrderCount());
+
+            manager.syncOrders(List.of(filledOrder("Only")));
+            assertEquals(1, manager.filledOrderCount());
+
+            manager.addTrackedOrder(trackedOrder(ProductIdentity.fromName("Troubled Bubble")));
+            manager.handleOrderFilled(filledMessage);
+            assertEquals(2, manager.filledOrderCount());
+        }
+
+        @Test
+        void resetClearsActiveAndFilledOrders() {
+            var manager = new TrackedOrderManager(new BazaarData());
+            manager.syncOrders(List.of(filledOrder("Filled Product")));
+            manager.addTrackedOrder(trackedOrder(ProductIdentity.fromName("Troubled Bubble")));
+
+            manager.resetTrackedOrders();
+
+            assertTrue(manager.currentOrders().isEmpty());
+            assertEquals(0, manager.filledOrderCount());
         }
     }
 
@@ -310,6 +395,10 @@ class TrackedOrderManagerTest {
             filledAmount,
             0,
             slot);
+    }
+
+    private static FilledOrderInfo filledOrder(String productName) {
+        return new FilledOrderInfo(productName, OrderType.Sell, 1, 10.0, 1, 10, 0);
     }
 
     private static MarketSnapshot snapshot(Map<String, Product> products) {

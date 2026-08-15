@@ -142,6 +142,10 @@ class ProductResolverTest {
             new ConversionProductEntry(
                 "Phanpyre Shard",
                 new ProductNameSource.Neu("ATTRIBUTE_SHARD_NOCTURNAL_ANIMAL;1")));
-        return new ConversionIndexService(new ConversionIndex(1, "now", null, products));
+        return new ConversionIndexService(new ConversionIndex(
+            ConversionIndex.SCHEMA_VERSION,
+            "now",
+            null,
+            products));
     }
 }

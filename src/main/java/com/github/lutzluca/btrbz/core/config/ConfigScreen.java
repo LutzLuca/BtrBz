@@ -1,7 +1,11 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import dev.isxander.yacl3.api.ConfigCategory;
+import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
@@ -16,7 +20,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,13 +37,14 @@ public class ConfigScreen {
         var client = Minecraft.getInstance();
         client.schedule(() -> client.gui.setScreen(ConfigScreen.create(
             client.gui.screen(),
-            ConfigManager.get())));
+            ConfigManager.get()
+        )));
     }
     *///?}
 
     public static Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(
-            ConfigManager.HANDLER, (defaults, cfg, builder) -> {
+            ConfigManager.HANDLER, (_, _, builder) -> {
                 builder.title(Component.literal(BtrBz.MOD_ID));
                 buildCategories(builder, config);
 
@@ -49,6 +53,13 @@ public class ConfigScreen {
     }
 
     private static void buildCategories(Builder builder, Config config) {
+        var widgetBuilder = ConfigCategory.createBuilder()
+            .name(Component.literal("Widgets"))
+            .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
+            .options(widgetManagerOptions())
+            .options(widgetOptions(BtrBz.widgetRuntime().registry()));
+        var widgets = widgetBuilder.build();
+
         var ordersAndNotifications = ConfigCategory
             .createBuilder()
             .name(Component.literal("Orders & Notifications"))
@@ -59,19 +70,14 @@ public class ConfigScreen {
             .group(config.alert.createGroup())
             .build();
 
-        var interfaceAndOverlays = ConfigCategory
+        var interfaceAndTooltips = ConfigCategory
             .createBuilder()
-            .name(Component.literal("Interface & Overlays"))
+            .name(Component.literal("Interface & Tooltips"))
             .tooltip(Component.literal(
-                "Configure Bazaar overlays, hover tooltips, product information, price helpers, and chat cleanup."))
-            .group(config.orderList.getGroup())
+                "Configure hover tooltips, product information, price helpers, and Bazaar chat cleanup."))
             .group(config.orderListTooltip.createGroup())
             .group(config.orderItemTooltip.createGroup())
-            .group(config.bookmark.createGroup())
             .group(config.productInfo.createGroup())
-            .group(config.priceDiff.createGroup())
-            .group(config.orderValueOverlay.createGroup())
-            .group(config.orderBookPrice.createGroup())
             .group(config.chatFilter.createGroup())
             .build();
 
@@ -79,27 +85,72 @@ public class ConfigScreen {
             .createBuilder()
             .name(Component.literal("Order Workflow"))
             .tooltip(Component.literal(
-                "Configure tools that assist with creating, cancelling, reopening, and flipping orders."))
+                "Configure tools that assist with creating, cancelling, reopening, flipping, and protecting orders."))
             .groups(config.orderActions.createGroups())
             .group(config.flipHelper.createGroup())
-            .group(config.orderPresets.createGroup())
-            .group(config.orderBook.createGroup())
-            .build();
-
-        var safetyAndLimits = ConfigCategory
-            .createBuilder()
-            .name(Component.literal("Safety & Limits"))
-            .tooltip(Component.literal(
-                "Prevent risky order prices and configure the daily transaction-limit display."))
             .group(config.orderProtection.createGroup())
-            .group(config.orderLimit.createGroup())
             .build();
 
         builder
+            .category(widgets)
             .category(ordersAndNotifications)
-            .category(interfaceAndOverlays)
-            .category(orderWorkflow)
-            .category(safetyAndLimits);
+            .category(interfaceAndTooltips)
+            .category(orderWorkflow);
+    }
+
+    static List<ButtonOption> widgetOptions(WidgetRegistry registry) {
+        return registry.all().stream()
+            .map(ConfigScreen::widgetOption)
+            .toList();
+    }
+
+    static List<Option<?>> widgetManagerOptions() {
+        var widgetRuntime = BtrBz.widgetRuntime();
+
+        var openManager = ButtonOption.createBuilder()
+            .name(Component.literal("Open Widget Manager"))
+            .text(Component.literal("Open"))
+            .description(createDescription(
+                "Open the widget manager without using the Bazaar quick-access button.",
+                ConfigImages.WidgetManagerButton))
+            .action((screen, _) -> Minecraft.getInstance().setScreen(
+                widgetRuntime.createManagementScreen(screen)))
+            .build();
+
+        var resetPosition = ButtonOption.createBuilder()
+            .name(Component.literal("Reset Widget Manager Button Position"))
+            .text(Component.literal("Reset"))
+            .description(createDescription(
+                "Restore the Bazaar quick-access button to its default position."))
+            .action((_, _) -> widgetRuntime.stateStore().resetManagerLauncherPosition(true))
+            .build();
+
+        return List.of(openManager, resetPosition);
+    }
+
+    private static ButtonOption widgetOption(WidgetDefinition<?, ?, ?> definition) {
+        String name = definition.getDisplayName();
+        WidgetId id = definition.getId();
+
+        String responsibility = definition.getDescription().isBlank()
+            ? "Open the Widget Manager focused on " + name + "."
+            : definition.getDescription();
+        Component description = paragraphs(
+            Component.literal(responsibility),
+            Component.literal("Configure its placement and settings in the Widget Manager."));
+        var image = ConfigImages.forWidget(id);
+
+        var optionDescription = image == null
+            ? createDescription(description)
+            : createDescription(description, image);
+
+        return ButtonOption.createBuilder()
+            .name(Component.literal(name))
+            .text(Component.literal("Configure"))
+            .description(optionDescription)
+            .action((screen, _) -> Minecraft.getInstance().setScreen(
+                BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)))
+            .build();
     }
 
     public static OptionDescription createDescription(String text) {
@@ -110,16 +161,12 @@ public class ConfigScreen {
         return OptionDescription.of(text);
     }
 
-    public static OptionDescription createDescription(String text, ConfigImage image) {
+    public static OptionDescription createDescription(String text, ConfigImages image) {
         return createDescription(Component.literal(text), image);
     }
 
-    public static OptionDescription createDescription(Component text, ConfigImage image) {
-        return OptionDescription
-            .createBuilder()
-            .text(text)
-            .image(image.identifier, image.width, image.height)
-            .build();
+    public static OptionDescription createDescription(Component text, ConfigImages image) {
+        return image.description(text);
     }
 
     public static Component paragraphs(Component... paragraphs) {
@@ -178,39 +225,6 @@ public class ConfigScreen {
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
         return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
-    }
-
-    public enum ConfigImage {
-        PRICE_ALERT("alert-registration-and-firing.png", 658, 202),
-        BOOKMARKS("bookmark-with-order-indicators.png", 497, 373),
-        ORDER_BOOK("custom-order-book-overlay.png", 1472, 828),
-        DAILY_LIMIT("daily-limit-overlay.png", 547, 410),
-        FLIP_HELPER("flip-helper.png", 994, 654),
-        ORDER_LIST_TOOLTIP("order-list-tooltips.png", 710, 399),
-        ORDER_NOTIFICATION("order-notifications.png", 661, 235),
-        ORDER_PRESETS("order-presets.png", 619, 348),
-        ORDER_PROTECTION("order-protection-blocking.png", 1092, 614),
-        ORDER_STATUS("order-status-highlight.png", 423, 238),
-        ORDER_TOOLTIP("order-tooltip.png", 542, 305),
-        ORDER_VALUE("order-value-overlay.png", 550, 412),
-        PRICE_DIFFERENCE("price-diff-overlay.png", 687, 515),
-        PRICE_ENTRY_ORDER_BOOK("price-entry-order-book.png", 1212, 682),
-        PRODUCT_INFO_PAPER("product-info-paper.png", 622, 350),
-        PRODUCT_INFO("product-info.png", 588, 218),
-        REOPEN_LAST_ORDER("reopen-last-order.png", 578, 325),
-        TRACKED_ORDER_OVERLAY("tracked-order-overlay.png", 490, 368);
-
-        private final Identifier identifier;
-        private final int width;
-        private final int height;
-
-        ConfigImage(String fileName, int width, int height) {
-            this.identifier = Identifier.fromNamespaceAndPath(
-                BtrBz.MOD_ID,
-                "textures/gui/config/" + fileName);
-            this.width = width;
-            this.height = height;
-        }
     }
 
     public static final class OptionGrouping {

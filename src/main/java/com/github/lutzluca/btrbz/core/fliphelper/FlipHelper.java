@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.fliphelper;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -325,10 +326,9 @@ public class FlipHelper {
 
         @Override
         public boolean matches(SlotView view) {
-            var config = ConfigManager.get();
-            boolean tracksFlipProduct = config.orderBookPrice.enabled
-                && config.orderBookPrice.showOnFlipSign;
-            return (config.flipHelper.enabled || tracksFlipProduct)
+            var cfg = ConfigManager.get();
+            boolean tracksFlipProduct = cfg.widgets.orderBookPrice.frame.enabled;
+            return (cfg.flipHelper.enabled || tracksFlipProduct)
                 && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }
@@ -359,8 +359,8 @@ public class FlipHelper {
                 .name(Component.literal("Enable Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(ConfigScreen.createDescription(
-                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins "
-                        + "below the current lowest offer."))
+                    "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins below "
+                        + "the current lowest offer."))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -374,7 +374,7 @@ public class FlipHelper {
                     ConfigScreen.text("Turn a filled buy order into a sell offer with fewer clicks."),
                     ConfigScreen.example(
                         "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")),
-                    ConfigScreen.ConfigImage.FLIP_HELPER))
+                    ConfigImages.FlipHelper))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

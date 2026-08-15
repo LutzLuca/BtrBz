@@ -1,240 +1,104 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
-import com.github.lutzluca.btrbz.data.BazaarData.OrderLists;
-import com.github.lutzluca.btrbz.utils.Utils;
-import java.util.ArrayList;
-import java.util.List;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
-import com.github.lutzluca.btrbz.widgets.core.WidgetManager;
-import com.github.lutzluca.btrbz.widgets.ListWidget;
-import com.github.lutzluca.btrbz.widgets.Renderable;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
+import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
-
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-public class OrderBookScreen extends Screen {
-
+/** BtrBz-owned host screen for only the full Order Book widget. */
+public final class OrderBookScreen extends Screen {
     private final Screen parent;
-    private final OrderLists orders;
+    private final ProductIdentity product;
+    private final String productName;
+    private final WidgetHost host;
 
-    private WidgetManager widgetManager;
-
-    public OrderBookScreen(Screen parent, Component title, OrderLists orders) {
-        super(title);
+    public OrderBookScreen(
+        Screen parent,
+        ProductIdentity product,
+        String productName,
+        WidgetHost host
+    ) {
+        super(Component.literal(productName + " Order Book"));
         this.parent = parent;
-        this.orders = orders;
+        this.product = product;
+        this.productName = productName;
+        this.host = host;
     }
 
-    @Override
-    protected void init() {
-        super.init();
-
-        int width = this.width;
-        int height = this.height;
-
-        int panelWidth = (int) (width * 0.7);
-        int panelHeight = (int) (height * 0.8);
-        int panelX = (width - panelWidth) / 2;
-        int panelY = (height - panelHeight) / 2;
-
-        int listWidth = (panelWidth - 30) / 2;
-        int listHeight = panelHeight - 90;
-
-        int buyX = panelX + 10;
-        int listY = panelY + 40;
-
-        ListWidget buyOrderList = new ListWidget(
-            buyX,
-            listY,
-            listWidth,
-            listHeight,
-            "Buy Orders");
-        buyOrderList.setReorderable(false)
-            .setRemovable(false)
-            .setItemHeight(14)
-            .setDraggable(false);
-
-        buyOrderList.onItemClick((self, item, idx) -> {
-            copyPriceToClipboard(((OrderBookRenderable) item).getPricePerUnit());
-            this.onClose();
-        });
-
-        int sellX = buyX + listWidth + 10;
-
-        ListWidget sellOfferList = new ListWidget(
-            sellX,
-            listY,
-            listWidth,
-            listHeight,
-            "Sell Offers");
-        sellOfferList.setReorderable(false)
-            .setRemovable(false)
-            .setItemHeight(14)
-            .setDraggable(false);
-
-        sellOfferList.onItemClick((self, item, idx) -> {
-            copyPriceToClipboard(((OrderBookRenderable) item).getPricePerUnit());
-            this.onClose();
-        });
-
-        List<Renderable> buyWidgets = new ArrayList<>();
-        for (var summary : this.orders.buyOrders()) {
-            buyWidgets.add(new OrderBookRenderable(summary, OrderType.Buy));
-        }
-
-        List<Renderable> sellWidgets = new ArrayList<>();
-        for (var summary : this.orders.sellOffers()) {
-            sellWidgets.add(new OrderBookRenderable(summary, OrderType.Sell));
-        }
-
-        buyOrderList.setItems(buyWidgets);
-        sellOfferList.setItems(sellWidgets);
-
-        this.widgetManager = new WidgetManager(List.of(buyOrderList, sellOfferList));
-        this.widgetManager.init();
-
-        int buttonWidth = 100;
-        int buttonHeight = 20;
-        int buttonX = panelX + (panelWidth - buttonWidth) / 2;
-        int buttonY = listY + listHeight + 15;
-
-        // TODO: eventually replace with custom button?
-        this.addRenderableWidget(
-            Button.builder(Component.literal("Go Back"), btn -> this.onClose())
-                .bounds(buttonX, buttonY, buttonWidth, buttonHeight)
-                .build());
+    public ProductIdentity product() {
+        return this.product;
     }
 
-    private void copyPriceToClipboard(double price) {
-        Minecraft.getInstance().keyboardHandler.setClipboard(Utils.formatDecimal(price, 1, false));
+    public String productName() {
+        return this.productName;
     }
 
     @Override
     public void onClose() {
-        //? if <26.2 {
-        Minecraft.getInstance().setScreen(parent);
-        //?} else {
-        /*Minecraft.getInstance().gui.setScreen(parent);
-        *///?}
+        this.host.dispose();
+        Minecraft.getInstance().setScreen(this.parent);
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        // suppress vanilla background rendering so it does not cover the custom background
+    public void removed() {
+        this.host.dispose();
+        super.removed();
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, this.width, this.height, 0x80000000);
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        graphics.fill(0, 0, this.width, this.height, 0x80000000);
+    }
 
-        super.extractRenderState(context, mouseX, mouseY, delta);
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-        int listY = (this.height - (int) (this.height * 0.8)) / 2 + 40;
-
-        context.centeredText(
-            this.font,
-            this.title,
-            this.width / 2,
-            listY - 30,
-            0xFFFFFFFF);
-
-        Component subtitle = Component.literal("Click an order to copy its price");
-        context.centeredText(
-            this.font,
-            subtitle,
-            this.width / 2,
-            listY - 15,
-            0xFFAAAAAA);
-
-        this.widgetManager.render(context, mouseX, mouseY, delta);
+        this.host.render(
+            graphics,
+            mouseX,
+            mouseY,
+            delta,
+            new WidgetCanvas(0, 0, this.width, this.height),
+            WidgetHostOptions.runtime(true),
+            this);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (this.widgetManager.mouseClicked(event, doubleClick)) {
-            return true;
-        }
-        return super.mouseClicked(event, doubleClick);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        return this.widgetManager.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
-            || super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        return this.host.mouseClicked(event, doubleClick) || super.mouseClicked(event, doubleClick);
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        this.widgetManager.mouseReleased(event);
-        return super.mouseReleased(event);
+        return this.host.mouseReleased(event) || super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
-        if (this.widgetManager.mouseDragged(event, dragX, dragY)) {
-            return true;
-        }
-        return super.mouseDragged(event, dragX, dragY);
+    public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        return this.host.mouseDragged(event, deltaX, deltaY)
+            || super.mouseDragged(event, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
+        return this.host.mouseScrolled(mouseX, mouseY, horizontal, vertical)
+            || super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        return this.host.keyPressed(event) || super.keyPressed(event);
     }
 
     @Override
     public boolean isPauseScreen() {
         return false;
-    }
-
-    public static class OrderBookRenderable implements Renderable {
-        private final Summary summary;
-        private final OrderType type;
-        private final Component priceText;
-        private final Component amountText;
-        private final Component ordersText;
-
-        public OrderBookRenderable(Summary summary, OrderType type) {
-            this.summary = summary;
-            this.type = type;
-            this.priceText = Component.literal(Utils.formatDecimal(summary.getPricePerUnit(), 1, true));
-            this.amountText = Component.literal(String.valueOf(summary.getAmount()));
-            this.ordersText = Component.literal("(" + summary.getOrders() + " orders)");
-        }
-
-        @Override
-        public void render(
-            GuiGraphicsExtractor ctx,
-            int x,
-            int y,
-            int width,
-            int height,
-            int mouseX,
-            int mouseY,
-            float delta,
-            boolean hovered
-        ) {
-            var font = Minecraft.getInstance().font;
-
-            if (hovered) {
-                int color = type == OrderType.Buy ? 0x6022AA22 : 0x60AA2222;
-                ctx.fill(x, y, x + width, y + height, color);
-            }
-
-            int textColor = type == OrderType.Buy ? 0xFF55FF55 : 0xFFFF5555;
-            int yPos = y + (height - font.lineHeight) / 2;
-
-            ctx.text(font, this.priceText, x + 5, yPos, textColor);
-
-            int ordersWidth = font.width(this.ordersText);
-            ctx.text(font, this.ordersText, x + width - ordersWidth - 5, yPos, 0xFF888888);
-
-            int amountWidth = font.width(this.amountText);
-            ctx.text(font, this.amountText, x + width - ordersWidth - amountWidth - 12, yPos, 0xFFCCCCCC);
-        }
-
-        public double getPricePerUnit() {
-            return this.summary.getPricePerUnit();
-        }
     }
 }

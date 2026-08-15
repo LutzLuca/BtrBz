@@ -1,7 +1,10 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
@@ -27,6 +30,7 @@ import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import io.vavr.control.Try;
 import java.net.URI;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -70,6 +74,11 @@ public final class ProductInfoProvider {
 
     @Getter
     private @Nullable IndexedProduct openedProduct;
+    private final CacheToken changes = CacheToken.named("product-info.opened-product");
+
+    public CacheToken changes() {
+        return this.changes;
+    }
 
     public ProductInfoProvider(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -116,11 +125,11 @@ public final class ProductInfoProvider {
 
                 product.ifPresentOrElse(
                     resolved -> {
-                        this.openedProduct = resolved;
+                        this.setOpenedProduct(resolved, "Bazaar product opened");
                         log.debug("Opened product: {}", resolved);
                     },
                     () -> {
-                        this.openedProduct = null;
+                        this.setOpenedProduct(null, "Bazaar product resolution cleared");
                         log.warn("No product resolved for Bazaar item screen");
                     });
             });
@@ -153,9 +162,17 @@ public final class ProductInfoProvider {
                 log.debug(
                     "Leaving product flow, clearing product: {}",
                     this.openedProduct);
-                this.openedProduct = null;
+                this.setOpenedProduct(null, "left Bazaar product workflow");
             }
         });
+    }
+
+    private void setOpenedProduct(@Nullable IndexedProduct product, String reason) {
+        if (Objects.equals(this.openedProduct, product)) {
+            return;
+        }
+        this.openedProduct = product;
+        this.changes.invalidate(InvalidationReason.of(reason));
     }
 
     private void registerSlotHooks() {
@@ -352,7 +369,7 @@ public final class ProductInfoProvider {
         var client = Minecraft.getInstance();
         //?} else {
         /*var client = Minecraft.getInstance().gui;
-        *///?}
+         *///?}
 
         client.setScreen(new ConfirmLinkScreen(
             confirmed -> {
@@ -520,9 +537,9 @@ public final class ProductInfoProvider {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Product Info Paper on Product Page"))
                 .description(ConfigScreen.createDescription(
-                    "Open the selected product on your preferred information site when clicking the Product "
-                        + "Info paper in its Bazaar menu.",
-                    ConfigScreen.ConfigImage.PRODUCT_INFO_PAPER))
+                    "Open the selected product on your preferred information site when clicking the Product Info "
+                        + "paper in its Bazaar menu.",
+                    ConfigImages.ProductInfoPaper))
                 .binding(true, () -> this.itemClickEnabled, val -> this.itemClickEnabled = val)
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -543,8 +560,8 @@ public final class ProductInfoProvider {
                 .name(Component.literal("Lookup Bazaar Menu Items"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Allow Product Lookup Click on items inside Bazaar menus. "
-                            + "A normal click keeps its usual Bazaar or bookmark action."),
+                        "Allow Product Lookup Click on items inside Bazaar menus. A normal click keeps its usual "
+                            + "Bazaar or bookmark action."),
                     ConfigScreen.requires("Enable Product Lookup Click"))))
                 .binding(
                     true,
@@ -613,7 +630,7 @@ public final class ProductInfoProvider {
                 .name(Component.literal("Product Information"))
                 .description(ConfigScreen.createDescription(
                     "View current prices in item tooltips or open a Bazaar product on an external information site.",
-                    ConfigScreen.ConfigImage.PRODUCT_INFO))
+                    ConfigImages.ProductInfo))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

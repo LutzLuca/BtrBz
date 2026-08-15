@@ -117,6 +117,12 @@ class UtilsTest {
         }
 
         @Test
+        void promotesValuesThatRoundIntoTheNextTier() {
+            assertEquals("1M", Utils.formatCompact(999_950));
+            assertEquals("1.0M", Utils.formatCompact(999_950, 1));
+        }
+
+        @Test
         void formatsZero() {
             assertEquals("0", Utils.formatCompact(0, 0));
         }
@@ -124,6 +130,14 @@ class UtilsTest {
         @Test
         void formatsNegativeValues() {
             assertEquals("-1.5k", Utils.formatCompact(-1500, 1));
+        }
+
+        @Test
+        void formatsWidgetValuesWithoutForcedTrailingZeros() {
+            assertEquals("26.12B", Utils.formatCompact(26_120_000_000d));
+            assertEquals("26B", Utils.formatCompact(26_000_000_000d));
+            assertEquals("21.2M", Utils.formatCompact(21_200_000d));
+            assertEquals("875", Utils.formatCompact(875d));
         }
     }
 
@@ -270,6 +284,16 @@ class UtilsTest {
     @Nested
     @DisplayName("legacyFormattedText")
     class LegacyFormattedText {
+
+        @Test
+        void parsesLegacyFormattingIntoComponentStyles() {
+            var text = Utils.legacyFormattedComponent("§d§lThunderlord VII");
+
+            assertEquals("Thunderlord VII", text.getString());
+            assertEquals(ChatFormatting.LIGHT_PURPLE.getColor(), text.getStyle().getColor().getValue());
+            assertTrue(text.getStyle().isBold());
+            assertEquals("§d§lThunderlord VII", Utils.legacyFormattedText(text));
+        }
 
         @Test
         void preservesNamedColors() {

@@ -14,7 +14,7 @@ import net.minecraft.client.Minecraft;
 @Slf4j
 public final class ClientTickDispatcher {
 
-    private static final List<ClientTickEvents.EndTick> LISTENERS = new CopyOnWriteArrayList<>();
+    private static final List<TickRegistration> LISTENERS = new CopyOnWriteArrayList<>();
     private static final Queue<ScheduledTask> TASKS = new ConcurrentLinkedDeque<>();
 
     static {
@@ -22,42 +22,87 @@ public final class ClientTickDispatcher {
     }
 
     private static void onEndTick(Minecraft client) {
-        LISTENERS.forEach(listener -> Try
-            .run(() -> listener.onEndTick(client))
+        LISTENERS.forEach(registration -> Try
+            .run(() -> registration.listener.onEndTick(client))
             .onFailure(err -> log.warn("Exception in client end tick listener", err)));
 
         var it = TASKS.iterator();
         while (it.hasNext()) {
             var task = it.next();
-            if (--task.ticks <= 0) {
-                it.remove();
-                Try
-                    .run(() -> task.callback.accept(client))
-                    .onFailure(err -> log.warn("Exception in client tick task", err));
+
+            switch (task) {
+                case OneShotTask oneShotTask -> {
+                    if (--oneShotTask.ticks <= 0) {
+                        it.remove();
+                        runTask(oneShotTask.callback, client);
+                    }
+                }
+                case IntervalTask intervalTask -> {
+                    if (--intervalTask.ticks <= 0) {
+                        intervalTask.ticks = intervalTask.intervalTicks;
+                        runTask(intervalTask.callback, client);
+                    }
+                }
             }
         }
     }
 
-    public static void register(ClientTickEvents.EndTick listener) {
-        LISTENERS.add(listener);
+    private static void runTask(Consumer<Minecraft> task, Minecraft client) {
+        Try
+            .run(() -> task.accept(client))
+            .onFailure(err -> log.warn("Exception in client tick task", err));
     }
 
-    public static void unregister(ClientTickEvents.EndTick listener) {
-        LISTENERS.remove(listener);
+    public static TaskHandle onEachTick(ClientTickEvents.EndTick listener) {
+        var registration = new TickRegistration(listener);
+        LISTENERS.add(registration);
+        return () -> LISTENERS.remove(registration);
     }
 
-    public static void submit(Consumer<Minecraft> task) {
-        TASKS.add(new ScheduledTask(0, task));
+    public static TaskHandle scheduleEvery(
+        int ticks,
+        Consumer<Minecraft> task
+    ) {
+        if (ticks <= 0) {
+            throw new IllegalArgumentException("ticks must be positive");
+        }
+
+        var scheduled = new IntervalTask(ticks, ticks, task);
+        TASKS.add(scheduled);
+        return () -> TASKS.remove(scheduled);
     }
 
-    public static void submit(Consumer<Minecraft> task, int ticks) {
-        TASKS.add(new ScheduledTask(ticks, task));
+    public static void scheduleAfter(Consumer<Minecraft> task, int ticks) {
+        if (ticks <= 0) {
+            throw new IllegalArgumentException("ticks must be positive");
+        }
+
+        TASKS.add(new OneShotTask(ticks, task));
+    }
+
+    private sealed interface ScheduledTask permits OneShotTask, IntervalTask {}
+
+    @AllArgsConstructor
+    private static final class TickRegistration {
+        private final ClientTickEvents.EndTick listener;
     }
 
     @AllArgsConstructor
-    private static class ScheduledTask {
+    private static final class OneShotTask implements ScheduledTask {
+        private int ticks;
+        private final Consumer<Minecraft> callback;
+    }
 
-        int ticks;
-        Consumer<Minecraft> callback;
+    @AllArgsConstructor
+    private static final class IntervalTask implements ScheduledTask {
+        private int ticks;
+        private final int intervalTicks;
+        private final Consumer<Minecraft> callback;
+    }
+
+    @FunctionalInterface
+    public interface TaskHandle extends AutoCloseable {
+        @Override
+        void close();
     }
 }

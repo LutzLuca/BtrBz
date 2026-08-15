@@ -27,7 +27,8 @@
         "minecraft": "${mc_version}",
         "java": ">=25",
         "fabric-api": "*",
-        "yet_another_config_lib_v3": "*"
+        "yet_another_config_lib_v3": "*",
+        "owo-lib": "*"
     },
     "contact": {
         "homepage": "https://modrinth.com/project/btrbz",

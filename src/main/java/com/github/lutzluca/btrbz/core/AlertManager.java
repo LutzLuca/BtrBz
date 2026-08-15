@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -217,9 +218,11 @@ public class AlertManager {
         }
 
         public boolean matches(ResolvedAlertArgs args) {
+            // @formatter:off
             return this.productId().equals(args.productId())
                 && this.type == args.type()
                 && Double.compare(this.price, args.price()) == 0;
+            // @formatter:on
         }
 
         public static final class GsonAdapter implements JsonSerializer<Alert>, JsonDeserializer<Alert> {
@@ -328,7 +331,7 @@ public class AlertManager {
                         .append(Component
                             .literal(" reaches 4M coins or less.")
                             .withStyle(ChatFormatting.GRAY)))),
-                    ConfigScreen.ConfigImage.PRICE_ALERT))
+                    ConfigImages.PriceAlert))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

@@ -166,6 +166,29 @@ class RemoteNeuConversionIndexBuilderTest {
     }
 
     @Nested
+    @DisplayName("item overlay selection")
+    class ItemOverlaySelection {
+
+        @Test
+        void selectsNewestDataVersionCompatibleWithTheArtifactBaseline() {
+            assertEquals(
+                4671,
+                RemoteNeuConversionIndexBuilder
+                    .newestCompatibleOverlayVersion(
+                        Set.of(4325, 4440, 4556, 4671, 4790, 5000),
+                        RemoteNeuConversionIndexBuilder.BASELINE_ITEM_DATA_VERSION)
+                    .orElseThrow());
+        }
+
+        @Test
+        void rejectsOverlaysNewerThanTheClient() {
+            assertTrue(RemoteNeuConversionIndexBuilder
+                .newestCompatibleOverlayVersion(Set.of(5000, 5100), 4786)
+                .isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("enchanted book formatting")
     class EnchantedBookFormatting {
 

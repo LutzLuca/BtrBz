@@ -3,6 +3,8 @@ package com.github.lutzluca.btrbz.data.conversions;
 import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.time.Instant;
@@ -24,10 +26,12 @@ import org.jetbrains.annotations.Nullable;
 public final class ConversionIndexService {
 
     private final ProductResolver resolver;
+    private final ProductStackResolver stackResolver;
     private final List<Runnable> indexChangeListeners = new ArrayList<>();
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
     private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
+    private final CacheToken changes = CacheToken.named("conversion-index");
 
     private volatile ConversionIndex currentIndex;
     private volatile ConversionStatus.IndexLoadSource activeLoadSource;
@@ -53,6 +57,7 @@ public final class ConversionIndexService {
         this.currentIndex = ConversionIndex.empty();
         this.activeLoadSource = ConversionStatus.IndexLoadSource.Unavailable;
         this.resolver = new ProductResolver(this);
+        this.stackResolver = new ProductStackResolver(this);
         this.applyIndex(initialIndex, source);
     }
 
@@ -91,6 +96,13 @@ public final class ConversionIndexService {
             return false;
         }
 
+        log.info(
+            "Starting Bazaar conversion refresh (manual={}, products={}, builderVersion={}, neuCommit={})",
+            manual,
+            this.currentIndex.size(),
+            this.currentIndex.builderVersion(),
+            this.currentIndex.neuCommit().orElse("unknown"));
+
         CompletableFuture
             .supplyAsync(() -> Try.of(() -> this.prepareRemoteRefresh(force)))
             .thenAccept(result -> Minecraft.getInstance().execute(() -> {
@@ -122,6 +134,10 @@ public final class ConversionIndexService {
         return this.currentIndex;
     }
 
+    public CacheToken changes() {
+        return this.changes;
+    }
+
     public Optional<IndexedProduct> productById(String productId) {
         if (productId == null || productId.isBlank()) {
             return Optional.empty();
@@ -131,6 +147,10 @@ public final class ConversionIndexService {
 
     public List<IndexedProduct> allProducts() {
         return this.currentIndex.allProducts();
+    }
+
+    public Optional<ItemStack> productStack(String productId) {
+        return this.stackResolver.resolve(productId);
     }
 
     public ProductIdentity resolveProduct(ItemStack stack) {
@@ -171,7 +191,7 @@ public final class ConversionIndexService {
         synchronized (this.resolvedStackCache) {
             if (revision == this.indexRevision) {
                 this.resolvedStackCache
-                    .computeIfAbsent(stack, ignored -> new HashMap<>())
+                    .computeIfAbsent(stack, _ -> new HashMap<>())
                     .put(evidenceKey, resolved);
             }
         }
@@ -257,17 +277,28 @@ public final class ConversionIndexService {
             this.indexRevision++;
             log.trace("Cleared product identity cache with {} mappings", size);
         }
+        this.stackResolver.clear();
+        this.changes.invalidate(InvalidationReason.of("conversion index published"));
     }
 
     private void logIndexSummary(ConversionStatus.IndexLoadSource source, ConversionIndex index) {
         var counts = index.sourceCounts();
+        long overlayStacks = index.products().values().stream().filter(entry -> entry.itemStack() != null).count();
+        long legacyStacks = index.products().values().stream().filter(entry -> entry.legacyItemStack() != null).count();
+        long stackSources = index.products().values().stream()
+            .filter(entry -> entry.itemStack() != null || entry.legacyItemStack() != null)
+            .count();
         log.debug(
-            "Applied conversion index from {} ({} products, missing={}, source counts: neu={}, derived={})",
+            "Applied conversion index from {} ({} products, missing={}, names: neu={}, derived={}, "
+                + "stack sources: overlays={}, legacy={}, covered={})",
             source,
             index.size(),
             index.missingProductIds().size(),
             counts.neu(),
-            counts.derived());
+            counts.derived(),
+            overlayStacks,
+            legacyStacks,
+            stackSources);
         this.logDerivedMappings(index);
     }
 

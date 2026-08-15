@@ -2,8 +2,11 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -35,6 +38,7 @@ public class OrderTooltipProvider {
     private final BazaarData bazaarData;
     private final OrderTooltipCache listCache;
     private final OrderTooltipCache itemCache;
+    private final CacheToken listSettingsChanges = CacheToken.named("config.order-list-tooltip");
 
     private static class OrderTooltipCache {
         private final Map<@NotNull TrackedOrder, @Nullable List<Component>> cache = new HashMap<>();
@@ -110,6 +114,24 @@ public class OrderTooltipProvider {
     public void clearCache() {
         this.listCache.clear();
         this.itemCache.clear();
+    }
+
+    public CacheToken listSettingsChanges() {
+        return this.listSettingsChanges;
+    }
+
+    public void onListSettingsChanged(String reason) {
+        this.listCache.clear();
+        this.listSettingsChanges.invalidate(InvalidationReason.of(reason));
+    }
+
+    public void onItemSettingsChanged() {
+        this.itemCache.clear();
+    }
+
+    public void onQueueDisplayModeChanged() {
+        this.itemCache.clear();
+        this.onListSettingsChanged("order queue display mode changed");
     }
 
     public List<Component> buildTooltipLines(TrackedOrder order, OrderListTooltipConfig cfg) {
@@ -291,12 +313,12 @@ public class OrderTooltipProvider {
         public boolean showOnlyWhenUndercut = false;
 
         private static void invalidateCache() {
-            BtrBz.tooltipProvider().clearCache();
+            BtrBz.tooltipProvider().onListSettingsChanged("order-list tooltip setting changed");
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option.<Boolean>createBuilder()
-                .name(Component.literal("Enable Order List Tooltips"))
+                .name(Component.literal("Enable Tracked Orders Tooltips"))
                 .binding(true, () -> this.enabled, val -> {
                     this.enabled = val;
                     invalidateCache();
@@ -368,13 +390,11 @@ public class OrderTooltipProvider {
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
-                .name(Component.literal("Order List Tooltips"))
-                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                    ConfigScreen.text(
-                        "Choose which status, estimated queue, and market details appear when hovering entries "
-                            + "in the Tracked Orders Overlay."),
-                    ConfigScreen.requires("Enable Tracked Orders Overlay")),
-                    ConfigScreen.ConfigImage.ORDER_LIST_TOOLTIP))
+                .name(Component.literal("Tracked Orders Tooltips"))
+                .description(ConfigScreen.createDescription(
+                    "Choose which status, estimated queue, and market details appear when hovering entries in the "
+                        + "Tracked Orders widget.",
+                    ConfigImages.TrackedOrderTooltips))
                 .options(root.build())
                 .collapsed(true)
                 .build();
@@ -390,7 +410,7 @@ public class OrderTooltipProvider {
         public boolean showEstimatedTime = false;
 
         private static void invalidateCache() {
-            BtrBz.tooltipProvider().clearCache();
+            BtrBz.tooltipProvider().onItemSettingsChanged();
         }
 
         public Option.Builder<Boolean> createEnabledOption() {
@@ -465,11 +485,11 @@ public class OrderTooltipProvider {
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Estimate how long a top-position order may take to fill using its remaining volume "
-                            + "and the product's weekly moving volume."),
+                        "Estimate how long a top-position order may take to fill using its remaining volume and "
+                            + "the product's weekly moving volume."),
                     ConfigScreen.note(
-                        "Market changes and delayed UI updates can make this inaccurate. "
-                            + "Treat it as a rough guide, not a countdown."))))
+                        "Market changes and delayed UI updates can make this inaccurate. Treat it as a rough "
+                            + "guide, not a countdown."))))
                 .controller(ConfigScreen::createBooleanController);
         }
 
@@ -487,9 +507,9 @@ public class OrderTooltipProvider {
             return OptionGroup.createBuilder()
                 .name(Component.literal("Order Item Tooltips"))
                 .description(ConfigScreen.createDescription(
-                    "Choose which status, estimated queue, market, and fill-time details appear when hovering "
-                        + "an order item on the Bazaar Orders page.",
-                    ConfigScreen.ConfigImage.ORDER_TOOLTIP))
+                    "Choose which status, estimated queue, market, and fill-time details appear when hovering an "
+                        + "order item on the Bazaar Orders page.",
+                    ConfigImages.OrderTooltip))
                 .options(root.build())
                 .collapsed(true)
                 .build();

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
@@ -37,11 +38,21 @@ public abstract class MinecraftClientMixin {
      */
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("HEAD"))
     private void onSetScreenHead(@Nullable Screen screen, CallbackInfo ci) {
+        // The manager temporarily replaces its parent screen. Excluding it preserves the Bazaar
+        // predecessor that sign widgets need when returning to the same sign instance.
+        if (screen instanceof WidgetManagementScreen) {
+            return;
+        }
+
         ScreenInfoHelper.get().setScreen(screen);
     }
 
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("TAIL"))
     private void onSetScreenTail(@Nullable Screen screen, CallbackInfo ci) {
+        if (screen instanceof WidgetManagementScreen) {
+            return;
+        }
+
         ScreenInfoHelper.get().fireScreenSwitchCallbacks();
     }
 }

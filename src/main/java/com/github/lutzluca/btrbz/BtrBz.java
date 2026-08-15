@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
-import com.github.lutzluca.btrbz.core.ModuleManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager;
@@ -13,15 +12,30 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
-import com.github.lutzluca.btrbz.core.modules.BookmarkModule;
-import com.github.lutzluca.btrbz.core.modules.OrderBookPriceModule;
-import com.github.lutzluca.btrbz.core.modules.OrderLimitModule;
-import com.github.lutzluca.btrbz.core.modules.orderpreset.OrderPresetsModule;
-import com.github.lutzluca.btrbz.core.modules.OrderValueModule;
-import com.github.lutzluca.btrbz.core.modules.PriceDiffModule;
-import com.github.lutzluca.btrbz.core.modules.TrackedOrdersListModule;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarkComponent;
+import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
+import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
+import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
+import com.github.lutzluca.btrbz.core.widgets.session.DefaultWidgetSessionProvider;
+import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
+import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
+import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -42,6 +56,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -49,6 +64,10 @@ import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.Identifier;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
+import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -66,6 +85,7 @@ public class BtrBz implements ClientModInitializer {
     private AlertManager alertManager;
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
+    private WidgetRuntime widgetRuntime;
     private boolean automaticConversionFailureNotified;
 
     public static TrackedOrderManager orderManager() {
@@ -88,6 +108,10 @@ public class BtrBz implements ClientModInitializer {
         return instance.orderProtectionManager;
     }
 
+    public static WidgetRuntime widgetRuntime() {
+        return instance.widgetRuntime;
+    }
+
     @Override
     public void onInitializeClient() {
         instance = this;
@@ -98,7 +122,6 @@ public class BtrBz implements ClientModInitializer {
             DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
 
         ConfigManager.load();
-        Commands.registerAll(BAZAAR_DATA);
         BAZAAR_DATA.addConversionEventListener(this::handleConversionEvent);
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> BAZAAR_DATA.loadConversions());
 
@@ -115,44 +138,68 @@ public class BtrBz implements ClientModInitializer {
 
         var productInfoProvider = new ProductInfoProvider(BAZAAR_DATA);
         var orderActions = new BazaarOrderActions(BAZAAR_DATA);
-        new OrderBookScreenController(BAZAAR_DATA, productInfoProvider);
-
-        var moduleManager = ModuleManager.getInstance();
         var flipProductContext = new FlipProductContext();
         var flipSubmissionTracker = new FlipSubmissionTracker();
 
-        var bookmarkModule = new BookmarkModule(
+        var utcDayTracker = new UtcDayTracker();
+        var clipboardTracker = new ClipboardTracker(
+            () -> Minecraft.getInstance().keyboardHandler.getClipboard());
+        var purseTracker = new PurseTracker(GameUtils::getPurse);
+        utcDayTracker.initialize();
+        clipboardTracker.initialize();
+        purseTracker.initialize();
+        utcDayTracker.start();
+        clipboardTracker.start();
+        purseTracker.start();
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            utcDayTracker.close();
+            clipboardTracker.close();
+            purseTracker.close();
+        });
+
+        var bookmarks = new BookmarkComponent(
             BAZAAR_DATA,
             productInfoProvider,
             this.orderManager);
-        var priceDiffModule = new PriceDiffModule(BAZAAR_DATA);
-        var trackedOrdersListModule = new TrackedOrdersListModule(
-            this.orderManager,
-            this.highlightManager,
-            this.tooltipProvider);
-        var orderPresetsModule = new OrderPresetsModule(BAZAAR_DATA, productInfoProvider);
-        var orderLimitModule = new OrderLimitModule();
-        var orderValueModule = new OrderValueModule();
-        var orderBookPriceModule = new OrderBookPriceModule(
+        var orderValue = new OrderValueComponent();
+        var dailyLimit = new DailyLimitComponent(utcDayTracker);
+        var orderPresets = new OrderPresetsComponent(
+            BAZAAR_DATA, productInfoProvider, clipboardTracker, purseTracker);
+        var orderBookPrice = new OrderBookPriceComponent(
             BAZAAR_DATA,
             productInfoProvider,
             flipProductContext,
             flipSubmissionTracker);
 
-        moduleManager.discoverBindings();
-        moduleManager.registerModules(
-            bookmarkModule,
-            priceDiffModule,
-            trackedOrdersListModule,
-            orderPresetsModule,
-            orderLimitModule,
-            orderValueModule,
-            orderBookPriceModule);
+        var sessionProvider = new DefaultWidgetSessionProvider(
+            BAZAAR_DATA,
+            productInfoProvider,
+            orderBookPrice);
+        var ordersWidgetData = new MemoizedWidgetDataSource<>(new OrdersWidgetData(
+            BAZAAR_DATA, this.orderManager, this.tooltipProvider));
+        var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(BAZAAR_DATA));
+        var widgetRegistry = new WidgetRegistry();
+        widgetRegistry.register(BazaarOrdersWidgetDefinition.create(ordersWidgetData));
+        widgetRegistry.register(TrackedOrdersWidgetDefinition.create(ordersWidgetData, this.orderManager));
+        widgetRegistry.register(OrderValueWidgetDefinition.create(orderValue));
+        widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
+        widgetRegistry.register(OrderBookPriceWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
+        widgetRegistry.register(BookmarksWidgetDefinition.create(bookmarks));
+        widgetRegistry.register(OrderPresetsWidgetDefinition.create(orderPresets));
+        widgetRegistry.register(DailyLimitWidgetDefinition.create(dailyLimit));
+        widgetRegistry.register(PriceDifferenceWidgetDefinition.create(BAZAAR_DATA));
+        this.widgetRuntime = new WidgetRuntime(widgetRegistry, new WidgetStateStore(), sessionProvider);
+        HudWidgetBridge.register(
+            Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
+            this.widgetRuntime.createHudHost());
+        new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
+        Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
+        BtrBzWidgetKeybinds.register();
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();
             this.highlightManager.sync(trackedOrders, filledOrder);
-            orderValueModule.sync(unfilledOrders, filledOrder);
+            orderValue.sync(unfilledOrders, filledOrder);
         });
 
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {
@@ -182,18 +229,18 @@ public class BtrBz implements ClientModInitializer {
             flipSubmissionTracker);
 
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
-        MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::removeMatching);
+        MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::handleOrderFilled);
         MESSAGE_DISPATCHER.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
 
         MESSAGE_DISPATCHER.on(
             BazaarMessage.InstaBuy.class,
-            info -> orderLimitModule.onTransaction(info.total()));
+            info -> dailyLimit.onTransaction(info.total()));
         MESSAGE_DISPATCHER.on(
-            BazaarMessage.InstaSell.class, info -> orderLimitModule
+            BazaarMessage.InstaSell.class, info -> dailyLimit
                 .onTransaction(info.total() * (1 - ConfigManager.get().tax / 100)));
         MESSAGE_DISPATCHER.on(
             BazaarMessage.OrderSetup.class,
-            info -> orderLimitModule.onTransaction(info.total()));
+            info -> dailyLimit.onTransaction(info.total()));
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> MESSAGE_DISPATCHER
             .handleChatMessage(GameUtils.stripFormattingCodes(message.getString())));

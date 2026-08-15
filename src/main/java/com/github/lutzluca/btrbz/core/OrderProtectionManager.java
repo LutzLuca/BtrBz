@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -393,14 +394,14 @@ public class OrderProtectionManager {
                 .name(Component.literal("Limit Price Undercutting"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block prices that improve on the current best order by the allowed percentage or "
-                            + "more. The buy-order and sell-offer limits below apply only while this is enabled."),
+                        "Block prices that improve on the current best order by the allowed percentage or more. "
+                            + "The buy-order and sell-offer limits below apply only while this is enabled."),
                     ConfigScreen.example(
-                        "At a best price of 15M, a 100K change is about 0.67%. "
-                            + "With a 15% limit, the blocked difference begins at 2.25M."),
+                        "At a best price of 15M, a 100K change is about 0.67%. With a 15% limit, "
+                            + "the blocked difference begins at 2.25M."),
                     ConfigScreen.note(
-                        "Known limitation: fixed 0.1-coin price steps make percentage checks unreliable "
-                            + "for very cheap items. Moving from 0.5 to 0.6 coins is already a 20% increase."))))
+                        "Known limitation: fixed 0.1-coin price steps make percentage checks unreliable for very "
+                            + "cheap items. Moving from 0.5 to 0.6 coins is already a 20% increase."))))
                 .binding(
                     true,
                     () -> this.blockUndercutPercentage,
@@ -453,11 +454,11 @@ public class OrderProtectionManager {
                 .name(Component.literal("Block Orders at Instant-Trade Prices"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block buy orders priced at or above the best sell offer, and sell offers priced at "
-                            + "or below the best buy order. Use an instant trade instead."),
+                        "Block buy orders priced at or above the best sell offer, and sell offers priced at or below "
+                            + "the best buy order. Use an instant trade instead."),
                     ConfigScreen.example(
-                        "If the best buy order is 100 and the best sell offer is 105, a sell offer of 100 "
-                            + "or less and a buy order of 105 or more are blocked."))))
+                        "If the best buy order is 100 and the best sell offer is 105, a sell offer of 100 or less "
+                            + "and a buy order of 105 or more are blocked."))))
                 .binding(
                     true,
                     () -> this.blockUndercutOfOpposing,
@@ -482,7 +483,7 @@ public class OrderProtectionManager {
                 .name(Component.literal("Order Protection"))
                 .description(ConfigScreen.createDescription(
                     "Prevent accidental orders at unusually aggressive prices before they are submitted to the Bazaar.",
-                    ConfigScreen.ConfigImage.ORDER_PROTECTION))
+                    ConfigImages.OrderProtection))
                 .options(rootGroup.build())
                 .collapsed(true)
                 .build();

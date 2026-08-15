@@ -7,19 +7,21 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 
 public class Commands {
 
     public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands
         .literal("btrbz")
-        .executes(ctx -> {
+        .executes(_ -> {
             ConfigScreen.open();
             return 1;
         });
 
-    public static void registerAll(BazaarData bazaarData) {
+    public static void registerAll(BazaarData bazaarData, WidgetRuntime widgetRuntime) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(rootCommand);
+            dispatcher.register(WidgetCommand.get(widgetRuntime));
             dispatcher.register(AlertCommand.get(bazaarData));
             dispatcher.register(ConversionCommand.get(bazaarData));
             dispatcher.register(TrackedOrderCommand.get());

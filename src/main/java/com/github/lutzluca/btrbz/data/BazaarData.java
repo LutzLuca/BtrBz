@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -27,6 +29,7 @@ public class BazaarData {
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
     private Map<String, Product> lastProducts = Collections.emptyMap();
+    private final CacheToken marketChanges = CacheToken.named("bazaar.market");
 
     public BazaarData() {
         this(new ConversionIndexService());
@@ -74,6 +77,14 @@ public class BazaarData {
         return this.conversionIndexService.allProducts();
     }
 
+    public Optional<ItemStack> productStack(ProductIdentity identity) {
+        return identity.bazaarProductId().flatMap(this.conversionIndexService::productStack);
+    }
+
+    public Optional<ItemStack> productStack(IndexedProduct product) {
+        return this.conversionIndexService.productStack(product.productId());
+    }
+
     public IndexedProduct refreshIndexedProduct(IndexedProduct product) {
         // Keep stale display metadata if the active conversion index no longer contains this id.
         return this.resolveProductId(product.productId()).orElse(product);
@@ -115,9 +126,18 @@ public class BazaarData {
         this.conversionIndexService.addConversionEventListener(listener);
     }
 
+    public CacheToken marketChanges() {
+        return this.marketChanges;
+    }
+
+    public CacheToken indexChanges() {
+        return this.conversionIndexService.changes();
+    }
+
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
             products == null ? Map.of() : products));
+        this.marketChanges.invalidate(InvalidationReason.of("market snapshot published"));
         var snapshot = this.currentSnapshot();
 
         for (var listener : this.listeners) {
@@ -298,8 +318,8 @@ public class BazaarData {
         }
 
         public OrderLists getOrderLists(ProductIdentity product) {
-            // Hypixel summary names are action-based: sell_summary is actual buy orders, while buy_summary is
-            // actual sell offers.
+            // Hypixel summary names are action-based: sell_summary is actual buy orders,
+            // buy_summary is actual sell offers.
             return this.rawProduct(product)
                 .map(prod -> new OrderLists(
                     Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),

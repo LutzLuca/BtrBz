@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
-import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
+import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
 import io.vavr.control.Try;
 import java.util.List;
@@ -33,6 +34,9 @@ public final class ScreenInfoHelper {
     private boolean hasInventoryOwner = false;
     private long screenTransitionVersion = 0;
     private long dispatchedScreenTransitionVersion = 0;
+    private long inventoryVersion = 0;
+    private final CacheToken screenTransitions = CacheToken.named("screen.transition");
+    private final CacheToken inventoryChanges = CacheToken.named("screen.inventory");
 
     @Getter
     private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
@@ -47,8 +51,16 @@ public final class ScreenInfoHelper {
         return INSTANCE;
     }
 
-    public static boolean inMenu(BazaarMenuType... menu) {
+    public CacheToken screenTransitions() {
+        return this.screenTransitions;
+    }
+
+    public static boolean inMenu(BazaarMenuType menu) {
         return INSTANCE.currInfo.inMenu(menu);
+    }
+
+    public static boolean inMenu(BazaarMenuType... menus) {
+        return INSTANCE.currInfo.inMenu(menus);
     }
 
     public static boolean inBazaar() {
@@ -80,6 +92,10 @@ public final class ScreenInfoHelper {
         return player != null && player.containerMenu.containerId == containerId;
     }
 
+    public CacheToken inventoryChanges() {
+        return this.inventoryChanges;
+    }
+
     private void setupInventoryWatcher() {
         this.inventoryWatcher.setOnOpen(_ -> {
             this.inventoryOwnerInfo.setScreen(this.currInfo.getScreen());
@@ -90,11 +106,12 @@ public final class ScreenInfoHelper {
             var screenInfo = this.hasInventoryOwner ? this.inventoryOwnerInfo : this.currInfo;
 
             screenInfo.markInventoryLoaded();
-            if (screenInfo != this.currInfo
-                && screenInfo.getScreen() == this.currInfo.getScreen()) {
+            this.inventoryVersion++;
+            if (screenInfo != this.currInfo && screenInfo.getScreen() == this.currInfo.getScreen()) {
                 this.currInfo.markInventoryLoaded();
             }
 
+            this.inventoryChanges.invalidate(InvalidationReason.of("screen inventory loaded"));
             log.trace("Inventory loaded: '{}'", inventory.title);
 
             this.screenLoadListenerEntries.forEach(entry -> Try.run(() -> {
@@ -144,6 +161,7 @@ public final class ScreenInfoHelper {
 
         this.currInfo.setScreen(screen);
         this.screenTransitionVersion++;
+        this.screenTransitions.invalidate(InvalidationReason.of("screen transitioned"));
     }
 
     private void closeInventoryForTransition(@Nullable Screen nextScreen) {
@@ -216,7 +234,7 @@ public final class ScreenInfoHelper {
         Settings,  // Bazaar ➜ Settings
         Confirm; // Confirm
 
-        public static final BazaarMenuType[] VALUES = BazaarMenuType.values();
+        private static final BazaarMenuType[] VALUES = BazaarMenuType.values();
 
         // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
         // after the UI has been populated. Calling Item/ItemGroup.matches(info)
@@ -324,8 +342,12 @@ public final class ScreenInfoHelper {
             return this.inMenu(BazaarMenuType.VALUES);
         }
 
-        public boolean inMenu(BazaarMenuType... menu) {
-            for (var type : menu) {
+        public boolean inMenu(BazaarMenuType menu) {
+            return this.state.matches(this, menu);
+        }
+
+        public boolean inMenu(BazaarMenuType... menus) {
+            for (var type : menus) {
                 if (this.state.matches(this, type)) {
                     return true;
                 }
@@ -341,8 +363,11 @@ public final class ScreenInfoHelper {
             return this.getGenericContainerScreen().flatMap(gcs -> {
                 var handler = gcs.getMenu();
                 var inventory = handler.getContainer();
+                if (!ScreenInfoHelper.isValidContainerIndex(idx, inventory.getContainerSize())) {
+                    return Optional.empty();
+                }
                 var slot = inventory.getItem(idx);
-                return slot == ItemStack.EMPTY ? Optional.empty() : Optional.of(slot);
+                return slot.isEmpty() ? Optional.empty() : Optional.of(slot);
             });
         }
 
@@ -354,18 +379,6 @@ public final class ScreenInfoHelper {
             return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Component::getString);
         }
 
-        public Optional<HandledScreenBounds> getHandledScreenBounds() {
-            if (!(this.screen instanceof AbstractContainerScreenAccessor accessor)) {
-                return Optional.empty();
-            }
-
-            return Optional.of(new HandledScreenBounds(
-                accessor.getLeftPos(),
-                accessor.getTopPos(),
-                accessor.getImageWidth(),
-                accessor.getImageHeight()));
-        }
-
         private void markInventoryLoaded() {
             this.state.inventoryLoaded = true;
         }
@@ -373,6 +386,10 @@ public final class ScreenInfoHelper {
         private void resetMenuMatchState() {
             this.state.reset();
         }
+    }
+
+    static boolean isValidContainerIndex(int index, int containerSize) {
+        return index >= 0 && index < containerSize;
     }
 
     private record ScreenLoadListenerEntry(
@@ -384,53 +401,40 @@ public final class ScreenInfoHelper {
         Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
     ) {}
 
-    public record HandledScreenBounds(int x, int y, int width, int height) {}
-
     private static final class MenuState {
 
-        private int verifiedMenu = 0;
+        private Optional<BazaarMenuType> verifiedMenu = Optional.empty();
         private int verifiedNotMenu = 0;
         private boolean inventoryLoaded = false;
 
         public void reset() {
-            this.verifiedMenu = 0;
+            this.verifiedMenu = Optional.empty();
             this.verifiedNotMenu = 0;
             this.inventoryLoaded = false;
         }
 
         public Optional<BazaarMenuType> getMenu(ScreenInfo info) {
-            var menus = BazaarMenuType.values();
-            if (this.verifiedMenu != 0) {
-                for (var type : menus) {
-                    if (verifiedMenu == (1 << type.ordinal())) {
-                        return Optional.of(type);
-                    }
-                }
-
-                throw new RuntimeException("unreachable");
+            if (this.verifiedMenu.isPresent()) {
+                return this.verifiedMenu;
             }
 
-            for (var menu : menus) {
+            for (var menu : BazaarMenuType.VALUES) {
                 if (((this.verifiedNotMenu >> menu.ordinal()) & 1) == 1) {
                     continue;
                 }
                 if (this.matches(info, menu)) {
-                    return Optional.of(menu);
+                    return this.verifiedMenu;
                 }
             }
             return Optional.empty();
         }
 
         public boolean matches(ScreenInfo info, BazaarMenuType type) {
+            if (this.verifiedMenu.isPresent()) {
+                return this.verifiedMenu.get() == type;
+            }
+
             int typeBit = 1 << type.ordinal();
-            if ((this.verifiedMenu & typeBit) != 0) {
-                return true;
-            }
-
-            if (this.verifiedMenu != 0) {
-                return false;
-            }
-
             if ((this.verifiedNotMenu & typeBit) != 0) {
                 return false;
             }
@@ -441,7 +445,7 @@ public final class ScreenInfoHelper {
 
             boolean matches = type.matches(info);
             if (matches) {
-                this.verifiedMenu |= typeBit;
+                this.verifiedMenu = Optional.of(type);
                 log.debug("Matched menu: {}", type);
             } else {
                 this.verifiedNotMenu |= typeBit;

@@ -5,8 +5,6 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -23,6 +21,7 @@ import java.util.regex.Pattern;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.ItemStack;
@@ -144,6 +143,45 @@ public final class Utils {
         return legacyFormattedRange(component, 0, component.getString().length()).orElse("");
     }
 
+    public static Component legacyFormattedComponent(@Nullable String value) {
+        if (value == null || value.isEmpty()) {
+            return Component.empty();
+        }
+
+        var segments = new ArrayList<MutableComponent>();
+        var style = Style.EMPTY;
+        int segmentStart = 0;
+        for (int index = 0; index + 1 < value.length(); index++) {
+            if (value.charAt(index) != ChatFormatting.PREFIX_CODE) {
+                continue;
+            }
+
+            var formatting = ChatFormatting.getByCode(value.charAt(index + 1));
+            if (formatting == null) {
+                continue;
+            }
+
+            if (segmentStart < index) {
+                segments.add(Component.literal(value.substring(segmentStart, index)).setStyle(style));
+            }
+            style = style.applyLegacyFormat(formatting);
+            index++;
+            segmentStart = index + 1;
+        }
+        if (segmentStart < value.length()) {
+            segments.add(Component.literal(value.substring(segmentStart)).setStyle(style));
+        }
+        if (segments.isEmpty()) {
+            return Component.empty().setStyle(style);
+        }
+
+        var result = segments.getFirst();
+        for (int index = 1; index < segments.size(); index++) {
+            result.append(segments.get(index));
+        }
+        return result;
+    }
+
     private static Optional<String> legacyFormattedRange(Component component, int startInclusive, int endExclusive) {
         if (component == null || startInclusive < 0 || endExclusive < startInclusive) {
             return Optional.empty();
@@ -194,7 +232,7 @@ public final class Utils {
                 try {
                     out.append(ChatFormatting.valueOf(serialized.toUpperCase(Locale.ROOT)));
                 } catch (IllegalArgumentException _) {
-                    // Ignore unknown color names.
+                    //ignore unknown color names
                 }
             }
             *///?}
@@ -302,33 +340,37 @@ public final class Utils {
             throw new IllegalArgumentException("places must be >= 0");
         }
 
-        double abs = Math.abs(value);
-        String suffix;
-        double scaled;
-
-        if (abs >= 1_000_000_000) {
-            scaled = value / 1_000_000_000d;
-            suffix = "B";
-        } else if (abs >= 1_000_000) {
-            scaled = value / 1_000_000d;
-            suffix = "M";
-        } else if (abs >= 1_000) {
-            scaled = value / 1_000d;
-            suffix = "k";
-        } else {
-            scaled = value;
-            suffix = "";
-        }
-
-        StringBuilder pattern = new StringBuilder("0");
-        if (places > 0) {
-            pattern.append(".");
-            pattern.append("0".repeat(places));
-        }
-
-        return new DecimalFormat(pattern.toString(), DecimalFormatSymbols.getInstance(Locale.US)).format(scaled)
-            + suffix;
+        var compact = compactValue(value, places);
+        return formatDecimal(compact.value(), places, false) + compact.suffix();
     }
+
+    public static String formatCompact(double value) {
+        int places = Math.abs(value) >= 1_000_000_000 ? 2 : 1;
+        var compact = compactValue(value, places);
+        var formatter = NumberFormat.getNumberInstance(Locale.US);
+        formatter.setMinimumFractionDigits(0);
+        formatter.setMaximumFractionDigits(places);
+        formatter.setGroupingUsed(false);
+        return formatter.format(compact.value()) + compact.suffix();
+    }
+
+    private static CompactValue compactValue(double value, int places) {
+        double absolute = Math.abs(value);
+        double rollover = 1_000d - 0.5d * Math.pow(10d, -places);
+
+        if (absolute >= 1_000_000d * rollover) {
+            return new CompactValue(value / 1_000_000_000d, "B");
+        }
+        if (absolute >= 1_000d * rollover) {
+            return new CompactValue(value / 1_000_000d, "M");
+        }
+        if (absolute >= rollover) {
+            return new CompactValue(value / 1_000d, "k");
+        }
+        return new CompactValue(value, "");
+    }
+
+    private record CompactValue(double value, String suffix) {}
 
     public static boolean isValidRomanNumeral(String roman) {
         return roman != null

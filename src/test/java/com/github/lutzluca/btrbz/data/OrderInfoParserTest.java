@@ -208,25 +208,38 @@ class OrderInfoParserTest {
             var result = OrderInfoParser.parseOrderInfo("BUY Enchanted Iron", orderLore(
                 "Worth 120,000 coins",
                 "Order amount: 64x",
-                "Filled: 16/64 25%!",
+                "Filled: 17/64 (25%)",
                 "Price per unit: 1,875 coins"), 1);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
-            assertEquals(16, info.filledAmountSnapshot());
+            assertEquals(17, info.filledAmountSnapshot());
         }
 
         @Test
         void parsesHundredPercentFilledOrderAsFilledInfo() {
-            var result = OrderInfoParser.parseOrderInfo("SELL Mithril", orderLore(
-                "Worth 2,560,000 coins",
-                "Offer amount: 1,024x",
-                "Filled: 1,024/1,024 100%!",
-                "Price per unit: 2,500 coins"), 6);
+            var result = OrderInfoParser.parseOrderInfo("BUY Flawed Topaz Gemstone", orderLore(
+                "Worth 21.3M coins",
+                "Order amount: 51,200x",
+                "Filled: 51.2k/51.2k 100%!",
+                "Price per unit: 415.9 coins"), 6);
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.FilledOrderInfo.class, result.get());
-            assertEquals(1024, info.filledAmountSnapshot());
+            assertEquals(51_200, info.filledAmountSnapshot());
+        }
+
+        @Test
+        void estimatesPartiallyFilledAmountFromPercentageWhenCountsAreCompact() {
+            var result = OrderInfoParser.parseOrderInfo("BUY Enchanted Iron", orderLore(
+                "Worth 96,000,000 coins",
+                "Order amount: 51,200x",
+                "Filled: 3.1k/51.2k (6.1%)",
+                "Price per unit: 1,875 coins"), 1);
+
+            assertTrue(result.isSuccess());
+            var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
+            assertEquals(3_123, info.filledAmountSnapshot());
         }
 
         @Test

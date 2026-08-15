@@ -14,7 +14,7 @@ import java.util.Set;
 
 public final class ConversionIndex {
 
-    public static final int SCHEMA_VERSION = 1;
+    public static final int SCHEMA_VERSION = 2;
 
     private static final ConversionIndex EMPTY = new ConversionIndex(
         SCHEMA_VERSION,
@@ -125,6 +125,18 @@ public final class ConversionIndex {
             .map(entry -> toIndexedProduct(productId, entry));
     }
 
+    public Optional<ProductStackData> productStackData(String productId) {
+        return Optional
+            .ofNullable(this.products.get(productId))
+            .map(ConversionProductEntry::itemStack);
+    }
+
+    public Optional<LegacyProductStackData> legacyProductStackData(String productId) {
+        return Optional
+            .ofNullable(this.products.get(productId))
+            .map(ConversionProductEntry::legacyItemStack);
+    }
+
     public List<IndexedProduct> allProducts() {
         return this.products
             .entrySet()
@@ -178,10 +190,10 @@ public final class ConversionIndex {
             if (normalized.isEmpty()) {
                 return;
             }
-            index.computeIfAbsent(normalized, ignored -> new ArrayList<>())
+            index.computeIfAbsent(normalized, _ -> new ArrayList<>())
                 .add(toIndexedProduct(productId, entry));
         });
-        index.replaceAll((ignored, refs) -> Collections.unmodifiableList(refs));
+        index.replaceAll((_, refs) -> Collections.unmodifiableList(refs));
         return Collections.unmodifiableMap(index);
     }
 

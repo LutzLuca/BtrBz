@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -398,8 +399,8 @@ public class BazaarOrderActions {
                 .binding(true, () -> this.clearOnClose, val -> this.clearOnClose = val)
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Hide the reopen button when you leave the Bazaar Orders page. "
-                            + "It returns after another buy order is cancelled."),
+                        "Hide the reopen button when you leave the Bazaar Orders page. It returns after another "
+                            + "buy order is cancelled."),
                     ConfigScreen.requires("Reopen Last Cancelled Buy Order"))))
                 .controller(ConfigScreen::createBooleanController);
         }
@@ -428,7 +429,7 @@ public class BazaarOrderActions {
                     .name(Component.literal("Cancelled Order Actions"))
                     .description(ConfigScreen.createDescription(
                         "Copy the remaining amount or reopen the product page of the last cancelled buy order.",
-                        ConfigScreen.ConfigImage.REOPEN_LAST_ORDER))
+                        ConfigImages.ReopenLastOrder))
                     .options(rootGroup.build())
                     .collapsed(true)
                     .build());
