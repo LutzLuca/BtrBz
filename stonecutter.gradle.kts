@@ -16,12 +16,18 @@ checkstyle {
     maxWarnings = 0
 }
 
-val checkstyleJava by tasks.registering(Checkstyle::class) {
-    group = "verification"
-    description = "Checks the shared Java sources against the repository style."
-    source(fileTree("src") {
+val repositoryJavaSources = files(
+    fileTree("src") {
+        include("main/java/**/*.java", "test/java/**/*.java")
+    },
+    fileTree("coflnet-sdk/src") {
         include("main/java/**/*.java", "test/java/**/*.java")
     })
+
+val checkstyleJava by tasks.registering(Checkstyle::class) {
+    group = "verification"
+    description = "Checks the repository Java sources against the repository style."
+    source(repositoryJavaSources)
     classpath = files()
 
     reports {
@@ -37,9 +43,7 @@ afterEvaluate {
         encoding = Charsets.UTF_8
 
         java {
-            target(fileTree("src") {
-                include("main/java/**/*.java", "test/java/**/*.java")
-            })
+            target(repositoryJavaSources)
 
             eclipse("4.40").configFile(file("config/formatting/eclipse-java-formatter.xml"))
             trimTrailingWhitespace()

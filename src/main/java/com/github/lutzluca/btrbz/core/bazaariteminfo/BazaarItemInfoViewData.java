@@ -49,8 +49,7 @@ public final class BazaarItemInfoViewData {
                 snapshot.sellPrice(),
                 BazaarWidgetViewData.formatPrice(snapshot.buyPrice()),
                 BazaarWidgetViewData.formatPrice(snapshot.sellPrice()),
-                snapshot.timeStamp()
-            );
+                snapshot.timeStamp());
         }
     }
 

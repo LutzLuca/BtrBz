@@ -53,8 +53,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private final ItemStack itemStack;
     private final BazaarItemInfoDataProvider dataProvider;
 
-    private final EnumMap<BazaarItemInfoRange, ButtonComponent> rangeButtons =
-        new EnumMap<>(BazaarItemInfoRange.class);
+    private final EnumMap<BazaarItemInfoRange, ButtonComponent> rangeButtons = new EnumMap<>(BazaarItemInfoRange.class);
 
     private @Nullable LabelComponent buyPrice;
     private @Nullable LabelComponent sellPrice;
@@ -88,8 +87,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.itemStack = Objects.requireNonNull(itemStack, "itemStack").copy();
         this.dataProvider = new BazaarItemInfoDataProvider(
             Objects.requireNonNull(coflnet, "coflnet"),
-            state -> this.onClient(() -> this.applyState(state))
-        );
+            state -> this.onClient(() -> this.applyState(state)));
     }
 
     @Override
@@ -132,8 +130,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         header.child(BazaarUi.item(this.itemStack, HEADER_ICON_SIZE));
         var itemName = UIComponents.label(Component.literal(BazaarUi.truncate(
             this.product.strippedName(),
-            headerNameWidth(this.width)
-        )));
+            headerNameWidth(this.width))));
         itemName.color(BazaarStyles.color(BazaarStyles.PRIMARY_TEXT));
         itemName.shadow(false);
         header.child(itemName);
@@ -145,8 +142,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         int panelWidth = rootContentWidth * PANEL_WIDTH_PERCENT / 100;
         return Math.max(
             0,
-            panelWidth - 2 * PANEL_HORIZONTAL_PADDING - HEADER_ICON_SIZE - WidgetLayoutTokens.HEADER_GAP
-        );
+            panelWidth - 2 * PANEL_HORIZONTAL_PADDING - HEADER_ICON_SIZE - WidgetLayoutTokens.HEADER_GAP);
     }
 
     private FlowLayout currentPrices() {
@@ -173,8 +169,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         for (var candidate : BazaarItemInfoRange.values()) {
             var button = UIComponents.button(
                 Component.literal(candidate.label()),
-                _ -> this.selectRange(candidate)
-            );
+                _ -> this.selectRange(candidate));
             button.sizing(Sizing.fixed(48), Sizing.fixed(18));
             button.textShadow(false);
             this.rangeButtons.put(candidate, button);
@@ -219,8 +214,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
         var open = UIComponents.button(
             Component.literal("Open in Coflnet"),
-            _ -> this.openInCoflnet()
-        );
+            _ -> this.openInCoflnet());
         open.sizing(Sizing.fixed(112), Sizing.fixed(18));
         open.renderer(ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED));
         open.textShadow(false);
@@ -241,8 +235,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.rangeButtons.forEach((candidate, button) -> button.renderer(
             candidate == this.range
                 ? ButtonComponent.Renderer.flat(BUTTON_SELECTED, BUTTON_SELECTED_HOVER, BUTTON_DISABLED)
-                : ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED)
-        ));
+                : ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED)));
     }
 
     private void requestData(BazaarItemInfoRange selected) {
@@ -323,8 +316,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                         .withStyle(ChatFormatting.RED)
                         .append(Component.literal(link).withStyle(
                             ChatFormatting.UNDERLINE,
-                            ChatFormatting.BLUE
-                        ))));
+                            ChatFormatting.BLUE))));
             }
             this.openingLinkConfirmation = false;
             client.setScreen(this);

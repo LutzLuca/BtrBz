@@ -28,21 +28,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoflnetBazaarClientTest {
     private static final String SNAPSHOT_JSON = """
-            {
-              "productId":"BOOSTER_COOKIE",
-              "buyPrice":12033243.8,
-              "buyVolume":9709,
-              "buyMovingWeek":96159,
-              "buyOrdersCount":624,
-              "sellPrice":11800007.0,
-              "sellVolume":26063,
-              "sellMovingWeek":83707,
-              "sellOrdersCount":1722,
-              "timeStamp":"2026-08-13T01:42:41.908",
-              "buyOrders":[{"amount":9,"pricePerUnit":12033243.8,"orders":1}],
-              "sellOrders":[{"amount":55,"pricePerUnit":11800007.0,"orders":1}]
-            }
-            """;
+        {
+          "productId":"BOOSTER_COOKIE",
+          "buyPrice":12033243.8,
+          "buyVolume":9709,
+          "buyMovingWeek":96159,
+          "buyOrdersCount":624,
+          "sellPrice":11800007.0,
+          "sellVolume":26063,
+          "sellMovingWeek":83707,
+          "sellOrdersCount":1722,
+          "timeStamp":"2026-08-13T01:42:41.908",
+          "buyOrders":[{"amount":9,"pricePerUnit":12033243.8,"orders":1}],
+          "sellOrders":[{"amount":55,"pricePerUnit":11800007.0,"orders":1}]
+        }
+        """;
 
     private final List<CoflnetBazaarClient> clients = new CopyOnWriteArrayList<>();
     private final List<HttpServer> servers = new CopyOnWriteArrayList<>();
@@ -66,7 +66,7 @@ class CoflnetBazaarClientTest {
         assertEquals(Instant.parse("2026-08-13T01:42:41.908Z"), snapshot.timeStamp());
         assertEquals(new BazaarOrder(9, 12_033_243.8, 1), snapshot.buyOrders().getFirst());
         assertThrows(UnsupportedOperationException.class,
-                () -> snapshot.buyOrders().add(new BazaarOrder(1, 1, 1)));
+            () -> snapshot.buyOrders().add(new BazaarOrder(1, 1, 1)));
     }
 
     @Test
@@ -75,16 +75,16 @@ class CoflnetBazaarClientTest {
         HttpServer server = server(exchange -> {
             targets.add(exchange.getRequestURI().toString());
             json(exchange, 200, """
-                    [{
-                      "buy":10.5,
-                      "sell":11.2,
-                      "buyVolume":150000,
-                      "sellVolume":200000,
-                      "buyMovingWeek":2500000,
-                      "sellMovingWeek":3000000,
-                      "timestamp":"2026-08-13T03:00:00+02:00"
-                    }]
-                    """, "max-age=300");
+                [{
+                  "buy":10.5,
+                  "sell":11.2,
+                  "buyVolume":150000,
+                  "sellVolume":200000,
+                  "buyMovingWeek":2500000,
+                  "sellMovingWeek":3000000,
+                  "timestamp":"2026-08-13T03:00:00+02:00"
+                }]
+                """, "max-age=300");
         });
         CoflnetBazaarClient client = client(server);
 
@@ -110,16 +110,14 @@ class CoflnetBazaarClientTest {
         get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY));
         get(client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK));
         get(client.history("GOLD_BLOCK", new HistoryRange.Custom(
-                Instant.parse("2026-08-12T00:00:00Z"),
-                Instant.parse("2026-08-13T00:00:00Z")
-        )));
+            Instant.parse("2026-08-12T00:00:00Z"),
+            Instant.parse("2026-08-13T00:00:00Z"))));
 
         assertEquals("/api/bazaar/GOLD_BLOCK/history/day", requests.get(0).toString());
         assertEquals("/api/bazaar/GOLD_BLOCK/history/week", requests.get(1).toString());
         assertEquals(
-                "/api/bazaar/GOLD_BLOCK/history?start=2026-08-12T00%3A00%3A00Z&end=2026-08-13T00%3A00%3A00Z",
-                requests.get(2).toString()
-        );
+            "/api/bazaar/GOLD_BLOCK/history?start=2026-08-12T00%3A00%3A00Z&end=2026-08-13T00%3A00%3A00Z",
+            requests.get(2).toString());
     }
 
     @Test
@@ -198,7 +196,7 @@ class CoflnetBazaarClientTest {
         CoflnetBazaarClient client = client(server);
 
         CompletionException completion = assertThrows(CompletionException.class,
-                () -> client.history("GOLD_BLOCK", HistoryRange.Preset.DAY).toCompletableFuture().join());
+            () -> client.history("GOLD_BLOCK", HistoryRange.Preset.DAY).toCompletableFuture().join());
         CoflnetApiException exception = assertInstanceOf(CoflnetApiException.class, completion.getCause());
         assertEquals(400, exception.statusCode());
         assertEquals("{\"title\":\"bad request\"}", exception.responseBody());
@@ -210,7 +208,7 @@ class CoflnetBazaarClientTest {
         CoflnetBazaarClient client = client(server);
 
         CompletionException completion = assertThrows(CompletionException.class,
-                () -> client.snapshot("GOLD_BLOCK").toCompletableFuture().join());
+            () -> client.snapshot("GOLD_BLOCK").toCompletableFuture().join());
         CoflnetApiException exception = assertInstanceOf(CoflnetApiException.class, completion.getCause());
         assertEquals(200, exception.statusCode());
         assertEquals("null", exception.responseBody());
@@ -220,15 +218,14 @@ class CoflnetBazaarClientTest {
     void rejectsNullHistoryAsMalformedWithoutCachingIt() throws Exception {
         AtomicInteger calls = new AtomicInteger();
         HttpServer server = server(exchange -> json(
-                exchange,
-                200,
-                calls.incrementAndGet() == 1 ? "null" : "[]",
-                "max-age=3600"
-        ));
+            exchange,
+            200,
+            calls.incrementAndGet() == 1 ? "null" : "[]",
+            "max-age=3600"));
         CoflnetBazaarClient client = client(server);
 
         CompletionException completion = assertThrows(CompletionException.class,
-                () -> client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK).toCompletableFuture().join());
+            () -> client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK).toCompletableFuture().join());
         assertInstanceOf(CoflnetApiException.class, completion.getCause());
         assertTrue(get(client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK)).isEmpty());
         assertEquals(2, calls.get());
@@ -241,24 +238,24 @@ class CoflnetBazaarClientTest {
         client.close();
 
         CompletionException completion = assertThrows(CompletionException.class,
-                () -> client.snapshot("GOLD_BLOCK").toCompletableFuture().join());
+            () -> client.snapshot("GOLD_BLOCK").toCompletableFuture().join());
         assertInstanceOf(CoflnetApiException.class, completion.getCause());
     }
 
     @Test
     void validatesTagsAndCustomRangesBeforeIssuingRequests() {
         assertThrows(IllegalArgumentException.class,
-                () -> CoflnetBazaarClient.create().snapshot("../snapshot"));
+            () -> CoflnetBazaarClient.create().snapshot("../snapshot"));
         assertThrows(IllegalArgumentException.class,
-                () -> CoflnetBazaarClient.create().snapshot(".."));
+            () -> CoflnetBazaarClient.create().snapshot(".."));
         assertThrows(IllegalArgumentException.class,
-                () -> new HistoryRange.Custom(Instant.EPOCH, Instant.EPOCH));
+            () -> new HistoryRange.Custom(Instant.EPOCH, Instant.EPOCH));
     }
 
     private CoflnetBazaarClient client(HttpServer server) {
         CoflnetBazaarClient client = CoflnetBazaarClient.builder()
-                .baseUri(URI.create("http://localhost:" + server.getAddress().getPort() + "/api/"))
-                .build();
+            .baseUri(URI.create("http://localhost:" + server.getAddress().getPort() + "/api/"))
+            .build();
         clients.add(client);
         return client;
     }

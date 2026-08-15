@@ -21,8 +21,7 @@ import org.jetbrains.annotations.Nullable;
 /** Owns hotkey activation and the shared Coflnet SDK client used by item-info screens. */
 public final class BazaarItemInfoController implements AutoCloseable {
     private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(
-        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bazaar_item_info")
-    );
+        Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bazaar_item_info"));
 
     private final BazaarData bazaarData;
     private final CoflnetBazaarClient coflnet;
@@ -35,8 +34,7 @@ public final class BazaarItemInfoController implements AutoCloseable {
             "key.btrbz.open_bazaar_item_info",
             InputConstants.Type.KEYSYM,
             InputConstants.KEY_I,
-            CATEGORY
-        ));
+            CATEGORY));
     }
 
     /** Called by the container-screen mixin before vanilla handles the key. */
@@ -48,8 +46,7 @@ public final class BazaarItemInfoController implements AutoCloseable {
             screen,
             slot,
             this.openScreen.matches(event),
-            screen.getFocused() instanceof EditBox
-        );
+            screen.getFocused() instanceof EditBox);
     }
 
     boolean openHoveredSlot(
@@ -74,8 +71,7 @@ public final class BazaarItemInfoController implements AutoCloseable {
             textInputFocused,
             slot != null,
             !stack.isEmpty(),
-            productTag.isPresent()
-        )) {
+            productTag.isPresent())) {
             return false;
         }
 
@@ -84,8 +80,7 @@ public final class BazaarItemInfoController implements AutoCloseable {
             identity,
             productTag.orElseThrow(),
             stack.copy(),
-            this.coflnet
-        ));
+            this.coflnet));
         return true;
     }
 

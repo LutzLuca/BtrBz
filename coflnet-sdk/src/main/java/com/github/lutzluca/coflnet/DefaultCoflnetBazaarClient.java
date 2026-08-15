@@ -36,8 +36,10 @@ import java.util.regex.Pattern;
 
 final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     private static final Pattern ITEM_TAG = Pattern.compile("[A-Za-z0-9_:-]{1,160}");
-    private static final Pattern MAX_AGE = Pattern.compile("(?:^|,)\\s*max-age\\s*=\\s*\\\"?(\\d+)\\\"?", Pattern.CASE_INSENSITIVE);
-    private static final Type HISTORY_LIST = new TypeToken<List<BazaarHistoryPoint>>() { }.getType();
+    private static final Pattern MAX_AGE = Pattern.compile("(?:^|,)\\s*max-age\\s*=\\s*\\\"?(\\d+)\\\"?",
+        Pattern.CASE_INSENSITIVE);
+    private static final Type HISTORY_LIST = new TypeToken<List<BazaarHistoryPoint>>() {
+    }.getType();
     private static final int MAX_ATTEMPTS = 4;
     private static final int MAX_ERROR_BODY_LENGTH = 4_096;
 
@@ -65,34 +67,33 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             return thread;
         });
         HttpClient httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+            .connectTimeout(Duration.ofSeconds(10))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
         return new DefaultCoflnetBazaarClient(normalizedBaseUri, httpClient, executor, requestHeaders);
     }
 
     DefaultCoflnetBazaarClient(
-            URI baseUri,
-            HttpClient httpClient,
-            ExecutorService requestExecutor,
-            Map<String, String> requestHeaders
+        URI baseUri,
+        HttpClient httpClient,
+        ExecutorService requestExecutor,
+        Map<String, String> requestHeaders
     ) {
         this.baseUri = normalizeBaseUri(baseUri);
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
         this.requestExecutor = Objects.requireNonNull(requestExecutor, "requestExecutor");
         this.requestHeaders = Map.copyOf(requestHeaders);
         this.gson = new GsonBuilder()
-                .registerTypeAdapter(Instant.class, new CoflnetInstantAdapter())
-                .create();
+            .registerTypeAdapter(Instant.class, new CoflnetInstantAdapter())
+            .create();
     }
 
     @Override
     public CompletionStage<Optional<BazaarSnapshot>> snapshot(String itemTag) {
         String validTag = validateItemTag(itemTag);
         RequestSpec request = new RequestSpec(
-                new RequestKey(baseUri.resolve("bazaar/" + validTag + "/snapshot"), ResponseKind.SNAPSHOT),
-                360
-        );
+            new RequestKey(baseUri.resolve("bazaar/" + validTag + "/snapshot"), ResponseKind.SNAPSHOT),
+            360);
         return load(request).thenApply(value -> cast(value, Optional.class));
     }
 
@@ -112,16 +113,15 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             };
         } else if (range instanceof HistoryRange.Custom custom) {
             relativePath += "?start=" + encode(custom.start().toString())
-                    + "&end=" + encode(custom.end().toString());
+                + "&end=" + encode(custom.end().toString());
             fallbackMaxAge = 3_600;
         } else {
             throw new IllegalArgumentException("Unsupported history range: " + range.getClass().getName());
         }
 
         RequestSpec request = new RequestSpec(
-                new RequestKey(baseUri.resolve(relativePath), ResponseKind.HISTORY),
-                fallbackMaxAge
-        );
+            new RequestKey(baseUri.resolve(relativePath), ResponseKind.HISTORY),
+            fallbackMaxAge);
         return load(request).thenApply(value -> cast(value, List.class));
     }
 
@@ -132,8 +132,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         }
 
         CoflnetApiException closeFailure = new CoflnetApiException(
-                "Coflnet client is closed", -1, baseUri, null
-        );
+            "Coflnet client is closed", -1, baseUri, null);
         synchronized (stateLock) {
             // Serialize shutdown with load(), which submits work while holding this lock.
             // This prevents an accepted load from racing into a rejected executor submission.
@@ -148,8 +147,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         synchronized (stateLock) {
             if (closed.get()) {
                 return CompletableFuture.failedFuture(new CoflnetApiException(
-                        "Coflnet client is closed", -1, request.key().uri(), null
-                ));
+                    "Coflnet client is closed", -1, request.key().uri(), null));
             }
 
             CacheEntry cached = cache.get(request.key());
@@ -179,7 +177,8 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             synchronized (stateLock) {
                 if (decoded.maxAgeSeconds() > 0 && !closed.get()) {
                     long ttlNanos = TimeUnit.SECONDS.toNanos(decoded.maxAgeSeconds());
-                    cache.put(request.key(), new CacheEntry(decoded.value(), saturatingAdd(System.nanoTime(), ttlNanos)));
+                    cache.put(request.key(),
+                        new CacheEntry(decoded.value(), saturatingAdd(System.nanoTime(), ttlNanos)));
                 }
                 inFlight.remove(request.key(), future);
             }
@@ -194,10 +193,10 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
 
     private DecodedResponse executeWithRetries(RequestSpec request) {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(request.key().uri())
-                .timeout(Duration.ofSeconds(20))
-                .header("Accept", "application/json")
-                .header("User-Agent", "BtrBz-Coflnet-SDK/1")
-                .GET();
+            .timeout(Duration.ofSeconds(20))
+            .header("Accept", "application/json")
+            .header("User-Agent", "BtrBz-Coflnet-SDK/1")
+            .GET();
         requestHeaders.forEach(requestBuilder::header);
         HttpRequest httpRequest = requestBuilder.build();
 
@@ -212,8 +211,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new CoflnetApiException(
-                        "Coflnet request was interrupted", -1, request.key().uri(), null, interrupted
-                );
+                    "Coflnet request was interrupted", -1, request.key().uri(), null, interrupted);
             } catch (IOException ioFailure) {
                 lastIoFailure = ioFailure;
                 if (attempt == MAX_ATTEMPTS) {
@@ -247,12 +245,11 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         }
 
         throw new CoflnetApiException(
-                "Coflnet request failed after " + MAX_ATTEMPTS + " attempts",
-                -1,
-                request.key().uri(),
-                null,
-                lastIoFailure
-        );
+            "Coflnet request failed after " + MAX_ATTEMPTS + " attempts",
+            -1,
+            request.key().uri(),
+            null,
+            lastIoFailure);
     }
 
     private Object decodeSuccess(RequestKey key, int statusCode, String body) {
@@ -279,18 +276,16 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             };
         } catch (RuntimeException malformed) {
             throw new CoflnetApiException(
-                    "Coflnet returned malformed JSON", statusCode, key.uri(), truncate(body), malformed
-            );
+                "Coflnet returned malformed JSON", statusCode, key.uri(), truncate(body), malformed);
         }
     }
 
     private static CoflnetApiException apiFailure(URI uri, HttpResponse<String> response) {
         return new CoflnetApiException(
-                "Coflnet API returned HTTP " + response.statusCode(),
-                response.statusCode(),
-                uri,
-                truncate(response.body())
-        );
+            "Coflnet API returned HTTP " + response.statusCode(),
+            response.statusCode(),
+            uri,
+            truncate(response.body()));
     }
 
     private void ensureOpen(URI uri) {
@@ -316,11 +311,11 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         try {
             long maxAge = Long.parseLong(matcher.group(1));
             long responseAge = response.headers()
-                    .firstValue("Age")
-                    .flatMap(DefaultCoflnetBazaarClient::nonNegativeLong)
-                    .orElse(0L);
+                .firstValue("Age")
+                .flatMap(DefaultCoflnetBazaarClient::nonNegativeLong)
+                .orElse(0L);
             return Optional.of(Math.max(0, maxAge - responseAge));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return Optional.empty();
         }
     }
@@ -328,7 +323,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     private static Optional<Long> nonNegativeLong(String value) {
         try {
             return Optional.of(Math.max(0, Long.parseLong(value.trim())));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return Optional.empty();
         }
     }
@@ -342,12 +337,12 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         try {
             long seconds = Long.parseLong(value);
             return Optional.of(Duration.ofSeconds(Math.max(0, seconds)));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             try {
                 Instant retryAt = ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant();
                 Duration remaining = Duration.between(Instant.now(), retryAt);
                 return Optional.of(remaining.isNegative() ? Duration.ZERO : remaining);
-            } catch (DateTimeParseException invalid) {
+            } catch (DateTimeParseException _) {
                 return Optional.empty();
             }
         }
@@ -421,17 +416,13 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         HISTORY
     }
 
-    private record RequestKey(URI uri, ResponseKind responseKind) {
-    }
+    private record RequestKey(URI uri, ResponseKind responseKind) {}
 
-    private record RequestSpec(RequestKey key, long fallbackMaxAgeSeconds) {
-    }
+    private record RequestSpec(RequestKey key, long fallbackMaxAgeSeconds) {}
 
-    private record CacheEntry(Object value, long expiresAtNanos) {
-    }
+    private record CacheEntry(Object value, long expiresAtNanos) {}
 
-    private record DecodedResponse(Object value, long maxAgeSeconds) {
-    }
+    private record DecodedResponse(Object value, long maxAgeSeconds) {}
 
     private static final class DualWindowRateLimiter {
         private static final int BURST_LIMIT = 30;
@@ -450,9 +441,8 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                 prune(minuteStarts, now - MINUTE_WINDOW_NANOS);
 
                 long localWait = Math.max(
-                        requiredWait(burstStarts, BURST_LIMIT, BURST_WINDOW_NANOS, now),
-                        requiredWait(minuteStarts, MINUTE_LIMIT, MINUTE_WINDOW_NANOS, now)
-                );
+                    requiredWait(burstStarts, BURST_LIMIT, BURST_WINDOW_NANOS, now),
+                    requiredWait(minuteStarts, MINUTE_LIMIT, MINUTE_WINDOW_NANOS, now));
                 long serverWaitMillis = Math.max(0, serverNotBeforeEpochMillis - System.currentTimeMillis());
                 long waitNanos = Math.max(localWait, TimeUnit.MILLISECONDS.toNanos(serverWaitMillis));
                 if (waitNanos <= 0) {
@@ -467,9 +457,8 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
                     throw new CoflnetApiException(
-                            "Coflnet rate-limit wait was interrupted", -1, CoflnetBazaarClient.DEFAULT_BASE_URI, null,
-                            interrupted
-                    );
+                        "Coflnet rate-limit wait was interrupted", -1, CoflnetBazaarClient.DEFAULT_BASE_URI, null,
+                        interrupted);
                 }
             }
         }
@@ -486,7 +475,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                     Instant reset = Instant.parse(resetHeader.get());
                     serverNotBeforeEpochMillis = Math.max(serverNotBeforeEpochMillis, reset.toEpochMilli());
                 }
-            } catch (NumberFormatException | DateTimeParseException ignored) {
+            } catch (NumberFormatException | DateTimeParseException _) {
                 // Headers are advisory; the local dual-window limiter remains authoritative.
             }
         }
@@ -495,7 +484,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             long delayMillis;
             try {
                 delayMillis = duration.toMillis();
-            } catch (ArithmeticException overflow) {
+            } catch (ArithmeticException _) {
                 delayMillis = Long.MAX_VALUE;
             }
             long target = saturatingAdd(System.currentTimeMillis(), Math.max(0, delayMillis));

@@ -18,7 +18,7 @@ import java.time.ZoneOffset;
 final class CoflnetInstantAdapter implements JsonDeserializer<Instant>, JsonSerializer<Instant> {
     @Override
     public Instant deserialize(JsonElement json, Type type, JsonDeserializationContext context)
-            throws JsonParseException {
+        throws JsonParseException {
         if (!json.isJsonPrimitive() || !json.getAsJsonPrimitive().isString()) {
             throw new JsonParseException("Expected an ISO-8601 timestamp string");
         }
@@ -26,7 +26,7 @@ final class CoflnetInstantAdapter implements JsonDeserializer<Instant>, JsonSeri
         String value = json.getAsString();
         try {
             return OffsetDateTime.parse(value).toInstant();
-        } catch (DateTimeException ignored) {
+        } catch (DateTimeException _) {
             try {
                 // Coflnet currently emits offsetless values even though its schema says date-time.
                 return LocalDateTime.parse(value).toInstant(ZoneOffset.UTC);

@@ -33,8 +33,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
     public BazaarHistoryChartComponent(Sizing horizontal, Sizing vertical) {
         this.sizing(
             Objects.requireNonNull(horizontal, "horizontal"),
-            Objects.requireNonNull(vertical, "vertical")
-        );
+            Objects.requireNonNull(vertical, "vertical"));
     }
 
     public BazaarHistoryChartComponent history(List<BazaarHistoryPoint> history) {
@@ -78,8 +77,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
             0,
             0,
             Math.max(1, this.width),
-            Math.max(1, this.height)
-        );
+            Math.max(1, this.height));
         if (initial.isEmpty()) {
             this.drawCenteredMessage(graphics, "No history data");
             return;
@@ -100,8 +98,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
             plotLeft,
             plotTop,
             plotWidth,
-            plotHeight
-        );
+            plotHeight);
 
         for (int index = 0; index <= GRID_LINES; index++) {
             int y = plotTop + (int) Math.round((double) index / GRID_LINES * (plotHeight - 1));
@@ -120,8 +117,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
             this.x + PLOT_PADDING,
             Math.max(plotTop, plotTop + plotHeight - font.lineHeight),
             BazaarStyles.MUTED_TEXT,
-            false
-        );
+            false);
         graphics.drawRectOutline(plotLeft, plotTop, plotWidth, plotHeight, BazaarStyles.PROGRESS_TRACK);
     }
 
@@ -141,8 +137,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
                 segment.end().x(),
                 segment.end().y(),
                 1.5,
-                owoColor
-            );
+                owoColor);
         }
 
         // A two-pixel marker keeps isolated points and coincident timestamps visible.

@@ -18,8 +18,7 @@ class BazaarHistoryChartGeometryTest {
         var earlier = point(10, 10, 15d, 5d, 12d, 8d, 10);
 
         var geometry = BazaarHistoryChartGeometry.layout(
-            List.of(later, earlier), new Visibility(true, true, true), 5, 7, 101, 51
-        );
+            List.of(later, earlier), new Visibility(true, true, true), 5, 7, 101, 51);
 
         assertFalse(geometry.isEmpty());
         assertEquals(5, geometry.buy().points().getFirst().x());
@@ -32,8 +31,7 @@ class BazaarHistoryChartGeometryTest {
     void padsFlatValueRangeAndCentersSingleTimestamp() {
         var geometry = BazaarHistoryChartGeometry.layout(
             List.of(point(100, 100, null, null, null, null, 5)),
-            new Visibility(true, false, false), 10, 20, 80, 40
-        );
+            new Visibility(true, false, false), 10, 20, 80, 40);
 
         assertFalse(geometry.isEmpty());
         assertTrue(geometry.bounds().minValue() < 100);
@@ -48,10 +46,8 @@ class BazaarHistoryChartGeometryTest {
         var geometry = BazaarHistoryChartGeometry.layout(
             List.of(
                 point(10, 20, 9d, 11d, null, null, 1),
-                point(11, 21, null, null, 20d, 22d, 2)
-            ),
-            new Visibility(false, false, true), 0, 0, 100, 50
-        );
+                point(11, 21, null, null, 20d, 22d, 2)),
+            new Visibility(false, false, true), 0, 0, 100, 50);
 
         assertFalse(geometry.isEmpty());
         assertTrue(geometry.buy().points().isEmpty());
@@ -63,8 +59,7 @@ class BazaarHistoryChartGeometryTest {
     void returnsEmptyWhenEverySeriesIsHidden() {
         var geometry = BazaarHistoryChartGeometry.layout(
             List.of(point(1, 2, null, null, null, null, 1)),
-            new Visibility(false, false, false), 0, 0, 100, 50
-        );
+            new Visibility(false, false, false), 0, 0, 100, 50);
 
         assertTrue(geometry.isEmpty());
     }
@@ -80,7 +75,6 @@ class BazaarHistoryChartGeometryTest {
     ) {
         return new BazaarHistoryPoint(
             buy, sell, minBuy, maxBuy, minSell, maxSell,
-            0, 0, 0, 0, Instant.ofEpochSecond(epochSecond)
-        );
+            0, 0, 0, 0, Instant.ofEpochSecond(epochSecond));
     }
 }

@@ -71,8 +71,7 @@ public final class BazaarItemInfoDataProvider {
                 normalizedTag,
                 range,
                 new Loading<>(sameItem ? previous.currentPrices().retainedValue() : Optional.empty()),
-                new Loading<>(sameHistory ? previous.history().retainedValue() : Optional.empty())
-            );
+                new Loading<>(sameHistory ? previous.history().retainedValue() : Optional.empty()));
             this.state = loading;
         }
         this.notifyState(loading);
@@ -86,8 +85,7 @@ public final class BazaarItemInfoDataProvider {
         }
 
         if (snapshotRequest != null) {
-            snapshotRequest.whenComplete((snapshot, error) ->
-                this.completeSnapshot(generation, snapshot, error));
+            snapshotRequest.whenComplete((snapshot, error) -> this.completeSnapshot(generation, snapshot, error));
         }
 
         CompletionStage<List<BazaarHistoryPoint>> historyRequest;
@@ -99,8 +97,7 @@ public final class BazaarItemInfoDataProvider {
         }
 
         if (historyRequest != null) {
-            historyRequest.whenComplete((history, error) ->
-                this.completeHistory(generation, history, error));
+            historyRequest.whenComplete((history, error) -> this.completeHistory(generation, history, error));
         }
     }
 

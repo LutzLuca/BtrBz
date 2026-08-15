@@ -45,8 +45,7 @@ class BazaarItemInfoDataProviderTest {
         var history = ((Success<History>) state.history()).value();
         assertEquals(
             List.of(1L, 2L, 3L),
-            history.points().stream().map(point -> point.timestamp().getEpochSecond()).toList()
-        );
+            history.points().stream().map(point -> point.timestamp().getEpochSecond()).toList());
     }
 
     @Test
@@ -122,13 +121,11 @@ class BazaarItemInfoDataProviderTest {
         });
 
         provider.load("ITEM", HistoryRange.Preset.DAY);
-        var snapshotThread = new Thread(() ->
-            client.snapshotRequests.getFirst().complete(Optional.of(snapshot(7, 8))));
+        var snapshotThread = new Thread(() -> client.snapshotRequests.getFirst().complete(Optional.of(snapshot(7, 8))));
         snapshotThread.start();
         assertTrue(partialListenerEntered.await(3, TimeUnit.SECONDS));
 
-        var historyThread = new Thread(() ->
-            client.historyRequests.getFirst().complete(List.of(point(1))));
+        var historyThread = new Thread(() -> client.historyRequests.getFirst().complete(List.of(point(1))));
         historyThread.start();
         releasePartialListener.countDown();
         snapshotThread.join(3_000);
@@ -142,16 +139,14 @@ class BazaarItemInfoDataProviderTest {
     private static BazaarSnapshot snapshot(double buy, double sell) {
         return new BazaarSnapshot(
             "ITEM", buy, 1, 2, 3, sell, 4, 5, 6,
-            Instant.ofEpochSecond(100), List.of(), List.of()
-        );
+            Instant.ofEpochSecond(100), List.of(), List.of());
     }
 
     private static BazaarHistoryPoint point(long epochSecond) {
         return new BazaarHistoryPoint(
             epochSecond, epochSecond + 1,
             null, null, null, null,
-            0, 0, 0, 0, Instant.ofEpochSecond(epochSecond)
-        );
+            0, 0, 0, 0, Instant.ofEpochSecond(epochSecond));
     }
 
     private static final class FakeClient implements CoflnetBazaarClient {

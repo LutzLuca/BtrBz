@@ -211,8 +211,7 @@ public class BtrBz implements ClientModInitializer {
         new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
         this.bazaarItemInfoController = new BazaarItemInfoController(
             BAZAAR_DATA,
-            CoflnetBazaarClient.create()
-        );
+            CoflnetBazaarClient.create());
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> this.bazaarItemInfoController.close());
         Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
         BtrBzWidgetKeybinds.registerHandler(

@@ -29,8 +29,7 @@ public interface CoflnetBazaarClient extends AutoCloseable {
     final class Builder {
         private URI baseUri = DEFAULT_BASE_URI;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder baseUri(URI baseUri) {
             this.baseUri = Objects.requireNonNull(baseUri, "baseUri");

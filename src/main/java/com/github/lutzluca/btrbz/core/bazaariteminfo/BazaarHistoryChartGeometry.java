@@ -69,8 +69,12 @@ public final class BazaarHistoryChartGeometry {
     ) {
         var values = new ArrayList<Double>();
         for (var point : points) {
-            if (visibility.buy()) addFinite(values, point.buy());
-            if (visibility.sell()) addFinite(values, point.sell());
+            if (visibility.buy()) {
+                addFinite(values, point.buy());
+            }
+            if (visibility.sell()) {
+                addFinite(values, point.sell());
+            }
             if (visibility.bands()) {
                 addFinite(values, point.minBuy());
                 addFinite(values, point.maxBuy());
@@ -136,7 +140,8 @@ public final class BazaarHistoryChartGeometry {
             Double rawMinimum = minimum.apply(point);
             Double rawMaximum = maximum.apply(point);
             if (rawMinimum == null || rawMaximum == null
-                || !Double.isFinite(rawMinimum) || !Double.isFinite(rawMaximum)) {
+                || !Double.isFinite(rawMinimum)
+                || !Double.isFinite(rawMaximum)) {
                 previous = null;
                 continue;
             }
@@ -146,8 +151,7 @@ public final class BazaarHistoryChartGeometry {
             var current = new BandPoint(
                 projection.x(point.timestamp()),
                 projection.y(high),
-                projection.y(low)
-            );
+                projection.y(low));
 
             if (previous == null) {
                 segments.add(new BandSegment(current, current));
@@ -180,8 +184,11 @@ public final class BazaarHistoryChartGeometry {
     }
 
     public record PixelPoint(int x, int y) {}
+
     public record LineSegment(PixelPoint start, PixelPoint end) {}
+
     public record BandPoint(int x, int top, int bottom) {}
+
     public record BandSegment(BandPoint start, BandPoint end) {}
 
     public record Series(List<PixelPoint> points, List<LineSegment> segments) {
