@@ -1,10 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -15,13 +17,18 @@ import net.minecraft.resources.Identifier;
 public final class HudWidgetBridge {
     private HudWidgetBridge() {}
 
-    public static void register(Identifier elementId, WidgetHost host) {
+    public static void register(Identifier elementId, WidgetHost host, Consumer<WidgetId> renderedWidget) {
         HudElementRegistry.addLast(elementId, (context, tickCounter) -> {
-            render(host, context, tickCounter.getGameTimeDeltaPartialTick(false));
+            render(host, context, tickCounter.getGameTimeDeltaPartialTick(false), renderedWidget);
         });
     }
 
-    private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
+    private static void render(
+        WidgetHost host,
+        GuiGraphicsExtractor graphics,
+        float partialTicks,
+        Consumer<WidgetId> renderedWidget
+    ) {
         var client = Minecraft.getInstance();
 
         //? if <26.2 {
@@ -48,7 +55,7 @@ public final class HudWidgetBridge {
         }
 
         var window = client.getWindow();
-        host.render(
+        var results = host.render(
             graphics,
             -1,
             -1,
@@ -56,6 +63,8 @@ public final class HudWidgetBridge {
             new WidgetCanvas(0, 0, window.getGuiScaledWidth(), window.getGuiScaledHeight()),
             WidgetHostOptions.runtime(false),
             null);
+
+        results.forEach(result -> renderedWidget.accept(result.definition().getId()));
     }
 
     static boolean shouldSuppressHud(

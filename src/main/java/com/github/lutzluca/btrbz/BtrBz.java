@@ -25,6 +25,7 @@ import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWid
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudHintController;
 import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarkComponent;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
@@ -178,8 +179,11 @@ public class BtrBz implements ClientModInitializer {
         var ordersWidgetData = new MemoizedWidgetDataSource<>(new OrdersWidgetData(
             BAZAAR_DATA, this.orderManager, this.tooltipProvider));
         var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(BAZAAR_DATA));
+        var toggleHudKey = BtrBzWidgetKeybinds.registerMapping();
+        var bazaarOrdersWidget = BazaarOrdersWidgetDefinition.create(
+            ordersWidgetData, toggleHudKey::getTranslatedKeyMessage);
         var widgetRegistry = new WidgetRegistry();
-        widgetRegistry.register(BazaarOrdersWidgetDefinition.create(ordersWidgetData));
+        widgetRegistry.register(bazaarOrdersWidget);
         widgetRegistry.register(TrackedOrdersWidgetDefinition.create(ordersWidgetData, this.orderManager));
         widgetRegistry.register(OrderValueWidgetDefinition.create(orderValue));
         widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
@@ -188,13 +192,20 @@ public class BtrBz implements ClientModInitializer {
         widgetRegistry.register(OrderPresetsWidgetDefinition.create(orderPresets));
         widgetRegistry.register(DailyLimitWidgetDefinition.create(dailyLimit));
         widgetRegistry.register(PriceDifferenceWidgetDefinition.create(BAZAAR_DATA));
-        this.widgetRuntime = new WidgetRuntime(widgetRegistry, new WidgetStateStore(), sessionProvider);
+        var widgetStateStore = new WidgetStateStore();
+        this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider);
+        var hudHint = new BazaarHudHintController(
+            bazaarOrdersWidget.getConfigHandle(),
+            toggleHudKey::getTranslatedKeyMessage,
+            ConfigManager::save);
         HudWidgetBridge.register(
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
-            this.widgetRuntime.createHudHost());
+            this.widgetRuntime.createHudHost(),
+            hudHint::onWidgetRendered);
         new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
         Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
-        BtrBzWidgetKeybinds.register();
+        BtrBzWidgetKeybinds.registerHandler(
+            toggleHudKey, bazaarOrdersWidget, widgetStateStore, hudHint::dismiss);
 
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();

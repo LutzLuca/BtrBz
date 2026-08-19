@@ -4,12 +4,61 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.gson.Gson;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("Bazaar orders widget config")
 class BazaarOrdersWidgetConfigTest {
+    private final Gson gson = new Gson();
+
+    @Nested
+    @DisplayName("toggle hint")
+    class ToggleHint {
+        @Test
+        @DisplayName("starts unseen for new and field-missing configs")
+        void startsUnseen() {
+            var fresh = new BazaarOrdersWidgetConfig();
+            var fieldMissing = BazaarOrdersWidgetConfigTest.this.gson.fromJson(
+                "{}", BazaarOrdersWidgetConfig.class);
+
+            assertEquals(BazaarOrdersWidgetConfig.ToggleHintState.Unseen, fresh.supportedToggleHintState());
+            assertEquals(BazaarOrdersWidgetConfig.ToggleHintState.Unseen, fieldMissing.supportedToggleHintState());
+            assertTrue(fresh.showToggleHint());
+
+            fresh.toggleHintState = BazaarOrdersWidgetConfig.ToggleHintState.Shown;
+            assertTrue(fresh.showToggleHint());
+        }
+
+        @Test
+        @DisplayName("round trips every persisted state")
+        void roundTripsEveryState() {
+            for (var state : BazaarOrdersWidgetConfig.ToggleHintState.values()) {
+                var config = new BazaarOrdersWidgetConfig();
+                config.toggleHintState = state;
+
+                var restored = BazaarOrdersWidgetConfigTest.this.gson.fromJson(
+                    BazaarOrdersWidgetConfigTest.this.gson.toJson(config),
+                    BazaarOrdersWidgetConfig.class);
+
+                assertEquals(state, restored.supportedToggleHintState());
+            }
+        }
+
+        @Test
+        @DisplayName("preference reset preserves dismissal")
+        void preferenceResetPreservesDismissal() {
+            var config = new BazaarOrdersWidgetConfig();
+            config.toggleHintState = BazaarOrdersWidgetConfig.ToggleHintState.Dismissed;
+
+            BazaarOrdersWidgetConfig.resetPreferences(config, new BazaarOrdersWidgetConfig());
+
+            assertEquals(BazaarOrdersWidgetConfig.ToggleHintState.Dismissed, config.supportedToggleHintState());
+            assertFalse(config.showToggleHint());
+        }
+    }
+
     @Nested
     @DisplayName("preference reset")
     class PreferenceReset {
