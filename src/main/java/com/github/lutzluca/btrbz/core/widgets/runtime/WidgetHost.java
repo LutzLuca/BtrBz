@@ -437,7 +437,10 @@ public final class WidgetHost {
             return;
         }
 
+        //? if <26.2 {
         var current = this.currentSession(Minecraft.getInstance().screen);
+        //?} else
+        //var current = this.currentSession(Minecraft.getInstance().gui.screen());
 
         if (mountedWidget.preparedSessionId != current.id()
             || mountedWidget.preparedSessionContextRevision != current.contextRevision()) {

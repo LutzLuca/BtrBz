@@ -107,6 +107,7 @@ public class ConfigScreen {
     static List<Option<?>> widgetManagerOptions() {
         var widgetRuntime = BtrBz.widgetRuntime();
 
+        //? if <26.2 {
         var openManager = ButtonOption.createBuilder()
             .name(Component.literal("Open Widget Manager"))
             .text(Component.literal("Open"))
@@ -116,6 +117,17 @@ public class ConfigScreen {
             .action((screen, _) -> Minecraft.getInstance().setScreen(
                 widgetRuntime.createManagementScreen(screen)))
             .build();
+        //?} else {
+        /*var openManager = ButtonOption.createBuilder()
+            .name(Component.literal("Open Widget Manager"))
+            .text(Component.literal("Open"))
+            .description(createDescription(
+                "Open the widget manager without using the Bazaar quick-access button.",
+                ConfigImages.WidgetManagerButton))
+            .action((screen, _) -> Minecraft.getInstance().gui.setScreen(
+                widgetRuntime.createManagementScreen(screen)))
+            .build();
+        *///?}
 
         var resetPosition = ButtonOption.createBuilder()
             .name(Component.literal("Reset Widget Manager Button Position"))
@@ -144,6 +156,7 @@ public class ConfigScreen {
             ? createDescription(description)
             : createDescription(description, image);
 
+        //? if <26.2 {
         return ButtonOption.createBuilder()
             .name(Component.literal(name))
             .text(Component.literal("Configure"))
@@ -151,6 +164,15 @@ public class ConfigScreen {
             .action((screen, _) -> Minecraft.getInstance().setScreen(
                 BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)))
             .build();
+        //?} else {
+        /*return ButtonOption.createBuilder()
+            .name(Component.literal(name))
+            .text(Component.literal("Configure"))
+            .description(optionDescription)
+            .action((screen, _) -> Minecraft.getInstance().gui.setScreen(
+                BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)))
+            .build();
+        *///?}
     }
 
     public static OptionDescription createDescription(String text) {

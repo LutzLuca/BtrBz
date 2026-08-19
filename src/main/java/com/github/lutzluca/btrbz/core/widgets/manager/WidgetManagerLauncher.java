@@ -156,7 +156,12 @@ public final class WidgetManagerLauncher {
                 owner.btrbz$prepareManagerTransition();
             }
 
+            //? if <26.2 {
             Minecraft.getInstance().setScreen(manager);
+            //?} else {
+            /*Minecraft.getInstance().gui.setScreen(manager);
+            *///?}
+
         }
 
         return true;

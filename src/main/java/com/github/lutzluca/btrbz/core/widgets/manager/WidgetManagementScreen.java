@@ -251,10 +251,18 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         this.rebuildSidebar();
     }
 
+    //? if <26.2 {
     @Override
     public void onClose() {
         this.minecraft.setScreen(this.returnScreen());
     }
+    //?} else {
+    /*@Override
+    public void onClose() {
+        this.minecraft.gui.setScreen(this.returnScreen());
+    }
+    *///?}
+
 
     @Override
     public void resize(int width, int height) {

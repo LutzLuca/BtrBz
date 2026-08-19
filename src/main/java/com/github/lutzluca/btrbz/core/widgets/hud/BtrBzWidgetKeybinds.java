@@ -26,9 +26,16 @@ public final class BtrBzWidgetKeybinds {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleHud.consumeClick()) {
+
+                //? if <26.2 {
                 if (client.screen != null || client.player == null || client.level == null) {
                     continue;
                 }
+                //?} else {
+                /*if (client.gui.screen() != null || client.player == null || client.level == null) {
+                    continue;
+                }
+                *///?}
 
                 var definition = BtrBz.widgetRuntime().registry()
                     .find(BazaarOrdersWidgetDefinition.ID)

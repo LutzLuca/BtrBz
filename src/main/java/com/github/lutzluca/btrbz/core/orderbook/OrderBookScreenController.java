@@ -77,11 +77,20 @@ public final class OrderBookScreenController {
             }
             var identity = ProductIdentity.fromIndex(product);
 
+            //? if <26.2 {
             Minecraft.getInstance().setScreen(new OrderBookScreen(
                 context.view().getCurrInfo().getScreen(),
                 identity,
                 product.formattedName(),
                 runtime.createScreenHost()));
+            //?} else {
+            /*Minecraft.getInstance().gui.setScreen(new OrderBookScreen(
+                context.view().getCurrInfo().getScreen(),
+                identity,
+                product.formattedName(),
+                runtime.createScreenHost()));
+            *///?}
+
             return SlotClickResult.Consume;
         }
     }

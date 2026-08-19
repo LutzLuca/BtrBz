@@ -39,11 +39,21 @@ public final class OrderBookScreen extends Screen {
         return this.productName;
     }
 
+
+    //? if <26.2 {
     @Override
     public void onClose() {
         this.host.dispose();
         Minecraft.getInstance().setScreen(this.parent);
     }
+    //?} else {
+    /*@Override
+    public void onClose() {
+        this.host.dispose();
+        Minecraft.getInstance().gui.setScreen(this.parent);
+    }
+    *///?}
+
 
     @Override
     public void removed() {

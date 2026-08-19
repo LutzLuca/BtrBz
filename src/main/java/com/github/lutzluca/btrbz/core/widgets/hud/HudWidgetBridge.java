@@ -20,6 +20,7 @@ public final class HudWidgetBridge {
         });
     }
 
+    //? if <26.2 {
     private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
         var client = Minecraft.getInstance();
         if (shouldSuppressHud(
@@ -47,6 +48,36 @@ public final class HudWidgetBridge {
             WidgetHostOptions.runtime(false),
             null);
     }
+    //?} else {
+    /*private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
+        var client = Minecraft.getInstance();
+        if (shouldSuppressHud(
+            client.gui.hud.isHidden(),
+            client.options.keyPlayerList.isDown(),
+            client.getDebugOverlay().showDebugScreen(),
+            client.level == null)) {
+            return;
+        }
+
+        boolean generalContainer = client.gui.screen() instanceof AbstractContainerScreen<?>
+            && !ScreenInfoHelper.inBazaar();
+
+        if (client.gui.screen() != null && !(client.gui.screen() instanceof ChatScreen) && !generalContainer) {
+            return;
+        }
+
+        var window = client.getWindow();
+        host.render(
+            graphics,
+            -1,
+            -1,
+            partialTicks,
+            new WidgetCanvas(0, 0, window.getGuiScaledWidth(), window.getGuiScaledHeight()),
+            WidgetHostOptions.runtime(false),
+            null);
+    }
+    *///?}
+
 
     static boolean shouldSuppressHud(
         boolean hideGui,

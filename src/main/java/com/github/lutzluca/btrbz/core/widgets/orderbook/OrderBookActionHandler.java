@@ -23,7 +23,12 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
                 if (current.inOrderBook()) {
                     Minecraft.getInstance().keyboardHandler.setClipboard(
                         Utils.formatDecimal(select.price(), 1, false));
+
+                    //? if <26.2 {
                     var screen = Minecraft.getInstance().screen;
+                    //?} else {
+                    /*var screen = Minecraft.getInstance().gui.screen();
+                    *///?}
 
                     if (screen != null) {
                         screen.onClose();
@@ -37,7 +42,11 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
                     return;
                 }
 
+                //? if <26.2 {
                 var screen = Minecraft.getInstance().screen;
+                //?} else {
+                /*var screen = Minecraft.getInstance().gui.screen();
+                *///?}
 
                 if (screen != null) {
                     screen.onClose();
