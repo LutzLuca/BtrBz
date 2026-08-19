@@ -257,7 +257,6 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         GameUtils.setScreen(this.returnScreen());
     }
 
-
     @Override
     public void resize(int width, int height) {
         super.resize(width, height);

@@ -12,7 +12,6 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;

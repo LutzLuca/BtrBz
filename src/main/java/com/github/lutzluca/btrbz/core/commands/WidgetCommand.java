@@ -12,7 +12,8 @@ public class WidgetCommand {
         return Commands.rootCommand.then(ClientCommands
             .literal("widgets")
             .executes(_ -> {
-                Minecraft.getInstance().schedule(() -> GameUtils.setScreen(runtime.createManagementScreen(GameUtils.screen())));
+                Minecraft.getInstance()
+                    .schedule(() -> GameUtils.setScreen(runtime.createManagementScreen(GameUtils.screen())));
                 return 1;
             }));
     }

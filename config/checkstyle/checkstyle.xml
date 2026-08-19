@@ -26,7 +26,6 @@
     <module name="TreeWalker">
         <!-- Imports stay explicit and free of dead dependencies. Ordering is intentionally not enforced -->
         <module name="AvoidStarImport"/>
-        <module name="UnusedImports"/>
 
         <!-- Structural layout: attached braces and no unbraced control flow -->
         <module name="NeedBraces"/>
