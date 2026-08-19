@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -26,16 +27,9 @@ public final class BtrBzWidgetKeybinds {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleHud.consumeClick()) {
-
-                //? if <26.2 {
-                if (client.screen != null || client.player == null || client.level == null) {
+                if (GameUtils.screen() != null || client.player == null || client.level == null) {
                     continue;
                 }
-                //?} else {
-                /*if (client.gui.screen() != null || client.player == null || client.level == null) {
-                    continue;
-                }
-                *///?}
 
                 var definition = BtrBz.widgetRuntime().registry()
                     .find(BazaarOrdersWidgetDefinition.ID)

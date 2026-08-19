@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOwner;
 import com.github.lutzluca.btrbz.core.widgets.manager.SignEditScreenTransitionState;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncherOwner;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
@@ -79,17 +80,10 @@ public abstract class AbstractSignEditScreenMixin implements WidgetHostOwner, Wi
         var canvas = new WidgetCanvas(
             0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
 
-        //? if <26.2 {
         this.btrbz$widgetHost().render(
             graphics, mouseX, mouseY, delta,
             canvas,
-            WidgetHostOptions.runtime(true), client.screen);
-        //?} else {
-        /*this.btrbz$widgetHost().render(
-            graphics, mouseX, mouseY, delta,
-            canvas,
-            WidgetHostOptions.runtime(true), client.gui.screen());
-        *///?}
+            WidgetHostOptions.runtime(true), GameUtils.screen());
 
         this.btrbz$managerLauncher().render(
             graphics, mouseX, mouseY, delta, canvas, (net.minecraft.client.gui.screens.Screen) (Object) this);

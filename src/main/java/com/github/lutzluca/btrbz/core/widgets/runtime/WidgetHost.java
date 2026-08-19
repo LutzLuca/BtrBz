@@ -18,6 +18,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Size;
@@ -437,10 +438,7 @@ public final class WidgetHost {
             return;
         }
 
-        //? if <26.2 {
-        var current = this.currentSession(Minecraft.getInstance().screen);
-        //?} else
-        //var current = this.currentSession(Minecraft.getInstance().gui.screen());
+        var current = this.currentSession(GameUtils.screen());
 
         if (mountedWidget.preparedSessionId != current.id()
             || mountedWidget.preparedSessionContextRevision != current.contextRevision()) {

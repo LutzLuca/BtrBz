@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.orderbook;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
@@ -77,19 +78,11 @@ public final class OrderBookScreenController {
             }
             var identity = ProductIdentity.fromIndex(product);
 
-            //? if <26.2 {
-            Minecraft.getInstance().setScreen(new OrderBookScreen(
+            GameUtils.setScreen(new OrderBookScreen(
                 context.view().getCurrInfo().getScreen(),
                 identity,
                 product.formattedName(),
                 runtime.createScreenHost()));
-            //?} else {
-            /*Minecraft.getInstance().gui.setScreen(new OrderBookScreen(
-                context.view().getCurrInfo().getScreen(),
-                identity,
-                product.formattedName(),
-                runtime.createScreenHost()));
-            *///?}
 
             return SlotClickResult.Consume;
         }

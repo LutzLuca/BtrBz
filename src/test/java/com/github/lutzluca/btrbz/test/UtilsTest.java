@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-//? if <26.2 {
+//? if >=26.2 {
 import net.minecraft.network.chat.TextColor;
 //?}
 

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,11 +43,7 @@ public abstract class SlotItemProjectionMixin {
 
     @Unique
     private boolean btrbz$isCurrentMenuSlot(Slot slot) {
-        //? if <26.2 {
-        var screen = Minecraft.getInstance().screen;
-        //?} else {
-        /*var screen = Minecraft.getInstance().gui.screen();
-        *///?}
+        var screen = GameUtils.screen();
 
         if (!(screen instanceof AbstractContainerScreen<?> containerScreen)) {
             return false;

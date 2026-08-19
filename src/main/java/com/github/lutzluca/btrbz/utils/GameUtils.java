@@ -7,6 +7,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -23,6 +24,7 @@ import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
+import com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor;
 
 @Slf4j
 public final class GameUtils {
@@ -35,19 +37,31 @@ public final class GameUtils {
      * broken by Skyblocker; {@code setScreen(null)} is used instead.</p>
      */
     public static void submitSignValue(SignEditScreen signEditScreen, String value) {
-        var accessor = (com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor) signEditScreen;
+        var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
         accessor.setLine(0);
         accessor.invokeSetMessage(value);
-        //? if <26.2 {
-        Minecraft.getInstance().setScreen(null);
-        //?} else {
-        /*Minecraft.getInstance().gui.setScreen(null);
-        *///?}
+        setScreen(null);
     }
 
     public static final int GLOBAL_MAX_ORDER_VOLUME = 71680;
 
     private GameUtils() {}
+
+    public static void setScreen(@Nullable Screen screen) {
+        //? if <26.2 {
+        Minecraft.getInstance().setScreen(screen);
+        //?} else {
+        /*Minecraft.getInstance().gui.setScreen(screen);
+         *///?}
+    }
+
+    public static @Nullable Screen screen() {
+        //? if <26.2 {
+        return Minecraft.getInstance().screen;
+        //?} else {
+        /*return Minecraft.getInstance().gui.screen();
+         *///?}
+    }
 
     public static String stripFormattingCodes(String text) {
         if (text == null) {

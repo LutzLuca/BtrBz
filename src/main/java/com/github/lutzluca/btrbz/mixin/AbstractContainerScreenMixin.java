@@ -80,17 +80,10 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
         var canvas = new WidgetCanvas(
             0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
 
-        //? if <26.2 {
         this.btrbz$widgetHost().render(
             graphics, mouseX, mouseY, delta,
             canvas,
-            WidgetHostOptions.runtime(true), client.screen);
-        //?} else {
-        /*this.btrbz$widgetHost().render(
-            graphics, mouseX, mouseY, delta,
-            canvas,
-            WidgetHostOptions.runtime(true), client.gui.screen());
-        *///?}
+            WidgetHostOptions.runtime(true), GameUtils.screen());
 
         this.btrbz$managerLauncher().render(
             graphics, mouseX, mouseY, delta, canvas, (Screen) (Object) this);
