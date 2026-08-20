@@ -365,13 +365,7 @@ public final class ProductInfoProvider {
     }
 
     private void confirmAndOpen(String link) {
-        //? if <26.2 {
-        var client = Minecraft.getInstance();
-        //?} else {
-        /*var client = Minecraft.getInstance().gui;
-         *///?}
-
-        client.setScreen(new ConfirmLinkScreen(
+        GameUtils.setScreen(new ConfirmLinkScreen(
             confirmed -> {
                 if (confirmed) {
                     Try
@@ -385,7 +379,7 @@ public final class ProductInfoProvider {
                 }
 
                 var prev = ScreenInfoHelper.get().getPrevInfo();
-                client.setScreen(prev != null ? prev.getScreen() : null);
+                GameUtils.setScreen(prev != null ? prev.getScreen() : null);
             }, link, true));
     }
 

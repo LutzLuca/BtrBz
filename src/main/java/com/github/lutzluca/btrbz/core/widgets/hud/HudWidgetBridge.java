@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.hud;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
@@ -22,18 +23,27 @@ public final class HudWidgetBridge {
 
     private static void render(WidgetHost host, GuiGraphicsExtractor graphics, float partialTicks) {
         var client = Minecraft.getInstance();
+
+        //? if <26.2 {
+        boolean hideGui = client.options.hideGui;
+        //?} else {
+        /*boolean hideGui = client.gui.hud.isHidden();
+         *///?}
+
         if (shouldSuppressHud(
-            client.options.hideGui,
+            hideGui,
             client.options.keyPlayerList.isDown(),
             client.getDebugOverlay().showDebugScreen(),
             client.level == null)) {
             return;
         }
 
-        boolean generalContainer = client.screen instanceof AbstractContainerScreen<?>
+        var screen = GameUtils.screen();
+
+        boolean generalContainer = screen instanceof AbstractContainerScreen<?>
             && !ScreenInfoHelper.inBazaar();
 
-        if (client.screen != null && !(client.screen instanceof ChatScreen) && !generalContainer) {
+        if (screen != null && !(screen instanceof ChatScreen) && !generalContainer) {
             return;
         }
 

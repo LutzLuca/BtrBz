@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
-import net.minecraft.client.Minecraft;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -42,7 +42,7 @@ public final class OrderBookScreen extends Screen {
     @Override
     public void onClose() {
         this.host.dispose();
-        Minecraft.getInstance().setScreen(this.parent);
+        GameUtils.setScreen(this.parent);
     }
 
     @Override

@@ -13,6 +13,9 @@ import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+//? if >=26.2 {
+/*import net.minecraft.network.chat.TextColor;
+*///?}
 
 class UtilsTest {
 
@@ -290,7 +293,11 @@ class UtilsTest {
             var text = Utils.legacyFormattedComponent("§d§lThunderlord VII");
 
             assertEquals("Thunderlord VII", text.getString());
+            //? if <26.2 {
             assertEquals(ChatFormatting.LIGHT_PURPLE.getColor(), text.getStyle().getColor().getValue());
+            //?} else {
+            /*assertEquals(TextColor.LIGHT_PURPLE.getValue(), text.getStyle().getColor().getValue());
+            *///?}
             assertTrue(text.getStyle().isBold());
             assertEquals("§d§lThunderlord VII", Utils.legacyFormattedText(text));
         }

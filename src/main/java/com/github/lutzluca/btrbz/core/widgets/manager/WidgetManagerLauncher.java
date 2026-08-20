@@ -10,6 +10,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -19,7 +20,6 @@ import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.List;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -156,7 +156,7 @@ public final class WidgetManagerLauncher {
                 owner.btrbz$prepareManagerTransition();
             }
 
-            Minecraft.getInstance().setScreen(manager);
+            GameUtils.setScreen(manager);
         }
 
         return true;

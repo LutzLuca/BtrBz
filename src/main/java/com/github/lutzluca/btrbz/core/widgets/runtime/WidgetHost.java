@@ -18,10 +18,10 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Size;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -437,7 +437,7 @@ public final class WidgetHost {
             return;
         }
 
-        var current = this.currentSession(Minecraft.getInstance().screen);
+        var current = this.currentSession(GameUtils.screen());
 
         if (mountedWidget.preparedSessionId != current.id()
             || mountedWidget.preparedSessionContextRevision != current.contextRevision()) {

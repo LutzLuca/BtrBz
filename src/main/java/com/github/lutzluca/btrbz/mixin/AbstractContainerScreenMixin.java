@@ -79,10 +79,12 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
         var client = Minecraft.getInstance();
         var canvas = new WidgetCanvas(
             0, 0, client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
+
         this.btrbz$widgetHost().render(
             graphics, mouseX, mouseY, delta,
             canvas,
-            WidgetHostOptions.runtime(true), client.screen);
+            WidgetHostOptions.runtime(true), GameUtils.screen());
+
         this.btrbz$managerLauncher().render(
             graphics, mouseX, mouseY, delta, canvas, (Screen) (Object) this);
     }

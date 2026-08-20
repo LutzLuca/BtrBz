@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
 import net.minecraft.client.Minecraft;
@@ -23,7 +24,8 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
                 if (current.inOrderBook()) {
                     Minecraft.getInstance().keyboardHandler.setClipboard(
                         Utils.formatDecimal(select.price(), 1, false));
-                    var screen = Minecraft.getInstance().screen;
+
+                    var screen = GameUtils.screen();
 
                     if (screen != null) {
                         screen.onClose();
@@ -37,7 +39,7 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
                     return;
                 }
 
-                var screen = Minecraft.getInstance().screen;
+                var screen = GameUtils.screen();
 
                 if (screen != null) {
                     screen.onClose();

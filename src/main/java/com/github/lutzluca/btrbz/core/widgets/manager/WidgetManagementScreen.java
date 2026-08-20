@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.WidgetColorFormat;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.github.lutzluca.btrbz.core.widgets.ui.TooltipDelayState;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
@@ -253,7 +254,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(this.returnScreen());
+        GameUtils.setScreen(this.returnScreen());
     }
 
     @Override

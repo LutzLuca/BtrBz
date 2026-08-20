@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
@@ -25,22 +26,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class ConfigScreen {
 
-    //? if <26.2 {
     public static void open() {
         var client = Minecraft.getInstance();
-        client.schedule(() -> client.setScreen(ConfigScreen.create(
-            client.screen,
+        client.schedule(() -> GameUtils.setScreen(ConfigScreen.create(
+            GameUtils.screen(),
             ConfigManager.get())));
     }
-    //?} else {
-    /*public static void open() {
-        var client = Minecraft.getInstance();
-        client.schedule(() -> client.gui.setScreen(ConfigScreen.create(
-            client.gui.screen(),
-            ConfigManager.get()
-        )));
-    }
-    *///?}
 
     public static Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(
@@ -113,7 +104,7 @@ public class ConfigScreen {
             .description(createDescription(
                 "Open the widget manager without using the Bazaar quick-access button.",
                 ConfigImages.WidgetManagerButton))
-            .action((screen, _) -> Minecraft.getInstance().setScreen(
+            .action((screen, _) -> GameUtils.setScreen(
                 widgetRuntime.createManagementScreen(screen)))
             .build();
 
@@ -148,7 +139,7 @@ public class ConfigScreen {
             .name(Component.literal(name))
             .text(Component.literal("Configure"))
             .description(optionDescription)
-            .action((screen, _) -> Minecraft.getInstance().setScreen(
+            .action((screen, _) -> GameUtils.setScreen(
                 BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)))
             .build();
     }
