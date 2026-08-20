@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.1-alpha] - 2026-08-20
+
+### Added
+
+- Added a one-time hint explaining how to disable the Bazaar Orders HUD with its configurable hotkey
+
+### Changed
+
+- Restored support for Minecraft 26.2
+
 ## [0.11.0-alpha] - 2026-08-15
 
 ### Added
