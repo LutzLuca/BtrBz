@@ -16,6 +16,7 @@ import io.wispforest.owo.ui.core.VerticalAlignment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -29,9 +30,13 @@ final class BazaarOrdersWidgetView
 
     private final Detailed detailed = new Detailed();
     private final Counts counts = new Counts();
+    private final LabelComponent toggleHint = label("", BazaarStyles.MUTED_TEXT);
+    private final Supplier<Component> toggleKeyLabel;
 
-    BazaarOrdersWidgetView() {
+    BazaarOrdersWidgetView(Supplier<Component> toggleKeyLabel) {
+        this.toggleKeyLabel = toggleKeyLabel;
         this.root.allowOverflow(true);
+        this.root.gap(WidgetLayoutTokens.SECTION_GAP);
     }
 
     @Override
@@ -55,6 +60,13 @@ final class BazaarOrdersWidgetView
         } else {
             this.detailed.update(data, config);
             this.root.child(this.detailed.root);
+        }
+
+        if (config.showToggleHint()) {
+            this.toggleHint.text(Component.translatable(
+                "text.btrbz.bazaar_orders_hud_hint",
+                this.toggleKeyLabel.get()));
+            this.root.child(this.toggleHint);
         }
     }
 

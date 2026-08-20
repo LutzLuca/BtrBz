@@ -11,6 +11,8 @@ import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import java.util.function.Supplier;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 public final class BazaarOrdersWidgetDefinition {
@@ -19,7 +21,8 @@ public final class BazaarOrdersWidgetDefinition {
     private BazaarOrdersWidgetDefinition() {}
 
     public static WidgetDefinition<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void> create(
-        WidgetDataSource<BazaarWidgetViewData.OrdersData> provider
+        WidgetDataSource<BazaarWidgetViewData.OrdersData> provider,
+        Supplier<Component> toggleKeyLabel
     ) {
         var config = new WidgetConfigHandle<>(ID,
             () -> ConfigManager.get().widgets.bazaarOrders, BazaarOrdersWidgetConfig::new,
@@ -35,7 +38,7 @@ public final class BazaarOrdersWidgetDefinition {
             .data(provider)
             .cachePrepared()
             .preview(() -> new WidgetPreview<>(OrdersWidgetData.preview(), WidgetPreviewSessions.hud(), "default"))
-            .viewFactory(BazaarOrdersWidgetView::new)
+            .viewFactory(() -> new BazaarOrdersWidgetView(toggleKeyLabel))
             .settingsPanel(BazaarOrdersWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(BazaarHudOptions.MINIMUM_CONTENT_WIDTH), 28)
             .build();

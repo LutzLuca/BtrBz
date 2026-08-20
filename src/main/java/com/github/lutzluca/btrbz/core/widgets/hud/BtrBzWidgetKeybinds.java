@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -18,29 +20,38 @@ public final class BtrBzWidgetKeybinds {
 
     private BtrBzWidgetKeybinds() {}
 
-    public static void register() {
-        var toggleHud = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+    public static KeyMapping registerMapping() {
+        return KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.btrbz.toggle_bazaar_orders_hud",
             InputConstants.Type.KEYSYM,
             InputConstants.KEY_H,
             CATEGORY));
+    }
 
+    public static void registerHandler(
+        KeyMapping toggleHud,
+        WidgetDefinition<?, ?, ?> definition,
+        WidgetStateStore store,
+        Runnable dismissHint
+    ) {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleHud.consumeClick()) {
-                if (GameUtils.screen() != null || client.player == null || client.level == null) {
+                if (!canToggleHud(GameUtils.screen() != null, client.player == null, client.level == null)) {
                     continue;
                 }
 
-                var definition = BtrBz.widgetRuntime().registry()
-                    .find(BazaarOrdersWidgetDefinition.ID)
-                    .orElseThrow();
-                var store = BtrBz.widgetRuntime().stateStore();
                 boolean enabled = !store.isActive(definition);
 
-                store.setActive(definition, enabled);
+                store.setActive(definition, enabled, false);
+                dismissHint.run();
+                store.save();
                 Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
                     "Bazaar Orders HUD " + (enabled ? "enabled" : "disabled")).withStyle(ChatFormatting.GRAY)));
             }
         });
+    }
+
+    static boolean canToggleHud(boolean screenOpen, boolean playerMissing, boolean levelMissing) {
+        return !screenOpen && !playerMissing && !levelMissing;
     }
 }
