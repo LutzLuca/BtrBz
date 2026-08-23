@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.bazaariteminfo;
 
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -12,8 +11,6 @@ import net.minecraft.network.chat.Component;
 
 /** Persisted defaults shared by every Bazaar Item Info screen. */
 public final class BazaarItemInfoConfig {
-    public static final int CURRENT_MIGRATION_VERSION = 2;
-
     public enum ActivityMode {
         Off("Off"),
         IntervalItems("Items per interval");
@@ -39,23 +36,6 @@ public final class BazaarItemInfoConfig {
     public boolean showPerLevelOrderCount = true;
     public boolean showCumulativeVolume = true;
     public boolean showBazaarEntry = true;
-    public int migrationVersion;
-
-    public boolean migrateFrom(OrderBookWidgetConfig legacy) {
-        if (this.migrationVersion >= CURRENT_MIGRATION_VERSION) {
-            return false;
-        }
-        if (this.migrationVersion == 0 && legacy != null) {
-            this.visibleOrderBookRows = legacy.visibleRows;
-            this.volumeNumberStyle = legacy.numberStyle;
-            this.showPerLevelOrderCount = legacy.showOrderCount;
-            if (legacy.frame != null) {
-                this.showBazaarEntry = legacy.frame.enabled;
-            }
-        }
-        this.migrationVersion = CURRENT_MIGRATION_VERSION;
-        return true;
-    }
 
     public OptionGroup createGroup() {
         return OptionGroup.createBuilder()

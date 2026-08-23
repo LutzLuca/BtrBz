@@ -47,7 +47,11 @@ public class BazaarData {
             return Optional.empty();
         }
 
-        return Try.of(summaries::getFirst).map(Summary::getPricePerUnit).toJavaOptional();
+        return summaries.stream()
+            .filter(Objects::nonNull)
+            .map(Summary::getPricePerUnit)
+            .filter(price -> Double.isFinite(price) && price > 0)
+            .findFirst();
     }
 
     public void loadConversions() {
@@ -369,16 +373,15 @@ public class BazaarData {
             var status = raw.getQuickStatus();
             Totals buyTotals = status == null
                 ? new Totals.Unavailable()
-                : new Totals.Available(status.getSellOrders(), status.getSellVolume());
+                : totals(status.getSellOrders(), status.getSellVolume());
             Totals sellTotals = status == null
                 ? new Totals.Unavailable()
-                : new Totals.Available(status.getBuyOrders(), status.getBuyVolume());
+                : totals(status.getBuyOrders(), status.getBuyVolume());
             return new LiveProductSnapshot(
                 product,
                 this.lastUpdated,
                 new MarketSide(buyLevels, buyTotals),
-                new MarketSide(sellLevels, sellTotals),
-                true);
+                new MarketSide(sellLevels, sellTotals));
         }
 
         private static List<PriceLevel> levels(
@@ -388,15 +391,47 @@ public class BazaarData {
             if (summaries == null) {
                 return List.of();
             }
-            return summaries.stream()
+            var sorted = summaries.stream()
                 .filter(Objects::nonNull)
-                .filter(summary -> Double.isFinite(summary.getPricePerUnit()))
+                .filter(summary -> Double.isFinite(summary.getPricePerUnit()) && summary.getPricePerUnit() > 0)
+                .filter(summary -> summary.getAmount() >= 0 && summary.getOrders() >= 0)
                 .map(summary -> new PriceLevel(
                     summary.getPricePerUnit(),
                     summary.getAmount(),
                     summary.getOrders() > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) summary.getOrders()))
                 .sorted(comparator)
                 .toList();
+            if (sorted.size() < 2) {
+                return sorted;
+            }
+            var grouped = new ArrayList<PriceLevel>(sorted.size());
+            for (PriceLevel level : sorted) {
+                if (grouped.isEmpty()
+                    || Double.compare(grouped.getLast().price(), level.price()) != 0) {
+                    grouped.add(level);
+                    continue;
+                }
+                PriceLevel previous = grouped.removeLast();
+                grouped.add(new PriceLevel(
+                    previous.price(),
+                    saturatingAdd(previous.items(), level.items()),
+                    saturatingAdd(previous.orders(), level.orders())));
+            }
+            return List.copyOf(grouped);
+        }
+
+        private static Totals totals(long orders, long items) {
+            return orders >= 0 && items >= 0
+                ? new Totals.Available(orders, items)
+                : new Totals.Unavailable();
+        }
+
+        private static long saturatingAdd(long left, long right) {
+            return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
+        }
+
+        private static int saturatingAdd(int left, int right) {
+            return left > Integer.MAX_VALUE - right ? Integer.MAX_VALUE : left + right;
         }
 
         public List<Summary> summariesForOrderType(ProductIdentity product, OrderType orderType) {

@@ -15,6 +15,7 @@ class BazaarItemInfoOrderBookPanelTest {
     void responsiveDecisionNeverScalesThePanel() {
         assertTrue(BazaarItemInfoOrderBookPanel.useStacked(399, 200));
         assertFalse(BazaarItemInfoOrderBookPanel.useStacked(406, 200));
+        assertTrue(BazaarItemInfoOrderBookPanel.useStacked(BazaarItemInfoScreen.panelContentWidth(320), 200));
     }
 
     @Test

@@ -114,6 +114,9 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
             return true;
         }
 
+        if (!ScrollWheelPolicy.wouldMove(this.scrollOffset, this.maxScroll, amount, WHEEL_SCROLL_DISTANCE)) {
+            return false;
+        }
         this.scrollBy(-amount * WHEEL_SCROLL_DISTANCE, false, true);
         this.rememberState();
         return true;
@@ -132,7 +135,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
             this.smoothScrollTimeRemaining = SMOOTH_SCROLL_DURATION_SECONDS;
         }
 
-        if (showScrollbar) {
+        if (showScrollbar && changed) {
             this.lastScrollbarInteractTime = System.currentTimeMillis() + 1250L;
         }
     }

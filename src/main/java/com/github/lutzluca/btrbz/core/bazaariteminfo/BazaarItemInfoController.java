@@ -3,13 +3,13 @@ package com.github.lutzluca.btrbz.core.bazaariteminfo;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
 import com.github.lutzluca.coflnet.CoflnetBazaarClient;
 import com.mojang.blaze3d.platform.InputConstants;
 import java.util.Objects;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
@@ -93,7 +93,7 @@ public final class BazaarItemInfoController implements AutoCloseable {
         if (tag.isEmpty() || stack.isEmpty()) {
             return false;
         }
-        Minecraft.getInstance().setScreen(new BazaarItemInfoScreen(
+        GameUtils.setScreen(new BazaarItemInfoScreen(
             parent, product, tag.orElseThrow(), stack.copy(), this.bazaarData, this.coflnet, initialMode));
         return true;
     }

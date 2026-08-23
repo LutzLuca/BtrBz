@@ -28,6 +28,7 @@ import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitComponent;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudHintController;
 import com.github.lutzluca.btrbz.core.widgets.hud.BtrBzWidgetKeybinds;
 import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;

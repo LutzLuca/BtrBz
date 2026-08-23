@@ -10,7 +10,7 @@ import java.util.OptionalInt;
 
 /** Shared point selection and projection state for the two History plots. */
 public final class BazaarHistoryPanelController {
-    public static final int AXIS_INSET = 58;
+    public static final int DEFAULT_AXIS_INSET = 58;
     public static final int RIGHT_INSET = 10;
 
     private List<BazaarHistoryPoint> history = List.of();
@@ -28,6 +28,7 @@ public final class BazaarHistoryPanelController {
     private int selectionCursorX = Integer.MIN_VALUE;
     private int selectionComponentX;
     private int selectionComponentWidth;
+    private int axisInset = DEFAULT_AXIS_INSET;
 
     public void update(
         List<BazaarHistoryPoint> history,
@@ -71,8 +72,8 @@ public final class BazaarHistoryPanelController {
             && this.projectionCache.componentWidth() == componentWidth) {
             return this.projectionCache.projection();
         }
-        int left = componentX + AXIS_INSET;
-        int width = Math.max(1, componentWidth - AXIS_INSET - RIGHT_INSET);
+        int left = componentX + this.axisInset;
+        int width = Math.max(1, componentWidth - this.axisInset - RIGHT_INSET);
         long minimum = Long.MAX_VALUE;
         long maximum = Long.MIN_VALUE;
         for (var point : this.history) {
@@ -155,6 +156,22 @@ public final class BazaarHistoryPanelController {
 
     public long revision() {
         return this.revision;
+    }
+
+    public int axisInset() {
+        return this.axisInset;
+    }
+
+    public void axisInset(int axisInset) {
+        int next = Math.max(1, axisInset);
+        if (this.axisInset == next) {
+            return;
+        }
+        this.axisInset = next;
+        this.revision++;
+        this.projectionCache = null;
+        this.tickCache = null;
+        this.clearSelection();
     }
 
     public List<TimeAxisTicks.Tick> ticks(int componentX, int componentWidth, ZoneId zone) {

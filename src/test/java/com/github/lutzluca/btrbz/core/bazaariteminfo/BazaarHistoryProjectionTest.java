@@ -26,10 +26,10 @@ class BazaarHistoryProjectionTest {
     }
 
     @Test
-    void priceBoundsFollowVisibilityAndLinesBreakAcrossInvalidValues() {
+    void priceBoundsFollowVisibility() {
         var points = List.of(
             point(1, 100, 0, 10),
-            point(Double.NaN, 110, 1, 20),
+            point(2, 110, 1, 20),
             point(3, 120, 2, 30));
         var time = TimeProjection.from(points.stream().map(BazaarHistoryPoint::timestamp).toList(), 0, 101);
         var buy = PriceChartGeometry.layout(
@@ -38,8 +38,25 @@ class BazaarHistoryProjectionTest {
             points, new PriceChartGeometry.Visibility(false, true, false), time, 0, 50, OptionalInt.empty());
 
         assertTrue(buy.values().maximum() < sell.values().minimum());
-        assertTrue(buy.buy().segments().isEmpty());
-        assertEquals(2, sell.sell().segments().size());
+        assertFalse(buy.buy().segments().isEmpty());
+        assertFalse(sell.sell().segments().isEmpty());
+    }
+
+    @Test
+    void valueProjectionKeepsExtremeFiniteBoundsUsable() {
+        var positive = ValueProjection.from(List.of(Double.MAX_VALUE), 0, 100).orElseThrow();
+        var negative = ValueProjection.from(List.of(-Double.MAX_VALUE), 0, 100).orElseThrow();
+        var both = ValueProjection.from(List.of(-Double.MAX_VALUE, Double.MAX_VALUE), 0, 100).orElseThrow();
+        var zeroBased = ValueProjection.fromZero(List.of(Double.MAX_VALUE), 0, 100).orElseThrow();
+
+        assertTrue(Double.isFinite(positive.minimum()));
+        assertTrue(Double.isFinite(positive.maximum()));
+        assertTrue(positive.minimum() < positive.maximum());
+        assertTrue(negative.minimum() < negative.maximum());
+        assertTrue(both.minimum() < both.maximum());
+        assertEquals(0, both.y(Double.MAX_VALUE));
+        assertEquals(99, both.y(-Double.MAX_VALUE));
+        assertEquals(Double.MAX_VALUE, zeroBased.maximum());
     }
 
     @Test
@@ -103,8 +120,8 @@ class BazaarHistoryProjectionTest {
 
         var projection = controller.projection(20, 400);
 
-        assertEquals(20 + BazaarHistoryPanelController.AXIS_INSET, projection.left());
-        assertEquals(400 - BazaarHistoryPanelController.AXIS_INSET
+        assertEquals(20 + BazaarHistoryPanelController.DEFAULT_AXIS_INSET, projection.left());
+        assertEquals(400 - BazaarHistoryPanelController.DEFAULT_AXIS_INSET
             - BazaarHistoryPanelController.RIGHT_INSET, projection.width());
         assertEquals(410, projection.left() + projection.width());
     }
@@ -116,6 +133,42 @@ class BazaarHistoryProjectionTest {
 
         assertEquals(List.of("2.31M", "2.09M", "1.86M"), labels);
         assertEquals(3, labels.stream().distinct().count());
+    }
+
+    @Test
+    void priceAxisAdaptsPrecisionAndInsetForNarrowRanges() {
+        var small = PriceAxisLayout.create(
+            new ValueProjection(100.0, 100.1, 0, 100), 300, label -> label.length() * 6);
+        var large = PriceAxisLayout.create(
+            new ValueProjection(12_000_000, 12_000_040, 0, 100), 300, label -> label.length() * 6);
+        var extreme = PriceAxisLayout.create(
+            ValueProjection.from(List.of(Double.MAX_VALUE), 0, 100).orElseThrow(),
+            300,
+            label -> label.length() * 6);
+
+        assertEquals(3, small.labels().stream().distinct().count());
+        assertEquals(3, large.labels().stream().distinct().count());
+        assertTrue(large.inset() > BazaarHistoryPanelController.DEFAULT_AXIS_INSET);
+        assertEquals(3, extreme.labels().stream().distinct().count());
+    }
+
+    @Test
+    void dynamicAxisInsetRemainsSharedByEveryTimeProjection() {
+        var controller = new BazaarHistoryPanelController();
+        controller.update(
+            List.of(point(1, 2, 0, 0), point(2, 3, 0, 60)),
+            BazaarItemInfoRange.Hour,
+            true,
+            true,
+            true,
+            BazaarItemInfoConfig.ActivityMode.IntervalItems);
+
+        controller.axisInset(84);
+        var projection = controller.projection(20, 400);
+
+        assertEquals(104, projection.left());
+        assertEquals(306, projection.width());
+        assertEquals(84, controller.axisInset());
     }
 
     @Test

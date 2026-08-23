@@ -39,6 +39,9 @@ class BazaarItemInfoControllerTest {
 
     @Test
     void headerNameWidthFitsTheResponsivePanel() {
+        assertEquals(246, BazaarItemInfoScreen.panelContentWidth(320));
+        assertEquals(390, BazaarItemInfoScreen.panelContentWidth(480));
+        assertEquals(727, BazaarItemInfoScreen.panelContentWidth(854));
         assertEquals(92, BazaarItemInfoScreen.headerNameWidth(320));
         assertTrue(BazaarItemInfoScreen.headerNameWidth(854) > 92);
     }
@@ -63,6 +66,24 @@ class BazaarItemInfoControllerTest {
         assertEquals("2.31M", BazaarItemInfoScreen.summaryPrice(2_308_120));
         assertEquals("332.8k", BazaarItemInfoScreen.summaryPrice(332_789.6));
         assertEquals("9,999.9", BazaarItemInfoScreen.summaryPrice(9_999.9));
+    }
+
+    @Test
+    void spreadTextKeepsFractionalAndInvertedAmounts() {
+        var product = ProductIdentity.fromRuntime("Item", "ITEM", null);
+        var fractional = new LiveProductSnapshot(
+            product,
+            Optional.empty(),
+            new MarketSide(List.of(new PriceLevel(10, 1, 1)), new Totals.Unavailable()),
+            new MarketSide(List.of(new PriceLevel(10.1, 1, 1)), new Totals.Unavailable()));
+        var inverted = new LiveProductSnapshot(
+            product,
+            Optional.empty(),
+            new MarketSide(List.of(new PriceLevel(10.1, 1, 1)), new Totals.Unavailable()),
+            new MarketSide(List.of(new PriceLevel(10, 1, 1)), new Totals.Unavailable()));
+
+        assertEquals("0.1  (1.0%)", BazaarItemInfoScreen.spreadText(fractional));
+        assertEquals("-0.1  (-1.0%)", BazaarItemInfoScreen.spreadText(inverted));
     }
 
     @Test

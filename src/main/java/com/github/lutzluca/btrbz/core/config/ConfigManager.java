@@ -37,11 +37,6 @@ public final class ConfigManager {
             log.info("Successfully loaded config");
         }
 
-        if (HANDLER.instance().bazaarItemInfo.migrateFrom(HANDLER.instance().widgets.orderBookScreen)) {
-            log.info("Migrated Bazaar Item Info preferences to the current version");
-            HANDLER.save();
-        }
-
         Runtime.getRuntime().addShutdownHook(new Thread(HANDLER::save));
     }
 

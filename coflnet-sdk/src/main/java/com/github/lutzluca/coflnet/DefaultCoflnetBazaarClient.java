@@ -19,6 +19,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,19 +40,25 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     private static final Pattern ITEM_TAG = Pattern.compile("[A-Za-z0-9_:-]{1,160}");
     private static final Pattern MAX_AGE = Pattern.compile("(?:^|,)\\s*max-age\\s*=\\s*\\\"?(\\d+)\\\"?",
         Pattern.CASE_INSENSITIVE);
-    private static final Type HISTORY_LIST = new TypeToken<List<BazaarHistoryPoint>>() {
+    private static final Type HISTORY_LIST = new TypeToken<List<HistoryPointPayload>>() {
     }.getType();
-    private static final int MAX_ATTEMPTS = 4;
+    private static final int MAX_ATTEMPTS = 2;
+    private static final int MAX_CACHE_ENTRIES = 64;
     private static final int MAX_ERROR_BODY_LENGTH = 4_096;
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
+    private static final Duration REQUEST_DEADLINE = Duration.ofSeconds(25);
+    private static final Duration MAX_RETRY_WAIT = Duration.ofSeconds(2);
 
     private final URI baseUri;
     private final HttpClient httpClient;
+    private final boolean ownsHttpClient;
+    private final int maxCacheEntries;
     private final ExecutorService requestExecutor;
     private final Gson gson;
     private final Map<String, String> requestHeaders;
     private final DualWindowRateLimiter rateLimiter = new DualWindowRateLimiter();
     private final Object stateLock = new Object();
-    private final Map<RequestKey, CacheEntry> cache = new HashMap<>();
+    private final Map<RequestKey, CacheEntry> cache = new LinkedHashMap<>(16, 0.75f, true);
     private final Map<RequestKey, CompletableFuture<Object>> inFlight = new HashMap<>();
     private final AtomicBoolean closed = new AtomicBoolean();
 
@@ -60,6 +68,13 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
 
     // Kept below the public surface so bearer-token support can be added without changing callers.
     static CoflnetBazaarClient create(URI baseUri, Map<String, String> requestHeaders) {
+        return create(baseUri, requestHeaders, MAX_CACHE_ENTRIES);
+    }
+
+    static CoflnetBazaarClient create(URI baseUri, Map<String, String> requestHeaders, int maxCacheEntries) {
+        if (maxCacheEntries < 1) {
+            throw new IllegalArgumentException("maxCacheEntries must be positive");
+        }
         URI normalizedBaseUri = normalizeBaseUri(baseUri);
         ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "coflnet-bazaar-client");
@@ -70,7 +85,8 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             .connectTimeout(Duration.ofSeconds(10))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
-        return new DefaultCoflnetBazaarClient(normalizedBaseUri, httpClient, executor, requestHeaders);
+        return new DefaultCoflnetBazaarClient(
+            normalizedBaseUri, httpClient, executor, requestHeaders, true, maxCacheEntries);
     }
 
     DefaultCoflnetBazaarClient(
@@ -79,10 +95,36 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         ExecutorService requestExecutor,
         Map<String, String> requestHeaders
     ) {
+        this(baseUri, httpClient, requestExecutor, requestHeaders, false, MAX_CACHE_ENTRIES);
+    }
+
+    DefaultCoflnetBazaarClient(
+        URI baseUri,
+        HttpClient httpClient,
+        ExecutorService requestExecutor,
+        Map<String, String> requestHeaders,
+        boolean ownsHttpClient
+    ) {
+        this(baseUri, httpClient, requestExecutor, requestHeaders, ownsHttpClient, MAX_CACHE_ENTRIES);
+    }
+
+    DefaultCoflnetBazaarClient(
+        URI baseUri,
+        HttpClient httpClient,
+        ExecutorService requestExecutor,
+        Map<String, String> requestHeaders,
+        boolean ownsHttpClient,
+        int maxCacheEntries
+    ) {
         this.baseUri = normalizeBaseUri(baseUri);
         this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+        this.ownsHttpClient = ownsHttpClient;
         this.requestExecutor = Objects.requireNonNull(requestExecutor, "requestExecutor");
         this.requestHeaders = Map.copyOf(requestHeaders);
+        if (maxCacheEntries < 1) {
+            throw new IllegalArgumentException("maxCacheEntries must be positive");
+        }
+        this.maxCacheEntries = maxCacheEntries;
         this.gson = new GsonBuilder()
             .registerTypeAdapter(Instant.class, new CoflnetInstantAdapter())
             .create();
@@ -154,6 +196,9 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
             inFlight.clear();
             cache.clear();
         }
+        if (this.ownsHttpClient) {
+            this.httpClient.shutdownNow();
+        }
     }
 
     private CompletableFuture<Object> load(RequestSpec request) {
@@ -172,13 +217,11 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                 return existing;
             }
 
-            CacheEntry cached = cache.get(request.key());
             long now = System.nanoTime();
+            pruneExpiredCache(now);
+            CacheEntry cached = cache.get(request.key());
             if (cached != null && cachePolicy == CachePolicy.CACHE_FIRST) {
-                if (cached.expiresAtNanos() > now) {
-                    return CompletableFuture.completedFuture(cached.value());
-                }
-                cache.remove(request.key());
+                return CompletableFuture.completedFuture(cached.value());
             }
 
             CompletableFuture<Object> created = new CompletableFuture<>();
@@ -192,10 +235,15 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         try {
             DecodedResponse decoded = executeWithRetries(request);
             synchronized (stateLock) {
-                if (decoded.maxAgeSeconds() > 0 && !closed.get()) {
-                    long ttlNanos = TimeUnit.SECONDS.toNanos(decoded.maxAgeSeconds());
-                    cache.put(request.key(),
-                        new CacheEntry(decoded.value(), saturatingAdd(System.nanoTime(), ttlNanos)));
+                if (!closed.get()) {
+                    if (decoded.maxAgeSeconds() > 0) {
+                        long ttlNanos = TimeUnit.SECONDS.toNanos(decoded.maxAgeSeconds());
+                        cache.put(request.key(),
+                            new CacheEntry(decoded.value(), saturatingAdd(System.nanoTime(), ttlNanos)));
+                        evictCacheOverflow();
+                    } else {
+                        cache.remove(request.key());
+                    }
                 }
                 inFlight.remove(request.key(), future);
             }
@@ -209,18 +257,20 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     }
 
     private DecodedResponse executeWithRetries(RequestSpec request) {
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(request.key().uri())
-            .timeout(Duration.ofSeconds(20))
-            .header("Accept", "application/json")
-            .header("User-Agent", "BtrBz-Coflnet-SDK/1")
-            .GET();
-        requestHeaders.forEach(requestBuilder::header);
-        HttpRequest httpRequest = requestBuilder.build();
-
+        long deadlineNanos = saturatingAdd(System.nanoTime(), REQUEST_DEADLINE.toNanos());
         IOException lastIoFailure = null;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             ensureOpen(request.key().uri());
-            rateLimiter.acquire();
+            rateLimiter.acquire(request.key().uri(), deadlineNanos);
+            Duration remaining = remaining(deadlineNanos, request.key().uri());
+            Duration requestTimeout = remaining.compareTo(REQUEST_TIMEOUT) < 0 ? remaining : REQUEST_TIMEOUT;
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(request.key().uri())
+                .timeout(requestTimeout)
+                .header("Accept", "application/json")
+                .header("User-Agent", "BtrBz-Coflnet-SDK/1")
+                .GET();
+            requestHeaders.forEach(requestBuilder::header);
+            HttpRequest httpRequest = requestBuilder.build();
 
             HttpResponse<String> response;
             try {
@@ -234,7 +284,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                 if (attempt == MAX_ATTEMPTS) {
                     break;
                 }
-                sleep(backoff(attempt), request.key().uri());
+                sleepBeforeDeadline(backoff(attempt), deadlineNanos, request.key().uri());
                 continue;
             }
 
@@ -248,13 +298,16 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
 
             if (statusCode == 429 && attempt < MAX_ATTEMPTS) {
                 Duration retryDelay = retryAfter(response).orElse(backoff(attempt));
+                if (retryDelay.compareTo(MAX_RETRY_WAIT) > 0) {
+                    throw apiFailure(request.key().uri(), response);
+                }
                 rateLimiter.defer(retryDelay);
-                sleep(retryDelay, request.key().uri());
+                sleepBeforeDeadline(retryDelay, deadlineNanos, request.key().uri());
                 continue;
             }
 
             if (statusCode >= 500 && statusCode <= 599 && attempt < MAX_ATTEMPTS) {
-                sleep(backoff(attempt), request.key().uri());
+                sleepBeforeDeadline(backoff(attempt), deadlineNanos, request.key().uri());
                 continue;
             }
 
@@ -284,11 +337,19 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                     yield Optional.of(snapshot);
                 }
                 case HISTORY -> {
-                    List<BazaarHistoryPoint> points = gson.fromJson(body, HISTORY_LIST);
-                    if (points == null) {
+                    List<HistoryPointPayload> payloads = gson.fromJson(body, HISTORY_LIST);
+                    if (payloads == null) {
                         throw new IllegalStateException("History response was JSON null");
                     }
-                    yield List.copyOf(points);
+                    List<BazaarHistoryPoint> points = payloads.stream()
+                        .filter(Objects::nonNull)
+                        .map(HistoryPointPayload::toHistoryPoint)
+                        .flatMap(Optional::stream)
+                        .toList();
+                    if (!payloads.isEmpty() && points.isEmpty()) {
+                        throw new IllegalStateException("History response contained no valid points");
+                    }
+                    yield points;
                 }
             };
         } catch (RuntimeException malformed) {
@@ -312,11 +373,11 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     }
 
     private static Optional<Long> maxAgeSeconds(HttpResponse<?> response) {
-        Optional<String> cacheControl = response.headers().firstValue("Cache-Control");
-        if (cacheControl.isEmpty()) {
+        List<String> cacheControls = response.headers().allValues("Cache-Control");
+        if (cacheControls.isEmpty()) {
             return Optional.empty();
         }
-        String value = cacheControl.get();
+        String value = String.join(",", cacheControls);
         String normalized = value.toLowerCase(Locale.ROOT);
         if (normalized.contains("no-store") || normalized.contains("no-cache")) {
             return Optional.of(0L);
@@ -383,6 +444,34 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         }
     }
 
+    private static void sleepBeforeDeadline(Duration duration, long deadlineNanos, URI uri) {
+        Duration remaining = remaining(deadlineNanos, uri);
+        if (duration.compareTo(remaining) >= 0) {
+            throw new CoflnetApiException("Coflnet request exceeded its retry deadline", -1, uri, null);
+        }
+        sleep(duration, uri);
+    }
+
+    private static Duration remaining(long deadlineNanos, URI uri) {
+        long now = System.nanoTime();
+        if (now >= deadlineNanos) {
+            throw new CoflnetApiException("Coflnet request exceeded its retry deadline", -1, uri, null);
+        }
+        return Duration.ofNanos(deadlineNanos - now);
+    }
+
+    private void pruneExpiredCache(long now) {
+        this.cache.entrySet().removeIf(entry -> entry.getValue().expiresAtNanos() <= now);
+    }
+
+    private void evictCacheOverflow() {
+        Iterator<RequestKey> keys = this.cache.keySet().iterator();
+        while (this.cache.size() > this.maxCacheEntries && keys.hasNext()) {
+            keys.next();
+            keys.remove();
+        }
+    }
+
     private static URI normalizeBaseUri(URI baseUri) {
         Objects.requireNonNull(baseUri, "baseUri");
         String scheme = baseUri.getScheme();
@@ -446,6 +535,54 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
 
     private record DecodedResponse(Object value, long maxAgeSeconds) {}
 
+    private record HistoryPointPayload(
+        Double buy,
+        Double sell,
+        Double minBuy,
+        Double maxBuy,
+        Double minSell,
+        Double maxSell,
+        Long buyVolume,
+        Long sellVolume,
+        Long buyMovingWeek,
+        Long sellMovingWeek,
+        Instant timestamp
+    ) {
+        private Optional<BazaarHistoryPoint> toHistoryPoint() {
+            if (this.buy == null || this.sell == null
+                || this.buyVolume == null
+                || this.sellVolume == null
+                || this.buyMovingWeek == null
+                || this.sellMovingWeek == null
+                || this.timestamp == null) {
+                return Optional.empty();
+            }
+            Double validMinBuy = validBand(this.minBuy);
+            Double validMaxBuy = validBand(this.maxBuy);
+            Double validMinSell = validBand(this.minSell);
+            Double validMaxSell = validBand(this.maxSell);
+            if (validMinBuy != null && validMaxBuy != null && validMinBuy > validMaxBuy) {
+                validMinBuy = null;
+                validMaxBuy = null;
+            }
+            if (validMinSell != null && validMaxSell != null && validMinSell > validMaxSell) {
+                validMinSell = null;
+                validMaxSell = null;
+            }
+            try {
+                return Optional.of(new BazaarHistoryPoint(
+                    this.buy, this.sell, validMinBuy, validMaxBuy, validMinSell, validMaxSell,
+                    this.buyVolume, this.sellVolume, this.buyMovingWeek, this.sellMovingWeek, this.timestamp));
+            } catch (IllegalArgumentException _) {
+                return Optional.empty();
+            }
+        }
+
+        private static Double validBand(Double value) {
+            return value != null && Double.isFinite(value) && value > 0 ? value : null;
+        }
+    }
+
     private static final class DualWindowRateLimiter {
         private static final int BURST_LIMIT = 30;
         private static final int MINUTE_LIMIT = 100;
@@ -456,7 +593,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         private final ArrayDeque<Long> minuteStarts = new ArrayDeque<>();
         private volatile long serverNotBeforeEpochMillis;
 
-        void acquire() {
+        void acquire(URI uri, long deadlineNanos) {
             while (true) {
                 long now = System.nanoTime();
                 prune(burstStarts, now - BURST_WINDOW_NANOS);
@@ -472,6 +609,11 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
                     burstStarts.addLast(admittedAt);
                     minuteStarts.addLast(admittedAt);
                     return;
+                }
+
+                Duration remaining = remaining(deadlineNanos, uri);
+                if (waitNanos >= remaining.toNanos()) {
+                    throw new CoflnetApiException("Coflnet request exceeded its rate-limit deadline", -1, uri, null);
                 }
 
                 try {

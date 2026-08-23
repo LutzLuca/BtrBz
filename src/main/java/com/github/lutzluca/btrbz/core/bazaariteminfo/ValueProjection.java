@@ -31,11 +31,21 @@ public record ValueProjection(double minimum, double maximum, int top, int heigh
         }
         double span = maximum - minimum;
         double scale = Math.max(Math.abs(minimum), Math.abs(maximum));
-        double padding = Math.max(MINIMUM_PADDING, Math.max(span * PADDING_FRACTION, scale * 1e-6));
+        double padding = Math.max(MINIMUM_PADDING,
+            Math.max(finiteScale(span, PADDING_FRACTION), finiteScale(scale, 1e-6)));
         if (span <= padding) {
-            padding = Math.max(padding, Math.max(1.0, scale * 0.02));
+            padding = Math.max(padding, Math.max(1.0, finiteScale(scale, 0.02)));
         }
-        return Optional.of(new ValueProjection(minimum - padding, maximum + padding, top, height));
+        double paddedMinimum = finiteAdd(minimum, -padding);
+        double paddedMaximum = finiteAdd(maximum, padding);
+        if (paddedMinimum >= paddedMaximum) {
+            paddedMinimum = minimum < maximum ? minimum : finitePredecessor(minimum);
+            paddedMaximum = minimum < maximum ? maximum : finiteSuccessor(maximum);
+        }
+        if (paddedMinimum >= paddedMaximum) {
+            return Optional.empty();
+        }
+        return Optional.of(new ValueProjection(paddedMinimum, paddedMaximum, top, height));
     }
 
     /** Builds a magnitude axis whose baseline remains anchored at zero. */
@@ -52,13 +62,40 @@ public record ValueProjection(double minimum, double maximum, int top, int heigh
         }
         double paddedMaximum = maximum <= 0
             ? 1
-            : maximum + Math.max(MINIMUM_PADDING, maximum * PADDING_FRACTION);
+            : finiteAdd(maximum, Math.max(MINIMUM_PADDING, finiteScale(maximum, PADDING_FRACTION)));
         return Optional.of(new ValueProjection(0, paddedMaximum, top, height));
     }
 
     public int y(double value) {
-        double fraction = (this.maximum - value) / (this.maximum - this.minimum);
+        double denominator = this.maximum - this.minimum;
+        double fraction = (this.maximum - value) / denominator;
+        if (!Double.isFinite(denominator)) {
+            fraction = (this.maximum / 2 - value / 2) / (this.maximum / 2 - this.minimum / 2);
+        }
         fraction = Math.max(0, Math.min(1, fraction));
         return this.top + (int) Math.round(fraction * Math.max(0, this.height - 1));
+    }
+
+    private static double finiteScale(double value, double factor) {
+        double result = value * factor;
+        return Double.isFinite(result) ? Math.abs(result) : Double.MAX_VALUE;
+    }
+
+    private static double finiteAdd(double value, double addend) {
+        double result = value + addend;
+        if (Double.isFinite(result)) {
+            return result;
+        }
+        return addend < 0 ? -Double.MAX_VALUE : Double.MAX_VALUE;
+    }
+
+    private static double finitePredecessor(double value) {
+        double predecessor = Math.nextDown(value);
+        return Double.isFinite(predecessor) ? predecessor : value;
+    }
+
+    private static double finiteSuccessor(double value) {
+        double successor = Math.nextUp(value);
+        return Double.isFinite(successor) ? successor : value;
     }
 }

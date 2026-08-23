@@ -59,6 +59,7 @@
 >
 > * Existing bookmarks and order presets will be cleared and must be added again
 > * Widget positions and settings will return to their defaults
+> * Bazaar Item Info settings will start with the new unified screen defaults
 > * Some widgets may need to be repositioned, especially when using a non-default GUI scale
 > * `owo-lib` is now required
 > * Minecraft 26.2 is no longer supported

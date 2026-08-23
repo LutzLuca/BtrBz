@@ -1,9 +1,7 @@
 package com.github.lutzluca.btrbz.core.bazaariteminfo;
 
-import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.bazaariteminfo.PriceChartGeometry.BandSegment;
 import com.github.lutzluca.btrbz.core.bazaariteminfo.PriceChartGeometry.Geometry;
 import com.github.lutzluca.btrbz.core.bazaariteminfo.PriceChartGeometry.Series;
@@ -13,7 +11,6 @@ import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import java.time.ZoneId;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -43,6 +40,11 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
     private long cachedTooltipRevision = -1;
     private int cachedTooltipIndex = -1;
     private ZoneId cachedTooltipZone;
+    private PriceAxisLayout cachedAxisLayout;
+    private long cachedAxisRevision = -1;
+    private int cachedAxisWidth;
+    private int cachedAxisTop;
+    private int cachedAxisHeight;
 
     public BazaarHistoryChartComponent(Sizing horizontal, Sizing vertical) {
         this(horizontal, vertical, new BazaarHistoryPanelController());
@@ -83,10 +85,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BACKGROUND_COLOR);
-        if (this.isInBoundingBox(mouseX, mouseY)) {
-            this.controller.select(mouseX, this.x, this.width);
-        }
-        if (this.width <= BazaarHistoryPanelController.AXIS_INSET || this.height <= 2 * PLOT_PADDING) {
+        if (this.width <= BazaarHistoryPanelController.DEFAULT_AXIS_INSET || this.height <= 2 * PLOT_PADDING) {
             return;
         }
         if (!this.controller.showBuy() && !this.controller.showSell()) {
@@ -100,6 +99,14 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
             this.drawCenteredMessage(graphics, "No history data");
             return;
         }
+        long revisionBeforeAxis = this.controller.revision();
+        PriceAxisLayout axisLayout = this.axisLayout(geometry.values(), plotTop, plotHeight);
+        if (this.controller.revision() != revisionBeforeAxis) {
+            geometry = this.geometry(plotTop, plotHeight);
+        }
+        if (this.isInBoundingBox(mouseX, mouseY)) {
+            this.controller.select(mouseX, this.x, this.width);
+        }
         var time = geometry.time();
         this.drawGrid(graphics, time, plotTop, plotHeight);
         drawBand(graphics, geometry.buyBands(), withAlpha(BazaarStyles.BUY_ACCENT, BAND_ALPHA));
@@ -107,7 +114,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
         drawSeries(graphics, geometry.buy(), BazaarStyles.BUY_ACCENT);
         drawSeries(graphics, geometry.sell(), BazaarStyles.SELL_ACCENT);
         this.drawSelectedMarkers(graphics, geometry);
-        this.drawLabels(graphics, geometry.values(), geometry.time(), plotTop, plotHeight);
+        this.drawLabels(graphics, axisLayout, geometry.time(), plotTop, plotHeight);
         this.drawSelection(graphics, geometry, plotTop, plotHeight);
     }
 
@@ -137,6 +144,25 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
         return this.cachedGeometry;
     }
 
+    private PriceAxisLayout axisLayout(ValueProjection values, int plotTop, int plotHeight) {
+        long revision = this.controller.revision();
+        if (this.cachedAxisLayout != null
+            && this.cachedAxisRevision == revision
+            && this.cachedAxisWidth == this.width
+            && this.cachedAxisTop == plotTop
+            && this.cachedAxisHeight == plotHeight) {
+            return this.cachedAxisLayout;
+        }
+        var font = Minecraft.getInstance().font;
+        this.cachedAxisLayout = PriceAxisLayout.create(values, this.width, font::width);
+        this.controller.axisInset(this.cachedAxisLayout.inset());
+        this.cachedAxisRevision = this.controller.revision();
+        this.cachedAxisWidth = this.width;
+        this.cachedAxisTop = plotTop;
+        this.cachedAxisHeight = plotHeight;
+        return this.cachedAxisLayout;
+    }
+
     private void drawGrid(OwoUIGraphics graphics, TimeProjection time, int top, int height) {
         for (int index = 0; index <= GRID_LINES; index++) {
             int y = top + (int) Math.round((double) index / GRID_LINES * (height - 1));
@@ -147,13 +173,13 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
 
     private void drawLabels(
         OwoUIGraphics graphics,
-        ValueProjection values,
+        PriceAxisLayout layout,
         TimeProjection time,
         int top,
         int height
     ) {
         var font = Minecraft.getInstance().font;
-        var labels = axisLabels(values);
+        var labels = layout.labels();
         int labelRight = time.left() - 6;
         drawAxisLabel(graphics, labels.get(0), labelRight, top);
         drawAxisLabel(graphics, labels.get(1), labelRight,
@@ -163,22 +189,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
     }
 
     static List<String> axisLabels(ValueProjection values) {
-        Objects.requireNonNull(values, "values");
-        double midpoint = values.minimum() + (values.maximum() - values.minimum()) / 2;
-        var raw = List.of(values.maximum(), midpoint, values.minimum());
-        double largestAbsolute = raw.stream().mapToDouble(Math::abs).max().orElse(0);
-        if (largestAbsolute < 100_000) {
-            return raw.stream().map(BazaarWidgetViewData::formatPrice).toList();
-        }
-        int firstPlaces = largestAbsolute >= 1_000_000 ? 2 : 1;
-        for (int places = firstPlaces; places <= 3; places++) {
-            final int precision = places;
-            var labels = raw.stream().map(value -> Utils.formatCompact(value, precision)).toList();
-            if (new HashSet<>(labels).size() == labels.size()) {
-                return labels;
-            }
-        }
-        return raw.stream().map(BazaarWidgetViewData::formatPrice).toList();
+        return PriceAxisLayout.create(values, 400, label -> label.length() * 6).labels();
     }
 
     private void drawAxisLabel(OwoUIGraphics graphics, String label, int labelRight, int y) {

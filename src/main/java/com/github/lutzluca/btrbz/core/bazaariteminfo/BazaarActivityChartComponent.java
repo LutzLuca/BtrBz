@@ -46,7 +46,7 @@ public final class BazaarActivityChartComponent extends BaseUIComponent {
         if (geometry.isEmpty()) {
             var font = Minecraft.getInstance().font;
             graphics.text(font, "Market activity: items per interval",
-                this.x + BazaarHistoryPanelController.AXIS_INSET, this.y + 4,
+                this.x + this.controller.axisInset(), this.y + 4,
                 BazaarStyles.MUTED_TEXT, false);
             return;
         }

@@ -15,6 +15,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.WidgetScrollContainer;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.coflnet.CoflnetBazaarClient;
@@ -42,7 +43,6 @@ import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -102,11 +102,13 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable ButtonComponent sellFilter;
     private @Nullable ButtonComponent bandsFilter;
     private @Nullable FlowLayout filters;
+    private @Nullable RetainedFlowLayout historyContent;
+    private @Nullable FlowLayout recoveryRow;
     private @Nullable ButtonComponent recoverFilters;
     private @Nullable ScreenState latestState;
     private @Nullable BazaarItemInfoRange lastAppliedRange;
+    private @Nullable TemporaryScreenTransition linkTransition;
     private boolean closed;
-    private boolean openingLinkConfirmation;
 
     public BazaarItemInfoScreen(
         Screen parent,
@@ -209,9 +211,14 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     static int headerNameWidth(int screenWidth) {
-        int panelWidth = Math.max(0, screenWidth - 2 * ROOT_PADDING) * PANEL_WIDTH_PERCENT / 100;
-        return Math.max(30, panelWidth - 2 * PANEL_HORIZONTAL_PADDING - HEADER_ICON_SIZE
+        return Math.max(30, panelContentWidth(screenWidth) - HEADER_ICON_SIZE
             - 2 * WidgetLayoutTokens.HEADER_GAP - 112 - 2 * HEADER_INSET);
+    }
+
+    static int panelContentWidth(int screenWidth) {
+        int rootContentWidth = Math.max(0, screenWidth - 2 * ROOT_PADDING);
+        int panelWidth = rootContentWidth * PANEL_WIDTH_PERCENT / 100;
+        return Math.max(1, panelWidth - 2 * PANEL_HORIZONTAL_PADDING);
     }
 
     private FlowLayout summary() {
@@ -266,6 +273,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     private WidgetScrollContainer<RetainedFlowLayout> createHistoryBody() {
         var root = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
+        this.historyContent = root;
         root.gap(3);
         var ranges = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
         ranges.padding(Insets.of(2));
@@ -283,11 +291,15 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.refresh.sizing(Sizing.fixed(58), Sizing.fixed(18));
         this.refresh.renderer(ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED));
         this.refresh.textShadow(false);
-        ranges.child(this.refresh);
         this.activity = UIComponents.button(Component.literal("Activity"), _ -> this.toggleActivity());
         this.activity.sizing(Sizing.fixed(84), Sizing.fixed(18));
         this.activity.textShadow(false);
-        ranges.child(this.activity);
+        var actions = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+        actions.padding(Insets.of(2));
+        actions.gap(2);
+        actions.surface(WidgetSurfaces.roundedPanel(CONTROL_STRIP_COLOR, 3));
+        actions.child(this.refresh);
+        actions.child(this.activity);
 
         this.filters = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
         this.filters.padding(Insets.of(2));
@@ -307,6 +319,10 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.recoverFilters.sizing(Sizing.fixed(106), Sizing.fixed(18));
         this.recoverFilters.renderer(ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED));
         this.recoverFilters.textShadow(false);
+        this.recoveryRow = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+        this.recoveryRow.padding(Insets.of(2));
+        this.recoveryRow.surface(WidgetSurfaces.roundedPanel(CONTROL_STRIP_COLOR, 3));
+        this.recoveryRow.child(this.recoverFilters);
 
         this.chart = new BazaarHistoryChartComponent(
             Sizing.fill(100), Sizing.fixed(150), this.historyController);
@@ -315,6 +331,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.timeAxis = new BazaarTimeAxisComponent(
             Sizing.fill(100), Sizing.fixed(12), this.historyController);
         root.child(ranges);
+        root.child(actions);
         root.child(this.filters);
         root.child(this.historyLegend());
         root.child(this.chart);
@@ -381,7 +398,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (state.activeMode() == InitialMode.History) {
             this.body.child(Objects.requireNonNull(this.historyScroller));
         } else {
-            int availableWidth = Math.max(1, this.width * PANEL_WIDTH_PERCENT / 100 - 2 * PANEL_HORIZONTAL_PADDING);
+            int availableWidth = this.body.width() > 0 ? this.body.width() : panelContentWidth(this.width);
             this.orderBook.update(
                 state.live(), state.preferences(), availableWidth, this.orderBookAvailableHeight());
             this.body.child(Objects.requireNonNull(this.orderBookScroller));
@@ -432,13 +449,13 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             applyToggleStyle(this.bandsFilter, state.preferences().showBands(),
                 RANGE_FILTER_SELECTED, RANGE_FILTER_SELECTED_HOVER);
         }
-        if (this.filters != null && this.recoverFilters != null) {
+        if (this.historyContent != null && this.recoveryRow != null) {
             boolean allHidden = !state.preferences().showBuy() && !state.preferences().showSell();
-            boolean recoveryVisible = this.filters.children().contains(this.recoverFilters);
+            boolean recoveryVisible = this.historyContent.children().contains(this.recoveryRow);
             if (allHidden && !recoveryVisible) {
-                this.filters.child(this.recoverFilters);
+                this.historyContent.child(3, this.recoveryRow);
             } else if (!allHidden && recoveryVisible) {
-                this.filters.removeChild(this.recoverFilters);
+                this.historyContent.removeChild(this.recoveryRow);
             }
         }
         this.buyComparison.text(Component.literal(comparisonText(state, true)));
@@ -461,9 +478,9 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         return BazaarWidgetViewData.formatPrice(value);
     }
 
-    private static String spreadText(com.github.lutzluca.btrbz.data.LiveProductSnapshot live) {
+    static String spreadText(com.github.lutzluca.btrbz.data.LiveProductSnapshot live) {
         return spreadSummary(live)
-            .map(spread -> BazaarWidgetViewData.formatCompact(Math.round(spread.amount()))
+            .map(spread -> summaryPrice(spread.amount())
                 + String.format(java.util.Locale.ROOT, "  (%.1f%%)", spread.percent()))
             .orElse("-");
     }
@@ -595,18 +612,25 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     private void openInCoflnet() {
         String link = COFLNET_ITEM_URL.formatted(this.productTag);
-        var client = Minecraft.getInstance();
-        this.openingLinkConfirmation = true;
-        client.setScreen(new ConfirmLinkScreen(confirmed -> {
+        var transition = new TemporaryScreenTransition(this::disposeScreen);
+        this.linkTransition = transition;
+        GameUtils.setScreen(new OwnedConfirmLinkScreen(confirmed -> {
+            if (!transition.complete()) {
+                return;
+            }
+            if (this.linkTransition == transition) {
+                this.linkTransition = null;
+            }
             if (confirmed) {
                 Try.run(() -> net.minecraft.util.Util.getPlatform().openUri(new URI(link)))
                     .onFailure(_ -> Notifier.notifyPlayer(Component.literal("Failed to open link: ")
                         .withStyle(ChatFormatting.RED)
                         .append(Component.literal(link).withStyle(ChatFormatting.UNDERLINE, ChatFormatting.BLUE))));
             }
-            this.openingLinkConfirmation = false;
-            client.setScreen(this);
-        }, link, true));
+            if (!this.closed) {
+                GameUtils.setScreen(this);
+            }
+        }, link, true, transition::abandon));
     }
 
     @Override
@@ -629,18 +653,24 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void onClose() {
-        this.closed = true;
-        this.dataProvider.dispose();
-        Minecraft.getInstance().setScreen(this.parent);
+        this.disposeScreen();
+        GameUtils.setScreen(this.parent);
     }
 
     @Override
     public void removed() {
         super.removed();
-        if (!this.openingLinkConfirmation) {
-            this.closed = true;
-            this.dataProvider.dispose();
+        if (this.linkTransition == null || !this.linkTransition.suppressOwnerRemoval()) {
+            this.disposeScreen();
         }
+    }
+
+    private void disposeScreen() {
+        if (this.closed) {
+            return;
+        }
+        this.closed = true;
+        this.dataProvider.dispose();
     }
 
     @Override

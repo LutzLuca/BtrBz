@@ -69,6 +69,57 @@ class BazaarLiveProductSnapshotTest {
     }
 
     @Test
+    void filtersInvalidLevelsAndGroupsDuplicatePrices() {
+        var product = product();
+        setField(product, "sellSummary", List.of(
+            summary(product, 10, 3, 2),
+            summary(product, 10, 4, 5),
+            summary(product, 0, 99, 9),
+            summary(product, 11, -1, 1),
+            summary(product, 12, 1, -1)));
+        setField(product, "buySummary", List.of(
+            summary(product, 13, Long.MAX_VALUE, Integer.MAX_VALUE),
+            summary(product, 13, 1, 1)));
+        var data = new BazaarData();
+
+        data.onUpdate(new BazaarMarketUpdate(1, Map.of("ITEM", product)));
+        var snapshot = data.liveProductSnapshot(IDENTITY);
+
+        assertEquals(List.of(new PriceLevel(10, 7, 7)), snapshot.buyOrders().levels());
+        assertEquals(List.of(new PriceLevel(13, Long.MAX_VALUE, Integer.MAX_VALUE)),
+            snapshot.sellOffers().levels());
+        assertEquals(13, snapshot.buyPrice().orElseThrow());
+        assertEquals(10, snapshot.sellPrice().orElseThrow());
+    }
+
+    @Test
+    void marksNegativeQuickStatusTotalsUnavailable() {
+        var product = product();
+        var status = product.new Status();
+        setField(status, "sellOrders", -1L);
+        setField(status, "sellVolume", 10L);
+        setField(status, "buyOrders", 2L);
+        setField(status, "buyVolume", -3L);
+        setField(product, "quickStatus", status);
+        var data = new BazaarData();
+
+        data.onUpdate(new BazaarMarketUpdate(1, Map.of("ITEM", product)));
+        var snapshot = data.liveProductSnapshot(IDENTITY);
+
+        assertInstanceOf(Totals.Unavailable.class, snapshot.buyOrders().totals());
+        assertInstanceOf(Totals.Unavailable.class, snapshot.sellOffers().totals());
+        assertTrue(!snapshot.marketDataAvailable());
+    }
+
+    @Test
+    void presentationModelsRejectInvalidValues() {
+        assertThrows(IllegalArgumentException.class, () -> new PriceLevel(0, 1, 1));
+        assertThrows(IllegalArgumentException.class, () -> new PriceLevel(1, -1, 1));
+        assertThrows(IllegalArgumentException.class, () -> new PriceLevel(1, 1, -1));
+        assertThrows(IllegalArgumentException.class, () -> new Totals.Available(-1, 1));
+    }
+
+    @Test
     void missingProductHasEmptySidesWithoutZeroPrices() {
         var snapshot = new BazaarData().liveProductSnapshot(IDENTITY);
 

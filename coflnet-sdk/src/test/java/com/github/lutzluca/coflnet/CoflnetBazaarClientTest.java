@@ -6,18 +6,31 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.CookieHandler;
 import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -155,7 +168,7 @@ class CoflnetBazaarClientTest {
         HttpServer server = server(exchange -> json(
             exchange,
             200,
-            "[{\"buy\":" + calls.incrementAndGet() + ",\"sell\":2,\"timestamp\":\"2026-08-13T01:00:00Z\"}]",
+            historyJson(calls.incrementAndGet(), 2),
             "max-age=3600"));
         CoflnetBazaarClient client = client(server);
 
@@ -164,6 +177,39 @@ class CoflnetBazaarClientTest {
         assertEquals(2, get(client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
         assertEquals(2, get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
         assertEquals(2, calls.get());
+    }
+
+    @Test
+    void zeroAgeRefreshRemovesTheOlderCompletedCacheEntry() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            int call = calls.incrementAndGet();
+            json(exchange, 200, historyJson(call, call + 1), call == 2 ? "max-age=0" : "max-age=3600");
+        });
+        CoflnetBazaarClient client = client(server);
+
+        assertEquals(1, get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(2, get(client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(3, get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(3, calls.get());
+    }
+
+    @Test
+    void boundedCacheEvictsTheLeastRecentlyUsedEntry() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            calls.incrementAndGet();
+            json(exchange, 200, historyJson(1, 2), "max-age=3600");
+        });
+        CoflnetBazaarClient client = limitedClient(server, 2);
+
+        get(client.history("ITEM_A", HistoryRange.Preset.DAY));
+        get(client.history("ITEM_B", HistoryRange.Preset.DAY));
+        get(client.history("ITEM_A", HistoryRange.Preset.DAY));
+        get(client.history("ITEM_C", HistoryRange.Preset.DAY));
+        get(client.history("ITEM_B", HistoryRange.Preset.DAY));
+
+        assertEquals(4, calls.get());
     }
 
     @Test
@@ -182,9 +228,7 @@ class CoflnetBazaarClientTest {
                     throw new IOException(interrupted);
                 }
             }
-            json(exchange, 200,
-                "[{\"buy\":" + call + ",\"sell\":2,\"timestamp\":\"2026-08-13T01:00:00Z\"}]",
-                "max-age=3600");
+            json(exchange, 200, historyJson(call, 2), "max-age=3600");
         });
         CoflnetBazaarClient client = client(server);
 
@@ -204,9 +248,7 @@ class CoflnetBazaarClientTest {
         AtomicInteger calls = new AtomicInteger();
         HttpServer server = server(exchange -> {
             if (calls.incrementAndGet() == 1) {
-                json(exchange, 200,
-                    "[{\"buy\":7,\"sell\":8,\"timestamp\":\"2026-08-13T01:00:00Z\"}]",
-                    "max-age=3600");
+                json(exchange, 200, historyJson(7, 8), "max-age=3600");
             } else {
                 json(exchange, 400, "{\"message\":\"refresh failed\"}", null);
             }
@@ -310,6 +352,63 @@ class CoflnetBazaarClientTest {
     }
 
     @Test
+    void rejectsLongRetryAfterWithoutBlockingTheWorker() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            if (calls.incrementAndGet() == 1) {
+                exchange.getResponseHeaders().add("Retry-After", "60");
+                json(exchange, 429, "{\"message\":\"slow down\"}", null);
+                return;
+            }
+            json(exchange, 200, SNAPSHOT_JSON, "max-age=0");
+        });
+        CoflnetBazaarClient client = client(server);
+
+        ExecutionException failure = assertThrows(ExecutionException.class,
+            () -> client.snapshot("FIRST_ITEM").toCompletableFuture().get(3, TimeUnit.SECONDS));
+        CoflnetApiException apiFailure = assertInstanceOf(CoflnetApiException.class, failure.getCause());
+        assertEquals(429, apiFailure.statusCode());
+        assertTrue(client.snapshot("SECOND_ITEM").toCompletableFuture().get(3, TimeUnit.SECONDS).isPresent());
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void repeatedCacheControlFieldsPreserveNoStore() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            calls.incrementAndGet();
+            exchange.getResponseHeaders().add("Cache-Control", "public, max-age=3600");
+            exchange.getResponseHeaders().add("Cache-Control", "no-store");
+            json(exchange, 200, SNAPSHOT_JSON, null);
+        });
+        CoflnetBazaarClient client = client(server);
+
+        get(client.snapshot("BOOSTER_COOKIE"));
+        get(client.snapshot("BOOSTER_COOKIE"));
+
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void closesOnlyAnOwnedHttpClient() {
+        URI baseUri = URI.create("http://localhost/api/");
+        var ownedHttp = new TrackingHttpClient();
+        var owned = new DefaultCoflnetBazaarClient(
+            baseUri, ownedHttp, Executors.newSingleThreadExecutor(), Map.of(), true);
+        var injectedHttp = new TrackingHttpClient();
+        var injected = new DefaultCoflnetBazaarClient(
+            baseUri, injectedHttp, Executors.newSingleThreadExecutor(), Map.of(), false);
+
+        owned.close();
+        owned.close();
+        injected.close();
+
+        assertEquals(1, ownedHttp.shutdowns.get());
+        assertEquals(0, injectedHttp.shutdowns.get());
+        injectedHttp.shutdownNow();
+    }
+
+    @Test
     void reportsOrdinaryErrorsAsTypedExceptions() {
         HttpServer server = server(exchange -> json(exchange, 400, "{\"title\":\"bad request\"}", null));
         CoflnetBazaarClient client = client(server);
@@ -351,6 +450,66 @@ class CoflnetBazaarClientTest {
     }
 
     @Test
+    void filtersMalformedHistoryPointsWhenValidDataRemains() throws Exception {
+        HttpServer server = server(exchange -> json(exchange, 200, """
+            [
+              {"buy":10,"sell":11,"timestamp":"2026-08-13T01:00:00Z"},
+              {"buy":12,"sell":13,"buyVolume":1,"sellVolume":2,
+               "buyMovingWeek":3,"sellMovingWeek":4,"timestamp":"2026-08-13T02:00:00Z"}
+            ]
+            """, "max-age=60"));
+        CoflnetBazaarClient client = client(server);
+
+        List<BazaarHistoryPoint> points = get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY));
+
+        assertEquals(1, points.size());
+        assertEquals(12, points.getFirst().buy());
+    }
+
+    @Test
+    void rejectsNonEmptyHistoryWithoutAnyValidPoint() {
+        HttpServer server = server(exchange -> json(exchange, 200, """
+            [{"buy":0,"sell":11,"buyVolume":1,"sellVolume":2,
+              "buyMovingWeek":3,"sellMovingWeek":4,"timestamp":"2026-08-13T01:00:00Z"}]
+            """, "max-age=60"));
+        CoflnetBazaarClient client = client(server);
+
+        CompletionException failure = assertThrows(CompletionException.class,
+            () -> client.history("GOLD_BLOCK", HistoryRange.Preset.DAY).toCompletableFuture().join());
+
+        assertInstanceOf(CoflnetApiException.class, failure.getCause());
+    }
+
+    @Test
+    void dropsInvalidOptionalBandsWithoutDiscardingPrices() throws Exception {
+        HttpServer server = server(exchange -> json(exchange, 200, """
+            [{"buy":10,"sell":11,"minBuy":15,"maxBuy":5,"minSell":-1,"maxSell":12,
+              "buyVolume":1,"sellVolume":2,"buyMovingWeek":3,"sellMovingWeek":4,
+              "timestamp":"2026-08-13T01:00:00Z"}]
+            """, "max-age=60"));
+        CoflnetBazaarClient client = client(server);
+
+        BazaarHistoryPoint point = get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst();
+
+        assertNull(point.minBuy());
+        assertNull(point.maxBuy());
+        assertNull(point.minSell());
+        assertEquals(12, point.maxSell());
+    }
+
+    @Test
+    void historyPointRejectsInvalidPublicValues() {
+        Instant timestamp = Instant.parse("2026-08-13T01:00:00Z");
+
+        assertThrows(IllegalArgumentException.class,
+            () -> new BazaarHistoryPoint(Double.NaN, 2, null, null, null, null, 0, 0, 0, 0, timestamp));
+        assertThrows(IllegalArgumentException.class,
+            () -> new BazaarHistoryPoint(1, 2, null, null, null, null, -1, 0, 0, 0, timestamp));
+        assertThrows(IllegalArgumentException.class,
+            () -> new BazaarHistoryPoint(1, 2, 5.0, 4.0, null, null, 0, 0, 0, 0, timestamp));
+    }
+
+    @Test
     void requestsAfterCloseFailThroughTheCompletionStage() {
         CoflnetBazaarClient client = CoflnetBazaarClient.create();
         clients.add(client);
@@ -379,6 +538,15 @@ class CoflnetBazaarClientTest {
         return client;
     }
 
+    private CoflnetBazaarClient limitedClient(HttpServer server, int maxCacheEntries) {
+        CoflnetBazaarClient client = DefaultCoflnetBazaarClient.create(
+            URI.create("http://localhost:" + server.getAddress().getPort() + "/api/"),
+            Map.of(),
+            maxCacheEntries);
+        clients.add(client);
+        return client;
+    }
+
     private HttpServer server(Handler handler) {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
@@ -401,6 +569,12 @@ class CoflnetBazaarClientTest {
         return stage.toCompletableFuture().get(5, TimeUnit.SECONDS);
     }
 
+    private static String historyJson(double buy, double sell) {
+        return "[{\"buy\":" + buy + ",\"sell\":" + sell
+            + ",\"buyVolume\":0,\"sellVolume\":0,\"buyMovingWeek\":0,\"sellMovingWeek\":0"
+            + ",\"timestamp\":\"2026-08-13T01:00:00Z\"}]";
+    }
+
     private static void json(HttpExchange exchange, int status, String body, String cacheControl) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -421,5 +595,84 @@ class CoflnetBazaarClientTest {
     @FunctionalInterface
     private interface Handler {
         void handle(HttpExchange exchange) throws IOException;
+    }
+
+    private static final class TrackingHttpClient extends HttpClient {
+        private final HttpClient delegate = HttpClient.newHttpClient();
+        private final AtomicInteger shutdowns = new AtomicInteger();
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return this.delegate.cookieHandler();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return this.delegate.connectTimeout();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return this.delegate.followRedirects();
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return this.delegate.proxy();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return this.delegate.sslContext();
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return this.delegate.sslParameters();
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return this.delegate.authenticator();
+        }
+
+        @Override
+        public Version version() {
+            return this.delegate.version();
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return this.delegate.executor();
+        }
+
+        @Override
+        public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler)
+            throws IOException, InterruptedException {
+            return this.delegate.send(request, handler);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+            HttpRequest request,
+            HttpResponse.BodyHandler<T> handler
+        ) {
+            return this.delegate.sendAsync(request, handler);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+            HttpRequest request,
+            HttpResponse.BodyHandler<T> handler,
+            HttpResponse.PushPromiseHandler<T> pushPromiseHandler
+        ) {
+            return this.delegate.sendAsync(request, handler, pushPromiseHandler);
+        }
+
+        @Override
+        public void shutdownNow() {
+            this.shutdowns.incrementAndGet();
+            this.delegate.shutdownNow();
+        }
     }
 }

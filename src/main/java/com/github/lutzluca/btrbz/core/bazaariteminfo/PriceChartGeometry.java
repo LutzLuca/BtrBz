@@ -4,6 +4,7 @@ import com.github.lutzluca.coflnet.BazaarHistoryPoint;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
@@ -29,6 +30,35 @@ public final class PriceChartGeometry {
         if (!visibility.buy() && !visibility.sell()) {
             return Geometry.empty(time);
         }
+        var projection = valueProjection(points, visibility, top, height);
+        if (projection.isEmpty()) {
+            return Geometry.empty(time);
+        }
+        var value = projection.orElseThrow();
+        return new Geometry(
+            time,
+            value,
+            visibility.buy() ? series(points, BazaarHistoryPoint::buy, time, value, selectedIndex) : Series.empty(),
+            visibility.sell() ? series(points, BazaarHistoryPoint::sell, time, value, selectedIndex) : Series.empty(),
+            visibility.buy() && visibility.bands()
+                ? band(points, BazaarHistoryPoint::minBuy, BazaarHistoryPoint::maxBuy, time, value)
+                : List.of(),
+            visibility.sell() && visibility.bands()
+                ? band(points, BazaarHistoryPoint::minSell, BazaarHistoryPoint::maxSell, time, value)
+                : List.of());
+    }
+
+    public static Optional<ValueProjection> valueProjection(
+        List<BazaarHistoryPoint> points,
+        Visibility visibility,
+        int top,
+        int height
+    ) {
+        Objects.requireNonNull(points, "points");
+        Objects.requireNonNull(visibility, "visibility");
+        if (!visibility.buy() && !visibility.sell()) {
+            return Optional.empty();
+        }
         var values = new ArrayList<Double>();
         for (var point : points) {
             if (point == null) {
@@ -49,22 +79,7 @@ public final class PriceChartGeometry {
                 }
             }
         }
-        var projection = ValueProjection.from(values, top, height);
-        if (projection.isEmpty()) {
-            return Geometry.empty(time);
-        }
-        var value = projection.orElseThrow();
-        return new Geometry(
-            time,
-            value,
-            visibility.buy() ? series(points, BazaarHistoryPoint::buy, time, value, selectedIndex) : Series.empty(),
-            visibility.sell() ? series(points, BazaarHistoryPoint::sell, time, value, selectedIndex) : Series.empty(),
-            visibility.buy() && visibility.bands()
-                ? band(points, BazaarHistoryPoint::minBuy, BazaarHistoryPoint::maxBuy, time, value)
-                : List.of(),
-            visibility.sell() && visibility.bands()
-                ? band(points, BazaarHistoryPoint::minSell, BazaarHistoryPoint::maxSell, time, value)
-                : List.of());
+        return ValueProjection.from(values, top, height);
     }
 
     private static Series series(

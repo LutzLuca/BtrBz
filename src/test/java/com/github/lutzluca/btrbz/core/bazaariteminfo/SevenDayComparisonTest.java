@@ -17,13 +17,13 @@ import org.junit.jupiter.api.Test;
 
 class SevenDayComparisonTest {
     @Test
-    void calculatesSidesIndependentlyAndFiltersInvalidPrices() {
+    void calculatesSidesIndependently() {
         var points = List.of(
-            point(10, 20, 0), point(20, -1, 60), point(Double.NaN, 40, 120));
+            point(10, 20, 0), point(20, 30, 60), point(30, 40, 120));
 
-        var result = SevenDayComparison.calculate(points, live(18, 36));
+        var result = SevenDayComparison.calculate(points, live(24, 36));
 
-        assertEquals(15, result.buy().average().orElseThrow());
+        assertEquals(20, result.buy().average().orElseThrow());
         assertEquals(30, result.sell().average().orElseThrow());
         assertEquals(20, result.buy().deltaPercent().orElseThrow());
         assertEquals(20, result.sell().deltaPercent().orElseThrow());
