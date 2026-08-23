@@ -75,12 +75,26 @@ public final class BazaarItemInfoController implements AutoCloseable {
             return false;
         }
 
+        return this.open(parent, identity, stack, InitialMode.History);
+    }
+
+    /** Single validated boundary used by both Item Info entry points. */
+    public boolean open(
+        net.minecraft.client.gui.screens.Screen parent,
+        com.github.lutzluca.btrbz.data.ProductIdentity product,
+        ItemStack stack,
+        InitialMode initialMode
+    ) {
+        Objects.requireNonNull(parent, "parent");
+        Objects.requireNonNull(product, "product");
+        Objects.requireNonNull(stack, "stack");
+        Objects.requireNonNull(initialMode, "initialMode");
+        var tag = product.bazaarProductId();
+        if (tag.isEmpty() || stack.isEmpty()) {
+            return false;
+        }
         Minecraft.getInstance().setScreen(new BazaarItemInfoScreen(
-            parent,
-            identity,
-            productTag.orElseThrow(),
-            stack.copy(),
-            this.coflnet));
+            parent, product, tag.orElseThrow(), stack.copy(), this.bazaarData, this.coflnet, initialMode));
         return true;
     }
 

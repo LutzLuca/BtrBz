@@ -1,9 +1,11 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.core.bazaariteminfo.BazaarItemInfoController;
+import com.github.lutzluca.btrbz.core.bazaariteminfo.InitialMode;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
@@ -11,14 +13,13 @@ import com.github.lutzluca.btrbz.utils.slot.SlotHook;
 import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
-import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
-/** Gated slot hook that opens the BtrBz-owned full Order Book host screen. */
+/** Bazaar slot hook that opens the unified Item Info screen in Order Book mode. */
 public final class OrderBookScreenController {
     private static final int CONTROLLER_SLOT = 8;
     private static final BazaarMenuType[] SUPPORTED_MENUS = {
@@ -29,14 +30,17 @@ public final class OrderBookScreenController {
     };
 
     private final ProductInfoProvider productInfoProvider;
-    private final WidgetRuntime runtime;
+    private final BazaarData bazaarData;
+    private final BazaarItemInfoController itemInfo;
 
     public OrderBookScreenController(
         ProductInfoProvider productInfoProvider,
-        WidgetRuntime runtime
+        BazaarData bazaarData,
+        BazaarItemInfoController itemInfo
     ) {
         this.productInfoProvider = productInfoProvider;
-        this.runtime = runtime;
+        this.bazaarData = bazaarData;
+        this.itemInfo = itemInfo;
         SlotHookRegistry.register(new ControllerHook());
     }
 
@@ -46,7 +50,7 @@ public final class OrderBookScreenController {
         @Override
         public boolean matches(SlotView view) {
             return hookEligible(
-                ConfigManager.get().widgets.orderBookScreen.frame.enabled,
+                ConfigManager.get().bazaarItemInfo.showBazaarEntry,
                 productInfoProvider.getOpenedProduct() != null,
                 view.playerInventorySlot(),
                 view.slotIdx(),
@@ -67,7 +71,7 @@ public final class OrderBookScreenController {
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigManager.get().widgets.orderBookScreen.frame.enabled) {
+            if (!ConfigManager.get().bazaarItemInfo.showBazaarEntry) {
                 return SlotClickResult.Pass;
             }
 
@@ -77,13 +81,11 @@ public final class OrderBookScreenController {
             }
             var identity = ProductIdentity.fromIndex(product);
 
-            GameUtils.setScreen(new OrderBookScreen(
-                context.view().getCurrInfo().getScreen(),
-                identity,
-                product.formattedName(),
-                runtime.createScreenHost()));
-
-            return SlotClickResult.Consume;
+            var stack = bazaarData.productStack(identity).orElseGet(() -> new ItemStack(Items.BOOK));
+            return itemInfo.open(
+                context.view().getCurrInfo().getScreen(), identity, stack, InitialMode.OrderBook)
+                    ? SlotClickResult.Consume
+                    : SlotClickResult.Pass;
         }
     }
 

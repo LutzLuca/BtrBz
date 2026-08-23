@@ -143,7 +143,7 @@ public final class ProductInfoProvider {
             var prev = ScreenInfoHelper.get().getPrevInfo();
 
             // Only clear when navigating to a known non-flow bazaar screen or closing
-            // entirely. Transient screens (e.g. OrderBookScreen, SignEditScreen, or other
+            // entirely. Transient screens (e.g. SignEditScreen or other
             // injected screens) are implicitly preserved since they don't match any
             // BazaarMenuType
             boolean closed = curr.getScreen() == null;

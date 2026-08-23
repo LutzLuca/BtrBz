@@ -10,6 +10,7 @@ import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderItemTooltipConfi
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderListTooltipConfig;
 import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.bazaariteminfo.BazaarItemInfoConfig;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,9 @@ public class Config {
 
     @SerialEntry
     public WidgetsConfig widgets = new WidgetsConfig();
+
+    @SerialEntry
+    public BazaarItemInfoConfig bazaarItemInfo = new BazaarItemInfoConfig();
 
     @SerialEntry
     public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();

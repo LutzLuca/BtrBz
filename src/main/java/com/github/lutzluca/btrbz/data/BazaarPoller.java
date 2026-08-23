@@ -42,7 +42,7 @@ public class BazaarPoller {
     private static final long ERROR_BACKOFF_MS = 500;
     private static final int MAX_UNCHANGED_RETRIES = 5;
 
-    private final Consumer<Map<String, Product>> onReply;
+    private final Consumer<BazaarMarketUpdate> onReply;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "bazaar-poller");
@@ -53,7 +53,7 @@ public class BazaarPoller {
     private long lastKnownUpdateTime = -1;
     private int unchangedDataRetries = 0;
 
-    public BazaarPoller(@NotNull Consumer<Map<String, Product>> onReply) {
+    public BazaarPoller(@NotNull Consumer<BazaarMarketUpdate> onReply) {
         this.onReply = Objects.requireNonNull(onReply);
         this.scheduleFetch(0, "Initial fetch");
     }
@@ -126,7 +126,8 @@ public class BazaarPoller {
             log.trace("Bazaar data updated after {}s", diffMs / 1000.0);
         }
 
-        Minecraft.getInstance().execute(() -> onReply.accept(products));
+        var update = new BazaarMarketUpdate(currentUpdateTime, products);
+        Minecraft.getInstance().execute(() -> onReply.accept(update));
 
         long jitter = ThreadLocalRandom.current().nextLong(200, 400);
         this.scheduleFetch(BAZAAR_UPDATE_TIME_MS + jitter, "Regular interval fetch");

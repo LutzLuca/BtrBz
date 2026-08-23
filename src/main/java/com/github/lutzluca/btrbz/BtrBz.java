@@ -33,7 +33,6 @@ import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueComponent;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent;
@@ -192,7 +191,6 @@ public class BtrBz implements ClientModInitializer {
         widgetRegistry.register(bazaarOrdersWidget);
         widgetRegistry.register(TrackedOrdersWidgetDefinition.create(ordersWidgetData, this.orderManager));
         widgetRegistry.register(OrderValueWidgetDefinition.create(orderValue));
-        widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(OrderBookPriceWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(BookmarksWidgetDefinition.create(bookmarks));
         widgetRegistry.register(OrderPresetsWidgetDefinition.create(orderPresets));
@@ -208,10 +206,10 @@ public class BtrBz implements ClientModInitializer {
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
-        new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
         this.bazaarItemInfoController = new BazaarItemInfoController(
             BAZAAR_DATA,
             CoflnetBazaarClient.create());
+        new OrderBookScreenController(productInfoProvider, BAZAAR_DATA, this.bazaarItemInfoController);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> this.bazaarItemInfoController.close());
         Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
         BtrBzWidgetKeybinds.registerHandler(

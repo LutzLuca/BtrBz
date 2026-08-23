@@ -24,7 +24,6 @@ class WidgetConfigCategoryTest {
             "btrbz:bazaar_orders", ConfigImages.TrackedOrdersHud,
             "btrbz:tracked_orders_list", ConfigImages.TrackedOrdersBazaar,
             "btrbz:order_value", ConfigImages.OrderValueOverView,
-            "btrbz:order_book", ConfigImages.OrderBookScreen,
             "btrbz:order_book_price", ConfigImages.OrderBookSign,
             "btrbz:bookmarks", ConfigImages.Bookmarks,
             "btrbz:order_presets", ConfigImages.OrderPresets,

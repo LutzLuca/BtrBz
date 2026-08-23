@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinitio
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetData;
@@ -27,11 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BtrBzWidgetDefinitionsTest {
     @Test
     void productionDefinitionIdsAreDistinct() {
-        assertEquals(9, List.of(
+        assertEquals(8, List.of(
             BazaarOrdersWidgetDefinition.ID,
             TrackedOrdersWidgetDefinition.ID,
             OrderValueWidgetDefinition.ID,
-            OrderBookWidgetDefinition.ID,
             OrderBookPriceWidgetDefinition.ID,
             BookmarksWidgetDefinition.ID,
             OrderPresetsWidgetDefinition.ID,
@@ -42,34 +40,29 @@ class BtrBzWidgetDefinitionsTest {
     @Test
     void definitionsAcceptOnlyTheirSemanticSessions() {
         assertTrue(BazaarOrdersWidgetDefinition.supportsSession(
-            session(true, false, false, null, null, false)));
+            session(true, false, null, null, false)));
         assertTrue(TrackedOrdersWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Item, null, false)));
+            session(false, false, BazaarMenuType.Item, null, false)));
         assertTrue(OrderValueWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Orders, null, false)));
-        assertTrue(OrderBookWidgetDefinition.supportsSession(
-            session(false, false, true, null, null, true)));
+            session(false, false, BazaarMenuType.Orders, null, false)));
         assertTrue(OrderBookPriceWidgetDefinition.supportsSession(
-            session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)));
+            session(false, true, null, BazaarMenuType.BuyOrderSetupPrice, true)));
         assertTrue(BookmarksWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Main, null, false)));
+            session(false, false, BazaarMenuType.Main, null, false)));
         assertTrue(OrderPresetsWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.BuyOrderSetupVolume, null, false)));
+            session(false, false, BazaarMenuType.BuyOrderSetupVolume, null, false)));
         assertTrue(OrderPresetsWidgetDefinition.supportsSession(
-            session(false, true, false, null, BazaarMenuType.BuyOrderSetupVolume, false)));
+            session(false, true, null, BazaarMenuType.BuyOrderSetupVolume, false)));
         assertTrue(DailyLimitWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.ItemGroup, null, false)));
+            session(false, false, BazaarMenuType.ItemGroup, null, false)));
         assertTrue(PriceDifferenceWidgetDefinition.supportsSession(
-            session(false, false, false, BazaarMenuType.Item, null, false)));
+            session(false, false, BazaarMenuType.Item, null, false)));
 
-        var invalid = session(false, false, false, BazaarMenuType.Settings, null, false);
+        var invalid = session(false, false, BazaarMenuType.Settings, null, false);
         assertFalse(OrderValueWidgetDefinition.supportsSession(invalid));
         assertFalse(DailyLimitWidgetDefinition.supportsSession(invalid));
         assertFalse(PriceDifferenceWidgetDefinition.supportsSession(invalid));
 
-        var staleMenuOnCustomScreen = session(false, false, true, BazaarMenuType.Orders, null, true);
-        assertFalse(OrderValueWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
-        assertTrue(OrderBookWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
     }
 
     @Test
@@ -84,7 +77,6 @@ class BtrBzWidgetDefinitionsTest {
     private static WidgetSession session(
         boolean hud,
         boolean sign,
-        boolean orderBook,
         BazaarMenuType menu,
         BazaarMenuType previous,
         boolean product
@@ -94,7 +86,7 @@ class BtrBzWidgetDefinitionsTest {
                 ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty()))
             : Optional.empty();
         return new WidgetSession(
-            1, hud, sign, orderBook,
+            1, hud, sign, !hud && !sign,
             Optional.ofNullable(menu), Optional.ofNullable(previous), context,
             sign ? Optional.of(OrderType.Buy) : Optional.empty(), 1);
     }

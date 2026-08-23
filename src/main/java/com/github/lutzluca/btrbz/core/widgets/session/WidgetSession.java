@@ -13,7 +13,7 @@ public final class WidgetSession {
 
     private final boolean hud;
     private final boolean sign;
-    private final boolean orderBook;
+    private final boolean container;
 
     private final Optional<BazaarMenuType> menu;
     private final Optional<BazaarMenuType> previousMenu;
@@ -27,7 +27,7 @@ public final class WidgetSession {
         long id,
         boolean hud,
         boolean sign,
-        boolean orderBook,
+        boolean container,
         Optional<BazaarMenuType> menu,
         Optional<BazaarMenuType> previousMenu,
         Optional<WidgetProductContext> product,
@@ -38,7 +38,7 @@ public final class WidgetSession {
 
         this.hud = hud;
         this.sign = sign;
-        this.orderBook = orderBook;
+        this.container = container;
 
         this.menu = Objects.requireNonNull(menu, "menu");
         this.previousMenu = Objects.requireNonNull(previousMenu, "previousMenu");
@@ -59,10 +59,6 @@ public final class WidgetSession {
 
     public boolean inSign() {
         return this.sign;
-    }
-
-    public boolean inOrderBook() {
-        return this.orderBook;
     }
 
     public Optional<WidgetProductContext> product() {
@@ -125,7 +121,7 @@ public final class WidgetSession {
         return other != null
             && this.hud == other.hud
             && this.sign == other.sign
-            && this.orderBook == other.orderBook
+            && this.container == other.container
             && this.menu.equals(other.menu)
             && this.previousMenu.equals(other.previousMenu)
             && productId(this.product).equals(productId(other.product))
@@ -148,7 +144,7 @@ public final class WidgetSession {
             this.id,
             this.hud,
             this.sign,
-            this.orderBook,
+            this.container,
             this.menu,
             this.previousMenu,
             this.product.map(WidgetProductContext::detachedCopy),
@@ -161,6 +157,6 @@ public final class WidgetSession {
     }
 
     private boolean inContainerBazaarContext() {
-        return !this.hud && !this.sign && !this.orderBook;
+        return this.container && !this.hud && !this.sign;
     }
 }

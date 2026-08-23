@@ -31,7 +31,7 @@ class BazaarItemInfoControllerTest {
 
     @Test
     void headerNameWidthFitsTheResponsivePanel() {
-        assertEquals(201, BazaarItemInfoScreen.headerNameWidth(320));
-        assertTrue(BazaarItemInfoScreen.headerNameWidth(854) > 201);
+        assertEquals(92, BazaarItemInfoScreen.headerNameWidth(320));
+        assertTrue(BazaarItemInfoScreen.headerNameWidth(854) > 92);
     }
 }

@@ -1,17 +1,20 @@
 package com.github.lutzluca.btrbz.data;
 
-import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
@@ -28,7 +31,7 @@ public class BazaarData {
 
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
-    private Map<String, Product> lastProducts = Collections.emptyMap();
+    private volatile MarketSnapshot snapshot = new MarketSnapshot(null, Map.of());
     private final CacheToken marketChanges = CacheToken.named("bazaar.market");
 
     public BazaarData() {
@@ -134,9 +137,11 @@ public class BazaarData {
         return this.conversionIndexService.changes();
     }
 
-    public void onUpdate(Map<String, Product> products) {
-        this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
+    public void onUpdate(BazaarMarketUpdate update) {
+        var products = Objects.requireNonNull(update, "update").products();
+        var immutableProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
             products == null ? Map.of() : products));
+        this.snapshot = new MarketSnapshot(update.lastUpdatedEpochMillis(), immutableProducts);
         this.marketChanges.invalidate(InvalidationReason.of("market snapshot published"));
         var snapshot = this.currentSnapshot();
 
@@ -146,6 +151,20 @@ public class BazaarData {
                 listener.getClass().getName(),
                 snapshot.size(),
                 err));
+        }
+    }
+
+    /** Compatibility entry point for tests and callers without an upstream timestamp. */
+    public void onUpdate(Map<String, Product> products) {
+        var immutableProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
+            products == null ? Map.of() : products));
+        this.snapshot = new MarketSnapshot(null, immutableProducts);
+        this.marketChanges.invalidate(InvalidationReason.of("market snapshot published"));
+        var snapshot = this.currentSnapshot();
+        for (var listener : this.listeners) {
+            Try.run(() -> listener.accept(snapshot)).onFailure(err -> log.error(
+                "Bazaar update listener '{}' failed while processing {} products",
+                listener.getClass().getName(), snapshot.size(), err));
         }
     }
 
@@ -165,7 +184,11 @@ public class BazaarData {
     }
 
     private MarketSnapshot currentSnapshot() {
-        return new MarketSnapshot(this.lastProducts);
+        return this.snapshot;
+    }
+
+    public LiveProductSnapshot liveProductSnapshot(ProductIdentity product) {
+        return this.currentSnapshot().liveProductSnapshot(product);
     }
 
     public Optional<Double> lowestSellOfferPrice(ProductIdentity product) {
@@ -282,9 +305,15 @@ public class BazaarData {
     public static final class MarketSnapshot {
 
         private final Map<String, Product> products;
+        private final Optional<Instant> lastUpdated;
 
-        private MarketSnapshot(Map<String, Product> products) {
+        private MarketSnapshot(@Nullable Long lastUpdatedEpochMillis, Map<String, Product> products) {
             this.products = products;
+            this.lastUpdated = Optional.ofNullable(lastUpdatedEpochMillis).map(Instant::ofEpochMilli);
+        }
+
+        public Optional<Instant> lastUpdated() {
+            return this.lastUpdated;
         }
 
         public int size() {
@@ -325,6 +354,49 @@ public class BazaarData {
                     Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
                     Optional.ofNullable(prod.getBuySummary()).orElse(List.of())))
                 .orElse(OrderLists.empty());
+        }
+
+        public LiveProductSnapshot liveProductSnapshot(ProductIdentity product) {
+            Objects.requireNonNull(product, "product");
+            var raw = this.rawProduct(product).orElse(null);
+            if (raw == null) {
+                var empty = new MarketSide(List.of(), new Totals.Unavailable());
+                return new LiveProductSnapshot(product, this.lastUpdated, empty, empty, false);
+            }
+
+            var buyLevels = levels(raw.getSellSummary(), Comparator.comparingDouble(PriceLevel::price).reversed());
+            var sellLevels = levels(raw.getBuySummary(), Comparator.comparingDouble(PriceLevel::price));
+            var status = raw.getQuickStatus();
+            Totals buyTotals = status == null
+                ? new Totals.Unavailable()
+                : new Totals.Available(status.getSellOrders(), status.getSellVolume());
+            Totals sellTotals = status == null
+                ? new Totals.Unavailable()
+                : new Totals.Available(status.getBuyOrders(), status.getBuyVolume());
+            return new LiveProductSnapshot(
+                product,
+                this.lastUpdated,
+                new MarketSide(buyLevels, buyTotals),
+                new MarketSide(sellLevels, sellTotals),
+                true);
+        }
+
+        private static List<PriceLevel> levels(
+            @Nullable List<Summary> summaries,
+            Comparator<PriceLevel> comparator
+        ) {
+            if (summaries == null) {
+                return List.of();
+            }
+            return summaries.stream()
+                .filter(Objects::nonNull)
+                .filter(summary -> Double.isFinite(summary.getPricePerUnit()))
+                .map(summary -> new PriceLevel(
+                    summary.getPricePerUnit(),
+                    summary.getAmount(),
+                    summary.getOrders() > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) summary.getOrders()))
+                .sorted(comparator)
+                .toList();
         }
 
         public List<Summary> summariesForOrderType(ProductIdentity product, OrderType orderType) {

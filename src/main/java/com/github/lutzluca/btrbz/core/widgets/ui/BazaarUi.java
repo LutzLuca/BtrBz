@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -134,6 +135,24 @@ public final class BazaarUi {
         var trimmed = font.substrByWidth(text, maxWidth - ellipsisWidth);
 
         return Language.getInstance().getVisualOrder(FormattedText.composite(trimmed, ellipsis));
+    }
+
+    public static Component ellipsizeComponent(Component text, int maxWidth) {
+        var font = Minecraft.getInstance().font;
+        if (font.width(text) <= maxWidth) {
+            return text;
+        }
+
+        int textWidth = Math.max(0, maxWidth - font.width("…"));
+        var trimmed = font.substrByWidth(text, textWidth);
+        var result = Component.empty();
+        var lastStyle = new Style[]{text.getStyle()};
+        trimmed.visit((style, value) -> {
+            lastStyle[0] = style;
+            result.append(Component.literal(value).setStyle(style));
+            return Optional.empty();
+        }, Style.EMPTY);
+        return result.append(Component.literal("…").setStyle(lastStyle[0]));
     }
 
     public static String truncate(String value, int maxWidth) {

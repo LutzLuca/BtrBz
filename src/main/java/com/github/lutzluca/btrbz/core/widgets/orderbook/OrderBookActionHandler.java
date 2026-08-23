@@ -1,10 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
-import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
-import net.minecraft.client.Minecraft;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 
 public final class OrderBookActionHandler implements WidgetActionHandler<OrderBookAction> {
     private final OrderBookPriceComponent embeddedWorkflow;
@@ -15,36 +12,12 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
 
     @Override
     public void handle(OrderBookAction action, WidgetSession source, WidgetSession current) {
-        if (!source.sameWorkflow(current) || !(current.inSign() || current.inOrderBook())) {
+        if (!source.sameWorkflow(current) || !current.inSign()) {
             return;
         }
 
-        switch (action) {
-            case OrderBookAction.SelectPrice select -> {
-                if (current.inOrderBook()) {
-                    Minecraft.getInstance().keyboardHandler.setClipboard(
-                        Utils.formatDecimal(select.price(), 1, false));
-
-                    var screen = GameUtils.screen();
-
-                    if (screen != null) {
-                        screen.onClose();
-                    }
-                } else {
-                    this.embeddedWorkflow.selectPrice(select.price(), select.copyOnly());
-                }
-            }
-            case OrderBookAction.GoBack _ -> {
-                if (!current.inOrderBook()) {
-                    return;
-                }
-
-                var screen = GameUtils.screen();
-
-                if (screen != null) {
-                    screen.onClose();
-                }
-            }
+        if (action instanceof OrderBookAction.SelectPrice select) {
+            this.embeddedWorkflow.selectPrice(select.price(), select.copyOnly());
         }
     }
 }

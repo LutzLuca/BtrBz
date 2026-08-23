@@ -14,6 +14,8 @@ public interface CoflnetBazaarClient extends AutoCloseable {
 
     CompletionStage<List<BazaarHistoryPoint>> history(String itemTag, HistoryRange range);
 
+    CompletionStage<List<BazaarHistoryPoint>> refreshHistory(String itemTag, HistoryRange range);
+
     @Override
     void close();
 

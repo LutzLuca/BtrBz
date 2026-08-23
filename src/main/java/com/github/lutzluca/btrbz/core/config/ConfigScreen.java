@@ -69,6 +69,7 @@ public class ConfigScreen {
             .group(config.orderListTooltip.createGroup())
             .group(config.orderItemTooltip.createGroup())
             .group(config.productInfo.createGroup())
+            .group(config.bazaarItemInfo.createGroup())
             .group(config.chatFilter.createGroup())
             .build();
 

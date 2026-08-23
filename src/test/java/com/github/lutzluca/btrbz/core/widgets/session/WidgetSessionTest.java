@@ -12,7 +12,7 @@ class WidgetSessionTest {
     @DisplayName("does not expose stale menus as container contexts")
     void excludesStaleMenuFromCustomScreen() {
         var session = new WidgetSession(
-            8, false, false, true, Optional.of(BazaarMenuType.Orders), Optional.empty(),
+            8, false, false, false, Optional.of(BazaarMenuType.Orders), Optional.empty(),
             Optional.empty(), Optional.empty(), 0);
         assertFalse(session.inBazaarMenu(BazaarMenuType.Orders));
     }

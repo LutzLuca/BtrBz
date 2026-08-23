@@ -150,6 +150,125 @@ class CoflnetBazaarClientTest {
     }
 
     @Test
+    void refreshHistoryBypassesAndReplacesCompletedCacheEntry() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> json(
+            exchange,
+            200,
+            "[{\"buy\":" + calls.incrementAndGet() + ",\"sell\":2,\"timestamp\":\"2026-08-13T01:00:00Z\"}]",
+            "max-age=3600"));
+        CoflnetBazaarClient client = client(server);
+
+        assertEquals(1, get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(1, get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(2, get(client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(2, get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY)).getFirst().buy());
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void ordinaryHistoryJoinsAnActiveRefresh() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        CountDownLatch refreshArrived = new CountDownLatch(1);
+        CountDownLatch releaseRefresh = new CountDownLatch(1);
+        HttpServer server = server(exchange -> {
+            int call = calls.incrementAndGet();
+            if (call == 2) {
+                refreshArrived.countDown();
+                try {
+                    assertTrue(releaseRefresh.await(3, TimeUnit.SECONDS));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(interrupted);
+                }
+            }
+            json(exchange, 200,
+                "[{\"buy\":" + call + ",\"sell\":2,\"timestamp\":\"2026-08-13T01:00:00Z\"}]",
+                "max-age=3600");
+        });
+        CoflnetBazaarClient client = client(server);
+
+        get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY));
+        var refresh = client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.DAY).toCompletableFuture();
+        assertTrue(refreshArrived.await(3, TimeUnit.SECONDS));
+        var ordinary = client.history("GOLD_BLOCK", HistoryRange.Preset.DAY).toCompletableFuture();
+        releaseRefresh.countDown();
+
+        assertEquals(2, refresh.get(3, TimeUnit.SECONDS).getFirst().buy());
+        assertEquals(2, ordinary.get(3, TimeUnit.SECONDS).getFirst().buy());
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void failedRefreshRetainsThePreviousSuccessfulEntry() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            if (calls.incrementAndGet() == 1) {
+                json(exchange, 200,
+                    "[{\"buy\":7,\"sell\":8,\"timestamp\":\"2026-08-13T01:00:00Z\"}]",
+                    "max-age=3600");
+            } else {
+                json(exchange, 400, "{\"message\":\"refresh failed\"}", null);
+            }
+        });
+        CoflnetBazaarClient client = client(server);
+
+        assertEquals(7, get(client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK)).getFirst().buy());
+        assertThrows(CompletionException.class,
+            () -> client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.WEEK).toCompletableFuture().join());
+        assertEquals(7, get(client.history("GOLD_BLOCK", HistoryRange.Preset.WEEK)).getFirst().buy());
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void refreshUsesTheSameRateLimitRetryPath() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = server(exchange -> {
+            int call = calls.incrementAndGet();
+            if (call == 2) {
+                exchange.getResponseHeaders().add("Retry-After", "0");
+                json(exchange, 429, "{\"message\":\"slow down\"}", null);
+                return;
+            }
+            json(exchange, 200, "[]", "max-age=3600");
+        });
+        CoflnetBazaarClient client = client(server);
+
+        assertTrue(get(client.history("GOLD_BLOCK", HistoryRange.Preset.HOUR)).isEmpty());
+        assertTrue(get(client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.HOUR)).isEmpty());
+        assertEquals(3, calls.get());
+    }
+
+    @Test
+    void closingDuringRefreshCompletesTheSharedRequestExceptionally() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        CountDownLatch refreshArrived = new CountDownLatch(1);
+        CountDownLatch releaseRefresh = new CountDownLatch(1);
+        HttpServer server = server(exchange -> {
+            if (calls.incrementAndGet() == 2) {
+                refreshArrived.countDown();
+                try {
+                    releaseRefresh.await(3, TimeUnit.SECONDS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(interrupted);
+                }
+            }
+            json(exchange, 200, "[]", "max-age=3600");
+        });
+        CoflnetBazaarClient client = client(server);
+        get(client.history("GOLD_BLOCK", HistoryRange.Preset.DAY));
+        var refresh = client.refreshHistory("GOLD_BLOCK", HistoryRange.Preset.DAY).toCompletableFuture();
+        assertTrue(refreshArrived.await(3, TimeUnit.SECONDS));
+
+        client.close();
+        releaseRefresh.countDown();
+
+        CompletionException failure = assertThrows(CompletionException.class, refresh::join);
+        assertInstanceOf(CoflnetApiException.class, failure.getCause());
+    }
+
+    @Test
     void subtractsCloudflareAgeFromLocalCacheLifetime() throws Exception {
         AtomicInteger calls = new AtomicInteger();
         HttpServer server = server(exchange -> {

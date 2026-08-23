@@ -99,6 +99,19 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
 
     @Override
     public CompletionStage<List<BazaarHistoryPoint>> history(String itemTag, HistoryRange range) {
+        return history(itemTag, range, CachePolicy.CACHE_FIRST);
+    }
+
+    @Override
+    public CompletionStage<List<BazaarHistoryPoint>> refreshHistory(String itemTag, HistoryRange range) {
+        return history(itemTag, range, CachePolicy.BYPASS_COMPLETED);
+    }
+
+    private CompletionStage<List<BazaarHistoryPoint>> history(
+        String itemTag,
+        HistoryRange range,
+        CachePolicy cachePolicy
+    ) {
         String validTag = validateItemTag(itemTag);
         Objects.requireNonNull(range, "range");
 
@@ -122,7 +135,7 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
         RequestSpec request = new RequestSpec(
             new RequestKey(baseUri.resolve(relativePath), ResponseKind.HISTORY),
             fallbackMaxAge);
-        return load(request).thenApply(value -> cast(value, List.class));
+        return load(request, cachePolicy).thenApply(value -> cast(value, List.class));
     }
 
     @Override
@@ -144,24 +157,28 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     }
 
     private CompletableFuture<Object> load(RequestSpec request) {
+        return load(request, CachePolicy.CACHE_FIRST);
+    }
+
+    private CompletableFuture<Object> load(RequestSpec request, CachePolicy cachePolicy) {
         synchronized (stateLock) {
             if (closed.get()) {
                 return CompletableFuture.failedFuture(new CoflnetApiException(
                     "Coflnet client is closed", -1, request.key().uri(), null));
             }
 
+            CompletableFuture<Object> existing = inFlight.get(request.key());
+            if (existing != null) {
+                return existing;
+            }
+
             CacheEntry cached = cache.get(request.key());
             long now = System.nanoTime();
-            if (cached != null) {
+            if (cached != null && cachePolicy == CachePolicy.CACHE_FIRST) {
                 if (cached.expiresAtNanos() > now) {
                     return CompletableFuture.completedFuture(cached.value());
                 }
                 cache.remove(request.key());
-            }
-
-            CompletableFuture<Object> existing = inFlight.get(request.key());
-            if (existing != null) {
-                return existing;
             }
 
             CompletableFuture<Object> created = new CompletableFuture<>();
@@ -414,6 +431,11 @@ final class DefaultCoflnetBazaarClient implements CoflnetBazaarClient {
     private enum ResponseKind {
         SNAPSHOT,
         HISTORY
+    }
+
+    private enum CachePolicy {
+        CACHE_FIRST,
+        BYPASS_COMPLETED
     }
 
     private record RequestKey(URI uri, ResponseKind responseKind) {}

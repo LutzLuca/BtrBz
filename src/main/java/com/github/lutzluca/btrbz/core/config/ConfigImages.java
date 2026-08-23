@@ -13,7 +13,6 @@ public enum ConfigImages {
     PriceDiff("price-diff.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
     FlipHelper("flip-helper.png", 994, 654),
-    OrderBookScreen("order-book-screen.png", 1506, 847),
     OrderBookSign("order-book-sign.png", 1027, 577),
     OrderLimit("order-limit.png", 597, 448),
     OrderNotification("order-notifications.png", 661, 235),
@@ -54,7 +53,6 @@ public enum ConfigImages {
             case "btrbz:bazaar_orders" -> ConfigImages.TrackedOrdersHud;
             case "btrbz:tracked_orders_list" -> ConfigImages.TrackedOrdersBazaar;
             case "btrbz:order_value" -> ConfigImages.OrderValueOverView;
-            case "btrbz:order_book" -> ConfigImages.OrderBookScreen;
             case "btrbz:order_book_price" -> ConfigImages.OrderBookSign;
             case "btrbz:bookmarks" -> ConfigImages.Bookmarks;
             case "btrbz:order_presets" -> ConfigImages.OrderPresets;
