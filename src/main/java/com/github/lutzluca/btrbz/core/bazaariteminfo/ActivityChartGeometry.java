@@ -35,7 +35,7 @@ public final class ActivityChartGeometry {
                 bounds.add((double) point.sellVolume());
             }
         }
-        var projection = ValueProjection.from(bounds, top, height);
+        var projection = ValueProjection.fromZero(bounds, top, height);
         if (projection.isEmpty()) {
             return new Geometry(time, null, Series.empty(), Series.empty());
         }

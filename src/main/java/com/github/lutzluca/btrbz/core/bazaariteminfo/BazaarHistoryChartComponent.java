@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.bazaariteminfo;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.bazaariteminfo.PriceChartGeometry.BandSegment;
 import com.github.lutzluca.btrbz.core.bazaariteminfo.PriceChartGeometry.Geometry;
 import com.github.lutzluca.btrbz.core.bazaariteminfo.PriceChartGeometry.Series;
@@ -12,6 +13,7 @@ import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import java.time.ZoneId;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -20,7 +22,7 @@ import net.minecraft.network.chat.Component;
 
 /** Price plot with adaptive markers, shared hover selection, and a combined tooltip. */
 public final class BazaarHistoryChartComponent extends BaseUIComponent {
-    private static final int PLOT_PADDING = 2;
+    private static final int PLOT_PADDING = 8;
     private static final int GRID_LINES = 4;
     private static final int GRID_COLOR = 0x283A414D;
     private static final int BACKGROUND_COLOR = 0x440B0D12;
@@ -105,7 +107,7 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
         drawSeries(graphics, geometry.buy(), BazaarStyles.BUY_ACCENT);
         drawSeries(graphics, geometry.sell(), BazaarStyles.SELL_ACCENT);
         this.drawSelectedMarkers(graphics, geometry);
-        this.drawLabels(graphics, geometry.values(), plotTop, plotHeight);
+        this.drawLabels(graphics, geometry.values(), geometry.time(), plotTop, plotHeight);
         this.drawSelection(graphics, geometry, plotTop, plotHeight);
     }
 
@@ -143,13 +145,46 @@ public final class BazaarHistoryChartComponent extends BaseUIComponent {
         graphics.drawRectOutline(time.left(), top, time.width(), height, BazaarStyles.PROGRESS_TRACK);
     }
 
-    private void drawLabels(OwoUIGraphics graphics, ValueProjection values, int top, int height) {
+    private void drawLabels(
+        OwoUIGraphics graphics,
+        ValueProjection values,
+        TimeProjection time,
+        int top,
+        int height
+    ) {
         var font = Minecraft.getInstance().font;
-        graphics.text(font, BazaarWidgetViewData.formatPrice(values.maximum()),
-            this.x + PLOT_PADDING, top, BazaarStyles.MUTED_TEXT, false);
-        graphics.text(font, BazaarWidgetViewData.formatPrice(values.minimum()),
-            this.x + PLOT_PADDING, Math.max(top, top + height - font.lineHeight),
-            BazaarStyles.MUTED_TEXT, false);
+        var labels = axisLabels(values);
+        int labelRight = time.left() - 6;
+        drawAxisLabel(graphics, labels.get(0), labelRight, top);
+        drawAxisLabel(graphics, labels.get(1), labelRight,
+            top + Math.max(0, (height - font.lineHeight) / 2));
+        drawAxisLabel(graphics, labels.get(2), labelRight,
+            Math.max(top, top + height - font.lineHeight));
+    }
+
+    static List<String> axisLabels(ValueProjection values) {
+        Objects.requireNonNull(values, "values");
+        double midpoint = values.minimum() + (values.maximum() - values.minimum()) / 2;
+        var raw = List.of(values.maximum(), midpoint, values.minimum());
+        double largestAbsolute = raw.stream().mapToDouble(Math::abs).max().orElse(0);
+        if (largestAbsolute < 100_000) {
+            return raw.stream().map(BazaarWidgetViewData::formatPrice).toList();
+        }
+        int firstPlaces = largestAbsolute >= 1_000_000 ? 2 : 1;
+        for (int places = firstPlaces; places <= 3; places++) {
+            final int precision = places;
+            var labels = raw.stream().map(value -> Utils.formatCompact(value, precision)).toList();
+            if (new HashSet<>(labels).size() == labels.size()) {
+                return labels;
+            }
+        }
+        return raw.stream().map(BazaarWidgetViewData::formatPrice).toList();
+    }
+
+    private void drawAxisLabel(OwoUIGraphics graphics, String label, int labelRight, int y) {
+        var font = Minecraft.getInstance().font;
+        int labelX = Math.max(this.x + PLOT_PADDING, labelRight - font.width(label));
+        graphics.text(font, label, labelX, y, BazaarStyles.MUTED_TEXT, false);
     }
 
     private void drawSelectedMarkers(OwoUIGraphics graphics, Geometry geometry) {

@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft;
 /** Optional interval-item activity plot sharing the History time projection and selection. */
 public final class BazaarActivityChartComponent extends BaseUIComponent {
     private static final int BACKGROUND_COLOR = 0x440B0D12;
+    private static final int CHART_PADDING = 8;
 
     private final BazaarHistoryPanelController controller;
     private ActivityChartGeometry.Geometry cachedGeometry;
@@ -43,6 +44,10 @@ public final class BazaarActivityChartComponent extends BaseUIComponent {
         }
         var geometry = this.geometry();
         if (geometry.isEmpty()) {
+            var font = Minecraft.getInstance().font;
+            graphics.text(font, "Market activity: items per interval",
+                this.x + BazaarHistoryPanelController.AXIS_INSET, this.y + 4,
+                BazaarStyles.MUTED_TEXT, false);
             return;
         }
         var time = geometry.time();
@@ -50,13 +55,19 @@ public final class BazaarActivityChartComponent extends BaseUIComponent {
         drawSeries(graphics, geometry.sell(), BazaarStyles.SELL_ACCENT);
         this.drawSelectedMarkers(graphics, geometry);
         var font = Minecraft.getInstance().font;
-        graphics.text(font, BazaarWidgetViewData.formatCompact(geometry.values().maximum()),
-            this.x + 2, this.y + 2, BazaarStyles.MUTED_TEXT, false);
+        graphics.text(font, "Market activity: items per interval",
+            time.left(), this.y + 4, BazaarStyles.SECONDARY_TEXT, false);
+        int labelRight = time.left() - 6;
+        this.drawAxisLabel(graphics, BazaarWidgetViewData.formatCompact(geometry.values().maximum()),
+            labelRight, geometry.values().top());
+        this.drawAxisLabel(graphics, "0", labelRight,
+            geometry.values().top() + geometry.values().height() - font.lineHeight);
         if (this.controller.selection().isPresent()) {
             int crosshair = time.x(this.controller.selection().orElseThrow().point().timestamp());
-            graphics.fill(crosshair, this.y + 2, crosshair + 1, this.y + this.height - 2, 0x90FFFFFF);
+            graphics.fill(crosshair, geometry.values().top(), crosshair + 1,
+                geometry.values().top() + geometry.values().height(), 0x90FFFFFF);
         }
-        graphics.drawRectOutline(time.left(), this.y + 2, time.width(), Math.max(1, this.height - 4),
+        graphics.drawRectOutline(time.left(), geometry.values().top(), time.width(), geometry.values().height(),
             BazaarStyles.PROGRESS_TRACK);
     }
 
@@ -71,9 +82,12 @@ public final class BazaarActivityChartComponent extends BaseUIComponent {
             return this.cachedGeometry;
         }
         var time = this.controller.projection(this.x, this.width);
+        int headerHeight = Minecraft.getInstance().font.lineHeight + CHART_PADDING;
+        int plotTop = this.y + headerHeight;
+        int plotHeight = Math.max(1, this.height - headerHeight - CHART_PADDING);
         this.cachedGeometry = ActivityChartGeometry.layout(
             this.controller.history(), this.controller.showBuy(), this.controller.showSell(), time,
-            this.y + 2, Math.max(1, this.height - 4), OptionalInt.empty());
+            plotTop, plotHeight, OptionalInt.empty());
         this.cachedGeometryRevision = revision;
         this.cachedX = this.x;
         this.cachedY = this.y;
@@ -95,6 +109,12 @@ public final class BazaarActivityChartComponent extends BaseUIComponent {
         if (this.controller.showSell() && point.sellVolume() >= 0) {
             selectedMarker(graphics, x, geometry.values().y(point.sellVolume()), BazaarStyles.SELL_ACCENT);
         }
+    }
+
+    private void drawAxisLabel(OwoUIGraphics graphics, String label, int labelRight, int y) {
+        var font = Minecraft.getInstance().font;
+        int labelX = Math.max(this.x + 4, labelRight - font.width(label));
+        graphics.text(font, label, labelX, y, BazaarStyles.MUTED_TEXT, false);
     }
 
     private static void selectedMarker(OwoUIGraphics graphics, int x, int y, int color) {

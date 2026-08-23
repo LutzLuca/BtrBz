@@ -10,7 +10,8 @@ import java.util.OptionalInt;
 
 /** Shared point selection and projection state for the two History plots. */
 public final class BazaarHistoryPanelController {
-    public static final int AXIS_INSET = 52;
+    public static final int AXIS_INSET = 58;
+    public static final int RIGHT_INSET = 10;
 
     private List<BazaarHistoryPoint> history = List.of();
     private BazaarItemInfoRange range = BazaarItemInfoRange.Day;
@@ -71,7 +72,7 @@ public final class BazaarHistoryPanelController {
             return this.projectionCache.projection();
         }
         int left = componentX + AXIS_INSET;
-        int width = Math.max(1, componentWidth - AXIS_INSET - 2);
+        int width = Math.max(1, componentWidth - AXIS_INSET - RIGHT_INSET);
         long minimum = Long.MAX_VALUE;
         long maximum = Long.MIN_VALUE;
         for (var point : this.history) {

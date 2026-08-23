@@ -26,7 +26,7 @@ class BazaarItemInfoOrderBookPanelTest {
     void formatsExactCompactAndUnavailableTotals() {
         assertEquals("12,345", BazaarItemInfoOrderBookPanel.number(12_345, NumberStyle.Exact));
         assertEquals("12.3k", BazaarItemInfoOrderBookPanel.number(12_345, NumberStyle.Compact));
-        assertEquals("12,345 items · 7 orders",
+        assertEquals("12,345 items, 7 orders",
             BazaarItemInfoOrderBookPanel.totalsText(new Totals.Available(7, 12_345), NumberStyle.Exact));
         assertEquals("Totals unavailable",
             BazaarItemInfoOrderBookPanel.totalsText(new Totals.Unavailable(), NumberStyle.Exact));
@@ -40,6 +40,14 @@ class BazaarItemInfoOrderBookPanelTest {
                 new PriceLevel(100, 5, 1),
                 new PriceLevel(99, 7, 1),
                 new PriceLevel(98, Long.MAX_VALUE, 1))));
+    }
+
+    @Test
+    void itemDepthBarsScaleAgainstTheLargestVisibleLevel() {
+        assertEquals(0, BazaarItemInfoOrderBookPanel.itemFraction(0, 100));
+        assertEquals(0.25, BazaarItemInfoOrderBookPanel.itemFraction(25, 100));
+        assertEquals(1, BazaarItemInfoOrderBookPanel.itemFraction(100, 100));
+        assertEquals(1, BazaarItemInfoOrderBookPanel.itemFraction(150, 100));
     }
 
     @Test

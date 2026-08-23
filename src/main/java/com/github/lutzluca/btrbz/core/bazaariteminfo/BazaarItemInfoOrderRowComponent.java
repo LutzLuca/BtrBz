@@ -15,6 +15,8 @@ import net.minecraft.client.input.MouseButtonEvent;
 /** Fixed-column Order Book row whose price cell is the only interactive region. */
 final class BazaarItemInfoOrderRowComponent extends BaseUIComponent {
     private static final int ALTERNATE_ROW = 0x0CFFFFFF;
+    private static final int BEST_LEVEL_ALPHA = 0x18;
+    private static final int DEPTH_BAR_ALPHA = 0x20;
 
     private Row row;
 
@@ -57,11 +59,24 @@ final class BazaarItemInfoOrderRowComponent extends BaseUIComponent {
                 graphics, font, this.row.itemsText(), this.x + padding, textY, BazaarStyles.MUTED_TEXT);
             return;
         }
-        if (this.row.depth() % 2 == 0) {
+        if (this.row.depth() == 1) {
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height,
+                withAlpha(this.row.accent(), BEST_LEVEL_ALPHA));
+        } else if (this.row.depth() % 2 == 0) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, ALTERNATE_ROW);
         }
         var columns = BazaarItemInfoOrderColumns.layout(
             this.width, this.row.showCumulative(), this.row.showOrders());
+        if (this.row.itemFraction() > 0) {
+            int barWidth = (int) Math.round(
+                (columns.items().end() - columns.items().start()) * this.row.itemFraction());
+            graphics.fill(
+                this.x + columns.items().end() - barWidth,
+                this.y,
+                this.x + columns.items().end(),
+                this.y + this.height,
+                withAlpha(this.row.accent(), DEPTH_BAR_ALPHA));
+        }
         if (mouseX >= this.x && mouseX < this.priceCellEnd()
             && mouseY >= this.y
             && mouseY < this.y + this.height) {
@@ -102,6 +117,10 @@ final class BazaarItemInfoOrderRowComponent extends BaseUIComponent {
         graphics.disableScissor();
     }
 
+    private static int withAlpha(int argb, int alpha) {
+        return (argb & 0x00FFFFFF) | (alpha << 24);
+    }
+
     record Row(
         String id,
         double price,
@@ -111,6 +130,7 @@ final class BazaarItemInfoOrderRowComponent extends BaseUIComponent {
         String ordersText,
         int accent,
         int depth,
+        double itemFraction,
         boolean showCumulative,
         boolean showOrders,
         boolean empty,

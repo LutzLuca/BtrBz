@@ -16,7 +16,7 @@ public final class BazaarItemInfoConfig {
 
     public enum ActivityMode {
         Off("Off"),
-        IntervalItems("Interval Items");
+        IntervalItems("Items per interval");
 
         private final String label;
 
@@ -74,9 +74,9 @@ public final class BazaarItemInfoConfig {
                 () -> this.activityMode, value -> this.activityMode = value,
                 ActivityMode::label))
             .option(Option.<Integer>createBuilder()
-                .name(Component.literal("Visible Order Book Rows"))
+                .name(Component.literal("Minimum Visible Order Book Rows"))
                 .description(OptionDescription.of(Component.literal(
-                    "Set the height of each Order Book side before its rows scroll.")))
+                    "Set the minimum height of each side. Wide screens use spare height for more levels.")))
                 .binding(10, () -> this.visibleOrderBookRows, value -> this.visibleOrderBookRows = value)
                 .controller(option -> IntegerSliderControllerBuilder.create(option).range(3, 30).step(1))
                 .build())

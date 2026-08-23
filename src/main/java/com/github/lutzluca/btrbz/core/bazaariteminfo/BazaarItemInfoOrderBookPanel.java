@@ -31,14 +31,17 @@ public final class BazaarItemInfoOrderBookPanel {
     private static final int SIDE_PADDING = 5;
     private static final int COLUMN_GAP_ALLOWANCE = 8;
     private static final int ORDER_ROW_VERTICAL_PADDING = 3;
+    private static final String INTERACTION_HINT = "Scroll each side. Click a price to copy.";
 
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
     private final FlowLayout holder = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
     private final FlowLayout sideBySide = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
     private final FlowLayout stacked = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-    private final Side buy = new Side("Buy Orders", "No active buy orders", BazaarStyles.BUY_ACCENT);
-    private final Side sell = new Side("Sell Offers", "No active sell offers", BazaarStyles.SELL_ACCENT);
-    private final LabelComponent toast = BazaarUi.label("", BazaarStyles.MUTED_TEXT);
+    private final Side buy = new Side(
+        "Buy Price Levels", "Lowest price first", "No Buy Price levels", BazaarStyles.BUY_ACCENT);
+    private final Side sell = new Side(
+        "Sell Price Levels", "Highest price first", "No Sell Price levels", BazaarStyles.SELL_ACCENT);
+    private final LabelComponent toast = BazaarUi.label(INTERACTION_HINT, BazaarStyles.MUTED_TEXT);
 
     private boolean stackedLayout;
     private long toastExpiresAt;
@@ -79,9 +82,9 @@ public final class BazaarItemInfoOrderBookPanel {
             marketDepth);
         int viewportHeight = WidgetLayoutTokens.listViewportHeight(
             rowHeight, visibleRows);
-        this.buy.update(snapshot.buyOrders(), preferences.volumeNumberStyle(),
+        this.buy.update(snapshot.sellOffers(), preferences.volumeNumberStyle(),
             preferences.showPerLevelOrderCount(), preferences.showCumulativeVolume(), rowHeight, viewportHeight);
-        this.sell.update(snapshot.sellOffers(), preferences.volumeNumberStyle(),
+        this.sell.update(snapshot.buyOrders(), preferences.volumeNumberStyle(),
             preferences.showPerLevelOrderCount(), preferences.showCumulativeVolume(), rowHeight, viewportHeight);
 
         if (this.holder.children().isEmpty() || nextStacked != this.stackedLayout) {
@@ -108,7 +111,8 @@ public final class BazaarItemInfoOrderBookPanel {
     public void tick() {
         if (this.toastExpiresAt != 0 && System.nanoTime() >= this.toastExpiresAt) {
             this.toastExpiresAt = 0;
-            this.toast.text(Component.empty());
+            this.toast.text(Component.literal(INTERACTION_HINT));
+            this.toast.color(BazaarStyles.color(BazaarStyles.MUTED_TEXT));
         }
     }
 
@@ -165,7 +169,7 @@ public final class BazaarItemInfoOrderBookPanel {
             return configured;
         }
         int safeRowHeight = Math.max(1, rowHeight);
-        int nonListHeight = safeRowHeight * 3 + SIDE_PADDING * 2 + WidgetLayoutTokens.SECTION_GAP * 3;
+        int nonListHeight = safeRowHeight * 4 + SIDE_PADDING * 2 + WidgetLayoutTokens.SECTION_GAP * 3;
         int rowsThatFit = Math.max(1, (Math.max(1, availableHeight) - nonListHeight)
             / (safeRowHeight + WidgetLayoutTokens.LIST_GAP));
         int usefulDepth = Math.max(configured, Math.max(0, marketDepth));
@@ -199,12 +203,13 @@ public final class BazaarItemInfoOrderBookPanel {
             1, WidgetLayoutTokens.LIST_GAP, true, BazaarStyles.SCROLLBAR);
         private final RetainedRows<String, BazaarItemInfoOrderRowComponent> retainedRows = new RetainedRows<>();
 
-        private Side(String title, String emptyText, int accent) {
+        private Side(String title, String relationshipText, String emptyText, int accent) {
             this.accent = accent;
             this.titleText = title;
             this.emptyText = emptyText;
             int rowHeight = orderRowHeight(Minecraft.getInstance().font.lineHeight);
-            this.sideHeader = new BazaarItemInfoOrderSideHeaderComponent(title, accent, rowHeight);
+            this.sideHeader = new BazaarItemInfoOrderSideHeaderComponent(
+                title, relationshipText, accent, rowHeight);
             this.root.gap(2);
             this.root.padding(Insets.of(SIDE_PADDING));
             this.root.surface(WidgetSurfaces.roundedPanel(SIDE_PANEL_COLOR, 4));
@@ -226,6 +231,7 @@ public final class BazaarItemInfoOrderBookPanel {
             var models = new ArrayList<BazaarItemInfoOrderRowComponent.Row>();
             List<PriceLevel> levels = side.levels();
             var accumulated = accumulatedItems(levels);
+            long largestLevel = levels.stream().mapToLong(level -> Math.max(0, level.items())).max().orElse(0);
             for (int index = 0; index < levels.size(); index++) {
                 var level = levels.get(index);
                 String items = number(level.items(), numberStyle);
@@ -233,14 +239,15 @@ public final class BazaarItemInfoOrderBookPanel {
                     this.titleText + "-" + Double.doubleToLongBits(level.price()),
                     level.price(), BazaarWidgetViewData.formatPrice(level.price()), items,
                     number(accumulated.get(index), numberStyle), Integer.toString(level.orders()),
-                    this.accent, index + 1, showCumulative, showOrders, false,
+                    this.accent, index + 1, itemFraction(level.items(), largestLevel),
+                    showCumulative, showOrders, false,
                     value -> BazaarItemInfoOrderBookPanel.this.copy(value, this.accent)));
             }
             if (models.isEmpty()) {
                 models.add(new BazaarItemInfoOrderRowComponent.Row(
                     this.titleText + "-empty", 0, "",
                     this.emptyText, "", "", BazaarStyles.MUTED_TEXT, 0,
-                    showCumulative, showOrders, true, _ -> {}));
+                    0, showCumulative, showOrders, true, _ -> {}));
             }
             var rows = this.retainedRows.reconcile(
                 models,
@@ -253,7 +260,7 @@ public final class BazaarItemInfoOrderBookPanel {
 
     static String totalsText(Totals totals, NumberStyle style) {
         if (totals instanceof Totals.Available available) {
-            return number(available.items(), style) + " items · "
+            return number(available.items(), style) + " items, "
                 + BazaarWidgetViewData.formatInt(available.orders()) + " orders";
         }
         return "Totals unavailable";
@@ -275,5 +282,12 @@ public final class BazaarItemInfoOrderBookPanel {
             totals.add(running);
         }
         return List.copyOf(totals);
+    }
+
+    static double itemFraction(long items, long largestLevel) {
+        if (items <= 0 || largestLevel <= 0) {
+            return 0;
+        }
+        return Math.max(0, Math.min(1, (double) items / largestLevel));
     }
 }

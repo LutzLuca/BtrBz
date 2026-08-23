@@ -38,6 +38,24 @@ public record ValueProjection(double minimum, double maximum, int top, int heigh
         return Optional.of(new ValueProjection(minimum - padding, maximum + padding, top, height));
     }
 
+    /** Builds a magnitude axis whose baseline remains anchored at zero. */
+    public static Optional<ValueProjection> fromZero(Collection<Double> values, int top, int height) {
+        Objects.requireNonNull(values, "values");
+        double maximum = Double.NEGATIVE_INFINITY;
+        for (Double value : values) {
+            if (value != null && Double.isFinite(value) && value >= 0) {
+                maximum = Math.max(maximum, value);
+            }
+        }
+        if (!Double.isFinite(maximum)) {
+            return Optional.empty();
+        }
+        double paddedMaximum = maximum <= 0
+            ? 1
+            : maximum + Math.max(MINIMUM_PADDING, maximum * PADDING_FRACTION);
+        return Optional.of(new ValueProjection(0, paddedMaximum, top, height));
+    }
+
     public int y(double value) {
         double fraction = (this.maximum - value) / (this.maximum - this.minimum);
         fraction = Math.max(0, Math.min(1, fraction));

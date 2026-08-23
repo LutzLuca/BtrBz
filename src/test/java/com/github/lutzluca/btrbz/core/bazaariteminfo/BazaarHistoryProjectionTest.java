@@ -55,13 +55,13 @@ class BazaarHistoryProjectionTest {
     }
 
     @Test
-    void activityUsesSeparateBoundsWithoutForcingZero() {
+    void activityUsesSeparateBoundsAnchoredAtZero() {
         var points = List.of(point(10, 20, 1000, 100), point(11, 21, 1100, 200));
         var time = TimeProjection.from(points.stream().map(BazaarHistoryPoint::timestamp).toList(), 0, 100);
         var activity = ActivityChartGeometry.layout(points, true, false, time, 0, 50, OptionalInt.empty());
 
-        assertTrue(activity.values().minimum() > 0);
-        assertTrue(activity.values().minimum() > 900);
+        assertEquals(0, activity.values().minimum());
+        assertTrue(activity.values().maximum() > 1100);
         assertEquals(1, activity.buy().segments().size());
         assertTrue(activity.sell().segments().isEmpty());
     }
@@ -91,6 +91,31 @@ class BazaarHistoryProjectionTest {
         assertEquals(1, selected.index());
         assertTrue(ticks.size() >= 3 && ticks.size() <= 8);
         assertEquals("1 Jan 1970, 01:00", TimeAxisTicks.tooltip(selected.point().timestamp(), ZoneId.of("UTC")));
+    }
+
+    @Test
+    void chartProjectionReservesSpaceOnBothSides() {
+        var points = List.of(point(1, 2, 0, 0), point(2, 3, 0, 60));
+        var controller = new BazaarHistoryPanelController();
+        controller.update(
+            points, BazaarItemInfoRange.Hour, true, true, true,
+            BazaarItemInfoConfig.ActivityMode.IntervalItems);
+
+        var projection = controller.projection(20, 400);
+
+        assertEquals(20 + BazaarHistoryPanelController.AXIS_INSET, projection.left());
+        assertEquals(400 - BazaarHistoryPanelController.AXIS_INSET
+            - BazaarHistoryPanelController.RIGHT_INSET, projection.width());
+        assertEquals(410, projection.left() + projection.width());
+    }
+
+    @Test
+    void priceAxisCompactsLargeValuesWithoutCollapsingDistinctTicks() {
+        var labels = BazaarHistoryChartComponent.axisLabels(
+            new ValueProjection(1_863_037.8, 2_308_120.0, 0, 100));
+
+        assertEquals(List.of("2.31M", "2.09M", "1.86M"), labels);
+        assertEquals(3, labels.stream().distinct().count());
     }
 
     @Test
@@ -151,9 +176,9 @@ class BazaarHistoryProjectionTest {
         assertEquals(List.of(
             "1 Jan 1970, 00:00",
             "Prices",
-            "Buy price  100.0",
+            "Buy Price  100.0",
             "Range  90.0 to 105.0",
-            "Sell price  110.0",
+            "Sell Price  110.0",
             "Range  100.0 to 120.0",
             "Interval activity",
             "Buy items  50",

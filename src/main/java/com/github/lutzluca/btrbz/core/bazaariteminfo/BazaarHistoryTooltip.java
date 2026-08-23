@@ -30,12 +30,12 @@ final class BazaarHistoryTooltip {
 
         var prices = new ArrayList<Line>();
         if (showBuy && Double.isFinite(point.buy())) {
-            prices.add(new Line("Buy price  " + BazaarWidgetViewData.formatPrice(point.buy()),
+            prices.add(new Line("Buy Price  " + BazaarWidgetViewData.formatPrice(point.buy()),
                 BazaarStyles.BUY_ACCENT, 1));
             addRange(prices, point.minBuy(), point.maxBuy(), showBands);
         }
         if (showSell && Double.isFinite(point.sell())) {
-            prices.add(new Line("Sell price  " + BazaarWidgetViewData.formatPrice(point.sell()),
+            prices.add(new Line("Sell Price  " + BazaarWidgetViewData.formatPrice(point.sell()),
                 BazaarStyles.SELL_ACCENT, 1));
             addRange(prices, point.minSell(), point.maxSell(), showBands);
         }

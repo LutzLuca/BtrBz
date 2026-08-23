@@ -21,7 +21,6 @@ import com.github.lutzluca.coflnet.CoflnetBazaarClient;
 import io.vavr.control.Try;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
-import io.wispforest.owo.ui.component.CheckboxComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -39,6 +38,7 @@ import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -65,6 +65,14 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private static final int BUTTON_DISABLED = 0xFF20242D;
     private static final int BUTTON_SELECTED = 0xFF315B45;
     private static final int BUTTON_SELECTED_HOVER = 0xFF3A7053;
+    private static final int BUY_FILTER_SELECTED = 0xFF285A3B;
+    private static final int BUY_FILTER_SELECTED_HOVER = 0xFF326F49;
+    private static final int SELL_FILTER_SELECTED = 0xFF65501D;
+    private static final int SELL_FILTER_SELECTED_HOVER = 0xFF7A6123;
+    private static final int RANGE_FILTER_SELECTED = 0xFF444D5C;
+    private static final int RANGE_FILTER_SELECTED_HOVER = 0xFF525D70;
+    private static final int CONTROL_STRIP_COLOR = 0x50101319;
+    private static final int ACTIVITY_CHART_HEIGHT = 72;
 
     private final Screen parent;
     private final ProductIdentity product;
@@ -81,18 +89,18 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable WidgetScrollContainer<FlowLayout> orderBookScroller;
     private @Nullable LabelComponent buyPrice;
     private @Nullable LabelComponent sellPrice;
+    private @Nullable LabelComponent spreadValue;
     private @Nullable LabelComponent buyComparison;
     private @Nullable LabelComponent sellComparison;
     private @Nullable LabelComponent freshness;
-    private @Nullable LabelComponent historyStatus;
     private @Nullable BazaarHistoryChartComponent chart;
     private @Nullable BazaarActivityChartComponent activityChart;
     private @Nullable BazaarTimeAxisComponent timeAxis;
     private @Nullable ButtonComponent refresh;
     private @Nullable ButtonComponent activity;
-    private @Nullable CheckboxComponent buyFilter;
-    private @Nullable CheckboxComponent sellFilter;
-    private @Nullable CheckboxComponent bandsFilter;
+    private @Nullable ButtonComponent buyFilter;
+    private @Nullable ButtonComponent sellFilter;
+    private @Nullable ButtonComponent bandsFilter;
     private @Nullable FlowLayout filters;
     private @Nullable ButtonComponent recoverFilters;
     private @Nullable ScreenState latestState;
@@ -211,29 +219,42 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         block.gap(2);
         var metrics = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(30));
         metrics.gap(5);
-        var buyMetric = UIContainers.verticalFlow(Sizing.expand(50), Sizing.fixed(30));
-        var sellMetric = UIContainers.verticalFlow(Sizing.expand(50), Sizing.fixed(30));
+        var buyMetric = UIContainers.verticalFlow(Sizing.expand(40), Sizing.fixed(30));
+        var spreadMetric = UIContainers.verticalFlow(Sizing.expand(20), Sizing.fixed(30));
+        var sellMetric = UIContainers.verticalFlow(Sizing.expand(40), Sizing.fixed(30));
         buyMetric.padding(Insets.both(4, 2));
+        spreadMetric.padding(Insets.both(4, 2));
         sellMetric.padding(Insets.both(4, 2));
         buyMetric.gap(1);
+        spreadMetric.gap(1);
         sellMetric.gap(1);
         buyMetric.surface(WidgetSurfaces.roundedPanel(0x40181B22, 3));
+        spreadMetric.surface(WidgetSurfaces.roundedPanel(0x40181B22, 3));
         sellMetric.surface(WidgetSurfaces.roundedPanel(0x40181B22, 3));
         this.buyPrice = BazaarUi.boldLabel("Buy Price  -", BazaarStyles.BUY_ACCENT);
         this.sellPrice = BazaarUi.boldLabel("Sell Price  -", BazaarStyles.SELL_ACCENT);
+        var spreadTitle = BazaarUi.label("Spread", BazaarStyles.SECONDARY_TEXT);
+        this.spreadValue = BazaarUi.boldLabel("-", BazaarStyles.PRIMARY_TEXT);
         this.buyComparison = BazaarUi.label("7d avg  Open History to load", BazaarStyles.MUTED_TEXT);
         this.sellComparison = BazaarUi.label("7d avg  Open History to load", BazaarStyles.MUTED_TEXT);
         this.buyPrice.horizontalSizing(Sizing.fill(100));
         this.sellPrice.horizontalSizing(Sizing.fill(100));
         this.buyComparison.horizontalSizing(Sizing.fill(100));
         this.sellComparison.horizontalSizing(Sizing.fill(100));
+        spreadTitle.horizontalSizing(Sizing.fill(100));
+        this.spreadValue.horizontalSizing(Sizing.fill(100));
         this.sellPrice.horizontalTextAlignment(HorizontalAlignment.RIGHT);
         this.sellComparison.horizontalTextAlignment(HorizontalAlignment.RIGHT);
+        spreadTitle.horizontalTextAlignment(HorizontalAlignment.CENTER);
+        this.spreadValue.horizontalTextAlignment(HorizontalAlignment.CENTER);
         buyMetric.child(this.buyPrice);
         buyMetric.child(this.buyComparison);
+        spreadMetric.child(spreadTitle);
+        spreadMetric.child(this.spreadValue);
         sellMetric.child(this.sellPrice);
         sellMetric.child(this.sellComparison);
         metrics.child(buyMetric);
+        metrics.child(spreadMetric);
         metrics.child(sellMetric);
         this.freshness = BazaarUi.label("Waiting for Bazaar data...", BazaarStyles.MUTED_TEXT);
         this.freshness.horizontalSizing(Sizing.fill(100));
@@ -246,8 +267,10 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private WidgetScrollContainer<RetainedFlowLayout> createHistoryBody() {
         var root = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         root.gap(3);
-        var ranges = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
-        ranges.gap(4);
+        var ranges = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+        ranges.padding(Insets.of(2));
+        ranges.gap(2);
+        ranges.surface(WidgetSurfaces.roundedPanel(CONTROL_STRIP_COLOR, 3));
         for (var candidate : BazaarItemInfoRange.values()) {
             var button = UIComponents.button(Component.literal(candidate.label()),
                 _ -> this.dataProvider.selectRange(candidate));
@@ -258,49 +281,74 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         }
         this.refresh = UIComponents.button(Component.literal("Refresh"), _ -> this.dataProvider.refresh());
         this.refresh.sizing(Sizing.fixed(58), Sizing.fixed(18));
+        this.refresh.renderer(ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED));
+        this.refresh.textShadow(false);
         ranges.child(this.refresh);
         this.activity = UIComponents.button(Component.literal("Activity"), _ -> this.toggleActivity());
-        this.activity.sizing(Sizing.fixed(102), Sizing.fixed(18));
+        this.activity.sizing(Sizing.fixed(84), Sizing.fixed(18));
+        this.activity.textShadow(false);
         ranges.child(this.activity);
 
-        this.filters = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
-        this.filters.gap(5);
-        var state = this.dataProvider.state();
-        this.buyFilter = filter("Buy", state.preferences().showBuy(), this.dataProvider::showBuy);
-        this.sellFilter = filter("Sell", state.preferences().showSell(), this.dataProvider::showSell);
-        this.bandsFilter = filter("Bands", state.preferences().showBands(), this.dataProvider::showBands);
+        this.filters = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
+        this.filters.padding(Insets.of(2));
+        this.filters.gap(2);
+        this.filters.surface(WidgetSurfaces.roundedPanel(CONTROL_STRIP_COLOR, 3));
+        this.buyFilter = filter("Buy Price", 66,
+            () -> this.dataProvider.state().preferences().showBuy(), this.dataProvider::showBuy);
+        this.sellFilter = filter("Sell Price", 66,
+            () -> this.dataProvider.state().preferences().showSell(), this.dataProvider::showSell);
+        this.bandsFilter = filter("Range Shading", 82,
+            () -> this.dataProvider.state().preferences().showBands(), this.dataProvider::showBands);
         this.filters.child(this.buyFilter);
         this.filters.child(this.sellFilter);
         this.filters.child(this.bandsFilter);
-        this.recoverFilters = UIComponents.button(Component.literal("Show Buy and Sell"),
+        this.recoverFilters = UIComponents.button(Component.literal("Show both prices"),
             _ -> this.dataProvider.showBuyAndSell());
-        this.recoverFilters.sizing(Sizing.fixed(114), Sizing.fixed(18));
+        this.recoverFilters.sizing(Sizing.fixed(106), Sizing.fixed(18));
+        this.recoverFilters.renderer(ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED));
+        this.recoverFilters.textShadow(false);
 
         this.chart = new BazaarHistoryChartComponent(
             Sizing.fill(100), Sizing.fixed(150), this.historyController);
         this.activityChart = new BazaarActivityChartComponent(
-            Sizing.fill(100), Sizing.fixed(58), this.historyController);
+            Sizing.fill(100), Sizing.fixed(ACTIVITY_CHART_HEIGHT), this.historyController);
         this.timeAxis = new BazaarTimeAxisComponent(
             Sizing.fill(100), Sizing.fixed(12), this.historyController);
-        this.historyStatus = BazaarUi.label("Open History to load", BazaarStyles.MUTED_TEXT);
         root.child(ranges);
         root.child(this.filters);
+        root.child(this.historyLegend());
         root.child(this.chart);
         root.child(this.activityChart);
         root.child(this.timeAxis);
-        root.child(this.historyStatus);
         var scroller = new WidgetScrollContainer<>(Sizing.fill(100), Sizing.fill(100), root, true);
         scroller.scrollbarThiccness(WidgetLayoutTokens.SCROLLBAR_THICKNESS);
         scroller.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(BazaarStyles.SCROLLBAR)));
         return scroller;
     }
 
-    private CheckboxComponent filter(
+    private ButtonComponent filter(
         String label,
-        boolean selected,
+        int width,
+        java.util.function.BooleanSupplier selected,
         java.util.function.Consumer<Boolean> setter
     ) {
-        return UIComponents.checkbox(Component.literal(label)).checked(selected).onChanged(setter);
+        var button = UIComponents.button(Component.literal(label), _ -> setter.accept(!selected.getAsBoolean()));
+        button.sizing(Sizing.fixed(width), Sizing.fixed(18));
+        button.textShadow(false);
+        return button;
+    }
+
+    private FlowLayout historyLegend() {
+        var legend = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(12));
+        legend.verticalAlignment(VerticalAlignment.CENTER);
+        legend.gap(6);
+        var title = BazaarUi.label("Price history: hover for exact values", BazaarStyles.SECONDARY_TEXT);
+        title.horizontalSizing(Sizing.expand(100));
+        legend.child(title);
+        legend.child(BazaarUi.label("Buy Price", BazaarStyles.BUY_ACCENT));
+        legend.child(BazaarUi.label("Sell Price", BazaarStyles.SELL_ACCENT));
+        legend.child(BazaarUi.label("Range shading", BazaarStyles.MUTED_TEXT));
+        return legend;
     }
 
     private void toggleActivity() {
@@ -312,7 +360,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     private FlowLayout footer() {
         var footer = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.fixed(14));
-        footer.child(BazaarUi.label("Live market data: Hypixel · History: Coflnet", BazaarStyles.MUTED_TEXT));
+        footer.child(BazaarUi.label("Live market data: Hypixel | History: Coflnet", BazaarStyles.MUTED_TEXT));
         return footer;
     }
 
@@ -324,9 +372,9 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (this.body == null || this.chart == null
             || this.buyPrice == null
             || this.sellPrice == null
+            || this.spreadValue == null
             || this.buyComparison == null
-            || this.sellComparison == null
-            || this.historyStatus == null) {
+            || this.sellComparison == null) {
             return;
         }
         this.body.clearChildren();
@@ -340,6 +388,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         }
         this.buyPrice.text(Component.literal("Buy Price  " + price(state.live().buyPrice())));
         this.sellPrice.text(Component.literal("Sell Price  " + price(state.live().sellPrice())));
+        this.spreadValue.text(Component.literal(spreadText(state.live())));
         if (this.lastAppliedRange != null && this.lastAppliedRange != state.selectedRange()
             && this.historyScroller != null) {
             this.historyScroller.scrollOffset(0);
@@ -356,7 +405,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (this.activityChart != null) {
             this.activityChart.verticalSizing(state.preferences().activityMode() == ActivityMode.Off
                 ? Sizing.fixed(0)
-                : Sizing.fixed(58));
+                : Sizing.fixed(ACTIVITY_CHART_HEIGHT));
         }
         this.rangeButtons.forEach((range, button) -> button.renderer(
             range == state.selectedRange()
@@ -370,12 +419,18 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             this.refresh.active(state.refreshEnabled());
         }
         if (this.activity != null) {
-            this.activity.setMessage(Component.literal("Activity: " + state.preferences().activityMode().label()));
+            boolean activityEnabled = state.preferences().activityMode() != ActivityMode.Off;
+            this.activity.setMessage(Component.literal(activityEnabled ? "Activity On" : "Activity Off"));
+            applyToggleStyle(
+                this.activity, activityEnabled, BUTTON_SELECTED, BUTTON_SELECTED_HOVER);
         }
         if (this.buyFilter != null && this.sellFilter != null && this.bandsFilter != null) {
-            this.buyFilter.checked(state.preferences().showBuy());
-            this.sellFilter.checked(state.preferences().showSell());
-            this.bandsFilter.checked(state.preferences().showBands());
+            applyToggleStyle(this.buyFilter, state.preferences().showBuy(),
+                BUY_FILTER_SELECTED, BUY_FILTER_SELECTED_HOVER);
+            applyToggleStyle(this.sellFilter, state.preferences().showSell(),
+                SELL_FILTER_SELECTED, SELL_FILTER_SELECTED_HOVER);
+            applyToggleStyle(this.bandsFilter, state.preferences().showBands(),
+                RANGE_FILTER_SELECTED, RANGE_FILTER_SELECTED_HOVER);
         }
         if (this.filters != null && this.recoverFilters != null) {
             boolean allHidden = !state.preferences().showBuy() && !state.preferences().showSell();
@@ -386,14 +441,61 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                 this.filters.removeChild(this.recoverFilters);
             }
         }
-        this.historyStatus.text(Component.literal(historyStatus(state)));
         this.buyComparison.text(Component.literal(comparisonText(state, true)));
         this.sellComparison.text(Component.literal(comparisonText(state, false)));
         this.refreshFreshness();
     }
 
     private static String price(java.util.Optional<Double> value) {
-        return value.map(BazaarWidgetViewData::formatPrice).orElse("-");
+        return value.map(BazaarItemInfoScreen::summaryPrice).orElse("-");
+    }
+
+    static String summaryPrice(double value) {
+        double absolute = Math.abs(value);
+        if (absolute >= 1_000_000) {
+            return Utils.formatCompact(value, 2);
+        }
+        if (absolute >= 100_000) {
+            return Utils.formatCompact(value, 1);
+        }
+        return BazaarWidgetViewData.formatPrice(value);
+    }
+
+    private static String spreadText(com.github.lutzluca.btrbz.data.LiveProductSnapshot live) {
+        return spreadSummary(live)
+            .map(spread -> BazaarWidgetViewData.formatCompact(Math.round(spread.amount()))
+                + String.format(java.util.Locale.ROOT, "  (%.1f%%)", spread.percent()))
+            .orElse("-");
+    }
+
+    private static void applyToggleStyle(
+        ButtonComponent button,
+        boolean selected,
+        int selectedColor,
+        int selectedHoverColor
+    ) {
+        button.renderer(selected
+            ? ButtonComponent.Renderer.flat(selectedColor, selectedHoverColor, BUTTON_DISABLED)
+            : ButtonComponent.Renderer.flat(BUTTON_NORMAL, BUTTON_HOVER, BUTTON_DISABLED));
+    }
+
+    static Optional<SpreadSummary> spreadSummary(
+        com.github.lutzluca.btrbz.data.LiveProductSnapshot live
+    ) {
+        Objects.requireNonNull(live, "live");
+        if (live.buyPrice().isEmpty() || live.sellPrice().isEmpty()) {
+            return Optional.empty();
+        }
+        double buy = live.buyPrice().orElseThrow();
+        double sell = live.sellPrice().orElseThrow();
+        if (!Double.isFinite(buy) || !Double.isFinite(sell) || buy <= 0) {
+            return Optional.empty();
+        }
+        double amount = buy - sell;
+        double percent = amount / buy * 100;
+        return Double.isFinite(amount) && Double.isFinite(percent)
+            ? Optional.of(new SpreadSummary(amount, percent))
+            : Optional.empty();
     }
 
     private int orderBookAvailableHeight() {
@@ -416,7 +518,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         }
         if (data instanceof Failure<?>) {
             return data.retainedValue().isPresent()
-                ? "Update failed · showing cached data"
+                ? "Update failed. Showing cached data"
                 : "History unavailable: " + ((Failure<?>) data).message();
         }
         if (data instanceof Empty<?>) {
@@ -434,14 +536,21 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             return state.comparison() instanceof Loading<?> ? "7d avg  Loading..." : "7d avg  Unavailable";
         }
         var result = retained.orElseThrow();
-        return result.label() + "  " + sideComparison(buy ? result.buy() : result.sell());
+        String label = comparisonLabel(state.comparison(), result.label());
+        return label + "  " + sideComparison(buy ? result.buy() : result.sell());
+    }
+
+    static String comparisonLabel(BazaarItemInfoViewData.LoadState<?> comparison, String loadedLabel) {
+        Objects.requireNonNull(comparison, "comparison");
+        Objects.requireNonNull(loadedLabel, "loadedLabel");
+        return comparison instanceof Failure<?> ? "7d cached" : loadedLabel;
     }
 
     private static String sideComparison(SevenDayComparison.Side side) {
         if (side.average().isEmpty()) {
             return "Unavailable";
         }
-        String text = BazaarWidgetViewData.formatPrice(side.average().getAsDouble());
+        String text = summaryPrice(side.average().getAsDouble());
         if (side.deltaPercent().isPresent()) {
             text += String.format(java.util.Locale.ROOT, " (%+.1f%%)", side.deltaPercent().getAsDouble());
         }
@@ -456,9 +565,6 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (state.activeMode() == InitialMode.History) {
             var status = Component.literal(historyStatus(state));
             this.freshness.text(status);
-            if (this.historyStatus != null) {
-                this.historyStatus.text(status);
-            }
             return;
         }
         if (state.live().lastUpdated().isEmpty()) {
@@ -472,7 +578,7 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         var updated = state.live().lastUpdated().orElseThrow();
         long seconds = Math.max(0, Duration.between(updated, Instant.now()).toSeconds());
         String text = seconds >= 60
-            ? "Data may be stale · " + age(updated) + " old"
+            ? "Data may be stale. " + age(updated) + " old"
             : "Market updated " + age(updated) + " ago";
         this.freshness.text(Component.literal(text));
     }
@@ -541,4 +647,6 @@ public final class BazaarItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     public boolean isPauseScreen() {
         return false;
     }
+
+    record SpreadSummary(double amount, double percent) {}
 }
