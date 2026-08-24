@@ -87,6 +87,7 @@ public class BtrBz implements ClientModInitializer {
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
     private WidgetRuntime widgetRuntime;
+    private BazaarPoller bazaarPoller;
     private boolean automaticConversionFailureNotified;
 
     public static TrackedOrderManager orderManager() {
@@ -233,7 +234,8 @@ public class BtrBz implements ClientModInitializer {
         BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
-        new BazaarPoller(BAZAAR_DATA::onUpdate);
+        this.bazaarPoller = new BazaarPoller(BAZAAR_DATA::onUpdate);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> this.bazaarPoller.close());
         var flipHelper = new FlipHelper(
             BAZAAR_DATA,
             flipProductContext,
