@@ -232,6 +232,7 @@ public class BtrBz implements ClientModInitializer {
 
         var bazaarPoller = new BazaarPoller(BAZAAR_DATA::onUpdate);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            ConfigManager.save();
             utcDayTracker.close();
             clipboardTracker.close();
             purseTracker.close();
