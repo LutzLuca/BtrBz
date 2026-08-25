@@ -87,7 +87,6 @@ public class BtrBz implements ClientModInitializer {
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
     private WidgetRuntime widgetRuntime;
-    private BazaarPoller bazaarPoller;
     private boolean automaticConversionFailureNotified;
 
     public static TrackedOrderManager orderManager() {
@@ -154,11 +153,6 @@ public class BtrBz implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             clipboardTracker.initialize();
             clipboardTracker.start();
-        });
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
-            utcDayTracker.close();
-            clipboardTracker.close();
-            purseTracker.close();
         });
 
         var bookmarks = new BookmarkComponent(
@@ -236,8 +230,13 @@ public class BtrBz implements ClientModInitializer {
         BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
-        this.bazaarPoller = new BazaarPoller(BAZAAR_DATA::onUpdate);
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> this.bazaarPoller.close());
+        var bazaarPoller = new BazaarPoller(BAZAAR_DATA::onUpdate);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            utcDayTracker.close();
+            clipboardTracker.close();
+            purseTracker.close();
+            bazaarPoller.close();
+        });
         var flipHelper = new FlipHelper(
             BAZAAR_DATA,
             flipProductContext,
