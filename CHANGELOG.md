@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.2-alpha] - 2026-08-25
+
+### Fixed
+
+- Fixed the client shutdown watchdog firing after BtrBz left its Bazaar API executor running
+- Fixed startup logging a clipboard tracker error before Minecraft created its keyboard handler
+- Fixed config serialization logging warnings after Log4j had shut down
+
 ## [0.11.1-alpha] - 2026-08-20
 
 ### Added
