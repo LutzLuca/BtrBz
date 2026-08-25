@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
  * and eliminating concurrency issues I think (눈_눈)
  */
 @Slf4j
-public class BazaarPoller {
+public class BazaarPoller implements AutoCloseable {
 
     /*
      * maybe on unchanged data use exponential backoff, starting at 100ms, doubling each time up a
@@ -36,25 +37,37 @@ public class BazaarPoller {
      * data). But this is good enough for "now".
      */
 
-    public static final HypixelAPI API = new HypixelAPI(new ApacheHttpClient(getApiKey()));
     private static final long BAZAAR_UPDATE_TIME_MS = 20_000;
     private static final long UNCHANGED_DATA_BACKOFF_MS = 250;
     private static final long ERROR_BACKOFF_MS = 500;
     private static final int MAX_UNCHANGED_RETRIES = 5;
 
     private final Consumer<Map<String, Product>> onReply;
-
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(r, "bazaar-poller");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private final HypixelAPI api;
+    private final ScheduledExecutorService scheduler;
 
     private long lastKnownUpdateTime = -1;
     private int unchangedDataRetries = 0;
 
     public BazaarPoller(@NotNull Consumer<Map<String, Product>> onReply) {
+        this(
+            onReply,
+            new HypixelAPI(new ApacheHttpClient(getApiKey())),
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread thread = new Thread(r, "bazaar-poller");
+                thread.setDaemon(true);
+                return thread;
+            }));
+    }
+
+    BazaarPoller(
+        Consumer<Map<String, Product>> onReply,
+        HypixelAPI api,
+        ScheduledExecutorService scheduler
+    ) {
         this.onReply = Objects.requireNonNull(onReply);
+        this.api = Objects.requireNonNull(api);
+        this.scheduler = Objects.requireNonNull(scheduler);
         this.scheduleFetch(0, "Initial fetch");
     }
 
@@ -66,12 +79,18 @@ public class BazaarPoller {
     }
 
     private void scheduleFetch(long delayMs, String reason) {
-        log.trace("Scheduling new fetch: {}", reason);
-        this.scheduler.schedule(this::fetchBazaarData, delayMs, TimeUnit.MILLISECONDS);
+        try {
+            this.scheduler.schedule(this::fetchBazaarData, delayMs, TimeUnit.MILLISECONDS);
+            log.trace("Scheduled new fetch: {}", reason);
+        } catch (RejectedExecutionException error) {
+            if (!this.scheduler.isShutdown()) {
+                throw error;
+            }
+        }
     }
 
     private void fetchBazaarData() {
-        API.getSkyBlockBazaar()
+        this.api.getSkyBlockBazaar()
             .whenCompleteAsync(
                 (reply, throwable) -> {
                     if (throwable != null) {
@@ -163,5 +182,11 @@ public class BazaarPoller {
             ERROR_BACKOFF_MS,
             throwable.getMessage());
         this.scheduleFetch(ERROR_BACKOFF_MS, "Error recovery: API fetch error");
+    }
+
+    @Override
+    public void close() {
+        this.scheduler.shutdownNow();
+        this.api.shutdown();
     }
 }

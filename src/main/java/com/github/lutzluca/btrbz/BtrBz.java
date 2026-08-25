@@ -147,15 +147,12 @@ public class BtrBz implements ClientModInitializer {
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         var purseTracker = new PurseTracker(GameUtils::getPurse);
         utcDayTracker.initialize();
-        clipboardTracker.initialize();
         purseTracker.initialize();
         utcDayTracker.start();
-        clipboardTracker.start();
         purseTracker.start();
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
-            utcDayTracker.close();
-            clipboardTracker.close();
-            purseTracker.close();
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+            clipboardTracker.initialize();
+            clipboardTracker.start();
         });
 
         var bookmarks = new BookmarkComponent(
@@ -233,7 +230,14 @@ public class BtrBz implements ClientModInitializer {
         BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
         BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
 
-        new BazaarPoller(BAZAAR_DATA::onUpdate);
+        var bazaarPoller = new BazaarPoller(BAZAAR_DATA::onUpdate);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            ConfigManager.save();
+            utcDayTracker.close();
+            clipboardTracker.close();
+            purseTracker.close();
+            bazaarPoller.close();
+        });
         var flipHelper = new FlipHelper(
             BAZAAR_DATA,
             flipProductContext,

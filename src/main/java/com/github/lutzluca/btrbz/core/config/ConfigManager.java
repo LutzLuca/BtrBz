@@ -36,8 +36,6 @@ public final class ConfigManager {
         } else {
             log.info("Successfully loaded config");
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(HANDLER::save));
     }
 
     public static Config get() {
