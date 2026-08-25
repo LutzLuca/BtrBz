@@ -148,11 +148,13 @@ public class BtrBz implements ClientModInitializer {
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         var purseTracker = new PurseTracker(GameUtils::getPurse);
         utcDayTracker.initialize();
-        clipboardTracker.initialize();
         purseTracker.initialize();
         utcDayTracker.start();
-        clipboardTracker.start();
         purseTracker.start();
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+            clipboardTracker.initialize();
+            clipboardTracker.start();
+        });
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             utcDayTracker.close();
             clipboardTracker.close();
