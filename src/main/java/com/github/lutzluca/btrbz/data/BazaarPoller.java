@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,6 @@ public class BazaarPoller implements AutoCloseable {
                 thread.setDaemon(true);
                 return thread;
             }));
-        this.scheduleFetch(0, "Initial fetch");
     }
 
     BazaarPoller(
@@ -68,6 +68,7 @@ public class BazaarPoller implements AutoCloseable {
         this.onReply = Objects.requireNonNull(onReply);
         this.api = Objects.requireNonNull(api);
         this.scheduler = Objects.requireNonNull(scheduler);
+        this.scheduleFetch(0, "Initial fetch");
     }
 
     private static UUID getApiKey() {
@@ -78,8 +79,14 @@ public class BazaarPoller implements AutoCloseable {
     }
 
     private void scheduleFetch(long delayMs, String reason) {
-        log.trace("Scheduling new fetch: {}", reason);
-        this.scheduler.schedule(this::fetchBazaarData, delayMs, TimeUnit.MILLISECONDS);
+        try {
+            this.scheduler.schedule(this::fetchBazaarData, delayMs, TimeUnit.MILLISECONDS);
+            log.trace("Scheduled new fetch: {}", reason);
+        } catch (RejectedExecutionException error) {
+            if (!this.scheduler.isShutdown()) {
+                throw error;
+            }
+        }
     }
 
     private void fetchBazaarData() {
