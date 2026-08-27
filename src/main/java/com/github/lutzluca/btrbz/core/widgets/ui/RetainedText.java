@@ -28,21 +28,18 @@ public final class RetainedText {
             return;
         }
 
-        var pose = new Matrix3x2f(graphics.pose());
+        var pose = graphics.pose();
         var scissor = graphics.scissorStack.peek();
-        var current = new Key(font, text, pose, x, y, color, dropShadow, scissor,
-            TextRenderRevision.current());
+        long revision = TextRenderRevision.current();
 
-        if (this.state == null || !current.equals(this.key)) {
+        if (this.key == null
+            || !this.key.matches(font, text, pose, x, y, color, dropShadow, scissor, revision)) {
+            var poseSnapshot = new Matrix3x2f(pose);
+
+            this.key = new Key(
+                font, text, poseSnapshot, x, y, color, dropShadow, scissor, revision);
             this.state = new GuiTextRenderState(
-                font, text, pose, x, y, color, 0, dropShadow, false, scissor);
-            this.key = current;
-        }
-
-        if (this.state.bounds() == null) {
-            this.state = null;
-            this.key = null;
-            return;
+                font, text, poseSnapshot, x, y, color, 0, dropShadow, false, scissor);
         }
 
         graphics.guiRenderState.addText(this.state);
@@ -59,25 +56,26 @@ public final class RetainedText {
         @Nullable ScreenRectangle scissor,
         long textRevision
     ) {
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof Key otherKey
-                && this.font == otherKey.font
-                && this.text == otherKey.text
-                && this.x == otherKey.x
-                && this.y == otherKey.y
-                && this.color == otherKey.color
-                && this.dropShadow == otherKey.dropShadow
-                && this.textRevision == otherKey.textRevision
-                && this.pose.equals(otherKey.pose)
-                && Objects.equals(this.scissor, otherKey.scissor);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(
-                System.identityHashCode(this.text), this.x, this.y, this.color,
-                this.scissor, this.textRevision);
+        boolean matches(
+            Font otherFont,
+            FormattedCharSequence otherText,
+            Matrix3x2f otherPose,
+            int otherX,
+            int otherY,
+            int otherColor,
+            boolean otherDropShadow,
+            @Nullable ScreenRectangle otherScissor,
+            long otherRevision
+        ) {
+            return this.font == otherFont
+                && this.text == otherText
+                && this.x == otherX
+                && this.y == otherY
+                && this.color == otherColor
+                && this.dropShadow == otherDropShadow
+                && this.textRevision == otherRevision
+                && this.pose.equals(otherPose)
+                && Objects.equals(this.scissor, otherScissor);
         }
     }
 }
