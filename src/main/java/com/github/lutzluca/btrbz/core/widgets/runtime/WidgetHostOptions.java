@@ -21,6 +21,7 @@ public record WidgetHostOptions(
 
     public WidgetHostOptions {
         placementProfiles = Map.copyOf(placementProfiles);
+        renderedWidgets = renderedWidgets == null ? null : Set.copyOf(renderedWidgets);
     }
 
     public static WidgetHostOptions runtime(boolean allowTooltips) {
@@ -36,7 +37,7 @@ public record WidgetHostOptions(
             selectedWidget,
             true,
             false,
-            Set.copyOf(renderedWidgets),
+            renderedWidgets,
             placementProfiles);
     }
 
