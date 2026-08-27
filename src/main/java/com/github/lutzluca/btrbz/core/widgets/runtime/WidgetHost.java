@@ -615,6 +615,7 @@ public final class WidgetHost {
     }
 
     private record PreparedCacheEntry(PreparedCacheStamp stamp, PreparedWidget prepared) {}
+
     private record PreviewCacheEntry(long[] revisions, WidgetPreview<?> preview) {}
 
     private record PreparedWidget(

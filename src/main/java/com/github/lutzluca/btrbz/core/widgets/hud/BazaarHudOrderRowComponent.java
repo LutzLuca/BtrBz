@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
+import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
@@ -31,6 +32,8 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     static final int ICON_CELL_WIDTH = LEFT_PADDING
         + ICON_SIZE + WidgetLayoutTokens.ORDER_TEXT_GAP;
     static final int HEIGHT = 20;
+
+    private final RetainedTextRow retainedText = new RetainedTextRow();
 
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
@@ -66,6 +69,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
         this.updateLayout();
     }
+
     @Override
     public void layout(Size space) {
         if (this.item == null) {
@@ -106,21 +110,23 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         int firstY = this.y + 1;
         int secondY = this.y + 10;
 
-        graphics.text(font, layout.productName(), this.x + layout.productX(),
-            firstY, BazaarStyles.PRIMARY_TEXT, false);
-        graphics.text(font, layout.status(), this.x + layout.statusX(),
-            firstY, this.order.status().color(), false);
-        graphics.text(font, layout.side(), this.x + layout.sideX(),
-            firstY, this.order.side().accentColor(), false);
+        this.retainedText.begin();
+
+        this.retainedText.draw(graphics, font, layout.productName(),
+            this.x + layout.productX(), firstY, BazaarStyles.PRIMARY_TEXT, false);
+        this.retainedText.draw(graphics, font, layout.status(),
+            this.x + layout.statusX(), firstY, this.order.status().color(), false);
+        this.retainedText.draw(graphics, font, layout.side(),
+            this.x + layout.sideX(), firstY, this.order.side().accentColor(), false);
 
         if (layout.identity() != null) {
-            graphics.text(font, layout.identity(), this.x + layout.identityX(),
-                secondY, BazaarStyles.SECONDARY_TEXT, false);
+            this.retainedText.draw(graphics, font, layout.identity(),
+                this.x + layout.identityX(), secondY, BazaarStyles.SECONDARY_TEXT, false);
         }
 
         if (layout.market() != null) {
-            graphics.text(font, layout.market(), this.x + layout.marketX(),
-                secondY, BazaarStyles.SECONDARY_TEXT, false);
+            this.retainedText.draw(graphics, font, layout.market(),
+                this.x + layout.marketX(), secondY, BazaarStyles.SECONDARY_TEXT, false);
         }
     }
 
@@ -147,11 +153,14 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
         return new DrawLayout(
             ellipsize(this.productName, Math.max(
-                0, statusX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)), x,
+                0, statusX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
+            x,
             status.getVisualOrderText(), statusX,
             side.getVisualOrderText(), sideX,
-            identity.isBlank() ? null : ellipsize(Component.literal(identity), Math.max(
-                0, marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)), x,
+            identity.isBlank()
+                ? null : ellipsize(Component.literal(identity), Math.max(
+                    0, marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
+            x,
             marketText.isBlank() ? null : Component.literal(marketText).getVisualOrderText(), marketX);
     }
 
