@@ -3,8 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.ui;
 public final class TextRenderRevision {
     private static long revision;
 
-    private TextRenderRevision() {
-    }
+    private TextRenderRevision() {}
 
     public static long current() {
         return revision;
