@@ -38,6 +38,12 @@ public final class RetainedText {
             this.key = current;
         }
 
+        if (this.state.bounds() == null) {
+            this.state = null;
+            this.key = null;
+            return;
+        }
+
         graphics.guiRenderState.addText(this.state);
     }
 
