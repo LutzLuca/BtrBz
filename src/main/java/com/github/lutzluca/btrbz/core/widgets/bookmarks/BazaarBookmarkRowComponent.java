@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
+import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
@@ -42,6 +43,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     private final RetainedTextRow retainedText = new RetainedTextRow();
     private @Nullable FormattedCharSequence drawName;
     private int drawNameWidth = -1;
+    private long drawNameRevision = -1;
 
     BazaarBookmarkRowComponent(
         BazaarBookmarkListComponent list,
@@ -182,9 +184,12 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         int available = Math.max(0, this.x + this.width - trailingInset
             - indicatorWidth - 4 - textX);
 
-        if (this.drawName == null || this.drawNameWidth != this.width) {
+        long revision = TextRenderRevision.current();
+
+        if (this.drawName == null || this.drawNameWidth != this.width || this.drawNameRevision != revision) {
             this.drawName = ellipsize(this.productName, available);
             this.drawNameWidth = this.width;
+            this.drawNameRevision = revision;
         }
 
         this.retainedText.begin();

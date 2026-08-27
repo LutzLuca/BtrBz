@@ -30,7 +30,8 @@ public final class RetainedText {
 
         var pose = new Matrix3x2f(graphics.pose());
         var scissor = graphics.scissorStack.peek();
-        var current = new Key(font, text, pose, x, y, color, dropShadow, scissor);
+        var current = new Key(font, text, pose, x, y, color, dropShadow, scissor,
+            TextRenderRevision.current());
 
         if (this.state == null || !current.equals(this.key)) {
             this.state = new GuiTextRenderState(
@@ -55,7 +56,8 @@ public final class RetainedText {
         int y,
         int color,
         boolean dropShadow,
-        @Nullable ScreenRectangle scissor
+        @Nullable ScreenRectangle scissor,
+        long textRevision
     ) {
         @Override
         public boolean equals(Object other) {
@@ -66,6 +68,7 @@ public final class RetainedText {
                 && this.y == otherKey.y
                 && this.color == otherKey.color
                 && this.dropShadow == otherKey.dropShadow
+                && this.textRevision == otherKey.textRevision
                 && this.pose.equals(otherKey.pose)
                 && Objects.equals(this.scissor, otherKey.scissor);
         }
@@ -73,7 +76,8 @@ public final class RetainedText {
         @Override
         public int hashCode() {
             return Objects.hash(
-                System.identityHashCode(this.text), this.x, this.y, this.color, this.scissor);
+                System.identityHashCode(this.text), this.x, this.y, this.color,
+                this.scissor, this.textRevision);
         }
     }
 }

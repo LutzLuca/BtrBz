@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
+import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -59,6 +60,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
     private @Nullable DrawLayout drawLayout;
     private int drawLayoutWidth = -1;
+    private long drawLayoutRevision = -1;
 
     private record DrawLayout(
         Component side, int sideX,
@@ -252,9 +254,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     private void drawStandard(OwoUIGraphics graphics) {
-        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+        long revision = TextRenderRevision.current();
+
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width || this.drawLayoutRevision != revision) {
             this.drawLayout = this.computeStandardLayout();
             this.drawLayoutWidth = this.width;
+            this.drawLayoutRevision = revision;
         }
 
         var layout = this.drawLayout;
@@ -321,9 +326,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     }
 
     private void drawCompact(OwoUIGraphics graphics) {
-        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+        long revision = TextRenderRevision.current();
+
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width || this.drawLayoutRevision != revision) {
             this.drawLayout = this.computeCompactLayout();
             this.drawLayoutWidth = this.width;
+            this.drawLayoutRevision = revision;
         }
 
         var layout = this.drawLayout;

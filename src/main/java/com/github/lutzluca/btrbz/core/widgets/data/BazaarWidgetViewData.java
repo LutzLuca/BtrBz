@@ -192,18 +192,6 @@ public final class BazaarWidgetViewData {
                 status, Optional.empty(), tooltipLines, 0);
         }
 
-        public Appearance appearance() {
-            return new Appearance(
-                this.id, this.side, this.formattedItemName, this.unitPrice, this.totalAmount,
-                this.liveProgress, this.status, this.marketInfo);
-        }
-
-        public record Appearance(
-            TrackedOrderId id, OrderSide side, Component formattedItemName,
-            double unitPrice, int totalAmount, Optional<FillProgress> liveProgress,
-            OrderStatus status, Optional<MarketInfo> marketInfo
-        ) {}
-
         @Override
         public Optional<ItemStack> itemStack() {
             return this.itemStack.map(ItemStack::copy);

@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
+import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
@@ -38,11 +39,14 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
     private Component productName;
+    private String identity;
+    private List<String> marketCandidates;
 
     private @Nullable ItemComponent item;
-    private @Nullable RowAppearance lastAppearance;
+    private @Nullable LayoutKey lastLayoutKey;
     private @Nullable DrawLayout drawLayout;
     private int drawLayoutWidth = -1;
+    private long drawLayoutRevision = -1;
 
     BazaarHudOrderRowComponent(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
@@ -51,19 +55,27 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     }
 
     void update(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
-        var appearance = new RowAppearance(
-            order.appearance(), options.abbreviateEnchanted,
-            options.showQueue, options.showUndercutGap);
-        boolean changed = !appearance.equals(this.lastAppearance);
+        var productName = order.formattedItemName(options.abbreviateEnchanted);
+        var itemStack = order.itemStack();
+        var identity = BazaarOrderText.orderIdentity(order);
+        var marketCandidates = BazaarOrderText.marketPositionCandidates(
+            order, options.showQueue, options.showUndercutGap);
+
+        var layoutKey = new LayoutKey(
+            productName, itemStack.isPresent(), order.side(), order.status(),
+            identity, marketCandidates);
+
+        boolean layoutChanged = !layoutKey.equals(this.lastLayoutKey);
 
         this.order = order;
         this.options = options;
-        this.productName = order.formattedItemName(options.abbreviateEnchanted);
+        this.productName = productName;
+        this.identity = identity;
+        this.marketCandidates = marketCandidates;
+        this.item = BazaarUi.reconcileItem(this.item, itemStack, ICON_SIZE);
 
-        this.item = BazaarUi.reconcileItem(this.item, order.itemStack(), ICON_SIZE);
-
-        if (changed) {
-            this.lastAppearance = appearance;
+        if (layoutChanged) {
+            this.lastLayoutKey = layoutKey;
             this.drawLayout = null;
         }
 
@@ -100,9 +112,12 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
             this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.itemComponent()));
         }
 
-        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+        long revision = TextRenderRevision.current();
+
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width || this.drawLayoutRevision != revision) {
             this.drawLayout = this.computeDrawLayout();
             this.drawLayoutWidth = this.width;
+            this.drawLayoutRevision = revision;
         }
 
         var layout = this.drawLayout;
@@ -144,10 +159,9 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         int sideX = right - font.width(side);
         int statusX = sideX - WidgetLayoutTokens.ORDER_TEXT_GAP - font.width(status);
 
-        String identity = BazaarOrderText.orderIdentity(this.order);
+        String identity = this.identity;
         String marketText = BazaarUi.firstFittingText(
-            BazaarOrderText.marketPositionCandidates(
-                this.order, this.options.showQueue, this.options.showUndercutGap),
+            this.marketCandidates,
             Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP));
         int marketX = marketText.isBlank() ? right : right - font.width(marketText);
 
@@ -168,11 +182,6 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         return Objects.requireNonNull(this.item, "item");
     }
 
-    private record RowAppearance(
-        BazaarWidgetViewData.Order.Appearance order,
-        boolean abbreviateEnchanted, boolean showQueue, boolean showUndercutGap
-    ) {}
-
     private record DrawLayout(
         FormattedCharSequence productName, int productX,
         FormattedCharSequence status, int statusX,
@@ -180,4 +189,18 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         @Nullable FormattedCharSequence identity, int identityX,
         @Nullable FormattedCharSequence market, int marketX
     ) {}
+
+    private record LayoutKey(
+        Component productName,
+        boolean hasItem,
+        BazaarWidgetViewData.OrderSide side,
+        BazaarWidgetViewData.OrderStatus status,
+        String identity,
+        List<String> marketCandidates
+    ) {
+        private LayoutKey {
+            productName = productName.copy();
+            marketCandidates = List.copyOf(marketCandidates);
+        }
+    }
 }

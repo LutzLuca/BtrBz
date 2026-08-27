@@ -28,6 +28,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     private @Nullable BazaarRow.Appearance lastAppearance;
     private @Nullable DrawLayout drawLayout;
     private int drawLayoutWidth = -1;
+    private long drawLayoutRevision = -1;
 
     BazaarOrderRowComponent(
         BazaarRow row,
@@ -106,9 +107,12 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
         }
 
-        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+        long revision = TextRenderRevision.current();
+
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width || this.drawLayoutRevision != revision) {
             this.drawLayout = this.computeDrawLayout();
             this.drawLayoutWidth = this.width;
+            this.drawLayoutRevision = revision;
         }
 
         var layout = this.drawLayout;
