@@ -9,7 +9,11 @@ public final class WidgetScissors {
     private WidgetScissors() {}
 
     public static ScreenRectangle conservative(
-        Matrix3x2fc pose, int left, int top, int right, int bottom
+        Matrix3x2fc pose,
+        int left,
+        int top,
+        int right,
+        int bottom
     ) {
         var topLeft = pose.transformPosition(left, top, new Vector2f());
         var bottomRight = pose.transformPosition(right, bottom, new Vector2f());
