@@ -18,10 +18,11 @@ public final class WidgetScissors {
         var topLeft = pose.transformPosition(left, top, new Vector2f());
         var bottomRight = pose.transformPosition(right, bottom, new Vector2f());
 
-        return new ScreenRectangle(
-            Mth.floor(topLeft.x),
-            Mth.floor(topLeft.y),
-            Mth.ceil(bottomRight.x - topLeft.x),
-            Mth.ceil(bottomRight.y - topLeft.y));
+        int minX = Mth.floor(topLeft.x);
+        int minY = Mth.floor(topLeft.y);
+        int maxX = Mth.ceil(bottomRight.x);
+        int maxY = Mth.ceil(bottomRight.y);
+
+        return new ScreenRectangle(minX, minY, maxX - minX, maxY - minY);
     }
 }
