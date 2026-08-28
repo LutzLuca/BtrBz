@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
+import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
+import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
@@ -16,6 +18,8 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import org.jetbrains.annotations.Nullable;
 
 import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
@@ -35,6 +39,11 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     private boolean reserveScrollbarSpace;
     private int index;
     private Consumer<BookmarksAction> actions;
+
+    private final RetainedTextRow retainedText = new RetainedTextRow();
+    private @Nullable FormattedCharSequence drawName;
+    private int drawNameWidth = -1;
+    private long drawNameRevision = -1;
 
     BazaarBookmarkRowComponent(
         BazaarBookmarkListComponent list,
@@ -69,7 +78,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         this.reserveScrollbarSpace = reserveScrollbarSpace;
         this.index = index;
         this.actions = actions;
-
+        this.drawName = null;
         this.item.stack(bookmark.itemStack());
 
         this.updateLayout();
@@ -175,7 +184,16 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         int available = Math.max(0, this.x + this.width - trailingInset
             - indicatorWidth - 4 - textX);
 
-        graphics.text(font, ellipsize(this.productName, available), textX,
+        long revision = TextRenderRevision.current();
+
+        if (this.drawName == null || this.drawNameWidth != this.width || this.drawNameRevision != revision) {
+            this.drawName = ellipsize(this.productName, available);
+            this.drawNameWidth = this.width;
+            this.drawNameRevision = revision;
+        }
+
+        this.retainedText.begin();
+        this.retainedText.draw(graphics, font, this.drawName, textX,
             this.y + (this.height - font.lineHeight) / 2, BazaarStyles.PRIMARY_TEXT, false);
 
         int dotX = this.x + this.width - trailingInset - indicatorWidth;

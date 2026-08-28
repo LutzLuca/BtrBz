@@ -6,6 +6,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 final class BazaarLabelComponent extends LabelComponent {
+    private final RetainedTextRow retainedText = new RetainedTextRow();
+
     BazaarLabelComponent(Component text) {
         super(text);
     }
@@ -17,16 +19,14 @@ final class BazaarLabelComponent extends LabelComponent {
         double verticalScale = Math.hypot(graphics.pose().m10(), graphics.pose().m11());
         double pixelOffset = 1.0 / (Minecraft.getInstance().getWindow().getGuiScale() * verticalScale);
 
+        // drawText invokes the callback once per wrapped line, in order.
+        this.retainedText.begin();
+
         graphics.push();
         try {
             graphics.translate(0, pixelOffset);
-            this.drawText((renderX, renderY, text, shadow, color) -> graphics.text(
-                this.textRenderer,
-                text,
-                renderX,
-                renderY,
-                color.argb(),
-                shadow));
+            this.drawText((renderX, renderY, text, shadow, color) -> this.retainedText.draw(
+                graphics, this.textRenderer, text, renderX, renderY, color.argb(), shadow));
         } finally {
             graphics.pop();
         }

@@ -262,11 +262,25 @@ public final class WidgetHost {
         @Nullable WidgetSession runtimeSession
     ) {
         try {
-            WidgetPreview preview = this.runtime ? null : this.preview(definition);
-            WidgetSession session = this.runtime ? runtimeSession : preview.session();
-
             var mountedWidget = this.mounted.computeIfAbsent(
                 definition.getId(), _ -> this.mount(definition));
+
+            WidgetPreview preview = null;
+
+            if (!this.runtime) {
+                var cachedPreview = mountedWidget.previewCache;
+
+                if (cachedPreview != null
+                    && CacheRevisions.match(cachedPreview.revisions(), mountedWidget.dependencies)) {
+                    preview = cachedPreview.preview();
+                } else {
+                    preview = this.preview(definition);
+                    mountedWidget.previewCache = new PreviewCacheEntry(
+                        CacheRevisions.capture(mountedWidget.dependencies), preview);
+                }
+            }
+
+            WidgetSession session = this.runtime ? runtimeSession : preview.session();
 
             String initialProfile = this.runtime
                 ? definition.placementProfile(session)
@@ -274,7 +288,7 @@ public final class WidgetHost {
             String profile = options.placementProfile(definition, initialProfile);
 
             var cached = mountedWidget.preparedCache;
-            boolean preparedCaching = this.runtime && definition.isPreparedCacheEnabled();
+            boolean preparedCaching = definition.isPreparedCacheEnabled();
 
             if (preparedCaching && cached != null
                 && cached.stamp().matches(
@@ -421,10 +435,14 @@ public final class WidgetHost {
             definition.getId(), component, this.stateStore.backgroundColor(definition),
             new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false);
 
-        CacheDependencies dependencies = definition.getCacheDependencies()
-            .and(CacheDependencies.of(
-                this.stateStore.frameChanges(definition.getId()),
-                this.stateStore.globalFrameChanges()));
+        CacheDependencies frameDependencies = CacheDependencies.of(
+            this.stateStore.frameChanges(definition.getId()),
+            this.stateStore.globalFrameChanges(),
+            definition.getConfigHandle().contentChanges());
+
+        CacheDependencies dependencies = this.runtime
+            ? definition.getCacheDependencies().and(frameDependencies)
+            : frameDependencies;
 
         return new MountedWidget(definition, view, component, slot, dependencies);
     }
@@ -529,6 +547,7 @@ public final class WidgetHost {
 
         private final CacheDependencies dependencies;
         private @Nullable PreparedCacheEntry preparedCache;
+        private @Nullable PreviewCacheEntry previewCache;
 
         private long[] preparedDependencyRevisions = new long[0];
         private long preparedSessionId = Long.MIN_VALUE;
@@ -596,6 +615,8 @@ public final class WidgetHost {
     }
 
     private record PreparedCacheEntry(PreparedCacheStamp stamp, PreparedWidget prepared) {}
+
+    private record PreviewCacheEntry(long[] revisions, WidgetPreview<?> preview) {}
 
     private record PreparedWidget(
         MountedWidget mounted,

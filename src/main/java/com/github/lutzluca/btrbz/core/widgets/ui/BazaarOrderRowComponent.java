@@ -19,6 +19,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     private static final int MINIMUM_LEFT_WIDTH = 24;
 
     private BazaarRow row;
+    private final RetainedTextRow retainedText = new RetainedTextRow();
 
     private boolean hoverable;
     private boolean reserveScrollbarSpace;
@@ -27,6 +28,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
     private @Nullable BazaarRow.Appearance lastAppearance;
     private @Nullable DrawLayout drawLayout;
     private int drawLayoutWidth = -1;
+    private long drawLayoutRevision = -1;
 
     BazaarOrderRowComponent(
         BazaarRow row,
@@ -105,9 +107,12 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
         }
 
-        if (this.drawLayout == null || this.drawLayoutWidth != this.width) {
+        long revision = TextRenderRevision.current();
+
+        if (this.drawLayout == null || this.drawLayoutWidth != this.width || this.drawLayoutRevision != revision) {
             this.drawLayout = this.computeDrawLayout();
             this.drawLayoutWidth = this.width;
+            this.drawLayoutRevision = revision;
         }
 
         var layout = this.drawLayout;
@@ -121,11 +126,16 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
                 dotScreenX + dot, this.y + (this.height + dot) / 2, this.row.statusColor());
         }
 
-        graphics.text(font, layout.prefix(), this.x + layout.prefixX(), y, this.row.prefixColor(), false);
-        graphics.text(font, layout.text(), this.x + layout.textX(), y, BazaarStyles.SECONDARY_TEXT, false);
+        this.retainedText.begin();
+
+        this.retainedText.draw(graphics, font, layout.prefix(),
+            this.x + layout.prefixX(), y, this.row.prefixColor(), false);
+        this.retainedText.draw(graphics, font, layout.text(),
+            this.x + layout.textX(), y, BazaarStyles.SECONDARY_TEXT, false);
 
         if (layout.rightText() != null) {
-            graphics.text(font, layout.rightText(), this.x + layout.rightX(), y, this.row.rightColor(), false);
+            this.retainedText.draw(graphics, font, layout.rightText(),
+                this.x + layout.rightX(), y, this.row.rightColor(), false);
         }
     }
 

@@ -37,6 +37,7 @@ import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
+import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -51,11 +52,15 @@ import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
@@ -69,6 +74,8 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.hud.HudWidgetBridge;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.PreparableReloadListener;
 
 @Slf4j
 public class BtrBz implements ClientModInitializer {
@@ -154,6 +161,25 @@ public class BtrBz implements ClientModInitializer {
             clipboardTracker.initialize();
             clipboardTracker.start();
         });
+
+        var textRevisionId = Identifier.fromNamespaceAndPath(MOD_ID, "text_render_revision");
+        var clientResources = ResourceLoader.get(PackType.CLIENT_RESOURCES);
+
+        clientResources.registerReloadListener(textRevisionId, new PreparableReloadListener() {
+            @Override
+            public CompletableFuture<Void> reload(
+                SharedState sharedState,
+                Executor backgroundExecutor,
+                PreparationBarrier barrier,
+                Executor gameExecutor
+            ) {
+                return barrier.wait(null)
+                    .thenRunAsync(TextRenderRevision::invalidate, gameExecutor);
+            }
+        });
+
+        clientResources.addListenerOrdering(
+            ResourceReloaderKeys.AFTER_VANILLA, textRevisionId);
 
         var bookmarks = new BookmarkComponent(
             BAZAAR_DATA,
