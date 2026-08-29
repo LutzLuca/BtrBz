@@ -77,8 +77,8 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
 
-        boolean suppressRowHover = this.scrollList.scrollbarOwnsMouseCapture()
-            || this.scrollList.isPointerOverScrollbar(mouseX, mouseY);
+        boolean suppressRowHover = !this.scrollList.isPointerInsideViewport(mouseX, mouseY)
+            || this.scrollList.scrollbarOwnsMouseCapture();
 
         for (var row : this.rows) {
             row.suppressHover(suppressRowHover);

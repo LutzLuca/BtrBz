@@ -161,6 +161,10 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.scrollList.flashScrollbar();
     }
 
+    public final boolean isPointerInsideViewport(double mouseX, double mouseY) {
+        return this.scrollList.isPointerInsideViewport(mouseX, mouseY);
+    }
+
     public final boolean beginDrag(K key, int index) {
         if (!this.reorderable || !this.retainedRows.contains(key)) {
             return false;

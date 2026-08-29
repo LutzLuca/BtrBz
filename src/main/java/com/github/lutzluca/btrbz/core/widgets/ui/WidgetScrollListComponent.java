@@ -95,6 +95,11 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
         return this.scroller.isPointerOverScrollbar(mouseX, mouseY);
     }
 
+    public boolean isPointerInsideViewport(double mouseX, double mouseY) {
+        return this.isInBoundingBox(mouseX, mouseY)
+            && !this.isPointerOverScrollbar(mouseX, mouseY);
+    }
+
     public void scrollByProgress(double delta) {
         this.scroller.scrollByProgress(delta);
     }
