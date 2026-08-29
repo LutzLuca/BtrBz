@@ -34,6 +34,8 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     ) {
         super(ScrollDirection.VERTICAL, horizontalSizing, verticalSizing, child);
         this.interactive = interactive;
+
+        this.allowOverflow(true);
     }
 
     public void interactive(boolean interactive) {
@@ -89,7 +91,22 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         }
 
         this.fixedScrollbarLength = this.resolveScrollbarLength();
-        super.draw(graphics, mouseX, mouseY, partialTicks, delta);
+
+        var padding = this.padding.get();
+
+        graphics.scissorStack.push(WidgetScissors.conservative(
+            graphics.pose(),
+            this.x + padding.left(),
+            this.y + padding.top(),
+            this.x + this.width - padding.right(),
+            this.y + this.height - padding.bottom()));
+
+        try {
+            super.draw(graphics, mouseX, mouseY, partialTicks, delta);
+        } finally {
+            graphics.disableScissor();
+        }
+
         this.rememberState();
     }
 

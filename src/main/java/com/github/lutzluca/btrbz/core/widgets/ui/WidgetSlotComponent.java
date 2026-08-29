@@ -326,11 +326,12 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
                 WidgetChrome.CORNER_RADIUS);
 
             graphics.translate(-this.child.x(), -this.child.y());
-            graphics.enableScissor(
+            graphics.scissorStack.push(WidgetScissors.conservative(
+                graphics.pose(),
                 this.child.x(),
                 this.child.y(),
                 this.child.x() + this.logicalWidth,
-                this.child.y() + this.logicalHeight);
+                this.child.y() + this.logicalHeight));
             try {
                 this.child.draw(graphics, mouseX, mouseY, partialTicks, delta);
             } finally {
