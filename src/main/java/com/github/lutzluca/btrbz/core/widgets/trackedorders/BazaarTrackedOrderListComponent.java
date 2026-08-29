@@ -57,9 +57,8 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
     @Override
     protected void beforeChildrenDraw(int mouseX, int mouseY) {
         if (!this.interactive
-            || !this.scrollList().isInBoundingBox(mouseX, mouseY)
-            || this.hoverSuppressed()
-            || this.scrollList().isPointerOverScrollbar(mouseX, mouseY)) {
+            || !this.isPointerInsideViewport(mouseX, mouseY)
+            || this.hoverSuppressed()) {
             this.hoveredId = null;
             return;
         }

@@ -165,7 +165,10 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
 
-        if (this.interactive && !this.list.hoverSuppressed() && this.isInBoundingBox(mouseX, mouseY)) {
+        if (this.interactive
+            && !this.list.hoverSuppressed()
+            && this.list.isPointerInsideViewport(mouseX, mouseY)
+            && this.isInBoundingBox(mouseX, mouseY)) {
             graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
         }
         if (this.list.dragging(this.bookmark.productId())) {
