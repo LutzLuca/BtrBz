@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.3-alpha] - 2026-08-29
+
+### Changed
+
+- Reduced allocations from about 50% to 8% in the widget manager and from about 12% to 2% while browsing Bazaar menus by caching widget previews and text render states
+
+### Fixed
+
+- Fixed widget content being clipped along the right or bottom edge at fractional GUI scales by rounding scissor regions outward
+- Fixed hidden bookmark, Bazaar, and tracked-order rows showing hover highlights outside the visible scroll-list viewport
+
 ## [0.11.2-alpha] - 2026-08-25
 
 ### Fixed
