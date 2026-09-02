@@ -1,5 +1,8 @@
+import org.gradle.api.tasks.Exec
+
 plugins {
     id("dev.kikugie.stonecutter")
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0" apply false
     id("com.diffplug.spotless") version "8.9.0" apply false
     checkstyle
 }
@@ -58,12 +61,15 @@ afterEvaluate {
     }
 }
 
-tasks.register("releaseMod") {
+tasks.register<Exec>("releaseMod") {
     group = "publishing"
-    description = "Releases the mod to all providers specified inside the `publishMods` task"
+    description = "Releases the mod to all providers and announces it on Discord"
 
-    stonecutter.versions.forEach { versionProject ->
-        val sub = project(":${versionProject.project}")
-        dependsOn(sub.tasks.named("publishMods"))
-    }
+    dependsOn(stonecutter.versions.map { ":${it.project}:publishMods" })
+    workingDir("scripts")
+    commandLine(
+        providers.environmentVariable("BUN_EXECUTABLE").getOrElse("bun"),
+        "run",
+        "discord-release",
+    )
 }
