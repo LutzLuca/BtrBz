@@ -1,0 +1,15 @@
+{
+    "name": "@btrbz/scripts",
+    "private": true,
+    "packageManager": "bun@1.3.5",
+    "type": "module",
+    "scripts": {
+        "discord-release": "bun run src/discord-release.ts"
+    },
+    "dependencies": {
+        "discord.js": "^14.27.0"
+    },
+    "devDependencies": {
+        "@types/bun": "1.3.5"
+    }
+}

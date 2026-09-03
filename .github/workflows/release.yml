@@ -4,19 +4,37 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-24.04
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v4
+        with:
+          persist-credentials: false
       - name: setup jdk
         uses: actions/setup-java@v4
         with:
           java-version: "25"
           distribution: "microsoft"
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: setup bun
+        id: bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.5"
+      - name: restore bun dependency cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun.outputs.bun-version }}-${{ hashFiles('scripts/bun.lock') }}
+      - name: install release dependencies
+        working-directory: scripts
+        run: bun ci --production
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
       - name: prepare changelog
@@ -26,3 +44,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_RELEASE_ROLE_ID: ${{ vars.DISCORD_RELEASE_ROLE_ID }}
