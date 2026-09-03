@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: setup jdk
         uses: actions/setup-java@v4
         with:
