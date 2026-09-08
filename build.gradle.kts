@@ -132,7 +132,7 @@ publishMods {
     github {
         accessToken = providers.environmentVariable("GITHUB_TOKEN")
         repository = getProp("github_repo")
-        commitish = "master"
+        commitish = providers.environmentVariable("GITHUB_SHA").getOrElse("master")
     }
 
     modrinth {

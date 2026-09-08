@@ -1,0 +1,16 @@
+name: Setup scripts
+description: Install the pinned Bun runtime and locked script dependencies
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      id: bun
+      with:
+        bun-version-file: scripts/package.json
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun.outputs.bun-version }}-${{ hashFiles('scripts/bun.lock') }}
+    - shell: bash
+      working-directory: scripts
+      run: bun ci

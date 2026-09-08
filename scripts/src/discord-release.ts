@@ -74,7 +74,7 @@ interface Download {
     url: string;
 }
 
-function createChangelog(version: string, rawChangelog: string): string {
+export function createChangelog(version: string, rawChangelog: string): string {
     const content: string[] = [];
     let skippedReleaseHeading = false;
 
@@ -101,8 +101,7 @@ function createChangelog(version: string, rawChangelog: string): string {
         .join("\n")
         .trim()
         .replace(/\n{3,}/g, "\n\n");
-    const description =
-        `# BtrBz v${version} is out!` + (body ? `\n\n${body}` : "");
+    const description = `# BtrBz v${version} is out!${body ? `\n\n${body}` : ""}`;
     if (description.length <= MAX_CHANGELOG_LENGTH) return description;
 
     const suffix =
@@ -140,12 +139,14 @@ function createButtonRows(
     return rows;
 }
 
-function createMessage(
+export function createMessage(
     version: string,
     changelog: string,
     downloads: Download[],
     roleId?: string,
 ): WebhookMessageCreateOptions {
+    const firstDownload = downloads[0];
+    if (!firstDownload) throw new Error("No Modrinth releases found");
     const changelogContainer = new ContainerBuilder()
         .setAccentColor(BTRBZ_COLOR)
         .addSectionComponents(
@@ -166,7 +167,7 @@ function createMessage(
         .setAccentColor(MODRINTH_COLOR)
         .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-                `**[v${version} - BtrBz](${downloads[0]!.url})**\nDownload BtrBz v${version} on Modrinth.`,
+                `**[v${version} - BtrBz](${firstDownload.url})**\nDownload BtrBz v${version} on Modrinth.`,
             ),
         )
         .addActionRowComponents(createButtonRows(downloads));
@@ -237,4 +238,4 @@ async function main(): Promise<void> {
     console.log("Discord release announcement posted");
 }
 
-await main();
+if (import.meta.main) await main();

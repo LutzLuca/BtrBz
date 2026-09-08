@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.Exec
-
 plugins {
     id("dev.kikugie.stonecutter")
     id("me.modmuss50.mod-publish-plugin") version "2.2.0" apply false
@@ -52,24 +50,20 @@ afterEvaluate {
 
     tasks.named("check") {
         dependsOn(checkstyleJava)
+        dependsOn(stonecutter.versions.map { ":${it.project}:check" })
     }
 
     tasks.named("build") {
         setDependsOn(stonecutter.versions.map { versionProject ->
             ":${versionProject.project}:build"
         })
+        dependsOn(tasks.named("check"))
     }
 }
 
-tasks.register<Exec>("releaseMod") {
+tasks.register("releaseMod") {
     group = "publishing"
-    description = "Releases the mod to all providers and announces it on Discord"
+    description = "Publishes the mod to GitHub and Modrinth"
 
     dependsOn(stonecutter.versions.map { ":${it.project}:publishMods" })
-    workingDir("scripts")
-    commandLine(
-        providers.environmentVariable("BUN_EXECUTABLE").getOrElse("bun"),
-        "run",
-        "discord-release",
-    )
 }

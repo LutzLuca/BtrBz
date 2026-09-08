@@ -1,48 +1,56 @@
 name: release
 on:
   push:
-    tags:
-      - 'v*'
+    tags: [ 'v*' ]
 
 permissions:
-  contents: write
+  contents: read
+
+# Never interrupt a run that may already have published to one provider.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
+  build:
+    name: release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - name: setup jdk
-        uses: actions/setup-java@v4
-        with:
-          java-version: "25"
-          distribution: "microsoft"
-      - name: setup gradle
-        uses: gradle/actions/setup-gradle@v4
-      - name: setup bun
-        id: bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.5"
-      - name: restore bun dependency cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun.outputs.bun-version }}-${{ hashFiles('scripts/bun.lock') }}
-      - name: install release dependencies
+      - name: require a commit on master
+        run: |
+          if ! git merge-base --is-ancestor HEAD origin/master; then
+            echo "::error::Release tags must point to a commit on master."
+            exit 1
+          fi
+      - uses: ./.github/actions/setup-gradle
+      - uses: ./.github/actions/setup-bun
+      - name: check scripts
         working-directory: scripts
-        run: bun ci --production
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
+        run: bun run check
       - name: prepare changelog
-        run: ./scripts/extract-latest-changes.sh
-      - name: build and release
+        run: |
+          bash scripts/extract-latest-changes.sh
+          version=$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG_LATEST.md | head -n 1)
+          if [ -z "$version" ] || [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Release tag does not match the latest changelog."
+            exit 1
+          fi
+      - name: format, lint, test, and build all targets
+        run: ./gradlew build
+      - name: publish to GitHub and Modrinth
         run: ./gradlew releaseMod
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+      - name: announce release
+        working-directory: scripts
+        run: bun run discord-release
+        env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           DISCORD_RELEASE_ROLE_ID: ${{ vars.DISCORD_RELEASE_ROLE_ID }}

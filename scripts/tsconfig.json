@@ -1,5 +1,8 @@
 {
     "compilerOptions": {
+        "strict": true,
+        "noEmit": true,
+        "noUncheckedIndexedAccess": true,
         "lib": ["ESNext"],
         "module": "Preserve",
         "moduleResolution": "bundler",
