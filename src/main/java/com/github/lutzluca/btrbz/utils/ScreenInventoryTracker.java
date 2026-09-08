@@ -47,7 +47,6 @@ public class ScreenInventoryTracker {
 
     @Getter
     private @Nullable Inventory currInv = null;
-    private boolean acceptItems = false;
 
     private Consumer<Inventory> onOpenCallback = null;
     private Consumer<Inventory> onFullyLoadedCallback = null;
@@ -71,12 +70,15 @@ public class ScreenInventoryTracker {
         }
 
         String title = this.currInv.title;
-        this.currInv = null;
-        this.acceptItems = false;
+        this.discard();
 
         if (this.onCloseCallback != null) {
             this.onCloseCallback.accept(title);
         }
+    }
+
+    public void discard() {
+        this.currInv = null;
     }
 
     public boolean isTrackingContainer(int containerId) {
@@ -108,7 +110,6 @@ public class ScreenInventoryTracker {
         this.close();
 
         this.currInv = new Inventory(syncId, title, slotCount);
-        this.acceptItems = true;
 
         if (this.onOpenCallback != null) {
             this.onOpenCallback.accept(this.currInv);
@@ -126,7 +127,7 @@ public class ScreenInventoryTracker {
 
         int slot = packet.getSlot();
         if (slot >= this.currInv.slotCount) {
-            if (this.acceptItems) {
+            if (!this.currInv.fullyLoaded) {
                 this.loaded();
             }
             return;
@@ -137,7 +138,7 @@ public class ScreenInventoryTracker {
             this.currInv.items.put(slot, itemStack);
         }
 
-        if (this.acceptItems && this.currInv.items.size() == this.currInv.slotCount) {
+        if (!this.currInv.fullyLoaded && this.currInv.items.size() == this.currInv.slotCount) {
             this.loaded();
         }
     }
@@ -150,8 +151,6 @@ public class ScreenInventoryTracker {
         if (this.onFullyLoadedCallback != null) {
             this.onFullyLoadedCallback.accept(this.currInv);
         }
-
-        this.acceptItems = false;
     }
 
     @ToString

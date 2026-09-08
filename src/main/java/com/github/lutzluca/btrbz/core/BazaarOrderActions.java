@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -115,6 +116,9 @@ public class BazaarOrderActions {
 
     private void registerTooltipCallback() {
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            if (!BtrBz.isActive()) {
+                return;
+            }
             var cfg = ConfigManager.get().orderActions;
             if (!cfg.enabled || !cfg.copyRemaining || BazaarOrderActions.this.remainingOrderAmount == null) {
                 return;
@@ -181,6 +185,12 @@ public class BazaarOrderActions {
 
     public void setReopenBazaar() {
         this.shouldReopenBazaar = true;
+    }
+
+    public void cancelPendingActions() {
+        this.shouldReopenBazaar = false;
+        this.remainingOrderAmount = null;
+        this.activeBuyOrderContext = null;
     }
 
     private int getReopenTargetSlotIdx(SlotView slot) {

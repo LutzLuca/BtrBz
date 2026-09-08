@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,9 @@ public final class GameUtils {
      * broken by Skyblocker; {@code setScreen(null)} is used instead.</p>
      */
     public static void submitSignValue(SignEditScreen signEditScreen, String value) {
+        if (!BtrBz.isActive() || ScreenInfoHelper.get().getCurrInfo().getScreen() != signEditScreen) {
+            return;
+        }
         var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
         accessor.setLine(0);
         accessor.invokeSetMessage(value);
@@ -52,7 +56,7 @@ public final class GameUtils {
         Minecraft.getInstance().setScreen(screen);
         //?} else {
         /*Minecraft.getInstance().gui.setScreen(screen);
-         *///?}
+        *///?}
     }
 
     public static @Nullable Screen screen() {
@@ -60,7 +64,7 @@ public final class GameUtils {
         return Minecraft.getInstance().screen;
         //?} else {
         /*return Minecraft.getInstance().gui.screen();
-         *///?}
+        *///?}
     }
 
     public static String stripFormattingCodes(String text) {
@@ -149,6 +153,9 @@ public final class GameUtils {
     }
 
     public static void runCommand(String command) {
+        if (!BtrBz.isActive()) {
+            return;
+        }
         var client = Minecraft.getInstance();
         if (client.player != null) {
             client.player.connection.sendCommand(command);

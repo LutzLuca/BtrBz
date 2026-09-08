@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
@@ -167,6 +168,10 @@ public final class ProductInfoProvider {
         });
     }
 
+    public void clearProductContext() {
+        this.setOpenedProduct(null, "Bazaar interaction cancelled");
+    }
+
     private void setOpenedProduct(@Nullable IndexedProduct product, String reason) {
         if (Objects.equals(this.openedProduct, product)) {
             return;
@@ -217,6 +222,9 @@ public final class ProductInfoProvider {
 
     private void registerTooltipDisplay() {
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            if (!BtrBz.isActive()) {
+                return;
+            }
             var cfg = ConfigManager.get().productInfo;
             if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
                 return;
@@ -244,6 +252,9 @@ public final class ProductInfoProvider {
         });
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            if (!BtrBz.isActive()) {
+                return;
+            }
             var cfg = ConfigManager.get().productInfo;
             if (!cfg.enabled || !cfg.priceTooltipEnabled) {
                 return;

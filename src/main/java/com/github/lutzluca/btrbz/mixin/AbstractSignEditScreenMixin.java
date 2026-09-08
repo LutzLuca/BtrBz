@@ -40,7 +40,7 @@ public abstract class AbstractSignEditScreenMixin implements WidgetHostOwner, Wi
     @Override
     public WidgetManagerLauncher btrbz$managerLauncher() {
         if (this.btrbz$managerLauncher == null) {
-            this.btrbz$managerLauncher = new WidgetManagerLauncher(BtrBz.widgetRuntime());
+            this.btrbz$managerLauncher = BtrBz.widgetRuntime().createManagerLauncher();
         }
         return this.btrbz$managerLauncher;
     }

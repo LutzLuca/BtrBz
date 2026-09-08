@@ -22,7 +22,6 @@ class ExternalTrackersTest {
             var day = new AtomicLong(10);
             var tracker = new UtcDayTracker(day::get);
 
-            tracker.initialize();
             assertEquals(10, tracker.currentDay());
             assertEquals(0, tracker.changes().revision());
             assertFalse(tracker.poll());
@@ -79,7 +78,6 @@ class ExternalTrackersTest {
             var value = new AtomicReference<Optional<Double>>(Optional.empty());
             var tracker = new PurseTracker(value::get);
 
-            tracker.initialize();
             assertEquals(0, tracker.changes().revision());
             assertFalse(tracker.poll());
             value.set(Optional.of(100.0));

@@ -311,6 +311,10 @@ public class TrackedOrderManager {
         };
     }
 
+    public void cancelOutstandingOrders() {
+        this.outstandingOrderStore.clear();
+    }
+
     public void resetTrackedOrders() {
         var removedSize = this.trackedOrders.size();
         this.trackedOrders.clear();

@@ -37,6 +37,9 @@ public class DrawContextMixin {
 
     @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;III)V", at = @At("TAIL"))
     private void drawIndicator(ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
+        if (!BtrBz.isActive()) {
+            return;
+        }
         @Nullable
         var isBookmarked = stack.get(BtrBz.BOOKMARKED);
 

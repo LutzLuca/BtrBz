@@ -27,6 +27,7 @@
         "minecraft": "${mc_version}",
         "java": ">=25",
         "fabric-api": "*",
+        "hypixel-mod-api": ">=1.0.2",
         "yet_another_config_lib_v3": "*",
         "owo-lib": "*"
     },

@@ -16,7 +16,6 @@ public final class UtcDayTracker implements AutoCloseable {
     private final CacheToken changes = CacheToken.named("external.utc-day");
 
     private long currentDay;
-    private boolean initialized;
     private boolean failureLogged;
 
     private ClientTickDispatcher.TaskHandle taskHandle;
@@ -27,20 +26,10 @@ public final class UtcDayTracker implements AutoCloseable {
 
     public UtcDayTracker(LongSupplier daySupplier) {
         this.daySupplier = Objects.requireNonNull(daySupplier, "daySupplier");
-    }
-
-    public void initialize() {
-        if (this.initialized) {
-            return;
-        }
-
         this.currentDay = this.daySupplier.getAsLong();
-        this.initialized = true;
     }
 
     public void start() {
-        this.requireInitialized();
-
         if (this.taskHandle == null) {
             this.taskHandle = ClientTickDispatcher.scheduleEvery(
                 POLL_TICKS, _ -> this.poll());
@@ -48,8 +37,6 @@ public final class UtcDayTracker implements AutoCloseable {
     }
 
     public boolean poll() {
-        this.requireInitialized();
-
         try {
             long next = this.daySupplier.getAsLong();
             this.failureLogged = false;
@@ -74,7 +61,6 @@ public final class UtcDayTracker implements AutoCloseable {
     }
 
     public long currentDay() {
-        this.requireInitialized();
         this.poll();
 
         return this.currentDay;
@@ -91,11 +77,5 @@ public final class UtcDayTracker implements AutoCloseable {
         }
 
         this.taskHandle = null;
-    }
-
-    private void requireInitialized() {
-        if (!this.initialized) {
-            throw new IllegalStateException("UTC day tracker is not initialized");
-        }
     }
 }

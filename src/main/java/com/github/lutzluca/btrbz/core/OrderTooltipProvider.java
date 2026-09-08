@@ -73,6 +73,9 @@ public class OrderTooltipProvider {
         });
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            if (!BtrBz.isActive()) {
+                return;
+            }
             var cfg = ConfigManager.get().orderItemTooltip;
             if (!cfg.enabled) {
                 return;

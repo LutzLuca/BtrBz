@@ -35,7 +35,7 @@ public final class HudWidgetBridge {
         boolean hideGui = client.options.hideGui;
         //?} else {
         /*boolean hideGui = client.gui.hud.isHidden();
-         *///?}
+        *///?}
 
         if (shouldSuppressHud(
             hideGui,

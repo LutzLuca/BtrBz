@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -24,7 +25,7 @@ public class ChatFilterManager {
 
     public ChatFilterManager() {
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
-            if (!ConfigManager.get().chatFilter.enabled) {
+            if (!BtrBz.isActive() || !ConfigManager.get().chatFilter.enabled) {
                 return true;
             }
 

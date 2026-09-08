@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.Activation;
+import com.github.lutzluca.btrbz.core.SkyBlockDetector;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
@@ -13,6 +15,7 @@ import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
@@ -83,18 +86,43 @@ public class BtrBz implements ClientModInitializer {
     public static final String MOD_ID = "btrbz";
     public static DataComponentType<Boolean> BOOKMARKED;
 
-    public static final BazaarMessageDispatcher MESSAGE_DISPATCHER = new BazaarMessageDispatcher();
-    private static final BazaarData BAZAAR_DATA = new BazaarData();
-
     private static BtrBz instance;
 
+    private Activation activation;
+    private BazaarData bazaarData;
     private TrackedOrderManager orderManager;
     private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
     private WidgetRuntime widgetRuntime;
-    private boolean automaticConversionFailureNotified;
+    private BazaarPoller bazaarPoller;
+    private BazaarOrderActions orderActions;
+    private OrderPresetsComponent orderPresets;
+    private FlipHelper flipHelper;
+    private FlipSubmissionTracker flipSubmissionTracker;
+    private ProductInfoProvider productInfoProvider;
+    private boolean automaticConversionRefreshStarted;
+
+    public static boolean isActive() {
+        return instance.activation.isActive();
+    }
+
+    public static long activationGeneration() {
+        return instance.activation.generation();
+    }
+
+    public static String setEnabled(boolean enabled) {
+        ConfigManager.updateIfChanged(config -> {
+            if (config.enabled == enabled) {
+                return false;
+            }
+            config.enabled = enabled;
+            return true;
+        });
+        instance.activation.refresh();
+        return instance.activation.description();
+    }
 
     public static TrackedOrderManager orderManager() {
         return instance.orderManager;
@@ -123,38 +151,39 @@ public class BtrBz implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
+        ConfigManager.load();
+        this.activation = new Activation(() -> ConfigManager.get().enabled, this::onActivationChanged);
+        this.bazaarData = new BazaarData();
+        var messageDispatcher = new BazaarMessageDispatcher();
 
         BOOKMARKED = Registry.register(
             BuiltInRegistries.DATA_COMPONENT_TYPE,
             Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
             DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
 
-        ConfigManager.load();
-        BAZAAR_DATA.addConversionEventListener(this::handleConversionEvent);
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> BAZAAR_DATA.loadConversions());
+        this.bazaarData.addConversionEventListener(this::handleConversionEvent);
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> this.bazaarData.loadConversions());
 
         this.highlightManager = new OrderHighlightManager();
-        this.tooltipProvider = new OrderTooltipProvider(BAZAAR_DATA);
+        this.tooltipProvider = new OrderTooltipProvider(this.bazaarData);
 
         ScreenInfoHelper.registerOnSwitch(info -> this.highlightManager.clearHighlightOverride());
 
-        this.orderManager = new TrackedOrderManager(BAZAAR_DATA);
+        this.orderManager = new TrackedOrderManager(this.bazaarData);
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
-        this.alertManager = new AlertManager(BAZAAR_DATA);
+        this.alertManager = new AlertManager(this.bazaarData);
         new ChatFilterManager();
-        this.orderProtectionManager = new OrderProtectionManager(BAZAAR_DATA);
+        this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
 
-        var productInfoProvider = new ProductInfoProvider(BAZAAR_DATA);
-        var orderActions = new BazaarOrderActions(BAZAAR_DATA);
+        this.productInfoProvider = new ProductInfoProvider(this.bazaarData);
+        this.orderActions = new BazaarOrderActions(this.bazaarData);
         var flipProductContext = new FlipProductContext();
-        var flipSubmissionTracker = new FlipSubmissionTracker();
+        this.flipSubmissionTracker = new FlipSubmissionTracker();
 
         var utcDayTracker = new UtcDayTracker();
         var clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         var purseTracker = new PurseTracker(GameUtils::getPurse);
-        utcDayTracker.initialize();
-        purseTracker.initialize();
         utcDayTracker.start();
         purseTracker.start();
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
@@ -182,26 +211,26 @@ public class BtrBz implements ClientModInitializer {
             ResourceReloaderKeys.AFTER_VANILLA, textRevisionId);
 
         var bookmarks = new BookmarkComponent(
-            BAZAAR_DATA,
-            productInfoProvider,
+            this.bazaarData,
+            this.productInfoProvider,
             this.orderManager);
         var orderValue = new OrderValueComponent();
         var dailyLimit = new DailyLimitComponent(utcDayTracker);
-        var orderPresets = new OrderPresetsComponent(
-            BAZAAR_DATA, productInfoProvider, clipboardTracker, purseTracker);
+        this.orderPresets = new OrderPresetsComponent(
+            this.bazaarData, this.productInfoProvider, clipboardTracker, purseTracker);
         var orderBookPrice = new OrderBookPriceComponent(
-            BAZAAR_DATA,
-            productInfoProvider,
+            this.bazaarData,
+            this.productInfoProvider,
             flipProductContext,
-            flipSubmissionTracker);
+            this.flipSubmissionTracker);
 
         var sessionProvider = new DefaultWidgetSessionProvider(
-            BAZAAR_DATA,
-            productInfoProvider,
+            this.bazaarData,
+            this.productInfoProvider,
             orderBookPrice);
         var ordersWidgetData = new MemoizedWidgetDataSource<>(new OrdersWidgetData(
-            BAZAAR_DATA, this.orderManager, this.tooltipProvider));
-        var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(BAZAAR_DATA));
+            this.bazaarData, this.orderManager, this.tooltipProvider));
+        var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(this.bazaarData));
         var toggleHudKey = BtrBzWidgetKeybinds.registerMapping();
         var bazaarOrdersWidget = BazaarOrdersWidgetDefinition.create(
             ordersWidgetData, toggleHudKey::getTranslatedKeyMessage);
@@ -212,9 +241,9 @@ public class BtrBz implements ClientModInitializer {
         widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(OrderBookPriceWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(BookmarksWidgetDefinition.create(bookmarks));
-        widgetRegistry.register(OrderPresetsWidgetDefinition.create(orderPresets));
+        widgetRegistry.register(OrderPresetsWidgetDefinition.create(this.orderPresets));
         widgetRegistry.register(DailyLimitWidgetDefinition.create(dailyLimit));
-        widgetRegistry.register(PriceDifferenceWidgetDefinition.create(BAZAAR_DATA));
+        widgetRegistry.register(PriceDifferenceWidgetDefinition.create(this.bazaarData));
         var widgetStateStore = new WidgetStateStore();
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider);
         var hudHint = new BazaarHudHintController(
@@ -225,8 +254,8 @@ public class BtrBz implements ClientModInitializer {
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
-        new OrderBookScreenController(productInfoProvider, this.widgetRuntime);
-        Commands.registerAll(BAZAAR_DATA, this.widgetRuntime);
+        new OrderBookScreenController(this.productInfoProvider, this.widgetRuntime);
+        Commands.registerAll(this.bazaarData, this.widgetRuntime);
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidget, widgetStateStore, hudHint::dismiss);
 
@@ -247,46 +276,54 @@ public class BtrBz implements ClientModInitializer {
             pendingOrderData.ifPresentOrElse(
                 data -> addOutstanding.accept(data.orderInfo()),
                 () -> OrderInfoParser
-                    .parseSetOrderItem(stack, BAZAAR_DATA)
+                    .parseSetOrderItem(stack, this.bazaarData)
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err)));
-            orderActions.setReopenBazaar();
+            this.orderActions.setReopenBazaar();
         });
 
-        BAZAAR_DATA.addListener(this.alertManager::onBazaarUpdate);
-        BAZAAR_DATA.addListener(this.orderManager::onBazaarUpdate);
+        this.bazaarData.addListener(this.alertManager::onBazaarUpdate);
+        this.bazaarData.addListener(this.orderManager::onBazaarUpdate);
 
-        var bazaarPoller = new BazaarPoller(BAZAAR_DATA::onUpdate);
+        this.bazaarPoller = new BazaarPoller(this.bazaarData::onUpdate);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            this.activation.setSkyBlockConfirmed(false);
             ConfigManager.save();
             utcDayTracker.close();
             clipboardTracker.close();
             purseTracker.close();
-            bazaarPoller.close();
+            this.flipSubmissionTracker.close();
+            this.bazaarPoller.close();
         });
-        var flipHelper = new FlipHelper(
-            BAZAAR_DATA,
+        this.flipHelper = new FlipHelper(
+            this.bazaarData,
             flipProductContext,
-            flipSubmissionTracker);
+            this.flipSubmissionTracker);
 
-        MESSAGE_DISPATCHER.on(BazaarMessage.OrderFlipped.class, flipHelper::handleFlipped);
-        MESSAGE_DISPATCHER.on(BazaarMessage.OrderFilled.class, orderManager::handleOrderFilled);
-        MESSAGE_DISPATCHER.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
+        messageDispatcher.on(BazaarMessage.OrderFlipped.class, this.flipHelper::handleFlipped);
+        messageDispatcher.on(BazaarMessage.OrderFilled.class, orderManager::handleOrderFilled);
+        messageDispatcher.on(BazaarMessage.OrderSetup.class, orderManager::confirmOutstanding);
 
-        MESSAGE_DISPATCHER.on(
+        messageDispatcher.on(
             BazaarMessage.InstaBuy.class,
             info -> dailyLimit.onTransaction(info.total()));
-        MESSAGE_DISPATCHER.on(
+        messageDispatcher.on(
             BazaarMessage.InstaSell.class, info -> dailyLimit
                 .onTransaction(info.total() * (1 - ConfigManager.get().tax / 100)));
-        MESSAGE_DISPATCHER.on(
+        messageDispatcher.on(
             BazaarMessage.OrderSetup.class,
             info -> dailyLimit.onTransaction(info.total()));
 
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> MESSAGE_DISPATCHER
-            .handleChatMessage(GameUtils.stripFormattingCodes(message.getString())));
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
+            if (BtrBz.isActive()) {
+                messageDispatcher.handleChatMessage(GameUtils.stripFormattingCodes(message.getString()));
+            }
+        });
 
         ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
+            if (!BtrBz.isActive()) {
+                return message;
+            }
             var rawMsg = GameUtils.stripFormattingCodes(message.getString());
             if (overlay || !rawMsg.startsWith("[Bazaar]") || !rawMsg.endsWith("was filled!")) {
                 return message;
@@ -309,16 +346,55 @@ public class BtrBz implements ClientModInitializer {
                     .stream()
                     .filter(entry -> GameUtils.orderScreenNonOrderItemsFilter(entry.getValue()))
                     .map(entry -> OrderInfoParser
-                        .parseOrderInfo(entry.getValue(), entry.getKey(), BAZAAR_DATA)
+                        .parseOrderInfo(entry.getValue(), entry.getKey(), this.bazaarData)
                         .toJavaOptional())
                     .flatMap(Optional::stream)
                     .toList();
 
                 this.orderManager.syncOrders(parsed);
             });
+
+        new SkyBlockDetector(this.activation).register();
+    }
+
+    private void onActivationChanged(boolean active) {
+        if (active) {
+            this.activate();
+        } else {
+            this.deactivate();
+        }
+    }
+
+    private void activate() {
+        log.info("BtrBz features activated");
+        this.bazaarPoller.start();
+        if (!this.automaticConversionRefreshStarted) {
+            this.automaticConversionRefreshStarted = true;
+            this.bazaarData.refreshConversions(false);
+        }
+    }
+
+    private void deactivate() {
+        log.info("BtrBz features deactivated");
+        this.bazaarPoller.stop();
+        this.orderActions.cancelPendingActions();
+        this.orderPresets.cancelTransaction();
+        this.flipHelper.cancelPendingFlip();
+        this.flipSubmissionTracker.clear();
+        this.orderManager.cancelOutstandingOrders();
+        this.productInfoProvider.clearProductContext();
+        this.highlightManager.clearHighlightOverride();
+        ScreenInfoHelper.get().discard();
+        this.widgetRuntime.disposeRuntimeWidgets();
+        if (GameUtils.screen() instanceof OrderBookScreen) {
+            GameUtils.setScreen(null);
+        }
     }
 
     private void handleConversionEvent(ConversionEvent event) {
+        if (!event.manual() && !BtrBz.isActive()) {
+            return;
+        }
         switch (event.kind()) {
             case LoadFailure -> MessageQueue.sendOrQueue(
                 "Failed to load Bazaar conversions; some features may not work as expected. "
@@ -330,7 +406,6 @@ public class BtrBz implements ClientModInitializer {
                 }
             }
             case RefreshSuccess -> {
-                this.automaticConversionFailureNotified = false;
                 if (event.manual()) {
                     if (event.message().isBlank()) {
                         MessageQueue.sendOrQueue("Updated Bazaar conversion index", Level.Info);
@@ -353,13 +428,10 @@ public class BtrBz implements ClientModInitializer {
                     return;
                 }
 
-                if (!this.automaticConversionFailureNotified) {
-                    this.automaticConversionFailureNotified = true;
-                    MessageQueue.sendOrQueue(
-                        "BtrBz could not refresh Bazaar conversions; using bundled/cache data. "
-                            + "Run /btrbz conversions status for details.",
-                        Level.Warn);
-                }
+                MessageQueue.sendOrQueue(
+                    "BtrBz could not refresh Bazaar conversions; using bundled/cache data. "
+                        + "Run /btrbz conversions status for details.",
+                    Level.Warn);
             }
         }
     }

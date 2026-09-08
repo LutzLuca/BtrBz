@@ -83,6 +83,12 @@ public class TimedStore<T> implements AutoCloseable {
         }
     }
 
+    public void clear() {
+        synchronized (this.entries) {
+            this.entries.clear();
+        }
+    }
+
     private void cleanupExpired() {
         long now = this.clock.getAsLong();
         synchronized (this.entries) {

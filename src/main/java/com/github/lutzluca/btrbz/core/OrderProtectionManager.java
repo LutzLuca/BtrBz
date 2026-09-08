@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -60,6 +61,9 @@ public class OrderProtectionManager {
         SlotHookRegistry.register(new ConfirmationHook());
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
+            if (!BtrBz.isActive()) {
+                return;
+            }
             if (!ConfigManager.get().orderProtection.enabled) {
                 return;
             }

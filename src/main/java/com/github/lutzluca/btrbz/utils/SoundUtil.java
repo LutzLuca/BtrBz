@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +32,7 @@ public class SoundUtil {
             return;
         }
 
+        long generation = BtrBz.activationGeneration();
         long now = System.currentTimeMillis();
         lastPlayedTimes.compute(sound, (key, lastTime) -> {
             long last = Optional.ofNullable(lastTime).orElse(0L);
@@ -38,13 +40,14 @@ public class SoundUtil {
                 log.trace("Requesting sound: {} (volume={}, repeats={})", sound.location(), volume, repeatCount);
                 for (int i = 0; i < repeatCount; i++) {
                     if (i == 0) {
-                        SoundUtil.play(sound, volume);
+                        SoundUtil.play(sound, volume, generation, MAX_RETRIES);
                         continue;
                     }
 
                     int delay = i * 3;
                     log.trace("Scheduling repeat #{} for {} with delay {} ticks", i, sound.location(), delay);
-                    ClientTickDispatcher.scheduleAfter(mc -> SoundUtil.play(sound, volume), delay);
+                    ClientTickDispatcher.scheduleAfter(mc -> SoundUtil.play(sound, volume, generation, MAX_RETRIES),
+                        delay);
                 }
 
                 return now;
@@ -63,16 +66,16 @@ public class SoundUtil {
         SoundUtil.playSound(soundEntry.value(), volume);
     }
 
-    private static void play(SoundEvent sound, float volume) {
-        SoundUtil.play(sound, volume, MAX_RETRIES);
-    }
-
-    private static void play(SoundEvent sound, float volume, int attemptsLeft) {
+    private static void play(SoundEvent sound, float volume, long generation, int attemptsLeft) {
+        if (!BtrBz.isActive() || generation != BtrBz.activationGeneration()) {
+            return;
+        }
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             log.debug("Player is null, deferring sound {} ({} retries left)", sound.location(), attemptsLeft);
             if (attemptsLeft > 0) {
-                ClientTickDispatcher.scheduleAfter(mc -> SoundUtil.play(sound, volume, attemptsLeft - 1), 20);
+                ClientTickDispatcher.scheduleAfter(mc -> SoundUtil.play(sound, volume, generation, attemptsLeft - 1),
+                    20);
             }
             return;
         }

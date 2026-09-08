@@ -69,12 +69,12 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         var previous = helper.getPrevInfo();
         boolean hud = screen == null;
         boolean sign = screen instanceof SignEditScreen;
-        boolean orderBook = screen instanceof OrderBookScreen;
+        boolean orderBook = screen instanceof OrderBookScreen orderBookScreen && orderBookScreen.isCurrent();
 
         Optional<WidgetProductContext> product = Optional.empty();
         Optional<OrderType> side = Optional.empty();
 
-        if (screen instanceof OrderBookScreen orderBookScreen) {
+        if (screen instanceof OrderBookScreen orderBookScreen && orderBook) {
             product = Optional.of(this.context(
                 orderBookScreen.product(), Component.literal(orderBookScreen.productName()),
                 previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))));

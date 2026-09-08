@@ -1,7 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
+import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementContext;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -12,6 +14,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
@@ -25,6 +30,9 @@ public final class WidgetRuntime {
     private final WidgetStateStore stateStore;
     private final WidgetSessionProvider sessionProvider;
     private final Map<WidgetId, Double> scrollOffsets = new HashMap<>();
+    // Screens own their hosts; this set lets deactivation dispose even temporarily hidden hosts.
+    private final Set<WidgetHost> hosts = Collections.newSetFromMap(new WeakHashMap<>());
+    private final Set<WidgetManagerLauncher> launchers = Collections.newSetFromMap(new WeakHashMap<>());
 
     public WidgetRuntime(
         WidgetRegistry registry,
@@ -58,12 +66,25 @@ public final class WidgetRuntime {
     }
 
     private WidgetHost createHost(boolean placementDragging) {
-        return WidgetHost.runtime(
+        var host = WidgetHost.runtime(
             this.registry.all(),
             this.stateStore,
             this.sessionProvider,
             this.scrollOffsets,
             placementDragging);
+        this.hosts.add(host);
+        return host;
+    }
+
+    public WidgetManagerLauncher createManagerLauncher() {
+        var launcher = new WidgetManagerLauncher(this);
+        this.launchers.add(launcher);
+        return launcher;
+    }
+
+    public void disposeRuntimeWidgets() {
+        this.hosts.forEach(WidgetHost::dispose);
+        this.launchers.forEach(WidgetManagerLauncher::dispose);
     }
 
     public WidgetManagementScreen createManagementScreen(@Nullable Screen previousScreen) {
@@ -84,6 +105,9 @@ public final class WidgetRuntime {
     }
 
     public boolean canOpenContextualManager(@Nullable Screen screen) {
+        if (!BtrBz.isActive()) {
+            return false;
+        }
         var session = this.sessionProvider.current(screen);
         return contextualManagerSupported(
             screen instanceof AbstractContainerScreen<?>,

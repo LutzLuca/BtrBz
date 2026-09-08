@@ -22,6 +22,10 @@ public final class FlipSubmissionTracker implements AutoCloseable {
         return this.pendingFlips.removeFirstMatch(entry -> this.sameProduct(entry.product(), product));
     }
 
+    public void clear() {
+        this.pendingFlips.clear();
+    }
+
     private boolean sameProduct(ProductIdentity first, ProductIdentity second) {
         if (first.bazaarProductId().isPresent() && second.bazaarProductId().isPresent()) {
             return first.bazaarProductId().get().equals(second.bazaarProductId().get());

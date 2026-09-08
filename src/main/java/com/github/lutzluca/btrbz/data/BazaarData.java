@@ -50,7 +50,6 @@ public class BazaarData {
     public void loadConversions() {
         log.info("Loading bazaar conversion index");
         this.conversionIndexService.loadConversionIndex();
-        this.conversionIndexService.refreshConversionIndex(false);
     }
 
     public boolean refreshConversions(boolean manual) {

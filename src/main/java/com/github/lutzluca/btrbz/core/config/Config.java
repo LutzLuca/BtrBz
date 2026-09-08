@@ -18,6 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 public class Config {
 
     @SerialEntry
+    public boolean enabled = true;
+
+    @SerialEntry
     public WidgetsConfig widgets = new WidgetsConfig();
 
     @SerialEntry
