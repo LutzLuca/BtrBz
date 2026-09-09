@@ -58,6 +58,10 @@ public class OrderProtectionManager {
 
     public OrderProtectionManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
+        this.bazaarData.addListener(_ -> {
+            this.validationCache.clear();
+            this.validationFailureCache.clear();
+        });
         SlotHookRegistry.register(new ConfirmationHook());
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
@@ -208,6 +212,7 @@ public class OrderProtectionManager {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var stack = ctx.view().getRawStack();
             var cfg = ConfigManager.get().orderProtection;
+            OrderProtectionManager.this.validateConfirmationStack(stack);
             var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)
                 .orElseGet(() -> {
@@ -243,7 +248,7 @@ public class OrderProtectionManager {
         OutstandingOrderInfo orderInfo, ValidationResult validationResult
     ) {}
 
-    private static final class OrderValidator {
+    static final class OrderValidator {
 
         public static PendingOrderData validate(
             OutstandingOrderInfo info,
@@ -252,6 +257,10 @@ public class OrderProtectionManager {
         ) {
             if (!cfg.enabled || (!cfg.blockUndercutPercentage && !cfg.blockUndercutOfOpposing)) {
                 return new PendingOrderData(info, ValidationResult.allowed());
+            }
+
+            if (!bazaarData.hasMarketData()) {
+                return new PendingOrderData(info, ValidationResult.blocked("Bazaar prices are unavailable."));
             }
 
             var product = bazaarData.resolveIndexedProduct(info.product());

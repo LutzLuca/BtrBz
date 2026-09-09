@@ -31,6 +31,7 @@ public final class UtcDayTracker implements AutoCloseable {
 
     public void start() {
         if (this.taskHandle == null) {
+            this.poll();
             this.taskHandle = ClientTickDispatcher.scheduleEvery(
                 POLL_TICKS, _ -> this.poll());
         }

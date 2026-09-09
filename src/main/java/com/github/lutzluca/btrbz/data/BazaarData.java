@@ -148,6 +148,15 @@ public class BazaarData {
         }
     }
 
+    /** Drop the previous activation's prices and invalidate all market-derived caches. */
+    public void clearMarketData() {
+        this.onUpdate(Map.of());
+    }
+
+    public boolean hasMarketData() {
+        return this.currentSnapshot().available();
+    }
+
     public void addListener(Consumer<MarketSnapshot> listener) {
         this.listeners.add(listener);
         log.trace(
@@ -288,6 +297,10 @@ public class BazaarData {
 
         public int size() {
             return this.products.size();
+        }
+
+        public boolean available() {
+            return !this.products.isEmpty();
         }
 
         public boolean contains(ProductIdentity product) {

@@ -27,6 +27,8 @@ public final class PurseTracker implements AutoCloseable {
 
     public void start() {
         if (this.taskHandle == null) {
+            this.ticks = 0;
+            this.poll();
             this.taskHandle = ClientTickDispatcher.onEachTick(_ -> {
                 if (++this.ticks >= POLL_TICKS) {
                     this.ticks = 0;
@@ -75,6 +77,10 @@ public final class PurseTracker implements AutoCloseable {
         }
 
         this.taskHandle = null;
+        if (this.value.isPresent()) {
+            this.value = Optional.empty();
+            this.changes.invalidate(InvalidationReason.of("purse tracker stopped"));
+        }
     }
 
     private void readInitial() {

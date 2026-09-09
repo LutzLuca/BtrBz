@@ -99,13 +99,17 @@ public class BtrBz implements ClientModInitializer {
     private BazaarPoller bazaarPoller;
     private BazaarOrderActions orderActions;
     private OrderPresetsComponent orderPresets;
+    private OrderValueComponent orderValue;
+    private UtcDayTracker utcDayTracker;
+    private ClipboardTracker clipboardTracker;
+    private PurseTracker purseTracker;
     private FlipHelper flipHelper;
     private FlipSubmissionTracker flipSubmissionTracker;
     private ProductInfoProvider productInfoProvider;
     private boolean automaticConversionRefreshStarted;
 
     public static boolean isActive() {
-        return instance.activation.isActive();
+        return instance != null && instance.activation != null && instance.activation.isActive();
     }
 
     public static long activationGeneration() {
@@ -180,16 +184,10 @@ public class BtrBz implements ClientModInitializer {
         var flipProductContext = new FlipProductContext();
         this.flipSubmissionTracker = new FlipSubmissionTracker();
 
-        var utcDayTracker = new UtcDayTracker();
-        var clipboardTracker = new ClipboardTracker(
+        this.utcDayTracker = new UtcDayTracker();
+        this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
-        var purseTracker = new PurseTracker(GameUtils::getPurse);
-        utcDayTracker.start();
-        purseTracker.start();
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            clipboardTracker.initialize();
-            clipboardTracker.start();
-        });
+        this.purseTracker = new PurseTracker(GameUtils::getPurse);
 
         var textRevisionId = Identifier.fromNamespaceAndPath(MOD_ID, "text_render_revision");
         var clientResources = ResourceLoader.get(PackType.CLIENT_RESOURCES);
@@ -214,10 +212,10 @@ public class BtrBz implements ClientModInitializer {
             this.bazaarData,
             this.productInfoProvider,
             this.orderManager);
-        var orderValue = new OrderValueComponent();
-        var dailyLimit = new DailyLimitComponent(utcDayTracker);
+        this.orderValue = new OrderValueComponent();
+        var dailyLimit = new DailyLimitComponent(this.utcDayTracker);
         this.orderPresets = new OrderPresetsComponent(
-            this.bazaarData, this.productInfoProvider, clipboardTracker, purseTracker);
+            this.bazaarData, this.productInfoProvider, this.clipboardTracker, this.purseTracker);
         var orderBookPrice = new OrderBookPriceComponent(
             this.bazaarData,
             this.productInfoProvider,
@@ -237,7 +235,7 @@ public class BtrBz implements ClientModInitializer {
         var widgetRegistry = new WidgetRegistry();
         widgetRegistry.register(bazaarOrdersWidget);
         widgetRegistry.register(TrackedOrdersWidgetDefinition.create(ordersWidgetData, this.orderManager));
-        widgetRegistry.register(OrderValueWidgetDefinition.create(orderValue));
+        widgetRegistry.register(OrderValueWidgetDefinition.create(this.orderValue));
         widgetRegistry.register(OrderBookWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(OrderBookPriceWidgetDefinition.create(orderBookWidgetData, orderBookPrice));
         widgetRegistry.register(BookmarksWidgetDefinition.create(bookmarks));
@@ -262,7 +260,7 @@ public class BtrBz implements ClientModInitializer {
         this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
             var trackedOrders = this.orderManager.getTrackedOrders();
             this.highlightManager.sync(trackedOrders, filledOrder);
-            orderValue.sync(unfilledOrders, filledOrder);
+            this.orderValue.sync(unfilledOrders, filledOrder);
         });
 
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {
@@ -289,9 +287,6 @@ public class BtrBz implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
             this.activation.setSkyBlockConfirmed(false);
             ConfigManager.save();
-            utcDayTracker.close();
-            clipboardTracker.close();
-            purseTracker.close();
             this.flipSubmissionTracker.close();
             this.bazaarPoller.close();
         });
@@ -367,6 +362,10 @@ public class BtrBz implements ClientModInitializer {
 
     private void activate() {
         log.info("BtrBz features activated");
+        this.utcDayTracker.start();
+        this.clipboardTracker.initialize();
+        this.clipboardTracker.start();
+        this.purseTracker.start();
         this.bazaarPoller.start();
         if (!this.automaticConversionRefreshStarted) {
             this.automaticConversionRefreshStarted = true;
@@ -377,13 +376,18 @@ public class BtrBz implements ClientModInitializer {
     private void deactivate() {
         log.info("BtrBz features deactivated");
         this.bazaarPoller.stop();
+        this.bazaarData.clearMarketData();
+        this.utcDayTracker.close();
+        this.clipboardTracker.close();
+        this.purseTracker.close();
         this.orderActions.cancelPendingActions();
         this.orderPresets.cancelTransaction();
         this.flipHelper.cancelPendingFlip();
         this.flipSubmissionTracker.clear();
         this.orderManager.cancelOutstandingOrders();
         this.productInfoProvider.clearProductContext();
-        this.highlightManager.clearHighlightOverride();
+        this.highlightManager.clear();
+        this.orderValue.clear();
         ScreenInfoHelper.get().discard();
         this.widgetRuntime.disposeRuntimeWidgets();
         if (GameUtils.screen() instanceof OrderBookScreen) {

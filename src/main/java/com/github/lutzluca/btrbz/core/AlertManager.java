@@ -45,6 +45,9 @@ public class AlertManager {
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
+        if (!snapshot.available()) {
+            return;
+        }
         var cfg = ConfigManager.get().alert;
         if (!cfg.enabled) {
             return;

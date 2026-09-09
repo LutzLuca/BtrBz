@@ -37,6 +37,8 @@ public final class ClipboardTracker implements AutoCloseable {
         this.requireInitialized();
 
         if (this.taskHandle == null) {
+            this.ticks = 0;
+            this.poll();
             this.taskHandle = ClientTickDispatcher.onEachTick(_ -> {
                 if (++this.ticks >= POLL_TICKS) {
                     this.ticks = 0;
@@ -88,6 +90,10 @@ public final class ClipboardTracker implements AutoCloseable {
         }
 
         this.taskHandle = null;
+        if (!this.value.isEmpty()) {
+            this.value = "";
+            this.changes.invalidate(InvalidationReason.of("clipboard tracker stopped"));
+        }
     }
 
     private void readInitial() {

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
 import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
@@ -30,7 +31,7 @@ public abstract class SlotClickHookMixin {
         ContainerInput type,
         CallbackInfo ci
     ) {
-        if (slot == null) {
+        if (!BtrBz.isActive() || slot == null) {
             return;
         }
 

@@ -3,6 +3,9 @@ package com.github.lutzluca.btrbz.core.widgets.cache;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,66 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("External widget state trackers")
 class ExternalTrackersTest {
+    @Test
+    @DisplayName("stops polling while inactive and refreshes immediately on restart")
+    void activationPollingLifecycle() {
+        var reads = new AtomicInteger();
+        var day = new AtomicLong(10);
+        var clipboard = new AtomicReference<>("64");
+        var purse = new AtomicReference<>(Optional.of(100.0));
+        try (var dayTracker = new UtcDayTracker(() -> {
+            reads.incrementAndGet();
+            return day.get();
+        });
+            var clipboardTracker = new ClipboardTracker(() -> {
+                reads.incrementAndGet();
+                return clipboard.get();
+            });
+            var purseTracker = new PurseTracker(() -> {
+                reads.incrementAndGet();
+                return purse.get();
+            })
+        ) {
+            clipboardTracker.initialize();
+            dayTracker.start();
+            clipboardTracker.start();
+            purseTracker.start();
+            int startedReads = reads.get();
+            dayTracker.start();
+            clipboardTracker.start();
+            purseTracker.start();
+            Assertions.assertEquals(startedReads, reads.get());
+            tick(20);
+            Assertions.assertTrue(reads.get() > startedReads);
+
+            dayTracker.close();
+            clipboardTracker.close();
+            purseTracker.close();
+            int stoppedReads = reads.get();
+            day.set(11);
+            clipboard.set("128");
+            purse.set(Optional.of(200.0));
+            tick(20);
+            Assertions.assertEquals(stoppedReads, reads.get());
+            Assertions.assertEquals("", clipboardTracker.value());
+            Assertions.assertTrue(purseTracker.value().isEmpty());
+
+            long dayRevision = dayTracker.changes().revision();
+            dayTracker.start();
+            clipboardTracker.start();
+            purseTracker.start();
+            Assertions.assertTrue(dayTracker.changes().revision() > dayRevision);
+            Assertions.assertEquals("128", clipboardTracker.value());
+            Assertions.assertEquals(Optional.of(200.0), purseTracker.value());
+        }
+    }
+
+    private static void tick(int count) {
+        for (int i = 0; i < count; i++) {
+            ClientTickEvents.END_CLIENT_TICK.invoker().onEndTick(null);
+        }
+    }
+
     @Nested
     @DisplayName("UTC day")
     class UtcDay {

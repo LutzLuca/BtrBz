@@ -202,6 +202,11 @@ public class TrackedOrderManager {
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
+        if (!snapshot.available()) {
+            this.trackedOrders.forEach(order -> order.status = new OrderStatus.Unknown());
+            this.dataChanges.invalidate(InvalidationReason.of("market unavailable"));
+            return;
+        }
         var statusUpdates = this.statusEvaluator
             .computeStatusUpdates(this.trackedOrders, snapshot)
             .toList();

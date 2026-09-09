@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.utils.slot;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.world.item.ItemStack;
@@ -17,9 +16,6 @@ public final class SlotHookRegistry {
 
     public static ItemStack getDisplayStack(SlotRenderContext ctx) {
         var view = ctx.view();
-        if (!BtrBz.isActive()) {
-            return view.getRawStack();
-        }
 
         for (SlotHook hook : HOOKS) {
             if (!hook.matches(view)) {
@@ -36,9 +32,6 @@ public final class SlotHookRegistry {
     }
 
     public static boolean handleClick(SlotClickContext ctx) {
-        if (!BtrBz.isActive()) {
-            return false;
-        }
         var view = ctx.view();
 
         for (SlotHook hook : HOOKS) {

@@ -77,6 +77,12 @@ public class OrderHighlightManager {
         this.overrideColor = null;
     }
 
+    public void clear() {
+        this.clearHighlightOverride();
+        this.slotToTrackedOrder.clear();
+        this.filledOrderSlots.clear();
+    }
+
     public TrackedOrder getTrackedOrder(int slotIdx) {
         return this.slotToTrackedOrder.get(slotIdx);
     }
