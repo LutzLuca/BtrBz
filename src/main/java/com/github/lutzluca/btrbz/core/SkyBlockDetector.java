@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import net.minecraft.client.Minecraft;
 public final class SkyBlockDetector {
     private final Activation activation;
     private final Consumer<Runnable> clientExecutor;
+    private final AtomicBoolean confirmationResetPending = new AtomicBoolean(true);
     private final AtomicLong connectionGeneration = new AtomicLong();
     private boolean connected;
 
@@ -43,21 +45,33 @@ public final class SkyBlockDetector {
     }
 
     void beginConnection() {
-        this.changeConnection(true);
-    }
-
-    void endConnection() {
-        this.changeConnection(false);
-    }
-
-    private void changeConnection(boolean connected) {
-        // Configuration INIT can run on Netty too. Invalidate queued packets immediately,
-        // then change feature state on the client thread.
+        // Configuration INIT can run on Netty and can repeat during a Hypixel server transfer.
+        // Advance the generation immediately so queued location packets from the previous
+        // configuration cannot affect the new one, while retaining confirmed SkyBlock state
+        // until a location packet says that the game type changed.
         long generation = this.connectionGeneration.incrementAndGet();
         this.clientExecutor.accept(() -> {
             if (generation == this.connectionGeneration.get()) {
-                this.connected = connected;
-                log.debug("Hypixel connection changed: connected={}, generation={}", connected, generation);
+                this.connected = true;
+                boolean resetConfirmation = this.confirmationResetPending.getAndSet(false);
+                log.debug(
+                    "Hypixel configuration initialized: resetConfirmation={}, generation={}",
+                    resetConfirmation,
+                    generation);
+                if (resetConfirmation) {
+                    this.activation.setSkyBlockConfirmed(false);
+                }
+            }
+        });
+    }
+
+    void endConnection() {
+        this.confirmationResetPending.set(true);
+        long generation = this.connectionGeneration.incrementAndGet();
+        this.clientExecutor.accept(() -> {
+            if (generation == this.connectionGeneration.get()) {
+                this.connected = false;
+                log.debug("Hypixel connection ended: generation={}", generation);
                 this.activation.setSkyBlockConfirmed(false);
             }
         });

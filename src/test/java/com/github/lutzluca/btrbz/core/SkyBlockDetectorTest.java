@@ -96,18 +96,37 @@ class SkyBlockDetectorTest {
         }
 
         @Test
-        void disconnectAndReconfigurationBothClearConfirmation() {
+        void reconfigurationKeepsConfirmationUntilLocationChangesGameType() {
             SkyBlockDetectorTest.this.tracker.beginConnection();
             SkyBlockDetectorTest.this.clientTasks.remove().run();
             SkyBlockDetectorTest.this.tracker.onLocation(Optional.of(GameType.SKYBLOCK));
             SkyBlockDetectorTest.this.clientTasks.remove().run();
+
             SkyBlockDetectorTest.this.tracker.beginConnection();
+            SkyBlockDetectorTest.this.clientTasks.remove().run();
+            Assertions.assertTrue(SkyBlockDetectorTest.this.activation.isActive());
+            SkyBlockDetectorTest.this.tracker.onLocation(Optional.of(GameType.SKYBLOCK));
+            SkyBlockDetectorTest.this.clientTasks.remove().run();
+            Assertions.assertTrue(SkyBlockDetectorTest.this.activation.isActive());
+            SkyBlockDetectorTest.this.tracker.onLocation(Optional.of(GameType.BEDWARS));
             SkyBlockDetectorTest.this.clientTasks.remove().run();
             Assertions.assertFalse(SkyBlockDetectorTest.this.activation.isActive());
+        }
+
+        @Test
+        void rapidReconnectStillClearsConfirmationWhenEarlierTasksBecomeObsolete() {
+            SkyBlockDetectorTest.this.tracker.beginConnection();
+            SkyBlockDetectorTest.this.clientTasks.remove().run();
             SkyBlockDetectorTest.this.tracker.onLocation(Optional.of(GameType.SKYBLOCK));
             SkyBlockDetectorTest.this.clientTasks.remove().run();
+
             SkyBlockDetectorTest.this.tracker.endConnection();
-            SkyBlockDetectorTest.this.clientTasks.remove().run();
+            SkyBlockDetectorTest.this.tracker.beginConnection();
+            SkyBlockDetectorTest.this.tracker.beginConnection();
+            while (!SkyBlockDetectorTest.this.clientTasks.isEmpty()) {
+                SkyBlockDetectorTest.this.clientTasks.remove().run();
+            }
+
             Assertions.assertFalse(SkyBlockDetectorTest.this.activation.isActive());
         }
     }
