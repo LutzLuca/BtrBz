@@ -46,7 +46,6 @@ public class OrderTooltipProvider {
 
         OrderTooltipCache(String name) {
             this.name = name;
-            log.info("Initializing OrderTooltipCache for {}", name);
         }
 
         public List<Component> getOrCompute(@NotNull TrackedOrder order, Supplier<List<Component>> supplier) {
@@ -57,7 +56,9 @@ public class OrderTooltipProvider {
         }
 
         public void clear() {
-            log.trace("Clearing {} tooltip cache with {} entries", this.name, this.cache.size());
+            if (!this.cache.isEmpty()) {
+                log.trace("Clearing {} tooltip cache with {} entries", this.name, this.cache.size());
+            }
             this.cache.clear();
         }
     }

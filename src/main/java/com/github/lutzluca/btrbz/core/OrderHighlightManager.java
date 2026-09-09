@@ -13,11 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
-@Slf4j
 public class OrderHighlightManager {
 
     private final Map<Integer, TrackedOrder> slotToTrackedOrder = new HashMap<>();
@@ -38,7 +36,6 @@ public class OrderHighlightManager {
         List<TrackedOrder> trackedOrders,
         List<OrderInfo.FilledOrderInfo> filledOrders
     ) {
-        log.debug("Synchronizing highlights from ui orders");
         this.slotToTrackedOrder.clear();
         this.filledOrderSlots.clear();
 

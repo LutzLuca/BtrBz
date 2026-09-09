@@ -93,9 +93,9 @@ public class TimedStore<T> implements AutoCloseable {
         long now = this.clock.getAsLong();
         synchronized (this.entries) {
             var expired = Utils.removeIfAndReturn(this.entries, entry -> entry.expiresAt < now);
-            log.trace(
-                "removed {} expired timedstore entry: {}",
-                expired.size(), expired);
+            if (!expired.isEmpty()) {
+                log.trace("Removed {} expired TimedStore entries: {}", expired.size(), expired);
+            }
         }
     }
 

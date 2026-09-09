@@ -285,6 +285,10 @@ public class BtrBz implements ClientModInitializer {
 
         this.bazaarPoller = new BazaarPoller(this.bazaarData::onUpdate);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            log.info(
+                "BtrBz client shutdown started (active={}, generation={})",
+                this.activation.isActive(),
+                this.activation.generation());
             this.activation.setSkyBlockConfirmed(false);
             ConfigManager.save();
             this.flipSubmissionTracker.close();
@@ -361,12 +365,15 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void activate() {
-        log.info("BtrBz features activated");
+        log.info("BtrBz features activated (generation={})", this.activation.generation());
         this.utcDayTracker.start();
         this.clipboardTracker.initialize();
         this.clipboardTracker.start();
         this.purseTracker.start();
         this.bazaarPoller.start();
+        log.debug(
+            "Activation lifecycle started: trackers active, Bazaar polling requested, marketDataAvailable={}",
+            this.bazaarData.hasMarketData());
         if (!this.automaticConversionRefreshStarted) {
             this.automaticConversionRefreshStarted = true;
             this.bazaarData.refreshConversions(false);
@@ -374,7 +381,7 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void deactivate() {
-        log.info("BtrBz features deactivated");
+        log.info("BtrBz features deactivated (generation={})", this.activation.generation());
         this.bazaarPoller.stop();
         this.bazaarData.clearMarketData();
         this.utcDayTracker.close();
@@ -393,6 +400,9 @@ public class BtrBz implements ClientModInitializer {
         if (GameUtils.screen() instanceof OrderBookScreen) {
             GameUtils.setScreen(null);
         }
+        log.debug(
+            "Deactivation cleanup completed: trackers stopped, marketDataAvailable={}, session UI cleared",
+            this.bazaarData.hasMarketData());
     }
 
     private void handleConversionEvent(ConversionEvent event) {

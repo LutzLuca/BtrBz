@@ -181,7 +181,6 @@ public final class ScreenInfoHelper {
             return;
         }
         if (this.currInfo.getScreen() == screen) {
-            log.trace("Already on this screen; skipping swap");
             return;
         }
 

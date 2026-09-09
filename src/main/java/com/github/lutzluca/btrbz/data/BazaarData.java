@@ -150,6 +150,7 @@ public class BazaarData {
 
     /** Drop the previous activation's prices and invalidate all market-derived caches. */
     public void clearMarketData() {
+        log.debug("Clearing Bazaar market snapshot with {} products", this.lastProducts.size());
         this.onUpdate(Map.of());
     }
 
@@ -159,17 +160,10 @@ public class BazaarData {
 
     public void addListener(Consumer<MarketSnapshot> listener) {
         this.listeners.add(listener);
-        log.trace(
-            "Inserting listener for onBazaarUpdate currently, listeners registered: {}",
-            this.listeners.size());
     }
 
     public void removeListener(Consumer<MarketSnapshot> listener) {
-        if (this.listeners.remove(listener)) {
-            log.trace(
-                "Removing listener for onBazaarUpdate currently, listeners registered: {}",
-                this.listeners.size());
-        }
+        this.listeners.remove(listener);
     }
 
     private MarketSnapshot currentSnapshot() {

@@ -57,6 +57,7 @@ public final class SkyBlockDetector {
         this.clientExecutor.accept(() -> {
             if (generation == this.connectionGeneration.get()) {
                 this.connected = connected;
+                log.debug("Hypixel connection changed: connected={}, generation={}", connected, generation);
                 this.activation.setSkyBlockConfirmed(false);
             }
         });
@@ -69,7 +70,18 @@ public final class SkyBlockDetector {
         // network thread. A queued update must not outlive the connection that received it.
         this.clientExecutor.accept(() -> {
             if (this.connected && generation == this.connectionGeneration.get()) {
+                log.debug(
+                    "Hypixel location classified: serverType={}, skyBlock={}, connectionGeneration={}",
+                    serverType.map(Object::toString).orElse("unknown"),
+                    skyBlock,
+                    generation);
                 this.activation.setSkyBlockConfirmed(skyBlock);
+            } else {
+                log.trace(
+                    "Ignored obsolete Hypixel location: connected={}, packetGeneration={}, currentGeneration={}",
+                    this.connected,
+                    generation,
+                    this.connectionGeneration.get());
             }
         });
     }

@@ -86,6 +86,7 @@ public class BazaarPoller implements AutoCloseable {
         }
         this.running = true;
         long run = ++this.generation;
+        log.debug("Started Bazaar polling generation {}", run);
         this.execute(() -> {
             if (this.isCurrent(run)) {
                 this.lastKnownUpdateTime = -1;
@@ -96,6 +97,9 @@ public class BazaarPoller implements AutoCloseable {
     }
 
     public void stop() {
+        if (this.running) {
+            log.debug("Stopping Bazaar polling generation {}", this.generation);
+        }
         this.running = false;
         this.generation++;
         this.execute(this::cancelPendingFetch);

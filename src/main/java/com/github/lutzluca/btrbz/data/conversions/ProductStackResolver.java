@@ -62,7 +62,9 @@ final class ProductStackResolver {
 
     void clear() {
         var size = this.templates.clear();
-        log.trace("Cleared product stack template cache with {} entries", size);
+        if (size > 0) {
+            log.trace("Cleared product stack template cache with {} entries", size);
+        }
     }
 
     static boolean isCompatible(ProductStackData stackData, int clientDataVersion) {

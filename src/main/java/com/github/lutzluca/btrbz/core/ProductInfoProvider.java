@@ -87,7 +87,6 @@ public final class ProductInfoProvider {
         this.registerProductInfoListener();
         this.registerSlotHooks();
         this.registerTooltipDisplay();
-        log.info("Initialized ProductInfoProvider");
     }
 
     private Component createPriceText(
@@ -647,7 +646,6 @@ public final class ProductInfoProvider {
         private final WeakHashMap<ItemStack, CachedProductLookup> cache = new WeakHashMap<>();
 
         ProductLookupCache() {
-            log.debug("Initializing product lookup cache");
             ProductInfoProvider.this.bazaarData.addListener(products -> this.clear());
             ProductInfoProvider.this.bazaarData.addIndexChangeListener(this::clear);
         }
@@ -696,7 +694,9 @@ public final class ProductInfoProvider {
         }
 
         void clear() {
-            log.trace("Clearing product lookup cache with {} mappings", this.cache.size());
+            if (!this.cache.isEmpty()) {
+                log.trace("Clearing product lookup cache with {} mappings", this.cache.size());
+            }
             this.cache.clear();
         }
     }
