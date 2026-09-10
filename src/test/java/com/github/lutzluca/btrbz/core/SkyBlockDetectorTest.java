@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class SkyBlockDetectorTest {
     private final Queue<Runnable> clientTasks = new ArrayDeque<>();
-    private final Activation activation = new Activation(() -> true, _ -> {});
+    private final Activation activation = new Activation(() -> true, () -> false, _ -> {});
     private final SkyBlockDetector tracker = new SkyBlockDetector(this.activation, this.clientTasks::add);
 
     @Nested

@@ -21,6 +21,9 @@ public class Config {
     public boolean enabled = true;
 
     @SerialEntry
+    public boolean alwaysActive;
+
+    @SerialEntry
     public WidgetsConfig widgets = new WidgetsConfig();
 
     @SerialEntry

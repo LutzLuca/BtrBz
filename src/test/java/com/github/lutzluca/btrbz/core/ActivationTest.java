@@ -10,7 +10,11 @@ import org.junit.jupiter.api.Test;
 class ActivationTest {
     private final List<Boolean> changes = new ArrayList<>();
     private boolean enabled = true;
-    private final Activation activation = new Activation(() -> this.enabled, this.changes::add);
+    private boolean alwaysActive;
+    private final Activation activation = new Activation(
+        () -> this.enabled,
+        () -> this.alwaysActive,
+        this.changes::add);
 
     private void setEnabled(boolean enabled) {
         this.enabled = enabled;
@@ -30,6 +34,31 @@ class ActivationTest {
             ActivationTest.this.activation.setSkyBlockConfirmed(true);
             Assertions.assertTrue(ActivationTest.this.activation.isActive());
             Assertions.assertEquals(List.of(true), ActivationTest.this.changes);
+        }
+
+        @Test
+        void alwaysActiveBypassesSkyBlockConfirmation() {
+            ActivationTest.this.alwaysActive = true;
+            ActivationTest.this.activation.refresh();
+            Assertions.assertTrue(ActivationTest.this.activation.isActive());
+            Assertions.assertEquals("Enabled; always active.", ActivationTest.this.activation.description());
+
+            ActivationTest.this.activation.setSkyBlockConfirmed(false);
+            Assertions.assertTrue(ActivationTest.this.activation.isActive());
+
+            ActivationTest.this.alwaysActive = false;
+            ActivationTest.this.activation.refresh();
+            Assertions.assertFalse(ActivationTest.this.activation.isActive());
+            Assertions.assertEquals(List.of(true, false), ActivationTest.this.changes);
+        }
+
+        @Test
+        void manualDisablementOverridesAlwaysActive() {
+            ActivationTest.this.alwaysActive = true;
+            ActivationTest.this.enabled = false;
+            ActivationTest.this.activation.refresh();
+            Assertions.assertFalse(ActivationTest.this.activation.isActive());
+            Assertions.assertEquals("Disabled manually.", ActivationTest.this.activation.description());
         }
 
         @Test
@@ -59,7 +88,7 @@ class ActivationTest {
 
         @Test
         void locationUpdatesNeverOverrideManualDisablement() {
-            var disabled = new Activation(() -> false, ActivationTest.this.changes::add);
+            var disabled = new Activation(() -> false, () -> false, ActivationTest.this.changes::add);
             disabled.setSkyBlockConfirmed(true);
             disabled.setSkyBlockConfirmed(false);
             Assertions.assertFalse(disabled.isEnabled());
@@ -90,6 +119,7 @@ class ActivationTest {
         void constructionDoesNotReadConfigBeforeItIsLoaded() {
             var activation = new Activation(
                 () -> Assertions.fail("Configuration is not loaded yet"),
+                () -> Assertions.fail("Configuration is not loaded yet"),
                 _ -> Assertions.fail("Construction must not activate features"));
             Assertions.assertFalse(activation.isActive());
             Assertions.assertEquals(0, activation.generation());
@@ -111,7 +141,7 @@ class ActivationTest {
         @Test
         void closesTheGateBeforeRunningCancellation() {
             var holder = new Activation[1];
-            holder[0] = new Activation(() -> ActivationTest.this.enabled,
+            holder[0] = new Activation(() -> ActivationTest.this.enabled, () -> false,
                 active -> Assertions.assertEquals(active, holder[0].isActive()));
             holder[0].setSkyBlockConfirmed(true);
             ActivationTest.this.enabled = false;

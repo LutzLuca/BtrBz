@@ -16,23 +16,29 @@ class ActivationConfigTest {
         .create();
 
     @Test
-    void defaultsToEnabledWhenTheSettingIsAbsent() {
+    void defaultsToEnabledAndSkyBlockGatedWhenTheSettingsAreAbsent() {
         var config = this.gson.fromJson("{}", Config.class);
         Assertions.assertTrue(config.enabled);
+        Assertions.assertFalse(config.alwaysActive);
     }
 
     @Test
-    void restoresBothManualSettingsWithoutChangingOtherPreferences() {
-        var disabled = this.gson.fromJson("{\"enabled\":false,\"tax\":2.5}", Config.class);
+    void restoresActivationSettingsWithoutChangingOtherPreferences() {
+        var disabled = this.gson.fromJson(
+            "{\"enabled\":false,\"alwaysActive\":true,\"tax\":2.5}", Config.class);
         Assertions.assertFalse(disabled.enabled);
+        Assertions.assertTrue(disabled.alwaysActive);
         Assertions.assertEquals(2.5, disabled.tax);
 
         var restored = this.gson.fromJson(this.gson.toJson(disabled), Config.class);
         Assertions.assertFalse(restored.enabled);
+        Assertions.assertTrue(restored.alwaysActive);
         Assertions.assertEquals(2.5, restored.tax);
 
-        var enabled = this.gson.fromJson("{\"enabled\":true,\"tax\":2.5}", Config.class);
+        var enabled = this.gson.fromJson(
+            "{\"enabled\":true,\"alwaysActive\":false,\"tax\":2.5}", Config.class);
         Assertions.assertTrue(enabled.enabled);
+        Assertions.assertFalse(enabled.alwaysActive);
         Assertions.assertEquals(2.5, enabled.tax);
     }
 }

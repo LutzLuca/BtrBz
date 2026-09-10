@@ -9,6 +9,7 @@ import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.OptionEventListener.Event;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.YetAnotherConfigLib.Builder;
@@ -44,6 +45,13 @@ public class ConfigScreen {
     }
 
     private static void buildCategories(Builder builder, Config config) {
+        var general = ConfigCategory
+            .createBuilder()
+            .name(Component.literal("General"))
+            .tooltip(Component.literal("Configure when BtrBz runs."))
+            .group(activationGroup(config))
+            .build();
+
         var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
             .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
@@ -83,10 +91,48 @@ public class ConfigScreen {
             .build();
 
         builder
+            .category(general)
             .category(widgets)
             .category(ordersAndNotifications)
             .category(interfaceAndTooltips)
             .category(orderWorkflow);
+    }
+
+    private static OptionGroup activationGroup(Config config) {
+        var enabled = Option
+            .<Boolean>createBuilder()
+            .name(Component.literal("Enable BtrBz"))
+            .description(createDescription("Enable all BtrBz features."))
+            .binding(
+                true,
+                () -> config.enabled,
+                value -> {
+                    config.enabled = value;
+                    BtrBz.refreshActivation();
+                })
+            .controller(ConfigScreen::createBooleanController);
+        var alwaysActive = Option
+            .<Boolean>createBuilder()
+            .name(Component.literal("Always Active"))
+            .description(createDescription(
+                "Keep BtrBz running everywhere, including outside SkyBlock, without waiting for "
+                    + "a Hypixel Mod API location packet."))
+            .binding(
+                false,
+                () -> config.alwaysActive,
+                value -> {
+                    config.alwaysActive = value;
+                    BtrBz.refreshActivation();
+                })
+            .controller(ConfigScreen::createBooleanController);
+
+        return OptionGroup
+            .createBuilder()
+            .name(Component.literal("Activation"))
+            .description(createDescription(
+                "Control whether BtrBz runs and whether a confirmed SkyBlock session is required."))
+            .options(new OptionGrouping(enabled).addOptions(alwaysActive).build())
+            .build();
     }
 
     static List<ButtonOption> widgetOptions(WidgetRegistry registry) {

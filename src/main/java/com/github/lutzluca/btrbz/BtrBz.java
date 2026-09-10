@@ -128,6 +128,12 @@ public class BtrBz implements ClientModInitializer {
         return instance.activation.description();
     }
 
+    public static void refreshActivation() {
+        if (instance != null && instance.activation != null) {
+            instance.activation.refresh();
+        }
+    }
+
     public static TrackedOrderManager orderManager() {
         return instance.orderManager;
     }
@@ -156,7 +162,10 @@ public class BtrBz implements ClientModInitializer {
     public void onInitializeClient() {
         instance = this;
         ConfigManager.load();
-        this.activation = new Activation(() -> ConfigManager.get().enabled, this::onActivationChanged);
+        this.activation = new Activation(
+            () -> ConfigManager.get().enabled,
+            () -> ConfigManager.get().alwaysActive,
+            this::onActivationChanged);
         this.bazaarData = new BazaarData();
         var messageDispatcher = new BazaarMessageDispatcher();
 
@@ -354,6 +363,7 @@ public class BtrBz implements ClientModInitializer {
             });
 
         new SkyBlockDetector(this.activation).register();
+        this.activation.refresh();
     }
 
     private void onActivationChanged(boolean active) {
