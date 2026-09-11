@@ -1,5 +1,6 @@
 plugins {
     id("dev.kikugie.stonecutter")
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0" apply false
     id("com.diffplug.spotless") version "8.9.0" apply false
     checkstyle
 }
@@ -49,21 +50,20 @@ afterEvaluate {
 
     tasks.named("check") {
         dependsOn(checkstyleJava)
+        dependsOn(stonecutter.versions.map { ":${it.project}:check" })
     }
 
     tasks.named("build") {
         setDependsOn(stonecutter.versions.map { versionProject ->
             ":${versionProject.project}:build"
         })
+        dependsOn(tasks.named("check"))
     }
 }
 
 tasks.register("releaseMod") {
     group = "publishing"
-    description = "Releases the mod to all providers specified inside the `publishMods` task"
+    description = "Publishes the mod to GitHub and Modrinth"
 
-    stonecutter.versions.forEach { versionProject ->
-        val sub = project(":${versionProject.project}")
-        dependsOn(sub.tasks.named("publishMods"))
-    }
+    dependsOn(stonecutter.versions.map { ":${it.project}:publishMods" })
 }

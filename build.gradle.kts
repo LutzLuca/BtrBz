@@ -1,6 +1,6 @@
 plugins {
     id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
-    id("me.modmuss50.mod-publish-plugin") version "2.0.1"
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0"
     java
 }
 
@@ -114,8 +114,6 @@ java {
 }
 
 publishMods {
-    dryRun.set(false)
-
     file = tasks.jar.get().archiveFile
     changelog = rootProject.file("CHANGELOG_LATEST.md").takeIf { it.exists() }?.readText()
         ?: "No changelog provided"
@@ -134,12 +132,13 @@ publishMods {
     github {
         accessToken = providers.environmentVariable("GITHUB_TOKEN")
         repository = getProp("github_repo")
-        commitish = "master"
+        commitish = providers.environmentVariable("GITHUB_SHA").getOrElse("master")
     }
 
     modrinth {
         accessToken = providers.environmentVariable("MODRINTH_TOKEN")
         projectId = "IzWPcaNg"
+        announcementTitle = getProp("mc_version")
         minecraftVersionRange {
             start.set(stonecutter.current.version)
             end.set(getProp("modrinth_minecraft_version_end"))
