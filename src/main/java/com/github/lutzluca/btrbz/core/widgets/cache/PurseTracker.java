@@ -15,7 +15,6 @@ public final class PurseTracker implements AutoCloseable {
     private final CacheToken changes = CacheToken.named("external.purse");
 
     private Optional<Double> value = Optional.empty();
-    private boolean initialized;
     private boolean failureLogged;
 
     private int ticks;
@@ -23,21 +22,13 @@ public final class PurseTracker implements AutoCloseable {
 
     public PurseTracker(Supplier<Optional<Double>> valueSupplier) {
         this.valueSupplier = Objects.requireNonNull(valueSupplier, "valueSupplier");
-    }
-
-    public void initialize() {
-        if (this.initialized) {
-            return;
-        }
-
-        this.initialized = true;
         this.readInitial();
     }
 
     public void start() {
-        this.requireInitialized();
-
         if (this.taskHandle == null) {
+            this.ticks = 0;
+            this.poll();
             this.taskHandle = ClientTickDispatcher.onEachTick(_ -> {
                 if (++this.ticks >= POLL_TICKS) {
                     this.ticks = 0;
@@ -48,8 +39,6 @@ public final class PurseTracker implements AutoCloseable {
     }
 
     public boolean poll() {
-        this.requireInitialized();
-
         try {
             Optional<Double> next = valid(this.valueSupplier.get());
             this.failureLogged = false;
@@ -74,7 +63,6 @@ public final class PurseTracker implements AutoCloseable {
     }
 
     public Optional<Double> value() {
-        this.requireInitialized();
         return this.value;
     }
 
@@ -89,6 +77,10 @@ public final class PurseTracker implements AutoCloseable {
         }
 
         this.taskHandle = null;
+        if (this.value.isPresent()) {
+            this.value = Optional.empty();
+            this.changes.invalidate(InvalidationReason.of("purse tracker stopped"));
+        }
     }
 
     private void readInitial() {
@@ -108,11 +100,5 @@ public final class PurseTracker implements AutoCloseable {
         double amount = value.orElseThrow();
 
         return Double.isFinite(amount) && amount >= 0 ? Optional.of(amount) : Optional.empty();
-    }
-
-    private void requireInitialized() {
-        if (!this.initialized) {
-            throw new IllegalStateException("Purse tracker is not initialized");
-        }
     }
 }

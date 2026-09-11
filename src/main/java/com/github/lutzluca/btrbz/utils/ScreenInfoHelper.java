@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.utils.ScreenInventoryTracker.Inventory;
@@ -16,6 +17,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +34,7 @@ public final class ScreenInfoHelper {
     private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
     private final ScreenInfo inventoryOwnerInfo = new ScreenInfo(null);
     private boolean hasInventoryOwner = false;
+    private boolean awaitingContainerOpen = true;
     private long screenTransitionVersion = 0;
     private long dispatchedScreenTransitionVersion = 0;
     private long inventoryVersion = 0;
@@ -56,15 +59,15 @@ public final class ScreenInfoHelper {
     }
 
     public static boolean inMenu(BazaarMenuType menu) {
-        return INSTANCE.currInfo.inMenu(menu);
+        return BtrBz.isActive() && INSTANCE.currInfo.inMenu(menu);
     }
 
     public static boolean inMenu(BazaarMenuType... menus) {
-        return INSTANCE.currInfo.inMenu(menus);
+        return BtrBz.isActive() && INSTANCE.currInfo.inMenu(menus);
     }
 
     public static boolean inBazaar() {
-        return INSTANCE.currInfo.inBazaar();
+        return BtrBz.isActive() && INSTANCE.currInfo.inBazaar();
     }
 
     public static void registerOnSwitch(Consumer<ScreenInfo> listener) {
@@ -89,7 +92,33 @@ public final class ScreenInfoHelper {
 
     public boolean isContainerActive(int containerId) {
         var player = Minecraft.getInstance().player;
-        return player != null && player.containerMenu.containerId == containerId;
+        return BtrBz.isActive() && player != null && player.containerMenu.containerId == containerId;
+    }
+
+    public void onOpenScreen(ClientboundOpenScreenPacket packet) {
+        if (!this.isContainerActive(packet.getContainerId())) {
+            return;
+        }
+        if (this.awaitingContainerOpen) {
+            this.awaitingContainerOpen = false;
+            this.setScreen(GameUtils.screen());
+        }
+        this.inventoryWatcher.onPacketReceived(packet);
+        this.fireScreenSwitchCallbacks();
+    }
+
+    /** Forget ownership without invoking close handlers, which can send commands or submit input. */
+    public void discard() {
+        this.awaitingContainerOpen = true;
+        this.hasInventoryOwner = false;
+        this.inventoryWatcher.discard();
+        this.inventoryOwnerInfo.setScreen(null);
+        this.currInfo.setScreen(null);
+        this.prevInfo.setScreen(null);
+        this.screenTransitionVersion++;
+        this.dispatchedScreenTransitionVersion = this.screenTransitionVersion;
+        this.screenTransitions.invalidate(InvalidationReason.of("screen ownership discarded"));
+        this.inventoryChanges.invalidate(InvalidationReason.of("inventory ownership discarded"));
     }
 
     public CacheToken inventoryChanges() {
@@ -148,8 +177,10 @@ public final class ScreenInfoHelper {
     }
 
     public void setScreen(@Nullable Screen screen) {
+        if (!BtrBz.isActive() || this.awaitingContainerOpen) {
+            return;
+        }
         if (this.currInfo.getScreen() == screen) {
-            log.trace("Already on this screen; skipping swap");
             return;
         }
 
@@ -180,6 +211,9 @@ public final class ScreenInfoHelper {
     }
 
     public void fireScreenSwitchCallbacks() {
+        if (!BtrBz.isActive() || this.awaitingContainerOpen) {
+            return;
+        }
         if (this.dispatchedScreenTransitionVersion == this.screenTransitionVersion) {
             return;
         }

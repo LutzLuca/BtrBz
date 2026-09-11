@@ -177,12 +177,6 @@ public class TrackedOrderManager {
                 }, () -> toRemove.add(tracked));
         }
 
-        log.debug(
-            "Tracked orders: {}, toRemove: {}, toAdd: {}",
-            this.trackedOrders,
-            toRemove,
-            unfilledOrders);
-
         toRemove.forEach(this::removeTrackedOrder);
         unfilledCopy
             .stream()
@@ -202,6 +196,14 @@ public class TrackedOrderManager {
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
+        if (!snapshot.available()) {
+            if (!this.trackedOrders.isEmpty()) {
+                log.debug("Market unavailable; resetting {} tracked order statuses", this.trackedOrders.size());
+            }
+            this.trackedOrders.forEach(order -> order.status = new OrderStatus.Unknown());
+            this.dataChanges.invalidate(InvalidationReason.of("market unavailable"));
+            return;
+        }
         var statusUpdates = this.statusEvaluator
             .computeStatusUpdates(this.trackedOrders, snapshot)
             .toList();
@@ -309,6 +311,10 @@ public class TrackedOrderManager {
             case OrderStatus.Undercut _ -> cfg.notifyUndercut;
             case OrderStatus.Unknown _ -> false;
         };
+    }
+
+    public void cancelOutstandingOrders() {
+        this.outstandingOrderStore.clear();
     }
 
     public void resetTrackedOrders() {

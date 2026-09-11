@@ -102,7 +102,8 @@ public final class WidgetManagerLauncher {
     }
 
     public boolean mouseClicked(MouseButtonEvent click) {
-        if (!this.visible || click.button() != InputConstants.MOUSE_BUTTON_LEFT
+        if (!BtrBz.isActive() || !this.visible
+            || click.button() != InputConstants.MOUSE_BUTTON_LEFT
             || !this.bounds.contains(click.x(), click.y())) {
             return false;
         }
@@ -118,7 +119,7 @@ public final class WidgetManagerLauncher {
     }
 
     public boolean mouseDragged(MouseButtonEvent click, WidgetCanvas canvas) {
-        if (!this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (!BtrBz.isActive() || !this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
 
@@ -135,7 +136,7 @@ public final class WidgetManagerLauncher {
     }
 
     public boolean mouseReleased(MouseButtonEvent click, WidgetCanvas canvas, Screen screen) {
-        if (!this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (!BtrBz.isActive() || !this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
 

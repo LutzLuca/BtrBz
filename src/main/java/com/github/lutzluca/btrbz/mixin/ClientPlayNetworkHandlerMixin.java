@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -25,7 +26,7 @@ public class ClientPlayNetworkHandlerMixin {
             return;
         }
 
-        screenInfoHelper.getInventoryWatcher().onPacketReceived(packet);
+        screenInfoHelper.onOpenScreen(packet);
     }
 
     @Inject(method = "handleContainerSetSlot", at = @At("RETURN"))
@@ -33,6 +34,9 @@ public class ClientPlayNetworkHandlerMixin {
         ClientboundContainerSetSlotPacket packet,
         CallbackInfo ci
     ) {
+        if (!BtrBz.isActive()) {
+            return;
+        }
         ScreenInfoHelper.get().getInventoryWatcher().onPacketReceived(packet);
     }
 }

@@ -5,8 +5,6 @@ import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -19,7 +17,7 @@ public final class DailyLimitComponent {
     private final CacheToken dataChanges = CacheToken.named("daily-limit.data");
 
     public DailyLimitComponent() {
-        this(defaultTracker());
+        this(new UtcDayTracker());
     }
 
     public DailyLimitComponent(UtcDayTracker utcDayTracker) {
@@ -31,7 +29,7 @@ public final class DailyLimitComponent {
         Runnable saveAction,
         LongSupplier utcEpochDay
     ) {
-        this(configSupplier, saveAction, initializedTracker(utcEpochDay));
+        this(configSupplier, saveAction, new UtcDayTracker(utcEpochDay));
     }
 
     DailyLimitComponent(
@@ -104,15 +102,4 @@ public final class DailyLimitComponent {
     }
 
     public record Usage(double used, double limit, long lastResetEpochDay) {}
-
-    private static UtcDayTracker defaultTracker() {
-        return initializedTracker(() -> LocalDate.now(ZoneOffset.UTC).toEpochDay());
-    }
-
-    private static UtcDayTracker initializedTracker(LongSupplier supplier) {
-        var tracker = new UtcDayTracker(supplier);
-        tracker.initialize();
-
-        return tracker;
-    }
 }

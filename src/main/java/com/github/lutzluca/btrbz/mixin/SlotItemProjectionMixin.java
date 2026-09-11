@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.utils.slot.SlotView;
@@ -25,6 +26,9 @@ public abstract class SlotItemProjectionMixin {
     @Inject(method = "getItem", at = @At("RETURN"), cancellable = true)
     private void projectItem(CallbackInfoReturnable<ItemStack> cir) {
         if (!Minecraft.getInstance().isSameThread()) {
+            return;
+        }
+        if (!BtrBz.isActive()) {
             return;
         }
 

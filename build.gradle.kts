@@ -39,6 +39,10 @@ repositories {
     }
     maven("https://maven.fabricmc.net/")
     maven("https://repo.hypixel.net/repository/Hypixel/")
+    exclusiveContent {
+        forRepository { maven("https://api.modrinth.com/maven") }
+        filter { includeGroup("maven.modrinth") }
+    }
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
     maven("https://maven.isxander.dev/releases")
     maven("https://maven.terraformersmc.com/")
@@ -56,6 +60,9 @@ dependencies {
     minecraft("com.mojang:minecraft:${stonecutter.current.project}")
     implementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")
+
+    implementation("net.hypixel:mod-api:1.0.2")
+    runtimeOnly("maven.modrinth:hypixel-mod-api:1.0.2+build.1+mc26.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
@@ -146,7 +153,7 @@ publishMods {
 
         projectDescription = rootProject.file("README.md").readText()
 
-        requires("fabric-api", "yacl", "owo-lib")
+        requires("fabric-api", "yacl", "owo-lib", "hypixel-mod-api")
         optional("modmenu")
     }
 }

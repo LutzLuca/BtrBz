@@ -46,7 +46,7 @@ public final class OrderPresetsComponent {
     private boolean inTransaction;
 
     public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
-        this(bazaarData, productInfoProvider, initializedClipboardTracker(), initializedPurseTracker());
+        this(bazaarData, productInfoProvider, initializedClipboardTracker(), new PurseTracker(GameUtils::getPurse));
     }
 
     public OrderPresetsComponent(
@@ -270,11 +270,11 @@ public final class OrderPresetsComponent {
                 BazaarMenuType.BuyOrderSetupPrice);
 
         if (this.inTransaction && !orderFlow) {
-            this.cancel();
+            this.cancelTransaction();
         }
     }
 
-    private void cancel() {
+    public void cancelTransaction() {
         this.inTransaction = false;
         this.pendingPreset = false;
         this.pendingVolume = -1;
@@ -380,13 +380,6 @@ public final class OrderPresetsComponent {
 
     private static ClipboardTracker initializedClipboardTracker() {
         var tracker = new ClipboardTracker(() -> Minecraft.getInstance().keyboardHandler.getClipboard());
-        tracker.initialize();
-
-        return tracker;
-    }
-
-    private static PurseTracker initializedPurseTracker() {
-        var tracker = new PurseTracker(GameUtils::getPurse);
         tracker.initialize();
 
         return tracker;

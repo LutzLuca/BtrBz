@@ -275,7 +275,9 @@ public final class ConversionIndexService {
             var size = this.resolvedStackCache.size();
             this.resolvedStackCache.clear();
             this.indexRevision++;
-            log.trace("Cleared product identity cache with {} mappings", size);
+            if (size > 0) {
+                log.trace("Cleared product identity cache with {} mappings", size);
+            }
         }
         this.stackResolver.clear();
         this.changes.invalidate(InvalidationReason.of("conversion index published"));
@@ -299,25 +301,6 @@ public final class ConversionIndexService {
             overlayStacks,
             legacyStacks,
             stackSources);
-        this.logDerivedMappings(index);
-    }
-
-    private void logDerivedMappings(ConversionIndex index) {
-        if (!log.isDebugEnabled()) {
-            return;
-        }
-
-        log.debug("Derived conversion mappings ({} entries):", index.sourceCounts().derived());
-        index
-            .products()
-            .entrySet()
-            .stream()
-            .filter(entry -> entry.getValue().source() instanceof ProductNameSource.Derived)
-            .sorted((first, second) -> first.getKey().compareTo(second.getKey()))
-            .forEach(entry -> log.debug(
-                "Derived conversion mapping: {} -> {}",
-                entry.getKey(),
-                entry.getValue().strippedName()));
     }
 
     private void handleRefreshFailure(ConversionRefreshException failure, boolean manual) {

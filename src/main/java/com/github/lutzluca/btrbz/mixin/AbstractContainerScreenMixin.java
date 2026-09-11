@@ -43,7 +43,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
     @Override
     public WidgetManagerLauncher btrbz$managerLauncher() {
         if (this.btrbz$managerLauncher == null) {
-            this.btrbz$managerLauncher = new WidgetManagerLauncher(BtrBz.widgetRuntime());
+            this.btrbz$managerLauncher = BtrBz.widgetRuntime().createManagerLauncher();
         }
         return this.btrbz$managerLauncher;
     }

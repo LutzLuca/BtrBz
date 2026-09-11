@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
@@ -110,6 +111,9 @@ public final class WidgetHost {
         WidgetHostOptions options,
         @Nullable Screen screen
     ) {
+        if (this.runtime && !BtrBz.isActive()) {
+            return List.of();
+        }
         this.ensureAdapter();
 
         WidgetSession runtimeSession = this.runtime ? this.currentSession(screen) : null;
@@ -184,7 +188,7 @@ public final class WidgetHost {
     }
 
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-        if (this.adapter == null) {
+        if (!this.acceptsInput()) {
             return false;
         }
 
@@ -216,6 +220,9 @@ public final class WidgetHost {
     }
 
     public boolean mouseReleased(MouseButtonEvent click) {
+        if (!this.acceptsInput()) {
+            return false;
+        }
         if (this.runtimePlacementDrag != null && this.runtimePlacementDrag.button() == click.button()) {
             this.updateRuntimePlacement(click.x(), click.y());
             this.runtimePlacementDrag = null;
@@ -230,6 +237,9 @@ public final class WidgetHost {
     }
 
     public boolean mouseDragged(MouseButtonEvent click, double deltaX, double deltaY) {
+        if (!this.acceptsInput()) {
+            return false;
+        }
         if (this.runtimePlacementDrag != null && this.runtimePlacementDrag.button() == click.button()) {
             this.updateRuntimePlacement(click.x(), click.y());
             return true;
@@ -241,11 +251,15 @@ public final class WidgetHost {
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        return this.adapter != null && this.adapter.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        return this.acceptsInput() && this.adapter.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     public boolean keyPressed(KeyEvent input) {
-        return this.adapter != null && this.adapter.keyPressed(input);
+        return this.acceptsInput() && this.adapter.keyPressed(input);
+    }
+
+    private boolean acceptsInput() {
+        return this.adapter != null && (!this.runtime || BtrBz.isActive());
     }
 
     private void ensureAdapter() {
@@ -449,7 +463,7 @@ public final class WidgetHost {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void dispatch(MountedWidget mountedWidget, long generation, Object action) {
-        if (generation != mountedWidget.generation
+        if (!BtrBz.isActive() || generation != mountedWidget.generation
             || !CacheRevisions.match(
                 mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies)) {
             return;

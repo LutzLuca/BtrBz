@@ -31,6 +31,23 @@ import org.junit.jupiter.api.Test;
 
 class TrackedOrderManagerTest {
 
+    @Test
+    void marketInvalidationKeepsOrdersButDiscardsTheirPriceStatus() {
+        var data = new BazaarData();
+        var manager = new TrackedOrderManager(data);
+        data.addListener(manager::onBazaarUpdate);
+        var order = trackedOrder(ProductIdentity.fromName("Test Product"));
+        manager.addTrackedOrder(order);
+        order.status = new OrderStatus.Top();
+        long revision = manager.dataChanges().revision();
+
+        data.clearMarketData();
+
+        org.junit.jupiter.api.Assertions.assertInstanceOf(OrderStatus.Unknown.class, order.status);
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(order.id()), manager.creationOrder());
+        org.junit.jupiter.api.Assertions.assertTrue(manager.dataChanges().revision() > revision);
+    }
+
     @Nested
     @DisplayName("stable identity and ordering")
     class StableIdentityAndOrdering {

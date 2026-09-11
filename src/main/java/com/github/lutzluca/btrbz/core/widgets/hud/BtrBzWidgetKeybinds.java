@@ -36,7 +36,8 @@ public final class BtrBzWidgetKeybinds {
     ) {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleHud.consumeClick()) {
-                if (!canToggleHud(GameUtils.screen() != null, client.player == null, client.level == null)) {
+                if (!BtrBz.isActive()
+                    || !canToggleHud(GameUtils.screen() != null, client.player == null, client.level == null)) {
                     continue;
                 }
 

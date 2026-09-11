@@ -254,6 +254,11 @@ public class FlipHelper {
             Utils.formatDecimal(pricePerUnit, 1, true));
     }
 
+    public void cancelPendingFlip() {
+        this.clearPendingFlipState();
+        this.flipProductContext.clearProduct();
+    }
+
     private void clearPendingFlipState() {
         if (this.potentialFlipProduct != null) {
             log.debug(

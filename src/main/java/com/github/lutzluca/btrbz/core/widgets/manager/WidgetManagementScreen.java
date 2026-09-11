@@ -1,5 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
@@ -56,6 +59,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final long TOOLTIP_DELAY_MILLIS = 200;
 
     private final @Nullable Screen previousScreen;
+    private final long activationGeneration = BtrBz.activationGeneration();
     private final @Nullable AbstractContainerScreen<?> backgroundScreen;
 
     private final WidgetRegistry registry;
@@ -260,14 +264,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void resize(int width, int height) {
         super.resize(width, height);
-        if (this.backgroundScreen != null) {
+        if (this.backgroundScreen != null && this.hasCurrentGameContext()) {
             this.backgroundScreen.resize(width, height);
         }
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        if (this.backgroundScreen != null) {
+        if (this.backgroundScreen != null && this.hasCurrentGameContext()) {
             this.backgroundScreen.extractBackground(graphics, -10_000, -10_000, delta);
             graphics.nextStratum();
             this.backgroundScreen.extractContents(graphics, -10_000, -10_000, delta);
@@ -309,6 +313,13 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private @Nullable Screen returnScreen() {
+        if (!this.hasCurrentGameContext()
+            && (this.backgroundScreen != null
+                || this.previousScreen instanceof AbstractContainerScreen<?>
+                || this.previousScreen instanceof SignEditScreen
+                || this.previousScreen instanceof OrderBookScreen)) {
+            return null;
+        }
         if (this.backgroundScreen == null) {
             return this.previousScreen;
         }
@@ -319,6 +330,10 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         return this.backgroundScreen;
+    }
+
+    private boolean hasCurrentGameContext() {
+        return BtrBz.isActive() && this.activationGeneration == BtrBz.activationGeneration();
     }
 
     @Override

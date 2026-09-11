@@ -50,7 +50,6 @@ public class BazaarData {
     public void loadConversions() {
         log.info("Loading bazaar conversion index");
         this.conversionIndexService.loadConversionIndex();
-        this.conversionIndexService.refreshConversionIndex(false);
     }
 
     public boolean refreshConversions(boolean manual) {
@@ -149,19 +148,22 @@ public class BazaarData {
         }
     }
 
+    /** Drop the previous activation's prices and invalidate all market-derived caches. */
+    public void clearMarketData() {
+        log.debug("Clearing Bazaar market snapshot with {} products", this.lastProducts.size());
+        this.onUpdate(Map.of());
+    }
+
+    public boolean hasMarketData() {
+        return this.currentSnapshot().available();
+    }
+
     public void addListener(Consumer<MarketSnapshot> listener) {
         this.listeners.add(listener);
-        log.trace(
-            "Inserting listener for onBazaarUpdate currently, listeners registered: {}",
-            this.listeners.size());
     }
 
     public void removeListener(Consumer<MarketSnapshot> listener) {
-        if (this.listeners.remove(listener)) {
-            log.trace(
-                "Removing listener for onBazaarUpdate currently, listeners registered: {}",
-                this.listeners.size());
-        }
+        this.listeners.remove(listener);
     }
 
     private MarketSnapshot currentSnapshot() {
@@ -289,6 +291,10 @@ public class BazaarData {
 
         public int size() {
             return this.products.size();
+        }
+
+        public boolean available() {
+            return !this.products.isEmpty();
         }
 
         public boolean contains(ProductIdentity product) {

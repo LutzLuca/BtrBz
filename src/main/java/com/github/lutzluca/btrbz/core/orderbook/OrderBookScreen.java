@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
@@ -17,6 +18,11 @@ public final class OrderBookScreen extends Screen {
     private final ProductIdentity product;
     private final String productName;
     private final WidgetHost host;
+    private final long activationGeneration = BtrBz.activationGeneration();
+
+    public boolean isCurrent() {
+        return BtrBz.isActive() && this.activationGeneration == BtrBz.activationGeneration();
+    }
 
     public OrderBookScreen(
         Screen parent,
@@ -42,7 +48,7 @@ public final class OrderBookScreen extends Screen {
     @Override
     public void onClose() {
         this.host.dispose();
-        GameUtils.setScreen(this.parent);
+        GameUtils.setScreen(this.isCurrent() ? this.parent : null);
     }
 
     @Override
@@ -58,6 +64,9 @@ public final class OrderBookScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        if (!this.isCurrent()) {
+            return;
+        }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         this.host.render(
