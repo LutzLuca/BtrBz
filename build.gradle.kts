@@ -19,7 +19,7 @@ base {
 }
 
 loom {
-    log4jConfigs.from(file("log4j-dev.xml"))
+    log4jConfigs.from(rootProject.file("config/log4j-dev.xml"))
 
     runConfigs.all {
         ideConfigGenerated(true)
@@ -113,6 +113,16 @@ tasks {
 
     test {
         useJUnitPlatform()
+        dependsOn("generateLog4jConfig")
+        inputs.files(loom.log4jConfigs)
+        systemProperty("log4j.configurationFile", loom.log4jConfigs.files.joinToString(",") { it.absolutePath })
+        workingDir(layout.buildDirectory.dir("test-run"))
+        doFirst { workingDir.mkdirs() }
+        testLogging {
+            events("failed", "skipped")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            showStandardStreams = false
+        }
     }
 }
 

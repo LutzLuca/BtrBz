@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-gradle
       - name: format, lint, test, and build all targets
-        run: ./gradlew build
+        run: ./gradlew build --console=plain --continue
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -46,4 +46,5 @@ jobs:
           path: |
             build/reports/
             versions/*/build/reports/
+            versions/*/build/test-results/
           retention-days: 7
