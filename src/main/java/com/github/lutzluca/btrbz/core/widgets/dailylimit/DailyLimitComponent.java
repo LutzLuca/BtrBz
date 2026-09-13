@@ -1,12 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 
 import java.util.Objects;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /** Durable UTC daily accounting, deliberately independent from widget enablement. */
@@ -16,23 +13,7 @@ public final class DailyLimitComponent {
     private final UtcDayTracker utcDayTracker;
     private final CacheToken dataChanges = CacheToken.named("daily-limit.data");
 
-    public DailyLimitComponent() {
-        this(new UtcDayTracker());
-    }
-
-    public DailyLimitComponent(UtcDayTracker utcDayTracker) {
-        this(() -> ConfigManager.get().widgets.orderLimit, ConfigManager::save, utcDayTracker);
-    }
-
-    DailyLimitComponent(
-        Supplier<DailyLimitWidgetConfig> configSupplier,
-        Runnable saveAction,
-        LongSupplier utcEpochDay
-    ) {
-        this(configSupplier, saveAction, new UtcDayTracker(utcEpochDay));
-    }
-
-    DailyLimitComponent(
+    public DailyLimitComponent(
         Supplier<DailyLimitWidgetConfig> configSupplier,
         Runnable saveAction,
         UtcDayTracker utcDayTracker
@@ -51,7 +32,7 @@ public final class DailyLimitComponent {
         }
 
         this.config().usedToday += amount;
-        this.dataChanges.invalidate(InvalidationReason.of("daily Bazaar usage changed"));
+        this.dataChanges.invalidate("daily Bazaar usage changed");
         this.saveAction.run();
     }
 
@@ -71,7 +52,7 @@ public final class DailyLimitComponent {
         boolean changed = resetForDay(config, epochDay);
 
         if (changed) {
-            this.dataChanges.invalidate(InvalidationReason.of("daily Bazaar usage reset"));
+            this.dataChanges.invalidate("daily Bazaar usage reset");
             this.saveAction.run();
         }
 

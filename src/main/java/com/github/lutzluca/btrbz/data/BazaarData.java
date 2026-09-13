@@ -1,8 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -15,7 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
@@ -136,7 +134,7 @@ public class BazaarData {
     public void onUpdate(Map<String, Product> products) {
         this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
             products == null ? Map.of() : products));
-        this.marketChanges.invalidate(InvalidationReason.of("market snapshot published"));
+        this.marketChanges.invalidate("market snapshot published");
         var snapshot = this.currentSnapshot();
 
         for (var listener : this.listeners) {
@@ -346,68 +344,4 @@ public class BazaarData {
         }
     }
 
-    public static final class TrackedProduct {
-
-        @Getter
-        private IndexedProduct product;
-        private final BazaarData data;
-        private final Consumer<MarketSnapshot> updater;
-        private final Runnable indexUpdater;
-        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-        @Getter
-        private Optional<Product> bazaarProduct;
-        private boolean listenerRegistered = false;
-
-        public TrackedProduct(BazaarData data, IndexedProduct product) {
-            this.data = data;
-            this.product = product;
-            this.bazaarProduct = Optional.empty();
-
-            this.updater = snapshot -> this.bazaarProduct = snapshot
-                .rawProduct(ProductIdentity.fromIndex(this.product));
-            this.indexUpdater = this::refreshProduct;
-        }
-
-        public String getProductName() {
-            this.product = this.data.refreshIndexedProduct(this.product);
-            return this.product.strippedName();
-        }
-
-        private void ensureInitialized() {
-            if (this.listenerRegistered) {
-                return;
-            }
-
-            this.refreshProduct();
-            this.data.addListener(this.updater);
-            this.data.addIndexChangeListener(this.indexUpdater);
-            this.listenerRegistered = true;
-        }
-
-        public Optional<Double> getSellOfferPrice() {
-            this.ensureInitialized();
-
-            return this.bazaarProduct.flatMap(
-                prod -> Utils.getFirst(prod.getBuySummary()).map(Summary::getPricePerUnit));
-        }
-
-        public Optional<Double> getBuyOrderPrice() {
-            this.ensureInitialized();
-
-            return this.bazaarProduct.flatMap(
-                prod -> Utils.getFirst(prod.getSellSummary()).map(Summary::getPricePerUnit));
-        }
-
-        public void destroy() {
-            this.bazaarProduct = Optional.empty();
-            this.data.removeListener(this.updater);
-            this.data.removeIndexChangeListener(this.indexUpdater);
-            this.listenerRegistered = false;
-        }
-
-        private void refreshProduct() {
-            this.product = this.data.refreshIndexedProduct(this.product);
-            this.bazaarProduct = this.data.currentSnapshot().rawProduct(ProductIdentity.fromIndex(this.product));
-        }
-    }
 }

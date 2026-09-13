@@ -1,12 +1,10 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
@@ -90,7 +88,7 @@ public class TrackedOrderManager {
                 newKey,
                 oldProductName,
                 order.productName);
-            this.dataChanges.invalidate(InvalidationReason.of("tracked order product updated"));
+            this.dataChanges.invalidate("tracked order product updated");
             this.notifyOrderUpdated(order);
             return;
         }
@@ -104,7 +102,7 @@ public class TrackedOrderManager {
             oldKey,
             newKey,
             order.uiProductName);
-        this.dataChanges.invalidate(InvalidationReason.of("tracked order product updated"));
+        this.dataChanges.invalidate("tracked order product updated");
         this.notifyOrderUpdated(order);
     }
 
@@ -154,7 +152,7 @@ public class TrackedOrderManager {
 
         if (this.filledOrderCount != filledOrders.size()) {
             this.filledOrderCount = filledOrders.size();
-            this.dataChanges.invalidate(InvalidationReason.of("filled order count synchronized"));
+            this.dataChanges.invalidate("filled order count synchronized");
         }
 
         var unfilledCopy = new ArrayList<>(unfilledOrders);
@@ -172,7 +170,7 @@ public class TrackedOrderManager {
                     if (tracked.slot != slot || tracked.fillAmountSnapshot != fill) {
                         tracked.slot = slot;
                         tracked.fillAmountSnapshot = fill;
-                        this.dataChanges.invalidate(InvalidationReason.of("tracked order slot or fill updated"));
+                        this.dataChanges.invalidate("tracked order slot or fill updated");
                     }
                 }, () -> toRemove.add(tracked));
         }
@@ -189,7 +187,7 @@ public class TrackedOrderManager {
     private void removeTrackedOrder(TrackedOrder order) {
         if (this.trackedOrders.remove(order)) {
             this.displayOrders.remove(order);
-            this.dataChanges.invalidate(InvalidationReason.of("tracked order removed"));
+            this.dataChanges.invalidate("tracked order removed");
             this.selfUndercutDetector.removeIfLastOrder(order, this.trackedOrders);
             this.onOrderRemovedListeners.forEach(listener -> listener.accept(order));
         }
@@ -201,7 +199,7 @@ public class TrackedOrderManager {
                 log.debug("Market unavailable; resetting {} tracked order statuses", this.trackedOrders.size());
             }
             this.trackedOrders.forEach(order -> order.status = new OrderStatus.Unknown());
-            this.dataChanges.invalidate(InvalidationReason.of("market unavailable"));
+            this.dataChanges.invalidate("market unavailable");
             return;
         }
         var statusUpdates = this.statusEvaluator
@@ -210,7 +208,7 @@ public class TrackedOrderManager {
 
         statusUpdates.forEach(update -> update.order().status = update.curr());
         if (!statusUpdates.isEmpty()) {
-            this.dataChanges.invalidate(InvalidationReason.of("tracked order status updated"));
+            this.dataChanges.invalidate("tracked order status updated");
         }
 
         var notificationUpdates = statusUpdates.stream()
@@ -323,7 +321,7 @@ public class TrackedOrderManager {
         this.displayOrders.clear();
         this.selfUndercutDetector.clear();
         this.filledOrderCount = 0;
-        this.dataChanges.invalidate(InvalidationReason.of("tracked orders reset"));
+        this.dataChanges.invalidate("tracked orders reset");
 
         log.info("Reset tracked orders (removed {})", removedSize);
         this.onOrdersResetListeners.forEach(Runnable::run);
@@ -371,14 +369,14 @@ public class TrackedOrderManager {
         insertionIdx = Math.min(insertionIdx, this.displayOrders.size());
         this.displayOrders.add(insertionIdx, order);
 
-        this.dataChanges.invalidate(InvalidationReason.of("tracked orders reordered"));
+        this.dataChanges.invalidate("tracked orders reordered");
         return true;
     }
 
     public void addTrackedOrder(TrackedOrder order) {
         this.trackedOrders.add(order);
         this.displayOrders.add(order);
-        this.dataChanges.invalidate(InvalidationReason.of("tracked order added"));
+        this.dataChanges.invalidate("tracked order added");
         this.onOrderAddedListeners.forEach(listener -> listener.accept(order));
     }
 
@@ -411,7 +409,7 @@ public class TrackedOrderManager {
 
     public void handleOrderFilled(OrderFilled info) {
         this.filledOrderCount++;
-        this.dataChanges.invalidate(InvalidationReason.of("filled order count changed"));
+        this.dataChanges.invalidate("filled order count changed");
         var orderingFactor = info.type() == OrderType.Buy ? -1 : 1;
 
         // noinspection SimplifyStreamApiCallChains
@@ -494,7 +492,7 @@ public class TrackedOrderManager {
         public boolean groupOrders = false;
         public boolean includePricePerUnit = false;
 
-        public List<OptionGroup> createGroups() {
+        public List<OptionGroup> createGroups(Runnable onQueueDisplayModeChanged) {
             var notifyBestGroup = new OptionGrouping(this.createNotifyBestOption())
                 .addOptions(
                     this.createNotifyBestOnPriorityRegain(),
@@ -511,7 +509,7 @@ public class TrackedOrderManager {
                     this.createSoundUndercutOption());
 
             var queueGroup = new OptionGrouping(this.createShowQueueInfoOption())
-                .addOptions(this.createQueueDisplayModeOption());
+                .addOptions(this.createQueueDisplayModeOption(onQueueDisplayModeChanged));
 
             var notifyBestOptions = notifyBestGroup.build();
             var notifyMatchedOptions = notifyMatchedGroup.build();
@@ -677,7 +675,7 @@ public class TrackedOrderManager {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        private Option.Builder<QueueDisplayMode> createQueueDisplayModeOption() {
+        private Option.Builder<QueueDisplayMode> createQueueDisplayModeOption(Runnable onQueueDisplayModeChanged) {
             return Option
                 .<QueueDisplayMode>createBuilder()
                 .name(Component.literal("Queue Display Mode"))
@@ -686,7 +684,7 @@ public class TrackedOrderManager {
                     () -> this.queueDisplayMode != null ? this.queueDisplayMode : QueueDisplayMode.Both,
                     mode -> {
                         this.queueDisplayMode = mode;
-                        BtrBz.tooltipProvider().onQueueDisplayModeChanged();
+                        onQueueDisplayModeChanged.run();
                     })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show item counts only, or both order and item counts."),

@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -9,7 +8,8 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class BookmarksWidgetDefinition {
@@ -18,10 +18,11 @@ public final class BookmarksWidgetDefinition {
     private BookmarksWidgetDefinition() {}
 
     public static WidgetDefinition<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction> create(
-        BookmarkComponent component
+        BookmarkComponent component,
+        Supplier<BookmarksWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.bookmarks, BookmarksWidgetConfig::new,
+            configSupplier, BookmarksWidgetConfig::new,
             value -> value.frame, BookmarksWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new BookmarksWidgetData(component));
 

@@ -1,8 +1,10 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.mixin.SkyBlockBazaarReplyAccessor;
-import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,6 +43,7 @@ public class BazaarPoller implements AutoCloseable {
     private static final long UNCHANGED_DATA_BACKOFF_MS = 250;
     private static final long ERROR_BACKOFF_MS = 500;
     private static final int MAX_UNCHANGED_RETRIES = 5;
+    private static final DateTimeFormatter LOG_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final Consumer<Map<String, Product>> onReply;
     private final HypixelAPI api;
@@ -199,7 +202,7 @@ public class BazaarPoller implements AutoCloseable {
             log.trace(
                 "Bazaar data fetched successfully - Data {}, Last Updated: {}",
                 changed ? "changed" : "unchanged",
-                Utils.formatUtcTimestampMillis(currentUpdateTime));
+                formatTimestamp(currentUpdateTime));
         }).onFailure(err -> {
             log.warn("Reply does not implement expected accessor.", err);
             this.scheduleFetch(
@@ -219,6 +222,10 @@ public class BazaarPoller implements AutoCloseable {
 
         long jitter = ThreadLocalRandom.current().nextLong(200, 400);
         this.scheduleFetch(run, BAZAAR_UPDATE_TIME_MS + jitter, "Regular interval fetch");
+    }
+
+    private static String formatTimestamp(long utcMillis) {
+        return Instant.ofEpochMilli(utcMillis).atZone(ZoneId.systemDefault()).format(LOG_TIMESTAMP);
     }
 
     private void handleUnchangedData(long run) {

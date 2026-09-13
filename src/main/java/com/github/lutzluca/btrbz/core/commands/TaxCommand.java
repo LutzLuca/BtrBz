@@ -24,8 +24,7 @@ public class TaxCommand {
     };
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("tax")
+        return ClientCommands.literal("tax")
             .then(ClientCommands
                 .literal("set")
                 .then(ClientCommands
@@ -79,6 +78,6 @@ public class TaxCommand {
                         .literal(ConfigManager.get().tax + "%")
                         .withStyle(ChatFormatting.AQUA)));
                 return 1;
-            })));
+            }));
     }
 }

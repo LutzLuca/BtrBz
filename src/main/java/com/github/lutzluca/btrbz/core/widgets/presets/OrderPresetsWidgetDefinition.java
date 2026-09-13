@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -10,7 +9,8 @@ import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetData.Sna
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class OrderPresetsWidgetDefinition {
@@ -19,10 +19,11 @@ public final class OrderPresetsWidgetDefinition {
     private OrderPresetsWidgetDefinition() {}
 
     public static WidgetDefinition<Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction> create(
-        OrderPresetsComponent component
+        OrderPresetsComponent component,
+        Supplier<OrderPresetsWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.orderPresets, OrderPresetsWidgetConfig::new,
+            configSupplier, OrderPresetsWidgetConfig::new,
             value -> value.frame, OrderPresetsWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(
             new OrderPresetsWidgetData(component, config));

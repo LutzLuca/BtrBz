@@ -136,16 +136,4 @@ public final class BazaarUi {
         return Language.getInstance().getVisualOrder(FormattedText.composite(trimmed, ellipsis));
     }
 
-    public static String truncate(String value, int maxWidth) {
-        var font = Minecraft.getInstance().font;
-
-        if (font.width(value) <= maxWidth) {
-            return value;
-        }
-
-        String ellipsis = "…";
-        int target = Math.max(0, maxWidth - font.width(ellipsis));
-
-        return font.plainSubstrByWidth(value, target).stripTrailing() + ellipsis;
-    }
 }

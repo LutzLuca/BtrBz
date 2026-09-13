@@ -1,12 +1,12 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
-import com.github.lutzluca.btrbz.utils.slot.SlotInputModifiers;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.screen.slot.VirtualSlotProjection;
+import com.github.lutzluca.btrbz.screen.slot.SlotView;
+import com.github.lutzluca.btrbz.screen.slot.SlotInputModifiers;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,7 +43,7 @@ public abstract class SlotClickHookMixin {
     @Unique
     private boolean btrbz$handleSlotHook(Slot slot, int button, ContainerInput type) {
         var raw = VirtualSlotProjection.withProjectionSuppressed(slot::getItem);
-        var helper = ScreenInfoHelper.get();
+        var helper = ScreenTracker.get();
 
         var ctx = new SlotClickContext(
             new SlotView(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw),

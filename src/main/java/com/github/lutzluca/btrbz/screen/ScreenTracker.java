@@ -1,0 +1,494 @@
+package com.github.lutzluca.btrbz.screen;
+
+import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.cache.CacheToken;
+import com.github.lutzluca.btrbz.screen.ScreenInventoryTracker.Inventory;
+import io.vavr.control.Try;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+@Slf4j
+public final class ScreenTracker {
+
+    private static final ScreenTracker INSTANCE = new ScreenTracker();
+    private final ScreenInventoryTracker inventoryWatcher = new ScreenInventoryTracker();
+    private final List<Consumer<ScreenInfo>> switchListeners = new CopyOnWriteArrayList<>();
+    private final List<ScreenLoadListenerEntry> screenLoadListenerEntries = new CopyOnWriteArrayList<>();
+    private final List<ScreenCloseListenerEntry> screenCloseListenerEntries = new CopyOnWriteArrayList<>();
+    private final ScreenInfo inventoryOwnerInfo = new ScreenInfo(null);
+    private boolean hasInventoryOwner = false;
+    private boolean awaitingContainerOpen = true;
+    private long screenTransitionVersion = 0;
+    private long dispatchedScreenTransitionVersion = 0;
+    private long inventoryVersion = 0;
+    private final CacheToken screenTransitions = CacheToken.named("screen.transition");
+    private final CacheToken inventoryChanges = CacheToken.named("screen.inventory");
+
+    @Getter
+    private volatile @NotNull ScreenInfo currInfo = new ScreenInfo(null);
+    @Getter
+    private volatile @NotNull ScreenInfo prevInfo = new ScreenInfo(null);
+
+    private ScreenTracker() {
+        this.setupInventoryWatcher();
+    }
+
+    public static ScreenTracker get() {
+        return INSTANCE;
+    }
+
+    public CacheToken screenTransitions() {
+        return this.screenTransitions;
+    }
+
+    public static boolean inMenu(BazaarMenuType menu) {
+        return BtrBz.isActive() && INSTANCE.currInfo.inMenu(menu);
+    }
+
+    public static boolean inMenu(BazaarMenuType... menus) {
+        return BtrBz.isActive() && INSTANCE.currInfo.inMenu(menus);
+    }
+
+    public static boolean inBazaar() {
+        return BtrBz.isActive() && INSTANCE.currInfo.inBazaar();
+    }
+
+    public static void registerOnSwitch(Consumer<ScreenInfo> listener) {
+        INSTANCE.switchListeners.add(listener);
+    }
+
+    public static void registerOnLoaded(
+        Predicate<ScreenInfo> matcher,
+        BiConsumer<ScreenInfo, Inventory> listener
+    ) {
+        var info = new ScreenLoadListenerEntry(matcher, listener);
+        INSTANCE.screenLoadListenerEntries.add(info);
+    }
+
+    public static void registerOnClose(
+        Predicate<ScreenInfo> matcher,
+        Consumer<ScreenInfo> listener
+    ) {
+        var info = new ScreenCloseListenerEntry(matcher, listener);
+        INSTANCE.screenCloseListenerEntries.add(info);
+    }
+
+    public boolean isContainerActive(int containerId) {
+        var player = Minecraft.getInstance().player;
+        return BtrBz.isActive() && player != null && player.containerMenu.containerId == containerId;
+    }
+
+    public void onOpenScreen(ClientboundOpenScreenPacket packet) {
+        if (!this.isContainerActive(packet.getContainerId())) {
+            return;
+        }
+        if (this.awaitingContainerOpen) {
+            this.awaitingContainerOpen = false;
+            this.setScreen(GameUtils.screen());
+        }
+        this.inventoryWatcher.onPacketReceived(packet);
+        this.fireScreenSwitchCallbacks();
+    }
+
+    public void onSlotUpdate(ClientboundContainerSetSlotPacket packet) {
+        this.inventoryWatcher.onPacketReceived(packet);
+    }
+
+    /** Forget ownership without invoking close handlers, which can send commands or submit input. */
+    public void discard() {
+        this.awaitingContainerOpen = true;
+        this.hasInventoryOwner = false;
+        this.inventoryWatcher.discard();
+        this.inventoryOwnerInfo.setScreen(null);
+        this.currInfo.setScreen(null);
+        this.prevInfo.setScreen(null);
+        this.screenTransitionVersion++;
+        this.dispatchedScreenTransitionVersion = this.screenTransitionVersion;
+        this.screenTransitions.invalidate("screen ownership discarded");
+        this.inventoryChanges.invalidate("inventory ownership discarded");
+    }
+
+    public CacheToken inventoryChanges() {
+        return this.inventoryChanges;
+    }
+
+    private void setupInventoryWatcher() {
+        this.inventoryWatcher.setOnOpen(_ -> {
+            this.inventoryOwnerInfo.setScreen(this.currInfo.getScreen());
+            this.hasInventoryOwner = true;
+        });
+
+        this.inventoryWatcher.setOnLoaded(inventory -> {
+            var screenInfo = this.hasInventoryOwner ? this.inventoryOwnerInfo : this.currInfo;
+
+            screenInfo.markInventoryLoaded();
+            this.inventoryVersion++;
+            if (screenInfo != this.currInfo && screenInfo.getScreen() == this.currInfo.getScreen()) {
+                this.currInfo.markInventoryLoaded();
+            }
+
+            this.inventoryChanges.invalidate("screen inventory loaded");
+            log.trace("Inventory loaded: '{}'", inventory.title);
+
+            this.screenLoadListenerEntries.forEach(entry -> Try.run(() -> {
+                if (entry.matcher.test(screenInfo)) {
+                    entry.listener.accept(screenInfo, inventory);
+                }
+            }).onFailure(err -> log.error(
+                "Screen load listener failed for screen '{}' and listener '{}'",
+                screenInfo.containerName().orElse("<unknown>"),
+                entry.listener.getClass().getName(),
+                err)));
+        });
+
+        this.inventoryWatcher.setOnClose(title -> {
+            if (!this.hasInventoryOwner) {
+                return;
+            }
+
+            this.hasInventoryOwner = false;
+            var screenInfo = this.inventoryOwnerInfo;
+
+            log.trace("Inventory closed: '{}'", title);
+
+            this.screenCloseListenerEntries.forEach(entry -> Try.run(() -> {
+                if (entry.matcher.test(screenInfo)) {
+                    entry.listener.accept(screenInfo);
+                }
+            }).onFailure(err -> log.error(
+                "Screen close listener failed for screen '{}' and listener '{}'",
+                screenInfo.containerName().orElse("<unknown>"),
+                entry.listener.getClass().getName(),
+                err)));
+        });
+    }
+
+    public void setScreen(@Nullable Screen screen) {
+        if (!BtrBz.isActive() || this.awaitingContainerOpen) {
+            return;
+        }
+        if (this.currInfo.getScreen() == screen) {
+            return;
+        }
+
+        this.closeInventoryForTransition(screen);
+
+        var next = this.prevInfo;
+        this.prevInfo = this.currInfo;
+        this.currInfo = next;
+
+        this.currInfo.setScreen(screen);
+        this.screenTransitionVersion++;
+        this.screenTransitions.invalidate("screen transitioned");
+    }
+
+    private void closeInventoryForTransition(@Nullable Screen nextScreen) {
+        if (this.inventoryWatcher.getCurrInv() == null) {
+            return;
+        }
+
+        var player = Minecraft.getInstance().player;
+        if (nextScreen != null
+            && player != null
+            && this.inventoryWatcher.isTrackingContainer(player.containerMenu.containerId)) {
+            return;
+        }
+
+        this.inventoryWatcher.close();
+    }
+
+    public void fireScreenSwitchCallbacks() {
+        if (!BtrBz.isActive() || this.awaitingContainerOpen) {
+            return;
+        }
+        if (this.dispatchedScreenTransitionVersion == this.screenTransitionVersion) {
+            return;
+        }
+
+        this.dispatchedScreenTransitionVersion = this.screenTransitionVersion;
+        var screenInfo = this.currInfo;
+
+        this.switchListeners.forEach(listener -> Try.run(() -> listener.accept(screenInfo)).onFailure(err -> log.error(
+            "Screen switch listener failed for screen '{}' and listener '{}'",
+            screenInfo.containerName().orElse("<unknown>"),
+            listener.getClass().getName(),
+            err)));
+    }
+
+    private enum BazaarCategory {
+        Farming,
+        Mining,
+        Combat,
+        WoodsAndFishes,
+        Oddities;
+
+        private static Try<BazaarCategory> tryFrom(String value) {
+            return switch (value) {
+                case "Farming" -> Try.success(BazaarCategory.Farming);
+                case "Mining" -> Try.success(BazaarCategory.Mining);
+                case "Combat" -> Try.success(BazaarCategory.Combat);
+                case "Woods & Fishes" -> Try.success(BazaarCategory.WoodsAndFishes);
+                case "Oddities" -> Try.success(BazaarCategory.Oddities);
+                default -> Try.failure(new IllegalArgumentException("Unknown category: " + value));
+            };
+        }
+    }
+
+    public enum BazaarMenuType {
+        Main, // Bazaar ➜ <category> / "<search>"
+        Orders, // Your Bazaar Orders or Co-op Bazaar Orders
+        InstaBuy, // <product name> ➜ Instant Buy
+        InstaSellConfirmation, // Confirm Sell Offer
+        InstaBuyConfirmation, // Confirm Buy Order
+        BuyOrderSetupPrice,  // How much do you want to pay?
+        BuyOrderSetupVolume, // How many do you want?
+        BuyOrderConfirmation, // Confirm Buy Order
+        SellOfferSetup, // At what price are you selling?
+        SellOfferConfirmation, // Confirm Sell Offer
+        Item, // <group> ➜ <product name> | product name from title & fallback to inventory idx 34
+        // -> "View Graphs" (paper)
+        ItemGroup, // 'Optional: (page / max page)' <category / subcategory> ➜ <group>
+        InstaSellIgnoreList, // Instasell Ignore List
+        InventorySellConfirmation, // Are you sure?
+        OrderOptions, // Order options
+        Graphs, // <product name> ➜ Graphs
+        Settings,  // Bazaar ➜ Settings
+        Confirm; // Confirm
+
+        private static final BazaarMenuType[] VALUES = BazaarMenuType.values();
+
+        // Note: Checks for Item and ItemGroup rely on slot checks, which are only valid
+        // after the UI has been populated. Calling Item/ItemGroup.matches(info)
+        // before the UI is populated, for example after `setScreen` has been called on the
+        // MinecraftClient (-> ScreenTracker.onSwitch), they will return false even if
+        // you're technically on the correct screen.
+        public boolean matches(@NotNull ScreenInfo info) {
+            var titleOpt = info.containerName();
+            if (titleOpt.isEmpty()) {
+                return false;
+            }
+
+            var title = titleOpt.get();
+            return switch (this) {
+                case Main -> {
+                    if (!title.startsWith("Bazaar ➜ ")) {
+                        yield false;
+                    }
+                    var str = title.substring("Bazaar ➜ ".length()).trim();
+                    yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
+                }
+                case Orders -> (title.equals("Your Bazaar Orders") || title.equals("Co-op Bazaar Orders"));
+                // Some item names are too long for the title to include the "Buy" suffix.
+                case InstaBuy -> title.endsWith("➜ Instant") || title.endsWith("➜ Instant Buy");
+                case InstaBuyConfirmation -> title.equals("Confirm Instant Buy");
+                case InstaSellConfirmation -> title.equals("Confirm Instant Sell"); // not sure if this exists
+                case BuyOrderSetupVolume -> title.equals("How many do you want?");
+                case BuyOrderSetupPrice -> title.equals("How much do you want to pay?");
+                case BuyOrderConfirmation -> title.equals("Confirm Buy Order");
+                case SellOfferSetup -> title.equals("At what price are you selling?");
+                case SellOfferConfirmation -> title.equals("Confirm Sell Offer");
+                case Item -> {
+                    var parts = title.split("➜", 2);
+                    if (parts.length != 2) {
+                        yield false;
+                    }
+
+                    yield info.getGenericContainerScreen().map(gcs -> {
+                        final int GRAPH_PAPER_IDX = 33;
+                        var handler = gcs.getMenu();
+                        var inventory = handler.getContainer();
+
+                        if (inventory.getContainerSize() < GRAPH_PAPER_IDX) {
+                            return false;
+                        }
+
+                        var slot = inventory.getItem(GRAPH_PAPER_IDX);
+                        return slot.getItem().equals(Items.PAPER) && slot
+                            .getHoverName()
+                            .getString()
+                            .equals("View Graphs");
+                    }).orElse(false);
+                }
+                case ItemGroup -> {
+                    if (!title.contains("➜") || title.endsWith("Graphs")
+                        || title.endsWith(
+                            "Settings")) {
+                        yield false;
+                    }
+
+                    yield info.getGenericContainerScreen().map(gcs -> {
+                        var handler = gcs.getMenu();
+                        var inventory = handler.getContainer();
+                        var slot = inventory.getContainerSize() - 4;
+
+                        return Try
+                            .of(() -> inventory.getItem(slot))
+                            .map(itemStack -> itemStack.getItem().equals(Items.BOOK)
+                                && itemStack.getHoverName().getString().equals("Manage Orders"))
+                            .getOrElse(false);
+                    }).orElse(false);
+                }
+                case InstaSellIgnoreList -> title.equals("Instasell Ignore List");
+                case InventorySellConfirmation -> title.equals("Are you sure?");
+                case OrderOptions -> title.equals("Order options");
+                case Graphs -> title.endsWith("➜ Graphs");
+                case Settings -> title.equals("Bazaar ➜ Settings");
+                case Confirm -> title.equals("Confirm") && ScreenTracker.get().getPrevInfo().inBazaar();
+            };
+        }
+    }
+
+    public static class ScreenInfo {
+
+        private final MenuState state = new MenuState();
+        @Getter
+        private @Nullable Screen screen;
+        private @Nullable ContainerScreen containerScreen;
+
+        public ScreenInfo(@Nullable Screen screen) {
+            this.setScreen(screen);
+        }
+
+        public void setScreen(Screen screen) {
+            if (this.screen == screen) {
+                return;
+            }
+
+            this.resetMenuMatchState();
+            this.screen = screen;
+            this.containerScreen = (screen instanceof ContainerScreen gcs) ? gcs : null;
+        }
+
+        public boolean inBazaar() {
+            return this.inMenu(BazaarMenuType.VALUES);
+        }
+
+        public boolean inMenu(BazaarMenuType menu) {
+            return this.state.matches(this, menu);
+        }
+
+        public boolean inMenu(BazaarMenuType... menus) {
+            for (var type : menus) {
+                if (this.state.matches(this, type)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public Optional<BazaarMenuType> getMenuType() {
+            return this.state.getMenu(this);
+        }
+
+        public Optional<ItemStack> getItemStack(int idx) {
+            return this.getGenericContainerScreen().flatMap(gcs -> {
+                var handler = gcs.getMenu();
+                var inventory = handler.getContainer();
+                if (!ScreenTracker.isValidContainerIndex(idx, inventory.getContainerSize())) {
+                    return Optional.empty();
+                }
+                var slot = inventory.getItem(idx);
+                return slot.isEmpty() ? Optional.empty() : Optional.of(slot);
+            });
+        }
+
+        public Optional<ContainerScreen> getGenericContainerScreen() {
+            return Optional.ofNullable(this.containerScreen);
+        }
+
+        public Optional<String> containerName() {
+            return Optional.ofNullable(this.screen).map(Screen::getTitle).map(Component::getString);
+        }
+
+        private void markInventoryLoaded() {
+            this.state.inventoryLoaded = true;
+        }
+
+        private void resetMenuMatchState() {
+            this.state.reset();
+        }
+    }
+
+    static boolean isValidContainerIndex(int index, int containerSize) {
+        return index >= 0 && index < containerSize;
+    }
+
+    private record ScreenLoadListenerEntry(
+        Predicate<ScreenInfo> matcher,
+        BiConsumer<ScreenInfo, Inventory> listener
+    ) {}
+
+    private record ScreenCloseListenerEntry(
+        Predicate<ScreenInfo> matcher, Consumer<ScreenInfo> listener
+    ) {}
+
+    private static final class MenuState {
+
+        private Optional<BazaarMenuType> verifiedMenu = Optional.empty();
+        private int verifiedNotMenu = 0;
+        private boolean inventoryLoaded = false;
+
+        public void reset() {
+            this.verifiedMenu = Optional.empty();
+            this.verifiedNotMenu = 0;
+            this.inventoryLoaded = false;
+        }
+
+        public Optional<BazaarMenuType> getMenu(ScreenInfo info) {
+            if (this.verifiedMenu.isPresent()) {
+                return this.verifiedMenu;
+            }
+
+            for (var menu : BazaarMenuType.VALUES) {
+                if (((this.verifiedNotMenu >> menu.ordinal()) & 1) == 1) {
+                    continue;
+                }
+                if (this.matches(info, menu)) {
+                    return this.verifiedMenu;
+                }
+            }
+            return Optional.empty();
+        }
+
+        public boolean matches(ScreenInfo info, BazaarMenuType type) {
+            if (this.verifiedMenu.isPresent()) {
+                return this.verifiedMenu.get() == type;
+            }
+
+            int typeBit = 1 << type.ordinal();
+            if ((this.verifiedNotMenu & typeBit) != 0) {
+                return false;
+            }
+
+            if ((type == BazaarMenuType.Item || type == BazaarMenuType.ItemGroup) && !this.inventoryLoaded) {
+                return false;
+            }
+
+            boolean matches = type.matches(info);
+            if (matches) {
+                this.verifiedMenu = Optional.of(type);
+                log.debug("Matched menu: {}", type);
+            } else {
+                this.verifiedNotMenu |= typeBit;
+            }
+            return matches;
+        }
+    }
+}

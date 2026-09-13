@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.mojang.serialization.Dynamic;
 import java.io.InputStreamReader;
@@ -354,7 +355,7 @@ class ConversionIndexTest {
             var normalized = LegacyStackNormalizer.formattedText(Component.literal("§a§lEnchanted Diamond"));
 
             assertEquals("Enchanted Diamond", normalized.getString());
-            assertEquals("§a§lEnchanted Diamond", Utils.legacyFormattedText(normalized));
+            assertEquals("§a§lEnchanted Diamond", GameUtils.legacyFormattedText(normalized));
         }
     }
 

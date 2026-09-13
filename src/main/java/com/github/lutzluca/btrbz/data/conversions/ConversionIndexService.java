@@ -3,8 +3,8 @@ package com.github.lutzluca.btrbz.data.conversions;
 import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.time.Instant;
@@ -161,7 +161,7 @@ public final class ConversionIndexService {
         return this.resolveProduct(
             stack,
             displayNameEvidence,
-            Utils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null));
+            GameUtils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null));
     }
 
     public ProductIdentity resolveProduct(
@@ -280,7 +280,7 @@ public final class ConversionIndexService {
             }
         }
         this.stackResolver.clear();
-        this.changes.invalidate(InvalidationReason.of("conversion index published"));
+        this.changes.invalidate("conversion index published");
     }
 
     private void logIndexSummary(ConversionStatus.IndexLoadSource source, ConversionIndex index) {

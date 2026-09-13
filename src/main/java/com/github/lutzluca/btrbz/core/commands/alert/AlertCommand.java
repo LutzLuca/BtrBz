@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands.alert;
 
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.commands.Commands;
+import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
@@ -32,9 +31,11 @@ public class AlertCommand {
         return builder.buildFuture();
     };
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("alert")
+    public static LiteralArgumentBuilder<FabricClientCommandSource> get(
+        BazaarData bazaarData,
+        AlertManager alertManager
+    ) {
+        return ClientCommands.literal("alert")
             .then(ClientCommands
                 .literal("remove")
                 .then(ClientCommands
@@ -44,7 +45,7 @@ public class AlertCommand {
 
                         Try
                             .of(() -> UUID.fromString(id))
-                            .onSuccess(BtrBz.alertManager()::removeAlert)
+                            .onSuccess(alertManager::removeAlert)
                             .onFailure(err -> Notifier.notifyPlayer(Notifier
                                 .prefix()
                                 .append(Component.literal("Invalid input ").withStyle(ChatFormatting.GRAY))
@@ -109,7 +110,7 @@ public class AlertCommand {
                                     .flatMap(alertCmd -> alertCmd.resolve(bazaarData))
                                     .flatMap(ResolvedAlertArgs::validate)
                                     .onSuccess(resolved -> {
-                                        var registered = BtrBz.alertManager().addAlert(resolved);
+                                        var registered = alertManager.addAlert(resolved);
                                         if (registered) {
                                             Notifier.notifyAlertRegistered(resolved, bazaarData);
                                             return;
@@ -131,7 +132,7 @@ public class AlertCommand {
                                     });
 
                                 return result.isSuccess() ? 1 : -1;
-                            }))))));
+                            })))));
 
     }
 

@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;

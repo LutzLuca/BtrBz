@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -9,7 +8,8 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class DailyLimitWidgetDefinition {
@@ -19,10 +19,11 @@ public final class DailyLimitWidgetDefinition {
     private DailyLimitWidgetDefinition() {}
 
     public static WidgetDefinition<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> create(
-        DailyLimitComponent component
+        DailyLimitComponent component,
+        Supplier<DailyLimitWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.orderLimit, DailyLimitWidgetConfig::new,
+            configSupplier, DailyLimitWidgetConfig::new,
             value -> value.frame, DailyLimitWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(new DailyLimitWidgetData(component, config));
 

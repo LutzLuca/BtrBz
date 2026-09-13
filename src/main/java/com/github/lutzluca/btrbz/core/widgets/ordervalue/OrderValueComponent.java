@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import java.util.List;
@@ -19,13 +18,13 @@ public final class OrderValueComponent {
     public void sync(List<UnfilledOrderInfo> unfilledOrders, List<FilledOrderInfo> filledOrders) {
         this.unfilledOrders = List.copyOf(unfilledOrders);
         this.filledOrders = List.copyOf(filledOrders);
-        this.dataChanges.invalidate(InvalidationReason.of("order values synchronized"));
+        this.dataChanges.invalidate("order values synchronized");
     }
 
     public void clear() {
         this.unfilledOrders = List.of();
         this.filledOrders = List.of();
-        this.dataChanges.invalidate(InvalidationReason.of("order values cleared"));
+        this.dataChanges.invalidate("order values cleared");
     }
 
     public Breakdown currentBreakdown() {

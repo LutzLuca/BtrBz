@@ -1,43 +1,47 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.utils.Notifier;
-import net.minecraft.network.chat.Component;
+import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommand;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.github.lutzluca.btrbz.utils.Notifier;
+import java.util.function.Function;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
+import net.minecraft.network.chat.Component;
 
 public class Commands {
 
-    public static final LiteralArgumentBuilder<FabricClientCommandSource> rootCommand = ClientCommands
-        .literal("btrbz")
-        .executes(_ -> {
-            ConfigScreen.open();
+    public static void registerAll(
+        BazaarData bazaarData,
+        WidgetRuntime widgetRuntime,
+        AlertManager alertManager,
+        TrackedOrderManager orderManager,
+        Runnable openConfigScreen,
+        Function<Boolean, String> setEnabled
+    ) {
+        var rootCommand = ClientCommands.literal("btrbz").executes(_ -> {
+            openConfigScreen.run();
             return 1;
         });
-
-    public static void registerAll(BazaarData bazaarData, WidgetRuntime widgetRuntime) {
         rootCommand.then(ClientCommands.literal("enable").executes(context -> {
-            context.getSource().sendFeedback(Notifier.prefix().append(Component.literal(BtrBz.setEnabled(true))));
+            context.getSource().sendFeedback(Notifier.prefix().append(Component.literal(setEnabled.apply(true))));
             return 1;
         }));
         rootCommand.then(ClientCommands.literal("disable").executes(context -> {
-            context.getSource().sendFeedback(Notifier.prefix().append(Component.literal(BtrBz.setEnabled(false))));
+            context.getSource().sendFeedback(Notifier.prefix().append(Component.literal(setEnabled.apply(false))));
             return 1;
         }));
+        rootCommand.then(WidgetCommand.get(widgetRuntime));
+        rootCommand.then(AlertCommand.get(bazaarData, alertManager));
+        rootCommand.then(ConversionCommand.get(bazaarData));
+        rootCommand.then(TrackedOrderCommand.get(orderManager));
+        rootCommand.then(TaxCommand.get());
+        rootCommand.then(PresetCommand.get(widgetRuntime));
+
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(rootCommand);
-            dispatcher.register(WidgetCommand.get(widgetRuntime));
-            dispatcher.register(AlertCommand.get(bazaarData));
-            dispatcher.register(ConversionCommand.get(bazaarData));
-            dispatcher.register(TrackedOrderCommand.get());
-            dispatcher.register(TaxCommand.get());
-            dispatcher.register(PresetCommand.get());
         });
     }
 }

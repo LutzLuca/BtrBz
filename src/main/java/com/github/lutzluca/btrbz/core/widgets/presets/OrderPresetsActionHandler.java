@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 
 public final class OrderPresetsActionHandler implements WidgetActionHandler<OrderPresetsAction> {
     private final OrderPresetsComponent presets;

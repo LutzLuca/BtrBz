@@ -1,14 +1,13 @@
 package com.github.lutzluca.btrbz.core.widgets.session;
 
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.screen.BazaarProductContext;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.Screen;
@@ -22,7 +21,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     private static final int PRODUCT_SLOT = 13;
 
     private final BazaarData market;
-    private final ProductInfoProvider productInfoProvider;
+    private final BazaarProductContext productContext;
     private final OrderBookPriceComponent orderBookPrice;
 
     private final CacheToken contextChanges = CacheToken.named("widget-session.context");
@@ -38,21 +37,21 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
 
     public DefaultWidgetSessionProvider(
         BazaarData market,
-        ProductInfoProvider productInfoProvider,
+        BazaarProductContext productContext,
         OrderBookPriceComponent orderBookPrice
     ) {
         this.market = Objects.requireNonNull(market, "market");
-        this.productInfoProvider = Objects.requireNonNull(productInfoProvider, "productInfoProvider");
+        this.productContext = Objects.requireNonNull(productContext, "productContext");
         this.orderBookPrice = Objects.requireNonNull(orderBookPrice, "orderBookPrice");
     }
 
     @Override
     public WidgetSession current(@Nullable Screen screen) {
-        var helper = ScreenInfoHelper.get();
+        var helper = ScreenTracker.get();
         long transitionRevision = helper.screenTransitions().revision();
         long inventoryRevision = helper.inventoryChanges().revision();
         long indexRevision = this.market.indexChanges().revision();
-        long productRevision = this.productInfoProvider.changes().revision();
+        long productRevision = this.productContext.changes().revision();
 
         var cached = this.cachedSession;
 
@@ -84,9 +83,9 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
                 .map(identity -> this.context(
                     identity, previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))));
             side = workflow.map(OrderBookPriceComponent.Workflow::side);
-        } else if (this.productInfoProvider.getOpenedProduct() != null) {
+        } else if (this.productContext.openedProduct() != null) {
             product = Optional.of(this.context(
-                ProductIdentity.fromIndex(this.productInfoProvider.getOpenedProduct()),
+                ProductIdentity.fromIndex(this.productContext.openedProduct()),
                 current.getItemStack(PRODUCT_SLOT)));
         }
 
@@ -100,7 +99,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         }
 
         if (cached == null || !candidate.samePresentationContext(cached)) {
-            this.contextChanges.invalidate(InvalidationReason.of("widget session presentation changed"));
+            this.contextChanges.invalidate("widget session presentation changed");
         }
 
         var session = new WidgetSession(

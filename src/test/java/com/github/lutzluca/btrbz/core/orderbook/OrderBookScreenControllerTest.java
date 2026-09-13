@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheRevisions.ChangedDependency;
+import com.github.lutzluca.btrbz.cache.CacheRevisions.ChangedDependency;
 import org.jetbrains.annotations.Nullable;
 
 /** One bounded, miss-only explanation for a prepared-widget recomputation. */

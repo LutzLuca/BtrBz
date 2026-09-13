@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
-import com.github.lutzluca.btrbz.utils.Utils;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.component.DataComponents;
@@ -44,7 +44,7 @@ final class LegacyStackNormalizer {
     }
 
     static Component formattedText(Component component) {
-        return Utils.legacyFormattedComponent(component.getString());
+        return GameUtils.legacyFormattedComponent(component.getString());
     }
 
     static List<Component> formattedLore(List<Component> lore) {

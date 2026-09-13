@@ -11,14 +11,14 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
-import com.github.lutzluca.btrbz.utils.slot.SlotHook;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.screen.slot.SlotHook;
+import com.github.lutzluca.btrbz.screen.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
@@ -89,7 +89,7 @@ public class BazaarOrderActions {
     }
 
     private void registerCloseHandlers() {
-        ScreenInfoHelper.registerOnClose(
+        ScreenTracker.registerOnClose(
             info -> info.inMenu(
                 BazaarMenuType.SellOfferConfirmation,
                 BazaarMenuType.BuyOrderConfirmation),
@@ -100,7 +100,7 @@ public class BazaarOrderActions {
                 BazaarOrderActions.this.shouldReopenBazaar = false;
             });
 
-        ScreenInfoHelper.registerOnClose(
+        ScreenTracker.registerOnClose(
             info -> info.inMenu(BazaarMenuType.OrderOptions),
             _ -> {
                 BazaarOrderActions.this.remainingOrderAmount = null;
@@ -109,7 +109,7 @@ public class BazaarOrderActions {
     }
 
     private void registerReopenCloseHandler() {
-        ScreenInfoHelper.registerOnClose(
+        ScreenTracker.registerOnClose(
             info -> info.inMenu(BazaarMenuType.Orders),
             info -> BazaarOrderActions.this.hideCancelledOrderButton = true);
     }
@@ -124,7 +124,7 @@ public class BazaarOrderActions {
                 return;
             }
 
-            var screenInfo = ScreenInfoHelper.get().getCurrInfo();
+            var screenInfo = ScreenTracker.get().getCurrInfo();
             if (!screenInfo.inMenu(BazaarMenuType.OrderOptions)) {
                 return;
             }

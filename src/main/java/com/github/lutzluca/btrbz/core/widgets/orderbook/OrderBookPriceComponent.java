@@ -1,17 +1,17 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.screen.BazaarProductContext;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,25 +23,25 @@ import net.minecraft.network.chat.Component;
 /** Price-entry workflow facts, copy, and sign submission. */
 public final class OrderBookPriceComponent {
     private final BazaarData bazaarData;
-    private final ProductInfoProvider productInfoProvider;
+    private final BazaarProductContext productContext;
     private final FlipProductContext flipProductContext;
     private final FlipSubmissionTracker flipSubmissionTracker;
 
     public OrderBookPriceComponent(
         BazaarData bazaarData,
-        ProductInfoProvider productInfoProvider,
+        BazaarProductContext productContext,
         FlipProductContext flipProductContext,
         FlipSubmissionTracker flipSubmissionTracker
     ) {
         this.bazaarData = bazaarData;
-        this.productInfoProvider = productInfoProvider;
+        this.productContext = productContext;
         this.flipProductContext = flipProductContext;
         this.flipSubmissionTracker = flipSubmissionTracker;
     }
 
     public Optional<Workflow> currentWorkflow() {
-        var current = ScreenInfoHelper.get().getCurrInfo();
-        var previous = ScreenInfoHelper.get().getPrevInfo();
+        var current = ScreenTracker.get().getCurrInfo();
+        var previous = ScreenTracker.get().getPrevInfo();
 
         if (!(current.getScreen() instanceof SignEditScreen)) {
             return Optional.empty();
@@ -81,7 +81,7 @@ public final class OrderBookPriceComponent {
 
     public boolean selectPrice(double rawPrice, boolean copyOnly) {
         var workflow = this.currentWorkflow();
-        var current = ScreenInfoHelper.get().getCurrInfo();
+        var current = ScreenTracker.get().getCurrInfo();
 
         if (workflow.isEmpty() || !(current.getScreen() instanceof SignEditScreen sign)) {
             return false;
@@ -102,7 +102,7 @@ public final class OrderBookPriceComponent {
 
         double adjusted = adjustPrice(rawPrice, workflow.get().side());
 
-        if (ScreenInfoHelper.get().getPrevInfo().inMenu(BazaarMenuType.OrderOptions)) {
+        if (ScreenTracker.get().getPrevInfo().inMenu(BazaarMenuType.OrderOptions)) {
             this.flipSubmissionTracker.recordSubmittedFlip(workflow.get().product(), adjusted);
         }
 
@@ -120,7 +120,7 @@ public final class OrderBookPriceComponent {
             return this.flipProductContext.getSelectedProduct();
         }
 
-        return Optional.ofNullable(this.productInfoProvider.getOpenedProduct());
+        return Optional.ofNullable(this.productContext.openedProduct());
     }
 
     private Optional<OrderType> resolveSide(ScreenInfo previous) {

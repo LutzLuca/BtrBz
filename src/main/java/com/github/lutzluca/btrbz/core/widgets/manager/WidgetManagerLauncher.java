@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
@@ -20,6 +21,7 @@ import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.List;
+import java.util.Objects;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -37,6 +39,7 @@ public final class WidgetManagerLauncher {
 
     private final WidgetRuntime runtime;
     private final WidgetStateStore stateStore;
+    private final Activation activation;
 
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
     private FlowLayout button;
@@ -52,9 +55,14 @@ public final class WidgetManagerLauncher {
     private double pointerOffsetX;
     private double pointerOffsetY;
 
-    public WidgetManagerLauncher(WidgetRuntime runtime) {
-        this.runtime = runtime;
-        this.stateStore = runtime.stateStore();
+    public WidgetManagerLauncher(
+        WidgetRuntime runtime,
+        WidgetStateStore stateStore,
+        Activation activation
+    ) {
+        this.runtime = Objects.requireNonNull(runtime, "runtime");
+        this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
+        this.activation = Objects.requireNonNull(activation, "activation");
     }
 
     public void render(
@@ -102,7 +110,7 @@ public final class WidgetManagerLauncher {
     }
 
     public boolean mouseClicked(MouseButtonEvent click) {
-        if (!BtrBz.isActive() || !this.visible
+        if (!this.activation.isActive() || !this.visible
             || click.button() != InputConstants.MOUSE_BUTTON_LEFT
             || !this.bounds.contains(click.x(), click.y())) {
             return false;
@@ -119,7 +127,8 @@ public final class WidgetManagerLauncher {
     }
 
     public boolean mouseDragged(MouseButtonEvent click, WidgetCanvas canvas) {
-        if (!BtrBz.isActive() || !this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (!this.activation.isActive() || !this.captured
+            || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
 
@@ -136,7 +145,8 @@ public final class WidgetManagerLauncher {
     }
 
     public boolean mouseReleased(MouseButtonEvent click, WidgetCanvas canvas, Screen screen) {
-        if (!BtrBz.isActive() || !this.captured || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
+        if (!this.activation.isActive() || !this.captured
+            || click.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
 

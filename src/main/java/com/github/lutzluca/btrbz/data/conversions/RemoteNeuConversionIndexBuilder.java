@@ -514,8 +514,8 @@ final class RemoteNeuConversionIndexBuilder {
             return Optional.empty();
         }
 
-        var name = Utils.titleCase(withoutPrefix.substring(0, delimiter).replace('_', ' '));
-        var formattedLevel = level == 0 ? "0" : Utils.intToRoman(level);
+        var name = ConversionNames.titleCase(withoutPrefix.substring(0, delimiter).replace('_', ' '));
+        var formattedLevel = level == 0 ? "0" : ConversionNames.toRoman(level);
         return Optional.of(name + " " + formattedLevel);
     }
 

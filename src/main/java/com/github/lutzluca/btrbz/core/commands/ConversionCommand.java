@@ -14,7 +14,7 @@ public final class ConversionCommand {
     private ConversionCommand() {}
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
-        return Commands.rootCommand.then(command("conversions", bazaarData));
+        return command("conversions", bazaarData);
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> command(

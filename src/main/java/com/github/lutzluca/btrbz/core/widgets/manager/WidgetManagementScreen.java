@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
@@ -45,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -59,7 +60,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final long TOOLTIP_DELAY_MILLIS = 200;
 
     private final @Nullable Screen previousScreen;
-    private final long activationGeneration = BtrBz.activationGeneration();
+    private final Activation activation;
+    private final long activationGeneration;
     private final @Nullable AbstractContainerScreen<?> backgroundScreen;
 
     private final WidgetRegistry registry;
@@ -92,21 +94,24 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     public WidgetManagementScreen(
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
-        WidgetStateStore stateStore
+        WidgetStateStore stateStore,
+        Activation activation
     ) {
-        this(previousScreen, registry, stateStore, WidgetManagementLaunchState.empty(), null);
+        this(previousScreen, registry, stateStore, activation, WidgetManagementLaunchState.empty(), null);
     }
 
     public WidgetManagementScreen(
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
+        Activation activation,
         WidgetId initiallySelectedWidget
     ) {
         this(
             previousScreen,
             registry,
             stateStore,
+            activation,
             WidgetManagementLaunchState.configure(initiallySelectedWidget),
             null);
     }
@@ -115,12 +120,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
+        Activation activation,
         WidgetManagementContext context
     ) {
         this(
             previousScreen,
             registry,
             stateStore,
+            activation,
             WidgetManagementLaunchState.contextual(context.initiallyRendered()),
             context);
     }
@@ -129,6 +136,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
+        Activation activation,
         WidgetId initiallySelectedWidget,
         WidgetManagementContext context
     ) {
@@ -136,6 +144,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             previousScreen,
             registry,
             stateStore,
+            activation,
             WidgetManagementLaunchState.contextual(context.initiallyRendered(), initiallySelectedWidget),
             context);
     }
@@ -144,11 +153,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
+        Activation activation,
         WidgetManagementLaunchState launchState,
         @Nullable WidgetManagementContext context
     ) {
         super(Component.literal("BtrBz Widgets"));
         this.previousScreen = previousScreen;
+        this.activation = Objects.requireNonNull(activation, "activation");
+        this.activationGeneration = this.activation.generation();
         this.backgroundScreen = context == null ? null : context.backgroundScreen();
 
         this.registry = registry;
@@ -156,8 +168,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.editSession = new WidgetManagerEditSession(stateStore::save);
         this.previewHost = context == null
-            ? WidgetHost.preview(registry.all(), stateStore)
-            : WidgetHost.preview(registry.all(), stateStore, context.frozenPreviews());
+            ? WidgetHost.preview(registry.all(), stateStore, this.activation)
+            : WidgetHost.preview(registry.all(), stateStore, context.frozenPreviews(), this.activation);
 
         if (launchState.selectedWidget() != null) {
             if (registry.find(launchState.selectedWidget()).isEmpty()) {
@@ -333,7 +345,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private boolean hasCurrentGameContext() {
-        return BtrBz.isActive() && this.activationGeneration == BtrBz.activationGeneration();
+        return this.activation.isActive() && this.activationGeneration == this.activation.generation();
     }
 
     @Override

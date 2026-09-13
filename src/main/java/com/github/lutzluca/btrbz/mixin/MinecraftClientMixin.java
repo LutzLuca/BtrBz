@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -44,7 +44,7 @@ public abstract class MinecraftClientMixin {
             return;
         }
 
-        ScreenInfoHelper.get().setScreen(screen);
+        ScreenTracker.get().setScreen(screen);
     }
 
     @Inject(method = "setScreen(Lnet/minecraft/client/gui/screens/Screen;)V", at = @At("TAIL"))
@@ -53,6 +53,6 @@ public abstract class MinecraftClientMixin {
             return;
         }
 
-        ScreenInfoHelper.get().fireScreenSwitchCallbacks();
+        ScreenTracker.get().fireScreenSwitchCallbacks();
     }
 }

@@ -1,5 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.cache;
 
+import com.github.lutzluca.btrbz.cache.CacheRevisions;
+
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
@@ -10,7 +14,7 @@ public final class MemoizedWidgetDataSource<D> implements WidgetDataSource<D> {
 
     private long sessionId = Long.MIN_VALUE;
     private long sessionContextRevision = Long.MIN_VALUE;
-    private long[] dependencyRevisions = new long[0];
+    private CacheRevisions.Snapshot dependencyRevisions = CacheRevisions.capture(CacheDependencies.none());
 
     private @Nullable D cached;
 
@@ -44,7 +48,7 @@ public final class MemoizedWidgetDataSource<D> implements WidgetDataSource<D> {
         }
 
         D computed = Objects.requireNonNull(this.source.snapshot(session), "widget data snapshot");
-        long[] revisions = CacheRevisions.capture(dependencies);
+        CacheRevisions.Snapshot revisions = CacheRevisions.capture(dependencies);
 
         this.sessionId = session.id();
         this.sessionContextRevision = session.contextRevision();

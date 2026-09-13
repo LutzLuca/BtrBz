@@ -8,7 +8,7 @@ import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderItemTooltipConfig;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderListTooltipConfig;
-import com.github.lutzluca.btrbz.core.ProductInfoProvider.ProductInfoProviderConfig;
+import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
@@ -27,7 +27,7 @@ public class Config {
     public WidgetsConfig widgets = new WidgetsConfig();
 
     @SerialEntry
-    public ProductInfoProviderConfig productInfo = new ProductInfoProviderConfig();
+    public ProductInfoConfig productInfo = new ProductInfoConfig();
 
     @SerialEntry
     public OrderActionsConfig orderActions = new OrderActionsConfig();

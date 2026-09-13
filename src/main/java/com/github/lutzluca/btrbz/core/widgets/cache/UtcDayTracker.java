@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.cache;
 
+import com.github.lutzluca.btrbz.cache.CacheToken;
+
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -47,7 +49,7 @@ public final class UtcDayTracker implements AutoCloseable {
             }
 
             this.currentDay = next;
-            this.changes.invalidate(InvalidationReason.of("UTC day changed"));
+            this.changes.invalidate("UTC day changed");
 
             return true;
         } catch (RuntimeException exception) {

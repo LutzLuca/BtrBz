@@ -1,24 +1,23 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.screen.BazaarProductContext;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
@@ -33,9 +32,11 @@ public final class OrderPresetsComponent {
     private static final int CUSTOM_AMOUNT_SLOT = 16;
 
     private final BazaarData bazaarData;
-    private final ProductInfoProvider productInfoProvider;
+    private final BazaarProductContext productContext;
     private final ClipboardTracker clipboardTracker;
     private final PurseTracker purseTracker;
+    private final Supplier<OrderPresetsWidgetConfig> config;
+    private final Runnable save;
 
     private final CacheToken stateChanges = CacheToken.named("order-presets.state");
 
@@ -45,36 +46,36 @@ public final class OrderPresetsComponent {
     private boolean pendingPreset;
     private boolean inTransaction;
 
-    public OrderPresetsComponent(BazaarData bazaarData, ProductInfoProvider productInfoProvider) {
-        this(bazaarData, productInfoProvider, initializedClipboardTracker(), new PurseTracker(GameUtils::getPurse));
-    }
-
     public OrderPresetsComponent(
         BazaarData bazaarData,
-        ProductInfoProvider productInfoProvider,
+        BazaarProductContext productContext,
         ClipboardTracker clipboardTracker,
-        PurseTracker purseTracker
+        PurseTracker purseTracker,
+        Supplier<OrderPresetsWidgetConfig> config,
+        Runnable save
     ) {
         this.bazaarData = bazaarData;
-        this.productInfoProvider = productInfoProvider;
+        this.productContext = productContext;
         this.clipboardTracker = clipboardTracker;
         this.purseTracker = purseTracker;
+        this.config = config;
+        this.save = save;
 
-        var configured = ConfigManager.get().widgets.orderPresets.volumes;
+        var configured = this.config.get().volumes;
         var normalized = normalizeConfiguredVolumes(configured);
 
         if (!configured.equals(normalized)) {
             configured.clear();
             configured.addAll(normalized);
-            ConfigManager.save();
+            this.save.run();
         }
 
-        ScreenInfoHelper.registerOnSwitch(this::onScreenSwitch);
+        ScreenTracker.registerOnSwitch(this::onScreenSwitch);
 
-        ScreenInfoHelper.registerOnLoaded(
+        ScreenTracker.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.BuyOrderSetupVolume),
             (info, inventory) -> {
-                if (ScreenInfoHelper.get().getPrevInfo().inMenu(BazaarMenuType.BuyOrderSetupPrice)) {
+                if (ScreenTracker.get().getPrevInfo().inMenu(BazaarMenuType.BuyOrderSetupPrice)) {
                     return;
                 }
 
@@ -102,7 +103,7 @@ public final class OrderPresetsComponent {
             this.purseTracker.value().orElse(Double.NaN),
             product == null ? null : product.productId(),
             price,
-            List.copyOf(ConfigManager.get().widgets.orderPresets.volumes));
+            List.copyOf(this.config.get().volumes));
     }
 
     public List<PresetState> currentPresets() {
@@ -114,7 +115,7 @@ public final class OrderPresetsComponent {
             this.stateChanges,
             this.clipboardTracker.changes(),
             this.purseTracker.changes(),
-            this.productInfoProvider.changes(),
+            this.productContext.changes(),
             this.bazaarData.marketChanges());
     }
 
@@ -204,7 +205,7 @@ public final class OrderPresetsComponent {
         }
 
         var client = Minecraft.getInstance();
-        var current = ScreenInfoHelper.get().getCurrInfo();
+        var current = ScreenTracker.get().getCurrInfo();
         var container = current.getGenericContainerScreen();
 
         if (!(current.getScreen() instanceof SignEditScreen) && container.isEmpty()) {
@@ -235,14 +236,14 @@ public final class OrderPresetsComponent {
     }
 
     private void onScreenSwitch(ScreenInfo current) {
-        var previous = ScreenInfoHelper.get().getPrevInfo();
+        var previous = ScreenTracker.get().getPrevInfo();
         if (current.inMenu(BazaarMenuType.BuyOrderSetupVolume)
             && previous.inMenu(BazaarMenuType.Item)) {
             this.maximumVolume = current.getItemStack(CUSTOM_AMOUNT_SLOT)
                 .flatMap(this::readMaximumVolume)
                 .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
             this.inTransaction = true;
-            this.stateChanges.invalidate(InvalidationReason.of("order preset transaction started"));
+            this.stateChanges.invalidate("order preset transaction started");
             return;
         }
 
@@ -279,11 +280,11 @@ public final class OrderPresetsComponent {
         this.pendingPreset = false;
         this.pendingVolume = -1;
         this.maximumVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
-        this.stateChanges.invalidate(InvalidationReason.of("order preset transaction ended"));
+        this.stateChanges.invalidate("order preset transaction ended");
     }
 
     private @Nullable IndexedProduct currentProduct() {
-        return this.productInfoProvider.getOpenedProduct();
+        return this.productContext.openedProduct();
     }
 
     private void setMaximumVolume(int value, String reason) {
@@ -292,7 +293,7 @@ public final class OrderPresetsComponent {
         }
 
         this.maximumVolume = value;
-        this.stateChanges.invalidate(InvalidationReason.of(reason));
+        this.stateChanges.invalidate(reason);
     }
 
     private Optional<Integer> readMaximumVolume(ItemStack item) {
@@ -378,10 +379,4 @@ public final class OrderPresetsComponent {
         List<Integer> volumes
     ) {}
 
-    private static ClipboardTracker initializedClipboardTracker() {
-        var tracker = new ClipboardTracker(() -> Minecraft.getInstance().keyboardHandler.getClipboard());
-        tracker.initialize();
-
-        return tracker;
-    }
 }

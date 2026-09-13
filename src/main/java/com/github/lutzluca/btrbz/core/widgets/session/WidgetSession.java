@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.session;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.Objects;
 import java.util.Optional;
 

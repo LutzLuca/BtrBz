@@ -9,12 +9,11 @@ import net.minecraft.client.Minecraft;
 
 public class WidgetCommand {
     public static LiteralArgumentBuilder<FabricClientCommandSource> get(WidgetRuntime runtime) {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("widgets")
+        return ClientCommands.literal("widgets")
             .executes(_ -> {
                 Minecraft.getInstance()
                     .schedule(() -> GameUtils.setScreen(runtime.createManagementScreen(GameUtils.screen())));
                 return 1;
-            }));
+            });
     }
 }

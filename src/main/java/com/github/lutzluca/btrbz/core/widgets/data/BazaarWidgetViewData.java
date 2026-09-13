@@ -220,10 +220,6 @@ public final class BazaarWidgetViewData {
             return formatInt(this.totalAmount);
         }
 
-        public String totalPriceText() {
-            return formatCompact(this.unitPrice * this.totalAmount);
-        }
-
         public Component formattedItemName(boolean abbreviateEnchanted) {
             if (!abbreviateEnchanted) {
                 return this.formattedItemName.copy();

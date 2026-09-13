@@ -1,12 +1,11 @@
 package com.github.lutzluca.btrbz.core.fliphelper;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.BazaarData.TrackedProduct;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
@@ -14,15 +13,15 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
-import com.github.lutzluca.btrbz.utils.slot.SlotHook;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.screen.slot.SlotHook;
+import com.github.lutzluca.btrbz.screen.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
@@ -44,19 +43,22 @@ public class FlipHelper {
     private final BazaarData bazaarData;
     private final FlipProductContext flipProductContext;
     private final FlipSubmissionTracker flipSubmissionTracker;
+    private final TrackedOrderManager orderManager;
 
-    private TrackedProduct potentialFlipProduct = null;
+    private TrackedFlipProduct potentialFlipProduct = null;
     private boolean pendingFlip = false;
     private CachedHelperDisplay cachedHelperDisplay = null;
 
     public FlipHelper(
         BazaarData bazaarData,
         FlipProductContext flipProductContext,
-        FlipSubmissionTracker flipSubmissionTracker
+        FlipSubmissionTracker flipSubmissionTracker,
+        TrackedOrderManager orderManager
     ) {
         this.bazaarData = bazaarData;
         this.flipProductContext = flipProductContext;
         this.flipSubmissionTracker = flipSubmissionTracker;
+        this.orderManager = orderManager;
         this.registerSlotHooks();
         this.registerFlipProductContextHandler();
         this.registerFlipPriceScreenHandler();
@@ -95,7 +97,7 @@ public class FlipHelper {
             return;
         }
 
-        this.potentialFlipProduct = new TrackedProduct(this.bazaarData, product.get());
+        this.potentialFlipProduct = new TrackedFlipProduct(this.bazaarData, product.get());
         log.debug("Set `potentialFlipProduct` for product: {}", product.get());
     }
 
@@ -105,12 +107,12 @@ public class FlipHelper {
     }
 
     private void registerFlipProductContextHandler() {
-        ScreenInfoHelper.registerOnSwitch(curr -> {
+        ScreenTracker.registerOnSwitch(curr -> {
             if (this.flipProductContext.getSelectedProduct().isEmpty()) {
                 return;
             }
 
-            var prev = ScreenInfoHelper.get().getPrevInfo();
+            var prev = ScreenTracker.get().getPrevInfo();
             boolean inOrderOptions = curr.inMenu(BazaarMenuType.OrderOptions);
             boolean inFlipPriceSign = curr.getScreen() instanceof SignEditScreen
                 && prev.inMenu(BazaarMenuType.OrderOptions);
@@ -166,12 +168,12 @@ public class FlipHelper {
     }
 
     private void registerFlipPriceScreenHandler() {
-        ScreenInfoHelper.registerOnSwitch(curr -> {
+        ScreenTracker.registerOnSwitch(curr -> {
             if (!ConfigManager.get().flipHelper.enabled) {
                 return;
             }
 
-            var prev = ScreenInfoHelper.get().getPrevInfo();
+            var prev = ScreenTracker.get().getPrevInfo();
             if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
                 this.pendingFlip = false;
                 return;
@@ -245,7 +247,7 @@ public class FlipHelper {
             0,
             0,
             -1);
-        BtrBz.orderManager().addTrackedOrder(new TrackedOrder(orderInfo, entry.product()));
+        this.orderManager.addTrackedOrder(new TrackedOrder(orderInfo, entry.product()));
 
         log.debug(
             "Added tracked Sell order from flipped chat: {}x {} at {} per unit",

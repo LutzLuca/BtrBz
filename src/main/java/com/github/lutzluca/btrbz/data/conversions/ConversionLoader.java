@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.data.conversions;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -16,9 +15,11 @@ import io.vavr.control.Try;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -95,7 +96,34 @@ final class ConversionLoader {
 
     static Try<Path> persistIndex(ConversionIndex index) {
         var snapshot = IndexSnapshot.fromIndex(index);
-        return Utils.atomicDumpToFile(localIndexPath(), GSON.toJson(snapshot));
+        return atomicDumpToFile(localIndexPath(), GSON.toJson(snapshot));
+    }
+
+    private static Try<Path> atomicDumpToFile(Path path, String content) {
+        return Try.of(() -> {
+            var target = path.toAbsolutePath();
+            var parent = target.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+
+            var tmp = parent != null
+                ? Files.createTempFile(parent, "btrbz-", ".tmp")
+                : Files.createTempFile("btrbz-", ".tmp");
+
+            try {
+                Files.writeString(tmp, content);
+                return Files.move(
+                    tmp,
+                    target,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException _) {
+                return Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+                Files.deleteIfExists(tmp);
+            }
+        });
     }
 
     private static Try<ConversionIndex> loadFromLocalCache() {

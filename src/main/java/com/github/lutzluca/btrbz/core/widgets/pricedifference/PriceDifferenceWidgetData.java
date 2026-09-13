@@ -1,11 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.pricedifference;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
@@ -20,7 +20,7 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
 
     public PriceDifferenceWidgetData(BazaarData market) {
         this.market = market;
-        var screens = ScreenInfoHelper.get();
+        var screens = ScreenTracker.get();
 
         this.dependencies = CacheDependencies.of(
             screens.inventoryChanges(), market.marketChanges(), market.indexChanges());
@@ -38,7 +38,7 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
 
     @Override
     public Snapshot snapshot(WidgetSession session) {
-        var info = ScreenInfoHelper.get().getCurrInfo();
+        var info = ScreenTracker.get().getCurrInfo();
         int quantity = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount).orElse(0);
 
         if (quantity <= 0) {

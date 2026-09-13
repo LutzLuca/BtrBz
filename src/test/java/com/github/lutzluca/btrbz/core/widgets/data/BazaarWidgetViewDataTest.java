@@ -62,16 +62,6 @@ class BazaarWidgetViewDataTest {
     }
 
     @Test
-    void fractionalUnitPricesRemainPreciseThroughTotalFormatting() {
-        var order = new BazaarWidgetViewData.Order(
-            id("fractional-price"), BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
-            Optional.empty(), 85.9, 100, 0, BazaarWidgetViewData.OrderStatus.Top, List.of());
-
-        assertEquals(85.9, order.unitPrice());
-        assertEquals("8.6k", order.totalPriceText());
-    }
-
-    @Test
     void bookmarkAbbreviationPreservesProviderFormatting() {
         var formatted = Component.literal("Enchanted Diamond").withStyle(ChatFormatting.AQUA);
         var bookmark = new BookmarksWidgetData.Bookmark(

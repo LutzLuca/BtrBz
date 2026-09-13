@@ -37,6 +37,9 @@ import net.minecraft.network.chat.MutableComponent;
 @Slf4j
 public class AlertManager {
 
+    private static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
+    private static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
+
     private final BazaarData bazaarData;
 
     public AlertManager(BazaarData bazaarData) {
@@ -82,13 +85,13 @@ public class AlertManager {
             var now = System.currentTimeMillis();
             var duration = now - curr.createdAt;
 
-            if (duration > Utils.MONTH_DURATION_MS && curr.remindedAfter < Utils.MONTH_DURATION_MS) {
+            if (duration > MONTH_DURATION_MS && curr.remindedAfter < MONTH_DURATION_MS) {
                 Notifier.notifyOutdatedAlert(curr, "over a month", this.bazaarData);
                 curr.remindedAfter = duration;
                 changed = true;
             }
 
-            if (duration > Utils.WEEK_DURATION_MS && curr.remindedAfter < Utils.WEEK_DURATION_MS) {
+            if (duration > WEEK_DURATION_MS && curr.remindedAfter < WEEK_DURATION_MS) {
                 Notifier.notifyOutdatedAlert(curr, "over a week", this.bazaarData);
                 curr.remindedAfter = duration;
                 changed = true;

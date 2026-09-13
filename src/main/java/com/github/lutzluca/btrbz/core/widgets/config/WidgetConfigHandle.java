@@ -1,8 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -68,12 +67,12 @@ public final class WidgetConfigHandle<C> {
     }
 
     public void invalidate(String reason) {
-        this.contentChanges.invalidate(InvalidationReason.of(reason));
+        this.contentChanges.invalidate(reason);
     }
 
     public void resetPreferences(String reason) {
         this.preferenceReset.reset(this.current(), this.defaults());
-        this.contentChanges.invalidate(InvalidationReason.of(reason));
+        this.contentChanges.invalidate(reason);
     }
 
     Function<C, WidgetFrameConfig> frameConfig() {

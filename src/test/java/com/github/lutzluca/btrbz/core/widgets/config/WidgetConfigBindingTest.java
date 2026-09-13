@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.config;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;

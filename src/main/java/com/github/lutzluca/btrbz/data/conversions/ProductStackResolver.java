@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
-import com.github.lutzluca.btrbz.utils.IdentityScopedCache;
 import com.mojang.serialization.Dynamic;
 import io.vavr.control.Try;
 import java.util.Optional;

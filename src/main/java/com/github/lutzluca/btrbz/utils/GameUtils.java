@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
@@ -38,7 +41,7 @@ public final class GameUtils {
      * broken by Skyblocker; {@code setScreen(null)} is used instead.</p>
      */
     public static void submitSignValue(SignEditScreen signEditScreen, String value) {
-        if (!BtrBz.isActive() || ScreenInfoHelper.get().getCurrInfo().getScreen() != signEditScreen) {
+        if (!BtrBz.isActive() || ScreenTracker.get().getCurrInfo().getScreen() != signEditScreen) {
             return;
         }
         var accessor = (AbstractSignEditScreenAccessor) signEditScreen;
@@ -65,15 +68,6 @@ public final class GameUtils {
         //?} else {
         /*return Minecraft.getInstance().gui.screen();
         *///?}
-    }
-
-    public static String stripFormattingCodes(String text) {
-        if (text == null) {
-            return "";
-        }
-
-        var stripped = ChatFormatting.stripFormatting(text);
-        return stripped == null ? "" : stripped;
     }
 
     public static List<String> getLore(ItemStack item) {
@@ -133,7 +127,7 @@ public final class GameUtils {
                 text = owner;
             }
 
-            text = stripScoreboardFormattingCodes(text);
+            text = Utils.stripScoreboardFormattingCodes(text);
 
             if (!text.isBlank()) {
                 lines.add(text);
@@ -141,15 +135,6 @@ public final class GameUtils {
         }
 
         return lines;
-    }
-
-    static String stripScoreboardFormattingCodes(String text) {
-        /*
-         * Scoreboard lines are built as team prefix + owner + suffix. Hypixel apparently
-         * uses nonstandard raw formatting-like owner tokens such as "§j", so remove
-         * leftover section-code pairs here.
-         */
-        return stripFormattingCodes(text).replaceAll("§.", "").trim();
     }
 
     public static void runCommand(String command) {
@@ -165,17 +150,6 @@ public final class GameUtils {
     public static <T> void copyToClipboard(T value) {
         Minecraft client = Minecraft.getInstance();
         client.keyboardHandler.setClipboard(String.valueOf(value));
-    }
-
-    public static Component join(List<Component> lines, String sequence) {
-        var res = Component.empty();
-        for (int i = 0; i < lines.size(); i++) {
-            res.append(lines.get(i));
-            if (i < lines.size() - 1) {
-                res.append(sequence);
-            }
-        }
-        return res;
     }
 
     public static boolean isPlayerInventorySlot(@Nullable Slot slot) {
@@ -227,4 +201,155 @@ public final class GameUtils {
             .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.YELLOW))
             .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
     }
+
+    public static Optional<String> customDataId(ItemStack stack) {
+        return Optional
+            .ofNullable(stack.get(DataComponents.CUSTOM_DATA))
+            .flatMap(data -> data.copyTag().getString("id"))
+            .map(String::trim)
+            .filter(id -> !id.isEmpty());
+    }
+
+    public static Optional<String> matchingCustomNameLegacy(ItemStack stack, String expectedName) {
+        return Optional
+            .ofNullable(stack.get(DataComponents.CUSTOM_NAME))
+            .filter(name -> Utils
+                .normalizeDisplayName(name.getString())
+                .equals(Utils.normalizeDisplayName(expectedName)))
+            .map(GameUtils::legacyFormattedText);
+    }
+
+    public static Optional<String> matchingLegacySuffix(Component component, String expectedSuffix) {
+        if (component == null || expectedSuffix == null || expectedSuffix.isBlank()) {
+            return Optional.empty();
+        }
+
+        var plainText = component.getString();
+        if (!plainText.endsWith(expectedSuffix)) {
+            return Optional.empty();
+        }
+
+        return legacyFormattedRange(component, plainText.length() - expectedSuffix.length(), plainText.length())
+            .filter(legacy -> Utils
+                .normalizeDisplayName(legacy)
+                .equals(Utils.normalizeDisplayName(expectedSuffix)));
+    }
+
+    public static String legacyFormattedText(Component component) {
+        return legacyFormattedRange(component, 0, component.getString().length()).orElse("");
+    }
+
+    public static Component legacyFormattedComponent(@Nullable String value) {
+        if (value == null || value.isEmpty()) {
+            return Component.empty();
+        }
+
+        var segments = new ArrayList<MutableComponent>();
+        var style = Style.EMPTY;
+        int segmentStart = 0;
+        for (int index = 0; index + 1 < value.length(); index++) {
+            if (value.charAt(index) != ChatFormatting.PREFIX_CODE) {
+                continue;
+            }
+
+            var formatting = ChatFormatting.getByCode(value.charAt(index + 1));
+            if (formatting == null) {
+                continue;
+            }
+
+            if (segmentStart < index) {
+                segments.add(Component.literal(value.substring(segmentStart, index)).setStyle(style));
+            }
+            style = style.applyLegacyFormat(formatting);
+            index++;
+            segmentStart = index + 1;
+        }
+        if (segmentStart < value.length()) {
+            segments.add(Component.literal(value.substring(segmentStart)).setStyle(style));
+        }
+        if (segments.isEmpty()) {
+            return Component.empty().setStyle(style);
+        }
+
+        var result = segments.getFirst();
+        for (int index = 1; index < segments.size(); index++) {
+            result.append(segments.get(index));
+        }
+        return result;
+    }
+
+    private static Optional<String> legacyFormattedRange(Component component, int startInclusive, int endExclusive) {
+        if (component == null || startInclusive < 0 || endExclusive < startInclusive) {
+            return Optional.empty();
+        }
+
+        var segments = new ArrayList<StyledTextSegment>();
+        component.visit((Style style, String content) -> {
+            segments.add(new StyledTextSegment(content, style));
+            return Optional.empty();
+        }, Style.EMPTY);
+
+        var out = new StringBuilder();
+        var cursor = 0;
+        for (var segment : segments) {
+            var content = segment.content();
+            if (content.isEmpty()) {
+                continue;
+            }
+
+            var segmentStart = cursor;
+            var segmentEnd = cursor + content.length();
+            cursor = segmentEnd;
+
+            var copyStart = Math.max(startInclusive, segmentStart);
+            var copyEnd = Math.min(endExclusive, segmentEnd);
+            if (copyStart >= copyEnd) {
+                continue;
+            }
+
+            appendLegacyStyle(out, segment.style());
+            out.append(content, copyStart - segmentStart, copyEnd - segmentStart);
+        }
+
+        return out.isEmpty() ? Optional.empty() : Optional.of(out.toString());
+    }
+
+    private static void appendLegacyStyle(StringBuilder out, Style style) {
+        TextColor color = style.getColor();
+        if (color != null) {
+            //? if <26.2 {
+            var formatting = ChatFormatting.getByName(color.serialize());
+            if (formatting != null && formatting.isColor()) {
+                out.append(formatting);
+            }
+            //?} else {
+            /*String serialized = color.serialize();
+            if (!serialized.startsWith("#")) {
+                try {
+                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(java.util.Locale.ROOT)));
+                } catch (IllegalArgumentException _) {
+                    //ignore unknown color names
+                }
+            }
+            *///?}
+        }
+
+        if (style.isObfuscated()) {
+            out.append(ChatFormatting.OBFUSCATED);
+        }
+        if (style.isBold()) {
+            out.append(ChatFormatting.BOLD);
+        }
+        if (style.isStrikethrough()) {
+            out.append(ChatFormatting.STRIKETHROUGH);
+        }
+        if (style.isUnderlined()) {
+            out.append(ChatFormatting.UNDERLINE);
+        }
+        if (style.isItalic()) {
+            out.append(ChatFormatting.ITALIC);
+        }
+    }
+
+    private record StyledTextSegment(String content, Style style) {}
 }

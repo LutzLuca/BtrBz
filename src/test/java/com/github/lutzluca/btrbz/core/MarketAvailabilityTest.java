@@ -36,11 +36,10 @@ class MarketAvailabilityTest {
     }
 
     @Test
-    void clearingInvalidatesDirectAndSubscribedPricesUntilAnotherReply() {
-        var tracked = new BazaarData.TrackedProduct(this.market, this.product);
+    void clearingInvalidatesDirectPricesUntilAnotherReply() {
         Assertions.assertFalse(this.market.hasMarketData());
         this.publish(100);
-        Assertions.assertEquals(Optional.of(100.0), tracked.getBuyOrderPrice());
+        Assertions.assertEquals(Optional.of(100.0), this.market.getMarketPrices(this.identity).highestBuyOrderPrice());
         long revision = this.market.marketChanges().revision();
 
         this.market.clearMarketData();
@@ -51,15 +50,12 @@ class MarketAvailabilityTest {
         Assertions.assertTrue(this.market.getOrderLists(this.identity).buyOrders().isEmpty());
         Assertions.assertTrue(this.market.productSpread(this.identity).isEmpty());
         Assertions.assertTrue(this.market.calculateQueuePosition(this.identity, OrderType.Buy, 90).isEmpty());
-        Assertions.assertTrue(tracked.getBuyOrderPrice().isEmpty());
-        Assertions.assertTrue(tracked.getSellOfferPrice().isEmpty());
         Assertions.assertTrue(this.market.marketChanges().revision() > revision);
         Assertions.assertEquals(Optional.of(this.product), this.market.resolveProductId("TEST"));
 
         this.publish(105);
         Assertions.assertTrue(this.market.hasMarketData());
-        Assertions.assertEquals(Optional.of(105.0), tracked.getBuyOrderPrice());
-        tracked.destroy();
+        Assertions.assertEquals(Optional.of(105.0), this.market.getMarketPrices(this.identity).highestBuyOrderPrice());
     }
 
     @Test

@@ -2,8 +2,8 @@ package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
+import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,7 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
+import com.github.lutzluca.btrbz.screen.slot.VirtualSlotProjection;
 
 @Mixin(Slot.class)
 public abstract class SlotItemProjectionMixin {

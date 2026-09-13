@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
@@ -16,9 +16,8 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 
 public class PresetCommand {
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("preset")
+    public static LiteralArgumentBuilder<FabricClientCommandSource> get(WidgetRuntime widgetRuntime) {
+        return ClientCommands.literal("preset")
             .then(ClientCommands.literal("add").then(ClientCommands
                 .argument(
                     "volume",
@@ -38,7 +37,7 @@ public class PresetCommand {
                     });
 
                     if (added) {
-                        BtrBz.widgetRuntime().invalidateWidgetContent(
+                        widgetRuntime.invalidateWidgetContent(
                             OrderPresetsWidgetDefinition.ID, "preset volume added by command");
                         Notifier.notifyPlayer(Notifier
                             .prefix()
@@ -72,7 +71,7 @@ public class PresetCommand {
                             .updateIfChanged(cfg -> cfg.widgets.orderPresets.volumes.remove(Integer.valueOf(volume)));
 
                         if (removed) {
-                            BtrBz.widgetRuntime().invalidateWidgetContent(
+                            widgetRuntime.invalidateWidgetContent(
                                 OrderPresetsWidgetDefinition.ID, "preset volume removed by command");
                             Notifier.notifyPlayer(Notifier
                                 .prefix()
@@ -143,7 +142,7 @@ public class PresetCommand {
                     return true;
                 });
                 if (cleared) {
-                    BtrBz.widgetRuntime().invalidateWidgetContent(
+                    widgetRuntime.invalidateWidgetContent(
                         OrderPresetsWidgetDefinition.ID, "preset volumes cleared by command");
                 }
 
@@ -154,6 +153,6 @@ public class PresetCommand {
                     .append(Component.literal(" preset(s)").withStyle(ChatFormatting.GRAY)));
 
                 return 1;
-            })));
+            }));
     }
 }

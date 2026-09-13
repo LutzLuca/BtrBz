@@ -6,7 +6,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.Map;
@@ -41,7 +41,7 @@ class WidgetConfigCategoryTest {
         registry.register(definition("btrbz:first", "First"));
         registry.register(definition("btrbz:second", "Second"));
 
-        var options = ConfigScreen.widgetOptions(registry);
+        var options = ConfigScreen.widgetOptions(registry, (_, _) -> {});
 
         assertEquals(2, options.size());
         assertEquals("First", options.getFirst().name().getString());

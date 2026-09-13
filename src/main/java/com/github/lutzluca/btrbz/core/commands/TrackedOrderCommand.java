@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -11,11 +11,10 @@ import net.minecraft.network.chat.Component;
 
 public class TrackedOrderCommand {
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
-        return Commands.rootCommand.then(ClientCommands
-            .literal("orders")
+    public static LiteralArgumentBuilder<FabricClientCommandSource> get(TrackedOrderManager orderManager) {
+        return ClientCommands.literal("orders")
             .then(ClientCommands.literal("list").executes(ctx -> {
-                var orders = BtrBz.orderManager().getTrackedOrders();
+                var orders = orderManager.getTrackedOrders();
 
                 var builder = Notifier.prefix();
                 if (orders.isEmpty()) {
@@ -48,7 +47,7 @@ public class TrackedOrderCommand {
 
             .then(ClientCommands.literal("reset").executes(ctx -> {
                 Minecraft.getInstance().execute(() -> {
-                    BtrBz.orderManager().resetTrackedOrders();
+                    orderManager.resetTrackedOrders();
                     Notifier.notifyPlayer(Notifier
                         .prefix()
                         .append(Component
@@ -57,6 +56,6 @@ public class TrackedOrderCommand {
                 });
 
                 return 1;
-            })));
+            }));
     }
 }

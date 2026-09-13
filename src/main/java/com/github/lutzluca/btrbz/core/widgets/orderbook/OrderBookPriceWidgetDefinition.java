@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -9,6 +8,7 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class OrderBookPriceWidgetDefinition {
@@ -18,10 +18,11 @@ public final class OrderBookPriceWidgetDefinition {
 
     public static WidgetDefinition<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction> create(
         WidgetDataSource<OrderBookWidgetData.Snapshot> provider,
-        OrderBookPriceComponent embeddedWorkflow
+        OrderBookPriceComponent embeddedWorkflow,
+        Supplier<OrderBookPriceWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.orderBookPrice, OrderBookPriceWidgetConfig::new,
+            configSupplier, OrderBookPriceWidgetConfig::new,
             value -> value.frame, OrderBookPriceWidgetConfig::resetPreferences);
 
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction>builder(ID,

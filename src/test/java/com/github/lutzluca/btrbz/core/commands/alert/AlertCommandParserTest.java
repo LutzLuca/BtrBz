@@ -1,0 +1,157 @@
+package com.github.lutzluca.btrbz.core.commands.alert;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.AlertCommand;
+import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ParseException;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Binary;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.BinaryOperator;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Literal;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.Reference;
+import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.ReferenceType;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+class AlertCommandParserTest {
+
+    private final AlertCommandParser parser = new AlertCommandParser();
+
+    @Nested
+    @DisplayName("valid commands")
+    class ValidCommands {
+
+        @Test
+        void simpleBuyOrder() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse("SMOLDERING_5 buy-order 12m");
+            PriceExpression expected = new Literal(12_000_000.0);
+
+            assertEquals("SMOLDERING_5", cmd.productId());
+            assertEquals(AlertType.BuyOrder, cmd.type());
+            assertEquals(expected, cmd.expr());
+        }
+
+        @Test
+        void sellOrderWithExplicitReference() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse(
+                "EYE_OF_THE_ENDER sell-offer order + 2m - 10k");
+
+            PriceExpression expected = new Binary(
+                new Binary(
+                    new Reference(ReferenceType.Order),
+                    BinaryOperator.Add,
+                    new Literal(2_000_000.0)),
+                BinaryOperator.Subtract,
+                new Literal(10_000.0));
+
+            assertEquals("EYE_OF_THE_ENDER", cmd.productId());
+            assertEquals(AlertType.SellOffer, cmd.type());
+            assertEquals(expected, cmd.expr());
+        }
+
+        @Test
+        void productIdIsNormalizedToUppercase() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse("fine_topaz_gem buy-order 100k");
+
+            assertEquals("FINE_TOPAZ_GEM", cmd.productId());
+        }
+
+        @Test
+        void orderTypeAliases() throws ParseException {
+            assertEquals(AlertType.BuyOrder, AlertCommandParserTest.this.parser.parse("ITEM b 100k").type());
+            assertEquals(AlertType.BuyOrder, AlertCommandParserTest.this.parser.parse("ITEM buy-order 100k").type());
+            assertEquals(AlertType.BuyOrder, AlertCommandParserTest.this.parser.parse("ITEM buyorder 100k").type());
+            assertEquals(AlertType.SellOffer, AlertCommandParserTest.this.parser.parse("ITEM s 100k").type());
+            assertEquals(AlertType.SellOffer, AlertCommandParserTest.this.parser.parse("ITEM sell-offer 100k").type());
+            assertEquals(AlertType.SellOffer, AlertCommandParserTest.this.parser.parse("ITEM selloffer 100k").type());
+            assertEquals(AlertType.InstaBuy, AlertCommandParserTest.this.parser.parse("ITEM ibuy 100k").type());
+            assertEquals(AlertType.InstaBuy, AlertCommandParserTest.this.parser.parse("ITEM insta-buy 100k").type());
+            assertEquals(AlertType.InstaBuy, AlertCommandParserTest.this.parser.parse("ITEM instabuy 100k").type());
+            assertEquals(AlertType.InstaSell, AlertCommandParserTest.this.parser.parse("ITEM is 100k").type());
+            assertEquals(AlertType.InstaSell, AlertCommandParserTest.this.parser.parse("ITEM insta-sell 100k").type());
+            assertEquals(AlertType.InstaSell, AlertCommandParserTest.this.parser.parse("ITEM instasell 100k").type());
+        }
+
+        @Test
+        void complexExpression() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_000_000 / 2");
+
+            PriceExpression expected = new Binary(
+                new Literal(120_000_000.0),
+                BinaryOperator.Divide,
+                new Literal(2.0));
+
+            assertEquals(expected, cmd.expr());
+        }
+
+        @Test
+        void expressionWithParentheses() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse("ITEM buy-order (2m + 10k) * 2");
+
+            PriceExpression expected = new Binary(
+                new Binary(new Literal(2_000_000.0), BinaryOperator.Add, new Literal(10_000.0)),
+                BinaryOperator.Multiply,
+                new Literal(2.0));
+
+            assertEquals(expected, cmd.expr());
+        }
+
+        @Test
+        void numberFormattingVariations() throws ParseException {
+            assertEquals(new Literal(120_123_123.3),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120,123,123.3").expr());
+            assertEquals(new Literal(120_123_123.3),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_123_123.3").expr());
+            assertEquals(new Literal(15_300_000_000.0),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 15.3b").expr());
+            assertEquals(new Literal(12_000_000.0),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 12m").expr());
+            assertEquals(new Literal(10_000.0), AlertCommandParserTest.this.parser.parse("ITEM buy-order 10k").expr());
+        }
+
+        @Test
+        void numberRounding() throws ParseException {
+            assertEquals(
+                new Literal(120_123_123.4),
+                AlertCommandParserTest.this.parser.parse("ITEM buy-order 120_123_123.3791").expr());
+            assertEquals(new Literal(100.5), AlertCommandParserTest.this.parser.parse("ITEM buy-order 100.45").expr());
+        }
+
+        @Test
+        void instaIdentifier() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse("ITEM buy-order insta / 2");
+
+            PriceExpression expected = new Binary(
+                new Reference(ReferenceType.Insta),
+                BinaryOperator.Divide,
+                new Literal(2.0));
+
+            assertEquals(expected, cmd.expr());
+        }
+
+        @Test
+        void expressionStartingWithIdentifier() throws ParseException {
+            AlertCommand cmd = AlertCommandParserTest.this.parser.parse("ITEM buy-order order");
+
+            PriceExpression expected = new Reference(ReferenceType.Order);
+            assertEquals(expected, cmd.expr());
+        }
+    }
+
+    @Nested
+    @DisplayName("invalid commands")
+    class InvalidCommands {
+
+        @Test
+        void ambiguousBuyAndSellIdentifiersAreRejected() {
+            assertThrows(
+                ParseException.class,
+                () -> AlertCommandParserTest.this.parser.parse("ITEM buy 100k"));
+            assertThrows(
+                ParseException.class,
+                () -> AlertCommandParserTest.this.parser.parse("ITEM sell 100k"));
+        }
+    }
+}

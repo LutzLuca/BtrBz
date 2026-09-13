@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.pricedifference;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -10,7 +9,8 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class PriceDifferenceWidgetDefinition {
@@ -19,10 +19,11 @@ public final class PriceDifferenceWidgetDefinition {
     private PriceDifferenceWidgetDefinition() {}
 
     public static WidgetDefinition<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> create(
-        BazaarData market
+        BazaarData market,
+        Supplier<PriceDifferenceWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.priceDiff, PriceDifferenceWidgetConfig::new,
+            configSupplier, PriceDifferenceWidgetConfig::new,
             value -> value.frame, PriceDifferenceWidgetConfig::resetPreferences);
         var provider = new MemoizedWidgetDataSource<>(new PriceDifferenceWidgetData(market));
 

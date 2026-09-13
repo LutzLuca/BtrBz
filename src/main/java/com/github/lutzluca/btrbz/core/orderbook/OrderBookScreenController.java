@@ -1,17 +1,17 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
-import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
-import com.github.lutzluca.btrbz.utils.slot.SlotHook;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.screen.BazaarProductContext;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.screen.slot.SlotHook;
+import com.github.lutzluca.btrbz.screen.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotView;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -28,14 +28,14 @@ public final class OrderBookScreenController {
         BazaarMenuType.SellOfferSetup
     };
 
-    private final ProductInfoProvider productInfoProvider;
+    private final BazaarProductContext productContext;
     private final WidgetRuntime runtime;
 
     public OrderBookScreenController(
-        ProductInfoProvider productInfoProvider,
+        BazaarProductContext productContext,
         WidgetRuntime runtime
     ) {
-        this.productInfoProvider = productInfoProvider;
+        this.productContext = productContext;
         this.runtime = runtime;
         SlotHookRegistry.register(new ControllerHook());
     }
@@ -47,7 +47,7 @@ public final class OrderBookScreenController {
         public boolean matches(SlotView view) {
             return hookEligible(
                 ConfigManager.get().widgets.orderBookScreen.frame.enabled,
-                productInfoProvider.getOpenedProduct() != null,
+                OrderBookScreenController.this.productContext.openedProduct() != null,
                 view.playerInventorySlot(),
                 view.slotIdx(),
                 view.getCurrInfo().getMenuType().orElse(null));
@@ -71,7 +71,7 @@ public final class OrderBookScreenController {
                 return SlotClickResult.Pass;
             }
 
-            var product = productInfoProvider.getOpenedProduct();
+            var product = OrderBookScreenController.this.productContext.openedProduct();
             if (product == null) {
                 return SlotClickResult.Pass;
             }
@@ -81,7 +81,7 @@ public final class OrderBookScreenController {
                 context.view().getCurrInfo().getScreen(),
                 identity,
                 product.formattedName(),
-                runtime.createScreenHost()));
+                OrderBookScreenController.this.runtime.createScreenHost()));
 
             return SlotClickResult.Consume;
         }

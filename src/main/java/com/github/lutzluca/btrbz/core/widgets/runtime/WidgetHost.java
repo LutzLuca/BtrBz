@@ -1,14 +1,14 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
-import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheRevisions;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSessionProvider;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ public final class WidgetHost {
     private final WidgetStateStore stateStore;
     private final boolean runtime;
     private final boolean runtimePlacementDragging;
+    private final Activation activation;
 
     private final @Nullable WidgetSessionProvider sessionProvider;
     private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
@@ -64,12 +66,14 @@ public final class WidgetHost {
         boolean runtimePlacementDragging,
         @Nullable WidgetSessionProvider sessionProvider,
         @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews,
-        @Nullable Map<WidgetId, Double> scrollOffsets
+        @Nullable Map<WidgetId, Double> scrollOffsets,
+        Activation activation
     ) {
         this.definitions = List.copyOf(definitions);
         this.stateStore = stateStore;
         this.runtime = runtime;
         this.runtimePlacementDragging = runtimePlacementDragging;
+        this.activation = Objects.requireNonNull(activation, "activation");
 
         this.sessionProvider = sessionProvider;
         this.capturedPreviews = capturedPreviews == null ? null : Map.copyOf(capturedPreviews);
@@ -81,25 +85,28 @@ public final class WidgetHost {
         WidgetStateStore stateStore,
         WidgetSessionProvider sessionProvider,
         Map<WidgetId, Double> scrollOffsets,
-        boolean placementDragging
+        boolean placementDragging,
+        Activation activation
     ) {
         return new WidgetHost(
-            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets);
-    }
-
-    public static WidgetHost preview(
-        List<WidgetDefinition<?, ?, ?>> definitions,
-        WidgetStateStore stateStore
-    ) {
-        return new WidgetHost(definitions, stateStore, false, false, null, null, null);
+            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets, activation);
     }
 
     public static WidgetHost preview(
         List<WidgetDefinition<?, ?, ?>> definitions,
         WidgetStateStore stateStore,
-        Map<WidgetId, WidgetPreview<?>> capturedPreviews
+        Activation activation
     ) {
-        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews, null);
+        return new WidgetHost(definitions, stateStore, false, false, null, null, null, activation);
+    }
+
+    public static WidgetHost preview(
+        List<WidgetDefinition<?, ?, ?>> definitions,
+        WidgetStateStore stateStore,
+        Map<WidgetId, WidgetPreview<?>> capturedPreviews,
+        Activation activation
+    ) {
+        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews, null, activation);
     }
 
     public List<WidgetRenderResult> render(
@@ -111,7 +118,7 @@ public final class WidgetHost {
         WidgetHostOptions options,
         @Nullable Screen screen
     ) {
-        if (this.runtime && !BtrBz.isActive()) {
+        if (this.runtime && !this.activation.isActive()) {
             return List.of();
         }
         this.ensureAdapter();
@@ -178,13 +185,6 @@ public final class WidgetHost {
                 log.warn("Failed to dispose widget host adapter", exception);
             }
         }
-    }
-
-    public Map<WidgetId, WidgetCacheDiagnostics> cacheDiagnostics() {
-        var diagnostics = new LinkedHashMap<WidgetId, WidgetCacheDiagnostics>();
-        this.mounted.forEach((id, widget) -> diagnostics.put(id, new WidgetCacheDiagnostics(
-            widget.hits, widget.misses, widget.coldMisses, widget.lastMissCauses)));
-        return Map.copyOf(diagnostics);
     }
 
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
@@ -259,7 +259,7 @@ public final class WidgetHost {
     }
 
     private boolean acceptsInput() {
-        return this.adapter != null && (!this.runtime || BtrBz.isActive());
+        return this.adapter != null && (!this.runtime || this.activation.isActive());
     }
 
     private void ensureAdapter() {
@@ -307,12 +307,13 @@ public final class WidgetHost {
             if (preparedCaching && cached != null
                 && cached.stamp().matches(
                     session, screenCanvas, options, profile, mountedWidget.dependencies)) {
-                mountedWidget.hits++;
                 return cached.prepared();
             }
 
-            if (preparedCaching) {
-                mountedWidget.recordMiss(cached, session, screenCanvas, options, profile);
+            if (preparedCaching && log.isTraceEnabled()) {
+                log.trace("Widget {} prepared-cache miss: {}", definition.getId(), cached == null
+                    ? List.of(WidgetCacheMissCause.direct("cold cache"))
+                    : cached.stamp().missCauses(session, screenCanvas, options, profile, mountedWidget.dependencies));
             }
 
             Object data = this.runtime ? definition.getDataSource().snapshot(session) : preview.data();
@@ -413,7 +414,7 @@ public final class WidgetHost {
         long generation,
         PreparedWidget prepared
     ) {
-        long[] revisions = CacheRevisions.capture(mountedWidget.dependencies);
+        CacheRevisions.Snapshot revisions = CacheRevisions.capture(mountedWidget.dependencies);
 
         mountedWidget.generation = generation;
         mountedWidget.preparedSessionId = session.id();
@@ -463,7 +464,7 @@ public final class WidgetHost {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void dispatch(MountedWidget mountedWidget, long generation, Object action) {
-        if (!BtrBz.isActive() || generation != mountedWidget.generation
+        if (!this.activation.isActive() || generation != mountedWidget.generation
             || !CacheRevisions.match(
                 mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies)) {
             return;
@@ -563,15 +564,10 @@ public final class WidgetHost {
         private @Nullable PreparedCacheEntry preparedCache;
         private @Nullable PreviewCacheEntry previewCache;
 
-        private long[] preparedDependencyRevisions = new long[0];
+        private CacheRevisions.Snapshot preparedDependencyRevisions = CacheRevisions.capture(CacheDependencies.none());
         private long preparedSessionId = Long.MIN_VALUE;
         private long preparedSessionContextRevision = Long.MIN_VALUE;
         private long generation;
-
-        private long hits;
-        private long misses;
-        private long coldMisses;
-        private List<WidgetCacheMissCause> lastMissCauses = List.of();
 
         private MountedWidget(
             WidgetDefinition<?, ?, ?> definition,
@@ -600,28 +596,9 @@ public final class WidgetHost {
             return this.slot;
         }
 
-        private void recordMiss(
-            @Nullable PreparedCacheEntry cached,
-            WidgetSession session,
-            WidgetCanvas canvas,
-            WidgetHostOptions options,
-            String profile
-        ) {
-            this.misses++;
-
-            if (cached == null) {
-                this.coldMisses++;
-                this.lastMissCauses = List.of(WidgetCacheMissCause.direct("cold cache"));
-                return;
-            }
-
-            this.lastMissCauses = cached.stamp().missCauses(
-                session, canvas, options, profile, this.dependencies);
-        }
-
         private void clearPreparation() {
             this.preparedCache = null;
-            this.preparedDependencyRevisions = new long[0];
+            this.preparedDependencyRevisions = CacheRevisions.capture(CacheDependencies.none());
             this.preparedSessionId = Long.MIN_VALUE;
             this.preparedSessionContextRevision = Long.MIN_VALUE;
             this.generation++;
@@ -630,7 +607,7 @@ public final class WidgetHost {
 
     private record PreparedCacheEntry(PreparedCacheStamp stamp, PreparedWidget prepared) {}
 
-    private record PreviewCacheEntry(long[] revisions, WidgetPreview<?> preview) {}
+    private record PreviewCacheEntry(CacheRevisions.Snapshot revisions, WidgetPreview<?> preview) {}
 
     private record PreparedWidget(
         MountedWidget mounted,

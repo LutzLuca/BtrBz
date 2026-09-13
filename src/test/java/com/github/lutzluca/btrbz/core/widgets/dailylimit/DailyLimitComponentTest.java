@@ -2,8 +2,10 @@ package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import org.junit.jupiter.api.Test;
 
@@ -35,10 +37,12 @@ class DailyLimitComponentTest {
         config.frame.enabled = false;
         config.lastResetEpochDay = 20_000;
         var saves = new java.util.concurrent.atomic.AtomicInteger();
-        var component = new DailyLimitComponent(() -> config, saves::incrementAndGet, () -> 20_000);
+        var dayTracker = new UtcDayTracker(() -> 20_000);
+        var component = new DailyLimitComponent(() -> config, saves::incrementAndGet, dayTracker);
 
         component.onTransaction(1_250);
 
+        assertSame(dayTracker, component.utcDayTracker());
         assertEquals(1_250, config.usedToday);
         assertEquals(1, saves.get());
     }

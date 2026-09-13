@@ -1,11 +1,13 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
+import com.github.lutzluca.btrbz.utils.GameUtils;
+
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -14,9 +16,9 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.ScreenInfo;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -48,7 +50,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
     ) {
         this(
             market, trackedOrders, tooltipProvider,
-            ScreenInfoHelper.get().screenTransitions(), ScreenInfoHelper.get().inventoryChanges());
+            ScreenTracker.get().screenTransitions(), ScreenTracker.get().inventoryChanges());
     }
 
     OrdersWidgetData(
@@ -92,7 +94,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             return new BazaarWidgetViewData.OrdersData(List.of(), this.trackedOrders.filledOrderCount());
         }
 
-        var screenInfo = ScreenInfoHelper.get().getCurrInfo();
+        var screenInfo = ScreenTracker.get().getCurrInfo();
         Map<TrackedOrderId, TrackedOrder> live = new HashMap<>();
         this.trackedOrders.getTrackedOrders().forEach(order -> live.put(order.id(), order));
 
@@ -117,7 +119,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
                 snapshot.type() == OrderType.Buy
                     ? BazaarWidgetViewData.OrderSide.Buy : BazaarWidgetViewData.OrderSide.Sell,
                 snapshot.productName(),
-                Utils.legacyFormattedComponent(product.visualName()),
+                GameUtils.legacyFormattedComponent(product.visualName()),
                 this.market.productStack(product)
                     .or(() -> this.observedProductStack(screenInfo, snapshot.slot(), product)),
                 snapshot.pricePerUnit(),

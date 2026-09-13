@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.utils.Utils;
+
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -29,7 +31,7 @@ public class ChatFilterManager {
                 return true;
             }
 
-            String content = GameUtils.stripFormattingCodes(message.getString());
+            String content = Utils.stripFormattingCodes(message.getString());
             return TRANSIENT_MESSAGES.stream().noneMatch(content::startsWith);
         });
     }

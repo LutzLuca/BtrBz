@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -9,7 +8,8 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class OrderValueWidgetDefinition {
@@ -18,10 +18,11 @@ public final class OrderValueWidgetDefinition {
     private OrderValueWidgetDefinition() {}
 
     public static WidgetDefinition<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void> create(
-        OrderValueComponent component
+        OrderValueComponent component,
+        Supplier<OrderValueWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.orderValue, OrderValueWidgetConfig::new,
+            configSupplier, OrderValueWidgetConfig::new,
             value -> value.frame, OrderValueWidgetConfig::resetPreferences);
         var data = new MemoizedWidgetDataSource<>(new OrderValueWidgetData(component));
 

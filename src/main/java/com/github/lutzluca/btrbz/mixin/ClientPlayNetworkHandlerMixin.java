@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
@@ -17,8 +17,8 @@ public class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "handleOpenScreen", at = @At("RETURN"))
     private void onOpenScreen(ClientboundOpenScreenPacket packet, CallbackInfo ci) {
-        var screenInfoHelper = ScreenInfoHelper.get();
-        if (!screenInfoHelper.isContainerActive(packet.getContainerId())) {
+        var screenTracker = ScreenTracker.get();
+        if (!screenTracker.isContainerActive(packet.getContainerId())) {
             log.debug(
                 "Skipping inventory tracking for inactive container {} ('{}')",
                 packet.getContainerId(),
@@ -26,7 +26,7 @@ public class ClientPlayNetworkHandlerMixin {
             return;
         }
 
-        screenInfoHelper.onOpenScreen(packet);
+        screenTracker.onOpenScreen(packet);
     }
 
     @Inject(method = "handleContainerSetSlot", at = @At("RETURN"))
@@ -37,6 +37,6 @@ public class ClientPlayNetworkHandlerMixin {
         if (!BtrBz.isActive()) {
             return;
         }
-        ScreenInfoHelper.get().getInventoryWatcher().onPacketReceived(packet);
+        ScreenTracker.get().onSlotUpdate(packet);
     }
 }

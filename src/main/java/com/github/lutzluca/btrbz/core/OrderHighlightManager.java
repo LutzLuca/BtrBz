@@ -20,8 +20,6 @@ public class OrderHighlightManager {
 
     private final Map<Integer, TrackedOrder> slotToTrackedOrder = new HashMap<>();
     private final Map<Integer, Integer> filledOrderSlots = new HashMap<>();
-    private Integer overrideSlotIdx = null;
-    private Integer overrideColor = null;
 
     public static int colorForStatus(OrderStatus status) {
         return switch (status) {
@@ -48,10 +46,6 @@ public class OrderHighlightManager {
     }
 
     public Optional<Integer> getHighlight(int idx) {
-        if (this.overrideSlotIdx != null && idx == this.overrideSlotIdx) {
-            return Optional.of(this.overrideColor);
-        }
-
         if (!ConfigManager.get().orderHighlight.enabled) {
             return Optional.empty();
         }
@@ -64,18 +58,7 @@ public class OrderHighlightManager {
         return Optional.ofNullable(this.filledOrderSlots.get(idx));
     }
 
-    public void setHighlightOverride(int slotIdx, int color) {
-        this.overrideSlotIdx = slotIdx;
-        this.overrideColor = color;
-    }
-
-    public void clearHighlightOverride() {
-        this.overrideSlotIdx = null;
-        this.overrideColor = null;
-    }
-
     public void clear() {
-        this.clearHighlightOverride();
         this.slotToTrackedOrder.clear();
         this.filledOrderSlots.clear();
     }

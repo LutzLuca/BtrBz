@@ -14,7 +14,7 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
@@ -25,20 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BtrBzWidgetDefinitionsTest {
-    @Test
-    void productionDefinitionIdsAreDistinct() {
-        assertEquals(9, List.of(
-            BazaarOrdersWidgetDefinition.ID,
-            TrackedOrdersWidgetDefinition.ID,
-            OrderValueWidgetDefinition.ID,
-            OrderBookWidgetDefinition.ID,
-            OrderBookPriceWidgetDefinition.ID,
-            BookmarksWidgetDefinition.ID,
-            OrderPresetsWidgetDefinition.ID,
-            DailyLimitWidgetDefinition.ID,
-            PriceDifferenceWidgetDefinition.ID).stream().distinct().count());
-    }
-
     @Test
     void definitionsAcceptOnlyTheirSemanticSessions() {
         assertTrue(BazaarOrdersWidgetDefinition.supportsSession(

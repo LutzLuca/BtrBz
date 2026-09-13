@@ -5,7 +5,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
@@ -48,7 +48,7 @@ public final class HudWidgetBridge {
         var screen = GameUtils.screen();
 
         boolean generalContainer = screen instanceof AbstractContainerScreen<?>
-            && !ScreenInfoHelper.inBazaar();
+            && !ScreenTracker.inBazaar();
 
         if (screen != null && !(screen instanceof ChatScreen) && !generalContainer) {
             return;

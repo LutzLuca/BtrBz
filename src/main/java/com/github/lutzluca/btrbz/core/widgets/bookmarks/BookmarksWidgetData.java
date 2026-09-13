@@ -1,7 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
+import com.github.lutzluca.btrbz.utils.GameUtils;
+
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -35,7 +37,7 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
     @Override
     public Snapshot snapshot(WidgetSession session) {
         return new Snapshot(this.component.currentBookmarks().stream().map(bookmark -> new Bookmark(
-            bookmark.productId(), bookmark.productName(), Utils.legacyFormattedComponent(bookmark.formattedName()),
+            bookmark.productId(), bookmark.productName(), GameUtils.legacyFormattedComponent(bookmark.formattedName()),
             bookmark.itemStack(), bookmark.hasBuyOrder(), bookmark.hasSellOffer())).toList());
     }
 

@@ -86,7 +86,7 @@ final class EnchantedBookIdParser {
 
     private static String formatDisplayLevel(int level) {
         if (level > 0 && level <= 3999) {
-            return Utils.intToRoman(level);
+            return ConversionNames.toRoman(level);
         }
 
         return Integer.toString(level);
@@ -101,7 +101,7 @@ final class EnchantedBookIdParser {
             return parseArabicLevel(level);
         }
 
-        return Utils.parseRomanNumeral(level);
+        return ConversionNames.parseRomanNumeral(level);
     }
 
     private static Optional<Integer> parseArabicLevel(String level) {

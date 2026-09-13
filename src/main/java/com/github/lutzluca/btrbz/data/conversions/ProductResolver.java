@@ -33,7 +33,7 @@ final class ProductResolver {
         return this.resolveProduct(
             stack,
             displayNameEvidence,
-            Utils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null));
+            GameUtils.matchingCustomNameLegacy(stack, displayNameEvidence).orElse(null));
     }
 
     ProductIdentity resolveProduct(
@@ -42,7 +42,7 @@ final class ProductResolver {
         @Nullable String formattedNameEvidence
     ) {
         var displayName = Utils.cleanDisplayName(displayNameEvidence);
-        var rawProductId = Utils.customDataId(stack).orElse(null);
+        var rawProductId = GameUtils.customDataId(stack).orElse(null);
         if (isPossibleShardStack(rawProductId, displayName)) {
             return this.resolveShardIdentity(displayName, formattedNameEvidence, rawProductId);
         }

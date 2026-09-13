@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.session;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
 

@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
-import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
@@ -29,6 +29,7 @@ public final class WidgetRuntime {
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
     private final WidgetSessionProvider sessionProvider;
+    private final Activation activation;
     private final Map<WidgetId, Double> scrollOffsets = new HashMap<>();
     // Screens own their hosts; this set lets deactivation dispose even temporarily hidden hosts.
     private final Set<WidgetHost> hosts = Collections.newSetFromMap(new WeakHashMap<>());
@@ -37,12 +38,14 @@ public final class WidgetRuntime {
     public WidgetRuntime(
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        WidgetSessionProvider sessionProvider
+        WidgetSessionProvider sessionProvider,
+        Activation activation
     ) {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.registry.freeze();
         this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
         this.sessionProvider = Objects.requireNonNull(sessionProvider, "sessionProvider");
+        this.activation = Objects.requireNonNull(activation, "activation");
     }
 
     public WidgetRegistry registry() {
@@ -71,13 +74,14 @@ public final class WidgetRuntime {
             this.stateStore,
             this.sessionProvider,
             this.scrollOffsets,
-            placementDragging);
+            placementDragging,
+            this.activation);
         this.hosts.add(host);
         return host;
     }
 
     public WidgetManagerLauncher createManagerLauncher() {
-        var launcher = new WidgetManagerLauncher(this);
+        var launcher = new WidgetManagerLauncher(this, this.stateStore, this.activation);
         this.launchers.add(launcher);
         return launcher;
     }
@@ -90,8 +94,8 @@ public final class WidgetRuntime {
     public WidgetManagementScreen createManagementScreen(@Nullable Screen previousScreen) {
         var context = this.captureManagementContext(previousScreen);
         return context == null
-            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore)
-            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, context);
+            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.activation)
+            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.activation, context);
     }
 
     public WidgetManagementScreen createManagementScreenForWidget(
@@ -100,12 +104,13 @@ public final class WidgetRuntime {
     ) {
         var context = this.captureManagementContext(previousScreen);
         return context == null
-            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, widgetId)
-            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, widgetId, context);
+            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.activation, widgetId)
+            : new WidgetManagementScreen(
+                previousScreen, this.registry, this.stateStore, this.activation, widgetId, context);
     }
 
     public boolean canOpenContextualManager(@Nullable Screen screen) {
-        if (!BtrBz.isActive()) {
+        if (!this.activation.isActive()) {
             return false;
         }
         var session = this.sessionProvider.current(screen);

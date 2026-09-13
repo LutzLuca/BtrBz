@@ -19,10 +19,6 @@ public final class WidgetLayoutTokens {
 
     private WidgetLayoutTokens() {}
 
-    public static int twoLineRowHeight(int fontLineHeight) {
-        return Math.max(1, fontLineHeight) * 2 + LINE_GAP + ROW_VERTICAL_PADDING * 2;
-    }
-
     public static int singleLineRowHeight(int fontLineHeight) {
         return Math.max(1, fontLineHeight) + ROW_VERTICAL_PADDING * 2;
     }

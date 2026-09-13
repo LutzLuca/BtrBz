@@ -1,9 +1,12 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.Activation;
+import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
+import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
@@ -17,6 +20,8 @@ import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -27,36 +32,53 @@ import org.jetbrains.annotations.Nullable;
 
 public class ConfigScreen {
 
-    public static void open() {
+    private final WidgetRuntime widgetRuntime;
+    private final Activation activation;
+    private final OrderTooltipProvider tooltipProvider;
+
+    public ConfigScreen(
+        WidgetRuntime widgetRuntime,
+        Activation activation,
+        OrderTooltipProvider tooltipProvider
+    ) {
+        this.widgetRuntime = Objects.requireNonNull(widgetRuntime, "widgetRuntime cannot be null");
+        this.activation = Objects.requireNonNull(activation, "activation cannot be null");
+        this.tooltipProvider = Objects.requireNonNull(tooltipProvider, "tooltipProvider cannot be null");
+    }
+
+    public void open() {
         var client = Minecraft.getInstance();
-        client.schedule(() -> GameUtils.setScreen(ConfigScreen.create(
+        client.schedule(() -> GameUtils.setScreen(this.create(
             GameUtils.screen(),
             ConfigManager.get())));
     }
 
-    public static Screen create(Screen parent, Config config) {
+    public Screen create(Screen parent, Config config) {
         return YetAnotherConfigLib.create(
             ConfigManager.HANDLER, (_, _, builder) -> {
                 builder.title(Component.literal(BtrBz.MOD_ID));
-                buildCategories(builder, config);
+                this.buildCategories(builder, config);
 
                 return builder;
             }).generateScreen(parent);
     }
 
-    private static void buildCategories(Builder builder, Config config) {
+    private void buildCategories(Builder builder, Config config) {
         var general = ConfigCategory
             .createBuilder()
             .name(Component.literal("General"))
             .tooltip(Component.literal("Configure when BtrBz runs."))
-            .group(activationGroup(config))
+            .group(this.activationGroup(config))
             .build();
 
         var widgetBuilder = ConfigCategory.createBuilder()
             .name(Component.literal("Widgets"))
             .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
-            .options(widgetManagerOptions())
-            .options(widgetOptions(BtrBz.widgetRuntime().registry()));
+            .options(this.widgetManagerOptions())
+            .options(widgetOptions(
+                this.widgetRuntime.registry(),
+                (screen, id) -> GameUtils.setScreen(
+                    this.widgetRuntime.createManagementScreenForWidget(screen, id))));
         var widgets = widgetBuilder.build();
 
         var ordersAndNotifications = ConfigCategory
@@ -64,7 +86,7 @@ public class ConfigScreen {
             .name(Component.literal("Orders & Notifications"))
             .tooltip(Component.literal(
                 "Configure order-status notifications, highlighting, and price alerts."))
-            .groups(config.trackedOrders.createGroups())
+            .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
             .group(config.orderHighlight.createGroup())
             .group(config.alert.createGroup())
             .build();
@@ -74,8 +96,9 @@ public class ConfigScreen {
             .name(Component.literal("Interface & Tooltips"))
             .tooltip(Component.literal(
                 "Configure hover tooltips, product information, price helpers, and Bazaar chat cleanup."))
-            .group(config.orderListTooltip.createGroup())
-            .group(config.orderItemTooltip.createGroup())
+            .group(config.orderListTooltip.createGroup(
+                () -> this.tooltipProvider.onListSettingsChanged("order-list tooltip setting changed")))
+            .group(config.orderItemTooltip.createGroup(this.tooltipProvider::onItemSettingsChanged))
             .group(config.productInfo.createGroup())
             .group(config.chatFilter.createGroup())
             .build();
@@ -98,7 +121,7 @@ public class ConfigScreen {
             .category(orderWorkflow);
     }
 
-    private static OptionGroup activationGroup(Config config) {
+    private OptionGroup activationGroup(Config config) {
         var enabled = Option
             .<Boolean>createBuilder()
             .name(Component.literal("Enable BtrBz"))
@@ -108,7 +131,7 @@ public class ConfigScreen {
                 () -> config.enabled,
                 value -> {
                     config.enabled = value;
-                    BtrBz.refreshActivation();
+                    this.activation.refresh();
                 })
             .controller(ConfigScreen::createBooleanController);
         var alwaysActive = Option
@@ -122,7 +145,7 @@ public class ConfigScreen {
                 () -> config.alwaysActive,
                 value -> {
                     config.alwaysActive = value;
-                    BtrBz.refreshActivation();
+                    this.activation.refresh();
                 })
             .controller(ConfigScreen::createBooleanController);
 
@@ -135,15 +158,16 @@ public class ConfigScreen {
             .build();
     }
 
-    static List<ButtonOption> widgetOptions(WidgetRegistry registry) {
+    static List<ButtonOption> widgetOptions(
+        WidgetRegistry registry,
+        BiConsumer<Screen, WidgetId> openWidgetManager
+    ) {
         return registry.all().stream()
-            .map(ConfigScreen::widgetOption)
+            .map(definition -> widgetOption(definition, openWidgetManager))
             .toList();
     }
 
-    static List<Option<?>> widgetManagerOptions() {
-        var widgetRuntime = BtrBz.widgetRuntime();
-
+    private List<Option<?>> widgetManagerOptions() {
         var openManager = ButtonOption.createBuilder()
             .name(Component.literal("Open Widget Manager"))
             .text(Component.literal("Open"))
@@ -151,7 +175,7 @@ public class ConfigScreen {
                 "Open the widget manager without using the Bazaar quick-access button.",
                 ConfigImages.WidgetManagerButton))
             .action((screen, _) -> GameUtils.setScreen(
-                widgetRuntime.createManagementScreen(screen)))
+                this.widgetRuntime.createManagementScreen(screen)))
             .build();
 
         var resetPosition = ButtonOption.createBuilder()
@@ -159,13 +183,16 @@ public class ConfigScreen {
             .text(Component.literal("Reset"))
             .description(createDescription(
                 "Restore the Bazaar quick-access button to its default position."))
-            .action((_, _) -> widgetRuntime.stateStore().resetManagerLauncherPosition(true))
+            .action((_, _) -> this.widgetRuntime.stateStore().resetManagerLauncherPosition(true))
             .build();
 
         return List.of(openManager, resetPosition);
     }
 
-    private static ButtonOption widgetOption(WidgetDefinition<?, ?, ?> definition) {
+    private static ButtonOption widgetOption(
+        WidgetDefinition<?, ?, ?> definition,
+        BiConsumer<Screen, WidgetId> openWidgetManager
+    ) {
         String name = definition.getDisplayName();
         WidgetId id = definition.getId();
 
@@ -185,8 +212,7 @@ public class ConfigScreen {
             .name(Component.literal(name))
             .text(Component.literal("Configure"))
             .description(optionDescription)
-            .action((screen, _) -> GameUtils.setScreen(
-                BtrBz.widgetRuntime().createManagementScreenForWidget(screen, id)))
+            .action((screen, _) -> openWidgetManager.accept(screen, id))
             .build();
     }
 

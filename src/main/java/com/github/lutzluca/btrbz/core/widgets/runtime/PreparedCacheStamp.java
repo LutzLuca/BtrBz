@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheRevisions;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ record PreparedCacheStamp(
     int canvasHeight,
     WidgetHostOptions options,
     String placementProfile,
-    long[] dependencyRevisions
+    CacheRevisions.Snapshot dependencyRevisions
 ) {
     public static PreparedCacheStamp capture(
         WidgetSession session,

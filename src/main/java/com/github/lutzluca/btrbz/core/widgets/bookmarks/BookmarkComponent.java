@@ -1,25 +1,24 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ProductInfoProvider;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.screen.BazaarProductContext;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickResult;
+import com.github.lutzluca.btrbz.screen.slot.SlotHook;
+import com.github.lutzluca.btrbz.screen.slot.SlotHookRegistry;
+import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
+import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotClickResult;
-import com.github.lutzluca.btrbz.utils.slot.SlotHook;
-import com.github.lutzluca.btrbz.utils.slot.SlotHookRegistry;
-import com.github.lutzluca.btrbz.utils.slot.SlotRenderContext;
-import com.github.lutzluca.btrbz.utils.slot.SlotView;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import net.minecraft.world.item.ItemStack;
 
 /** Bookmark storage and semantic operations without presentation ownership. */
@@ -27,8 +26,10 @@ public final class BookmarkComponent {
     private static final int PRODUCT_SLOT = 13;
 
     private final BazaarData bazaarData;
-    private final ProductInfoProvider productInfoProvider;
+    private final BazaarProductContext productContext;
     private final TrackedOrderManager trackedOrders;
+    private final Supplier<BookmarksWidgetConfig> config;
+    private final Runnable save;
 
     private final Set<String> buyProducts = new HashSet<>();
     private final Set<String> sellProducts = new HashSet<>();
@@ -37,15 +38,19 @@ public final class BookmarkComponent {
 
     public BookmarkComponent(
         BazaarData bazaarData,
-        ProductInfoProvider productInfoProvider,
-        TrackedOrderManager trackedOrders
+        BazaarProductContext productContext,
+        TrackedOrderManager trackedOrders,
+        Supplier<BookmarksWidgetConfig> config,
+        Runnable save
     ) {
         this.bazaarData = bazaarData;
-        this.productInfoProvider = productInfoProvider;
+        this.productContext = productContext;
         this.trackedOrders = trackedOrders;
+        this.config = config;
+        this.save = save;
 
-        if (items().removeIf(Objects::isNull)) {
-            ConfigManager.save();
+        if (this.items().removeIf(Objects::isNull)) {
+            this.save.run();
         }
 
         this.rebuildOrderCache();
@@ -60,7 +65,7 @@ public final class BookmarkComponent {
     }
 
     public List<Snapshot> currentBookmarks() {
-        return items().stream().map(item -> new Snapshot(
+        return this.items().stream().map(item -> new Snapshot(
             item.product().productId(),
             item.productName(),
             item.product().formattedName(),
@@ -70,11 +75,11 @@ public final class BookmarkComponent {
     }
 
     public boolean contains(String productId) {
-        return items().stream().anyMatch(item -> item.product().productId().equals(productId));
+        return this.items().stream().anyMatch(item -> item.product().productId().equals(productId));
     }
 
     public boolean open(String productId) {
-        return items().stream()
+        return this.items().stream()
             .filter(item -> item.product().productId().equals(productId))
             .findFirst()
             .map(item -> {
@@ -85,11 +90,11 @@ public final class BookmarkComponent {
     }
 
     public boolean remove(String productId) {
-        boolean changed = items().removeIf(item -> item.product().productId().equals(productId));
+        boolean changed = this.items().removeIf(item -> item.product().productId().equals(productId));
 
         if (changed) {
-            this.dataChanges.invalidate(InvalidationReason.of("bookmark removed"));
-            ConfigManager.save();
+            this.dataChanges.invalidate("bookmark removed");
+            this.save.run();
         }
 
         return changed;
@@ -97,7 +102,7 @@ public final class BookmarkComponent {
 
     /** Uses a drop-boundary insertion index in {@code 0..size}. */
     public boolean reorder(String productId, int insertionIndex) {
-        var items = items();
+        var items = this.items();
 
         if (insertionIndex < 0 || insertionIndex > items.size()) {
             return false;
@@ -121,14 +126,14 @@ public final class BookmarkComponent {
 
         items.add(Math.min(target, items.size()), item);
 
-        this.dataChanges.invalidate(InvalidationReason.of("bookmarks reordered"));
-        ConfigManager.save();
+        this.dataChanges.invalidate("bookmarks reordered");
+        this.save.run();
 
         return true;
     }
 
     private boolean toggle(ItemStack stack) {
-        var product = this.productInfoProvider.getOpenedProduct();
+        var product = this.productContext.openedProduct();
 
         if (product == null) {
             return false;
@@ -139,17 +144,17 @@ public final class BookmarkComponent {
             return false;
         }
 
-        items().add(new BookmarkedItem(product, stack.copy()));
+        this.items().add(new BookmarkedItem(product, stack.copy()));
 
-        this.dataChanges.invalidate(InvalidationReason.of("bookmark added"));
-        ConfigManager.save();
+        this.dataChanges.invalidate("bookmark added");
+        this.save.run();
 
         return true;
     }
 
     private void refreshProducts() {
         boolean changed = false;
-        var iterator = items().listIterator();
+        var iterator = this.items().listIterator();
 
         while (iterator.hasNext()) {
             var item = iterator.next();
@@ -162,8 +167,8 @@ public final class BookmarkComponent {
         }
 
         if (changed) {
-            this.dataChanges.invalidate(InvalidationReason.of("bookmark products refreshed"));
-            ConfigManager.save();
+            this.dataChanges.invalidate("bookmark products refreshed");
+            this.save.run();
         }
     }
 
@@ -178,11 +183,11 @@ public final class BookmarkComponent {
             }
         }));
 
-        this.dataChanges.invalidate(InvalidationReason.of("bookmark order indicators rebuilt"));
+        this.dataChanges.invalidate("bookmark order indicators rebuilt");
     }
 
-    private static List<BookmarkedItem> items() {
-        return ConfigManager.get().widgets.bookmarks.items;
+    private List<BookmarkedItem> items() {
+        return this.config.get().items;
     }
 
     public CacheToken dataChanges() {
@@ -210,7 +215,7 @@ public final class BookmarkComponent {
     private final class BookmarkHook implements SlotHook {
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().widgets.bookmarks.frame.enabled
+            return BookmarkComponent.this.config.get().frame.enabled
                 && view.slotIdx() == PRODUCT_SLOT
                 && view.getCurrInfo().inMenu(BazaarMenuType.Item);
         }
@@ -218,7 +223,7 @@ public final class BookmarkComponent {
         @Override
         public ItemStack createDisplayStack(SlotRenderContext context) {
             var raw = context.view().getRawStack();
-            var product = productInfoProvider.getOpenedProduct();
+            var product = BookmarkComponent.this.productContext.openedProduct();
 
             if (raw.isEmpty() || context.view().playerInventorySlot() || product == null) {
                 return null;
@@ -231,13 +236,14 @@ public final class BookmarkComponent {
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigManager.get().widgets.bookmarks.frame.enabled) {
+            if (!BookmarkComponent.this.config.get().frame.enabled) {
                 return SlotClickResult.Pass;
             }
 
             var raw = context.view().getRawStack();
 
-            if (raw.get(BtrBz.BOOKMARKED) == null || productInfoProvider.getOpenedProduct() == null) {
+            if (raw.get(BtrBz.BOOKMARKED) == null
+                || BookmarkComponent.this.productContext.openedProduct() == null) {
                 return SlotClickResult.Pass;
             }
 

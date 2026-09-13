@@ -5,16 +5,15 @@ import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -36,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 public class OrderTooltipProvider {
 
     private final BazaarData bazaarData;
+    private final OrderHighlightManager highlightManager;
     private final OrderTooltipCache listCache;
     private final OrderTooltipCache itemCache;
     private final CacheToken listSettingsChanges = CacheToken.named("config.order-list-tooltip");
@@ -63,8 +63,9 @@ public class OrderTooltipProvider {
         }
     }
 
-    public OrderTooltipProvider(BazaarData bazaarData) {
+    public OrderTooltipProvider(BazaarData bazaarData, OrderHighlightManager highlightManager) {
         this.bazaarData = Objects.requireNonNull(bazaarData, "bazaarData cannot be null");
+        this.highlightManager = Objects.requireNonNull(highlightManager, "highlightManager cannot be null");
         this.listCache = new OrderTooltipCache("list");
         this.itemCache = new OrderTooltipCache("item");
 
@@ -82,11 +83,11 @@ public class OrderTooltipProvider {
                 return;
             }
 
-            if (!ScreenInfoHelper.inMenu(BazaarMenuType.Orders) || !GameUtils.orderScreenNonOrderItemsFilter(stack)) {
+            if (!ScreenTracker.inMenu(BazaarMenuType.Orders) || !GameUtils.orderScreenNonOrderItemsFilter(stack)) {
                 return;
             }
 
-            var screen = ScreenInfoHelper.get().getCurrInfo().getGenericContainerScreen().orElse(null);
+            var screen = ScreenTracker.get().getCurrInfo().getGenericContainerScreen().orElse(null);
             if (screen == null) {
                 return;
             }
@@ -97,7 +98,7 @@ public class OrderTooltipProvider {
             }
 
             int idx = slot.getContainerSlot();
-            var order = BtrBz.highlightManager().getTrackedOrder(idx);
+            var order = this.highlightManager.getTrackedOrder(idx);
             if (order == null) {
                 return;
             }
@@ -126,7 +127,7 @@ public class OrderTooltipProvider {
 
     public void onListSettingsChanged(String reason) {
         this.listCache.clear();
-        this.listSettingsChanges.invalidate(InvalidationReason.of(reason));
+        this.listSettingsChanges.invalidate(reason);
     }
 
     public void onItemSettingsChanged() {
@@ -196,7 +197,7 @@ public class OrderTooltipProvider {
                 int remainingVolume = order.volume - order.fillAmountSnapshot;
 
                 this.bazaarData.getEstimatedFillTimeMinutes(product, order.type, remainingVolume).ifPresent(minutes -> {
-                    var time = Component.literal(Utils.formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
+                    var time = Component.literal(formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
                     var line = Component.literal("Estimated fill time: ").withStyle(ChatFormatting.GRAY).append(time);
                     lines.add(line);
                 });
@@ -309,6 +310,25 @@ public class OrderTooltipProvider {
         return List.of(header, buyOrderLine, sellOfferLine);
     }
 
+    static String formatDuration(double totalMinutes) {
+        if (totalMinutes < 1) {
+            return "< 1m";
+        }
+
+        long hours = (long) (totalMinutes / 60);
+        long minutes = (long) (totalMinutes % 60);
+
+        if (hours > 0) {
+            if (minutes > 0) {
+                return String.format("%dh %dm", hours, minutes);
+            }
+
+            return String.format("%dh", hours);
+        }
+
+        return String.format("%dm", minutes);
+    }
+
     public static class OrderListTooltipConfig {
         public boolean enabled = true;
         public boolean showStatus = true;
@@ -316,40 +336,36 @@ public class OrderTooltipProvider {
         public boolean showPrices = true;
         public boolean showOnlyWhenUndercut = false;
 
-        private static void invalidateCache() {
-            BtrBz.tooltipProvider().onListSettingsChanged("order-list tooltip setting changed");
-        }
-
-        public Option.Builder<Boolean> createEnabledOption() {
+        private Option.Builder<Boolean> createEnabledOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Enable Tracked Orders Tooltips"))
                 .binding(true, () -> this.enabled, val -> {
                     this.enabled = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(OptionDescription.of(Component.literal(
                     "Show detailed information when hovering an entry in the tracked orders list.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createStatusOption() {
+        private Option.Builder<Boolean> createStatusOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Status"))
                 .binding(true, () -> this.showStatus, val -> {
                     this.showStatus = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(OptionDescription.of(Component.literal(
                     "Show whether the order is top, matched at the best price, undercut, or currently unknown.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createQueueOption() {
+        private Option.Builder<Boolean> createQueueOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Order Queue Estimate"))
                 .binding(true, () -> this.showQueue, val -> {
                     this.showQueue = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
@@ -358,24 +374,24 @@ public class OrderTooltipProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createPricesOption() {
+        private Option.Builder<Boolean> createPricesOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Current Prices"))
                 .binding(true, () -> this.showPrices, val -> {
                     this.showPrices = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(OptionDescription.of(Component.literal(
                     "Show the best current buy-order and sell-offer prices for the product.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createOnlyWhenUndercutOption() {
+        private Option.Builder<Boolean> createOnlyWhenUndercutOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Only When Undercut"))
                 .binding(false, () -> this.showOnlyWhenUndercut, val -> {
                     this.showOnlyWhenUndercut = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show current market prices only after this order is undercut."),
@@ -383,14 +399,14 @@ public class OrderTooltipProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public OptionGroup createGroup() {
-            var pricesGroup = new OptionGrouping(this.createPricesOption())
-                .addOptions(this.createOnlyWhenUndercutOption());
+        public OptionGroup createGroup(Runnable invalidateCache) {
+            var pricesGroup = new OptionGrouping(this.createPricesOption(invalidateCache))
+                .addOptions(this.createOnlyWhenUndercutOption(invalidateCache));
 
-            var root = new OptionGrouping(this.createEnabledOption())
+            var root = new OptionGrouping(this.createEnabledOption(invalidateCache))
                 .addOptions(
-                    this.createStatusOption(),
-                    this.createQueueOption())
+                    this.createStatusOption(invalidateCache),
+                    this.createQueueOption(invalidateCache))
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()
@@ -413,40 +429,36 @@ public class OrderTooltipProvider {
         public boolean showOnlyWhenUndercut = true;
         public boolean showEstimatedTime = false;
 
-        private static void invalidateCache() {
-            BtrBz.tooltipProvider().onItemSettingsChanged();
-        }
-
-        public Option.Builder<Boolean> createEnabledOption() {
+        private Option.Builder<Boolean> createEnabledOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Item Tooltips"))
                 .binding(true, () -> this.enabled, val -> {
                     this.enabled = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(OptionDescription.of(Component.literal(
                     "Show detailed information when hovering an order item on the Bazaar Orders page.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createStatusOption() {
+        private Option.Builder<Boolean> createStatusOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Status"))
                 .binding(true, () -> this.showStatus, val -> {
                     this.showStatus = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(OptionDescription.of(Component.literal(
                     "Show whether the order is top, matched at the best price, undercut, or currently unknown.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createQueueOption() {
+        private Option.Builder<Boolean> createQueueOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Order Queue Estimate"))
                 .binding(true, () -> this.showQueue, val -> {
                     this.showQueue = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
@@ -455,24 +467,24 @@ public class OrderTooltipProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createPricesOption() {
+        private Option.Builder<Boolean> createPricesOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Current Prices"))
                 .binding(false, () -> this.showPrices, val -> {
                     this.showPrices = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(OptionDescription.of(Component.literal(
                     "Show the best current buy-order and sell-offer prices for the product.")))
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createOnlyWhenUndercutOption() {
+        private Option.Builder<Boolean> createOnlyWhenUndercutOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Only When Undercut"))
                 .binding(true, () -> this.showOnlyWhenUndercut, val -> {
                     this.showOnlyWhenUndercut = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Show current market prices only after this order is undercut."),
@@ -480,12 +492,12 @@ public class OrderTooltipProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createEstimatedTimeOption() {
+        private Option.Builder<Boolean> createEstimatedTimeOption(Runnable invalidateCache) {
             return Option.<Boolean>createBuilder()
                 .name(Component.literal("Show Estimated Fill Time"))
                 .binding(false, () -> this.showEstimatedTime, val -> {
                     this.showEstimatedTime = val;
-                    invalidateCache();
+                    invalidateCache.run();
                 })
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
@@ -497,15 +509,15 @@ public class OrderTooltipProvider {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public OptionGroup createGroup() {
-            var pricesGroup = new OptionGrouping(this.createPricesOption())
-                .addOptions(this.createOnlyWhenUndercutOption());
+        public OptionGroup createGroup(Runnable invalidateCache) {
+            var pricesGroup = new OptionGrouping(this.createPricesOption(invalidateCache))
+                .addOptions(this.createOnlyWhenUndercutOption(invalidateCache));
 
-            var root = new OptionGrouping(this.createEnabledOption())
+            var root = new OptionGrouping(this.createEnabledOption(invalidateCache))
                 .addOptions(
-                    this.createStatusOption(),
-                    this.createQueueOption(),
-                    this.createEstimatedTimeOption())
+                    this.createStatusOption(invalidateCache),
+                    this.createQueueOption(invalidateCache),
+                    this.createEstimatedTimeOption(invalidateCache))
                 .addSubgroups(pricesGroup);
 
             return OptionGroup.createBuilder()

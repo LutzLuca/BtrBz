@@ -1,17 +1,17 @@
 package com.github.lutzluca.btrbz.core.widgets.cache;
 
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+
+import com.github.lutzluca.btrbz.cache.CacheToken;
+
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DisplayName("Memoized widget data source")
 class MemoizedWidgetDataSourceTest {
@@ -27,12 +27,28 @@ class MemoizedWidgetDataSourceTest {
 
             var first = memoized.snapshot(session);
             var second = memoized.snapshot(session);
-            source.token.invalidate(InvalidationReason.of("source changed"));
+            source.token.invalidate("source changed");
             var third = memoized.snapshot(session);
 
-            assertSame(first, second);
-            assertNotSame(first, third);
-            assertEquals(2, source.calls.get());
+            Assertions.assertSame(first, second);
+            Assertions.assertNotSame(first, third);
+            Assertions.assertEquals(2, source.calls.get());
+        }
+
+        @Test
+        @DisplayName("replacing a dependency at the same revision recomputes the snapshot")
+        void dependencyReplacement() {
+            var source = new TestSource(false);
+            var memoized = new MemoizedWidgetDataSource<>(source);
+            var currentSession = session(1, 1);
+            var first = memoized.snapshot(currentSession);
+
+            source.dependencies = CacheDependencies.of(CacheToken.named("test-source"));
+            var replacement = memoized.snapshot(currentSession);
+
+            Assertions.assertNotSame(first, replacement);
+            Assertions.assertSame(replacement, memoized.snapshot(currentSession));
+            Assertions.assertEquals(2, source.calls.get());
         }
 
         @Test
@@ -44,8 +60,8 @@ class MemoizedWidgetDataSourceTest {
             var first = memoized.snapshot(session(1, 1));
             var second = memoized.snapshot(session(2, 3));
 
-            assertSame(first, second);
-            assertEquals(1, source.calls.get());
+            Assertions.assertSame(first, second);
+            Assertions.assertEquals(1, source.calls.get());
         }
 
         @Test
@@ -58,7 +74,7 @@ class MemoizedWidgetDataSourceTest {
             memoized.snapshot(session(2, 1));
             memoized.snapshot(session(2, 2));
 
-            assertEquals(3, source.calls.get());
+            Assertions.assertEquals(3, source.calls.get());
         }
 
         @Test
@@ -68,15 +84,15 @@ class MemoizedWidgetDataSourceTest {
             var memoized = new MemoizedWidgetDataSource<>(source);
             var session = session(1, 1);
             var successful = memoized.snapshot(session);
-            source.token.invalidate(InvalidationReason.of("source changed"));
+            source.token.invalidate("source changed");
             source.fail.set(true);
 
-            assertThrows(IllegalStateException.class, () -> memoized.snapshot(session));
+            Assertions.assertThrows(IllegalStateException.class, () -> memoized.snapshot(session));
             source.fail.set(false);
             var retried = memoized.snapshot(session);
 
-            assertNotSame(successful, retried);
-            assertEquals(3, source.calls.get());
+            Assertions.assertNotSame(successful, retried);
+            Assertions.assertEquals(3, source.calls.get());
         }
     }
 
@@ -88,7 +104,7 @@ class MemoizedWidgetDataSourceTest {
 
     private static final class TestSource implements WidgetDataSource<Object> {
         private final CacheToken token = CacheToken.named("test-source");
-        private final CacheDependencies dependencies = CacheDependencies.of(this.token);
+        private CacheDependencies dependencies = CacheDependencies.of(this.token);
         private final AtomicInteger calls = new AtomicInteger();
         private final AtomicBoolean fail = new AtomicBoolean();
         private final boolean sessionSensitive;

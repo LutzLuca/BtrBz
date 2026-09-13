@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.cache;
 
+import com.github.lutzluca.btrbz.cache.CacheToken;
+
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -17,7 +19,6 @@ public final class ClipboardTracker implements AutoCloseable {
     private boolean initialized;
     private boolean failureLogged;
 
-    private int ticks;
     private ClientTickDispatcher.TaskHandle taskHandle;
 
     public ClipboardTracker(Supplier<String> valueSupplier) {
@@ -37,14 +38,8 @@ public final class ClipboardTracker implements AutoCloseable {
         this.requireInitialized();
 
         if (this.taskHandle == null) {
-            this.ticks = 0;
             this.poll();
-            this.taskHandle = ClientTickDispatcher.onEachTick(_ -> {
-                if (++this.ticks >= POLL_TICKS) {
-                    this.ticks = 0;
-                    this.poll();
-                }
-            });
+            this.taskHandle = ClientTickDispatcher.scheduleEvery(POLL_TICKS, _ -> this.poll());
         }
     }
 
@@ -60,7 +55,7 @@ public final class ClipboardTracker implements AutoCloseable {
             }
 
             this.value = next;
-            this.changes.invalidate(InvalidationReason.of("clipboard text changed"));
+            this.changes.invalidate("clipboard text changed");
 
             return true;
         } catch (RuntimeException exception) {
@@ -92,7 +87,7 @@ public final class ClipboardTracker implements AutoCloseable {
         this.taskHandle = null;
         if (!this.value.isEmpty()) {
             this.value = "";
-            this.changes.invalidate(InvalidationReason.of("clipboard tracker stopped"));
+            this.changes.invalidate("clipboard tracker stopped");
         }
     }
 

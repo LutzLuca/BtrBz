@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
@@ -12,7 +11,8 @@ import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetPreviewSessions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
 public final class TrackedOrdersWidgetDefinition {
@@ -22,10 +22,11 @@ public final class TrackedOrdersWidgetDefinition {
 
     public static WidgetDefinition<OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction> create(
         WidgetDataSource<OrdersData> provider,
-        TrackedOrderManager trackedOrders
+        TrackedOrderManager trackedOrders,
+        Supplier<TrackedOrdersWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            () -> ConfigManager.get().widgets.trackedOrders, TrackedOrdersWidgetConfig::new,
+            configSupplier, TrackedOrdersWidgetConfig::new,
             value -> value.frame, TrackedOrdersWidgetConfig::resetPreferences);
 
         return WidgetDefinition.<OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>builder(

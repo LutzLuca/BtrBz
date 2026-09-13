@@ -13,8 +13,8 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.inventory.Slot;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.github.lutzluca.btrbz.utils.ScreenInfoHelper;
-import com.github.lutzluca.btrbz.utils.slot.VirtualSlotProjection;
+import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.screen.slot.VirtualSlotProjection;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
@@ -72,7 +72,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
     private void onRender(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         // Only Bazaar containers can host screen widgets. Rendering this host for other containers
         // would alternate the shared session provider between screen and HUD contexts every frame.
-        if (!ScreenInfoHelper.inBazaar()) {
+        if (!ScreenTracker.inBazaar()) {
             return;
         }
 
@@ -97,7 +97,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
         int mouseY,
         CallbackInfo ci
     ) {
-        if (!ScreenInfoHelper.inMenu(ScreenInfoHelper.BazaarMenuType.Orders)) {
+        if (!ScreenTracker.inMenu(ScreenTracker.BazaarMenuType.Orders)) {
             return;
         }
 
@@ -118,7 +118,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (!ScreenInfoHelper.inBazaar()) {
+        if (!ScreenTracker.inBazaar()) {
             return;
         }
 
@@ -135,7 +135,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
         double vAmt,
         CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!ScreenInfoHelper.inBazaar()) {
+        if (!ScreenTracker.inBazaar()) {
             return;
         }
 
@@ -146,7 +146,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (!ScreenInfoHelper.inBazaar()) {
+        if (!ScreenTracker.inBazaar()) {
             return;
         }
 
@@ -158,7 +158,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (!ScreenInfoHelper.inBazaar()) {
+        if (!ScreenTracker.inBazaar()) {
             return;
         }
 
@@ -178,7 +178,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
         double deltaY,
         CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!ScreenInfoHelper.inBazaar()) {
+        if (!ScreenTracker.inBazaar()) {
             return;
         }
 

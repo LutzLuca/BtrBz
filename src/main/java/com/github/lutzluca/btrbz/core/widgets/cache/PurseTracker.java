@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.cache;
 
+import com.github.lutzluca.btrbz.cache.CacheToken;
+
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import java.util.Objects;
 import java.util.Optional;
@@ -17,7 +19,6 @@ public final class PurseTracker implements AutoCloseable {
     private Optional<Double> value = Optional.empty();
     private boolean failureLogged;
 
-    private int ticks;
     private ClientTickDispatcher.TaskHandle taskHandle;
 
     public PurseTracker(Supplier<Optional<Double>> valueSupplier) {
@@ -27,14 +28,8 @@ public final class PurseTracker implements AutoCloseable {
 
     public void start() {
         if (this.taskHandle == null) {
-            this.ticks = 0;
             this.poll();
-            this.taskHandle = ClientTickDispatcher.onEachTick(_ -> {
-                if (++this.ticks >= POLL_TICKS) {
-                    this.ticks = 0;
-                    this.poll();
-                }
-            });
+            this.taskHandle = ClientTickDispatcher.scheduleEvery(POLL_TICKS, _ -> this.poll());
         }
     }
 
@@ -48,7 +43,7 @@ public final class PurseTracker implements AutoCloseable {
             }
 
             this.value = next;
-            this.changes.invalidate(InvalidationReason.of("purse availability or value changed"));
+            this.changes.invalidate("purse availability or value changed");
 
             return true;
         } catch (RuntimeException exception) {
@@ -79,7 +74,7 @@ public final class PurseTracker implements AutoCloseable {
         this.taskHandle = null;
         if (this.value.isPresent()) {
             this.value = Optional.empty();
-            this.changes.invalidate(InvalidationReason.of("purse tracker stopped"));
+            this.changes.invalidate("purse tracker stopped");
         }
     }
 

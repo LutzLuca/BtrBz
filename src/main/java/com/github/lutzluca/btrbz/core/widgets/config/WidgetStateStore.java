@@ -1,10 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import java.util.Objects;
@@ -18,10 +16,6 @@ public final class WidgetStateStore {
     private final Runnable saveAction;
     private final Map<WidgetId, CacheToken> frameChanges = new HashMap<>();
     private final CacheToken globalFrameChanges = CacheToken.named("widget-frame.global");
-
-    public WidgetStateStore() {
-        this(() -> ConfigManager.get().widgets, ConfigManager::save);
-    }
 
     public WidgetStateStore(Supplier<WidgetsConfig> configSupplier, Runnable saveAction) {
         this.configSupplier = Objects.requireNonNull(configSupplier, "configSupplier");
@@ -48,7 +42,7 @@ public final class WidgetStateStore {
 
     public void setGlobalFineTuneScale(double value, boolean persist) {
         this.config().globalFineTuneScale = WidgetScaleResolver.clampScale(value);
-        this.globalFrameChanges.invalidate(InvalidationReason.of("global widget scale changed"));
+        this.globalFrameChanges.invalidate("global widget scale changed");
 
         if (persist) {
             this.saveAction.run();
@@ -65,7 +59,7 @@ public final class WidgetStateStore {
 
     public void setGlobalBackgroundColor(int color, boolean persist) {
         this.config().globalBackground = color;
-        this.globalFrameChanges.invalidate(InvalidationReason.of("global widget background changed"));
+        this.globalFrameChanges.invalidate("global widget background changed");
 
         if (persist) {
             this.saveAction.run();
@@ -343,7 +337,7 @@ public final class WidgetStateStore {
     }
 
     private void invalidate(WidgetDefinition<?, ?, ?> definition, String reason) {
-        this.frameChanges(definition.getId()).invalidate(InvalidationReason.of(reason));
+        this.frameChanges(definition.getId()).invalidate(reason);
     }
 
     private WidgetsConfig config() {

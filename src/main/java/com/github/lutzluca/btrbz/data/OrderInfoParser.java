@@ -214,7 +214,7 @@ public final class OrderInfoParser {
         // You have {unclaimed} of ... to claim
         // ...
         return Try.of(() -> {
-            var orderInfo = GameUtils.stripFormattingCodes(title).split(" ", 2);
+            var orderInfo = Utils.stripFormattingCodes(title).split(" ", 2);
             if (orderInfo.length != 2) {
                 throw new IllegalArgumentException(
                     "Title line of item does not follow the pattern '<type> <productName>'");
@@ -269,7 +269,7 @@ public final class OrderInfoParser {
             int unclaimed = 0;
 
             for (String rawLine : lore) {
-                String line = GameUtils.stripFormattingCodes(rawLine).trim();
+                String line = Utils.stripFormattingCodes(rawLine).trim();
                 if (line.isEmpty()) {
                     continue;
                 }
@@ -404,20 +404,20 @@ public final class OrderInfoParser {
     }
 
     static Optional<String> formattedProductNameFromOrderTitle(Component title, String productName) {
-        return Utils.matchingLegacySuffix(title, productName);
+        return GameUtils.matchingLegacySuffix(title, productName);
     }
 
     static Optional<String> formattedProductNameFromConfirmationLore(List<Component> lore, String productName) {
         return lore
             .stream()
             .filter(OrderInfoParser::isConfirmationProductLine)
-            .map(line -> Utils.matchingLegacySuffix(line, productName))
+            .map(line -> GameUtils.matchingLegacySuffix(line, productName))
             .flatMap(Optional::stream)
             .findFirst();
     }
 
     private static boolean isConfirmationProductLine(Component line) {
-        var strippedLine = GameUtils.stripFormattingCodes(line.getString()).trim();
+        var strippedLine = Utils.stripFormattingCodes(line.getString()).trim();
         return strippedLine.startsWith("Order:") || strippedLine.startsWith("Selling:");
     }
 
@@ -432,7 +432,7 @@ public final class OrderInfoParser {
         // Total price / You earn: {total} coins.
         // ...
         return Try.of(() -> {
-            var type = switch (GameUtils.stripFormattingCodes(title)) {
+            var type = switch (Utils.stripFormattingCodes(title)) {
                 case "Sell Offer" -> OrderType.Sell;
                 case "Buy Order" -> OrderType.Buy;
                 default -> throw new IllegalArgumentException("Unknown confirm title: " + title);
@@ -444,7 +444,7 @@ public final class OrderInfoParser {
             Double total = null;
 
             for (String rawLine : lore) {
-                String line = GameUtils.stripFormattingCodes(rawLine).trim();
+                String line = Utils.stripFormattingCodes(rawLine).trim();
                 if (line.isEmpty()) {
                     continue;
                 }

@@ -1,9 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.widgets.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.widgets.cache.InvalidationReason;
+import com.github.lutzluca.btrbz.cache.CacheDependencies;
+import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.Map;
@@ -33,7 +32,7 @@ class PreparedCacheStampTest {
         void identicalAndUnrelated() {
             var stamp = PreparedCacheStamp.capture(session, canvas, options, "default", dependencies);
             var unrelated = CacheToken.named("unrelated");
-            unrelated.invalidate(InvalidationReason.of("not consumed"));
+            unrelated.invalidate("not consumed");
 
             assertTrue(stamp.matches(session, canvas, options, "default", dependencies));
         }
@@ -55,12 +54,12 @@ class PreparedCacheStampTest {
         @DisplayName("relevant token changes miss and retain owner diagnostics")
         void relevantDependency() {
             var stamp = PreparedCacheStamp.capture(session, canvas, options, "default", dependencies);
-            relevant.invalidate(InvalidationReason.of("published value changed"));
+            relevant.invalidate("published value changed");
 
             assertFalse(stamp.matches(session, canvas, options, "default", dependencies));
             var cause = stamp.missCauses(session, canvas, options, "default", dependencies).getFirst();
             assertEquals("relevant", cause.dependency().tokenName());
-            assertEquals("published value changed", cause.dependency().reason().description());
+            assertEquals("published value changed", cause.dependency().reason());
         }
     }
 
