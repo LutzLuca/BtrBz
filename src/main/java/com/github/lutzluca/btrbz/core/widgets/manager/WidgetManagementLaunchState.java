@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.manager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -29,7 +30,7 @@ record WidgetManagementLaunchState(
 
     static WidgetManagementLaunchState contextual(Set<WidgetId> renderedWidgets, WidgetId selectedWidget) {
         Objects.requireNonNull(selectedWidget, "selectedWidget");
-        var rendered = new java.util.LinkedHashSet<>(renderedWidgets);
+        var rendered = new LinkedHashSet<>(renderedWidgets);
         rendered.add(selectedWidget);
         return new WidgetManagementLaunchState(selectedWidget, rendered);
     }

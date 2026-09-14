@@ -14,6 +14,7 @@ import com.mojang.serialization.Dynamic;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import net.azureaaron.legacyitemdfu.LegacyItemStackFixer;
 import net.azureaaron.legacyitemdfu.TypeReferences;
@@ -151,7 +152,7 @@ class ConversionIndexTest {
                 7,
                 "now",
                 null,
-                java.util.Map.of(
+                Map.of(
                     "ENCHANTMENT_SHARPNESS_5",
                     new ConversionProductEntry("Sharpness V", new ProductNameSource.Neu("SHARPNESS;5"))));
 
@@ -173,7 +174,7 @@ class ConversionIndexTest {
                 7,
                 "now",
                 "abc",
-                java.util.Map.of(
+                Map.of(
                     "KNOWN",
                     new ConversionProductEntry("Known", new ProductNameSource.Neu("KNOWN"))),
                 Set.of("MISSING"));
@@ -283,7 +284,7 @@ class ConversionIndexTest {
                     -1,
                     "now",
                     null,
-                    java.util.Map.of()));
+                    Map.of()));
         }
 
         @Test
@@ -364,7 +365,7 @@ class ConversionIndexTest {
             ConversionIndex.SCHEMA_VERSION,
             "now",
             null,
-            java.util.Map.of(productId, entry));
+            Map.of(productId, entry));
     }
 
     private static Dynamic<Tag> fixLegacy(LegacyProductStackData stackData) throws Exception {

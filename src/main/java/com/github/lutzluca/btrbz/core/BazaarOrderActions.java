@@ -1,10 +1,10 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
@@ -33,6 +33,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 
@@ -94,7 +95,8 @@ public class BazaarOrderActions {
                 BazaarMenuType.SellOfferConfirmation,
                 BazaarMenuType.BuyOrderConfirmation),
             info -> {
-                if (ConfigManager.get().orderActions.reopenBazaar && BazaarOrderActions.this.shouldReopenBazaar) {
+                if (ConfigStore.get().config().orderActions.reopenBazaar
+                    && BazaarOrderActions.this.shouldReopenBazaar) {
                     GameUtils.runCommand("bz");
                 }
                 BazaarOrderActions.this.shouldReopenBazaar = false;
@@ -119,7 +121,7 @@ public class BazaarOrderActions {
             if (!BtrBz.isActive()) {
                 return;
             }
-            var cfg = ConfigManager.get().orderActions;
+            var cfg = ConfigStore.get().config().orderActions;
             if (!cfg.enabled || !cfg.copyRemaining || BazaarOrderActions.this.remainingOrderAmount == null) {
                 return;
             }
@@ -200,7 +202,7 @@ public class BazaarOrderActions {
             .orElse(-1);
     }
 
-    private boolean isCancelOrderSlot(@Nullable net.minecraft.world.inventory.Slot slot) {
+    private boolean isCancelOrderSlot(@Nullable Slot slot) {
         return slot != null && slot.getContainerSlot() == CANCEL_ORDER_SLOT
             && slot
                 .getItem()
@@ -215,7 +217,7 @@ public class BazaarOrderActions {
 
         @Override
         public boolean matches(SlotView view) {
-            var cfg = ConfigManager.get().orderActions;
+            var cfg = ConfigStore.get().config().orderActions;
             return cfg.enabled
                 && !view.playerInventorySlot()
                 && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
@@ -234,7 +236,7 @@ public class BazaarOrderActions {
             }
             BazaarOrderActions.this.activeBuyOrderContext = null;
 
-            var cfg = ConfigManager.get().orderActions;
+            var cfg = ConfigStore.get().config().orderActions;
             if (cfg.copyRemaining && cfg.copyRemainingModifier.isDown()
                 && BazaarOrderActions.this.remainingOrderAmount != null) {
                 log.debug("Copying remaining order amount '{}' to clipboard",
@@ -255,7 +257,7 @@ public class BazaarOrderActions {
 
         @Override
         public boolean matches(SlotView view) {
-            var cfg = ConfigManager.get().orderActions;
+            var cfg = ConfigStore.get().config().orderActions;
 
             return cfg.enabled
                 && cfg.reopenLastBuyOrderEnabled
@@ -286,7 +288,7 @@ public class BazaarOrderActions {
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().orderActions.enabled
+            return ConfigStore.get().config().orderActions.enabled
                 && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
                 && !view.playerInventorySlot();
         }

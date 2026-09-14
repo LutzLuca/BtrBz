@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.productinfo;
 
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;

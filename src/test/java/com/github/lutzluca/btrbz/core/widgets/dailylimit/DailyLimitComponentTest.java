@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class DailyLimitComponentTest {
@@ -36,7 +37,7 @@ class DailyLimitComponentTest {
         var config = new DailyLimitWidgetConfig();
         config.frame.enabled = false;
         config.lastResetEpochDay = 20_000;
-        var saves = new java.util.concurrent.atomic.AtomicInteger();
+        var saves = new AtomicInteger();
         var dayTracker = new UtcDayTracker(() -> 20_000);
         var component = new DailyLimitComponent(() -> config, saves::incrementAndGet, dayTracker);
 

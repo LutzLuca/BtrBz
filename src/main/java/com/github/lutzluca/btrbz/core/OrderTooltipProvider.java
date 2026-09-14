@@ -1,10 +1,10 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
@@ -78,7 +78,7 @@ public class OrderTooltipProvider {
             if (!BtrBz.isActive()) {
                 return;
             }
-            var cfg = ConfigManager.get().orderItemTooltip;
+            var cfg = ConfigStore.get().config().orderItemTooltip;
             if (!cfg.enabled) {
                 return;
             }
@@ -167,7 +167,7 @@ public class OrderTooltipProvider {
                 .append(GameUtils.buildQueueComponent(
                     orderQueueInfo.ordersAhead,
                     orderQueueInfo.itemsAhead,
-                    ConfigManager.get().trackedOrders.queueDisplayMode))));
+                    ConfigStore.get().config().trackedOrders.queueDisplayMode))));
         }
 
         lines.add(Component.empty());
@@ -220,7 +220,7 @@ public class OrderTooltipProvider {
                 .append(GameUtils.buildQueueComponent(
                     orderQueueInfo.ordersAhead,
                     orderQueueInfo.itemsAhead,
-                    ConfigManager.get().trackedOrders.queueDisplayMode))));
+                    ConfigStore.get().config().trackedOrders.queueDisplayMode))));
         }
 
         if (shouldShowPrices(cfg.showPrices, cfg.showOnlyWhenUndercut, order)) {

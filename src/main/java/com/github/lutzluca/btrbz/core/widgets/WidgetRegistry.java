@@ -12,18 +12,21 @@ public final class WidgetRegistry {
     private final Map<WidgetId, WidgetDefinition<?, ?, ?>> byId = new LinkedHashMap<>();
     private boolean frozen;
 
-    public void register(WidgetDefinition<?, ?, ?> definition) {
+    public void register(WidgetDefinition<?, ?, ?>... definitions) {
         if (this.frozen) {
             throw new IllegalStateException("Widget registry is finalized");
         }
 
-        Objects.requireNonNull(definition, "definition");
+        Objects.requireNonNull(definitions, "definitions");
+        for (var definition : definitions) {
+            Objects.requireNonNull(definition, "definition");
 
-        if (this.byId.putIfAbsent(definition.getId(), definition) != null) {
-            throw new IllegalArgumentException("Widget already registered: " + definition.getId());
+            if (this.byId.putIfAbsent(definition.getId(), definition) != null) {
+                throw new IllegalArgumentException("Widget already registered: " + definition.getId());
+            }
+
+            this.definitions.add(definition);
         }
-
-        this.definitions.add(definition);
     }
 
     public List<WidgetDefinition<?, ?, ?>> all() {

@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.cache;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 /** Allocation-free revision matching plus miss-only capture and diagnostics. */
 public final class CacheRevisions {
@@ -75,6 +76,6 @@ public final class CacheRevisions {
         String tokenName,
         long previousRevision,
         long currentRevision,
-        @org.jetbrains.annotations.Nullable String reason
+        @Nullable String reason
     ) {}
 }

@@ -30,6 +30,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Util;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -288,7 +289,7 @@ public final class ProductInformation {
             confirmed -> {
                 if (confirmed) {
                     Try
-                        .run(() -> net.minecraft.util.Util.getPlatform().openUri(new URI(link)))
+                        .run(() -> Util.getPlatform().openUri(new URI(link)))
                         .onFailure(err -> Notifier.notifyPlayer(Component
                             .literal("Failed to open link: ")
                             .withStyle(ChatFormatting.RED)

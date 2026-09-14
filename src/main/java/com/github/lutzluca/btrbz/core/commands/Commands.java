@@ -33,12 +33,12 @@ public class Commands {
             context.getSource().sendFeedback(Notifier.prefix().append(Component.literal(setEnabled.apply(false))));
             return 1;
         }));
-        rootCommand.then(WidgetCommand.get(widgetRuntime));
-        rootCommand.then(AlertCommand.get(bazaarData, alertManager));
-        rootCommand.then(ConversionCommand.get(bazaarData));
-        rootCommand.then(TrackedOrderCommand.get(orderManager));
-        rootCommand.then(TaxCommand.get());
-        rootCommand.then(PresetCommand.get(widgetRuntime));
+        rootCommand.then(WidgetCommand.build(widgetRuntime));
+        rootCommand.then(AlertCommand.build(bazaarData, alertManager));
+        rootCommand.then(ConversionCommand.build(bazaarData));
+        rootCommand.then(TrackedOrderCommand.build(orderManager));
+        rootCommand.then(TaxCommand.build());
+        rootCommand.then(PresetCommand.build(widgetRuntime));
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(rootCommand);

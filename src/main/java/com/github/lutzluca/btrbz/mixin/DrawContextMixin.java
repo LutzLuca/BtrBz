@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -46,7 +46,7 @@ public class DrawContextMixin {
         GuiGraphicsExtractor context = (GuiGraphicsExtractor) (Object) this;
         int iconSize = 8;
 
-        if (isBookmarked != null && ConfigManager.get().widgets.bookmarks.frame.enabled) {
+        if (isBookmarked != null && ConfigStore.get().config().widgets.bookmarks.frame.enabled) {
             var texture = isBookmarked ? BOOKMARK_STAR : BOOKMARK_ICON;
             context.blit(
                 RenderPipelines.GUI_TEXTURED,

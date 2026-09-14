@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 
 public class WidgetCommand {
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get(WidgetRuntime runtime) {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build(WidgetRuntime runtime) {
         return ClientCommands.literal("widgets")
             .executes(_ -> {
                 Minecraft.getInstance()

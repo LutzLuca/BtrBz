@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.commands.alert;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.mojang.brigadier.LiteralMessage;
@@ -31,7 +31,7 @@ public class AlertCommand {
         return builder.buildFuture();
     };
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get(
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build(
         BazaarData bazaarData,
         AlertManager alertManager
     ) {
@@ -58,7 +58,7 @@ public class AlertCommand {
                     })))
 
             .then(ClientCommands.literal("list").executes(ctx -> {
-                var alerts = ConfigManager.get().alert.alerts;
+                var alerts = ConfigStore.get().config().alert.alerts;
                 if (alerts.isEmpty()) {
                     Notifier.notifyPlayer(Notifier
                         .prefix()

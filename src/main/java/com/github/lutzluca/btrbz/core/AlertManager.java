@@ -2,10 +2,10 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
@@ -44,14 +44,14 @@ public class AlertManager {
 
     public AlertManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        ConfigManager.updateIfChanged(cfg -> cfg.alert.alerts.removeIf(Objects::isNull));
+        ConfigStore.get().updateIfChanged(cfg -> cfg.alert.alerts.removeIf(Objects::isNull));
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
         if (!snapshot.available()) {
             return;
         }
-        var cfg = ConfigManager.get().alert;
+        var cfg = ConfigStore.get().config().alert;
         if (!cfg.enabled) {
             return;
         }
@@ -100,12 +100,12 @@ public class AlertManager {
         }
 
         if (changed) {
-            ConfigManager.save();
+            ConfigStore.get().save();
         }
     }
 
     public boolean addAlert(ResolvedAlertArgs args) {
-        return ConfigManager.updateIfChanged(cfg -> {
+        return ConfigStore.get().updateIfChanged(cfg -> {
             var alerts = cfg.alert.alerts;
             if (alerts.stream().anyMatch(alert -> alert.matches(args))) {
                 return false;
@@ -118,7 +118,7 @@ public class AlertManager {
 
     public void removeAlert(UUID id) {
         var removed = Utils.removeIfAndReturn(
-            ConfigManager.get().alert.alerts,
+            ConfigStore.get().config().alert.alerts,
             alert -> alert.id.equals(id));
 
         if (removed.isEmpty()) {
@@ -129,7 +129,7 @@ public class AlertManager {
                     .withStyle(ChatFormatting.GRAY)));
             return;
         }
-        ConfigManager.save();
+        ConfigStore.get().save();
         if (removed.size() > 1) {
             Notifier.notifyPlayer(Notifier
                 .prefix()

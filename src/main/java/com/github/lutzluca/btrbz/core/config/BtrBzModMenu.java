@@ -8,6 +8,6 @@ public class BtrBzModMenu implements ModMenuApi {
 
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        return parent -> BtrBz.configScreen().create(parent, ConfigManager.get());
+        return parent -> BtrBz.configScreen().create(parent);
     }
 }

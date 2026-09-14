@@ -13,7 +13,7 @@ public final class ConversionCommand {
 
     private ConversionCommand() {}
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get(BazaarData bazaarData) {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build(BazaarData bazaarData) {
         return command("conversions", bazaarData);
     }
 

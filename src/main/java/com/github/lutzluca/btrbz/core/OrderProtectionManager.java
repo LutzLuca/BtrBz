@@ -1,10 +1,10 @@
 package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
@@ -68,7 +68,7 @@ public class OrderProtectionManager {
             if (!BtrBz.isActive()) {
                 return;
             }
-            if (!ConfigManager.get().orderProtection.enabled) {
+            if (!ConfigStore.get().config().orderProtection.enabled) {
                 return;
             }
 
@@ -158,7 +158,7 @@ public class OrderProtectionManager {
             .map(orderInfo -> OrderValidator.validate(
                 orderInfo,
                 this.bazaarData,
-                ConfigManager.get().orderProtection))
+                ConfigStore.get().config().orderProtection))
             .onSuccess(pendingOrder -> {
                 this.validationCache.put(rawStack, pendingOrder);
                 this.validationFailureCache.remove(rawStack);
@@ -181,7 +181,7 @@ public class OrderProtectionManager {
     }
 
     public Optional<Pair<ValidationResult, Boolean>> getVisualOrderInfo(ItemStack stack) {
-        if (!ConfigManager.get().orderProtection.enabled) {
+        if (!ConfigStore.get().config().orderProtection.enabled) {
             return Optional.empty();
         }
 
@@ -201,7 +201,7 @@ public class OrderProtectionManager {
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
-            if (ConfigManager.get().orderProtection.enabled) {
+            if (ConfigStore.get().config().orderProtection.enabled) {
                 OrderProtectionManager.this.validateConfirmationStack(ctx.view().getRawStack());
             }
 
@@ -211,7 +211,7 @@ public class OrderProtectionManager {
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             var stack = ctx.view().getRawStack();
-            var cfg = ConfigManager.get().orderProtection;
+            var cfg = ConfigStore.get().config().orderProtection;
             OrderProtectionManager.this.validateConfirmationStack(stack);
             var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidget;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
@@ -14,6 +15,8 @@ import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -118,12 +121,11 @@ class BazaarPresentationTest {
 
     private static BazaarWidgetViewData.Order order(String id, BazaarWidgetViewData.OrderStatus status, long sequence) {
         return new BazaarWidgetViewData.Order(
-            new com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId(
-                java.util.UUID.nameUUIDFromBytes(id.getBytes())),
+            new TrackedOrderId(UUID.nameUUIDFromBytes(id.getBytes())),
             BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
-            java.util.Optional.empty(), 1, 1,
-            java.util.Optional.of(new BazaarWidgetViewData.FillProgress(0, 1)),
-            status, java.util.Optional.empty(), List.of(), sequence);
+            Optional.empty(), 1, 1,
+            Optional.of(new BazaarWidgetViewData.FillProgress(0, 1)),
+            status, Optional.empty(), List.of(), sequence);
     }
 
     private static BookmarksWidgetData.Bookmark bookmark(String id, String name) {

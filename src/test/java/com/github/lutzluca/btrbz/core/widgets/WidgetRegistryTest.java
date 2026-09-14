@@ -1,13 +1,15 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
-import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
+import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -19,10 +21,10 @@ class WidgetRegistryTest {
         var registry = new WidgetRegistry();
         var first = definition("btrbz:first");
         var second = definition("btrbz:second");
-        registry.register(first);
-        registry.register(second);
-        assertEquals(java.util.List.of(first, second), registry.all());
+        registry.register(first, second);
+        assertEquals(List.of(first, second), registry.all());
         assertThrows(IllegalArgumentException.class, () -> registry.register(definition("btrbz:first")));
+        assertEquals(List.of(first, second), registry.all());
     }
 
     @Test

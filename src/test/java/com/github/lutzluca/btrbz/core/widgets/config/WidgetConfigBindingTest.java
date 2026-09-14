@@ -10,6 +10,8 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -98,9 +100,9 @@ class WidgetConfigBindingTest {
 
     private static <C> WidgetConfigHandle<C> handle(
         WidgetId id,
-        java.util.function.Supplier<C> current,
-        java.util.function.Supplier<C> defaults,
-        java.util.function.Function<C, WidgetFrameConfig> frame,
+        Supplier<C> current,
+        Supplier<C> defaults,
+        Function<C, WidgetFrameConfig> frame,
         WidgetPreferenceReset<C> reset
     ) {
         return new WidgetConfigHandle<>(id, current, defaults, frame, reset);

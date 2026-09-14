@@ -43,9 +43,9 @@ class TrackedOrderManagerTest {
 
         data.clearMarketData();
 
-        org.junit.jupiter.api.Assertions.assertInstanceOf(OrderStatus.Unknown.class, order.status);
-        org.junit.jupiter.api.Assertions.assertEquals(List.of(order.id()), manager.creationOrder());
-        org.junit.jupiter.api.Assertions.assertTrue(manager.dataChanges().revision() > revision);
+        assertInstanceOf(OrderStatus.Unknown.class, order.status);
+        assertEquals(List.of(order.id()), manager.creationOrder());
+        assertTrue(manager.dataChanges().revision() > revision);
     }
 
     @Nested

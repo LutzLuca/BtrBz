@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSettingsPanel;
+import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.UIComponent;
 
 public final class BazaarOrdersWidgetSettings {
@@ -15,7 +16,7 @@ public final class BazaarOrdersWidgetSettings {
     }
 
     private static void populate(
-        io.wispforest.owo.ui.container.FlowLayout panel,
+        FlowLayout panel,
         WidgetConfigBinding<BazaarOrdersWidgetConfig> binding
     ) {
         panel.clearChildren();

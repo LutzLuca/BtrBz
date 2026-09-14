@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSettingsPanel;
+import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
@@ -37,7 +38,7 @@ public final class DailyLimitWidgetSettings {
             } catch (NumberFormatException _) {
             }
         });
-        limit.tooltip(com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips.wrapped(
+        limit.tooltip(WidgetTooltips.wrapped(
             "Your personal Bazaar coin limit. The used value is estimated from transactions observed by the mod."));
 
         panel.child(limit);

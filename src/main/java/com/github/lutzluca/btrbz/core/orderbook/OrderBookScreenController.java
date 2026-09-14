@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
@@ -46,7 +46,7 @@ public final class OrderBookScreenController {
         @Override
         public boolean matches(SlotView view) {
             return hookEligible(
-                ConfigManager.get().widgets.orderBookScreen.frame.enabled,
+                ConfigStore.get().config().widgets.orderBookScreen.frame.enabled,
                 OrderBookScreenController.this.productContext.openedProduct() != null,
                 view.playerInventorySlot(),
                 view.slotIdx(),
@@ -67,7 +67,7 @@ public final class OrderBookScreenController {
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigManager.get().widgets.orderBookScreen.frame.enabled) {
+            if (!ConfigStore.get().config().widgets.orderBookScreen.frame.enabled) {
                 return SlotClickResult.Pass;
             }
 

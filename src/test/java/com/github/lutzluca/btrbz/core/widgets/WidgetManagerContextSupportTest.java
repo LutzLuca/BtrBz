@@ -14,6 +14,7 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -70,7 +71,7 @@ class WidgetManagerContextSupportTest {
 
     private static WidgetDefinition<Object, TestConfig, Void> definition(
         String idValue,
-        java.util.function.Predicate<WidgetSession> supports
+        Predicate<WidgetSession> supports
     ) {
         var id = WidgetId.parse(idValue);
         var handle = new WidgetConfigHandle<>(

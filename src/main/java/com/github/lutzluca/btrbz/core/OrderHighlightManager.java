@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz.core;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -46,7 +46,7 @@ public class OrderHighlightManager {
     }
 
     public Optional<Integer> getHighlight(int idx) {
-        if (!ConfigManager.get().orderHighlight.enabled) {
+        if (!ConfigStore.get().config().orderHighlight.enabled) {
             return Optional.empty();
         }
 

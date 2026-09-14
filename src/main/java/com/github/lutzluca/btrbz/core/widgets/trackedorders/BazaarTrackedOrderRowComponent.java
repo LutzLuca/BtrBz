@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
@@ -400,7 +401,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         return WidgetMath.portion(availableWidth, fraction);
     }
 
-    com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId orderId() {
+    TrackedOrderId orderId() {
         return this.order.id();
     }
 

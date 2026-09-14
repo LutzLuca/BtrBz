@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz.core.fliphelper;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -92,7 +92,7 @@ public class FlipHelper {
 
         this.flipProductContext.selectProduct(product.get());
 
-        if (!ConfigManager.get().flipHelper.enabled) {
+        if (!ConfigStore.get().config().flipHelper.enabled) {
             this.clearPendingFlipState();
             return;
         }
@@ -169,7 +169,7 @@ public class FlipHelper {
 
     private void registerFlipPriceScreenHandler() {
         ScreenTracker.registerOnSwitch(curr -> {
-            if (!ConfigManager.get().flipHelper.enabled) {
+            if (!ConfigStore.get().config().flipHelper.enabled) {
                 return;
             }
 
@@ -279,7 +279,7 @@ public class FlipHelper {
 
         @Override
         public boolean matches(SlotView view) {
-            return ConfigManager.get().flipHelper.enabled
+            return ConfigStore.get().config().flipHelper.enabled
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_HELPER_ITEM_SLOT_IDX
                 && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
@@ -333,7 +333,7 @@ public class FlipHelper {
 
         @Override
         public boolean matches(SlotView view) {
-            var cfg = ConfigManager.get();
+            var cfg = ConfigStore.get().config();
             boolean tracksFlipProduct = cfg.widgets.orderBookPrice.frame.enabled;
             return (cfg.flipHelper.enabled || tracksFlipProduct)
                 && view.getCurrInfo().inMenu(BazaarMenuType.Orders)

@@ -23,6 +23,7 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Size;
+import io.wispforest.owo.ui.core.UIComponent;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -514,7 +515,7 @@ public final class WidgetHost {
     }
 
     private WidgetSession currentSession(@Nullable Screen screen) {
-        return java.util.Objects.requireNonNull(this.sessionProvider, "runtime session provider").current(screen);
+        return Objects.requireNonNull(this.sessionProvider, "runtime session provider").current(screen);
     }
 
     private @Nullable RuntimeWidgetHit runtimeHitAt(double x, double y) {
@@ -557,7 +558,7 @@ public final class WidgetHost {
     private static final class MountedWidget {
         private final WidgetDefinition<?, ?, ?> definition;
         private final WidgetView<?, ?, ?> view;
-        private final io.wispforest.owo.ui.core.UIComponent component;
+        private final UIComponent component;
         private final WidgetSlotComponent slot;
 
         private final CacheDependencies dependencies;
@@ -572,7 +573,7 @@ public final class WidgetHost {
         private MountedWidget(
             WidgetDefinition<?, ?, ?> definition,
             WidgetView<?, ?, ?> view,
-            io.wispforest.owo.ui.core.UIComponent component,
+            UIComponent component,
             WidgetSlotComponent slot,
             CacheDependencies dependencies
         ) {
@@ -588,7 +589,7 @@ public final class WidgetHost {
             return this.view;
         }
 
-        private io.wispforest.owo.ui.core.UIComponent component() {
+        private UIComponent component() {
             return this.component;
         }
 

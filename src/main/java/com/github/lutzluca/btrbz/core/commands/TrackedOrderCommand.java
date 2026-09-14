@@ -11,7 +11,7 @@ import net.minecraft.network.chat.Component;
 
 public class TrackedOrderCommand {
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get(TrackedOrderManager orderManager) {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build(TrackedOrderManager orderManager) {
         return ClientCommands.literal("orders")
             .then(ClientCommands.literal("list").executes(ctx -> {
                 var orders = orderManager.getTrackedOrders();

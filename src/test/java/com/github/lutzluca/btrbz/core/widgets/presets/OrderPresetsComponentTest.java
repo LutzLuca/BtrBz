@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent.PresetState;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -13,7 +14,7 @@ class OrderPresetsComponentTest {
     void normalizesDurableConfiguredVolumesAscending() {
         assertEquals(
             List.of(2, 10),
-            OrderPresetsComponent.normalizeConfiguredVolumes(java.util.Arrays.asList(10, null, -1, 2, 10)));
+            OrderPresetsComponent.normalizeConfiguredVolumes(Arrays.asList(10, null, -1, 2, 10)));
     }
 
     @Test

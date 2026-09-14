@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
@@ -110,8 +110,8 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             var product = snapshot.product();
             var marketInfo = this.marketInfo(product, snapshot.type(), snapshot.pricePerUnit());
             List<Component> tooltip = Optional.ofNullable(live.get(snapshot.id()))
-                .filter(_ -> this.tooltipProvider != null && ConfigManager.get().orderListTooltip.enabled)
-                .map(order -> this.tooltipProvider.getCachedTooltip(order, ConfigManager.get().orderListTooltip))
+                .filter(_ -> this.tooltipProvider != null && ConfigStore.get().config().orderListTooltip.enabled)
+                .map(order -> this.tooltipProvider.getCachedTooltip(order, ConfigStore.get().config().orderListTooltip))
                 .orElseGet(List::of);
 
             return new BazaarWidgetViewData.Order(

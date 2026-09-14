@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
 
@@ -31,7 +31,7 @@ public final class BookmarksActionHandler implements WidgetActionHandler<Bookmar
             }
 
             case BookmarksAction.Reorder reorder -> {
-                if (ConfigManager.get().widgets.bookmarks.sort == BookmarksWidgetConfig.BookmarkSort.Manual
+                if (ConfigStore.get().config().widgets.bookmarks.sort == BookmarksWidgetConfig.BookmarkSort.Manual
                     && this.bookmarks.contains(reorder.productId())) {
                     this.bookmarks.reorder(reorder.productId(), reorder.insertionIndex());
                 }

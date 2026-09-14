@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -976,7 +977,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         return UIComponents.label(Component.literal(text)).color(Color.ofArgb(color));
     }
 
-    private static ButtonComponent button(String text, java.util.function.Consumer<ButtonComponent> onPress) {
+    private static ButtonComponent button(String text, Consumer<ButtonComponent> onPress) {
         var button = UIComponents.button(Component.literal(text), onPress);
 
         button.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));

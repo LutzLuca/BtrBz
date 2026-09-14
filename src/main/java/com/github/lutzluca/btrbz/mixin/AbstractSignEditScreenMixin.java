@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncherOwner
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.client.input.KeyEvent;
 import org.spongepowered.asm.mixin.Mixin;
@@ -86,7 +87,7 @@ public abstract class AbstractSignEditScreenMixin implements WidgetHostOwner, Wi
             WidgetHostOptions.runtime(true), GameUtils.screen());
 
         this.btrbz$managerLauncher().render(
-            graphics, mouseX, mouseY, delta, canvas, (net.minecraft.client.gui.screens.Screen) (Object) this);
+            graphics, mouseX, mouseY, delta, canvas, (Screen) (Object) this);
     }
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)

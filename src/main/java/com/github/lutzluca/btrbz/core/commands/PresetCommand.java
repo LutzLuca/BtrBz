@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -16,7 +16,7 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 
 public class PresetCommand {
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get(WidgetRuntime widgetRuntime) {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build(WidgetRuntime widgetRuntime) {
         return ClientCommands.literal("preset")
             .then(ClientCommands.literal("add").then(ClientCommands
                 .argument(
@@ -25,7 +25,7 @@ public class PresetCommand {
                 .executes(ctx -> {
                     int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
-                    boolean added = ConfigManager.updateIfChanged(cfg -> {
+                    boolean added = ConfigStore.get().updateIfChanged(cfg -> {
                         var presets = cfg.widgets.orderPresets.volumes;
                         if (presets.contains(volume)) {
                             return false;
@@ -67,7 +67,7 @@ public class PresetCommand {
                     .executes(ctx -> {
                         int volume = IntegerArgumentType.getInteger(ctx, "volume");
 
-                        boolean removed = ConfigManager
+                        boolean removed = ConfigStore.get()
                             .updateIfChanged(cfg -> cfg.widgets.orderPresets.volumes.remove(Integer.valueOf(volume)));
 
                         if (removed) {
@@ -93,7 +93,7 @@ public class PresetCommand {
                     })))
 
             .then(ClientCommands.literal("list").executes(ctx -> {
-                var presets = ConfigManager.get().widgets.orderPresets.volumes;
+                var presets = ConfigStore.get().config().widgets.orderPresets.volumes;
 
                 if (presets.isEmpty()) {
                     Notifier.notifyPlayer(Notifier
@@ -132,8 +132,8 @@ public class PresetCommand {
             }))
 
             .then(ClientCommands.literal("clear").executes(ctx -> {
-                int count = ConfigManager.get().widgets.orderPresets.volumes.size();
-                boolean cleared = ConfigManager.updateIfChanged(cfg -> {
+                int count = ConfigStore.get().config().widgets.orderPresets.volumes.size();
+                boolean cleared = ConfigStore.get().updateIfChanged(cfg -> {
                     if (cfg.widgets.orderPresets.volumes.isEmpty()) {
                         return false;
                     }

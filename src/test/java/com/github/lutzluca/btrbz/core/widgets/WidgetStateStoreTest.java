@@ -14,6 +14,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -228,7 +229,7 @@ class WidgetStateStoreTest {
     }
 
     private static WidgetDefinition<Object, BookmarksWidgetConfig, Void> bookmarksDefinition(
-        java.util.function.Supplier<BookmarksWidgetConfig> supplier
+        Supplier<BookmarksWidgetConfig> supplier
     ) {
         var id = WidgetId.parse("btrbz:bookmarks");
         return WidgetDefinition.<Object, BookmarksWidgetConfig, Void>builder(id, "Bookmarks")

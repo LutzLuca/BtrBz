@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen.OptionGrouping;
+import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
@@ -227,7 +227,7 @@ public class TrackedOrderManager {
     // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
     // Accepted as a known limitation (for now).
     private void sendNotifications(List<StatusUpdate> statusUpdates, MarketSnapshot snapshot) {
-        var cfg = ConfigManager.get().trackedOrders;
+        var cfg = ConfigStore.get().config().trackedOrders;
         if (!cfg.enabled) {
             return;
         }
@@ -260,7 +260,7 @@ public class TrackedOrderManager {
         List<StatusUpdate> updates,
         MarketSnapshot snapshot
     ) {
-        var cfg = ConfigManager.get().trackedOrders;
+        var cfg = ConfigStore.get().config().trackedOrders;
 
         if (!cfg.groupOrders) {
             updates.stream()
@@ -291,7 +291,7 @@ public class TrackedOrderManager {
     }
 
     private boolean shouldNotify(StatusUpdate update) {
-        var cfg = ConfigManager.get().trackedOrders;
+        var cfg = ConfigStore.get().config().trackedOrders;
 
         return cfg.enabled && switch (update.curr()) {
             case OrderStatus.Top _ -> {
@@ -453,7 +453,7 @@ public class TrackedOrderManager {
     }
 
     private void resolveSelfUndercutStates(MarketSnapshot snapshot) {
-        var cfg = ConfigManager.get().trackedOrders;
+        var cfg = ConfigStore.get().config().trackedOrders;
         var events = this.selfUndercutDetector.resolve(this.trackedOrders, snapshot);
         if (!cfg.enabled || !cfg.notifySelfUndercut) {
             return;

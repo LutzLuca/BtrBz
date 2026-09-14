@@ -18,7 +18,7 @@ import net.minecraft.sounds.SoundEvents;
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupStatus;
 import com.github.lutzluca.btrbz.core.trackedorders.SelfUndercutKey;
@@ -49,7 +49,7 @@ public class Notifier {
     }
 
     public static void notifyOrderStatus(StatusUpdate update, BazaarData bazaarData) {
-        var cfg = ConfigManager.get().trackedOrders;
+        var cfg = ConfigStore.get().config().trackedOrders;
         var order = update.order();
         var status = update.curr();
 
@@ -115,7 +115,7 @@ public class Notifier {
         GroupStatus prev,
         BazaarData bazaarData
     ) {
-        var cfg = ConfigManager.get().trackedOrders;
+        var cfg = ConfigStore.get().config().trackedOrders;
         int groupSize = allOrders.size();
         int totalVolume = allOrders.stream().mapToInt(o -> o.volume).sum();
 
@@ -286,7 +286,8 @@ public class Notifier {
     }
 
     public static void notifyPriceReached(Alert alert, Optional<Double> price, BazaarData bazaarData) {
-        SoundUtil.playSoundIf(ConfigManager.get().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
+        SoundUtil.playSoundIf(ConfigStore.get().config().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f,
+            2);
 
         String priceText = price
             .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")

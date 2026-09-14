@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -23,7 +23,7 @@ public class TaxCommand {
         return builder.buildFuture();
     };
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> get() {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build() {
         return ClientCommands.literal("tax")
             .then(ClientCommands
                 .literal("set")
@@ -53,7 +53,7 @@ public class TaxCommand {
                             return 1;
                         }
 
-                        ConfigManager.updateIfChanged(cfg -> {
+                        ConfigStore.get().updateIfChanged(cfg -> {
                             if (Double.compare(cfg.tax, rate) == 0) {
                                 return false;
                             }
@@ -75,7 +75,7 @@ public class TaxCommand {
                     .prefix()
                     .append(Component.literal("Your tax rate is ").withStyle(ChatFormatting.GRAY))
                     .append(Component
-                        .literal(ConfigManager.get().tax + "%")
+                        .literal(ConfigStore.get().config().tax + "%")
                         .withStyle(ChatFormatting.AQUA)));
                 return 1;
             }));

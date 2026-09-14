@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.utils.Utils;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.config.ConfigManager;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.Option;
@@ -27,7 +27,7 @@ public class ChatFilterManager {
 
     public ChatFilterManager() {
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
-            if (!BtrBz.isActive() || !ConfigManager.get().chatFilter.enabled) {
+            if (!BtrBz.isActive() || !ConfigStore.get().config().chatFilter.enabled) {
                 return true;
             }
 

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
@@ -214,8 +215,8 @@ final class BazaarOrdersWidgetView
         private void update(BazaarHudWidget.StatusEntry entry, int width) {
             this.root.horizontalSizing(Sizing.fixed(width));
 
-            this.label.text(Component.literal(entry.label()).withStyle(net.minecraft.ChatFormatting.BOLD));
-            this.count.text(Component.literal(entry.count() + "x").withStyle(net.minecraft.ChatFormatting.BOLD));
+            this.label.text(Component.literal(entry.label()).withStyle(ChatFormatting.BOLD));
+            this.count.text(Component.literal(entry.count() + "x").withStyle(ChatFormatting.BOLD));
 
             this.label.color(BazaarStyles.color(entry.color()));
             this.count.color(BazaarStyles.color(entry.color()));
