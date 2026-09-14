@@ -3,10 +3,15 @@ package com.github.lutzluca.btrbz.cache;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Immutable, identity-ordered collection of cache tokens. */
 public final class CacheDependencies {
     private static final CacheDependencies NONE = new CacheDependencies(List.of());
+
+    @Getter
+    @Accessors(fluent = true)
     private final List<CacheToken> tokens;
 
     private CacheDependencies(List<CacheToken> tokens) {
@@ -45,7 +50,4 @@ public final class CacheDependencies {
         return new CacheDependencies(List.copyOf(combined));
     }
 
-    public List<CacheToken> tokens() {
-        return this.tokens;
-    }
 }

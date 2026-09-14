@@ -15,6 +15,8 @@ import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** The only boundary that classifies concrete Minecraft and BtrBz screens. */
 public final class DefaultWidgetSessionProvider implements WidgetSessionProvider {
@@ -24,6 +26,8 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
     private final BazaarProductContext productContext;
     private final OrderBookPriceComponent orderBookPrice;
 
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken contextChanges = CacheToken.named("widget-session.context");
 
     private @Nullable Screen cachedScreen;
@@ -115,10 +119,6 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         this.cachedSession = session;
 
         return session;
-    }
-
-    public CacheToken contextChanges() {
-        return this.contextChanges;
     }
 
     private WidgetProductContext context(ProductIdentity identity, Optional<ItemStack> observedStack) {

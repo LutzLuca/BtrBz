@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
@@ -44,6 +46,8 @@ public final class OrderPresetsComponent {
     private int pendingVolume = -1;
 
     private boolean pendingPreset;
+    @Getter
+    @Accessors(fluent = true)
     private boolean inTransaction;
 
     public OrderPresetsComponent(
@@ -82,10 +86,6 @@ public final class OrderPresetsComponent {
                 inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::readMaximumVolume)
                     .ifPresent(value -> this.setMaximumVolume(value, "maximum order volume loaded"));
             });
-    }
-
-    public boolean inTransaction() {
-        return this.inTransaction;
     }
 
     public State currentState() {

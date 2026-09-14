@@ -5,12 +5,18 @@ import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 
 import java.util.Objects;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Durable UTC daily accounting, deliberately independent from widget enablement. */
 public final class DailyLimitComponent {
     private final Supplier<DailyLimitWidgetConfig> configSupplier;
     private final Runnable saveAction;
+    @Getter
+    @Accessors(fluent = true)
     private final UtcDayTracker utcDayTracker;
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken dataChanges = CacheToken.named("daily-limit.data");
 
     public DailyLimitComponent(
@@ -57,14 +63,6 @@ public final class DailyLimitComponent {
         }
 
         return changed;
-    }
-
-    public CacheToken dataChanges() {
-        return this.dataChanges;
-    }
-
-    public UtcDayTracker utcDayTracker() {
-        return this.utcDayTracker;
     }
 
     private DailyLimitWidgetConfig config() {

@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
+@Accessors(fluent = true)
 public final class ConversionIndex {
 
     public static final int SCHEMA_VERSION = 2;
@@ -24,11 +27,20 @@ public final class ConversionIndex {
         Map.of(),
         Set.of());
 
+    @Getter
     private final int schemaVersion;
+
+    @Getter
     private final int builderVersion;
+
+    @Getter
     private final String generatedAt;
     private final String neuCommit;
+
+    @Getter
     private final Map<String, ConversionProductEntry> products;
+
+    @Getter
     private final Set<String> missingProductIds;
     private final Map<String, List<IndexedProduct>> normalizedNameIndex;
 
@@ -83,28 +95,8 @@ public final class ConversionIndex {
         return EMPTY;
     }
 
-    public int schemaVersion() {
-        return this.schemaVersion;
-    }
-
-    public int builderVersion() {
-        return this.builderVersion;
-    }
-
-    public String generatedAt() {
-        return this.generatedAt;
-    }
-
     public Optional<String> neuCommit() {
         return Optional.ofNullable(this.neuCommit);
-    }
-
-    public Map<String, ConversionProductEntry> products() {
-        return this.products;
-    }
-
-    public Set<String> missingProductIds() {
-        return this.missingProductIds;
     }
 
     public boolean isComplete() {

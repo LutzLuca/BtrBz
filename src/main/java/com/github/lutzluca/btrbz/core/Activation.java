@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.core;
 
 import java.util.function.Consumer;
 import java.util.function.BooleanSupplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Client-thread activation derived from the user's settings and the server's location. */
@@ -10,8 +12,11 @@ public final class Activation {
     private final Consumer<Boolean> onChange;
     private final BooleanSupplier enabled;
     private final BooleanSupplier alwaysActive;
+    @Getter
     private boolean active;
     private boolean skyBlockConfirmed;
+    @Getter
+    @Accessors(fluent = true)
     private long generation;
 
     public Activation(BooleanSupplier enabled, BooleanSupplier alwaysActive, Consumer<Boolean> onChange) {
@@ -24,16 +29,8 @@ public final class Activation {
         return this.enabled.getAsBoolean();
     }
 
-    public boolean isActive() {
-        return this.active;
-    }
-
     public boolean isAlwaysActive() {
         return this.alwaysActive.getAsBoolean();
-    }
-
-    public long generation() {
-        return this.generation;
     }
 
     /** Reevaluate after changing either external activation setting. */

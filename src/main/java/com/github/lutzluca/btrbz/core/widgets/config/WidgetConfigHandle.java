@@ -6,9 +6,13 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Owns one widget's persisted content configuration and its change token. */
 public final class WidgetConfigHandle<C> {
+    @Getter
+    @Accessors(fluent = true)
     private final WidgetId id;
 
     private final Supplier<C> currentConfig;
@@ -17,6 +21,8 @@ public final class WidgetConfigHandle<C> {
     private final Function<C, WidgetFrameConfig> frameConfig;
     private final WidgetPreferenceReset<C> preferenceReset;
 
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken contentChanges;
 
     public WidgetConfigHandle(
@@ -37,10 +43,6 @@ public final class WidgetConfigHandle<C> {
         this.contentChanges = CacheToken.named("config.widget." + id);
     }
 
-    public WidgetId id() {
-        return this.id;
-    }
-
     public C current() {
         return Objects.requireNonNull(this.currentConfig.get(), "current widget config");
     }
@@ -55,10 +57,6 @@ public final class WidgetConfigHandle<C> {
 
     public WidgetFrameConfig defaultFrame() {
         return this.frameConfig.apply(this.defaults());
-    }
-
-    public CacheToken contentChanges() {
-        return this.contentChanges;
     }
 
     public void mutate(String reason, Consumer<C> mutation) {

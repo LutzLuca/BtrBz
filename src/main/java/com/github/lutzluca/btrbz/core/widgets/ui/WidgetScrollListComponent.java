@@ -11,6 +11,8 @@ import io.wispforest.owo.ui.core.UIComponent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** A retained vertical row list with a component-owned scroll viewport. */
 public final class WidgetScrollListComponent extends BaseParentUIComponent {
@@ -18,6 +20,8 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
     private final WidgetScrollContainer<RetainedFlowLayout> scroller;
 
     private final List<UIComponent> rows = new ArrayList<>();
+    @Getter
+    @Accessors(fluent = true)
     private final List<UIComponent> children;
 
     private int viewportHeight;
@@ -69,11 +73,6 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
     public void layout(Size space) {
         this.scroller.inflate(this.calculateChildSpace(space));
         this.scroller.mount(this, this.x, this.y);
-    }
-
-    @Override
-    public List<UIComponent> children() {
-        return this.children;
     }
 
     @Override

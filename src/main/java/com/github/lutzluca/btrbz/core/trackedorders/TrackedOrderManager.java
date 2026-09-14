@@ -32,6 +32,8 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -47,7 +49,11 @@ public class TrackedOrderManager {
     private final TrackedOrderProductUpdater productUpdater;
     private final TrackedOrderStatusEvaluator statusEvaluator = new TrackedOrderStatusEvaluator();
     private final SelfUndercutDetector selfUndercutDetector = new SelfUndercutDetector();
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken dataChanges = CacheToken.named("tracked-orders.data");
+    @Getter
+    @Accessors(fluent = true)
     private int filledOrderCount;
 
     private final List<Consumer<TrackedOrder>> onOrderAddedListeners = new ArrayList<>();
@@ -338,14 +344,6 @@ public class TrackedOrderManager {
     /** Creation chronology, independent of the session-owned manual display order. */
     public List<TrackedOrderId> creationOrder() {
         return this.trackedOrders.stream().map(TrackedOrder::id).toList();
-    }
-
-    public CacheToken dataChanges() {
-        return this.dataChanges;
-    }
-
-    public int filledOrderCount() {
-        return this.filledOrderCount;
     }
 
     public boolean reorder(TrackedOrderId orderId, int dropIndex) {

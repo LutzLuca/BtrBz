@@ -5,6 +5,8 @@ import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import java.util.Objects;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Initialized, periodically polled clipboard owner. */
@@ -13,6 +15,8 @@ public final class ClipboardTracker implements AutoCloseable {
     private static final int POLL_TICKS = 5;
 
     private final Supplier<String> valueSupplier;
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken changes = CacheToken.named("external.clipboard");
 
     private String value = "";
@@ -72,10 +76,6 @@ public final class ClipboardTracker implements AutoCloseable {
     public String value() {
         this.requireInitialized();
         return this.value;
-    }
-
-    public CacheToken changes() {
-        return this.changes;
     }
 
     @Override

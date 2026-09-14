@@ -9,12 +9,16 @@ import java.util.Objects;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Shared root-scale persistence plus generic access to definition-owned frame config. */
 public final class WidgetStateStore {
     private final Supplier<WidgetsConfig> configSupplier;
     private final Runnable saveAction;
     private final Map<WidgetId, CacheToken> frameChanges = new HashMap<>();
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken globalFrameChanges = CacheToken.named("widget-frame.global");
 
     public WidgetStateStore(Supplier<WidgetsConfig> configSupplier, Runnable saveAction) {
@@ -26,10 +30,6 @@ public final class WidgetStateStore {
         return this.frameChanges.computeIfAbsent(
             Objects.requireNonNull(id, "id"),
             key -> CacheToken.named("widget-frame." + key));
-    }
-
-    public CacheToken globalFrameChanges() {
-        return this.globalFrameChanges;
     }
 
     public double globalFineTuneScale() {

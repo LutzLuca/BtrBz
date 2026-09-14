@@ -1,7 +1,12 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 public class ConversionRefreshException extends Exception {
 
+    @Getter
+    @Accessors(fluent = true)
     private final Phase phase;
 
     public ConversionRefreshException(Phase phase, String message) {
@@ -12,10 +17,6 @@ public class ConversionRefreshException extends Exception {
     public ConversionRefreshException(Phase phase, String message, Throwable cause) {
         super(message, cause);
         this.phase = phase;
-    }
-
-    public Phase phase() {
-        return this.phase;
     }
 
     public String shortMessage() {

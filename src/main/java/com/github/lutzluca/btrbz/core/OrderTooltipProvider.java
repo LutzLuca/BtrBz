@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.ChatFormatting;
@@ -38,6 +40,8 @@ public class OrderTooltipProvider {
     private final OrderHighlightManager highlightManager;
     private final OrderTooltipCache listCache;
     private final OrderTooltipCache itemCache;
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken listSettingsChanges = CacheToken.named("config.order-list-tooltip");
 
     private static class OrderTooltipCache {
@@ -119,10 +123,6 @@ public class OrderTooltipProvider {
     public void clearCache() {
         this.listCache.clear();
         this.itemCache.clear();
-    }
-
-    public CacheToken listSettingsChanges() {
-        return this.listSettingsChanges;
     }
 
     public void onListSettingsChanged(String reason) {

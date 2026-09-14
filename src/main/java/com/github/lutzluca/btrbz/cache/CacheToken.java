@@ -1,11 +1,19 @@
 package com.github.lutzluca.btrbz.cache;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 /** Client-thread-confined revision owned by one semantic state producer. */
+@Accessors(fluent = true)
 public final class CacheToken {
+    @Getter
     private final String name;
+
+    @Getter
     private long revision;
+
+    @Getter
     private @Nullable String lastReason;
 
     private CacheToken(String name) {
@@ -18,18 +26,6 @@ public final class CacheToken {
 
     public static CacheToken named(String name) {
         return new CacheToken(name);
-    }
-
-    public String name() {
-        return this.name;
-    }
-
-    public long revision() {
-        return this.revision;
-    }
-
-    public @Nullable String lastReason() {
-        return this.lastReason;
     }
 
     public void invalidate(String reason) {

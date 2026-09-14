@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import net.minecraft.world.item.ItemStack;
 
 /** Bookmark storage and semantic operations without presentation ownership. */
@@ -34,6 +36,8 @@ public final class BookmarkComponent {
     private final Set<String> buyProducts = new HashSet<>();
     private final Set<String> sellProducts = new HashSet<>();
 
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken dataChanges = CacheToken.named("bookmarks.data");
 
     public BookmarkComponent(
@@ -188,10 +192,6 @@ public final class BookmarkComponent {
 
     private List<BookmarkedItem> items() {
         return this.config.get().items;
-    }
-
-    public CacheToken dataChanges() {
-        return this.dataChanges;
     }
 
     public record Snapshot(

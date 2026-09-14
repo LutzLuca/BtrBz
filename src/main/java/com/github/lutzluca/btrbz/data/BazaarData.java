@@ -14,8 +14,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.Accessors;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product.Summary;
 import net.minecraft.world.item.ItemStack;
@@ -27,6 +29,9 @@ public class BazaarData {
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
     private Map<String, Product> lastProducts = Collections.emptyMap();
+
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken marketChanges = CacheToken.named("bazaar.market");
 
     public BazaarData() {
@@ -121,10 +126,6 @@ public class BazaarData {
 
     public void addConversionEventListener(Consumer<ConversionEvent> listener) {
         this.conversionIndexService.addConversionEventListener(listener);
-    }
-
-    public CacheToken marketChanges() {
-        return this.marketChanges;
     }
 
     public CacheToken indexChanges() {

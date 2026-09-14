@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.function.LongSupplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Initialized, client-thread UTC day owner. */
@@ -15,6 +17,8 @@ public final class UtcDayTracker implements AutoCloseable {
     private static final int POLL_TICKS = 20;
 
     private final LongSupplier daySupplier;
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken changes = CacheToken.named("external.utc-day");
 
     private long currentDay;
@@ -67,10 +71,6 @@ public final class UtcDayTracker implements AutoCloseable {
         this.poll();
 
         return this.currentDay;
-    }
-
-    public CacheToken changes() {
-        return this.changes;
     }
 
     @Override

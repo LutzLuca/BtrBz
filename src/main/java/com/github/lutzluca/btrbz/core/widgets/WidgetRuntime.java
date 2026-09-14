@@ -21,12 +21,18 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Application facade over BtrBz's finalized production widget registry. */
 @Slf4j
 public final class WidgetRuntime {
+    @Getter
+    @Accessors(fluent = true)
     private final WidgetRegistry registry;
+    @Getter
+    @Accessors(fluent = true)
     private final WidgetStateStore stateStore;
     private final WidgetSessionProvider sessionProvider;
     private final Activation activation;
@@ -46,14 +52,6 @@ public final class WidgetRuntime {
         this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
         this.sessionProvider = Objects.requireNonNull(sessionProvider, "sessionProvider");
         this.activation = Objects.requireNonNull(activation, "activation");
-    }
-
-    public WidgetRegistry registry() {
-        return this.registry;
-    }
-
-    public WidgetStateStore stateStore() {
-        return this.stateStore;
     }
 
     public void invalidateWidgetContent(WidgetId id, String reason) {

@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
@@ -38,7 +39,12 @@ public final class ScreenTracker {
     private long screenTransitionVersion = 0;
     private long dispatchedScreenTransitionVersion = 0;
     private long inventoryVersion = 0;
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken screenTransitions = CacheToken.named("screen.transition");
+
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken inventoryChanges = CacheToken.named("screen.inventory");
 
     @Getter
@@ -52,10 +58,6 @@ public final class ScreenTracker {
 
     public static ScreenTracker get() {
         return INSTANCE;
-    }
-
-    public CacheToken screenTransitions() {
-        return this.screenTransitions;
     }
 
     public static boolean inMenu(BazaarMenuType menu) {
@@ -123,10 +125,6 @@ public final class ScreenTracker {
         this.dispatchedScreenTransitionVersion = this.screenTransitionVersion;
         this.screenTransitions.invalidate("screen ownership discarded");
         this.inventoryChanges.invalidate("inventory ownership discarded");
-    }
-
-    public CacheToken inventoryChanges() {
-        return this.inventoryChanges;
     }
 
     private void setupInventoryWatcher() {

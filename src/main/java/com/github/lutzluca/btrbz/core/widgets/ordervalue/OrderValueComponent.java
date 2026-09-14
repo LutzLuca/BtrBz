@@ -4,16 +4,16 @@ import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import java.util.List;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Owns the latest order facts and the established exact value calculation. */
 public final class OrderValueComponent {
     private List<UnfilledOrderInfo> unfilledOrders = List.of();
     private List<FilledOrderInfo> filledOrders = List.of();
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken dataChanges = CacheToken.named("order-value.data");
-
-    public CacheToken dataChanges() {
-        return this.dataChanges;
-    }
 
     public void sync(List<UnfilledOrderInfo> unfilledOrders, List<FilledOrderInfo> filledOrders) {
         this.unfilledOrders = List.copyOf(unfilledOrders);

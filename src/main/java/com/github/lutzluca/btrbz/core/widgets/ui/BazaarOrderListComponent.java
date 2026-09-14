@@ -9,6 +9,8 @@ import io.wispforest.owo.ui.core.UIComponent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** A retained keyed list for ordinary Bazaar rows. */
 public final class BazaarOrderListComponent extends BaseParentUIComponent {
@@ -16,6 +18,8 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
 
     private final RetainedRows<String, BazaarOrderRowComponent> retainedRows = new RetainedRows<>();
     private final List<BazaarOrderRowComponent> rows = new ArrayList<>();
+    @Getter
+    @Accessors(fluent = true)
     private final List<UIComponent> children;
 
     private int viewportHeight;
@@ -61,11 +65,6 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
     public void layout(Size space) {
         this.scrollList.inflate(this.calculateChildSpace(space));
         this.scrollList.mount(this, this.x, this.y);
-    }
-
-    @Override
-    public List<UIComponent> children() {
-        return this.children;
     }
 
     @Override

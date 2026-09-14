@@ -11,11 +11,17 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** BtrBz-owned host screen for only the full Order Book widget. */
 public final class OrderBookScreen extends Screen {
     private final Screen parent;
+    @Getter
+    @Accessors(fluent = true)
     private final ProductIdentity product;
+    @Getter
+    @Accessors(fluent = true)
     private final String productName;
     private final WidgetHost host;
     private final long activationGeneration = BtrBz.activationGeneration();
@@ -35,14 +41,6 @@ public final class OrderBookScreen extends Screen {
         this.product = product;
         this.productName = productName;
         this.host = host;
-    }
-
-    public ProductIdentity product() {
-        return this.product;
-    }
-
-    public String productName() {
-        return this.productName;
     }
 
     @Override

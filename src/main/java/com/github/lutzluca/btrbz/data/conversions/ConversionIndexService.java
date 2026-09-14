@@ -17,12 +17,15 @@ import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.Accessors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
+@Accessors(fluent = true)
 public final class ConversionIndexService {
 
     private final ProductResolver resolver;
@@ -31,8 +34,11 @@ public final class ConversionIndexService {
     private final List<Consumer<ConversionEvent>> conversionEventListeners = new ArrayList<>();
     private final AtomicBoolean refreshInFlight = new AtomicBoolean(false);
     private final Map<ItemStack, Map<String, ProductIdentity>> resolvedStackCache = new WeakHashMap<>();
+
+    @Getter
     private final CacheToken changes = CacheToken.named("conversion-index");
 
+    @Getter
     private volatile ConversionIndex currentIndex;
     private volatile ConversionStatus.IndexLoadSource activeLoadSource;
     private volatile long indexRevision;
@@ -128,14 +134,6 @@ public final class ConversionIndexService {
             this.lastSuccessfulRefreshAt,
             this.lastFailure,
             this.refreshInFlight.get());
-    }
-
-    public ConversionIndex currentIndex() {
-        return this.currentIndex;
-    }
-
-    public CacheToken changes() {
-        return this.changes;
     }
 
     public Optional<IndexedProduct> productById(String productId) {

@@ -5,12 +5,15 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.Objects;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.Accessors;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
 
 /** Tracks the Bazaar product selected by the current screen workflow. */
 @Slf4j
+@Accessors(fluent = true)
 public final class BazaarProductContext {
     private static final int PRODUCT_SLOT = 13;
     private static final BazaarMenuType[] PRODUCT_FLOW_MENUS = {
@@ -23,8 +26,11 @@ public final class BazaarProductContext {
     };
 
     private final BazaarData bazaarData;
+
+    @Getter
     private final CacheToken changes = CacheToken.named("product-context.opened-product");
 
+    @Getter
     private @Nullable IndexedProduct openedProduct;
 
     public BazaarProductContext(BazaarData bazaarData) {
@@ -36,14 +42,6 @@ public final class BazaarProductContext {
                 .flatMap(this.bazaarData::resolveIndexedProduct)
                 .orElse(null)));
         ScreenTracker.registerOnSwitch(this::onScreenSwitch);
-    }
-
-    public @Nullable IndexedProduct openedProduct() {
-        return this.openedProduct;
-    }
-
-    public CacheToken changes() {
-        return this.changes;
     }
 
     public void clear() {

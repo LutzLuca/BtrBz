@@ -6,6 +6,8 @@ import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Initialized, periodically polled purse owner with explicit unavailable state. */
@@ -14,8 +16,12 @@ public final class PurseTracker implements AutoCloseable {
     private static final int POLL_TICKS = 5;
 
     private final Supplier<Optional<Double>> valueSupplier;
+    @Getter
+    @Accessors(fluent = true)
     private final CacheToken changes = CacheToken.named("external.purse");
 
+    @Getter
+    @Accessors(fluent = true)
     private Optional<Double> value = Optional.empty();
     private boolean failureLogged;
 
@@ -55,14 +61,6 @@ public final class PurseTracker implements AutoCloseable {
 
             return false;
         }
-    }
-
-    public Optional<Double> value() {
-        return this.value;
-    }
-
-    public CacheToken changes() {
-        return this.changes;
     }
 
     @Override

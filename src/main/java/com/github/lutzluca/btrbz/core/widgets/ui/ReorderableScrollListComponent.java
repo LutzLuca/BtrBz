@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Nullable;
 
 /** Retained keyed rows plus shared scrolling, dragging, insertion, and auto-scroll mechanics. */
@@ -23,6 +25,8 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     private static final long DRAG_HOLD_MILLIS = 120;
 
     private final WidgetScrollListComponent scrollList;
+    @Getter
+    @Accessors(fluent = true)
     private final List<UIComponent> children;
 
     private final RetainedRows<K, UIComponent> retainedRows = new RetainedRows<>();
@@ -116,11 +120,6 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     public void layout(Size space) {
         this.scrollList.inflate(this.calculateChildSpace(space));
         this.scrollList.mount(this, this.x, this.y);
-    }
-
-    @Override
-    public List<UIComponent> children() {
-        return this.children;
     }
 
     @Override

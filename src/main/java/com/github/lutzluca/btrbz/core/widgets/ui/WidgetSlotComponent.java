@@ -10,6 +10,8 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -18,9 +20,13 @@ import java.util.List;
 public final class WidgetSlotComponent extends BaseParentUIComponent {
     private static final long TOOLTIP_DELAY_MILLIS = 200;
 
+    @Getter
+    @Accessors(fluent = true)
     private final WidgetId widgetId;
     private final UIComponent child;
 
+    @Getter
+    @Accessors(fluent = true)
     private WidgetBounds localBounds;
     private int backgroundColor;
     private int logicalWidth;
@@ -29,6 +35,8 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
 
     private boolean selected;
     private boolean drawManagementOverlay;
+    @Getter
+    @Accessors(fluent = true)
     private boolean visible = true;
 
     private @Nullable UIComponent activeMouseTarget;
@@ -59,18 +67,6 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         this.drawManagementOverlay = drawManagementOverlay;
 
         this.allowOverflow(true);
-    }
-
-    public WidgetBounds localBounds() {
-        return this.localBounds;
-    }
-
-    public WidgetId widgetId() {
-        return this.widgetId;
-    }
-
-    public boolean visible() {
-        return this.visible;
     }
 
     boolean ownsMouseCapture() {

@@ -5,7 +5,9 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -190,6 +192,8 @@ public final class OrderModels {
     @ToString
     public static class TrackedOrder {
 
+        @Getter
+        @Accessors(fluent = true)
         private final TrackedOrderId id = TrackedOrderId.create();
         public ProductIdentity product;
         public String productName;
@@ -207,10 +211,6 @@ public final class OrderModels {
          * It should ONLY be used for UI-side heuristics like the estimated fill time feature.
          */
         public int fillAmountSnapshot;
-
-        public TrackedOrderId id() {
-            return this.id;
-        }
 
         public TrackedOrder(OrderInfo.UnfilledOrderInfo info) {
             this(info, info.product());

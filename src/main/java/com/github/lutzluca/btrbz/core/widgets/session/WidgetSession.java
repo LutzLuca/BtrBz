@@ -4,11 +4,15 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Immutable semantic projection of the BtrBz UI context used by widgets. */
 public final class WidgetSession {
     public static final String DEFAULT_PLACEMENT_PROFILE = "default";
 
+    @Getter
+    @Accessors(fluent = true)
     private final long id;
 
     private final boolean hud;
@@ -18,9 +22,15 @@ public final class WidgetSession {
     private final Optional<BazaarMenuType> menu;
     private final Optional<BazaarMenuType> previousMenu;
 
+    @Getter
+    @Accessors(fluent = true)
     private final Optional<WidgetProductContext> product;
+    @Getter
+    @Accessors(fluent = true)
     private final Optional<OrderType> side;
 
+    @Getter
+    @Accessors(fluent = true)
     private final long contextRevision;
 
     public WidgetSession(
@@ -49,10 +59,6 @@ public final class WidgetSession {
         this.contextRevision = contextRevision;
     }
 
-    public long id() {
-        return this.id;
-    }
-
     public boolean inHud() {
         return this.hud;
     }
@@ -63,18 +69,6 @@ public final class WidgetSession {
 
     public boolean inOrderBook() {
         return this.orderBook;
-    }
-
-    public Optional<WidgetProductContext> product() {
-        return this.product;
-    }
-
-    public Optional<OrderType> side() {
-        return this.side;
-    }
-
-    public long contextRevision() {
-        return this.contextRevision;
     }
 
     public boolean inBazaarContainer() {
