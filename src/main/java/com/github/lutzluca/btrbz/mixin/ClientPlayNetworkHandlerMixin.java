@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.mixin;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
-import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
@@ -11,7 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Slf4j
 @Mixin(ClientPacketListener.class)
 public class ClientPlayNetworkHandlerMixin {
 
@@ -19,10 +17,6 @@ public class ClientPlayNetworkHandlerMixin {
     private void onOpenScreen(ClientboundOpenScreenPacket packet, CallbackInfo ci) {
         var screenTracker = ScreenTracker.get();
         if (!screenTracker.isContainerActive(packet.getContainerId())) {
-            log.debug(
-                "Skipping inventory tracking for inactive container {} ('{}')",
-                packet.getContainerId(),
-                packet.getTitle().getString());
             return;
         }
 
