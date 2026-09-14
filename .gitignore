@@ -1,49 +1,28 @@
-# gradle
-
+# build
 .gradle/
 build/
-out/
-classes/
 logs/
+versions/*/bin/
 
-# eclipse
+# local
+run/
+tmp/
 
-*.launch
-
-# idea
-
+# ide
 .idea/*
 !.idea/codeStyles/
 .idea/codeStyles/*
 !.idea/codeStyles/Project.xml
 !.idea/codeStyles/codeStyleConfig.xml
 *.iml
-*.ipr
-*.iws
-
-# vscode
-
-.settings/
 .vscode/
-bin/
-.classpath
-.project
 
-# macos
-
+# system
 *.DS_Store
 
-# fabric
-
-run/
-
-# java
-
+# toolchain
 hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
-
 node_modules/
-references/
-tmp/
