@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -227,8 +228,8 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
         private final LabelComponent more = label("", BazaarStyles.MUTED_TEXT);
         private final List<StatusCount> statuses = List.of(
-            new StatusCount("outdated"), new StatusCount("matched"),
-            new StatusCount("best_order"), new StatusCount("unknown"));
+            new StatusCount(Assets.STATUS_OUTDATED), new StatusCount(Assets.STATUS_MATCHED),
+            new StatusCount(Assets.STATUS_BEST_ORDER), new StatusCount(Assets.STATUS_UNKNOWN));
 
         private Overflow() {
             this.root.allowOverflow(true);
@@ -268,16 +269,14 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.content(), Sizing.fixed(9));
         private final LabelComponent count = label("", BazaarStyles.SECONDARY_TEXT);
 
-        private StatusCount(String iconName) {
+        private StatusCount(Identifier texture) {
             this.root.allowOverflow(true);
             this.root.verticalAlignment(VerticalAlignment.CENTER);
             this.root.gap(2);
 
             this.root.child(this.count);
 
-            var icon = UIComponents.texture(
-                Identifier.fromNamespaceAndPath("btrbz", "textures/gui/status/" + iconName + ".png"),
-                0, 0, 9, 9, 9, 9);
+            var icon = UIComponents.texture(texture, 0, 0, 9, 9, 9, 9);
 
             icon.sizing(Sizing.fixed(9), Sizing.fixed(9));
 

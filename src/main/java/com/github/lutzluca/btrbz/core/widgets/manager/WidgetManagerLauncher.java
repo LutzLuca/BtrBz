@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
@@ -33,7 +34,6 @@ public final class WidgetManagerLauncher {
     private static final int SIZE = 22;
     private static final int ICON_SIZE = 16;
     private static final double DRAG_THRESHOLD = 2.0;
-    private static final Identifier ICON = Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "icon.png");
     private static final WidgetId ID = WidgetId.of(
         Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widget_manager_launcher"));
 
@@ -200,7 +200,7 @@ public final class WidgetManagerLauncher {
         this.button.cursorStyle(CursorStyle.HAND);
         this.button.tooltip(Component.literal("Open widget manager"));
 
-        var icon = UIComponents.texture(ICON, 0, 0, 1024, 1024, 1024, 1024);
+        var icon = UIComponents.texture(Assets.MOD_ICON, 0, 0, 1024, 1024, 1024, 1024);
         icon.sizing(Sizing.fixed(ICON_SIZE), Sizing.fixed(ICON_SIZE));
         icon.blend(true);
         this.button.child(icon);

@@ -1,39 +1,20 @@
 package com.github.lutzluca.btrbz.mixin;
 
+import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GuiGraphicsExtractor.class)
 public class DrawContextMixin {
-
-    @Unique
-    private static final Identifier BOOKMARK_ICON = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/bookmark.png");
-    @Unique
-    private static final Identifier BOOKMARK_STAR = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/bookmark-star.png");
-
-    @Unique
-    private static final Identifier GREEN_CHECK = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/green-check.png");
-    @Unique
-    private static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID,
-        "textures/red-cross.png");
 
     @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;III)V", at = @At("TAIL"))
     private void drawIndicator(ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
@@ -47,7 +28,7 @@ public class DrawContextMixin {
         int iconSize = 8;
 
         if (isBookmarked != null && ConfigStore.get().config().widgets.bookmarks.frame.enabled) {
-            var texture = isBookmarked ? BOOKMARK_STAR : BOOKMARK_ICON;
+            var texture = isBookmarked ? Assets.BOOKMARK_STAR : Assets.BOOKMARK_ICON;
             context.blit(
                 RenderPipelines.GUI_TEXTURED,
                 texture,
@@ -67,7 +48,7 @@ public class DrawContextMixin {
             var overridden = pending.getRight();
             var blocked = pending.getLeft().protect();
 
-            var texture = !blocked || overridden ? GREEN_CHECK : RED_CROSS;
+            var texture = !blocked || overridden ? Assets.GREEN_CHECK : Assets.RED_CROSS;
             int iconX = x + 16 - iconSize;
             int iconY = y;
 
