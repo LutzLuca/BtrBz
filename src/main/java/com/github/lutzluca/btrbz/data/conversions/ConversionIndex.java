@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -137,6 +138,22 @@ public final class ConversionIndex {
             .toList();
     }
 
+    /** Searches display names, with an exact product id accepted as a secondary convenience. */
+    public List<IndexedProduct> searchProducts(String query) {
+        var normalizedQuery = Utils.normalizeDisplayName(query);
+        if (normalizedQuery.isEmpty()) {
+            return List.of();
+        }
+
+        return this.allProducts()
+            .stream()
+            .map(product -> ProductSearchMatch.match(product, normalizedQuery))
+            .flatMap(Optional::stream)
+            .sorted(ProductSearchMatch.ORDER)
+            .map(ProductSearchMatch::product)
+            .toList();
+    }
+
     public Optional<IndexedProduct> uniqueProductByName(String displayName) {
         var normalized = Utils.normalizeDisplayName(displayName);
         if (normalized.isEmpty()) {
@@ -191,5 +208,91 @@ public final class ConversionIndex {
 
     private static IndexedProduct toIndexedProduct(String productId, ConversionProductEntry entry) {
         return new IndexedProduct(productId, entry.formattedName());
+    }
+
+    private record ProductSearchMatch(IndexedProduct product, int kind, int distance, String normalizedName) {
+
+        private static final Comparator<ProductSearchMatch> ORDER = Comparator
+            .comparingInt(ProductSearchMatch::kind)
+            .thenComparingInt(ProductSearchMatch::distance)
+            .thenComparing(ProductSearchMatch::normalizedName)
+            .thenComparing(match -> match.product().productId());
+
+        private static Optional<ProductSearchMatch> match(IndexedProduct product, String query) {
+            var name = Utils.normalizeDisplayName(product.strippedName());
+            if (name.equals(query)) {
+                return Optional.of(new ProductSearchMatch(product, 0, 0, name));
+            }
+            if (name.startsWith(query)) {
+                return Optional.of(new ProductSearchMatch(product, 1, 0, name));
+            }
+            if (name.contains(query)) {
+                return Optional.of(new ProductSearchMatch(product, 2, 0, name));
+            }
+            if (product.productId().equalsIgnoreCase(query)) {
+                return Optional.of(new ProductSearchMatch(product, 3, 0, name));
+            }
+
+            int distance = tokenDistance(query, name);
+            return distance < 0
+                ? Optional.empty()
+                : Optional.of(new ProductSearchMatch(product, 4, distance, name));
+        }
+
+        private static int tokenDistance(String query, String name) {
+            var queryTokens = query.split("\\s+");
+            var nameTokens = name.split("\\s+");
+            int total = 0;
+            for (var queryToken : queryTokens) {
+                int limit = Math.max(1, queryToken.length() / 3);
+                int closest = limit + 1;
+                for (var nameToken : nameTokens) {
+                    closest = Math.min(closest, editDistance(queryToken, nameToken, limit));
+                }
+                if (closest > limit) {
+                    return -1;
+                }
+                total += closest;
+            }
+            return total;
+        }
+
+        /** Optimal-string-alignment distance, bounded so searches cannot become unexpectedly expensive. */
+        private static int editDistance(String left, String right, int limit) {
+            if (Math.abs(left.length() - right.length()) > limit) {
+                return limit + 1;
+            }
+
+            var previousPrevious = new int[right.length() + 1];
+            var previous = new int[right.length() + 1];
+            for (int column = 0; column <= right.length(); column++) {
+                previous[column] = column;
+            }
+
+            for (int row = 1; row <= left.length(); row++) {
+                var current = new int[right.length() + 1];
+                current[0] = row;
+                int rowMinimum = current[0];
+                for (int column = 1; column <= right.length(); column++) {
+                    int substitution = left.charAt(row - 1) == right.charAt(column - 1) ? 0 : 1;
+                    current[column] = Math.min(
+                        Math.min(previous[column] + 1, current[column - 1] + 1),
+                        previous[column - 1] + substitution);
+                    if (row > 1
+                        && column > 1
+                        && left.charAt(row - 1) == right.charAt(column - 2)
+                        && left.charAt(row - 2) == right.charAt(column - 1)) {
+                        current[column] = Math.min(current[column], previousPrevious[column - 2] + 1);
+                    }
+                    rowMinimum = Math.min(rowMinimum, current[column]);
+                }
+                if (rowMinimum > limit) {
+                    return limit + 1;
+                }
+                previousPrevious = previous;
+                previous = current;
+            }
+            return previous[right.length()] <= limit ? previous[right.length()] : limit + 1;
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz;
 import com.github.lutzluca.btrbz.utils.Utils;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.AlertScreen;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.SkyBlockDetector;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
@@ -242,7 +243,8 @@ public class BtrBz implements ClientModInitializer {
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.activation);
 
-        this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider);
+        this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
+            parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.activation));
         var hudHint = new BazaarHudHintController(
             bazaarOrdersWidgetDefinition.getConfigHandle(),
             toggleHudKey::getTranslatedKeyMessage,
@@ -252,7 +254,9 @@ public class BtrBz implements ClientModInitializer {
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
         new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
-        Commands.registerAll(this.bazaarData, this.widgetRuntime, this.alertManager, this.orderManager,
+        Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager,
+            () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
+                new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.activation))),
             this.configScreen::open, this::setEnabled);
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidgetDefinition, widgetStateStore, hudHint::dismiss);

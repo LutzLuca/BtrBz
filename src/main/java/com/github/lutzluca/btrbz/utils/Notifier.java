@@ -1,9 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +15,6 @@ import net.minecraft.sounds.SoundEvents;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
-import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupStatus;
@@ -272,19 +269,6 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    public static void notifyAlertRegistered(ResolvedAlertArgs cmd, BazaarData bazaarData) {
-        var msg = prefix()
-            .append(Component.literal("Alert registered. ").withStyle(ChatFormatting.GREEN))
-            .append(Component.literal("You will be informed once the ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(cmd.type().format()).withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" price of ").withStyle(ChatFormatting.GRAY))
-            .append(productNameComponent(cmd.product(), bazaarData, ChatFormatting.GOLD))
-            .append(Component.literal(" reaches ").withStyle(ChatFormatting.GRAY))
-            .append(coinComponent(cmd.price()));
-
-        notifyPlayer(msg);
-    }
-
     public static void notifyPriceReached(Alert alert, Optional<Double> price, BazaarData bazaarData) {
         SoundUtil.playSoundIf(ConfigStore.get().config().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f,
             2);
@@ -316,22 +300,6 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    public static void notifyAlertAlreadyPresent(ResolvedAlertArgs args, BazaarData bazaarData) {
-        Component msg = prefix()
-            .append(Component.literal("You already have an alert for ").withStyle(ChatFormatting.GRAY))
-            .append(productNameComponent(args.product(), bazaarData, ChatFormatting.GOLD))
-            .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
-            .append(coinComponent(args.price()))
-            .append(Component
-                .literal(" (" + args.type().name().toLowerCase(Locale.ROOT) + ")")
-                .withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal(". Use ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("/btrbz alert list").withStyle(ChatFormatting.AQUA))
-            .append(Component.literal(" to view them").withStyle(ChatFormatting.GRAY));
-
-        notifyPlayer(msg);
-    }
-
     public static void notifyInvalidProduct(Alert alert, BazaarData bazaarData) {
         Component msg = prefix()
             .append(Component.literal("Removed alert for ").withStyle(ChatFormatting.GRAY))
@@ -349,17 +317,12 @@ public class Notifier {
             .append(Component
                 .literal(" has not been reached for " + durationText + ". ")
                 .withStyle(ChatFormatting.GRAY))
-            .append(clickToRemoveAlert(alert.id, "Click to remove alert"));
+            .append(Component.literal("[Manage alerts]")
+                .withStyle(style -> style
+                    .withClickEvent(new RunCommand("/btrbz alert"))
+                    .withHoverEvent(new ShowText(Component.literal("Open Price Alerts to edit or delete alerts"))))
+                .withStyle(ChatFormatting.AQUA));
         notifyPlayer(msg);
-    }
-
-    public static Component clickToRemoveAlert(UUID id, String hoverText) {
-        return Component
-            .literal("[Click to remove]")
-            .withStyle(style -> style
-                .withClickEvent(new RunCommand("/btrbz alert remove " + id))
-                .withHoverEvent(new ShowText(Component.literal(hoverText))))
-            .withStyle(ChatFormatting.RED);
     }
 
     private static MutableComponent productNameComponent(

@@ -147,6 +147,10 @@ public final class ConversionIndexService {
         return this.currentIndex.allProducts();
     }
 
+    public List<IndexedProduct> searchProducts(String query) {
+        return this.currentIndex.searchProducts(query);
+    }
+
     public Optional<ItemStack> productStack(String productId) {
         return this.stackResolver.resolve(productId);
     }

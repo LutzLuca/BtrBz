@@ -31,6 +31,22 @@ class ConversionIndexServiceTest {
             var index = service.currentIndex();
             assertEquals("Custom Fallback", index.product("ENCHANTMENT_HECATOMB_10").orElseThrow().strippedName());
         }
+
+        @Test
+        void exposesTheSharedIndexSearch() {
+            var rawIndex = new ConversionIndex(
+                ConversionIndex.SCHEMA_VERSION,
+                "now",
+                null,
+                Map.of(
+                    "ENCHANTED_DIAMOND", new ConversionProductEntry(
+                        "Enchanted Diamond",
+                        new ProductNameSource.Derived())));
+
+            var service = new ConversionIndexService(rawIndex);
+
+            assertEquals("ENCHANTED_DIAMOND", service.searchProducts("enchanted dimond").getFirst().productId());
+        }
     }
 
     @Nested
