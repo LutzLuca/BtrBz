@@ -31,7 +31,7 @@ public record AlertType(PriceSource source, Direction direction) {
         Above;
 
         public String symbol() {
-            return this == Below ? "<=" : ">=";
+            return this == Below ? "≤" : "≥";
         }
     }
 

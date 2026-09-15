@@ -118,8 +118,8 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected void build(FlowLayout root) {
-        int width = Math.max(200, Math.min(660, this.width - 24));
-        int height = Math.max(140, Math.min(300, this.height - 24));
+        int width = Math.max(200, Math.min(700, this.width - 24));
+        int height = Math.max(140, Math.min(320, this.height - 24));
         this.contentWidth = width - 24;
         boolean columns = width >= 450;
         this.productWidth = columns ? (this.contentWidth - 10) * 2 / 5 : this.contentWidth;
@@ -206,12 +206,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.belowButton = button("Below", () -> this.setDirection(Direction.Below));
         this.aboveButton = button("Above", () -> this.setDirection(Direction.Above));
         settings.child(segments(this.belowButton, this.aboveButton));
-        var help = UIComponents.texture(Assets.INFO_ICON, 0, 0, 16, 16, 16, 16).blend(true);
-        help.sizing(Sizing.fixed(16));
-        help.tooltip(Component.literal("Expressions\n"
-            + "Use +, -, *, / and parentheses ().\n"
-            + "Reference current prices with buy and sell.\n"
-            + "Examples: buy * 1.1, sell - 10k, 2.5m"));
+        var help = UIComponents.texture(Assets.INFO_ICON, 0, 0, 32, 32, 32, 32).blend(true);
+        help.sizing(Sizing.fixed(12));
+        help.tooltip(Component.literal("""
+            Expressions
+            Use +, -, *, / and parentheses ().
+            Reference current prices with buy and sell.
+            Examples: buy * 1.1, sell - 10k or 2.5m"""));
         settings.child(row(text("Threshold", BazaarStyles.SECONDARY_TEXT), help));
         this.expressionBox = UIComponents.textBox(Sizing.fill(100));
         this.expressionBox.setMaxLength(256);
@@ -456,20 +457,20 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             card.padding(Insets.of(6));
             var details = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
             details.gap(3);
-            details.child(new AlertProductRow(this.data, product, this.contentWidth - 88, false, null));
-            var condition = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(this.contentWidth - 88);
+            int detailsWidth = this.contentWidth - 94;
+            details.child(new AlertProductRow(this.data, product, detailsWidth, false, null));
+            var condition = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(detailsWidth);
             condition.text(priceCondition(alert.type, alert.price));
             details.child(condition);
-            var current = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(this.contentWidth - 88);
+            var current = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(detailsWidth);
             this.activeQuotes
-                .add(new ActiveQuote(ProductIdentity.fromIndex(product), alert.type.source(), current));
+                .add(
+                    new ActiveQuote(ProductIdentity.fromIndex(product), alert.type.source(), current, alert.createdAt));
             details.child(current);
-            details.child(text("Captured " + captureTime(alert.createdAt), BazaarStyles.MUTED_TEXT)
-                .maxWidth(this.contentWidth - 88));
-            var actions = UIContainers.verticalFlow(Sizing.fixed(54), Sizing.content());
-            actions.gap(5);
-            actions.horizontalAlignment(HorizontalAlignment.CENTER);
-            actions.child(button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fill(100)));
+            var actions = UIContainers.horizontalFlow(Sizing.fixed(76), Sizing.content());
+            actions.gap(6);
+            actions.verticalAlignment(VerticalAlignment.CENTER);
+            actions.child(button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fixed(48)));
             actions.child(new IconButton(Assets.TRASHCAN, "Delete alert for " + product.strippedName(),
                 () -> this.delete(alert.id)));
             card.child(details);
@@ -483,7 +484,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private void refreshActiveQuotes() {
         for (var quote : this.activeQuotes) {
             var current = quote.source().price(this.data.getMarketPrices(quote.product()));
-            quote.label().text(Component.literal("Now " + current.map(AlertScreen::coins).orElse("unavailable")));
+            quote.label().text(Component.literal("Now " + current.map(AlertScreen::coins).orElse("unavailable"))
+                .append(Component.literal(" · Captured " + captureTime(quote.capturedAt()))
+                    .withColor(BazaarStyles.MUTED_TEXT)));
         }
     }
 
@@ -727,7 +730,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
     }
 
-    private record ActiveQuote(ProductIdentity product, PriceSource source, LabelComponent label) {}
+    private record ActiveQuote(ProductIdentity product, PriceSource source, LabelComponent label, long capturedAt) {}
 
     private static final class IconButton extends ButtonComponent {
         private final Component description;
@@ -741,7 +744,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.renderer((graphics, button, delta) -> {
                 background.draw(graphics, button, delta);
                 graphics.blit(RenderPipelines.GUI_TEXTURED, texture, button.getX() + 3, button.getY() + 3,
-                    0, 0, 16, 16, 16, 16);
+                    0, 0, 16, 16, 32, 32, 32, 32);
             });
         }
 
