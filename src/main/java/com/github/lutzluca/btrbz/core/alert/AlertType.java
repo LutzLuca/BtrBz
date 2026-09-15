@@ -2,78 +2,49 @@ package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
 import java.util.Optional;
-import lombok.Getter;
-import lombok.experimental.Accessors;
+import java.util.Locale;
+import java.util.Objects;
 
-/** A persisted alert kind, expressed as the intended side and observed market price. */
-@Getter
-@Accessors(fluent = true)
-public enum AlertType {
-    BuyOrder(Side.Buy, PriceSource.BuyOrder),
-    SellOffer(Side.Sell, PriceSource.SellOffer),
-    InstaBuy(Side.Buy, PriceSource.SellOffer),
-    InstaSell(Side.Sell, PriceSource.BuyOrder);
-
-    private final Side side;
-    private final PriceSource priceSource;
-
-    AlertType(Side side, PriceSource priceSource) {
-        this.side = side;
-        this.priceSource = priceSource;
-    }
-
-    public static AlertType of(Side side, PriceSource priceSource) {
-        if (side == null || priceSource == null) {
-            throw new IllegalArgumentException("Alert side and price source are required");
-        }
-
-        for (var type : values()) {
-            if (type.side == side && type.priceSource == priceSource) {
-                return type;
-            }
-        }
-        throw new IllegalArgumentException("Unsupported alert side and price source");
+/** The observed price and threshold direction are independent choices. */
+public record AlertType(PriceSource source, Direction direction) {
+    public AlertType {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(direction, "direction");
     }
 
     public String format() {
-        return this.side.label() + " at " + this.priceSource.label();
+        return this.source.label() + " " + this.direction.symbol();
     }
 
     public boolean isReached(double current, double target) {
         if (!Double.isFinite(current) || !Double.isFinite(target)) {
             return false;
         }
-        return switch (this.side) {
-            case Buy -> current <= target;
-            case Sell -> current >= target;
+        return switch (this.direction) {
+            case Below -> current <= target;
+            case Above -> current >= target;
         };
     }
 
-    public enum Side {
-        Buy,
-        Sell;
+    public enum Direction {
+        Below,
+        Above;
 
-        public String label() {
-            return this.name();
+        public String symbol() {
+            return this == Below ? "≤" : "≥";
         }
     }
 
     public enum PriceSource {
-        BuyOrder,
-        SellOffer;
+        Buy,
+        Sell;
 
         public String label() {
-            return switch (this) {
-                case BuyOrder -> "Buy Order";
-                case SellOffer -> "Sell Offer";
-            };
+            return this.name() + " Price";
         }
 
         public String reference() {
-            return switch (this) {
-                case BuyOrder -> "buy_order";
-                case SellOffer -> "sell_offer";
-            };
+            return this.name().toLowerCase(Locale.ROOT);
         }
 
         public Optional<Double> price(BazaarData.MarketPrices prices) {
@@ -81,8 +52,8 @@ public enum AlertType {
                 return Optional.empty();
             }
             var price = switch (this) {
-                case BuyOrder -> prices.highestBuyOrderPrice();
-                case SellOffer -> prices.lowestSellOfferPrice();
+                case Buy -> prices.lowestSellOfferPrice();
+                case Sell -> prices.highestBuyOrderPrice();
             };
             return price.filter(value -> value != null && Double.isFinite(value) && value > 0.0);
         }

@@ -252,13 +252,13 @@ public class AlertManager {
                     new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
             }
 
-            return Try.success(this.type.priceSource().price(snapshot.getMarketPrices(identity)));
+            return Try.success(this.type.source().price(snapshot.getMarketPrices(identity)));
         }
 
         public boolean matches(AlertDefinition definition) {
             // @formatter:off
             return this.productId().equals(definition.product().productId())
-                && this.type == definition.type()
+                && this.type.equals(definition.type())
                 && Double.compare(this.price, definition.price()) == 0;
             // @formatter:on
         }
@@ -297,13 +297,19 @@ public class AlertManager {
                     return null;
                 }
 
-                return new Alert(
-                    UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
-                    GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
-                    product,
-                    ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class),
-                    GsonUtils.required(obj, "price", "Alert").getAsDouble(),
-                    GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
+                try {
+                    return new Alert(
+                        UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
+                        GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
+                        product,
+                        Objects
+                            .requireNonNull(ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class)),
+                        GsonUtils.required(obj, "price", "Alert").getAsDouble(),
+                        GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
+                } catch (RuntimeException err) {
+                    log.warn("Skipping invalid alert entry", err);
+                    return null;
+                }
             }
 
             private static Optional<IndexedProduct> product(JsonObject obj, JsonDeserializationContext ctx) {
