@@ -32,35 +32,38 @@ final class AlertProductRow extends FlowLayout {
     ) {
         super(Sizing.fill(100), Sizing.content(), Algorithm.HORIZONTAL);
         this.select = select;
-        this.padding(Insets.of(6));
-        this.gap(7);
+        int padding = select == null ? 0 : 3;
+        this.padding(Insets.of(padding));
+        this.gap(5);
         this.verticalAlignment(VerticalAlignment.CENTER);
         this.cursorStyle(select == null ? CursorStyle.POINTER : CursorStyle.HAND);
         var name = GameUtils.legacyFormattedComponent(product.formattedName());
         this.tooltip(Component.literal(product.productId()));
 
         var stack = data.productStack(product);
-        stack.ifPresentOrElse(item -> this.child(BazaarUi.item(item, 20)),
-            () -> this.child(BazaarUi.text("?", BazaarStyles.MUTED_TEXT).sizing(Sizing.fixed(20))));
+        stack.ifPresentOrElse(item -> this.child(BazaarUi.item(item, 18)),
+            () -> this.child(BazaarUi.text("?", BazaarStyles.MUTED_TEXT).sizing(Sizing.fixed(18))));
         var text = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
         text.gap(3);
         var label = BazaarUi.text("", BazaarStyles.PRIMARY_TEXT);
         label.text(name);
-        label.maxWidth(Math.max(45, width - 50));
+        int nameWidth = Math.max(45, width - 23 - padding * 2);
+        label.maxWidth(nameWidth);
         text.child(label);
         if (distinguishId) {
             text.child(BazaarUi.text(product.productId(), BazaarStyles.MUTED_TEXT)
-                .maxWidth(Math.max(45, width - 50)));
+                .maxWidth(nameWidth));
         }
         this.child(text);
     }
 
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
-        boolean highlighted = this.select != null
-            && (this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this);
-        WidgetSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
-            highlighted ? BazaarStyles.ROW_HOVER : 0x18000000, 3);
+        if (this.select != null) {
+            boolean highlighted = this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this;
+            WidgetSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
+                highlighted ? BazaarStyles.ROW_HOVER : 0x18000000, 3);
+        }
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
     }
 
