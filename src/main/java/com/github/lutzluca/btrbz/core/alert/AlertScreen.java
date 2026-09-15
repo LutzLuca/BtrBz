@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
@@ -41,7 +42,10 @@ import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,12 +119,12 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout root) {
         int width = Math.max(200, Math.min(660, this.width - 24));
-        int height = Math.max(140, Math.min(390, this.height - 24));
+        int height = Math.max(140, Math.min(300, this.height - 24));
         this.contentWidth = width - 24;
         boolean columns = width >= 450;
         this.productWidth = columns ? (this.contentWidth - 10) * 2 / 5 : this.contentWidth;
         this.settingsWidth = columns ? this.contentWidth - this.productWidth - 10 : this.contentWidth;
-        this.resultHeight = Math.max(70, Math.min(175, height - 145));
+        this.resultHeight = Math.max(60, Math.min(140, height - 180));
 
         root.surface(Surface.flat(0x70000000));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
@@ -129,7 +133,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         panel.padding(Insets.of(12));
         panel.gap(8);
 
-        var title = text("Price alerts", BazaarStyles.SELL_ACCENT).shadow(true);
+        var title = text("Price alerts", BazaarStyles.PRIMARY_TEXT).shadow(true);
         this.status = text("", BazaarStyles.MUTED_TEXT);
         var close = button("×", this::onClose);
         close.horizontalSizing(Sizing.fixed(22));
@@ -146,6 +150,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.scroller.scrollbarThiccness(3);
         panel.child(this.scroller);
         this.feedback = text(this.message, this.messageColor).maxWidth(this.contentWidth);
+        this.feedback.verticalSizing(this.message.isEmpty() ? Sizing.fixed(0) : Sizing.content());
         panel.child(this.feedback);
         root.child(panel);
         this.buildContent(columns);
@@ -201,7 +206,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.belowButton = button("Below", () -> this.setDirection(Direction.Below));
         this.aboveButton = button("Above", () -> this.setDirection(Direction.Above));
         settings.child(segments(this.belowButton, this.aboveButton));
-        settings.child(text("Threshold", BazaarStyles.SECONDARY_TEXT));
+        var help = UIComponents.texture(Assets.INFO_ICON, 0, 0, 16, 16, 16, 16).blend(true);
+        help.sizing(Sizing.fixed(16));
+        help.tooltip(Component.literal("Expressions\n"
+            + "Use +, -, *, / and parentheses ().\n"
+            + "Reference current prices with buy and sell.\n"
+            + "Examples: buy * 1.1, sell - 10k, 2.5m"));
+        settings.child(row(text("Threshold", BazaarStyles.SECONDARY_TEXT), help));
         this.expressionBox = UIComponents.textBox(Sizing.fill(100));
         this.expressionBox.setMaxLength(256);
         this.expressionBox.text(this.editor.expression());
@@ -211,8 +222,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.refreshPreview();
         });
         settings.child(this.expressionBox);
-        settings.child(text("Try buy * 1.1, sell - 10k or 2.5m", BazaarStyles.MUTED_TEXT)
-            .maxWidth(this.settingsWidth - 16));
         var preview = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         preview.padding(Insets.of(7));
         preview.gap(4);
@@ -351,8 +360,10 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             button.active(selected);
         }
         this.expressionBox.active = selected;
-        this.buyButton.renderer(buttonRenderer(false, this.editor.source() == PriceSource.Buy));
-        this.sellButton.renderer(buttonRenderer(false, this.editor.source() == PriceSource.Sell));
+        this.buyButton
+            .renderer(buttonRenderer(false, this.editor.source() == PriceSource.Buy, BazaarStyles.BUY_ACCENT));
+        this.sellButton
+            .renderer(buttonRenderer(false, this.editor.source() == PriceSource.Sell, BazaarStyles.SELL_ACCENT));
         this.buyButton.setMessage(Component.literal(PriceSource.Buy.label()).withColor(BazaarStyles.BUY_ACCENT));
         this.sellButton.setMessage(Component.literal(PriceSource.Sell.label()).withColor(BazaarStyles.SELL_ACCENT));
         this.belowButton.renderer(buttonRenderer(false, this.editor.direction() == Direction.Below));
@@ -364,10 +375,10 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
         var prices = this.data.getMarketPrices(ProductIdentity.fromIndex(this.editor.product()));
-        this.buyQuote.text(Component.literal(PriceSource.Buy.label() + "   " + PriceSource.Buy.price(prices)
-            .map(AlertScreen::coins).orElse("unavailable")));
-        this.sellQuote.text(Component.literal(PriceSource.Sell.label() + "   " + PriceSource.Sell.price(prices)
-            .map(AlertScreen::coins).orElse("unavailable")));
+        this.buyQuote.text(priceLabel(PriceSource.Buy).append(Component.literal("   " + PriceSource.Buy.price(prices)
+            .map(AlertScreen::coins).orElse("unavailable")).withColor(BazaarStyles.SECONDARY_TEXT)));
+        this.sellQuote.text(priceLabel(PriceSource.Sell).append(Component.literal("   " + PriceSource.Sell.price(prices)
+            .map(AlertScreen::coins).orElse("unavailable")).withColor(BazaarStyles.SECONDARY_TEXT)));
     }
 
     private Try<AlertDefinition> resolveDraft() {
@@ -401,13 +412,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
         var definition = resolved.get();
-        this.previewValue.color(BazaarStyles.color(BazaarStyles.SELL_ACCENT));
+        this.previewValue.color(BazaarStyles.color(BazaarStyles.SECONDARY_TEXT));
         var current = this.editor.source()
             .price(this.data.getMarketPrices(ProductIdentity.fromIndex(definition.product())));
         String detail = current.isEmpty()
             ? "\nWaiting for a current quote." : "";
-        this.previewValue.text(Component.literal(this.editor.source().label()
-            + " " + this.editor.direction().symbol() + " " + coins(definition.price()) + detail));
+        this.previewValue.text(priceCondition(definition.type(), definition.price())
+            .append(Component.literal(detail).withColor(BazaarStyles.SECONDARY_TEXT)));
         this.saveButton.tooltip(List.<Component>of());
     }
 
@@ -423,7 +434,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.editor.reset();
         this.activeTab = true;
         this.message = "Saved at " + coins(alert.price) + " · " + captureTime(alert.createdAt);
-        this.messageColor = BazaarStyles.BUY_ACCENT;
+        this.messageColor = BazaarStyles.SECONDARY_TEXT;
         this.rebuild();
     }
 
@@ -446,9 +457,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             var details = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
             details.gap(3);
             details.child(new AlertProductRow(this.data, product, this.contentWidth - 88, false, null));
-            String condition = alert.type.format() + " ";
-            details.child(text(condition + coins(alert.price), BazaarStyles.SELL_ACCENT)
-                .maxWidth(this.contentWidth - 88));
+            var condition = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(this.contentWidth - 88);
+            condition.text(priceCondition(alert.type, alert.price));
+            details.child(condition);
             var current = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(this.contentWidth - 88);
             this.activeQuotes
                 .add(new ActiveQuote(ProductIdentity.fromIndex(product), alert.type.source(), current));
@@ -457,8 +468,10 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 .maxWidth(this.contentWidth - 88));
             var actions = UIContainers.verticalFlow(Sizing.fixed(54), Sizing.content());
             actions.gap(5);
+            actions.horizontalAlignment(HorizontalAlignment.CENTER);
             actions.child(button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fill(100)));
-            actions.child(button("Delete", () -> this.delete(alert.id)).horizontalSizing(Sizing.fill(100)));
+            actions.child(new IconButton(Assets.TRASHCAN, "Delete alert for " + product.strippedName(),
+                () -> this.delete(alert.id)));
             card.child(details);
             card.child(actions);
             this.alertRows.child(card);
@@ -630,6 +643,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.messageColor = color;
         this.feedback.text(Component.literal(message));
         this.feedback.color(BazaarStyles.color(color));
+        this.feedback.verticalSizing(message.isEmpty() ? Sizing.fixed(0) : Sizing.content());
     }
 
     private void clearMessage() {
@@ -673,18 +687,32 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private static ButtonComponent.Renderer buttonRenderer(boolean primary, boolean selected) {
+        return buttonRenderer(primary, selected, 0xFF89929C);
+    }
+
+    private static ButtonComponent.Renderer buttonRenderer(boolean primary, boolean selected, int accent) {
         return (graphics, button, delta) -> {
             boolean hover = button.isHoveredOrFocused();
             int color = primary
-                ? (button.active() ? (hover ? 0xFF81642D : 0xFF5B4825) : (hover ? 0xFF34302A : 0xFF25221C))
-                : (hover ? 0xFF3C3C36 : selected ? 0xFF393426 : 0xFF252525);
+                ? (button.active() ? (hover ? 0xFF555C65 : 0xFF3F454C) : (hover ? 0xFF2D3136 : 0xFF22252A))
+                : (hover ? 0xFF484D54 : selected ? 0xFF3B3F44 : 0xFF25282C);
             WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
                 button.getHeight(),
                 color, 3);
-            int border = primary || selected ? BazaarStyles.SELL_ACCENT : hover ? 0xFF8B8B7D : 0xFF454545;
+            int border = (primary || selected) && button.active() ? accent : hover ? 0xFF707780 : 0xFF45494E;
             graphics.fill(button.getX() + 3, button.getY() + button.getHeight() - 1,
                 button.getX() + button.getWidth() - 3, button.getY() + button.getHeight(), border);
         };
+    }
+
+    private static MutableComponent priceLabel(PriceSource source) {
+        return Component.literal(source.label())
+            .withColor(source == PriceSource.Buy ? BazaarStyles.BUY_ACCENT : BazaarStyles.SELL_ACCENT);
+    }
+
+    private static MutableComponent priceCondition(AlertType type, double price) {
+        return priceLabel(type.source()).append(Component.literal(" " + type.direction().symbol() + " " + coins(price))
+            .withColor(BazaarStyles.SECONDARY_TEXT));
     }
 
     private static String coins(double value) {
@@ -700,4 +728,26 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private record ActiveQuote(ProductIdentity product, PriceSource source, LabelComponent label) {}
+
+    private static final class IconButton extends ButtonComponent {
+        private final Component description;
+
+        private IconButton(Identifier texture, String description, Runnable action) {
+            super(Component.empty(), _ -> action.run());
+            this.description = Component.literal(description);
+            this.tooltip(this.description);
+            this.sizing(Sizing.fixed(22));
+            var background = buttonRenderer(false, false);
+            this.renderer((graphics, button, delta) -> {
+                background.draw(graphics, button, delta);
+                graphics.blit(RenderPipelines.GUI_TEXTURED, texture, button.getX() + 3, button.getY() + 3,
+                    0, 0, 16, 16, 16, 16);
+            });
+        }
+
+        @Override
+        protected MutableComponent createNarrationMessage() {
+            return Component.translatable("gui.narrate.button", this.description);
+        }
+    }
 }

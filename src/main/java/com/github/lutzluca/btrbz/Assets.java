@@ -14,6 +14,10 @@ public final class Assets {
         BtrBz.MOD_ID, "textures/green-check.png");
     public static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/red-cross.png");
+    public static final Identifier INFO_ICON = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/info-icon.png");
+    public static final Identifier TRASHCAN = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/trashcan.png");
 
     public static final Identifier STATUS_OUTDATED = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/gui/status/outdated.png");
