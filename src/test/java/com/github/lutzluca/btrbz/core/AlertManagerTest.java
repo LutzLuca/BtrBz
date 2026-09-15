@@ -3,6 +3,8 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertType;
+import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
+import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import java.util.UUID;
@@ -70,6 +72,17 @@ class AlertManagerTest {
     }
 
     @Test
+    void savesRoundedThresholdsAndDetectsDuplicatesAtTheSameTenth() {
+        var config = new AlertConfig();
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> {});
+        var alert = manager.saveAlert(null, definition(1_000L, DIAMOND, 8323.0000001)).get();
+        Assertions.assertEquals(8323.0, alert.price);
+        Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 8323.04)).isFailure());
+        Assertions.assertEquals(8323.1,
+            manager.saveAlert(null, definition(3_000L, DIAMOND, 8323.05)).get().price);
+    }
+
+    @Test
     void failedPersistenceRollsBackTheInMemoryMutation() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {
@@ -96,6 +109,6 @@ class AlertManagerTest {
     }
 
     private static AlertDefinition definition(long timestamp, IndexedProduct product, double price) {
-        return new AlertDefinition(timestamp, product, AlertType.InstaBuy, price);
+        return new AlertDefinition(timestamp, product, new AlertType(PriceSource.Buy, Direction.Below), price);
     }
 }

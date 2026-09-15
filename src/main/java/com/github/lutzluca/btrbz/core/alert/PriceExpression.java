@@ -39,7 +39,7 @@ public sealed interface PriceExpression permits PriceExpression.Literal,
                 .price(prices)
                 .map(Try::success)
                 .orElseGet(() -> Try.failure(new IllegalStateException(
-                    this.source.label() + " price is currently unavailable")));
+                    this.source.label() + " is currently unavailable")));
         }
     }
 

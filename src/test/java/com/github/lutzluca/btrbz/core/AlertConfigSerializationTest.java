@@ -33,7 +33,7 @@ class AlertConfigSerializationTest {
                     "productId": "ENCHANTED_DIAMOND",
                     "formattedName": "§aEnchanted Diamond"
                   },
-                  "type": "SellOffer",
+                  "type": {"source": "Sell", "direction": "Above"},
                   "price": 123.4,
                   "remindedAfter": 1000
                 }

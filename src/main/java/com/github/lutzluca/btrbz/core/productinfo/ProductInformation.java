@@ -198,8 +198,8 @@ public final class ProductInformation {
                     .append(Component.literal("x").withStyle(ChatFormatting.GRAY)));
             }
 
-            lines.add(this.createPriceText("Buy Order: ", cached.buyOrderPrice, count, isShiftHeld));
-            lines.add(this.createPriceText("Sell Offer: ", cached.sellOfferPrice, count, isShiftHeld));
+            lines.add(this.createPriceText("Buy Price: ", cached.buyPrice, count, isShiftHeld));
+            lines.add(this.createPriceText("Sell Price: ", cached.sellPrice, count, isShiftHeld));
         });
     }
 
@@ -308,8 +308,8 @@ public final class ProductInformation {
     }
 
     private record CachedPrice(
-        @Nullable Double sellOfferPrice,
-        @Nullable Double buyOrderPrice
+        @Nullable Double buyPrice,
+        @Nullable Double sellPrice
     ) {}
 
     private record CachedProductLookup(

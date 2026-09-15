@@ -22,16 +22,6 @@ public final class PriceExpressionParser {
         return Try.of(() -> parseChecked(input));
     }
 
-    public static Try<PriceExpression> parseLiteral(String input) {
-        return Try.of(() -> {
-            var normalized = requireInput(input);
-            if (containsOperatorOrParenthesis(normalized)) {
-                throw new ParseException("Use Advanced expression for arithmetic or price references");
-            }
-            return new Literal(parseNumber(normalized));
-        });
-    }
-
     private static PriceExpression parseChecked(String input) throws ParseException {
         var tokenizer = new Tokenizer(requireInput(input));
         var expression = parseAdditive(tokenizer, 0);
@@ -50,15 +40,6 @@ public final class PriceExpressionParser {
             throw new ParseException("Price expression is too long");
         }
         return normalized;
-    }
-
-    private static boolean containsOperatorOrParenthesis(String input) {
-        return input.indexOf('+') >= 0
-            || input.indexOf('-') >= 0
-            || input.indexOf('*') >= 0
-            || input.indexOf('/') >= 0
-            || input.indexOf('(') >= 0
-            || input.indexOf(')') >= 0;
     }
 
     private static PriceExpression parseAdditive(Tokenizer tokenizer, int depth) throws ParseException {
@@ -99,11 +80,11 @@ public final class PriceExpressionParser {
         if (token.equals(")")) {
             throw new ParseException("Unexpected closing parenthesis");
         }
-        if (token.equals(PriceSource.BuyOrder.reference())) {
-            return new Reference(PriceSource.BuyOrder);
+        if (token.equals(PriceSource.Buy.reference())) {
+            return new Reference(PriceSource.Buy);
         }
-        if (token.equals(PriceSource.SellOffer.reference())) {
-            return new Reference(PriceSource.SellOffer);
+        if (token.equals(PriceSource.Sell.reference())) {
+            return new Reference(PriceSource.Sell);
         }
         return new Literal(parseNumber(token));
     }
