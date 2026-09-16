@@ -7,7 +7,7 @@ runs:
       id: bun
       with:
         bun-version-file: scripts/package.json
-    - uses: actions/cache@v4
+    - uses: actions/cache@v6
       with:
         path: ~/.bun/install/cache
         key: bun-${{ runner.os }}-${{ runner.arch }}-${{ steps.bun.outputs.bun-version }}-${{ hashFiles('scripts/bun.lock') }}
