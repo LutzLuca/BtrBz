@@ -3,6 +3,8 @@ package com.github.lutzluca.btrbz.core;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertType;
+import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
+import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -55,8 +57,8 @@ public class AlertManager {
         this.save = Objects.requireNonNull(save, "save callback cannot be null");
 
         if (this.config().alerts.removeIf(Objects::isNull)) {
-            this.save.run();
             this.changes.invalidate("invalid alerts removed");
+            Try.run(this.save::run).onFailure(err -> log.warn("Failed to persist cleaned alert configuration", err));
         }
     }
 
@@ -298,13 +300,31 @@ public class AlertManager {
                 }
 
                 try {
-                    return new Alert(
-                        UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
+                    var typeJson = GsonUtils.required(obj, "type", "Alert");
+                    AlertType type;
+                    if (typeJson.isJsonPrimitive() && typeJson.getAsJsonPrimitive().isString()) {
+                        type = switch (typeJson.getAsString()) {
+                            case "BuyOrder" -> new AlertType(PriceSource.Sell, Direction.Below);
+                            case "SellOffer" -> new AlertType(PriceSource.Buy, Direction.Above);
+                            case "InstaBuy" -> new AlertType(PriceSource.Buy, Direction.Below);
+                            case "InstaSell" -> new AlertType(PriceSource.Sell, Direction.Above);
+                            default -> throw new JsonParseException("Unknown alert type: " + typeJson.getAsString());
+                        };
+                    } else {
+                        type = ctx.deserialize(typeJson, AlertType.class);
+                    }
+                    var definition = new AlertDefinition(
                         GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
                         product,
-                        Objects
-                            .requireNonNull(ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class)),
-                        GsonUtils.required(obj, "price", "Alert").getAsDouble(),
+                        type,
+                        GsonUtils.required(obj, "price", "Alert").getAsDouble()).validate();
+                    if (definition.isFailure()) {
+                        log.warn("Skipping invalid alert entry", definition.getCause());
+                        return null;
+                    }
+                    return new Alert(
+                        UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
+                        definition.get(),
                         GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
                 } catch (RuntimeException err) {
                     log.warn("Skipping invalid alert entry", err);

@@ -7,12 +7,34 @@ import com.github.lutzluca.btrbz.data.IndexedProduct;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class PriceExpressionParserTest {
 
     private static final IndexedProduct PRODUCT = new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond");
     private static final AlertType BUY_BELOW = new AlertType(PriceSource.Buy, Direction.Below);
     private static final AlertType SELL_ABOVE = new AlertType(PriceSource.Sell, Direction.Above);
+
+    @ParameterizedTest
+    @CsvSource(value = {
+        "1234|1234", "14.4|14.4", ".5|0.5", "1.|1", "2.5m|2500000", ".5b|500000000",
+        "1,234|1234", "12,345,678.9|12345678.9", "1_234_567.8|1234567.8",
+        "1,234.5k|1234500", "1_000m|1000000000", "1,000.|1000"
+    }, delimiter = '|')
+    void acceptsNumbersWithConsistentThousandsGrouping(String input, double expected) {
+        Assertions.assertEquals(expected, PriceExpressionParser.parse(input).get().resolve(prices(1.0, 2.0)).get());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "1,2m", "1,,000", "1__2", "1,000_000", "1_000,000", ",100", "_100", "100,", "100_",
+        "1234,567", "1234_567", "1_00", "1,000,", "1_000_", "1.2,345", "1.2_345", "1,k", "1_m"
+    })
+    void rejectsMalformedSeparatorsBeforeRemovingThem(String input) {
+        Assertions.assertTrue(PriceExpressionParser.parse(input).isFailure());
+    }
 
     @Test
     void expressionsUsePrecedenceParenthesesAndShortReferences() {
