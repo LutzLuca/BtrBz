@@ -71,7 +71,12 @@ public class AlertManager {
         this.notifyReached = Objects.requireNonNull(notifyReached, "reached notifier cannot be null");
 
         var cfg = this.config();
-        boolean cleaned = cfg.alerts.removeIf(Objects::isNull);
+        boolean cleaned = false;
+        if (cfg.alerts == null) {
+            cfg.alerts = new ArrayList<>();
+            cleaned = true;
+        }
+        cleaned |= cfg.alerts.removeIf(Objects::isNull);
         if (cfg.reachedAlerts == null) {
             cfg.reachedAlerts = new ArrayList<>();
             cleaned = true;

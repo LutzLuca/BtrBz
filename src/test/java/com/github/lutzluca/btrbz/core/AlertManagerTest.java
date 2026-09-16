@@ -117,6 +117,23 @@ class AlertManagerTest {
     }
 
     @Test
+    void initializesNullAlertListsAndPersistsCleanupOnce() {
+        var config = new AlertConfig();
+        config.alerts = null;
+        config.reachedAlerts = null;
+        var saves = new int[1];
+
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++);
+
+        Assertions.assertTrue(manager.alerts().isEmpty());
+        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertEquals(1, saves[0]);
+        Assertions.assertEquals(1, manager.changes().revision());
+        Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).isSuccess());
+        Assertions.assertEquals(1, manager.alerts().size());
+    }
+
+    @Test
     void generatedIdsAreIndependent() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {});
