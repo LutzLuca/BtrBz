@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.12.0-alpha] - 2026-09-16
+
+### Breaking
+
+- Install Hypixel Mod API 1.0.2 or newer before updating BtrBz
+- To use BtrBz outside SkyBlock, enable "Always Active" in General > Activation
+
+### Added
+
+- Added a price-alert screen for creating, editing, and removing alerts with `/btrbz alert`
+- Added item search for price alerts
+- Added threshold expressions with Buy Price and Sell Price references
+- Added a Reached tab with the latest 10 triggered alerts and options to reopen their Bazaar pages or remove entries
+- Added `/btrbz enable` and `/btrbz disable` commands to toggle BtrBz
+- Added an "Always Active" setting to bypass SkyBlock detection, disabled by default
+
+### Changed
+
+- Renamed price-alert conditions to Buy Price and Sell Price
+- By default, BtrBz now waits for Hypixel to confirm that you are in SkyBlock before activating features and fetching Bazaar prices
+- Disabling BtrBz, disconnecting, or leaving SkyBlock clears session state
+
+### Fixed
+
+- Fixed Bazaar HUD widgets hiding when hitboxes or chunk borders are enabled. The full F3 debug overlay still hides them
+- Fixed saved bookmarks losing their bookmark markers after restarting Minecraft
+
+### Removed
+
+- Removed the `/btrbz alert add`, `/btrbz alert list`, and `/btrbz alert remove` commands. Use `/btrbz alert` instead
+
+### Internal
+
+- Reorganized feature initialization and widget configuration
+- Reworked release automation and Discord announcements
+
 ## [0.11.3-alpha] - 2026-08-29
 
 ### Changed
@@ -33,54 +69,54 @@
 
 ### Added
 
-* Added a widget manager for configuring Bazaar widgets with live previews
-* Added a draggable launcher that opens the widget manager from supported Bazaar screens
-* Added a Bazaar Orders HUD for checking tracked orders without opening the Bazaar
-* Added detailed and status-count views to the Bazaar Orders HUD
-* Added a remappable keybind for toggling the HUD, bound to `H` by default
-* Added global and per-widget settings for scale, background, placement, size, and display options
-* Added optional Alt-dragging for moving widgets during normal use
-* Added a filled-order count that updates when Bazaar fill messages appear in chat
+- Added a widget manager for configuring Bazaar widgets with live previews
+- Added a draggable launcher that opens the widget manager from supported Bazaar screens
+- Added a Bazaar Orders HUD for checking tracked orders without opening the Bazaar
+- Added detailed and status-count views to the Bazaar Orders HUD
+- Added a remappable keybind for toggling the HUD, bound to `H` by default
+- Added global and per-widget settings for scale, background, placement, size, and display options
+- Added optional Alt-dragging for moving widgets during normal use
+- Added a filled-order count that updates when Bazaar fill messages appear in chat
 
 ### Changed
 
-* Bazaar widgets now share the same look, placement controls, previews, tooltips, and settings
-* Widgets now adjust to the current Minecraft GUI scale and shrink when they would not fit on screen
-* Reworked the layouts and controls for Tracked Orders, Order Value, Full Order Book, Order Book Price Entry, Bookmarks, Order Presets, Daily Bazaar Limit, and Price Difference
-* Bookmark and tracked-order lists now keep their scroll positions when moving between supported screens
-* Bazaar widgets now use associated item stacks for products with unusual or legacy item data
-* BtrBz now requires `owo-lib`
-* Dropped Minecraft 26.2 support (as `owo-lib` is yet to release for 26.2)
-* Reduced repeated widget updates while browsing Bazaar menus
-* Moved order-book actions directly into the Full Order Book and Price Entry widgets
+- Bazaar widgets now share the same look, placement controls, previews, tooltips, and settings
+- Widgets now adjust to the current Minecraft GUI scale and shrink when they would not fit on screen
+- Reworked the layouts and controls for Tracked Orders, Order Value, Full Order Book, Order Book Price Entry, Bookmarks, Order Presets, Daily Bazaar Limit, and Price Difference
+- Bookmark and tracked-order lists now keep their scroll positions when moving between supported screens
+- Bazaar widgets now use associated item stacks for products with unusual or legacy item data
+- BtrBz now requires `owo-lib`
+- Dropped Minecraft 26.2 support (as `owo-lib` is yet to release for 26.2)
+- Reduced repeated widget updates while browsing Bazaar menus
+- Moved order-book actions directly into the Full Order Book and Price Entry widgets
 
 ### Fixed
 
-* Fixed widget state being lost or left behind during Bazaar screen transitions
-* (somewhat) Fixed widget placement and sizing at non-default GUI scales
-* Fixed several drag, visibility, and tooltip edge cases
-* Fixed tracked-order fill counts and status display
+- Fixed widget state being lost or left behind during Bazaar screen transitions
+- (somewhat) Fixed widget placement and sizing at non-default GUI scales
+- Fixed several drag, visibility, and tooltip edge cases
+- Fixed tracked-order fill counts and status display
 
 ### Internal
 
-* Replaced the old widget and module implementations with a retained widget runtime built on `owo-lib`
-* Moved all Bazaar widgets to a shared registry, host, configuration, preview, and lifecycle system
-* Added memoized widget data sources with dependency-based cache invalidation
-* Added shared retained components for lists, rows, scrolling, tooltips, placement, and widget frames
-* Updated Bazaar item-stack resolution to use compatible NEU overlays with converted legacy NEU data as a fallback
-* Expanded tests for widget configuration, placement, scaling, caching, previews, sessions, interactions, retained components, and Bazaar item conversion
-* Added automated Java formatting and code-style checks
+- Replaced the old widget and module implementations with a retained widget runtime built on `owo-lib`
+- Moved all Bazaar widgets to a shared registry, host, configuration, preview, and lifecycle system
+- Added memoized widget data sources with dependency-based cache invalidation
+- Added shared retained components for lists, rows, scrolling, tooltips, placement, and widget frames
+- Updated Bazaar item-stack resolution to use compatible NEU overlays with converted legacy NEU data as a fallback
+- Expanded tests for widget configuration, placement, scaling, caching, previews, sessions, interactions, retained components, and Bazaar item conversion
+- Added automated Java formatting and code-style checks
 
 ### Breaking
 
 > [!CAUTION]
 > This release replaces the old widget configuration. Saved widget data is not migrated.
 >
-> * Existing bookmarks and order presets will be cleared and must be added again
-> * Widget positions and settings will return to their defaults
-> * Some widgets may need to be repositioned, especially when using a non-default GUI scale
-> * `owo-lib` is now required
-> * Minecraft 26.2 is no longer supported
+> - Existing bookmarks and order presets will be cleared and must be added again
+> - Widget positions and settings will return to their defaults
+> - Some widgets may need to be repositioned, especially when using a non-default GUI scale
+> - `owo-lib` is now required
+> - Minecraft 26.2 is no longer supported
 
 ## [0.10.3-alpha] - 2026-08-12
 
