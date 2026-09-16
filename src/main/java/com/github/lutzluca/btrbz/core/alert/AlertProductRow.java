@@ -58,6 +58,25 @@ final class AlertProductRow extends FlowLayout {
     }
 
     @Override
+    public boolean isInBoundingBox(double x, double y) {
+        if (!super.isInBoundingBox(x, y)) {
+            return false;
+        }
+        for (var parent = this.parent(); parent != null; parent = parent.parent()) {
+            if (parent.allowOverflow()) {
+                continue;
+            }
+            var padding = parent.padding().get();
+            if (x < parent.x() + padding.left() || x >= parent.x() + parent.width() - padding.right()
+                || y < parent.y() + padding.top()
+                || y >= parent.y() + parent.height() - padding.bottom()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         if (this.select != null) {
             boolean highlighted = this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this;

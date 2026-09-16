@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -41,10 +42,12 @@ public class AlertManager {
 
     private static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
     private static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
+    private static final int REACHED_LIMIT = 10;
 
     private final BazaarData bazaarData;
     private final Supplier<AlertConfig> config;
     private final Runnable save;
+    private final Consumer<ReachedAlert> notifyReached;
     private final CacheToken changes = CacheToken.named("alerts");
 
     public AlertManager(BazaarData bazaarData) {
@@ -52,11 +55,36 @@ public class AlertManager {
     }
 
     public AlertManager(BazaarData bazaarData, Supplier<AlertConfig> config, Runnable save) {
+        this(bazaarData, config, save, reached -> Notifier.notifyPriceReached(
+            reached.alert(), Optional.of(reached.price()), bazaarData));
+    }
+
+    AlertManager(
+        BazaarData bazaarData,
+        Supplier<AlertConfig> config,
+        Runnable save,
+        Consumer<ReachedAlert> notifyReached
+    ) {
         this.bazaarData = Objects.requireNonNull(bazaarData, "bazaarData cannot be null");
         this.config = Objects.requireNonNull(config, "config supplier cannot be null");
         this.save = Objects.requireNonNull(save, "save callback cannot be null");
+        this.notifyReached = Objects.requireNonNull(notifyReached, "reached notifier cannot be null");
 
-        if (this.config().alerts.removeIf(Objects::isNull)) {
+        var cfg = this.config();
+        boolean cleaned = cfg.alerts.removeIf(Objects::isNull);
+        if (cfg.reachedAlerts == null) {
+            cfg.reachedAlerts = new ArrayList<>();
+            cleaned = true;
+        }
+        cleaned |= cfg.reachedAlerts.removeIf(entry -> entry == null || entry.alert() == null
+            || entry.reachedAt() < 0
+            || !Double.isFinite(entry.price())
+            || entry.price() <= 0);
+        if (cfg.reachedAlerts.size() > REACHED_LIMIT) {
+            cfg.reachedAlerts.subList(REACHED_LIMIT, cfg.reachedAlerts.size()).clear();
+            cleaned = true;
+        }
+        if (cleaned) {
             this.changes.invalidate("invalid alerts removed");
             Try.run(this.save::run).onFailure(err -> log.warn("Failed to persist cleaned alert configuration", err));
         }
@@ -64,6 +92,10 @@ public class AlertManager {
 
     public List<Alert> alerts() {
         return List.copyOf(this.config().alerts);
+    }
+
+    public List<ReachedAlert> reachedAlerts() {
+        return List.copyOf(this.config().reachedAlerts);
     }
 
     public CacheToken changes() {
@@ -84,6 +116,7 @@ public class AlertManager {
         }
 
         boolean changed = false;
+        var newlyReached = new ArrayList<ReachedAlert>();
         var it = cfg.alerts.iterator();
 
         while (it.hasNext()) {
@@ -101,8 +134,13 @@ public class AlertManager {
 
             if (reached) {
                 it.remove();
+                var entry = new ReachedAlert(curr, System.currentTimeMillis(), price.orElseThrow());
+                cfg.reachedAlerts.addFirst(entry);
+                if (cfg.reachedAlerts.size() > REACHED_LIMIT) {
+                    cfg.reachedAlerts.removeLast();
+                }
                 changed = true;
-                Notifier.notifyPriceReached(curr, price, this.bazaarData);
+                newlyReached.add(entry);
                 continue;
             }
 
@@ -124,9 +162,10 @@ public class AlertManager {
         }
 
         if (changed) {
-            this.save.run();
             this.changes.invalidate("alerts updated from market data");
+            Try.run(this.save::run).onFailure(err -> log.warn("Failed to persist updated alerts", err));
         }
+        newlyReached.forEach(this.notifyReached);
     }
 
     public Try<Alert> saveAlert(@Nullable UUID id, AlertDefinition definition) {
@@ -198,6 +237,26 @@ public class AlertManager {
         this.changes.invalidate("alert removed");
         return true;
     }
+
+    public boolean removeReachedAlert(UUID id) {
+        var config = this.config();
+        var current = config.reachedAlerts;
+        var updated = new ArrayList<>(current);
+        if (!updated.removeIf(entry -> entry.alert().id.equals(id))) {
+            return false;
+        }
+        config.reachedAlerts = updated;
+        try {
+            this.save.run();
+        } catch (RuntimeException err) {
+            config.reachedAlerts = current;
+            throw err;
+        }
+        this.changes.invalidate("reached alert removed");
+        return true;
+    }
+
+    public record ReachedAlert(Alert alert, long reachedAt, double price) {}
 
     private AlertConfig config() {
         return Objects.requireNonNull(this.config.get(), "alert config cannot be null");
@@ -350,6 +409,7 @@ public class AlertManager {
         public boolean enabled = true;
         public boolean soundOnAlert = true;
         public List<Alert> alerts = new ArrayList<>();
+        public List<ReachedAlert> reachedAlerts = new ArrayList<>();
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option

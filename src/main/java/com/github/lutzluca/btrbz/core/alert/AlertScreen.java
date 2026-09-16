@@ -67,7 +67,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private final AlertEditorState editor = new AlertEditorState();
     private final List<ActiveQuote> activeQuotes = new ArrayList<>();
 
-    private boolean activeTab;
+    private Tab tab = Tab.Editor;
     private int contentWidth;
     private int productWidth;
     private int settingsWidth;
@@ -95,6 +95,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private LabelComponent feedback;
     private ButtonComponent editorTabButton;
     private ButtonComponent activeTabButton;
+    private ButtonComponent reachedTabButton;
     private @Nullable ButtonComponent buyButton;
     private @Nullable ButtonComponent sellButton;
     private @Nullable ButtonComponent belowButton;
@@ -119,14 +120,14 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected void build(FlowLayout root) {
-        int width = Math.max(200, Math.min(700, this.width - 24));
-        int height = Math.max(140, Math.min(320, this.height - 24));
+        int width = Math.max(200, Math.min(600, this.width - 24));
+        int height = Math.max(140, Math.min(this.editor.editingId() == null ? 284 : 313, this.height - 24));
         this.contentWidth = width - 24;
         boolean columns = width >= 450;
         this.productWidth = columns ? (this.contentWidth - 10) * 2 / 5 : this.contentWidth;
         this.settingsWidth = columns ? this.contentWidth - this.productWidth - 10 : this.contentWidth;
-        this.resultHeight = Math.max(60, Math.min(140, height - 180));
-        this.editorCardHeight = Math.max(171, this.resultHeight + 72);
+        this.resultHeight = Math.max(48, Math.min(110, height - 184));
+        this.editorCardHeight = this.editor.editingId() == null ? 182 : 211;
 
         root.surface(Surface.flat(0x70000000));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
@@ -140,11 +141,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         var close = button("×", this::onClose);
         close.horizontalSizing(Sizing.fixed(22));
         panel.child(row(title, BazaarUi.spacer(), this.status, close));
-        this.editorTabButton = button("Editor", () -> this.switchTab(false));
-        this.activeTabButton = button("Active alerts", () -> this.switchTab(true));
-        this.editorTabButton.horizontalSizing(Sizing.expand(50));
-        this.activeTabButton.horizontalSizing(Sizing.expand(50));
-        panel.child(row(this.editorTabButton, this.activeTabButton));
+        this.editorTabButton = button("Editor", () -> this.switchTab(Tab.Editor));
+        this.activeTabButton = button("Active alerts", () -> this.switchTab(Tab.Active));
+        this.reachedTabButton = button("Reached", () -> this.switchTab(Tab.Reached));
+        this.editorTabButton.horizontalSizing(Sizing.expand(34));
+        this.activeTabButton.horizontalSizing(Sizing.expand(33));
+        this.reachedTabButton.horizontalSizing(Sizing.expand(33));
+        panel.child(row(this.editorTabButton, this.activeTabButton, this.reachedTabButton));
 
         this.content = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         this.content.gap(8);
@@ -172,19 +175,20 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.sellQuote = null;
         this.previewValue = null;
         this.saveButton = null;
-        if (this.activeTab) {
+        if (this.tab != Tab.Editor) {
             var create = button("New alert", () -> {
                 this.editor.reset();
                 this.message = "";
-                this.activeTab = false;
+                this.tab = Tab.Editor;
                 this.rebuild();
                 this.focusSearch();
             });
-            this.content.child(row(text("Your saved alerts", BazaarStyles.SECONDARY_TEXT), BazaarUi.spacer(), create));
+            this.content.child(row(text(this.tab == Tab.Reached ? "Latest 10 reached alerts" : "Your saved alerts",
+                BazaarStyles.SECONDARY_TEXT), BazaarUi.spacer(), create));
             this.alertRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
             this.alertRows.gap(6);
             this.content.child(this.alertRows);
-            this.refreshActiveRows();
+            this.refreshAlertRows();
         } else {
             var workspace = columns
                 ? UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content())
@@ -248,7 +252,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         if (this.editor.editingId() != null) {
             footer.child(button("Cancel edit", () -> {
                 this.editor.reset();
-                this.switchTab(true);
+                this.switchTab(Tab.Active);
             }));
         }
         return settings;
@@ -444,24 +448,28 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
         var alert = result.get();
         this.editor.reset();
-        this.activeTab = true;
+        this.tab = Tab.Active;
         this.message = "Saved at " + coins(alert.price) + " · " + captureTime(alert.createdAt);
         this.messageColor = BazaarStyles.SECONDARY_TEXT;
         this.rebuild();
     }
 
-    private void refreshActiveRows() {
+    private void refreshAlertRows() {
         if (this.alertRows == null) {
             return;
         }
         double offset = this.scrollOffset();
         this.alertRows.clearChildren();
         this.activeQuotes.clear();
-        var alerts = this.manager.alerts();
+        boolean history = this.tab == Tab.Reached;
+        var reached = this.manager.reachedAlerts();
+        var alerts = history ? reached.stream().map(AlertManager.ReachedAlert::alert).toList() : this.manager.alerts();
         if (alerts.isEmpty()) {
-            this.alertRows.child(text("No active alerts yet.", BazaarStyles.MUTED_TEXT));
+            this.alertRows
+                .child(text(history ? "No reached alerts yet." : "No active alerts yet.", BazaarStyles.MUTED_TEXT));
         }
-        for (var alert : alerts) {
+        for (int index = 0; index < alerts.size(); index++) {
+            var alert = alerts.get(index);
             var product = this.data.refreshIndexedProduct(alert.product);
             var card = row();
             card.surface(WidgetSurfaces.roundedPanel(CARD, 4));
@@ -474,16 +482,28 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             condition.text(priceCondition(alert.type, alert.price));
             details.child(condition);
             var current = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(detailsWidth);
-            this.activeQuotes
-                .add(
+            if (history) {
+                var entry = reached.get(index);
+                current.text(
+                    Component.literal("Reached at " + coins(entry.price()) + " · " + captureTime(entry.reachedAt())));
+            } else {
+                this.activeQuotes.add(
                     new ActiveQuote(ProductIdentity.fromIndex(product), alert.type.source(), current, alert.createdAt));
+            }
             details.child(current);
             var actions = UIContainers.horizontalFlow(Sizing.fixed(76), Sizing.content());
             actions.gap(6);
             actions.verticalAlignment(VerticalAlignment.CENTER);
-            actions.child(button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fixed(48)));
+            actions.child(button(history ? "Open" : "Edit", () -> {
+                if (history) {
+                    GameUtils.setScreen(null);
+                    GameUtils.runCommand("bz " + product.strippedName());
+                } else {
+                    this.edit(alert.id);
+                }
+            }).horizontalSizing(Sizing.fixed(48)));
             actions.child(new IconButton(Assets.TRASHCAN, "Delete alert for " + product.strippedName(),
-                () -> this.delete(alert.id)));
+                () -> this.delete(alert.id, history)));
             card.child(details);
             card.child(actions);
             this.alertRows.child(card);
@@ -505,31 +525,31 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         var alert = this.manager.alerts().stream().filter(candidate -> candidate.id.equals(id)).findFirst();
         if (alert.isEmpty()) {
             this.setMessage("That alert is no longer active.", BazaarStyles.SECONDARY_TEXT);
-            this.refreshActiveRows();
+            this.refreshAlertRows();
             return;
         }
         var selected = alert.get();
         this.editor.edit(id, this.data.refreshIndexedProduct(selected.product), selected.type, selected.price);
         this.message = "";
-        this.activeTab = false;
+        this.tab = Tab.Editor;
         this.rebuild();
     }
 
-    private void delete(UUID id) {
-        var result = Try.of(() -> this.manager.removeAlert(id));
+    private void delete(UUID id, boolean history) {
+        var result = Try.of(() -> history ? this.manager.removeReachedAlert(id) : this.manager.removeAlert(id));
         this.setMessage(result.isFailure()
             ? errorMessage(result.getCause())
-            : result.get() ? "Alert deleted." : "That alert is no longer active.",
+            : result.get() ? "Alert deleted." : "That alert no longer exists.",
             result.isFailure() ? BazaarStyles.STATUS_UNDERCUT : BazaarStyles.SECONDARY_TEXT);
-        this.refreshActiveRows();
+        this.refreshAlertRows();
         this.refreshStatus();
     }
 
-    private void switchTab(boolean active) {
-        if (this.activeTab == active) {
+    private void switchTab(Tab tab) {
+        if (this.tab == tab) {
             return;
         }
-        this.activeTab = active;
+        this.tab = tab;
         this.message = "";
         this.rebuild();
     }
@@ -538,9 +558,12 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         String state = !this.manager.enabled()
             ? "Alerts paused" : !this.data.hasMarketData() ? "Waiting for prices" : "";
         this.status.text(Component.literal(state));
-        this.activeTabButton.setMessage(Component.literal("Active alerts (" + this.manager.alerts().size() + ")"));
-        this.editorTabButton.renderer(buttonRenderer(false, !this.activeTab));
-        this.activeTabButton.renderer(buttonRenderer(false, this.activeTab));
+        this.activeTabButton.setMessage(Component.literal((this.contentWidth < 426 ? "Active" : "Active alerts")
+            + " (" + this.manager.alerts().size() + ")"));
+        this.reachedTabButton.setMessage(Component.literal("Reached (" + this.manager.reachedAlerts().size() + ")"));
+        this.editorTabButton.renderer(buttonRenderer(false, this.tab == Tab.Editor));
+        this.activeTabButton.renderer(buttonRenderer(false, this.tab == Tab.Active));
+        this.reachedTabButton.renderer(buttonRenderer(false, this.tab == Tab.Reached));
     }
 
     private void captureRevisions() {
@@ -563,13 +586,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.captureRevisions();
         if (indexChanged && this.editor.product() != null) {
             this.editor.refreshProduct(this.data.refreshIndexedProduct(this.editor.product()));
-            if (!this.activeTab && !this.editor.searching()) {
+            if (this.tab == Tab.Editor && !this.editor.searching()) {
                 this.rebuildProductPane();
             }
         }
-        if (this.activeTab) {
+        if (this.tab != Tab.Editor) {
             if (alertsChanged || indexChanged) {
-                this.refreshActiveRows();
+                this.refreshAlertRows();
             } else if (marketChanged) {
                 this.refreshActiveQuotes();
             }
@@ -585,7 +608,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (!this.activeTab && this.editor.searching()) {
+        if (this.tab == Tab.Editor && this.editor.searching()) {
             if (event.isEscape() && this.editor.product() != null) {
                 this.cancelSearch();
                 return true;
@@ -742,6 +765,12 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private record ActiveQuote(ProductIdentity product, PriceSource source, LabelComponent label, long capturedAt) {}
+
+    private enum Tab {
+        Editor,
+        Active,
+        Reached
+    }
 
     private static final class IconButton extends ButtonComponent {
         private final Component description;
