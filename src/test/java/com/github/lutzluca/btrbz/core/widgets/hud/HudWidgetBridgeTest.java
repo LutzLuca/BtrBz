@@ -9,14 +9,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DisplayName("HUD widget visibility")
 class HudWidgetBridgeTest {
     @Test
-    @DisplayName("suppresses widgets while the F3 debug screen is visible")
-    void suppressesForDebugScreen() {
-        assertTrue(HudWidgetBridge.shouldSuppressHud(false, false, true, false));
+    @DisplayName("suppresses widgets while the player list is visible")
+    void suppressesForPlayerList() {
+        assertTrue(HudWidgetBridge.shouldSuppressHud(true, false, false));
+    }
+
+    @Test
+    @DisplayName("suppresses widgets while the F3 overlay is visible")
+    void suppressesForDebugOverlay() {
+        assertTrue(HudWidgetBridge.shouldSuppressHud(false, true, false));
+    }
+
+    @Test
+    @DisplayName("suppresses widgets while the level is missing")
+    void suppressesForMissingLevel() {
+        assertTrue(HudWidgetBridge.shouldSuppressHud(false, false, true));
     }
 
     @Test
     @DisplayName("allows widgets during ordinary gameplay")
     void allowsOrdinaryGameplay() {
-        assertFalse(HudWidgetBridge.shouldSuppressHud(false, false, false, false));
+        assertFalse(HudWidgetBridge.shouldSuppressHud(false, false, false));
     }
 }
