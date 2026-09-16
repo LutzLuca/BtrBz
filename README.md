@@ -147,7 +147,7 @@ This project uses icons from [Flaticon](https://www.flaticon.com/):
   hqrloveq - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/yes" title="yes icons">Yes icons created by
   hqrloveq - Flaticon</a>
-- <a href="https://www.flaticon.com/free-icons/delete" title="delete icons">Delete icons created by
-  feen - Flaticon</a>
+<a href="https://www.flaticon.com/free-icons/trash" title="trash icons">Trash icons created by
+  Magnific - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/question" title="question icons">Question icons created
   by Magnific - Flaticon</a>
