@@ -79,6 +79,19 @@ public class BazaarData {
         return this.conversionIndexService.allProducts();
     }
 
+    /** Returns ranked index matches which currently expose at least one usable market quote. */
+    public List<IndexedProduct> searchProducts(String query, int limit) {
+        if (limit <= 0 || !this.hasMarketData()) {
+            return List.of();
+        }
+
+        return this.conversionIndexService.searchProducts(query)
+            .stream()
+            .filter(product -> hasUsableQuote(this.getMarketPrices(ProductIdentity.fromIndex(product))))
+            .limit(limit)
+            .toList();
+    }
+
     public Optional<ItemStack> productStack(ProductIdentity identity) {
         return identity.bazaarProductId().flatMap(this.conversionIndexService::productStack);
     }
@@ -183,6 +196,15 @@ public class BazaarData {
 
     public MarketPrices getMarketPrices(ProductIdentity product) {
         return this.currentSnapshot().getMarketPrices(product);
+    }
+
+    private static boolean hasUsableQuote(MarketPrices prices) {
+        return prices.highestBuyOrderPrice().filter(BazaarData::isUsableQuote).isPresent()
+            || prices.lowestSellOfferPrice().filter(BazaarData::isUsableQuote).isPresent();
+    }
+
+    private static boolean isUsableQuote(double price) {
+        return Double.isFinite(price) && price > 0;
     }
 
     public Optional<Double> productSpread(ProductIdentity product) {

@@ -1,10 +1,13 @@
 package com.github.lutzluca.btrbz.core;
 
-import com.github.lutzluca.btrbz.core.commands.alert.AlertCommandParser.ResolvedAlertArgs;
-import com.github.lutzluca.btrbz.core.commands.alert.PriceExpression.AlertType;
-import com.github.lutzluca.btrbz.core.config.ConfigStore;
+import com.github.lutzluca.btrbz.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
+import com.github.lutzluca.btrbz.core.alert.AlertType;
+import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
+import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
+import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
@@ -12,7 +15,6 @@ import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GsonUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.Utils;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -29,10 +31,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
+import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class AlertManager {
@@ -41,17 +43,42 @@ public class AlertManager {
     private static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
 
     private final BazaarData bazaarData;
+    private final Supplier<AlertConfig> config;
+    private final Runnable save;
+    private final CacheToken changes = CacheToken.named("alerts");
 
     public AlertManager(BazaarData bazaarData) {
-        this.bazaarData = bazaarData;
-        ConfigStore.get().updateIfChanged(cfg -> cfg.alert.alerts.removeIf(Objects::isNull));
+        this(bazaarData, () -> ConfigStore.get().config().alert, ConfigStore.get()::save);
+    }
+
+    public AlertManager(BazaarData bazaarData, Supplier<AlertConfig> config, Runnable save) {
+        this.bazaarData = Objects.requireNonNull(bazaarData, "bazaarData cannot be null");
+        this.config = Objects.requireNonNull(config, "config supplier cannot be null");
+        this.save = Objects.requireNonNull(save, "save callback cannot be null");
+
+        if (this.config().alerts.removeIf(Objects::isNull)) {
+            this.changes.invalidate("invalid alerts removed");
+            Try.run(this.save::run).onFailure(err -> log.warn("Failed to persist cleaned alert configuration", err));
+        }
+    }
+
+    public List<Alert> alerts() {
+        return List.copyOf(this.config().alerts);
+    }
+
+    public CacheToken changes() {
+        return this.changes;
+    }
+
+    public boolean enabled() {
+        return this.config().enabled;
     }
 
     public void onBazaarUpdate(MarketSnapshot snapshot) {
         if (!snapshot.available()) {
             return;
         }
-        var cfg = ConfigStore.get().config().alert;
+        var cfg = this.config();
         if (!cfg.enabled) {
             return;
         }
@@ -70,10 +97,7 @@ public class AlertManager {
             }
 
             var price = priceResult.get();
-            var reached = price.map(marketPrice -> switch (curr.type) {
-                case SellOffer, InstaSell -> marketPrice >= curr.price;
-                case BuyOrder, InstaBuy -> marketPrice <= curr.price;
-            }).orElse(false);
+            var reached = price.map(marketPrice -> curr.type.isReached(marketPrice, curr.price)).orElse(false);
 
             if (reached) {
                 it.remove();
@@ -100,57 +124,83 @@ public class AlertManager {
         }
 
         if (changed) {
-            ConfigStore.get().save();
+            this.save.run();
+            this.changes.invalidate("alerts updated from market data");
         }
     }
 
-    public boolean addAlert(ResolvedAlertArgs args) {
-        return ConfigStore.get().updateIfChanged(cfg -> {
-            var alerts = cfg.alert.alerts;
-            if (alerts.stream().anyMatch(alert -> alert.matches(args))) {
-                return false;
+    public Try<Alert> saveAlert(@Nullable UUID id, AlertDefinition definition) {
+        if (definition == null) {
+            return Try.failure(new IllegalArgumentException("Alert definition is required"));
+        }
+
+        return definition.validate().flatMap(valid -> Try.of(() -> {
+            var config = this.config();
+            var current = config.alerts;
+            int editIndex = -1;
+            if (id != null) {
+                for (int index = 0; index < current.size(); index++) {
+                    if (current.get(index).id.equals(id)) {
+                        editIndex = index;
+                        break;
+                    }
+                }
+                if (editIndex < 0) {
+                    throw new IllegalArgumentException("Alert " + id + " no longer exists");
+                }
             }
 
-            alerts.add(new Alert(args));
-            return true;
-        });
+            for (var alert : current) {
+                if ((id == null || !alert.id.equals(id)) && alert.matches(valid)) {
+                    throw new IllegalArgumentException("An identical alert is already active");
+                }
+            }
+
+            var saved = new Alert(id == null ? UUID.randomUUID() : id, valid, -1L);
+            var updated = new ArrayList<>(current);
+            if (editIndex < 0) {
+                updated.add(saved);
+            } else {
+                updated.set(editIndex, saved);
+            }
+
+            config.alerts = updated;
+            try {
+                this.save.run();
+            } catch (RuntimeException err) {
+                config.alerts = current;
+                throw err;
+            }
+            this.changes.invalidate(id == null ? "alert created" : "alert edited");
+            return saved;
+        }));
     }
 
-    public void removeAlert(UUID id) {
-        var removed = Utils.removeIfAndReturn(
-            ConfigStore.get().config().alert.alerts,
-            alert -> alert.id.equals(id));
-
-        if (removed.isEmpty()) {
-            Notifier.notifyPlayer(Notifier
-                .prefix()
-                .append(Component
-                    .literal("Failed to find an alert associated with " + id + " - it may have already been removed")
-                    .withStyle(ChatFormatting.GRAY)));
-            return;
-        }
-        ConfigStore.get().save();
-        if (removed.size() > 1) {
-            Notifier.notifyPlayer(Notifier
-                .prefix()
-                .append(Component
-                    .literal("Wait, what? Multiple alerts with the same ID? ")
-                    .withStyle(ChatFormatting.GRAY))
-                .append(Component
-                    .literal(
-                        "You're either 1 in 5.3 undecillion (that's a 1 with 36 zeros) lucky, "
-                            + "or you've been messin' with the config. ")
-                    .withStyle(ChatFormatting.GOLD).withStyle(ChatFormatting.ITALIC))
-                .append(Component
-                    .literal("Either way, they're all history now!")
-                    .withStyle(ChatFormatting.GRAY)));
-            log.warn("Multiple alerts found with identical UUID: {}", id);
+    public boolean removeAlert(UUID id) {
+        if (id == null) {
+            return false;
         }
 
-        Notifier.notifyPlayer(Notifier
-            .prefix()
-            .append(Component.literal("Alert removed successfully!").withStyle(ChatFormatting.GRAY)));
+        var config = this.config();
+        var current = config.alerts;
+        var updated = new ArrayList<>(current);
+        if (!updated.removeIf(alert -> alert.id.equals(id))) {
+            return false;
+        }
 
+        config.alerts = updated;
+        try {
+            this.save.run();
+        } catch (RuntimeException err) {
+            config.alerts = current;
+            throw err;
+        }
+        this.changes.invalidate("alert removed");
+        return true;
+    }
+
+    private AlertConfig config() {
+        return Objects.requireNonNull(this.config.get(), "alert config cannot be null");
     }
 
     public static class Alert {
@@ -162,14 +212,6 @@ public class AlertManager {
         public final double price;
 
         long remindedAfter = -1;
-
-        private Alert(ResolvedAlertArgs args) {
-            this.id = UUID.randomUUID();
-            this.createdAt = args.timestamp();
-            this.product = args.product();
-            this.type = args.type();
-            this.price = args.price();
-        }
 
         private Alert(
             UUID id,
@@ -187,6 +229,16 @@ public class AlertManager {
             this.remindedAfter = remindedAfter;
         }
 
+        private Alert(UUID id, AlertDefinition definition, long remindedAfter) {
+            this(
+                id,
+                definition.timestamp(),
+                definition.product(),
+                definition.type(),
+                definition.price(),
+                remindedAfter);
+        }
+
         public String productName() {
             return this.product.strippedName();
         }
@@ -202,32 +254,14 @@ public class AlertManager {
                     new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
             }
 
-            var prices = snapshot.getMarketPrices(identity);
-            var price = switch (this.type) {
-                case BuyOrder, InstaSell -> prices.highestBuyOrderPrice();
-                case SellOffer, InstaBuy -> prices.lowestSellOfferPrice();
-            };
-            return Try.success(price);
+            return Try.success(this.type.source().price(snapshot.getMarketPrices(identity)));
         }
 
-        public MutableComponent format(BazaarData bazaarData) {
-            var refreshedProduct = bazaarData.refreshIndexedProduct(this.product);
-            var productName = Component.literal(refreshedProduct.formattedName());
-            return Component
-                .empty()
-                .append(productName)
-                .append(Component.literal(" @ ").withStyle(ChatFormatting.GRAY))
-                .append(Component
-                    .literal(Utils.formatDecimal(this.price, 1, true) + "coins")
-                    .withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" (" + this.type.format() + ")").withStyle(ChatFormatting.DARK_GRAY));
-        }
-
-        public boolean matches(ResolvedAlertArgs args) {
+        public boolean matches(AlertDefinition definition) {
             // @formatter:off
-            return this.productId().equals(args.productId())
-                && this.type == args.type()
-                && Double.compare(this.price, args.price()) == 0;
+            return this.productId().equals(definition.product().productId())
+                && this.type.equals(definition.type())
+                && Double.compare(this.price, definition.price()) == 0;
             // @formatter:on
         }
 
@@ -265,13 +299,37 @@ public class AlertManager {
                     return null;
                 }
 
-                return new Alert(
-                    UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
-                    GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
-                    product,
-                    ctx.deserialize(GsonUtils.required(obj, "type", "Alert"), AlertType.class),
-                    GsonUtils.required(obj, "price", "Alert").getAsDouble(),
-                    GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
+                try {
+                    var typeJson = GsonUtils.required(obj, "type", "Alert");
+                    AlertType type;
+                    if (typeJson.isJsonPrimitive() && typeJson.getAsJsonPrimitive().isString()) {
+                        type = switch (typeJson.getAsString()) {
+                            case "BuyOrder" -> new AlertType(PriceSource.Sell, Direction.Below);
+                            case "SellOffer" -> new AlertType(PriceSource.Buy, Direction.Above);
+                            case "InstaBuy" -> new AlertType(PriceSource.Buy, Direction.Below);
+                            case "InstaSell" -> new AlertType(PriceSource.Sell, Direction.Above);
+                            default -> throw new JsonParseException("Unknown alert type: " + typeJson.getAsString());
+                        };
+                    } else {
+                        type = ctx.deserialize(typeJson, AlertType.class);
+                    }
+                    var definition = new AlertDefinition(
+                        GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
+                        product,
+                        type,
+                        GsonUtils.required(obj, "price", "Alert").getAsDouble()).validate();
+                    if (definition.isFailure()) {
+                        log.warn("Skipping invalid alert entry", definition.getCause());
+                        return null;
+                    }
+                    return new Alert(
+                        UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
+                        definition.get(),
+                        GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
+                } catch (RuntimeException err) {
+                    log.warn("Skipping invalid alert entry", err);
+                    return null;
+                }
             }
 
             private static Optional<IndexedProduct> product(JsonObject obj, JsonDeserializationContext ctx) {
@@ -324,19 +382,7 @@ public class AlertManager {
                 .name(Component.literal("Price Alerts"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text("Notify you when a Bazaar price reaches a configured target."),
-                    ConfigScreen.example(Component
-                        .empty()
-                        .append(ConfigScreen.command(
-                            "/btrbz alert add ENCHANTMENT_ULTIMATE_FLASH_1 buy-order 4m"))
-                        .append(Component
-                            .literal(" notifies when the best buy-order price for ")
-                            .withStyle(ChatFormatting.GRAY))
-                        .append(Component
-                            .literal("Flash I")
-                            .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD))
-                        .append(Component
-                            .literal(" reaches 4M coins or less.")
-                            .withStyle(ChatFormatting.GRAY)))),
+                    ConfigScreen.note("Open /btrbz alert to create, edit, or remove alerts.")),
                     ConfigImages.PriceAlert))
                 .options(rootGroup.build())
                 .collapsed(true)
