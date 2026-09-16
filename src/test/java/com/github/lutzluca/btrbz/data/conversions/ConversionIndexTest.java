@@ -60,6 +60,41 @@ class ConversionIndexTest {
             assertTrue(index.uniqueProductByName("Duplicate").isEmpty());
             assertTrue(index.hasAmbiguousName("duplicate"));
         }
+
+        @Test
+        void searchesNamesWithTyposAndKeepsDuplicateNamesDeterministic() {
+            var products = new LinkedHashMap<String, ConversionProductEntry>();
+            products.put("Z_DIAMOND", new ConversionProductEntry(
+                "Enchanted Diamond", new ProductNameSource.Derived()));
+            products.put("A_DIAMOND", new ConversionProductEntry(
+                "Enchanted Diamond", new ProductNameSource.Derived()));
+            products.put("OTHER", new ConversionProductEntry(
+                "Enchanted Emerald", new ProductNameSource.Derived()));
+            var index = new ConversionIndex(ConversionIndex.SCHEMA_VERSION, "now", null, products);
+
+            assertEquals(
+                java.util.List.of("A_DIAMOND", "Z_DIAMOND"),
+                index.searchProducts("enchanted dimond").stream().map(product -> product.productId()).toList());
+            assertEquals(
+                java.util.List.of("A_DIAMOND", "Z_DIAMOND"),
+                index.searchProducts("enchanted diamnod").stream().map(product -> product.productId()).toList());
+            assertEquals(
+                java.util.List.of("A_DIAMOND", "Z_DIAMOND"),
+                index.searchProducts("enchanted diamond").stream().map(product -> product.productId()).toList());
+        }
+
+        @Test
+        void ranksNamesBeforeTheOptionalExactIdLookup() {
+            var products = new LinkedHashMap<String, ConversionProductEntry>();
+            products.put("COAL", new ConversionProductEntry("Fuel", new ProductNameSource.Derived()));
+            products.put("OTHER", new ConversionProductEntry("Coal", new ProductNameSource.Derived()));
+            var index = new ConversionIndex(ConversionIndex.SCHEMA_VERSION, "now", null, products);
+
+            assertEquals(
+                java.util.List.of("OTHER", "COAL"),
+                index.searchProducts("coal").stream().map(product -> product.productId()).toList());
+            assertTrue(index.searchProducts(" ").isEmpty());
+        }
     }
 
     @Nested

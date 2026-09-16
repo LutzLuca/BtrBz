@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.commands.alert.AlertCommand;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
@@ -16,8 +15,8 @@ public class Commands {
     public static void registerAll(
         BazaarData bazaarData,
         WidgetRuntime widgetRuntime,
-        AlertManager alertManager,
         TrackedOrderManager orderManager,
+        Runnable openAlertScreen,
         Runnable openConfigScreen,
         Function<Boolean, String> setEnabled
     ) {
@@ -34,7 +33,7 @@ public class Commands {
             return 1;
         }));
         rootCommand.then(WidgetCommand.build(widgetRuntime));
-        rootCommand.then(AlertCommand.build(bazaarData, alertManager));
+        rootCommand.then(AlertCommand.build(openAlertScreen));
         rootCommand.then(ConversionCommand.build(bazaarData));
         rootCommand.then(TrackedOrderCommand.build(orderManager));
         rootCommand.then(TaxCommand.build());

@@ -1,6 +1,12 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
+import com.github.lutzluca.btrbz.core.alert.AlertType;
+import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
+import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,6 +28,59 @@ class ConfigStoreTest {
     @Nested
     @DisplayName("persistence")
     class Persistence {
+
+        @Test
+        void alertEditsAndDeletionPersistThroughTheManager() {
+            var path = ConfigStoreTest.this.tempDir.resolve("alert-editor.json");
+            var store = new ConfigStore(path);
+            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save);
+            var product = new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond");
+            var created = manager.saveAlert(null,
+                new AlertDefinition(1_000L, product, new AlertType(PriceSource.Sell, Direction.Below), 100)).get();
+            manager.saveAlert(created.id,
+                new AlertDefinition(2_000L, product, new AlertType(PriceSource.Sell, Direction.Above), 14.44)).get();
+
+            var reloaded = new ConfigStore(path);
+            Assertions.assertTrue(reloaded.load());
+            var saved = reloaded.config().alert.alerts.getFirst();
+            Assertions.assertEquals(created.id, saved.id);
+            Assertions.assertEquals(2_000L, saved.createdAt);
+            Assertions.assertEquals(new AlertType(PriceSource.Sell, Direction.Above), saved.type);
+            Assertions.assertEquals(14.4, saved.price);
+            Assertions.assertEquals(product, saved.product);
+
+            var restoredManager = new AlertManager(new BazaarData(), () -> reloaded.config().alert, reloaded::save);
+            Assertions.assertTrue(restoredManager.removeAlert(saved.id));
+            var afterDelete = new ConfigStore(path);
+            Assertions.assertTrue(afterDelete.load());
+            Assertions.assertTrue(afterDelete.config().alert.alerts.isEmpty());
+        }
+
+        @Test
+        void invalidAlertTypeDoesNotPreventLoadingOtherSettings() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("invalid-alert-type.json");
+            var json = JsonParser.parseString("""
+                {"tax": 1.5, "alert": {"alerts": []}}
+                """).getAsJsonObject();
+            var gson = new GsonBuilder()
+                .registerTypeAdapter(Alert.class, new Alert.GsonAdapter())
+                .registerTypeAdapter(IndexedProduct.class, new IndexedProduct.GsonAdapter())
+                .create();
+            var valid = gson.toJsonTree(createAlert()).getAsJsonObject();
+            var invalid = valid.deepCopy();
+            invalid.addProperty("type", "unsupported");
+            var alerts = json.getAsJsonObject("alert").getAsJsonArray("alerts");
+            alerts.add(invalid);
+            alerts.add(valid);
+            Files.writeString(path, json.toString());
+
+            var store = new ConfigStore(path);
+            Assertions.assertTrue(store.load());
+            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save);
+            Assertions.assertEquals(1.5, store.config().tax);
+            Assertions.assertEquals(1, manager.alerts().size());
+            Assertions.assertEquals(123.4, manager.alerts().getFirst().price);
+        }
 
         @Test
         void changedUpdateSavesImmediately() {
@@ -117,7 +176,7 @@ class ConfigStoreTest {
                 "productId": "ENCHANTED_DIAMOND",
                 "formattedName": "§aEnchanted Diamond"
               },
-              "type": "SellOffer",
+              "type": {"source": "Sell", "direction": "Above"},
               "price": 123.4,
               "remindedAfter": 1000
             }

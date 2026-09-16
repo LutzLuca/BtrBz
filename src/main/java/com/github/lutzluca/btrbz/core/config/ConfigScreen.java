@@ -19,6 +19,7 @@ import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -29,15 +30,18 @@ public class ConfigScreen {
     private final WidgetRuntime widgetRuntime;
     private final Activation activation;
     private final OrderTooltipProvider tooltipProvider;
+    private final Function<Screen, Screen> alertScreenFactory;
 
     public ConfigScreen(
         WidgetRuntime widgetRuntime,
         Activation activation,
-        OrderTooltipProvider tooltipProvider
+        OrderTooltipProvider tooltipProvider,
+        Function<Screen, Screen> alertScreenFactory
     ) {
         this.widgetRuntime = Objects.requireNonNull(widgetRuntime, "widgetRuntime cannot be null");
         this.activation = Objects.requireNonNull(activation, "activation cannot be null");
         this.tooltipProvider = Objects.requireNonNull(tooltipProvider, "tooltipProvider cannot be null");
+        this.alertScreenFactory = Objects.requireNonNull(alertScreenFactory, "alertScreenFactory cannot be null");
     }
 
     public void open() {
@@ -81,6 +85,13 @@ public class ConfigScreen {
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
             .group(config.orderHighlight.createGroup())
             .group(config.alert.createGroup())
+            .option(ButtonOption.createBuilder()
+                .name(Component.literal("Open Price Alerts"))
+                .text(Component.literal("Open"))
+                .description(
+                    createDescription("Search Bazaar products, create price alerts, and edit or delete active alerts."))
+                .action((screen, _) -> GameUtils.setScreen(this.alertScreenFactory.apply(screen)))
+                .build())
             .build();
 
         var interfaceAndTooltips = ConfigCategory
