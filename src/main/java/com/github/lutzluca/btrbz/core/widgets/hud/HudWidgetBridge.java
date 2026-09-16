@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -18,7 +19,7 @@ public final class HudWidgetBridge {
     private HudWidgetBridge() {}
 
     public static void register(Identifier elementId, WidgetHost host, Consumer<WidgetId> renderedWidget) {
-        HudElementRegistry.addLast(elementId, (context, tickCounter) -> {
+        HudElementRegistry.attachElementAfter(VanillaHudElements.SUBTITLES, elementId, (context, tickCounter) -> {
             render(host, context, tickCounter.getGameTimeDeltaPartialTick(false), renderedWidget);
         });
     }
@@ -31,16 +32,9 @@ public final class HudWidgetBridge {
     ) {
         var client = Minecraft.getInstance();
 
-        //? if <26.2 {
-        boolean hideGui = client.options.hideGui;
-        //?} else {
-        /*boolean hideGui = client.gui.hud.isHidden();
-        *///?}
-
         if (shouldSuppressHud(
-            hideGui,
             client.options.keyPlayerList.isDown(),
-            client.getDebugOverlay().showDebugScreen(),
+            client.debugEntries.isOverlayVisible(),
             client.level == null)) {
             return;
         }
@@ -68,11 +62,10 @@ public final class HudWidgetBridge {
     }
 
     static boolean shouldSuppressHud(
-        boolean hideGui,
         boolean playerListVisible,
-        boolean debugScreenVisible,
+        boolean debugOverlayVisible,
         boolean levelMissing
     ) {
-        return hideGui || playerListVisible || debugScreenVisible || levelMissing;
+        return playerListVisible || debugOverlayVisible || levelMissing;
     }
 }
