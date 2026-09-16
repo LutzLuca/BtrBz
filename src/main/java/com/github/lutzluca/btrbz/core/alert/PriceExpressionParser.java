@@ -91,7 +91,8 @@ public final class PriceExpressionParser {
 
     private static double parseNumber(String token) throws ParseException {
         try {
-            if (token == null || !token.matches("(?:[0-9][0-9,_]*(?:\\.[0-9]*)?|\\.[0-9]+)[kmb]?")) {
+            if (token == null || !token.matches(
+                "(?:(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,3}(?:_[0-9]{3})+)(?:\\.[0-9]*)?|\\.[0-9]+)[kmb]?")) {
                 throw new NumberFormatException();
             }
             var cleaned = token.replace(",", "").replace("_", "");

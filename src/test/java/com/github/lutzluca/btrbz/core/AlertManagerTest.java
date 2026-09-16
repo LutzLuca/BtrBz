@@ -98,6 +98,25 @@ class AlertManagerTest {
     }
 
     @Test
+    void cleanupSurvivesFailedPersistenceAndKeepsValidAlerts() {
+        var config = new AlertConfig();
+        var original = new AlertManager(new BazaarData(), () -> config, () -> {});
+        var valid = original.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
+        config.alerts.add(null);
+        var saves = new int[1];
+
+        var manager = Assertions.assertDoesNotThrow(() -> new AlertManager(new BazaarData(), () -> config, () -> {
+            saves[0]++;
+            throw new IllegalStateException("disk unavailable");
+        }));
+
+        Assertions.assertEquals(1, saves[0]);
+        Assertions.assertEquals(java.util.List.of(valid), manager.alerts());
+        Assertions.assertEquals(java.util.List.of(valid), config.alerts);
+        Assertions.assertEquals(1, manager.changes().revision());
+    }
+
+    @Test
     void generatedIdsAreIndependent() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {});
