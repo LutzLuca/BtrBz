@@ -72,6 +72,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private int productWidth;
     private int settingsWidth;
     private int resultHeight;
+    private int editorCardHeight;
     private String message = "";
     private int messageColor = BazaarStyles.SECONDARY_TEXT;
     private List<IndexedProduct> matches = List.of();
@@ -125,6 +126,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.productWidth = columns ? (this.contentWidth - 10) * 2 / 5 : this.contentWidth;
         this.settingsWidth = columns ? this.contentWidth - this.productWidth - 10 : this.contentWidth;
         this.resultHeight = Math.max(60, Math.min(140, height - 180));
+        this.editorCardHeight = Math.max(171, this.resultHeight + 72);
 
         root.surface(Surface.flat(0x70000000));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
@@ -189,8 +191,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
             workspace.gap(10);
             this.productPane = card(this.productWidth);
+            var settings = this.buildSettings(columns);
+            if (columns) {
+                this.productPane.verticalSizing(Sizing.fixed(this.editorCardHeight));
+                settings.verticalSizing(Sizing.fixed(this.editorCardHeight));
+            }
             workspace.child(this.productPane);
-            workspace.child(this.buildSettings());
+            workspace.child(settings);
             this.content.child(workspace);
             this.rebuildProductPane();
             this.refreshControls();
@@ -198,7 +205,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
-    private FlowLayout buildSettings() {
+    private FlowLayout buildSettings(boolean columns) {
         var settings = card(this.settingsWidth);
         this.buyButton = button(PriceSource.Buy.label(), () -> this.setSource(PriceSource.Buy));
         this.sellButton = button(PriceSource.Sell.label(), () -> this.setSource(PriceSource.Sell));
@@ -206,7 +213,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.belowButton = button("Below", () -> this.setDirection(Direction.Below));
         this.aboveButton = button("Above", () -> this.setDirection(Direction.Above));
         settings.child(segments(this.belowButton, this.aboveButton));
-        var help = UIComponents.texture(Assets.INFO_ICON, 0, 0, 32, 32, 32, 32).blend(true);
+        var help = UIComponents.texture(Assets.INFO_ICON, 0, 0, 64, 64, 64, 64).blend(true);
         help.sizing(Sizing.fixed(12));
         help.tooltip(Component.literal("""
             Expressions
@@ -223,19 +230,23 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.refreshPreview();
         });
         settings.child(this.expressionBox);
+        var footer = UIContainers.verticalFlow(Sizing.fill(100), columns ? Sizing.expand(100) : Sizing.content());
+        footer.verticalAlignment(VerticalAlignment.BOTTOM);
+        footer.gap(7);
+        settings.child(footer);
         var preview = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         preview.padding(Insets.of(7));
         preview.gap(4);
         preview.surface(WidgetSurfaces.roundedPanel(0x60000000, 3));
         this.previewValue = text("", BazaarStyles.PRIMARY_TEXT).maxWidth(this.settingsWidth - 30);
         preview.child(this.previewValue);
-        settings.child(preview);
+        footer.child(preview);
         this.saveButton = button(this.editor.editingId() == null ? "Create alert" : "Save changes", this::save);
         this.saveButton.sizing(Sizing.fill(100), Sizing.fixed(24));
         this.saveButton.renderer(buttonRenderer(true, false));
-        settings.child(this.saveButton);
+        footer.child(this.saveButton);
         if (this.editor.editingId() != null) {
-            settings.child(button("Cancel edit", () -> {
+            footer.child(button("Cancel edit", () -> {
                 this.editor.reset();
                 this.switchTab(true);
             }));
