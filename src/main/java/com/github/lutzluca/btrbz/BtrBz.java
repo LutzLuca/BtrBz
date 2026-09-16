@@ -151,6 +151,11 @@ public class BtrBz implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        BOOKMARKED = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
+
         instance = this;
         var configStore = ConfigStore.get();
         configStore.load();
@@ -160,10 +165,6 @@ public class BtrBz implements ClientModInitializer {
             this::onActivationChanged);
         this.bazaarData = new BazaarData();
         var messageDispatcher = new BazaarMessageDispatcher();
-        BOOKMARKED = Registry.register(
-            BuiltInRegistries.DATA_COMPONENT_TYPE,
-            Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
         this.utcDayTracker = new UtcDayTracker();
         this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
