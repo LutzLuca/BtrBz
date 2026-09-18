@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
@@ -19,6 +18,7 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
@@ -31,7 +31,6 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemLore;
@@ -65,21 +64,27 @@ public final class ProductInformation {
 
     private Component createPriceText(
         String label,
-        @Nullable Double price,
-        int stackCount,
+        @Nullable Double unitPrice,
+        TooltipQuantity quantity,
         boolean isShiftHeld
     ) {
-        var priceText = Component.literal(label).withStyle(ChatFormatting.AQUA);
+        var priceText = Component.literal(label).withStyle(ChatFormatting.YELLOW);
 
-        if (price != null) {
-            var displayPrice = isShiftHeld && stackCount > 1 ? price * stackCount : price;
+        if (unitPrice != null) {
+            var multiplier = quantity.priceMultiplier(isShiftHeld);
+            var displayPrice = unitPrice * multiplier;
             priceText.append(Component
                 .literal(Utils.formatDecimal(displayPrice, 1, true) + " coins")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 
-            if (isShiftHeld && stackCount > 1) {
+            if (multiplier > 1) {
                 priceText.append(Component
-                    .literal(" (" + stackCount + "x)")
+                    .literal(
+                        " ("
+                            + Utils.formatDecimal(multiplier, 0, true)
+                            + "x @ "
+                            + Utils.formatDecimal(unitPrice, 1, true)
+                            + " each)")
                     .withStyle(ChatFormatting.DARK_GRAY));
             }
         } else {
@@ -87,6 +92,45 @@ public final class ProductInformation {
         }
 
         return priceText;
+    }
+
+    private static Component quantityText(int amount, String meaning, boolean isShiftHeld) {
+        var amountText = Component
+            .literal(Utils.formatDecimal(amount, 0, true) + "x")
+            .withStyle(ChatFormatting.WHITE);
+        if (isShiftHeld) {
+            return Component
+                .literal("Showing " + meaning + " for ")
+                .withStyle(ChatFormatting.GRAY)
+                .append(amountText);
+        }
+        return Component
+            .literal("Hold ")
+            .withStyle(ChatFormatting.DARK_GRAY)
+            .append(Component.literal("SHIFT").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+            .append(Component
+                .literal(" to show " + meaning + " for ")
+                .withStyle(ChatFormatting.DARK_GRAY))
+            .append(amountText);
+    }
+
+    private static void appendQuantityText(List<Component> lines, TooltipQuantity quantity, boolean isShiftHeld) {
+        switch (quantity) {
+            case TooltipQuantity.Stack stack -> {
+                if (stack.amount() > 1) {
+                    lines.add(ProductInformation.quantityText(stack.amount(), "total", isShiftHeld));
+                }
+            }
+            case TooltipQuantity.OriginalOrder order -> {
+                lines.add(ProductInformation.quantityText(order.amount(), "market total", isShiftHeld));
+            }
+            case TooltipQuantity.UnavailableOrder _ -> {
+                if (isShiftHeld) {
+                    lines.add(Component.literal("Order total unavailable. Showing unit prices.")
+                        .withStyle(ChatFormatting.GRAY));
+                }
+            }
+        }
     }
 
     private void registerSlotHooks() {
@@ -106,7 +150,7 @@ public final class ProductInformation {
             DataComponents.CUSTOM_NAME,
             Component
                 .literal("Product Info")
-                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
                 .withStyle(style -> style.withItalic(false)));
 
         var loreLines = Stream.of(
@@ -119,7 +163,7 @@ public final class ProductInformation {
                 .withStyle(style -> style.withItalic(false))
                 .append(Component
                     .literal(cfg.site.displayName())
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)))
+                    .withStyle(ChatFormatting.GOLD)))
             .<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
         item.set(DataComponents.LORE, new ItemLore(loreLines));
@@ -131,7 +175,7 @@ public final class ProductInformation {
 
     private void registerTooltipDisplay() {
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
-            if (!BtrBz.isActive()) {
+            if (!BtrBz.isActive() || stack.isEmpty()) {
                 return;
             }
             var cfg = this.config.get();
@@ -146,9 +190,9 @@ public final class ProductInformation {
             lines.add(Component.empty());
             lines.add(Component
                 .literal("CTRL")
-                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .withStyle(ChatFormatting.GRAY)
                 .append(Component.literal("+").withStyle(ChatFormatting.DARK_GRAY))
-                .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+                .append(Component.literal("SHIFT").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal(" Click ").withStyle(ChatFormatting.GRAY))
                 .append(Component
                     .literal("to view on ")
@@ -156,12 +200,12 @@ public final class ProductInformation {
                     .withStyle(style -> style.withBold(false)))
                 .append(Component
                     .literal(cfg.site.displayName())
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
+                    .withStyle(ChatFormatting.GOLD)));
 
         });
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
-            if (!BtrBz.isActive()) {
+            if (!BtrBz.isActive() || stack.isEmpty()) {
                 return;
             }
             var cfg = this.config.get();
@@ -169,37 +213,20 @@ public final class ProductInformation {
                 return;
             }
 
-            var cached = this.productLookupCache.get(stack).prices();
+            var lookup = this.productLookupCache.get(stack);
+            var cached = lookup.prices();
             if (cached == null) {
                 return;
             }
 
-            var count = stack.getItem() == Items.ENCHANTED_BOOK ? 1 : stack.getCount();
             var isShiftHeld = Minecraft.getInstance().hasShiftDown();
+            var quantity = lookup.quantity();
 
             lines.add(Component.empty());
+            ProductInformation.appendQuantityText(lines, quantity, isShiftHeld);
 
-            if (count > 1 && !isShiftHeld) {
-                lines.add(Component
-                    .literal("Hold ")
-                    .withStyle(ChatFormatting.DARK_GRAY)
-                    .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                    .append(Component.literal(" to show for (").withStyle(ChatFormatting.DARK_GRAY))
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
-                    .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
-                    .append(Component.literal(")").withStyle(ChatFormatting.DARK_GRAY)));
-            }
-
-            if (count > 1 && isShiftHeld) {
-                lines.add(Component
-                    .literal("Showing price for ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
-                    .append(Component.literal("x").withStyle(ChatFormatting.GRAY)));
-            }
-
-            lines.add(this.createPriceText("Buy Price: ", cached.buyPrice, count, isShiftHeld));
-            lines.add(this.createPriceText("Sell Price: ", cached.sellPrice, count, isShiftHeld));
+            lines.add(this.createPriceText("Buy Price: ", cached.buyPrice, quantity, isShiftHeld));
+            lines.add(this.createPriceText("Sell Price: ", cached.sellPrice, quantity, isShiftHeld));
         });
     }
 
@@ -227,48 +254,13 @@ public final class ProductInformation {
         return cfg.showOutsideBazaar;
     }
 
-    private ProductIdentity resolveProductForLookup(SlotView view) {
-        var stack = view.getRawStack();
-        if (this.isOrderScreenProductRow(stack) && !view.playerInventorySlot()) {
-            return OrderInfoParser
-                .parseOrderInfo(stack, view.slotIdx(), this.bazaarData)
-                .map(order -> order.product())
-                .getOrElse(() -> this.resolveProduct(stack));
-        }
-
-        return this.resolveProduct(stack);
-    }
-
-    private ProductIdentity resolveProductForLookup(ItemStack stack) {
-        var hoveredSlot = this.hoveredNonPlayerSlot(stack);
-        if (this.isOrderScreenProductRow(stack) && hoveredSlot.isPresent()) {
-            return OrderInfoParser
-                .parseOrderInfo(stack, hoveredSlot.get().getContainerSlot(), this.bazaarData)
-                .map(order -> order.product())
-                .getOrElse(() -> this.resolveProduct(stack));
-        }
-
-        return this.resolveProduct(stack);
-    }
-
     private boolean isOrderScreenProductRow(ItemStack stack) {
         return ScreenTracker.inMenu(BazaarMenuType.Orders)
             && GameUtils.orderScreenNonOrderItemsFilter(stack);
     }
 
-    private Optional<Slot> hoveredNonPlayerSlot(ItemStack stack) {
-        return ScreenTracker
-            .get()
-            .getCurrInfo()
-            .getGenericContainerScreen()
-            .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor
-                ? accessor.getHoveredSlot()
-                : null)
-            .filter(slot -> slot != null && !GameUtils.isPlayerInventorySlot(slot) && slot.getItem() == stack);
-    }
-
     private boolean isStackInPlayerInventory(ItemStack stack) {
-        // NOTE: reference equality is intentional here
+        // Match the actual inventory stack, since an order card can show the same item.
         // noinspection DataFlowIssue
         var player = Minecraft.getInstance().player;
         if (player == null) {
@@ -303,20 +295,23 @@ public final class ProductInformation {
             }, link, true));
     }
 
-    private ProductIdentity resolveProduct(ItemStack stack) {
-        return this.bazaarData.resolveProduct(stack);
-    }
-
     private record CachedPrice(
         @Nullable Double buyPrice,
         @Nullable Double sellPrice
     ) {}
 
     private record CachedProductLookup(
+        ItemStack snapshot,
         ProductIdentity product,
         boolean playerInventoryStack,
-        @Nullable CachedPrice prices
+        @Nullable CachedPrice prices,
+        TooltipQuantity quantity
     ) {
+
+        boolean matches(ItemStack stack) {
+            return this.snapshot.getCount() == stack.getCount()
+                && ItemStack.isSameItemSameComponents(this.snapshot, stack);
+        }
 
         Optional<String> marketProductId() {
             return this.prices != null ? this.product.bazaarProductId() : Optional.empty();
@@ -358,7 +353,7 @@ public final class ProductInformation {
 
         @Override
         public boolean matches(SlotView view) {
-            // Keep matching cheap; ctrl-shift eligibility may inspect inventory and only matters on click.
+            // Slot matching runs during rendering. Check lookup eligibility on click.
             return !view.getRawStack().isEmpty();
         }
 
@@ -389,7 +384,7 @@ public final class ProductInformation {
         }
     }
 
-    private class ProductLookupCache {
+    private final class ProductLookupCache {
 
         private final WeakHashMap<ItemStack, CachedProductLookup> cache = new WeakHashMap<>();
 
@@ -400,35 +395,46 @@ public final class ProductInformation {
 
         CachedProductLookup get(ItemStack stack) {
             var cached = this.cache.get(stack);
-            if (cached != null) {
+            if (cached != null && cached.matches(stack)) {
                 return cached;
             }
 
             return this.cache(
                 stack,
-                ProductInformation.this.resolveProductForLookup(stack),
                 ProductInformation.this.isStackInPlayerInventory(stack));
         }
 
         CachedProductLookup get(SlotView view) {
             var stack = view.getRawStack();
             var cached = this.cache.get(stack);
-            if (cached != null) {
+            if (cached != null && cached.matches(stack)
+                && cached.playerInventoryStack() == view.playerInventorySlot()) {
                 return cached;
             }
 
             return this.cache(
                 stack,
-                ProductInformation.this.resolveProductForLookup(view),
                 view.playerInventorySlot());
         }
 
         private CachedProductLookup cache(
             ItemStack stack,
-            ProductIdentity product,
             boolean playerInventoryStack
         ) {
             var data = ProductInformation.this.bazaarData;
+            ProductIdentity product;
+            TooltipQuantity quantity;
+            if (!playerInventoryStack && ProductInformation.this.isOrderScreenProductRow(stack)) {
+                // This lookup needs the product and original quantity, so the slot index can be -1.
+                var order = OrderInfoParser.parseOrderInfo(stack, -1, data);
+                product = order.map(info -> info.product()).getOrElse(() -> data.resolveProduct(stack));
+                quantity = order
+                    .<TooltipQuantity>map(info -> new TooltipQuantity.OriginalOrder(info.volume()))
+                    .getOrElse(TooltipQuantity.UnavailableOrder::new);
+            } else {
+                product = data.resolveProduct(stack);
+                quantity = new TooltipQuantity.Stack(stack.getItem() == Items.ENCHANTED_BOOK ? 1 : stack.getCount());
+            }
             CachedPrice prices = null;
             if (data.contains(product)) {
                 prices = new CachedPrice(
@@ -436,7 +442,12 @@ public final class ProductInformation {
                     data.highestBuyOrderPrice(product).orElse(null));
             }
 
-            var cached = new CachedProductLookup(product, playerInventoryStack, prices);
+            var cached = new CachedProductLookup(
+                stack.copy(),
+                product,
+                playerInventoryStack,
+                prices,
+                quantity);
             this.cache.put(stack, cached);
             return cached;
         }

@@ -226,6 +226,7 @@ class OrderInfoParserTest {
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.FilledOrderInfo.class, result.get());
+            assertEquals(51_200, info.volume());
             assertEquals(51_200, info.filledAmountSnapshot());
         }
 
@@ -239,6 +240,7 @@ class OrderInfoParserTest {
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
+            assertEquals(51_200, info.volume());
             assertEquals(3_123, info.filledAmountSnapshot());
         }
 

@@ -59,10 +59,10 @@ public class OrderProtectionConfig {
             .name(Component.literal("Limit Price Undercutting"))
             .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                 ConfigScreen.text(
-                    "Block prices that improve on the current best order by the configured percentage or more."),
+                    "Use the limits below to cap buy order price increases and sell offer price reductions "
+                        + "relative to the best price on each side."),
                 ConfigScreen.example(
-                    "At a best price of 15M, a 100K change is about 0.67%. With a 15% limit, "
-                        + "the blocked difference begins at 2.25M."),
+                    "With a best buy order of 15M and a 15% limit, a buy order at 17.25M or higher is blocked."),
                 ConfigScreen.note(
                     "A single minimum price step (0.1 coins) is always exempt from this percentage check."))))
             .binding(
