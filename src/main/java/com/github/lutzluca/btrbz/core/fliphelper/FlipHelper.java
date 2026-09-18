@@ -24,6 +24,8 @@ import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
+import java.util.Optional;
+import java.util.function.BooleanSupplier;
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -44,8 +46,9 @@ public class FlipHelper {
     private final FlipProductContext flipProductContext;
     private final FlipSubmissionTracker flipSubmissionTracker;
     private final TrackedOrderManager orderManager;
+    private final BooleanSupplier flipHelperEnabled;
 
-    private TrackedFlipProduct potentialFlipProduct = null;
+    private ProductIdentity potentialFlipProduct = null;
     private boolean pendingFlip = false;
     private CachedHelperDisplay cachedHelperDisplay = null;
 
@@ -55,50 +58,49 @@ public class FlipHelper {
         FlipSubmissionTracker flipSubmissionTracker,
         TrackedOrderManager orderManager
     ) {
-        this.bazaarData = bazaarData;
-        this.flipProductContext = flipProductContext;
-        this.flipSubmissionTracker = flipSubmissionTracker;
-        this.orderManager = orderManager;
+        this(bazaarData, flipProductContext, flipSubmissionTracker, orderManager,
+            () -> ConfigStore.get().config().flipHelper.enabled);
         this.registerSlotHooks();
         this.registerFlipProductContextHandler();
         this.registerFlipPriceScreenHandler();
     }
 
+    FlipHelper(
+        BazaarData bazaarData,
+        FlipProductContext flipProductContext,
+        FlipSubmissionTracker flipSubmissionTracker,
+        TrackedOrderManager orderManager,
+        BooleanSupplier flipHelperEnabled
+    ) {
+        this.bazaarData = bazaarData;
+        this.flipProductContext = flipProductContext;
+        this.flipSubmissionTracker = flipSubmissionTracker;
+        this.orderManager = orderManager;
+        this.flipHelperEnabled = flipHelperEnabled;
+    }
+
     public void onOrderClick(OrderInfo info) {
-        if (info.type() != OrderType.Buy) {
+        this.clearPendingFlipState();
+        if (info.type() != OrderType.Buy || !(info instanceof OrderInfo.FilledOrderInfo)) {
             this.flipProductContext.clearProduct();
-            this.clearPendingFlipState();
             return;
         }
 
-        if (info instanceof OrderInfo.UnfilledOrderInfo) {
+        var product = info.product();
+        if (!this.bazaarData.contains(product)) {
             this.flipProductContext.clearProduct();
-            this.clearPendingFlipState();
-            return;
-        }
-
-        if (this.potentialFlipProduct != null) {
-            this.potentialFlipProduct.destroy();
-        }
-
-        this.cachedHelperDisplay = null;
-        var product = this.bazaarData.resolveIndexedProduct(info.product());
-        if (product.isEmpty()) {
-            this.flipProductContext.clearProduct();
-            this.clearPendingFlipState();
             log.warn("Could not resolve flip product '{}'", info.uiProductName());
             return;
         }
 
-        this.flipProductContext.selectProduct(product.get());
+        this.flipProductContext.selectProduct(product);
 
-        if (!ConfigStore.get().config().flipHelper.enabled) {
-            this.clearPendingFlipState();
+        if (!this.flipHelperEnabled.getAsBoolean()) {
             return;
         }
 
-        this.potentialFlipProduct = new TrackedFlipProduct(this.bazaarData, product.get());
-        log.debug("Set `potentialFlipProduct` for product: {}", product.get());
+        this.potentialFlipProduct = product;
+        log.debug("Set `potentialFlipProduct` for product: {}", product);
     }
 
     private void registerSlotHooks() {
@@ -121,7 +123,7 @@ public class FlipHelper {
             }
 
             log.debug("Leaving flip flow, clearing selected product context");
-            this.flipProductContext.clearProduct();
+            this.cancelPendingFlip();
         });
     }
 
@@ -146,14 +148,13 @@ public class FlipHelper {
             return null;
         }
 
-        var cachedPrice = this.potentialFlipProduct.getSellOfferPrice()
-            .map(price -> Math.max(price - 0.1, .1));
+        var cachedPrice = this.getFlipPrice();
         if (cachedPrice.isEmpty()) {
             this.cachedHelperDisplay = null;
             return null;
         }
 
-        var productName = this.potentialFlipProduct.getProductName();
+        var productName = this.potentialFlipProduct.strippedName();
         var displayPrice = cachedPrice.get();
 
         if (this.cachedHelperDisplay != null
@@ -202,21 +203,19 @@ public class FlipHelper {
                 return;
             }
 
-            var flipPrice = this.potentialFlipProduct
-                .getSellOfferPrice()
-                .map(price -> Math.max(price - .1, 0.1));
+            var flipPrice = this.getFlipPrice();
 
             if (flipPrice.isEmpty()) {
                 log.warn(
                     "Could not resolve price for product {}",
-                    this.potentialFlipProduct.getProduct());
+                    this.potentialFlipProduct);
                 this.clearPendingFlipState();
                 return;
             }
 
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
             this.flipSubmissionTracker.recordSubmittedFlip(
-                ProductIdentity.fromIndex(this.potentialFlipProduct.getProduct()),
+                this.potentialFlipProduct,
                 flipPrice.get());
             GameUtils.submitSignValue(signEditScreen, formatted);
 
@@ -262,15 +261,16 @@ public class FlipHelper {
     }
 
     private void clearPendingFlipState() {
-        if (this.potentialFlipProduct != null) {
-            log.debug(
-                "Destroying `potentialFlipProduct` {}",
-                this.potentialFlipProduct.getProduct());
-            this.potentialFlipProduct.destroy();
-        }
         this.cachedHelperDisplay = null;
         this.potentialFlipProduct = null;
         this.pendingFlip = false;
+    }
+
+    private Optional<Double> getFlipPrice() {
+        return Optional.ofNullable(this.potentialFlipProduct)
+            .flatMap(this.bazaarData::lowestSellOfferPrice)
+            .filter(price -> Double.isFinite(price) && price > 0)
+            .map(price -> Math.max(price - 0.1, 0.1));
     }
 
     public final class OrderFlipHook implements SlotHook {
@@ -306,9 +306,7 @@ public class FlipHelper {
                 return SlotClickResult.Pass;
             }
 
-            if (FlipHelper.this.potentialFlipProduct == null || FlipHelper.this.potentialFlipProduct
-                .getSellOfferPrice()
-                .isEmpty()) {
+            if (FlipHelper.this.getFlipPrice().isEmpty()) {
 
                 log.debug(
                     "Ignoring flip execution click because it's price could not be resolved: '{}'",
