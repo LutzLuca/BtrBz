@@ -5,7 +5,7 @@ import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionConfig;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderItemTooltipConfig;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderListTooltipConfig;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig;

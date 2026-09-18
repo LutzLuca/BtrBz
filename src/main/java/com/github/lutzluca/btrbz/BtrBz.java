@@ -10,7 +10,7 @@ import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInformation;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.core.commands.Commands;

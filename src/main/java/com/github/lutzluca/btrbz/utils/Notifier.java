@@ -14,7 +14,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundEvents;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupStatus;
