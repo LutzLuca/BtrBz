@@ -10,6 +10,7 @@ import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFilled;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.ExpiredOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
@@ -30,6 +32,34 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class TrackedOrderManagerTest {
+
+    @Test
+    void expiredCardsReachSnapshotConsumersWithoutActiveOrderEventsOrMarketParticipation() {
+        var manager = new TrackedOrderManager(new BazaarData());
+        var added = new AtomicInteger();
+        var updated = new AtomicInteger();
+        var received = new AtomicReference<List<OrderInfo>>();
+        manager.addOnOrderAddedListener(_ -> added.incrementAndGet());
+        manager.addOnOrderUpdatedListener(_ -> updated.incrementAndGet());
+        manager.afterOrderSync(received::set);
+        List<OrderInfo> orders = List.of(
+            new ExpiredOrderInfo("Troubled Bubble", OrderType.Buy, 10, 5.0, 4, 2, 10),
+            new ExpiredOrderInfo("Troubled Bubble", OrderType.Sell, 10, 5.0, 10, 48, 11));
+
+        manager.syncOrders(orders);
+
+        assertEquals(orders, received.get());
+        assertEquals(0, added.get());
+        assertEquals(0, updated.get());
+        assertEquals(0, manager.filledOrderCount());
+        assertTrue(manager.getTrackedOrders().isEmpty());
+        var marketProduct = product("TROUBLED_BUBBLE");
+        setSummaries(marketProduct, List.of(summary(marketProduct, 10.0, 64, 1)), List.of());
+        var market = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
+        assertTrue(new TrackedOrderStatusEvaluator()
+            .computeStatusUpdates(manager.getTrackedOrders(), market).findAny().isEmpty());
+        assertTrue(new SelfUndercutDetector().resolve(manager.getTrackedOrders(), market).isEmpty());
+    }
 
     @Test
     void marketInvalidationKeepsOrdersButDiscardsTheirPriceStatus() {

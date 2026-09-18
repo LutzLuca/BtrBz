@@ -27,7 +27,9 @@ public final class OrderValueWidgetDefinition {
         var data = new MemoizedWidgetDataSource<>(new OrderValueWidgetData(component));
 
         return WidgetDefinition.<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void>builder(ID, "Order Value")
-            .description("Summarizes coins locked in buy orders and value waiting in sell orders.")
+            .description("Summarizes coins locked in active buy orders, unclaimed items and proceeds, "
+                + "and potential proceeds from active sell offers. Item values use the order's unit price. "
+                + "Unfilled portions of expired orders are excluded, their unclaimed filled portions still contribute.")
             .config(config)
             .supports(OrderValueWidgetDefinition::supportsSession)
             .data(data)

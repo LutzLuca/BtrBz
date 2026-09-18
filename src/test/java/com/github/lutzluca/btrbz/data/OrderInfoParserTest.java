@@ -168,6 +168,57 @@ class OrderInfoParserTest {
     class ParseOrderInfoLore {
 
         @Test
+        void expiringSoonOrdersRemainActive() {
+            var result = OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
+                "Order amount: 8x", "Price per unit: 1,300,000 coins", "Expires in 1m"), 12);
+
+            assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
+        }
+
+        @Test
+        void recognizesFormattedExpiredBuyWithoutFillEvidence() {
+            var result = OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
+                "Order amount: 8x", "Price per unit: 1,300,000 coins", " §cExpired! "), 12);
+
+            var info = assertInstanceOf(OrderInfo.ExpiredOrderInfo.class, result.get());
+            assertEquals(OrderType.Buy, info.type());
+            assertEquals(8, info.volume());
+            assertEquals(1_300_000.0, info.pricePerUnit());
+            assertEquals(0, info.filledAmountSnapshot());
+            assertEquals(0, info.unclaimed());
+            assertEquals(12, info.slotIdx());
+        }
+
+        @Test
+        void expiredSellRetainsPartialFillAndClaimFacts() {
+            var result = OrderInfoParser.parseOrderInfo("SELL Heat Core", orderLore(
+                "Offer amount: 8x", "Filled: 3/8 (37.5%)", "Price per unit: 1,300,000 coins",
+                "You have 3,800,000 coins to claim!", "Expired!"), 12);
+
+            var info = assertInstanceOf(OrderInfo.ExpiredOrderInfo.class, result.get());
+            assertEquals(OrderType.Sell, info.type());
+            assertEquals(3, info.filledAmountSnapshot());
+            assertEquals(3_800_000, info.unclaimed());
+        }
+
+        @Test
+        void expiryTakesPrecedenceOverCompleteFillWithoutLosingClaims() {
+            var result = OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
+                "Expired!", "Order amount: 8x", "Filled: 8/8 100%!",
+                "Price per unit: 1,300,000 coins", "You have 2 items to claim!"), 12);
+
+            var info = assertInstanceOf(OrderInfo.ExpiredOrderInfo.class, result.get());
+            assertEquals(8, info.filledAmountSnapshot());
+            assertEquals(2, info.unclaimed());
+            var product = ProductIdentity.fromRuntime("Heat Core", "HEAT_CORE", null);
+            var resolved = info.withProduct(product);
+            assertEquals(product, resolved.product());
+            assertEquals(8, resolved.filledAmountSnapshot());
+            assertEquals(2, resolved.unclaimed());
+            assertEquals(12, resolved.slotIdx());
+        }
+
+        @Test
         void parsesUnfilledBuyOrder() {
             var result = OrderInfoParser.parseOrderInfo("BUY Enchanted Diamond", orderLore(
                 "Worth 431,123 coins",

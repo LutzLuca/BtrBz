@@ -1,47 +1,43 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
 import com.github.lutzluca.btrbz.cache.CacheToken;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
-import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import java.util.List;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
 /** Owns the latest order facts and the established exact value calculation. */
 public final class OrderValueComponent {
-    private List<UnfilledOrderInfo> unfilledOrders = List.of();
-    private List<FilledOrderInfo> filledOrders = List.of();
+    private List<OrderInfo> orders = List.of();
     @Getter
     @Accessors(fluent = true)
     private final CacheToken dataChanges = CacheToken.named("order-value.data");
 
-    public void sync(List<UnfilledOrderInfo> unfilledOrders, List<FilledOrderInfo> filledOrders) {
-        this.unfilledOrders = List.copyOf(unfilledOrders);
-        this.filledOrders = List.copyOf(filledOrders);
+    public void sync(List<OrderInfo> orders) {
+        this.orders = List.copyOf(orders);
         this.dataChanges.invalidate("order values synchronized");
     }
 
     public void clear() {
-        this.unfilledOrders = List.of();
-        this.filledOrders = List.of();
+        this.orders = List.of();
         this.dataChanges.invalidate("order values cleared");
     }
 
     public Breakdown currentBreakdown() {
-        return calculateBreakdown(this.unfilledOrders, this.filledOrders);
+        return calculateBreakdown(this.orders);
     }
 
-    public static Breakdown calculateBreakdown(
-        List<UnfilledOrderInfo> unfilledOrders,
-        List<FilledOrderInfo> filledOrders
-    ) {
+    public static Breakdown calculateBreakdown(List<OrderInfo> orders) {
         double buyLocked = 0;
         double buyItems = 0;
         double sellClaimable = 0;
         double sellPending = 0;
 
-        for (var order : unfilledOrders) {
-            int remaining = order.volume() - order.filledAmountSnapshot();
+        for (var order : orders) {
+            // Expired remainders no longer participate in the market. Retain only unclaimed fills,
+            // using the same original-unit-price basis as completed orders.
+            int remaining = order instanceof OrderInfo.UnfilledOrderInfo
+                ? order.volume() - order.filledAmountSnapshot() : 0;
             switch (order.type()) {
                 case Buy -> {
                     buyLocked += remaining * order.pricePerUnit();
@@ -51,13 +47,6 @@ public final class OrderValueComponent {
                     sellPending += remaining * order.pricePerUnit();
                     sellClaimable += order.unclaimed();
                 }
-            }
-        }
-
-        for (var order : filledOrders) {
-            switch (order.type()) {
-                case Buy -> buyItems += order.unclaimed() * order.pricePerUnit();
-                case Sell -> sellClaimable += order.unclaimed();
             }
         }
 

@@ -262,10 +262,10 @@ public class BtrBz implements ClientModInitializer {
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidgetDefinition, widgetStateStore, hudHint::dismiss);
 
-        this.orderManager.afterOrderSync((unfilledOrders, filledOrder) -> {
+        this.orderManager.afterOrderSync(snapshot -> {
             var trackedOrders = this.orderManager.getTrackedOrders();
-            this.highlightManager.sync(trackedOrders, filledOrder);
-            this.orderValue.sync(unfilledOrders, filledOrder);
+            this.highlightManager.sync(trackedOrders, snapshot);
+            this.orderValue.sync(snapshot);
         });
 
         Consumer<OutstandingOrderInfo> addOutstanding = setOrderInfo -> {
