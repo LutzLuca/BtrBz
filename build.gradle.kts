@@ -72,9 +72,7 @@ dependencies {
     implementation("net.hypixel:hypixel-api-core:4.4")
     include("net.hypixel:hypixel-api-core:4.4")
 
-    implementation("net.hypixel:hypixel-api-transport-apache:4.4")
-    include("net.hypixel:hypixel-api-transport-apache:4.4")
-
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
     include("org.apache.httpcomponents:httpclient:4.5.14")
     include("org.apache.httpcomponents:httpcore:4.4.16")
     include("commons-logging:commons-logging:1.2")

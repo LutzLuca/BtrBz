@@ -14,6 +14,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.exceptions.BadStatusCodeException;
 import net.hypixel.api.http.HypixelHttpClient;
@@ -32,9 +33,12 @@ class BazaarPollerTest {
     private final RecordingApi api = new RecordingApi(this.httpClient);
     private final List<Map<String, SkyBlockBazaarReply.Product>> delivered = new ArrayList<>();
     private final List<String> outageWarnings = new ArrayList<>();
+    private final List<String> frozenPublicationWarnings = new ArrayList<>();
+    private final AtomicLong elapsedTimeMs = new AtomicLong();
     private final BazaarPoller poller = new BazaarPoller(
         this.delivered::add, () -> this.outageWarnings.add("warned"),
-        this.api, this.scheduler, this.clientTasks::add);
+        () -> this.frozenPublicationWarnings.add("warned"),
+        this.api, this.scheduler, this.clientTasks::add, this.elapsedTimeMs::get);
 
     @AfterEach
     void close() {
@@ -83,7 +87,8 @@ class BazaarPollerTest {
             };
             var worker = Executors.newSingleThreadScheduledExecutor();
             var poller = new BazaarPoller(
-                _ -> deliveryThread.complete(Thread.currentThread()), () -> {}, api, worker, deliveryTask::complete);
+                _ -> deliveryThread.complete(Thread.currentThread()), () -> {}, () -> {},
+                api, worker, deliveryTask::complete, () -> 0L);
             try {
                 poller.start();
                 Assertions.assertNotSame(caller, requestThread.get(5, TimeUnit.SECONDS));
@@ -283,6 +288,55 @@ class BazaarPollerTest {
                 .noneMatch(task -> task.delayMs == 300_000));
             BazaarPollerTest.this.clientTasks.remove().run();
             Assertions.assertEquals(1, BazaarPollerTest.this.outageWarnings.size());
+        }
+
+        @Test
+        void warnsOnceWhenSuccessfulRepliesStopPublishingNewData() {
+            BazaarPollerTest.this.reply(BazaarPollerTest.this.startFetch(), 100);
+            BazaarPollerTest.this.clientTasks.remove().run();
+
+            BazaarPollerTest.this.elapsedTimeMs.set(60_000);
+            this.replyAfterNormalInterval(100);
+            Assertions.assertTrue(BazaarPollerTest.this.frozenPublicationWarnings.isEmpty());
+            Assertions.assertTrue(BazaarPollerTest.this.clientTasks.isEmpty());
+
+            BazaarPollerTest.this.elapsedTimeMs.set(300_001);
+            this.replyAfterNormalInterval(100);
+            BazaarPollerTest.this.clientTasks.remove().run();
+            Assertions.assertEquals(1, BazaarPollerTest.this.frozenPublicationWarnings.size());
+
+            BazaarPollerTest.this.elapsedTimeMs.set(600_000);
+            this.replyAfterNormalInterval(100);
+            Assertions.assertTrue(BazaarPollerTest.this.clientTasks.isEmpty());
+
+            BazaarPollerTest.this.elapsedTimeMs.set(600_001);
+            this.replyAfterNormalInterval(101);
+            BazaarPollerTest.this.clientTasks.remove().run();
+            BazaarPollerTest.this.elapsedTimeMs.set(900_002);
+            this.replyAfterNormalInterval(101);
+            BazaarPollerTest.this.clientTasks.remove().run();
+            Assertions.assertEquals(2, BazaarPollerTest.this.frozenPublicationWarnings.size());
+        }
+
+        @Test
+        void queuedFrozenWarningIsDiscardedAfterNewerPublication() {
+            BazaarPollerTest.this.reply(BazaarPollerTest.this.startFetch(), 100);
+            BazaarPollerTest.this.clientTasks.remove().run();
+
+            BazaarPollerTest.this.elapsedTimeMs.set(300_001);
+            this.replyAfterNormalInterval(100);
+            this.replyAfterNormalInterval(101);
+
+            BazaarPollerTest.this.clientTasks.remove().run();
+            Assertions.assertTrue(BazaarPollerTest.this.frozenPublicationWarnings.isEmpty());
+            BazaarPollerTest.this.clientTasks.remove().run();
+            Assertions.assertEquals(2, BazaarPollerTest.this.delivered.size());
+        }
+
+        private void replyAfterNormalInterval(long timestamp) {
+            BazaarPollerTest.this.timer(20_200, 20_400).run();
+            BazaarPollerTest.this.scheduler.runPending();
+            BazaarPollerTest.this.reply(BazaarPollerTest.this.api.requests.getLast(), timestamp);
         }
 
         @Test

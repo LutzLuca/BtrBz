@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.mixin.SkyBlockBazaarReplyAccessor;
 import io.vavr.control.Try;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
@@ -15,9 +14,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.HypixelAPI;
-import net.hypixel.api.apache.ApacheHttpClient;
 import net.hypixel.api.exceptions.BadStatusCodeException;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
@@ -34,12 +33,16 @@ public class BazaarPoller implements AutoCloseable {
     private static final long REQUEST_TIMEOUT_MS = 30_000;
     private static final long MAX_ERROR_BACKOFF_MS = 60_000;
     private static final long OUTAGE_WARNING_MS = 5 * 60_000;
+    private static final long FROZEN_PUBLICATION_WARNING_MS = 5 * 60_000;
 
     private final Consumer<Map<String, Product>> onReply;
     private final Runnable onLongOutage;
+    private final Runnable onFrozenPublication;
     private final HypixelAPI api;
     private final ScheduledExecutorService scheduler;
     private final Consumer<Runnable> clientExecutor;
+    private final LongSupplier elapsedTimeMs;
+    private final Runnable abortRequest;
 
     private volatile boolean running;
     private volatile long generation;
@@ -49,36 +52,72 @@ public class BazaarPoller implements AutoCloseable {
     private ScheduledFuture<?> outageWarning;
     private CompletableFuture<SkyBlockBazaarReply> inFlight;
 
-    private long lastKnownUpdateTime = -1;
+    private volatile long lastKnownUpdateTime = -1;
+    private long lastChangedAtMs;
+    private boolean frozenPublicationWarned;
     private int failedRequests;
     private volatile boolean outageActive;
 
-    public BazaarPoller(@NotNull Consumer<Map<String, Product>> onReply, Runnable onLongOutage) {
+    public BazaarPoller(
+        @NotNull Consumer<Map<String, Product>> onReply,
+        Runnable onLongOutage,
+        Runnable onFrozenPublication
+    ) {
+        this(onReply, onLongOutage, onFrozenPublication, new BoundedBazaarHttpClient());
+    }
+
+    private BazaarPoller(
+        Consumer<Map<String, Product>> onReply,
+        Runnable onLongOutage,
+        Runnable onFrozenPublication,
+        BoundedBazaarHttpClient transport
+    ) {
         this(
             onReply,
             onLongOutage,
-            // The SDK requires a key for its transport, but getSkyBlockBazaar is keyless.
-            new HypixelAPI(new ApacheHttpClient(new UUID(0, 0))),
+            onFrozenPublication,
+            new HypixelAPI(transport),
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread thread = new Thread(r, "bazaar-poller");
                 thread.setDaemon(true);
                 return thread;
             }),
-            task -> Minecraft.getInstance().execute(task));
+            task -> Minecraft.getInstance().execute(task),
+            () -> TimeUnit.NANOSECONDS.toMillis(System.nanoTime()),
+            transport::abortCurrentRequest);
     }
 
     BazaarPoller(
         Consumer<Map<String, Product>> onReply,
         Runnable onLongOutage,
+        Runnable onFrozenPublication,
         HypixelAPI api,
         ScheduledExecutorService scheduler,
-        Consumer<Runnable> clientExecutor
+        Consumer<Runnable> clientExecutor,
+        LongSupplier elapsedTimeMs
+    ) {
+        this(onReply, onLongOutage, onFrozenPublication, api, scheduler, clientExecutor,
+            elapsedTimeMs, () -> {});
+    }
+
+    BazaarPoller(
+        Consumer<Map<String, Product>> onReply,
+        Runnable onLongOutage,
+        Runnable onFrozenPublication,
+        HypixelAPI api,
+        ScheduledExecutorService scheduler,
+        Consumer<Runnable> clientExecutor,
+        LongSupplier elapsedTimeMs,
+        Runnable abortRequest
     ) {
         this.onReply = Objects.requireNonNull(onReply);
         this.onLongOutage = Objects.requireNonNull(onLongOutage);
+        this.onFrozenPublication = Objects.requireNonNull(onFrozenPublication);
         this.api = Objects.requireNonNull(api);
         this.scheduler = Objects.requireNonNull(scheduler);
         this.clientExecutor = Objects.requireNonNull(clientExecutor);
+        this.elapsedTimeMs = Objects.requireNonNull(elapsedTimeMs);
+        this.abortRequest = Objects.requireNonNull(abortRequest);
     }
 
     public void start() {
@@ -93,6 +132,8 @@ public class BazaarPoller implements AutoCloseable {
                 this.cancelPendingFetch();
                 this.cancelOutageWarning();
                 this.lastKnownUpdateTime = -1;
+                this.lastChangedAtMs = 0;
+                this.frozenPublicationWarned = false;
                 this.failedRequests = 0;
                 this.outageActive = false;
                 this.fetchBazaarData(run);
@@ -107,6 +148,7 @@ public class BazaarPoller implements AutoCloseable {
         this.running = false;
         this.generation++;
         this.outageActive = false;
+        this.abortRequest.run();
         this.execute(() -> {
             this.cancelPendingFetch();
             this.cancelOutageWarning();
@@ -123,6 +165,7 @@ public class BazaarPoller implements AutoCloseable {
             this.requestTimeout = null;
         }
         if (this.inFlight != null) {
+            this.abortRequest.run();
             this.inFlight.cancel(true);
             this.inFlight = null;
         }
@@ -181,6 +224,7 @@ public class BazaarPoller implements AutoCloseable {
                 }
                 this.inFlight = null;
                 this.requestTimeout = null;
+                this.abortRequest.run();
                 request.cancel(true);
                 this.handleFetchError(run, new TimeoutException("Bazaar request exceeded 30 seconds"));
             }, REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -221,11 +265,21 @@ public class BazaarPoller implements AutoCloseable {
             boolean changed = currentUpdateTime > this.lastKnownUpdateTime;
             if (changed) {
                 this.lastKnownUpdateTime = currentUpdateTime;
+                this.lastChangedAtMs = this.elapsedTimeMs.getAsLong();
+                this.frozenPublicationWarned = false;
                 Try.run(() -> this.clientExecutor.accept(() -> {
                     if (this.isCurrent(run)) {
                         this.onReply.accept(reply.getProducts());
                     }
                 })).onFailure(error -> log.error("Could not dispatch Bazaar update", error));
+            } else if (!this.frozenPublicationWarned
+                && this.elapsedTimeMs.getAsLong() - this.lastChangedAtMs >= FROZEN_PUBLICATION_WARNING_MS) {
+                this.frozenPublicationWarned = true;
+                Try.run(() -> this.clientExecutor.accept(() -> {
+                    if (this.isCurrent(run) && this.lastKnownUpdateTime == currentUpdateTime) {
+                        this.onFrozenPublication.run();
+                    }
+                })).onFailure(error -> log.error("Could not dispatch stalled Bazaar publication warning", error));
             }
             this.scheduleNormalFetch(run);
 
@@ -296,6 +350,7 @@ public class BazaarPoller implements AutoCloseable {
         this.running = false;
         this.generation++;
         this.outageActive = false;
+        this.abortRequest.run();
         this.execute(() -> {
             this.cancelPendingFetch();
             this.cancelOutageWarning();

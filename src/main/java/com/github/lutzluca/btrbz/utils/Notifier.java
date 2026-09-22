@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
 import java.util.List;
-import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +50,13 @@ public class Notifier {
         notifyPlayer(prefix().append(Component.literal(
             "Bazaar API has been unavailable for over 5 minutes. Prices may be outdated; "
                 + "use price actions with care. Retrying automatically.")
+            .withStyle(ChatFormatting.YELLOW)));
+    }
+
+    public static void notifyBazaarPublicationStalled() {
+        notifyPlayer(prefix().append(Component.literal(
+            "Bazaar prices have not updated for over 5 minutes. They may be outdated; "
+                + "use price actions with care. Checking for updates automatically.")
             .withStyle(ChatFormatting.YELLOW)));
     }
 
@@ -278,7 +284,7 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    public static void notifyPriceReached(Alert alert, Optional<Double> price, BazaarData bazaarData) {
+    public static void notifyPriceReached(Alert alert, double price, BazaarData bazaarData) {
         SoundUtil.playSoundIf(ConfigStore.get().config().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f,
             2);
 
@@ -287,8 +293,7 @@ public class Notifier {
             && bazaarData.snapshot().hasEmptyBuyOrderSide(ProductIdentity.fromIndex(alert.product));
         String priceText = emptyBuySide
             ? "there are no buy orders (using the 0.1-coin alert minimum). "
-            : price.map(p -> "the price is " + Utils.formatDecimal(p, 1, true) + " coins. ")
-                .orElse("there is currently no listed price. ");
+            : "the price is " + Utils.formatDecimal(price, 1, true) + " coins. ";
         var product = bazaarData.refreshIndexedProduct(alert.product);
 
         Component msg = prefix()

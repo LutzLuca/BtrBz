@@ -27,6 +27,7 @@ final class AlertProductSearch {
     private final TextBoxComponent box;
     private final Consumer<IndexedProduct> select;
     private List<IndexedProduct> matches = List.of();
+    private boolean marketDataAvailable;
 
     AlertProductSearch(
         FlowLayout pane,
@@ -79,13 +80,15 @@ final class AlertProductSearch {
 
     void refresh(boolean force) {
         var next = this.data.searchProducts(this.editor.query(), SEARCH_LIMIT);
-        if (!force && next.equals(this.matches)) {
+        boolean available = this.data.hasMarketData();
+        if (!force && next.equals(this.matches) && available == this.marketDataAvailable) {
             return;
         }
         this.matches = next;
+        this.marketDataAvailable = available;
         this.resultRows.clearChildren();
         if (next.isEmpty()) {
-            String hint = !this.data.hasMarketData()
+            String hint = !available
                 ? "Waiting for market data…"
                 : this.editor.query().isBlank() ? "" : "No matches. Try a shorter name.";
             if (!hint.isEmpty()) {

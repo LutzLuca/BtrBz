@@ -94,6 +94,40 @@ class ReachedAlertsTest {
     }
 
     @Test
+    void remindsForMissingQuoteInValidSnapshotAndPersistsOnlyOnce() {
+        var path = this.tempDir.resolve("quote-less-reminders.json");
+        var store = new ConfigStore(path);
+        var data = new BazaarData();
+        var notifications = new ArrayList<ReachedAlert>();
+        var manager = new AlertManager(data, () -> store.config().alert, store::save, notifications::add);
+        data.addListener(manager::onBazaarUpdate);
+        long now = System.currentTimeMillis();
+        var weekOld = manager.saveAlert(null, new AlertDefinition(now - 8L * 24 * 60 * 60 * 1000,
+            PRODUCT, new AlertType(PriceSource.Buy, Direction.Below), 100)).get();
+        var monthOld = manager.saveAlert(null, new AlertDefinition(now - 31L * 24 * 60 * 60 * 1000,
+            PRODUCT, new AlertType(PriceSource.Buy, Direction.Below), 200)).get();
+
+        data.onUpdate(Map.of());
+        Assertions.assertEquals(-1, weekOld.remindedAfter);
+        Assertions.assertEquals(-1, monthOld.remindedAfter);
+
+        publish(data, null);
+        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertTrue(notifications.isEmpty());
+        Assertions.assertEquals(2, manager.alerts().size());
+        Assertions.assertTrue(weekOld.remindedAfter >= 7L * 24 * 60 * 60 * 1000);
+        Assertions.assertTrue(monthOld.remindedAfter >= 30L * 24 * 60 * 60 * 1000);
+
+        var reloaded = new ConfigStore(path);
+        Assertions.assertTrue(reloaded.load());
+        Assertions.assertEquals(weekOld.remindedAfter, reloaded.config().alert.alerts.get(0).remindedAfter);
+        Assertions.assertEquals(monthOld.remindedAfter, reloaded.config().alert.alerts.get(1).remindedAfter);
+        long revision = manager.changes().revision();
+        publish(data, null);
+        Assertions.assertEquals(revision, manager.changes().revision());
+    }
+
+    @Test
     void failedSaveKeepsReachedHistoryAndFailedRemovalRollsBack() {
         var config = new AlertConfig();
         var data = new BazaarData();

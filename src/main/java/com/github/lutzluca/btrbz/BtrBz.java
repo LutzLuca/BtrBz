@@ -168,7 +168,10 @@ public class BtrBz implements ClientModInitializer {
         this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         this.purseTracker = new PurseTracker(GameUtils::getPurse);
-        this.bazaarPoller = new BazaarPoller(this.bazaarData::onUpdate, Notifier::notifyBazaarOutage);
+        this.bazaarPoller = new BazaarPoller(
+            this.bazaarData::onUpdate,
+            Notifier::notifyBazaarOutage,
+            Notifier::notifyBazaarPublicationStalled);
         var flipProductContext = new FlipProductContext(this.bazaarData);
         this.flipSubmissionTracker = new FlipSubmissionTracker();
 

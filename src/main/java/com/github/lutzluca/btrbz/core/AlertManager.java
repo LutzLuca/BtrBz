@@ -56,7 +56,7 @@ public class AlertManager {
 
     public AlertManager(BazaarData bazaarData, Supplier<AlertConfig> config, Runnable save) {
         this(bazaarData, config, save, reached -> Notifier.notifyPriceReached(
-            reached.alert(), Optional.of(reached.price()), bazaarData));
+            reached.alert(), reached.price(), bazaarData));
     }
 
     AlertManager(
@@ -127,14 +127,9 @@ public class AlertManager {
         while (it.hasNext()) {
             var curr = it.next();
             var price = curr.getAssociatedPrice(snapshot);
-            if (price.isEmpty()) {
-                continue;
-            }
-            double observedPrice = price.get();
-
-            if (curr.type.isReached(observedPrice, curr.price)) {
+            if (price.isPresent() && curr.type.isReached(price.get(), curr.price)) {
                 it.remove();
-                var entry = new ReachedAlert(curr, System.currentTimeMillis(), observedPrice);
+                var entry = new ReachedAlert(curr, System.currentTimeMillis(), price.get());
                 cfg.reachedAlerts.addFirst(entry);
                 if (cfg.reachedAlerts.size() > REACHED_LIMIT) {
                     cfg.reachedAlerts.removeLast();
