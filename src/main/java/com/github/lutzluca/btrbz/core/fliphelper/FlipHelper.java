@@ -87,7 +87,7 @@ public class FlipHelper {
         }
 
         var product = info.product();
-        if (!this.bazaarData.contains(product)) {
+        if (product.bazaarProductId().isEmpty()) {
             this.flipProductContext.clearProduct();
             log.warn("Could not resolve flip product '{}'", info.uiProductName());
             return;
@@ -266,7 +266,7 @@ public class FlipHelper {
         this.pendingFlip = false;
     }
 
-    private Optional<Double> getFlipPrice() {
+    Optional<Double> getFlipPrice() {
         return Optional.ofNullable(this.potentialFlipProduct)
             .flatMap(this.bazaarData::lowestSellOfferPrice)
             .filter(price -> Double.isFinite(price) && price > 0)

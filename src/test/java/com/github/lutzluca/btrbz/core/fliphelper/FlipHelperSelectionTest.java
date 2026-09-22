@@ -18,22 +18,47 @@ class FlipHelperSelectionTest {
     private static final ProductIdentity PRODUCT = ProductIdentity.fromRuntime("UI Product", "TEST", null);
 
     @Test
-    void filledBuySelectsRuntimeProductWithoutConversionIndexEntry() throws ReflectiveOperationException {
+    void filledBuyKeepsRuntimeProductUntilMarketQuoteArrives() {
         var fixture = fixture();
+        Assertions.assertFalse(fixture.market().hasMarketData());
         fixture.helper().onOrderClick(filledBuy());
 
         Assertions.assertTrue(fixture.market().resolveIndexedProduct(PRODUCT).isEmpty());
         Assertions.assertEquals(PRODUCT, fixture.context().getSelectedProduct().orElseThrow());
-        Assertions.assertEquals(PRODUCT, field(fixture.helper(), "potentialFlipProduct").get(fixture.helper()));
+        Assertions.assertTrue(fixture.helper().getFlipPrice().isEmpty());
+
+        fixture.market().onUpdate(reply("OTHER", 40).getProducts());
+        Assertions.assertTrue(fixture.market().hasMarketData());
+        Assertions.assertFalse(fixture.market().contains(PRODUCT));
+        Assertions.assertEquals(PRODUCT, fixture.context().getSelectedProduct().orElseThrow());
+        Assertions.assertTrue(fixture.helper().getFlipPrice().isEmpty());
+
+        fixture.market().onUpdate(reply("TEST", 110).getProducts());
+        Assertions.assertEquals(PRODUCT, fixture.context().getSelectedProduct().orElseThrow());
+        Assertions.assertEquals(109.9, fixture.helper().getFlipPrice().orElseThrow(), 0.000001);
     }
 
     @Test
-    void disabledHelperStillSelectsFilledBuyForOrderBook() throws ReflectiveOperationException {
+    void disabledHelperStillSelectsFilledBuyForOrderBook() {
         var fixture = fixture(false);
+        fixture.market().onUpdate(reply("TEST", 110).getProducts());
         fixture.helper().onOrderClick(filledBuy());
 
         Assertions.assertEquals(PRODUCT, fixture.context().getSelectedProduct().orElseThrow());
-        Assertions.assertNull(field(fixture.helper(), "potentialFlipProduct").get(fixture.helper()));
+        Assertions.assertTrue(fixture.helper().getFlipPrice().isEmpty());
+    }
+
+    @Test
+    void filledBuyWithoutBazaarIdDoesNotSelectOrSuggestPrice() {
+        var fixture = fixture();
+        fixture.market().onUpdate(reply("TEST", 110).getProducts());
+
+        var unresolved = new OrderInfo.FilledOrderInfo(
+            ProductIdentity.fromName("UI Product"), "UI Product", OrderType.Buy, 10, 100, 10, 10, 0);
+        fixture.helper().onOrderClick(unresolved);
+
+        Assertions.assertTrue(fixture.context().getSelectedProduct().isEmpty());
+        Assertions.assertTrue(fixture.helper().getFlipPrice().isEmpty());
     }
 
     @Test
@@ -69,12 +94,14 @@ class FlipHelperSelectionTest {
 
     private static Fixture fixture(boolean helperEnabled) {
         var market = new BazaarData(new ConversionIndexService(ConversionIndex.empty()));
-        var reply = new Gson().fromJson("""
-            {"products":{"TEST":{"buy_summary":[{"pricePerUnit":110}]}}}
-            """, SkyBlockBazaarReply.class);
-        market.onUpdate(reply.getProducts());
         var context = new FlipProductContext(market);
         return new Fixture(market, context, new FlipHelper(market, context, null, null, () -> helperEnabled));
+    }
+
+    private static SkyBlockBazaarReply reply(String productId, double price) {
+        return new Gson().fromJson(
+            "{\"products\":{\"" + productId + "\":{\"buy_summary\":[{\"pricePerUnit\":" + price + "}]}}}",
+            SkyBlockBazaarReply.class);
     }
 
     private static Field field(FlipHelper helper, String name) throws ReflectiveOperationException {
