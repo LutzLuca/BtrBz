@@ -126,20 +126,15 @@ public class AlertManager {
 
         while (it.hasNext()) {
             var curr = it.next();
-            var priceResult = curr.getAssociatedPrice(snapshot);
-            if (priceResult.isFailure()) {
-                it.remove();
-                changed = true;
-                Notifier.notifyInvalidProduct(curr, this.bazaarData);
+            var price = curr.getAssociatedPrice(snapshot);
+            if (price.isEmpty()) {
                 continue;
             }
+            double observedPrice = price.get();
 
-            var price = priceResult.get();
-            var reached = price.map(marketPrice -> curr.type.isReached(marketPrice, curr.price)).orElse(false);
-
-            if (reached) {
+            if (curr.type.isReached(observedPrice, curr.price)) {
                 it.remove();
-                var entry = new ReachedAlert(curr, System.currentTimeMillis(), price.orElseThrow());
+                var entry = new ReachedAlert(curr, System.currentTimeMillis(), observedPrice);
                 cfg.reachedAlerts.addFirst(entry);
                 if (cfg.reachedAlerts.size() > REACHED_LIMIT) {
                     cfg.reachedAlerts.removeLast();
@@ -311,14 +306,8 @@ public class AlertManager {
             return this.product.productId();
         }
 
-        public Try<Optional<Double>> getAssociatedPrice(MarketSnapshot snapshot) {
-            var identity = ProductIdentity.fromIndex(this.product);
-            if (!snapshot.contains(identity)) {
-                return Try.failure(
-                    new Exception("The product \"" + this.productName() + "\" could not be found in the bazaar data"));
-            }
-
-            return Try.success(this.type.source().price(snapshot.getMarketPrices(identity)));
+        public Optional<Double> getAssociatedPrice(MarketSnapshot snapshot) {
+            return this.type.comparisonPrice(snapshot, ProductIdentity.fromIndex(this.product));
         }
 
         public boolean matches(AlertDefinition definition) {

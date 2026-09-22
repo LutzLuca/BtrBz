@@ -15,6 +15,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import net.hypixel.api.HypixelAPI;
+import net.hypixel.api.exceptions.BadStatusCodeException;
 import net.hypixel.api.http.HypixelHttpClient;
 import net.hypixel.api.http.HypixelHttpResponse;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
@@ -30,8 +31,10 @@ class BazaarPollerTest {
     private final RecordingHttpClient httpClient = new RecordingHttpClient();
     private final RecordingApi api = new RecordingApi(this.httpClient);
     private final List<Map<String, SkyBlockBazaarReply.Product>> delivered = new ArrayList<>();
+    private final List<String> outageWarnings = new ArrayList<>();
     private final BazaarPoller poller = new BazaarPoller(
-        this.delivered::add, this.api, this.scheduler, this.clientTasks::add);
+        this.delivered::add, () -> this.outageWarnings.add("warned"),
+        this.api, this.scheduler, this.clientTasks::add);
 
     @AfterEach
     void close() {
@@ -48,6 +51,12 @@ class BazaarPollerTest {
     private void reply(CompletableFuture<SkyBlockBazaarReply> request, long timestamp) {
         request.complete(new Reply(timestamp));
         this.scheduler.runPending();
+    }
+
+    private ScheduledTask timer(long minimumMs, long maximumMs) {
+        return this.scheduler.tasks.stream()
+            .filter(task -> task.delayMs >= minimumMs && task.delayMs < maximumMs)
+            .findFirst().orElseThrow();
     }
 
     @Nested
@@ -74,7 +83,7 @@ class BazaarPollerTest {
             };
             var worker = Executors.newSingleThreadScheduledExecutor();
             var poller = new BazaarPoller(
-                _ -> deliveryThread.complete(Thread.currentThread()), api, worker, deliveryTask::complete);
+                _ -> deliveryThread.complete(Thread.currentThread()), () -> {}, api, worker, deliveryTask::complete);
             try {
                 poller.start();
                 Assertions.assertNotSame(caller, requestThread.get(5, TimeUnit.SECONDS));
@@ -182,7 +191,8 @@ class BazaarPollerTest {
             BazaarPollerTest.this.poller.stop();
             BazaarPollerTest.this.startFetch();
             BazaarPollerTest.this.reply(late, 100);
-            Assertions.assertTrue(BazaarPollerTest.this.scheduler.tasks.isEmpty());
+            Assertions.assertEquals(1, BazaarPollerTest.this.scheduler.tasks.size());
+            Assertions.assertEquals(30_000, BazaarPollerTest.this.scheduler.tasks.element().delayMs);
             Assertions.assertTrue(BazaarPollerTest.this.clientTasks.isEmpty());
         }
 
@@ -195,7 +205,8 @@ class BazaarPollerTest {
             BazaarPollerTest.this.startFetch();
             late.completeExceptionally(new IllegalStateException("old run"));
             BazaarPollerTest.this.scheduler.runPending();
-            Assertions.assertTrue(BazaarPollerTest.this.scheduler.tasks.isEmpty());
+            Assertions.assertEquals(1, BazaarPollerTest.this.scheduler.tasks.size());
+            Assertions.assertEquals(30_000, BazaarPollerTest.this.scheduler.tasks.element().delayMs);
             Assertions.assertTrue(BazaarPollerTest.this.clientTasks.isEmpty());
         }
     }
@@ -217,15 +228,61 @@ class BazaarPollerTest {
             timer.run();
             BazaarPollerTest.this.reply(BazaarPollerTest.this.api.requests.getLast(), 100);
             Assertions.assertTrue(BazaarPollerTest.this.clientTasks.isEmpty());
-            Assertions.assertEquals(250, BazaarPollerTest.this.scheduler.tasks.element().delayMs);
+            Assertions.assertTrue(BazaarPollerTest.this.scheduler.tasks.element().delayMs >= 20_200);
         }
 
         @Test
-        void retainsErrorBackoffForTheCurrentRun() {
+        void retriesFailuresForeverAndResetsAfterSuccess() {
             BazaarPollerTest.this.startFetch().completeExceptionally(new IllegalStateException("API unavailable"));
             BazaarPollerTest.this.scheduler.runPending();
-            Assertions.assertEquals(500, BazaarPollerTest.this.scheduler.tasks.element().delayMs);
-            Assertions.assertTrue(BazaarPollerTest.this.clientTasks.isEmpty());
+            for (int attempt = 0; attempt < 10; attempt++) {
+                var retry = BazaarPollerTest.this.timer(1_000, 60_001);
+                Assertions.assertTrue(retry.delayMs <= 60_000);
+                retry.run();
+                BazaarPollerTest.this.scheduler.runPending();
+                BazaarPollerTest.this.api.requests.getLast()
+                    .completeExceptionally(new IllegalStateException("API unavailable"));
+                BazaarPollerTest.this.scheduler.runPending();
+            }
+            BazaarPollerTest.this.timer(60_000, 60_001).run();
+            BazaarPollerTest.this.scheduler.runPending();
+            BazaarPollerTest.this.reply(BazaarPollerTest.this.api.requests.getLast(), 100);
+            Assertions.assertEquals(1, BazaarPollerTest.this.clientTasks.size());
+            Assertions.assertTrue(BazaarPollerTest.this.scheduler.tasks.element().delayMs >= 20_200);
+            Assertions.assertTrue(BazaarPollerTest.this.outageWarnings.isEmpty());
+        }
+
+        @Test
+        void throttleAndTimeoutHaveBoundedRetries() {
+            var request = BazaarPollerTest.this.startFetch();
+            BazaarPollerTest.this.timer(30_000, 30_001).run();
+            BazaarPollerTest.this.scheduler.runPending();
+            Assertions.assertTrue(request.isCancelled());
+            var retry = BazaarPollerTest.this.timer(1_000, 1_200);
+            retry.run();
+            BazaarPollerTest.this.scheduler.runPending();
+            BazaarPollerTest.this.api.requests.getLast()
+                .completeExceptionally(new BadStatusCodeException(429, "throttled"));
+            BazaarPollerTest.this.scheduler.runPending();
+            Assertions.assertEquals(60_000, BazaarPollerTest.this.timer(60_000, 60_001).delayMs);
+        }
+
+        @Test
+        void warnsOnceAfterFiveMinutesAndCancelsWarningOnRecovery() {
+            BazaarPollerTest.this.startFetch().completeExceptionally(new IllegalStateException("API unavailable"));
+            BazaarPollerTest.this.scheduler.runPending();
+            BazaarPollerTest.this.timer(300_000, 300_001).run();
+            BazaarPollerTest.this.scheduler.runPending();
+            Assertions.assertTrue(BazaarPollerTest.this.outageWarnings.isEmpty());
+            BazaarPollerTest.this.clientTasks.remove().run();
+            Assertions.assertEquals(1, BazaarPollerTest.this.outageWarnings.size());
+            BazaarPollerTest.this.timer(1_000, 1_200).run();
+            BazaarPollerTest.this.scheduler.runPending();
+            BazaarPollerTest.this.reply(BazaarPollerTest.this.api.requests.getLast(), 100);
+            Assertions.assertTrue(BazaarPollerTest.this.scheduler.tasks.stream()
+                .noneMatch(task -> task.delayMs == 300_000));
+            BazaarPollerTest.this.clientTasks.remove().run();
+            Assertions.assertEquals(1, BazaarPollerTest.this.outageWarnings.size());
         }
 
         @Test
@@ -309,7 +366,7 @@ class BazaarPollerTest {
             if (this.isShutdown()) {
                 throw new RejectedExecutionException("scheduler stopped");
             }
-            var scheduled = new ScheduledTask(task, unit.toMillis(delay));
+            var scheduled = new ScheduledTask(task, unit.toMillis(delay), this.tasks);
             this.tasks.add(scheduled);
             return scheduled;
         }
@@ -317,10 +374,24 @@ class BazaarPollerTest {
 
     private static final class ScheduledTask extends FutureTask<Void> implements ScheduledFuture<Void> {
         private final long delayMs;
+        private final Queue<ScheduledTask> owner;
 
-        private ScheduledTask(Runnable task, long delayMs) {
+        private ScheduledTask(Runnable task, long delayMs, Queue<ScheduledTask> owner) {
             super(task, null);
             this.delayMs = delayMs;
+            this.owner = owner;
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            this.owner.remove(this);
+            return super.cancel(mayInterruptIfRunning);
+        }
+
+        @Override
+        public void run() {
+            this.owner.remove(this);
+            super.run();
         }
 
         @Override

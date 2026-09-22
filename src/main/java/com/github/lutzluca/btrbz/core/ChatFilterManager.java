@@ -12,6 +12,8 @@ import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ClickEvent.RunCommand;
+import net.minecraft.network.chat.HoverEvent.ShowText;
 
 public class ChatFilterManager {
 
@@ -36,9 +38,25 @@ public class ChatFilterManager {
         });
     }
 
+    public static Component withFilledOrderShortcut(Component message, boolean overlay, boolean enabled) {
+        if (!enabled || overlay) {
+            return message;
+        }
+        var content = Utils.stripFormattingCodes(message.getString());
+        if (!content.startsWith("[Bazaar]") || !content.endsWith("was filled!")) {
+            return message;
+        }
+        return message.copy()
+            .withStyle(style -> style
+                .withClickEvent(new RunCommand("/managebazaarorders"))
+                .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))))
+            .append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
+    }
+
     public static class ChatFilterConfig {
 
         public boolean enabled = true;
+        public boolean filledOrderShortcut = true;
 
         public OptionGroup createGroup() {
             return OptionGroup
@@ -65,6 +83,14 @@ public class ChatFilterManager {
                             true,
                             () -> this.enabled,
                             val -> this.enabled = val)
+                        .controller(ConfigScreen::createBooleanController)
+                        .build(),
+                    Option.<Boolean>createBuilder()
+                        .name(Component.literal("Filled Order Chat Shortcut"))
+                        .description(ConfigScreen.createDescription(
+                            "Make filled Bazaar messages clickable and append [Go To Orders]. "
+                                + "Order tracking continues when this is off."))
+                        .binding(true, () -> this.filledOrderShortcut, val -> this.filledOrderShortcut = val)
                         .controller(ConfigScreen::createBooleanController)
                         .build()))
                 .collapsed(true)

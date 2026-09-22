@@ -2,24 +2,23 @@ package com.github.lutzluca.btrbz.data;
 
 import com.github.lutzluca.btrbz.mixin.SkyBlockBazaarReplyAccessor;
 import io.vavr.control.Try;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.apache.ApacheHttpClient;
+import net.hypixel.api.exceptions.BadStatusCodeException;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
 import net.minecraft.client.Minecraft;
@@ -31,21 +30,13 @@ import org.jetbrains.annotations.NotNull;
  */
 @Slf4j
 public class BazaarPoller implements AutoCloseable {
-
-    /*
-     * maybe on unchanged data use exponential backoff, starting at 100ms, doubling each time up a
-     * max as unchanged data should indicate that the bz has not been updated and should update soon
-     * (this should be the case most of the time, else the API is unable to respond with updated
-     * data). But this is good enough for "now".
-     */
-
     private static final long BAZAAR_UPDATE_TIME_MS = 20_000;
-    private static final long UNCHANGED_DATA_BACKOFF_MS = 250;
-    private static final long ERROR_BACKOFF_MS = 500;
-    private static final int MAX_UNCHANGED_RETRIES = 5;
-    private static final DateTimeFormatter LOG_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final long REQUEST_TIMEOUT_MS = 30_000;
+    private static final long MAX_ERROR_BACKOFF_MS = 60_000;
+    private static final long OUTAGE_WARNING_MS = 5 * 60_000;
 
     private final Consumer<Map<String, Product>> onReply;
+    private final Runnable onLongOutage;
     private final HypixelAPI api;
     private final ScheduledExecutorService scheduler;
     private final Consumer<Runnable> clientExecutor;
@@ -54,15 +45,20 @@ public class BazaarPoller implements AutoCloseable {
     private volatile long generation;
     // Worker-owned state below.
     private ScheduledFuture<?> scheduledFetch;
+    private ScheduledFuture<?> requestTimeout;
+    private ScheduledFuture<?> outageWarning;
     private CompletableFuture<SkyBlockBazaarReply> inFlight;
 
     private long lastKnownUpdateTime = -1;
-    private int unchangedDataRetries = 0;
+    private int failedRequests;
+    private volatile boolean outageActive;
 
-    public BazaarPoller(@NotNull Consumer<Map<String, Product>> onReply) {
+    public BazaarPoller(@NotNull Consumer<Map<String, Product>> onReply, Runnable onLongOutage) {
         this(
             onReply,
-            new HypixelAPI(new ApacheHttpClient(getApiKey())),
+            onLongOutage,
+            // The SDK requires a key for its transport, but getSkyBlockBazaar is keyless.
+            new HypixelAPI(new ApacheHttpClient(new UUID(0, 0))),
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread thread = new Thread(r, "bazaar-poller");
                 thread.setDaemon(true);
@@ -73,11 +69,13 @@ public class BazaarPoller implements AutoCloseable {
 
     BazaarPoller(
         Consumer<Map<String, Product>> onReply,
+        Runnable onLongOutage,
         HypixelAPI api,
         ScheduledExecutorService scheduler,
         Consumer<Runnable> clientExecutor
     ) {
         this.onReply = Objects.requireNonNull(onReply);
+        this.onLongOutage = Objects.requireNonNull(onLongOutage);
         this.api = Objects.requireNonNull(api);
         this.scheduler = Objects.requireNonNull(scheduler);
         this.clientExecutor = Objects.requireNonNull(clientExecutor);
@@ -92,8 +90,11 @@ public class BazaarPoller implements AutoCloseable {
         log.debug("Started Bazaar polling generation {}", run);
         this.execute(() -> {
             if (this.isCurrent(run)) {
+                this.cancelPendingFetch();
+                this.cancelOutageWarning();
                 this.lastKnownUpdateTime = -1;
-                this.unchangedDataRetries = 0;
+                this.failedRequests = 0;
+                this.outageActive = false;
                 this.fetchBazaarData(run);
             }
         });
@@ -105,7 +106,11 @@ public class BazaarPoller implements AutoCloseable {
         }
         this.running = false;
         this.generation++;
-        this.execute(this::cancelPendingFetch);
+        this.outageActive = false;
+        this.execute(() -> {
+            this.cancelPendingFetch();
+            this.cancelOutageWarning();
+        });
     }
 
     private void cancelPendingFetch() {
@@ -113,17 +118,21 @@ public class BazaarPoller implements AutoCloseable {
             this.scheduledFetch.cancel(false);
             this.scheduledFetch = null;
         }
+        if (this.requestTimeout != null) {
+            this.requestTimeout.cancel(false);
+            this.requestTimeout = null;
+        }
         if (this.inFlight != null) {
             this.inFlight.cancel(true);
             this.inFlight = null;
         }
     }
 
-    private static UUID getApiKey() {
-        return Optional
-            .ofNullable(System.getenv("HYPIXEL_API_KEY"))
-            .map(UUID::fromString)
-            .orElseGet(UUID::randomUUID);
+    private void cancelOutageWarning() {
+        if (this.outageWarning != null) {
+            this.outageWarning.cancel(false);
+            this.outageWarning = null;
+        }
     }
 
     private boolean isCurrent(long run) {
@@ -161,12 +170,27 @@ public class BazaarPoller implements AutoCloseable {
 
     private void fetchBazaarData(long run) {
         Try.of(this.api::getSkyBlockBazaar).onSuccess(request -> {
+            if (request == null) {
+                this.handleFetchError(run, new IllegalStateException("Bazaar request is null"));
+                return;
+            }
             this.inFlight = request;
-            request.whenCompleteAsync((reply, throwable) -> {
-                if (!this.isCurrent(run)) {
+            this.requestTimeout = this.scheduler.schedule(() -> {
+                if (!this.isCurrent(run) || this.inFlight != request) {
                     return;
                 }
                 this.inFlight = null;
+                this.requestTimeout = null;
+                request.cancel(true);
+                this.handleFetchError(run, new TimeoutException("Bazaar request exceeded 30 seconds"));
+            }, REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            request.whenComplete((reply, throwable) -> this.execute(() -> {
+                if (!this.isCurrent(run) || this.inFlight != request) {
+                    return;
+                }
+                this.inFlight = null;
+                this.requestTimeout.cancel(false);
+                this.requestTimeout = null;
                 if (throwable != null) {
                     this.handleFetchError(run, throwable);
                     return;
@@ -183,91 +207,98 @@ public class BazaarPoller implements AutoCloseable {
                 }
 
                 this.processBazaarReply(run, reply);
-            }, this.scheduler);
+            }));
         }).onFailure(error -> this.handleFetchError(run, error));
     }
 
     private void processBazaarReply(long run, SkyBlockBazaarReply reply) {
-        Try.of(() -> (SkyBlockBazaarReplyAccessor) reply).onSuccess(accessor -> {
-            long currentUpdateTime = accessor.getLastUpdated();
-            boolean changed = currentUpdateTime != this.lastKnownUpdateTime;
-            this.lastKnownUpdateTime = currentUpdateTime;
-
-            if (changed) {
-                this.handleChangedData(run, reply.getProducts());
-            } else {
-                this.handleUnchangedData(run);
+        Try.of(() -> ((SkyBlockBazaarReplyAccessor) reply).getLastUpdated()).onSuccess(currentUpdateTime -> {
+            if (currentUpdateTime <= 0 || reply.getProducts() == null) {
+                this.handleFetchError(run, new IllegalArgumentException("Invalid Bazaar reply"));
+                return;
             }
+            this.recovered();
+            boolean changed = currentUpdateTime > this.lastKnownUpdateTime;
+            if (changed) {
+                this.lastKnownUpdateTime = currentUpdateTime;
+                Try.run(() -> this.clientExecutor.accept(() -> {
+                    if (this.isCurrent(run)) {
+                        this.onReply.accept(reply.getProducts());
+                    }
+                })).onFailure(error -> log.error("Could not dispatch Bazaar update", error));
+            }
+            this.scheduleNormalFetch(run);
 
             log.trace(
                 "Bazaar data fetched successfully - Data {}, Last Updated: {}",
                 changed ? "changed" : "unchanged",
-                formatTimestamp(currentUpdateTime));
-        }).onFailure(err -> {
-            log.warn("Reply does not implement expected accessor.", err);
-            this.scheduleFetch(
-                run,
-                ERROR_BACKOFF_MS,
-                "Error recovery - SkyBlockBazaarReplyAccessor cast failed");
-        });
+                currentUpdateTime);
+        }).onFailure(err -> this.handleFetchError(run, err));
     }
 
-    private void handleChangedData(long run, Map<String, Product> products) {
-        this.unchangedDataRetries = 0;
-        this.clientExecutor.accept(() -> {
-            if (this.isCurrent(run)) {
-                this.onReply.accept(products);
-            }
-        });
-
+    private void scheduleNormalFetch(long run) {
         long jitter = ThreadLocalRandom.current().nextLong(200, 400);
         this.scheduleFetch(run, BAZAAR_UPDATE_TIME_MS + jitter, "Regular interval fetch");
     }
 
-    private static String formatTimestamp(long utcMillis) {
-        return Instant.ofEpochMilli(utcMillis).atZone(ZoneId.systemDefault()).format(LOG_TIMESTAMP);
-    }
-
-    private void handleUnchangedData(long run) {
-        this.unchangedDataRetries++;
-
-        if (this.unchangedDataRetries <= MAX_UNCHANGED_RETRIES) {
-            log.debug(
-                "Data unchanged (attempt {}/{}), retrying in {}ms",
-                this.unchangedDataRetries,
-                MAX_UNCHANGED_RETRIES,
-                UNCHANGED_DATA_BACKOFF_MS);
-
-            this.scheduleFetch(
-                run,
-                UNCHANGED_DATA_BACKOFF_MS,
-                String.format("Unchanged data retry #%d", this.unchangedDataRetries));
-        } else {
-            log.warn(
-                "Bazaar data has been unchanged for {} consecutive attempts. Reverting to normal polling interval. "
-                    + "This may indicate an API issue.",
-                MAX_UNCHANGED_RETRIES);
-
-            this.unchangedDataRetries = 0;
-            long jitter = ThreadLocalRandom.current().nextLong(200, 400);
-            this.scheduleFetch(run, BAZAAR_UPDATE_TIME_MS + jitter, "Post-unchanged-limit normal fetch");
+    private void recovered() {
+        if (this.failedRequests > 0) {
+            log.info("Bazaar polling recovered after {} failed requests", this.failedRequests);
         }
+        this.failedRequests = 0;
+        this.outageActive = false;
+        this.cancelOutageWarning();
     }
 
     private void handleFetchError(long run, Throwable throwable) {
-        log.warn(
-            "Error occurred while fetching bazaar data. Retrying in {}ms. {}",
-            ERROR_BACKOFF_MS,
-            throwable.getMessage());
-        this.scheduleFetch(run, ERROR_BACKOFF_MS, "Error recovery: API fetch error");
+        if (!this.isCurrent(run)) {
+            return;
+        }
+        if (!this.outageActive) {
+            this.outageActive = true;
+            this.outageWarning = this.scheduler.schedule(() -> {
+                this.outageWarning = null;
+                if (this.isCurrent(run) && this.outageActive) {
+                    this.clientExecutor.accept(() -> {
+                        if (this.isCurrent(run) && this.outageActive) {
+                            this.onLongOutage.run();
+                        }
+                    });
+                }
+            }, OUTAGE_WARNING_MS, TimeUnit.MILLISECONDS);
+            log.warn("Bazaar polling failed; retrying automatically", throwable);
+        } else {
+            log.debug("Bazaar polling retry failed: {}", throwable.toString());
+        }
+        if (this.failedRequests < Integer.MAX_VALUE) {
+            this.failedRequests++;
+        }
+        long base = Math.min(MAX_ERROR_BACKOFF_MS, 1_000L << Math.min(this.failedRequests - 1, 6));
+        long delay = Math.min(MAX_ERROR_BACKOFF_MS,
+            base + ThreadLocalRandom.current().nextLong(Math.max(1, base / 5)));
+        var cause = throwable;
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        if (cause instanceof BadStatusCodeException status) {
+            // The SDK does not expose Retry-After; use a conservative delay for throttling.
+            if (status.getStatusCode() == 429) {
+                delay = MAX_ERROR_BACKOFF_MS;
+            } else if (status.getStatusCode() == 503) {
+                delay = Math.max(delay, 5_000);
+            }
+        }
+        this.scheduleFetch(run, delay, "Error recovery");
     }
 
     @Override
     public void close() {
         this.running = false;
         this.generation++;
+        this.outageActive = false;
         this.execute(() -> {
             this.cancelPendingFetch();
+            this.cancelOutageWarning();
             try {
                 this.api.shutdown();
             } finally {

@@ -51,7 +51,6 @@ import org.jetbrains.annotations.Nullable;
 
 /** Product picking and alert editing share a retained, live market view. */
 public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
-    private static final int SEARCH_LIMIT = 12;
     private static final int PANEL = 0xEF0C0C0C;
     private static final int CARD = 0xB51A1A1A;
     private static final DateTimeFormatter CAPTURE_TIME = DateTimeFormatter
@@ -75,7 +74,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private int editorCardHeight;
     private String message = "";
     private int messageColor = BazaarStyles.SECONDARY_TEXT;
-    private List<IndexedProduct> matches = List.of();
     private long marketRevision;
     private long indexRevision;
     private long alertRevision;
@@ -84,9 +82,8 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout content;
     private RestorableVerticalScrollContainer<FlowLayout> scroller;
     private @Nullable FlowLayout productPane;
-    private @Nullable FlowLayout resultRows;
+    private @Nullable AlertProductSearch productSearch;
     private @Nullable FlowLayout alertRows;
-    private @Nullable TextBoxComponent searchBox;
     private @Nullable TextBoxComponent expressionBox;
     private @Nullable LabelComponent buyQuote;
     private @Nullable LabelComponent sellQuote;
@@ -167,9 +164,8 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.content.clearChildren();
         this.activeQuotes.clear();
         this.productPane = null;
-        this.resultRows = null;
+        this.productSearch = null;
         this.alertRows = null;
-        this.searchBox = null;
         this.expressionBox = null;
         this.buyQuote = null;
         this.sellQuote = null;
@@ -263,32 +259,15 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
         this.productPane.clearChildren();
-        this.searchBox = null;
-        this.resultRows = null;
+        this.productSearch = null;
         this.buyQuote = null;
         this.sellQuote = null;
-        this.matches = List.of();
         if (this.editor.searching()) {
-            var heading = row(text("Item", BazaarStyles.PRIMARY_TEXT), BazaarUi.spacer());
-            if (this.editor.product() != null) {
-                heading.child(button("Cancel", () -> this.defer(this::cancelSearch)));
-            }
-            this.productPane.child(heading);
-            this.searchBox = UIComponents.textBox(Sizing.fill(100));
-            this.searchBox.setMaxLength(120);
-            this.searchBox.text(this.editor.query());
-            this.searchBox.onChanged().subscribe(query -> {
-                this.editor.query(query);
-                this.refreshSearchResults(true);
-            });
-            this.productPane.child(this.searchBox);
-            this.resultRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-            this.resultRows.gap(3);
-            var results = UIContainers.verticalScroll(Sizing.fill(100), Sizing.fixed(this.resultHeight),
-                this.resultRows);
-            results.scrollbarThiccness(3);
-            this.productPane.child(results);
-            this.refreshSearchResults(true);
+            var cancel = this.editor.product() == null
+                ? null
+                : button("Cancel", () -> this.defer(this::cancelSearch));
+            this.productSearch = new AlertProductSearch(this.productPane, this.data, this.editor,
+                this.productWidth, this.resultHeight, cancel, product -> this.defer(() -> this.selectProduct(product)));
         } else {
             this.productPane.child(row(text("Item", BazaarStyles.SECONDARY_TEXT), BazaarUi.spacer(),
                 button("Change", () -> this.defer(this::beginSearch))));
@@ -299,33 +278,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.productPane.child(this.buyQuote);
             this.productPane.child(this.sellQuote);
             this.refreshQuotes();
-        }
-    }
-
-    private void refreshSearchResults(boolean force) {
-        if (this.resultRows == null) {
-            return;
-        }
-        var next = this.data.searchProducts(this.editor.query(), SEARCH_LIMIT);
-        if (!force && next.equals(this.matches)) {
-            return;
-        }
-        this.matches = next;
-        this.resultRows.clearChildren();
-        if (next.isEmpty()) {
-            String hint = !this.data.hasMarketData()
-                ? "Waiting for market data…"
-                : this.editor.query().isBlank() ? "" : "No matches. Try a shorter name.";
-            if (!hint.isEmpty()) {
-                this.resultRows.child(text(hint, BazaarStyles.MUTED_TEXT).maxWidth(this.productWidth - 24));
-            }
-            return;
-        }
-        for (var product : next) {
-            boolean duplicate = next.stream().filter(other -> other.strippedName()
-                .equalsIgnoreCase(product.strippedName())).count() > 1;
-            this.resultRows.child(new AlertProductRow(this.data, product, this.productWidth - 20, duplicate,
-                () -> this.defer(() -> this.selectProduct(product))));
         }
     }
 
@@ -429,10 +381,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
         var definition = resolved.get();
         this.previewValue.color(BazaarStyles.color(BazaarStyles.SECONDARY_TEXT));
-        var current = this.editor.source()
-            .price(this.data.getMarketPrices(ProductIdentity.fromIndex(definition.product())));
-        String detail = current.isEmpty()
-            ? "\nWaiting for a current quote." : "";
+        var identity = ProductIdentity.fromIndex(definition.product());
+        var snapshot = this.data.snapshot();
+        var current = definition.type().comparisonPrice(snapshot, identity);
+        String detail = current.isPresent() && definition.type().source() == PriceSource.Sell
+            && snapshot.hasEmptyBuyOrderSide(identity)
+                ? "\nNo buy orders: compares at 0.1, without sell liquidity."
+                : current.isEmpty() ? "\nWaiting for a current quote." : "";
         this.previewValue.text(priceCondition(definition.type(), definition.price())
             .append(Component.literal(detail).withColor(BazaarStyles.SECONDARY_TEXT)));
         this.saveButton.tooltip(List.<Component>of());
@@ -598,7 +553,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             }
         } else {
             if (marketChanged || indexChanged) {
-                this.refreshSearchResults(false);
+                if (this.productSearch != null) {
+                    this.productSearch.refresh(false);
+                }
                 this.refreshQuotes();
             }
             this.refreshPreview();
@@ -613,11 +570,14 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 this.cancelSearch();
                 return true;
             }
-            if (this.searchBox != null && this.uiAdapter.rootComponent.focusHandler().focused() == this.searchBox
-                && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER)
-                && !this.matches.isEmpty()) {
-                this.selectProduct(this.matches.getFirst());
-                return true;
+            if (this.productSearch != null
+                && this.uiAdapter.rootComponent.focusHandler().focused() == this.productSearch.box()
+                && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER)) {
+                var first = this.productSearch.firstMatch();
+                if (first.isPresent()) {
+                    this.selectProduct(first.get());
+                    return true;
+                }
             }
         }
         return super.keyPressed(event);
@@ -628,8 +588,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void focusSearch() {
-        if (this.searchBox != null && this.uiAdapter.rootComponent.focusHandler() != null) {
-            this.uiAdapter.rootComponent.focusHandler().focus(this.searchBox, UIComponent.FocusSource.MOUSE_CLICK);
+        if (this.productSearch != null && this.uiAdapter.rootComponent.focusHandler() != null) {
+            this.uiAdapter.rootComponent.focusHandler().focus(this.productSearch.box(),
+                UIComponent.FocusSource.MOUSE_CLICK);
         }
     }
 

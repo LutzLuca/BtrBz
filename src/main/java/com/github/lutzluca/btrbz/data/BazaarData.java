@@ -182,6 +182,10 @@ public class BazaarData {
         return new MarketSnapshot(this.lastProducts);
     }
 
+    public MarketSnapshot snapshot() {
+        return this.currentSnapshot();
+    }
+
     public Optional<Double> lowestSellOfferPrice(ProductIdentity product) {
         return this.currentSnapshot().lowestSellOfferPrice(product);
     }
@@ -320,6 +324,11 @@ public class BazaarData {
 
         public boolean contains(ProductIdentity product) {
             return this.rawProduct(product).isPresent();
+        }
+
+        public boolean hasEmptyBuyOrderSide(ProductIdentity product) {
+            return this.rawProduct(product).map(entry -> entry.getSellSummary() != null
+                && entry.getSellSummary().isEmpty()).orElse(false);
         }
 
         public Optional<Double> lowestSellOfferPrice(ProductIdentity product) {

@@ -14,6 +14,8 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundEvents;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
+import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
@@ -43,6 +45,13 @@ public class Notifier {
         }
         log.info("Failed to send message '{}' to player (client or player null)", msg.getString());
         return false;
+    }
+
+    public static void notifyBazaarOutage() {
+        notifyPlayer(prefix().append(Component.literal(
+            "Bazaar API has been unavailable for over 5 minutes. Prices may be outdated; "
+                + "use price actions with care. Retrying automatically.")
+            .withStyle(ChatFormatting.YELLOW)));
     }
 
     public static void notifyOrderStatus(StatusUpdate update, BazaarData bazaarData) {
@@ -273,9 +282,13 @@ public class Notifier {
         SoundUtil.playSoundIf(ConfigStore.get().config().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f,
             2);
 
-        String priceText = price
-            .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
-            .orElse("currently has no listed price. ");
+        boolean emptyBuySide = alert.type.source() == PriceSource.Sell
+            && alert.type.direction() == Direction.Below
+            && bazaarData.snapshot().hasEmptyBuyOrderSide(ProductIdentity.fromIndex(alert.product));
+        String priceText = emptyBuySide
+            ? "there are no buy orders (using the 0.1-coin alert minimum). "
+            : price.map(p -> "the price is " + Utils.formatDecimal(p, 1, true) + " coins. ")
+                .orElse("there is currently no listed price. ");
         var product = bazaarData.refreshIndexedProduct(alert.product);
 
         Component msg = prefix()
@@ -285,7 +298,7 @@ public class Notifier {
             .append(coinComponent(alert.price))
             .append(Component.literal(" (" + alert.type.format() + ") ").withStyle(ChatFormatting.DARK_GRAY))
             .append(Component.literal("has been reached").withStyle(ChatFormatting.GREEN))
-            .append(Component.literal(" and is ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(" and ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(priceText).withStyle(ChatFormatting.GOLD))
             .append(Component
                 .literal("[Click to view]")
@@ -297,14 +310,6 @@ public class Notifier {
                         .append(Component.literal(" in the bazaar")))))
                 .withStyle(ChatFormatting.RED));
 
-        notifyPlayer(msg);
-    }
-
-    public static void notifyInvalidProduct(Alert alert, BazaarData bazaarData) {
-        Component msg = prefix()
-            .append(Component.literal("Removed alert for ").withStyle(ChatFormatting.GRAY))
-            .append(productNameComponent(alert.product, bazaarData, ChatFormatting.AQUA))
-            .append(Component.literal(" because it is not present in Bazaar data.").withStyle(ChatFormatting.GRAY));
         notifyPlayer(msg);
     }
 

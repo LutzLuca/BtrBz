@@ -56,6 +56,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
+import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.mojang.serialization.Codec;
@@ -69,14 +70,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.Identifier;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
@@ -170,7 +168,7 @@ public class BtrBz implements ClientModInitializer {
         this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         this.purseTracker = new PurseTracker(GameUtils::getPurse);
-        this.bazaarPoller = new BazaarPoller(this.bazaarData::onUpdate);
+        this.bazaarPoller = new BazaarPoller(this.bazaarData::onUpdate, Notifier::notifyBazaarOutage);
         var flipProductContext = new FlipProductContext(this.bazaarData);
         this.flipSubmissionTracker = new FlipSubmissionTracker();
 
@@ -351,18 +349,8 @@ public class BtrBz implements ClientModInitializer {
             if (!BtrBz.isActive()) {
                 return message;
             }
-            var rawMsg = Utils.stripFormattingCodes(message.getString());
-            if (overlay || !rawMsg.startsWith("[Bazaar]") || !rawMsg.endsWith("was filled!")) {
-                return message;
-            }
-
-            // TODO: make this optional (config flag)
-            return message.copy()
-                .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/managebazaarorders"))
-                    .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))))
-                .append(Component.literal(" [Go To Orders]")
-                    .withStyle(ChatFormatting.DARK_AQUA));
+            return ChatFilterManager.withFilledOrderShortcut(
+                message, overlay, ConfigStore.get().config().chatFilter.filledOrderShortcut);
         });
 
         ScreenTracker.registerOnLoaded(

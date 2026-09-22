@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import java.util.Optional;
 import java.util.Locale;
 import java.util.Objects;
@@ -24,6 +26,20 @@ public record AlertType(PriceSource source, Direction direction) {
             case Below -> current <= target;
             case Above -> current >= target;
         };
+    }
+
+    /** An empty buy-order side reaches Below alerts at the minimum, without providing sell liquidity. */
+    public Optional<Double> comparisonPrice(MarketSnapshot snapshot, ProductIdentity identity) {
+        if (!snapshot.contains(identity)) {
+            return Optional.empty();
+        }
+        var quote = this.source.price(snapshot.getMarketPrices(identity));
+        if (quote.isEmpty() && this.source == PriceSource.Sell
+            && this.direction == Direction.Below
+            && snapshot.hasEmptyBuyOrderSide(identity)) {
+            return Optional.of(0.1);
+        }
+        return quote;
     }
 
     public enum Direction {
