@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.orderprotection;
 
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import java.math.BigDecimal;
 import java.util.Optional;
 
 /**
@@ -58,7 +59,8 @@ public final class OrderProtectionRule {
             ? settings.maxBuyOrderPercentage()
             : settings.maxSellOfferPercentage();
 
-        if (settings.blockPercentage() && thresholdReached(percentage, percentageLimit)) {
+        if (settings.blockPercentage()
+            && thresholdReached(type, proposedPrice, referencePrice, percentageLimit)) {
             return Result.blocked(
                 Violation.Percentage,
                 proposedPrice,
@@ -110,8 +112,23 @@ public final class OrderProtectionRule {
         return Math.abs(proposedPrice - referencePrice) / referencePrice * 100;
     }
 
-    private static boolean thresholdReached(double value, double threshold) {
-        return Double.isFinite(threshold) && threshold >= 0 && value >= threshold;
+    private static boolean thresholdReached(
+        OrderType type,
+        double proposedPrice,
+        double referencePrice,
+        double threshold
+    ) {
+        if (!Double.isFinite(threshold) || threshold < 0) {
+            return false;
+        }
+
+        var proposed = BigDecimal.valueOf(proposedPrice);
+        var reference = BigDecimal.valueOf(referencePrice);
+        var improvement = type == OrderType.Buy
+            ? proposed.subtract(reference)
+            : reference.subtract(proposed);
+        return improvement.multiply(BigDecimal.valueOf(100))
+            .compareTo(reference.multiply(BigDecimal.valueOf(threshold))) >= 0;
     }
 
     public enum Violation {

@@ -265,7 +265,8 @@ public class OrderProtectionManager {
                 return new PendingOrderData(info, ValidationResult.allowed());
             }
 
-            if (!bazaarData.hasMarketData()) {
+            var market = bazaarData.snapshot();
+            if (!market.available()) {
                 return new PendingOrderData(info, ValidationResult.blocked("Bazaar prices are unavailable."));
             }
 
@@ -277,7 +278,14 @@ public class OrderProtectionManager {
                     ValidationResult.blocked("Unknown or unresolved product: " + info.productName()));
             }
 
-            var prices = bazaarData.getMarketPrices(ProductIdentity.fromIndex(product.get()));
+            var identity = ProductIdentity.fromIndex(product.get());
+            if (!market.contains(identity)) {
+                return new PendingOrderData(
+                    info,
+                    ValidationResult.blocked("Product is missing from Bazaar market data: " + info.productName()));
+            }
+
+            var prices = market.getMarketPrices(identity);
             var result = OrderProtectionRule.evaluate(
                 info.type(),
                 info.pricePerUnit(),

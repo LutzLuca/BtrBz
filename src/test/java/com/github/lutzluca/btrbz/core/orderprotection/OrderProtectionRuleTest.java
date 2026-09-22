@@ -79,6 +79,25 @@ class OrderProtectionRuleTest {
         }
 
         @Test
+        void blocksAnExactFractionalBuyBoundary() {
+            var atLimit = new Settings(false, true, 50, 50);
+
+            assertBlockedBy(evaluate(OrderType.Buy, 0.6, 0.4, 2, atLimit), Violation.Percentage);
+        }
+
+        @Test
+        void comparesDecimalPercentageBoundariesOnBothSides() {
+            var atLimit = new Settings(false, true, 50, 50);
+
+            assertAllowed(evaluate(OrderType.Buy, 14.9, 10, 30, atLimit));
+            assertBlockedBy(evaluate(OrderType.Buy, 15.0, 10, 30, atLimit), Violation.Percentage);
+            assertBlockedBy(evaluate(OrderType.Buy, 15.1, 10, 30, atLimit), Violation.Percentage);
+            assertAllowed(evaluate(OrderType.Sell, 5.1, 1, 10, atLimit));
+            assertBlockedBy(evaluate(OrderType.Sell, 5.0, 1, 10, atLimit), Violation.Percentage);
+            assertBlockedBy(evaluate(OrderType.Sell, 4.9, 1, 10, atLimit), Violation.Percentage);
+        }
+
+        @Test
         void blocksSellOfferAtPercentageBoundary() {
             var result = evaluate(OrderType.Sell, 85, 10, 100, DEFAULT_SETTINGS);
 
@@ -144,6 +163,14 @@ class OrderProtectionRuleTest {
 
             assertAllowed(evaluate(OrderType.Buy, 130, 100, 200, noPercentage));
             assertAllowed(evaluate(OrderType.Sell, 70, 10, 100, noPercentage));
+        }
+
+        @Test
+        void ignoresInvalidConfiguredPercentageLimits() {
+            var invalid = new Settings(false, true, Double.NaN, Double.POSITIVE_INFINITY);
+
+            assertAllowed(evaluate(OrderType.Buy, 15, 10, 30, invalid));
+            assertAllowed(evaluate(OrderType.Sell, 5, 1, 10, invalid));
         }
     }
 

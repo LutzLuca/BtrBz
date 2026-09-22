@@ -25,12 +25,16 @@ class OrderProtectionValidatorTest {
         Map.of("TEST", new ConversionProductEntry("Test Product", new ProductNameSource.Derived())))));
 
     private void publish(double buyPrice) {
+        this.publish(
+            "TEST",
+            "[{\"pricePerUnit\":%s,\"amount\":100,\"orders\":2}]".formatted(buyPrice),
+            "[{\"pricePerUnit\":110,\"amount\":100,\"orders\":2}]");
+    }
+
+    private void publish(String productId, String sellSummary, String buySummary) {
         var reply = new Gson().fromJson("""
-            {"products":{"TEST":{
-                "sell_summary":[{"pricePerUnit":%s,"amount":100,"orders":2}],
-                "buy_summary":[{"pricePerUnit":110,"amount":100,"orders":2}]
-            }}}
-            """.formatted(buyPrice), SkyBlockBazaarReply.class);
+            {"products":{"%s":{"sell_summary":%s,"buy_summary":%s}}}
+            """.formatted(productId, sellSummary, buySummary), SkyBlockBazaarReply.class);
         this.market.onUpdate(reply.getProducts());
     }
 
@@ -55,5 +59,45 @@ class OrderProtectionValidatorTest {
         config.enabled = false;
         Assertions.assertFalse(OrderProtectionManager.OrderValidator.validate(order, this.market, config)
             .validationResult().protect());
+    }
+
+    @Test
+    void protectionRequiresAnIndexEntryEvenWhenTheProductIsInTheMarket() {
+        this.publish("UNINDEXED", "[]", "[]");
+        var order = new OutstandingOrderInfo(
+            ProductIdentity.fromRuntime("Unindexed Product", "UNINDEXED", null),
+            "Unindexed Product", OrderType.Buy, 1, 105, 105);
+
+        var result = OrderProtectionManager.OrderValidator.validate(order, this.market, new OrderProtectionConfig())
+            .validationResult();
+
+        Assertions.assertTrue(result.protect());
+        Assertions.assertTrue(result.reason().contains("Unknown or unresolved product"));
+    }
+
+    @Test
+    void protectionBlocksAnIndexedProductMissingFromTheMarket() {
+        this.publish("OTHER", "[]", "[]");
+        var order = new OutstandingOrderInfo(this.identity, "Test Product", OrderType.Buy, 1, 105, 105);
+
+        var result = OrderProtectionManager.OrderValidator.validate(order, this.market, new OrderProtectionConfig())
+            .validationResult();
+
+        Assertions.assertTrue(result.protect());
+        Assertions.assertTrue(result.reason().contains("missing from Bazaar market data"));
+    }
+
+    @Test
+    void protectionAllowsAnIndexedProductWithEmptyBookSides() {
+        var order = new OutstandingOrderInfo(this.identity, "Test Product", OrderType.Buy, 1, 105, 105);
+        var config = new OrderProtectionConfig();
+
+        this.publish("TEST", "[]", "[]");
+        var bothSidesEmpty = OrderProtectionManager.OrderValidator.validate(order, this.market, config);
+        Assertions.assertFalse(bothSidesEmpty.validationResult().protect());
+
+        this.publish("TEST", "[]", "[{\"pricePerUnit\":110,\"amount\":100,\"orders\":2}]");
+        var buySideEmpty = OrderProtectionManager.OrderValidator.validate(order, this.market, config);
+        Assertions.assertFalse(buySideEmpty.validationResult().protect());
     }
 }
