@@ -20,7 +20,7 @@ class AlertManagerTest {
     void createsEditsAndRemovesWithStableIdentityAndOrder() {
         var config = new AlertConfig();
         var saves = new int[1];
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++);
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
 
         var diamond = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
         var gold = manager.saveAlert(null, definition(2_000L, GOLD, 200.0)).get();
@@ -46,7 +46,7 @@ class AlertManagerTest {
     void rejectsDuplicatesAndStaleEditsWithoutMutatingOrSaving() {
         var config = new AlertConfig();
         var saves = new int[1];
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++);
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
         var first = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
         var revision = manager.changes().revision();
 
@@ -62,7 +62,7 @@ class AlertManagerTest {
     @Test
     void validatesEverySavedPriceBeforeMutation() {
         var config = new AlertConfig();
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> {});
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
 
         Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, Double.NaN)).isFailure());
         Assertions.assertTrue(
@@ -74,7 +74,7 @@ class AlertManagerTest {
     @Test
     void savesRoundedThresholdsAndDetectsDuplicatesAtTheSameTenth() {
         var config = new AlertConfig();
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> {});
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var alert = manager.saveAlert(null, definition(1_000L, DIAMOND, 8323.0000001)).get();
         Assertions.assertEquals(8323.0, alert.price);
         Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 8323.04)).isFailure());
@@ -87,7 +87,7 @@ class AlertManagerTest {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {
             throw new IllegalStateException("disk unavailable");
-        });
+        }, _ -> {});
 
         var result = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0));
 
@@ -100,7 +100,7 @@ class AlertManagerTest {
     @Test
     void cleanupSurvivesFailedPersistenceAndKeepsValidAlerts() {
         var config = new AlertConfig();
-        var original = new AlertManager(new BazaarData(), () -> config, () -> {});
+        var original = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var valid = original.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
         config.alerts.add(null);
         var saves = new int[1];
@@ -108,7 +108,7 @@ class AlertManagerTest {
         var manager = Assertions.assertDoesNotThrow(() -> new AlertManager(new BazaarData(), () -> config, () -> {
             saves[0]++;
             throw new IllegalStateException("disk unavailable");
-        }));
+        }, _ -> {}));
 
         Assertions.assertEquals(1, saves[0]);
         Assertions.assertEquals(java.util.List.of(valid), manager.alerts());
@@ -123,7 +123,7 @@ class AlertManagerTest {
         config.reachedAlerts = null;
         var saves = new int[1];
 
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++);
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
 
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertTrue(manager.reachedAlerts().isEmpty());
@@ -136,7 +136,7 @@ class AlertManagerTest {
     @Test
     void generatedIdsAreIndependent() {
         var config = new AlertConfig();
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> {});
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
 
         var first = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
         var second = manager.saveAlert(null, definition(2_000L, DIAMOND, 101.0)).get();

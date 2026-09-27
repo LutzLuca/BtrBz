@@ -14,8 +14,13 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundEvents;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
+import com.github.lutzluca.btrbz.core.alert.PriceAlertNotice;
+import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
+import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupStatus;
 import com.github.lutzluca.btrbz.core.trackedorders.SelfUndercutKey;
@@ -269,15 +274,51 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    public static void notifyPriceReached(Alert alert, Optional<Double> price, BazaarData bazaarData) {
-        SoundUtil.playSoundIf(ConfigStore.get().config().alert.soundOnAlert, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f,
-            2);
-
-        String priceText = price
-            .map(p -> Utils.formatDecimal(p, 1, true) + " coins. ")
-            .orElse("currently has no listed price. ");
+    public static void notifyPriceReached(ReachedAlert reached, BazaarData bazaarData, ToastNotifications toasts) {
+        var alert = reached.alert();
         var product = bazaarData.refreshIndexedProduct(alert.product);
+        var notice = PriceAlertNotice.from(reached, product);
+        var priceCondition = Component.literal(alert.type.source().label())
+            .withColor(alert.type.source() == PriceSource.Buy ? BazaarStyles.BUY_ACCENT : BazaarStyles.SELL_ACCENT)
+            .append(Component.literal(" " + alert.type.direction().symbol() + " ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal(notice.targetCoins()).withStyle(ChatFormatting.GOLD));
+        var config = ConfigStore.get().config();
+        boolean toastEnabled = config.alert.toastOnAlert;
+        boolean chatEnabled = config.notifications.alsoSendChatMessage;
+        boolean soundEnabled = config.notifications.playNotificationSound;
+        long generation = BtrBz.activationGeneration();
+        long session = toasts.session();
 
+        Minecraft.getInstance().execute(() -> {
+            if (!BtrBz.isActive() || BtrBz.activationGeneration() != generation
+                || toasts.session() != session
+                || Minecraft.getInstance().player == null) {
+                return;
+            }
+            if (toastEnabled) {
+                toasts.show(
+                    Component.literal("BtrBz").withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal(" · Price target reached").withStyle(ChatFormatting.GRAY)),
+                    List.of(
+                        GameUtils.legacyFormattedComponent(notice.formattedProductName()),
+                        priceCondition,
+                        Component.literal("Reached at ").withStyle(ChatFormatting.GRAY)
+                            .append(Component.literal(notice.observedCoins()).withStyle(ChatFormatting.GOLD))),
+                    bazaarData.productStack(product));
+            }
+            SoundUtil.playSoundIf(soundEnabled, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
+            if (chatEnabled) {
+                notifyPriceReachedInChat(reached, product, bazaarData);
+            }
+        });
+    }
+
+    private static void notifyPriceReachedInChat(
+        ReachedAlert reached,
+        IndexedProduct product,
+        BazaarData bazaarData
+    ) {
+        var alert = reached.alert();
         Component msg = prefix()
             .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
             .append(productNameComponent(product, bazaarData, ChatFormatting.GOLD))
@@ -286,7 +327,8 @@ public class Notifier {
             .append(Component.literal(" (" + alert.type.format() + ") ").withStyle(ChatFormatting.DARK_GRAY))
             .append(Component.literal("has been reached").withStyle(ChatFormatting.GREEN))
             .append(Component.literal(" and is ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(priceText).withStyle(ChatFormatting.GOLD))
+            .append(Component.literal(Utils.formatDecimal(reached.price(), 1, true) + " coins. ")
+                .withStyle(ChatFormatting.GOLD))
             .append(Component
                 .literal("[Click to view]")
                 .withStyle(style -> style

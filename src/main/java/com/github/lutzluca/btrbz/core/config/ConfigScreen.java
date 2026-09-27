@@ -85,6 +85,7 @@ public class ConfigScreen {
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
             .group(config.orderHighlight.createGroup())
             .group(config.alert.createGroup())
+            .group(config.notifications.createGroup())
             .option(ButtonOption.createBuilder()
                 .name(Component.literal("Open Price Alerts"))
                 .text(Component.literal("Open"))

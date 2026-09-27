@@ -13,7 +13,9 @@
         "SlotClickHookMixin",
         "MinecraftClientMixin",
         "ContainerEventHandlerMixin",
-        "SkyBlockBazaarReplyAccessor"
+        "SkyBlockBazaarReplyAccessor",
+        "ToastInstanceAccessor",
+        "ToastManagerMixin"
     ],
     "injectors": {
         "defaultRequire": 1

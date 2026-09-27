@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertType;
@@ -33,7 +34,7 @@ class ConfigStoreTest {
         void alertEditsAndDeletionPersistThroughTheManager() {
             var path = ConfigStoreTest.this.tempDir.resolve("alert-editor.json");
             var store = new ConfigStore(path);
-            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save);
+            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save, _ -> {});
             var product = new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond");
             var created = manager.saveAlert(null,
                 new AlertDefinition(1_000L, product, new AlertType(PriceSource.Sell, Direction.Below), 100)).get();
@@ -49,7 +50,8 @@ class ConfigStoreTest {
             Assertions.assertEquals(14.4, saved.price);
             Assertions.assertEquals(product, saved.product);
 
-            var restoredManager = new AlertManager(new BazaarData(), () -> reloaded.config().alert, reloaded::save);
+            var restoredManager = new AlertManager(new BazaarData(), () -> reloaded.config().alert, reloaded::save,
+                _ -> {});
             Assertions.assertTrue(restoredManager.removeAlert(saved.id));
             var afterDelete = new ConfigStore(path);
             Assertions.assertTrue(afterDelete.load());
@@ -76,7 +78,7 @@ class ConfigStoreTest {
 
             var store = new ConfigStore(path);
             Assertions.assertTrue(store.load());
-            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save);
+            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save, _ -> {});
             Assertions.assertEquals(1.5, store.config().tax);
             Assertions.assertEquals(1, manager.alerts().size());
             Assertions.assertEquals(123.4, manager.alerts().getFirst().price);
@@ -139,6 +141,59 @@ class ConfigStoreTest {
             Assertions.assertEquals(1, result.alert.alerts.size());
             Assertions.assertEquals("ENCHANTED_DIAMOND", result.alert.alerts.getFirst().productId());
             Assertions.assertEquals("Enchanted Diamond", result.alert.alerts.getFirst().productName());
+        }
+
+        @Test
+        void notificationSettingsPreserveActiveAlertsAndReachedHistory() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("notification-settings.json");
+            var store = new ConfigStore(path);
+            Assertions.assertTrue(store.config().alert.toastOnAlert);
+            Assertions.assertFalse(store.config().notifications.alsoSendChatMessage);
+            Assertions.assertTrue(store.config().notifications.playNotificationSound);
+            var alert = createAlert();
+            store.config().alert.alerts.add(alert);
+            store.config().alert.reachedAlerts.add(new ReachedAlert(alert, 2_000L, 1_012));
+            store.config().alert.toastOnAlert = false;
+            store.config().notifications.alsoSendChatMessage = true;
+            store.config().notifications.playNotificationSound = false;
+
+            store.save();
+
+            var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+            Assertions.assertFalse(serialized.getAsJsonObject("alert").has("soundOnAlert"));
+            var reloaded = new ConfigStore(path);
+            Assertions.assertTrue(reloaded.load());
+            var config = reloaded.config();
+            Assertions.assertFalse(config.alert.toastOnAlert);
+            Assertions.assertTrue(config.notifications.alsoSendChatMessage);
+            Assertions.assertFalse(config.notifications.playNotificationSound);
+            Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
+            Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
+            Assertions.assertEquals(1_012, config.alert.reachedAlerts.getFirst().price());
+        }
+
+        @Test
+        void existingAlertDataLoadsWhenNotificationSettingsAreAbsent() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("existing-alert-data.json");
+            var store = new ConfigStore(path);
+            var alert = createAlert();
+            store.config().alert.alerts.add(alert);
+            store.config().alert.reachedAlerts.add(new ReachedAlert(alert, 2_000L, 1_012));
+            store.save();
+            var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+            serialized.remove("notifications");
+            serialized.getAsJsonObject("alert").remove("toastOnAlert");
+            Files.writeString(path, serialized.toString());
+
+            var reloaded = new ConfigStore(path);
+            Assertions.assertTrue(reloaded.load());
+            var config = reloaded.config();
+            Assertions.assertTrue(config.alert.toastOnAlert);
+            Assertions.assertFalse(config.notifications.alsoSendChatMessage);
+            Assertions.assertTrue(config.notifications.playNotificationSound);
+            Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
+            Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
+            Assertions.assertEquals(1_012, config.alert.reachedAlerts.getFirst().price());
         }
 
         @Test

@@ -50,16 +50,11 @@ public class AlertManager {
     private final Consumer<ReachedAlert> notifyReached;
     private final CacheToken changes = CacheToken.named("alerts");
 
-    public AlertManager(BazaarData bazaarData) {
-        this(bazaarData, () -> ConfigStore.get().config().alert, ConfigStore.get()::save);
+    public AlertManager(BazaarData bazaarData, Consumer<ReachedAlert> notifyReached) {
+        this(bazaarData, () -> ConfigStore.get().config().alert, ConfigStore.get()::save, notifyReached);
     }
 
-    public AlertManager(BazaarData bazaarData, Supplier<AlertConfig> config, Runnable save) {
-        this(bazaarData, config, save, reached -> Notifier.notifyPriceReached(
-            reached.alert(), Optional.of(reached.price()), bazaarData));
-    }
-
-    AlertManager(
+    public AlertManager(
         BazaarData bazaarData,
         Supplier<AlertConfig> config,
         Runnable save,
@@ -412,7 +407,7 @@ public class AlertManager {
     public static class AlertConfig {
 
         public boolean enabled = true;
-        public boolean soundOnAlert = true;
+        public boolean toastOnAlert = true;
         public List<Alert> alerts = new ArrayList<>();
         public List<ReachedAlert> reachedAlerts = new ArrayList<>();
 
@@ -429,18 +424,18 @@ public class AlertManager {
                 .controller(ConfigScreen::createBooleanController);
         }
 
-        public Option.Builder<Boolean> createSoundOnAlertOption() {
+        public Option.Builder<Boolean> createToastOnAlertOption() {
             return Option
                 .<Boolean>createBuilder()
-                .name(Component.literal("Play Alert Sound"))
+                .name(Component.literal("Show Price Alert Toasts"))
                 .description(ConfigScreen.createDescription(
-                    "Play a sound together with the chat notification when a price target is reached."))
-                .binding(true, () -> this.soundOnAlert, val -> this.soundOnAlert = val)
+                    "Show a passive toast when a price target is reached. Reached alerts remain in the Reached tab."))
+                .binding(true, () -> this.toastOnAlert, val -> this.toastOnAlert = val)
                 .controller(ConfigScreen::createBooleanController);
         }
 
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createSoundOnAlertOption());
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(this.createToastOnAlertOption());
 
             return OptionGroup
                 .createBuilder()

@@ -55,6 +55,9 @@ import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
+import com.github.lutzluca.btrbz.utils.Notifier;
+import com.github.lutzluca.btrbz.utils.SoundUtil;
+import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
@@ -67,6 +70,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
 import net.minecraft.ChatFormatting;
@@ -98,6 +102,7 @@ public class BtrBz implements ClientModInitializer {
     private TrackedOrderManager orderManager;
     private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
+    private ToastNotifications toastNotifications;
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
     private WidgetRuntime widgetRuntime;
@@ -178,7 +183,9 @@ public class BtrBz implements ClientModInitializer {
         this.tooltipProvider = new OrderTooltipProvider(this.bazaarData, this.highlightManager);
         this.orderManager = new TrackedOrderManager(this.bazaarData);
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
-        this.alertManager = new AlertManager(this.bazaarData);
+        this.toastNotifications = new ToastNotifications(this.activation::isActive, this.activation::generation);
+        this.alertManager = new AlertManager(this.bazaarData,
+            reached -> Notifier.notifyPriceReached(reached, this.bazaarData, this.toastNotifications));
         new ChatFilterManager();
         this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);
@@ -298,6 +305,10 @@ public class BtrBz implements ClientModInitializer {
             this.flipSubmissionTracker.close();
             this.bazaarPoller.close();
         });
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            this.toastNotifications.clear();
+            SoundUtil.invalidatePending();
+        });
 
         this.flipHelper = new FlipHelper(
             this.bazaarData,
@@ -411,6 +422,8 @@ public class BtrBz implements ClientModInitializer {
 
     private void deactivate() {
         log.info("BtrBz features deactivated (generation={})", this.activation.generation());
+        this.toastNotifications.clear();
+        SoundUtil.invalidatePending();
         this.bazaarPoller.stop();
         this.bazaarData.clearMarketData();
         this.utcDayTracker.close();
