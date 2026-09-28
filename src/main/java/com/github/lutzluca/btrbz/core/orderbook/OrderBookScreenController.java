@@ -1,8 +1,10 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
@@ -13,6 +15,7 @@ import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -38,6 +41,22 @@ public final class OrderBookScreenController {
         this.productContext = productContext;
         this.runtime = runtime;
         SlotHookRegistry.register(new ControllerHook());
+    }
+
+    public @Nullable String unavailableReason() {
+        if (!ConfigStore.get().config().widgets.orderBookScreen.frame.enabled) {
+            return "Order book unavailable: enable its widget in settings.";
+        }
+        return BtrBz.isActive() ? null : "Order book unavailable while BtrBz is inactive.";
+    }
+
+    public boolean open(@Nullable Screen parent, IndexedProduct product) {
+        if (this.unavailableReason() != null) {
+            return false;
+        }
+        GameUtils.setScreen(new OrderBookScreen(parent, ProductIdentity.fromIndex(product),
+            product.formattedName(), this.runtime.createScreenHost()));
+        return true;
     }
 
     private final class ControllerHook implements SlotHook {
@@ -67,23 +86,12 @@ public final class OrderBookScreenController {
 
         @Override
         public SlotClickResult onClick(SlotClickContext context) {
-            if (!ConfigStore.get().config().widgets.orderBookScreen.frame.enabled) {
-                return SlotClickResult.Pass;
-            }
-
             var product = OrderBookScreenController.this.productContext.openedProduct();
             if (product == null) {
                 return SlotClickResult.Pass;
             }
-            var identity = ProductIdentity.fromIndex(product);
-
-            GameUtils.setScreen(new OrderBookScreen(
-                context.view().getCurrInfo().getScreen(),
-                identity,
-                product.formattedName(),
-                OrderBookScreenController.this.runtime.createScreenHost()));
-
-            return SlotClickResult.Consume;
+            return OrderBookScreenController.this.open(context.view().getCurrInfo().getScreen(), product)
+                ? SlotClickResult.Consume : SlotClickResult.Pass;
         }
     }
 
