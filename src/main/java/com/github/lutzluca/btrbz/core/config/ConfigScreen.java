@@ -127,7 +127,7 @@ public class ConfigScreen {
         return OptionGroup.createBuilder()
             .name(Component.literal("Alerts"))
             .description(createDescription(paragraphs(
-                text("Notify you when a Bazaar price or liquidity condition is reached."),
+                text("Get an alert when a Bazaar price or available quantity hits your target."),
                 note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
             .options(alerts.build())
             .option(ButtonOption.createBuilder()

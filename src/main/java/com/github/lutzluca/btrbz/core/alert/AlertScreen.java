@@ -211,7 +211,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 this.rebuild();
                 this.focusSearch();
             });
-            this.content.child(row(text(this.tab == Tab.Reached ? "Latest 10 reached alerts" : "Your saved alerts",
+            this.content.child(row(text(this.tab == Tab.Reached ? "Last 10 reached alerts" : "Your saved alerts",
                 BazaarStyles.SECONDARY_TEXT), BazaarUi.spacer(), create));
             this.alertRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
             this.alertRows.gap(6);
@@ -244,11 +244,10 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             settings.child(segments(this.belowButton, this.aboveButton));
         } else {
             this.buyButton = button("Buy Side", () -> this.setLiquiditySide(LiquiditySide.BuyOrders));
-            this.buyButton.tooltip(Component.literal("Buy Side: buy orders you can instantly sell to. "
-                + "This corresponds to Sell Price."));
+            this.buyButton.tooltip(Component.literal("Buy Side: buy orders you can sell to instantly (Sell Price)."));
             this.sellButton = button("Sell Side", () -> this.setLiquiditySide(LiquiditySide.SellOffers));
-            this.sellButton.tooltip(Component.literal("Sell Side: sell offers you can instantly buy from. "
-                + "This corresponds to Buy Price."));
+            this.sellButton
+                .tooltip(Component.literal("Sell Side: sell offers you can buy from instantly (Buy Price)."));
             settings.child(segments(this.buyButton, this.sellButton));
             settings.child(text("Required items", BazaarStyles.SECONDARY_TEXT));
             this.quantityBox = UIComponents.textBox(Sizing.fill(100));
@@ -268,7 +267,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             Use +, -, *, / and parentheses ().
             Reference current prices with buy and sell.
             Examples: buy * 1.1, sell - 10k or 2.5m"""));
-        settings.child(row(text(this.editor.mode() == Kind.Price ? "Threshold" : "Per-item price bound",
+        settings.child(row(text(this.editor.mode() == Kind.Price ? "Threshold" : "Price limit per item",
             BazaarStyles.SECONDARY_TEXT), help));
         this.expressionBox = UIComponents.textBox(Sizing.fill(100));
         this.expressionBox.setMaxLength(256);
@@ -280,8 +279,8 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         });
         settings.child(this.expressionBox);
         if (this.editor.mode() == Kind.Liquidity) {
-            settings.child(text("Liquidity checks are limited to the top 30 orders per side exposed by Hypixel. "
-                + "This is a hard API limitation; liquidity beyond that depth cannot be checked.",
+            settings.child(text("Hypixel shows only the top 30 orders on each side. "
+                + "Orders beyond that limit cannot be checked for liquidity.",
                 BazaarStyles.MUTED_TEXT).maxWidth(this.settingsWidth - 20));
         }
         var footer = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
@@ -557,8 +556,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.editor.reset();
         this.tab = this.manager.alerts().stream().anyMatch(candidate -> candidate.id.equals(alert.id))
             ? Tab.Active : Tab.Reached;
-        this.message = (this.tab == Tab.Active ? "Alert saved and active." : "Alert target reached immediately.")
-            + " Created " + captureTime(alert.createdAt);
+        this.message = this.tab == Tab.Active
+            ? "Alert active since " + captureTime(alert.createdAt) + "."
+            : "Target reached at " + captureTime(alert.createdAt) + ".";
         this.messageColor = BazaarStyles.SECONDARY_TEXT;
         this.rebuild();
     }
@@ -578,7 +578,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             : this.manager.alerts().stream().filter(entry -> entry.kind() == this.editor.mode()).toList();
         if (alerts.isEmpty()) {
             this.alertRows
-                .child(text(history ? "No reached alerts yet." : "No active alerts yet.", BazaarStyles.MUTED_TEXT));
+                .child(text(history ? "No alerts reached yet." : "No active alerts yet.", BazaarStyles.MUTED_TEXT));
         }
         for (int index = 0; index < alerts.size(); index++) {
             var alert = alerts.get(index);
@@ -650,7 +650,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 quote.label().text(Component.literal(progress.isPresent()
                     ? items(progress.getAsLong()) + " / "
                         + items(((AlertCondition.Liquidity) alert.condition).quantity())
-                        + " items within the price bound"
+                        + " items meeting your price target"
                     : "Liquidity data unavailable"));
             }
         }

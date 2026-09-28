@@ -497,7 +497,7 @@ public class AlertManager {
                 .name(Component.literal("Enable Alerts"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Check configured price and liquidity conditions and notify you when one is reached."),
+                        "Watch saved price and liquidity targets and notify you when one is reached."),
                     ConfigScreen.note(
                         "Alerts that become valid while this is off may fire immediately when it is enabled again."))))
                 .binding(true, () -> this.enabled, val -> this.enabled = val)
@@ -509,7 +509,7 @@ public class AlertManager {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Show Alert Toasts"))
                 .description(ConfigScreen.createDescription(
-                    "Show a passive toast when an alert is reached. Reached alerts remain in the Reached tab."))
+                    "Show a toast when an alert hits its target. Find it later in the Reached tab."))
                 .binding(true, () -> this.toastOnAlert, val -> this.toastOnAlert = val)
                 .controller(ConfigScreen::createBooleanController);
         }

@@ -45,7 +45,7 @@ public final class OrderBookScreenController {
 
     public @Nullable String unavailableReason() {
         if (!ConfigStore.get().config().widgets.orderBookScreen.frame.enabled) {
-            return "Order book unavailable: enable its widget in settings.";
+            return "Order book is off. Enable its widget in settings.";
         }
         return BtrBz.isActive() ? null : "Order book unavailable while BtrBz is inactive.";
     }
