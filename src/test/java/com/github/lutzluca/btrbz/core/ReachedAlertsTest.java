@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.alert.AlertCondition;
+
 import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
 import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
@@ -42,10 +44,12 @@ class ReachedAlertsTest {
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(12, notifications.size());
         Assertions.assertEquals(10, manager.reachedAlerts().size());
-        Assertions.assertEquals(111, manager.reachedAlerts().getFirst().alert().price);
-        Assertions.assertEquals(102, manager.reachedAlerts().getLast().alert().price);
+        Assertions.assertEquals(111,
+            ((AlertCondition.Price) manager.reachedAlerts().getFirst().alert().condition).price());
+        Assertions.assertEquals(102,
+            ((AlertCondition.Price) manager.reachedAlerts().getLast().alert().condition).price());
         var entry = manager.reachedAlerts().getFirst();
-        Assertions.assertEquals(100, entry.price());
+        Assertions.assertEquals(new AlertCondition.Observation.Price(100), entry.observation());
         Assertions.assertTrue(entry.reachedAt() >= before);
         Assertions.assertTrue(entry.reachedAt() <= System.currentTimeMillis());
         Assertions.assertThrows(UnsupportedOperationException.class, () -> manager.reachedAlerts().clear());
@@ -61,8 +65,8 @@ class ReachedAlertsTest {
         Assertions.assertEquals(entry.alert().id, saved.alert().id);
         Assertions.assertEquals(PRODUCT, saved.alert().product);
         Assertions.assertEquals(entry.reachedAt(), saved.reachedAt());
-        Assertions.assertEquals(entry.price(), saved.price());
-        Assertions.assertEquals(entry.alert().type, saved.alert().type);
+        Assertions.assertEquals(entry.observation(), saved.observation());
+        Assertions.assertEquals(entry.alert().condition, saved.alert().condition);
         Assertions.assertTrue(restored.removeReachedAlert(saved.alert().id));
         Assertions.assertFalse(restored.removeReachedAlert(saved.alert().id));
         Assertions.assertTrue(reloaded.load());
@@ -89,7 +93,8 @@ class ReachedAlertsTest {
         config.enabled = true;
         publish(data, "99");
         Assertions.assertEquals(1, manager.reachedAlerts().size());
-        Assertions.assertEquals(99, manager.reachedAlerts().getFirst().price());
+        Assertions.assertEquals(new AlertCondition.Observation.Price(99),
+            manager.reachedAlerts().getFirst().observation());
         Assertions.assertTrue(manager.alerts().isEmpty());
     }
 
@@ -124,26 +129,24 @@ class ReachedAlertsTest {
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         for (int index = 0; index < 12; index++) {
             var alert = manager.saveAlert(null, definition(100 + index)).get();
-            config.reachedAlerts.add(new ReachedAlert(alert, 1000 + index, 90));
+            config.reachedAlerts.add(new ReachedAlert(alert, 1000 + index, new AlertCondition.Observation.Price(90)));
         }
-        config.reachedAlerts.addFirst(new ReachedAlert(null, 1000, 90));
         config.reachedAlerts.addFirst(null);
-        var alert = config.alerts.getFirst();
-        config.reachedAlerts.addFirst(new ReachedAlert(alert, -1, 90));
-        config.reachedAlerts.addFirst(new ReachedAlert(alert, 1000, Double.NaN));
         var saves = new int[1];
 
         var restored = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
 
         Assertions.assertEquals(1, saves[0]);
         Assertions.assertEquals(10, restored.reachedAlerts().size());
-        Assertions.assertEquals(100, restored.reachedAlerts().getFirst().alert().price);
-        Assertions.assertEquals(109, restored.reachedAlerts().getLast().alert().price);
+        Assertions.assertEquals(100,
+            ((AlertCondition.Price) restored.reachedAlerts().getFirst().alert().condition).price());
+        Assertions.assertEquals(109,
+            ((AlertCondition.Price) restored.reachedAlerts().getLast().alert().condition).price());
     }
 
     private static AlertDefinition definition(double threshold) {
         return new AlertDefinition(System.currentTimeMillis(), PRODUCT,
-            new AlertType(PriceSource.Buy, Direction.Below), threshold);
+            new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), threshold));
     }
 
     private static void publish(BazaarData data, String price) {

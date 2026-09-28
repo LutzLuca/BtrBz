@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.utils.Utils;
 
 import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertScreen;
+import com.github.lutzluca.btrbz.core.alert.AlertShortcut;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.SkyBlockDetector;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
@@ -185,7 +186,7 @@ public class BtrBz implements ClientModInitializer {
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
         this.toastNotifications = new ToastNotifications(this.activation::isActive);
         this.alertManager = new AlertManager(this.bazaarData,
-            reached -> Notifier.notifyPriceReached(reached, this.bazaarData, this.toastNotifications));
+            reached -> Notifier.notifyAlertReached(reached, this.bazaarData, this.toastNotifications));
         new ChatFilterManager();
         this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);
@@ -251,8 +252,17 @@ public class BtrBz implements ClientModInitializer {
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.activation);
 
+        var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
+        new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
+            var screen = new AlertScreen(parent, this.bazaarData, this.alertManager, this.activation,
+                orderBookController);
+            screen.preselectProduct(product);
+            return screen;
+        });
+
         this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
-            parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.activation));
+            parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.activation,
+                orderBookController));
         var hudHint = new BazaarHudHintController(
             bazaarOrdersWidgetDefinition.getConfigHandle(),
             toggleHudKey::getTranslatedKeyMessage,
@@ -261,10 +271,10 @@ public class BtrBz implements ClientModInitializer {
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
-        new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
         Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager,
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
-                new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.activation))),
+                new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.activation,
+                    orderBookController))),
             this.configScreen::open, this::setEnabled);
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidgetDefinition, widgetStateStore, hudHint::dismiss);

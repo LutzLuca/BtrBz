@@ -81,18 +81,10 @@ public class ConfigScreen {
             .createBuilder()
             .name(Component.literal("Orders & Notifications"))
             .tooltip(Component.literal(
-                "Configure order-status notifications, highlighting, and price alerts."))
+                "Configure order-status notifications, highlighting, and alerts."))
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
             .group(config.orderHighlight.createGroup())
-            .group(config.alert.createGroup())
-            .group(config.notifications.createGroup())
-            .option(ButtonOption.createBuilder()
-                .name(Component.literal("Open Price Alerts"))
-                .text(Component.literal("Open"))
-                .description(
-                    createDescription("Search Bazaar products, create price alerts, and edit or delete active alerts."))
-                .action((screen, _) -> GameUtils.setScreen(this.alertScreenFactory.apply(screen)))
-                .build())
+            .group(this.alertsGroup(config))
             .build();
 
         var interfaceAndTooltips = ConfigCategory
@@ -123,6 +115,29 @@ public class ConfigScreen {
             .category(ordersAndNotifications)
             .category(interfaceAndTooltips)
             .category(orderWorkflow);
+    }
+
+    private OptionGroup alertsGroup(Config config) {
+        var toasts = new OptionGrouping(config.alert.createToastOnAlertOption())
+            .addOptions(config.notifications.createDetailedAlertToastsOption());
+        var alerts = new OptionGrouping(config.alert.createEnabledOption())
+            .addSubgroups(toasts)
+            .addOptions(config.notifications.createChatMessageOption());
+
+        return OptionGroup.createBuilder()
+            .name(Component.literal("Alerts"))
+            .description(createDescription(paragraphs(
+                text("Notify you when a Bazaar price or liquidity condition is reached."),
+                note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
+            .options(alerts.build())
+            .option(ButtonOption.createBuilder()
+                .name(Component.literal("Open Alerts"))
+                .text(Component.literal("Open"))
+                .description(createDescription("Search Bazaar products and manage price and liquidity alerts."))
+                .action((screen, _) -> GameUtils.setScreen(this.alertScreenFactory.apply(screen)))
+                .build())
+            .collapsed(true)
+            .build();
     }
 
     private OptionGroup activationGroup(Config config) {

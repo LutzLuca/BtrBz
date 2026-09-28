@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
+
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
@@ -34,7 +36,7 @@ class AlertEditorStateTest {
     void changingProductsClearsOldThresholdButKeepsChosenTrigger() {
         var editor = new AlertEditorState();
         var id = UUID.randomUUID();
-        editor.edit(id, DIAMOND, new AlertType(PriceSource.Sell, Direction.Above), 1_000);
+        editor.edit(id, DIAMOND, new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 1_000));
         editor.beginSearch();
         editor.select(GOLD);
         Assertions.assertEquals("", editor.expression());
@@ -60,9 +62,11 @@ class AlertEditorStateTest {
     @Test
     void editingUsesOneDecimalAndNewAlertClearsIdentity() {
         var editor = new AlertEditorState();
-        editor.edit(UUID.randomUUID(), DIAMOND, new AlertType(PriceSource.Buy, Direction.Below), 8323.0000001);
+        editor.edit(UUID.randomUUID(), DIAMOND,
+            new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), 8323.0000001));
         Assertions.assertEquals("8,323.0", editor.expression());
-        Assertions.assertEquals(8323.0, editor.draft().resolve(null, 1_000L).get().price());
+        Assertions.assertEquals(8323.0,
+            ((AlertCondition.Price) editor.draft().resolve(null, 1_000L).get().condition()).price());
         Assertions.assertEquals(PriceSource.Buy, editor.source());
         Assertions.assertFalse(editor.searching());
         editor.reset();
@@ -70,5 +74,34 @@ class AlertEditorStateTest {
         Assertions.assertNull(editor.product());
         Assertions.assertTrue(editor.searching());
         Assertions.assertEquals("", editor.expression());
+    }
+
+    @Test
+    void modeSwitchRetainsProductButCannotConvertAnEditedAlert() {
+        var editor = new AlertEditorState();
+        editor.edit(UUID.randomUUID(), DIAMOND,
+            new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), 1_000));
+
+        editor.mode(Kind.Liquidity);
+
+        Assertions.assertEquals(DIAMOND, editor.product());
+        Assertions.assertNull(editor.editingId());
+        Assertions.assertEquals(Kind.Liquidity, editor.mode());
+    }
+
+    @Test
+    void liquidityDraftAcceptsLongQuantityAndRejectsOverflow() {
+        var editor = new AlertEditorState();
+        editor.select(DIAMOND);
+        editor.mode(Kind.Liquidity);
+        editor.quantity(Long.toString(Long.MAX_VALUE));
+        editor.expression("1,000");
+
+        var resolved = editor.draft().resolve(null, 1_000L);
+        Assertions.assertTrue(resolved.isSuccess());
+        Assertions.assertEquals(Long.MAX_VALUE, ((AlertCondition.Liquidity) resolved.get().condition()).quantity());
+
+        editor.quantity("9223372036854775808");
+        Assertions.assertTrue(editor.draft().resolve(null, 1_000L).isFailure());
     }
 }

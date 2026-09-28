@@ -18,6 +18,8 @@ public final class Assets {
         BtrBz.MOD_ID, "textures/info-icon.png");
     public static final Identifier TRASHCAN = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/trashcan.png");
+    public static final Identifier REDO_ICON = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/redo.png");
 
     public static final Identifier STATUS_OUTDATED = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/gui/status/outdated.png");
