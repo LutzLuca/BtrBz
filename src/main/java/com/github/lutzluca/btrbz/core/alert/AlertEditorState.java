@@ -1,5 +1,9 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
+
+import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
+
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
@@ -17,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 final class AlertEditorState {
     private @Nullable IndexedProduct product;
     private @Nullable UUID editingId;
+    private Kind mode = Kind.Price;
     private boolean searching = true;
     @Setter
     private String query = "";
@@ -26,6 +31,19 @@ final class AlertEditorState {
     private PriceSource source = PriceSource.Buy;
     @Setter
     private Direction direction = Direction.Below;
+    @Setter
+    private LiquiditySide liquiditySide = LiquiditySide.BuyOrders;
+    @Setter
+    private String quantity = "";
+
+    void mode(Kind mode) {
+        if (this.mode == mode) {
+            return;
+        }
+        this.mode = Objects.requireNonNull(mode, "mode");
+        // Editing belongs to the original kind. A mode switch starts a new draft.
+        this.editingId = null;
+    }
 
     void beginSearch() {
         this.searching = true;
@@ -53,12 +71,22 @@ final class AlertEditorState {
         }
     }
 
-    void edit(UUID id, IndexedProduct product, AlertType type, double threshold) {
+    void edit(UUID id, IndexedProduct product, AlertCondition condition) {
+        this.mode = condition.kind();
         this.editingId = Objects.requireNonNull(id, "id");
         this.product = Objects.requireNonNull(product, "product");
-        this.source = type.source();
-        this.direction = type.direction();
-        this.expression = Utils.formatDecimal(threshold, 1, true);
+        switch (condition) {
+            case AlertCondition.Price price -> {
+                this.source = price.type().source();
+                this.direction = price.type().direction();
+                this.expression = Utils.formatDecimal(price.price(), 1, true);
+            }
+            case AlertCondition.Liquidity liquidity -> {
+                this.liquiditySide = liquidity.side();
+                this.quantity = Long.toString(liquidity.quantity());
+                this.expression = Utils.formatDecimal(liquidity.priceBound(), 1, true);
+            }
+        }
         this.searching = false;
         this.query = "";
     }
@@ -68,7 +96,12 @@ final class AlertEditorState {
     }
 
     AlertDraft draft() {
-        return new AlertDraft(this.product, new AlertType(this.source, this.direction), this.expression);
+        return switch (this.mode) {
+            case Price ->
+                new AlertDraft.Price(this.product, new AlertType(this.source, this.direction), this.expression);
+            case Liquidity ->
+                new AlertDraft.Liquidity(this.product, this.liquiditySide, this.quantity, this.expression);
+        };
     }
 
     void reset() {
@@ -79,5 +112,7 @@ final class AlertEditorState {
         this.expression = "";
         this.source = PriceSource.Buy;
         this.direction = Direction.Below;
+        this.liquiditySide = LiquiditySide.BuyOrders;
+        this.quantity = "";
     }
 }

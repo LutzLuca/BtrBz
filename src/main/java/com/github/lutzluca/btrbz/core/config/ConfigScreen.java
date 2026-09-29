@@ -81,18 +81,10 @@ public class ConfigScreen {
             .createBuilder()
             .name(Component.literal("Orders & Notifications"))
             .tooltip(Component.literal(
-                "Configure order-status notifications, highlighting, and price alerts."))
+                "Configure order-status notifications, highlighting, and alerts."))
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
             .group(config.orderHighlight.createGroup())
-            .group(config.alert.createGroup())
-            .group(config.notifications.createGroup())
-            .option(ButtonOption.createBuilder()
-                .name(Component.literal("Open Price Alerts"))
-                .text(Component.literal("Open"))
-                .description(
-                    createDescription("Search Bazaar products, create price alerts, and edit or delete active alerts."))
-                .action((screen, _) -> GameUtils.setScreen(this.alertScreenFactory.apply(screen)))
-                .build())
+            .group(config.alert.createGroup(screen -> GameUtils.setScreen(this.alertScreenFactory.apply(screen))))
             .build();
 
         var interfaceAndTooltips = ConfigCategory

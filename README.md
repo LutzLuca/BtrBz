@@ -2,7 +2,7 @@
 
 BtrBz is a Hypixel SkyBlock quality of life mod focused on the experience in and around the Bazaar.
 
-It provides order tracking, market information, price alerts, safety checks, and shortcuts for common Bazaar actions. All features can be configured through `/btrbz`.
+It provides order tracking, market information, price and liquidity alerts, safety checks, and shortcuts for common Bazaar actions. All features can be configured through `/btrbz`.
 
 [Download on Modrinth](https://modrinth.com/project/btrbz) | [Discord](https://discord.gg/HVaZA7PfUU) | [Issue tracker](https://github.com/LutzLuca/BtrBz/issues)
 
@@ -45,15 +45,15 @@ It provides order tracking, market information, price alerts, safety checks, and
 - **Override**: confirm a blocked order by holding Ctrl
 - **Daily limits**: tracks estimated daily Bazaar usage with compact and full displays
 
-## Price Alerts
+## Alerts
 
-Price alerts notify you when a selected Bazaar price reaches a target. Alerts are saved between sessions and removed automatically after they trigger. Supports expressions like `buy * 1.1` and `(buy + sell) / 2`.
+Get a toast when a price reaches your target or enough items are available to buy or sell instantly within your price bound. Alerts are saved between sessions. Both modes support expressions like `buy * 1.1` and `(buy + sell) / 2`.
 
 ```
 /btrbz alert
 ```
 
-Search for an item in the Editor, choose a price and Above or Below, and enter a threshold. Use the Active alerts tab to edit or remove alerts.
+Open the Editor with the command or the bell on a Bazaar product page, then choose Price or Liquidity. For liquidity, choose Buy Side to instantly sell or Sell Side to instantly buy, then enter a quantity and price bound. Checks are limited to the top 30 orders per side exposed by Hypixel.
 
 <details>
 <summary>Alert prices, expressions, and examples</summary>
@@ -65,7 +65,7 @@ Search for an item in the Editor, choose a price and Above or Below, and enter a
 | Buy Price | Lowest sell offer (instant buy) |
 | Sell Price | Highest buy order (instant sell) |
 
-Below triggers at or below the target; Above triggers at or above it.
+Below triggers at or below the target. Above triggers at or above it.
 
 ### Price expressions
 
@@ -92,9 +92,9 @@ The `buy` and `sell` references are resolved when the alert is saved. The result
 
 ### Managing alerts
 
-Open the Active alerts tab in `/btrbz alert`. Each alert has Edit and delete controls.
+Use Active alerts to edit or delete alerts. In Reached, you can open the product in the Bazaar or watch the same condition again.
 
-Alerts that remain active for more than a week or a month receive reminder messages. These reminders also include a removal action.
+Price alerts that remain active for more than a week or a month receive reminder messages with a link to the alert screen.
 
 </details>
 
@@ -104,7 +104,7 @@ Alerts that remain active for more than a week or a month receive reminder messa
 | Command | Description |
 | --- | --- |
 | `/btrbz` | Opens the configuration screen |
-| `/btrbz alert` | Opens the alert editor and active alerts screen |
+| `/btrbz alert` | Opens the price and liquidity alert screen |
 | `/btrbz orders list` | Lists orders currently tracked by the client |
 | `/btrbz orders reset` | Clears the tracked order list |
 | `/btrbz preset add <amount>` | Adds an order amount preset |
@@ -151,3 +151,7 @@ This project uses icons from [Flaticon](https://www.flaticon.com/):
   Magnific - Flaticon</a>
 - <a href="https://www.flaticon.com/free-icons/question" title="question icons">Question icons created
   by Magnific - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/bell" title="bell icons">Bell icons created
+  by Pixel perfect - Flaticon</a>
+- <a href="https://www.flaticon.com/free-icons/redo" title="redo icons">Redo icons created
+  by Creatype - Flaticon</a>

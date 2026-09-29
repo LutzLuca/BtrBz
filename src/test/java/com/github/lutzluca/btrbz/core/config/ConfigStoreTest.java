@@ -1,8 +1,10 @@
 package com.github.lutzluca.btrbz.core.config;
 
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
-import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.AlertCondition;
+
+import com.github.lutzluca.btrbz.core.alert.Alert;
+import com.github.lutzluca.btrbz.core.alert.ReachedAlert;
+import com.github.lutzluca.btrbz.core.alert.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertType;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
@@ -37,17 +39,22 @@ class ConfigStoreTest {
             var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save, _ -> {});
             var product = new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond");
             var created = manager.saveAlert(null,
-                new AlertDefinition(1_000L, product, new AlertType(PriceSource.Sell, Direction.Below), 100)).get();
+                new AlertDefinition(1_000L, product,
+                    new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Below), 100)))
+                .get();
             manager.saveAlert(created.id,
-                new AlertDefinition(2_000L, product, new AlertType(PriceSource.Sell, Direction.Above), 14.44)).get();
+                new AlertDefinition(2_000L, product,
+                    new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 14.44)))
+                .get();
 
             var reloaded = new ConfigStore(path);
             Assertions.assertTrue(reloaded.load());
             var saved = reloaded.config().alert.alerts.getFirst();
             Assertions.assertEquals(created.id, saved.id);
             Assertions.assertEquals(2_000L, saved.createdAt);
-            Assertions.assertEquals(new AlertType(PriceSource.Sell, Direction.Above), saved.type);
-            Assertions.assertEquals(14.4, saved.price);
+            Assertions.assertEquals(new AlertType(PriceSource.Sell, Direction.Above),
+                ((AlertCondition.Price) saved.condition).type());
+            Assertions.assertEquals(14.4, ((AlertCondition.Price) saved.condition).price());
             Assertions.assertEquals(product, saved.product);
 
             var restoredManager = new AlertManager(new BazaarData(), () -> reloaded.config().alert, reloaded::save,
@@ -70,7 +77,7 @@ class ConfigStoreTest {
                 .create();
             var valid = gson.toJsonTree(createAlert()).getAsJsonObject();
             var invalid = valid.deepCopy();
-            invalid.addProperty("type", "unsupported");
+            invalid.getAsJsonObject("condition").addProperty("type", "unsupported");
             var alerts = json.getAsJsonObject("alert").getAsJsonArray("alerts");
             alerts.add(invalid);
             alerts.add(valid);
@@ -81,7 +88,7 @@ class ConfigStoreTest {
             var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save, _ -> {});
             Assertions.assertEquals(1.5, store.config().tax);
             Assertions.assertEquals(1, manager.alerts().size());
-            Assertions.assertEquals(123.4, manager.alerts().getFirst().price);
+            Assertions.assertEquals(123.4, ((AlertCondition.Price) manager.alerts().getFirst().condition).price());
         }
 
         @Test
@@ -148,12 +155,15 @@ class ConfigStoreTest {
             var path = ConfigStoreTest.this.tempDir.resolve("notification-settings.json");
             var store = new ConfigStore(path);
             Assertions.assertTrue(store.config().alert.toastOnAlert);
-            Assertions.assertFalse(store.config().notifications.alsoSendChatMessage);
+            Assertions.assertFalse(store.config().alert.alsoSendChatMessage);
+            Assertions.assertFalse(store.config().alert.detailedAlertToasts);
             var alert = createAlert();
             store.config().alert.alerts.add(alert);
-            store.config().alert.reachedAlerts.add(new ReachedAlert(alert, 2_000L, 1_012));
+            store.config().alert.reachedAlerts
+                .add(new ReachedAlert(alert, 2_000L, new AlertCondition.Observation.Price(1_012)));
             store.config().alert.toastOnAlert = false;
-            store.config().notifications.alsoSendChatMessage = true;
+            store.config().alert.alsoSendChatMessage = true;
+            store.config().alert.detailedAlertToasts = true;
 
             store.save();
 
@@ -163,10 +173,12 @@ class ConfigStoreTest {
             Assertions.assertTrue(reloaded.load());
             var config = reloaded.config();
             Assertions.assertFalse(config.alert.toastOnAlert);
-            Assertions.assertTrue(config.notifications.alsoSendChatMessage);
+            Assertions.assertTrue(config.alert.alsoSendChatMessage);
+            Assertions.assertTrue(config.alert.detailedAlertToasts);
             Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
-            Assertions.assertEquals(1_012, config.alert.reachedAlerts.getFirst().price());
+            Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),
+                config.alert.reachedAlerts.getFirst().observation());
         }
 
         @Test
@@ -175,10 +187,12 @@ class ConfigStoreTest {
             var store = new ConfigStore(path);
             var alert = createAlert();
             store.config().alert.alerts.add(alert);
-            store.config().alert.reachedAlerts.add(new ReachedAlert(alert, 2_000L, 1_012));
+            store.config().alert.reachedAlerts
+                .add(new ReachedAlert(alert, 2_000L, new AlertCondition.Observation.Price(1_012)));
             store.save();
             var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            serialized.remove("notifications");
+            serialized.getAsJsonObject("alert").remove("alsoSendChatMessage");
+            serialized.getAsJsonObject("alert").remove("detailedAlertToasts");
             serialized.getAsJsonObject("alert").remove("toastOnAlert");
             Files.writeString(path, serialized.toString());
 
@@ -186,10 +200,12 @@ class ConfigStoreTest {
             Assertions.assertTrue(reloaded.load());
             var config = reloaded.config();
             Assertions.assertTrue(config.alert.toastOnAlert);
-            Assertions.assertFalse(config.notifications.alsoSendChatMessage);
+            Assertions.assertFalse(config.alert.alsoSendChatMessage);
+            Assertions.assertFalse(config.alert.detailedAlertToasts);
             Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
-            Assertions.assertEquals(1_012, config.alert.reachedAlerts.getFirst().price());
+            Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),
+                config.alert.reachedAlerts.getFirst().observation());
         }
 
         @Test
@@ -227,8 +243,8 @@ class ConfigStoreTest {
                 "productId": "ENCHANTED_DIAMOND",
                 "formattedName": "§aEnchanted Diamond"
               },
-              "type": {"source": "Sell", "direction": "Above"},
-              "price": 123.4,
+              "kind": "Price",
+              "condition": {"type": {"source": "Sell", "direction": "Above"}, "price": 123.4},
               "remindedAfter": 1000
             }
             """, Alert.class);

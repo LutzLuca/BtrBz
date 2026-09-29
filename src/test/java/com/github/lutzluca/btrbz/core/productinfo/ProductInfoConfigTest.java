@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.config.Config;
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.alert.Alert;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig.Site;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
 import com.github.lutzluca.btrbz.data.IndexedProduct;

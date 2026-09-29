@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.utils.GameUtils;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -25,9 +26,13 @@ public final class OrderBookScreen extends Screen {
     private final String productName;
     private final WidgetHost host;
     private final long activationGeneration = BtrBz.activationGeneration();
+    private final Object parentLevel = Minecraft.getInstance().level;
+    private final Object parentConnection = Minecraft.getInstance().getConnection();
 
     public boolean isCurrent() {
-        return BtrBz.isActive() && this.activationGeneration == BtrBz.activationGeneration();
+        return BtrBz.isActive() && this.activationGeneration == BtrBz.activationGeneration()
+            && Minecraft.getInstance().level == this.parentLevel
+            && Minecraft.getInstance().getConnection() == this.parentConnection;
     }
 
     public OrderBookScreen(

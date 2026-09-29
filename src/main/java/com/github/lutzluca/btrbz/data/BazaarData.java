@@ -178,7 +178,7 @@ public class BazaarData {
         this.listeners.remove(listener);
     }
 
-    private MarketSnapshot currentSnapshot() {
+    public MarketSnapshot currentSnapshot() {
         return new MarketSnapshot(this.lastProducts);
     }
 

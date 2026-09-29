@@ -1,8 +1,5 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.alert;
 
-import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
-import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
-import com.github.lutzluca.btrbz.core.alert.AlertType;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -76,10 +73,11 @@ class AlertManagerTest {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var alert = manager.saveAlert(null, definition(1_000L, DIAMOND, 8323.0000001)).get();
-        Assertions.assertEquals(8323.0, alert.price);
+        Assertions.assertEquals(8323.0, ((AlertCondition.Price) alert.condition).price());
         Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 8323.04)).isFailure());
         Assertions.assertEquals(8323.1,
-            manager.saveAlert(null, definition(3_000L, DIAMOND, 8323.05)).get().price);
+            ((AlertCondition.Price) manager.saveAlert(null, definition(3_000L, DIAMOND, 8323.05)).get().condition)
+                .price());
     }
 
     @Test
@@ -145,6 +143,7 @@ class AlertManagerTest {
     }
 
     private static AlertDefinition definition(long timestamp, IndexedProduct product, double price) {
-        return new AlertDefinition(timestamp, product, new AlertType(PriceSource.Buy, Direction.Below), price);
+        return new AlertDefinition(timestamp, product,
+            new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), price));
     }
 }

@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.config;
 
-import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
+import com.github.lutzluca.btrbz.core.alert.AlertConfig;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.ChatFilterManager;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper.FlipHelperConfig;
@@ -49,9 +49,6 @@ public class Config {
 
     @SerialEntry
     public AlertConfig alert = new AlertConfig();
-
-    @SerialEntry
-    public NotificationConfig notifications = new NotificationConfig();
 
     @SerialEntry
     public OrderListTooltipConfig orderListTooltip = new OrderListTooltipConfig();
