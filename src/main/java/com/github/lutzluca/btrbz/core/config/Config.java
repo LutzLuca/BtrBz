@@ -51,6 +51,9 @@ public class Config {
     public AlertConfig alert = new AlertConfig();
 
     @SerialEntry
+    public NotificationConfig notifications = new NotificationConfig();
+
+    @SerialEntry
     public OrderListTooltipConfig orderListTooltip = new OrderListTooltipConfig();
 
     @SerialEntry
