@@ -242,11 +242,11 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.aboveButton = button("Above", () -> this.setDirection(Direction.Above));
             settings.child(segments(this.belowButton, this.aboveButton));
         } else {
-            this.buyButton = button("Buy Side", () -> this.setLiquiditySide(LiquiditySide.BuyOrders));
-            this.buyButton.tooltip(Component.literal("Buy Side: buy orders you can sell to instantly (Sell Price)."));
-            this.sellButton = button("Sell Side", () -> this.setLiquiditySide(LiquiditySide.SellOffers));
+            this.buyButton = button("Instant sell", () -> this.setLiquiditySide(LiquiditySide.BuyOrders));
+            this.buyButton.tooltip(Component.literal("Sell instantly to buy orders (Sell Price)."));
+            this.sellButton = button("Instant buy", () -> this.setLiquiditySide(LiquiditySide.SellOffers));
             this.sellButton
-                .tooltip(Component.literal("Sell Side: sell offers you can buy from instantly (Buy Price)."));
+                .tooltip(Component.literal("Buy instantly from sell offers (Buy Price)."));
             settings.child(segments(this.buyButton, this.sellButton));
             settings.child(text("Required items", BazaarStyles.SECONDARY_TEXT));
             this.quantityBox = UIComponents.textBox(Sizing.fill(100));
@@ -481,8 +481,8 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 BazaarStyles.BUY_ACCENT));
             this.sellButton.renderer(buttonRenderer(false, this.editor.liquiditySide() == LiquiditySide.SellOffers,
                 BazaarStyles.SELL_ACCENT));
-            this.buyButton.setMessage(Component.literal("Buy Side").withColor(BazaarStyles.BUY_ACCENT));
-            this.sellButton.setMessage(Component.literal("Sell Side").withColor(BazaarStyles.SELL_ACCENT));
+            this.buyButton.setMessage(Component.literal("Instant sell").withColor(BazaarStyles.BUY_ACCENT));
+            this.sellButton.setMessage(Component.literal("Instant buy").withColor(BazaarStyles.SELL_ACCENT));
         }
     }
 

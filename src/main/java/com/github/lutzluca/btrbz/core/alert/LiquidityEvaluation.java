@@ -5,13 +5,13 @@ import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 import java.util.List;
 
 /** Pure bounded sum of item amounts, independent of order-book widgets. */
-public final class LiquidityEvaluation {
+final class LiquidityEvaluation {
 
     private LiquidityEvaluation() {}
 
-    public record Level(double pricePerItem, long items) {}
+    record Level(double pricePerItem, long items) {}
 
-    public static long qualifyingQuantity(LiquiditySide side, double bound, List<Level> levels) {
+    static long qualifyingQuantity(LiquiditySide side, double bound, List<Level> levels) {
         long total = 0;
         for (var level : levels) {
             if (level.items() <= 0 || !Double.isFinite(level.pricePerItem())
@@ -27,7 +27,7 @@ public final class LiquidityEvaluation {
         return total;
     }
 
-    public static boolean qualifies(LiquiditySide side, double pricePerItem, double bound) {
+    private static boolean qualifies(LiquiditySide side, double pricePerItem, double bound) {
         return switch (side) {
             case BuyOrders -> pricePerItem >= bound;
             case SellOffers -> pricePerItem <= bound;
