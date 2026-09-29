@@ -12,11 +12,6 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundEvents;
 
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
-import com.github.lutzluca.btrbz.core.alert.AlertNotice;
-import com.github.lutzluca.btrbz.core.alert.AlertCondition;
-import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.GroupKey;
@@ -272,67 +267,6 @@ public class Notifier {
         notifyPlayer(msg);
     }
 
-    public static void notifyAlertReached(ReachedAlert reached, BazaarData bazaarData, ToastNotifications toasts) {
-        if (!BtrBz.isActive() || Minecraft.getInstance().player == null) {
-            return;
-        }
-        var alert = reached.alert();
-        var product = bazaarData.refreshIndexedProduct(alert.product);
-        var notice = AlertNotice.from(reached, product);
-        var config = ConfigStore.get().config();
-        if (config.alert.toastOnAlert) {
-            Component productName = GameUtils.legacyFormattedComponent(notice.formattedProductName());
-            if (config.notifications.detailedAlertToasts) {
-                toasts.show(
-                    Component.literal("BtrBz").withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal(": " + notice.title()).withStyle(ChatFormatting.GRAY)),
-                    List.of(productName, notice.condition().copy(), notice.observation().copy()),
-                    bazaarData.productStack(product));
-            } else {
-                toasts.show(Component.empty().append(productName)
-                    .append(Component.literal(": " + notice.title()).withStyle(ChatFormatting.GRAY)));
-            }
-        }
-        if (config.notifications.alsoSendChatMessage) {
-            notifyPlayer(prefix()
-                .append(Component.literal(notice.title() + " for ").withStyle(ChatFormatting.GRAY))
-                .append(productNameComponent(product, bazaarData, ChatFormatting.GOLD))
-                .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
-                .append(notice.condition().copy())
-                .append(Component.literal(". ").withStyle(ChatFormatting.GRAY))
-                .append(notice.observation().copy())
-                .append(Component.literal(". ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("[Click to view]")
-                    .withStyle(style -> style
-                        .withClickEvent(new RunCommand("/bz " + product.strippedName()))
-                        .withHoverEvent(new ShowText(Component.literal("Open in the Bazaar"))))
-                    .withStyle(ChatFormatting.AQUA)));
-        }
-    }
-
-    public static void notifyOutdatedAlert(
-        Alert alert,
-        AlertCondition.Price condition,
-        String durationText,
-        BazaarData bazaarData
-    ) {
-        Component msg = prefix()
-            .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
-            .append(productNameComponent(alert.product, bazaarData, ChatFormatting.GOLD))
-            .append(Component.literal(" at ")
-                .withStyle(ChatFormatting.GRAY))
-            .append(coinComponent(condition.price()))
-            .append(Component
-                .literal(" has not been reached for " + durationText + ". ")
-                .withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("[Manage alerts]")
-                .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/btrbz alert"))
-                    .withHoverEvent(new ShowText(Component.literal("Open Alerts to edit or delete alerts"))))
-                .withStyle(ChatFormatting.AQUA));
-        notifyPlayer(msg);
-    }
-
     private static MutableComponent productNameComponent(
         ProductIdentity product,
         BazaarData bazaarData,
@@ -342,14 +276,6 @@ public class Notifier {
             .resolveIndexedProduct(product)
             .<MutableComponent>map(ref -> productNameComponent(ref, bazaarData))
             .orElseGet(() -> Component.literal(product.visualName()).withStyle(fallbackStyle));
-    }
-
-    private static MutableComponent productNameComponent(
-        IndexedProduct product,
-        BazaarData bazaarData,
-        ChatFormatting fallbackStyle
-    ) {
-        return productNameComponent(product, bazaarData);
     }
 
     private static MutableComponent productNameComponent(

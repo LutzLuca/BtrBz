@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.commands.alert;
+package com.github.lutzluca.btrbz.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;

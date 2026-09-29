@@ -84,7 +84,7 @@ public class ConfigScreen {
                 "Configure order-status notifications, highlighting, and alerts."))
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
             .group(config.orderHighlight.createGroup())
-            .group(this.alertsGroup(config))
+            .group(config.alert.createGroup(screen -> GameUtils.setScreen(this.alertScreenFactory.apply(screen))))
             .build();
 
         var interfaceAndTooltips = ConfigCategory
@@ -115,29 +115,6 @@ public class ConfigScreen {
             .category(ordersAndNotifications)
             .category(interfaceAndTooltips)
             .category(orderWorkflow);
-    }
-
-    private OptionGroup alertsGroup(Config config) {
-        var toasts = new OptionGrouping(config.alert.createToastOnAlertOption())
-            .addOptions(config.notifications.createDetailedAlertToastsOption());
-        var alerts = new OptionGrouping(config.alert.createEnabledOption())
-            .addSubgroups(toasts)
-            .addOptions(config.notifications.createChatMessageOption());
-
-        return OptionGroup.createBuilder()
-            .name(Component.literal("Alerts"))
-            .description(createDescription(paragraphs(
-                text("Get an alert when a Bazaar price or available quantity hits your target."),
-                note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
-            .options(alerts.build())
-            .option(ButtonOption.createBuilder()
-                .name(Component.literal("Open Alerts"))
-                .text(Component.literal("Open"))
-                .description(createDescription("Search Bazaar products and manage price and liquidity alerts."))
-                .action((screen, _) -> GameUtils.setScreen(this.alertScreenFactory.apply(screen)))
-                .build())
-            .collapsed(true)
-            .build();
     }
 
     private OptionGroup activationGroup(Config config) {

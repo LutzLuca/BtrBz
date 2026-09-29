@@ -1,29 +1,14 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
-import com.github.lutzluca.btrbz.core.alert.AlertCondition;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Observation;
-import com.github.lutzluca.btrbz.core.alert.LiquidityEvaluation;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
-import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.utils.GsonUtils;
-import com.github.lutzluca.btrbz.utils.Notifier;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import dev.isxander.yacl3.api.Option;
 import io.vavr.control.Try;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +18,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
@@ -141,13 +125,13 @@ public class AlertManager {
             var duration = now - curr.createdAt;
 
             if (duration > MONTH_DURATION_MS && curr.remindedAfter < MONTH_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, price, "over a month", this.bazaarData);
+                AlertNotifications.notifyOutdated(curr, price, "over a month", this.bazaarData);
                 curr.remindedAfter = duration;
                 changed = true;
             }
 
             if (duration > WEEK_DURATION_MS && curr.remindedAfter < WEEK_DURATION_MS) {
-                Notifier.notifyOutdatedAlert(curr, price, "over a week", this.bazaarData);
+                AlertNotifications.notifyOutdated(curr, price, "over a week", this.bazaarData);
                 curr.remindedAfter = duration;
                 changed = true;
                 continue;
@@ -346,155 +330,7 @@ public class AlertManager {
         return true;
     }
 
-    public record ReachedAlert(Alert alert, long reachedAt, Observation observation) {
-        public ReachedAlert {
-            Objects.requireNonNull(alert, "alert");
-            Objects.requireNonNull(observation, "observation");
-            if (reachedAt < 0 || alert.kind() != observation.kind()) {
-                throw new IllegalArgumentException("Invalid reached alert observation");
-            }
-        }
-
-        public static final class GsonAdapter implements JsonSerializer<ReachedAlert>, JsonDeserializer<ReachedAlert> {
-            @Override
-            public JsonElement serialize(ReachedAlert src, Type type, JsonSerializationContext ctx) {
-                var obj = new JsonObject();
-                obj.add("alert", ctx.serialize(src.alert(), Alert.class));
-                obj.addProperty("reachedAt", src.reachedAt());
-                switch (src.observation()) {
-                    case Observation.Price price -> obj.addProperty("observed", price.value());
-                    case Observation.Liquidity liquidity -> obj.addProperty("observed", liquidity.quantity());
-                }
-                return obj;
-            }
-
-            @Override
-            public ReachedAlert deserialize(JsonElement json, Type type, JsonDeserializationContext ctx) {
-                try {
-                    var obj = json.getAsJsonObject();
-                    Alert alert = ctx.deserialize(GsonUtils.required(obj, "alert", "Reached alert"), Alert.class);
-                    var observed = GsonUtils.required(obj, "observed", "Reached alert");
-                    Observation observation = switch (alert.kind()) {
-                        case Price -> new Observation.Price(observed.getAsDouble());
-                        case Liquidity -> new Observation.Liquidity(observed.getAsLong());
-                    };
-                    return new ReachedAlert(alert,
-                        GsonUtils.required(obj, "reachedAt", "Reached alert").getAsLong(), observation);
-                } catch (RuntimeException err) {
-                    log.warn("Skipping invalid reached alert entry", err);
-                    return null;
-                }
-            }
-        }
-    }
-
     private AlertConfig config() {
         return Objects.requireNonNull(this.config.get(), "alert config cannot be null");
-    }
-
-    public static class Alert {
-        public final UUID id;
-        public final long createdAt;
-        public final IndexedProduct product;
-        public final AlertCondition condition;
-        long remindedAfter;
-
-        private Alert(UUID id, AlertDefinition definition, long remindedAfter) {
-            this.id = id;
-            this.createdAt = definition.timestamp();
-            this.product = definition.product();
-            this.condition = definition.condition();
-            this.remindedAfter = remindedAfter;
-        }
-
-        public Kind kind() {
-            return this.condition.kind();
-        }
-
-        private Alert reactivated(long now) {
-            return new Alert(this.id, new AlertDefinition(now, this.product, this.condition), -1);
-        }
-
-        public String productName() {
-            return this.product.strippedName();
-        }
-
-        public String productId() {
-            return this.product.productId();
-        }
-
-        private boolean matches(Alert other) {
-            return this.productId().equals(other.productId()) && this.condition.equals(other.condition);
-        }
-
-        public static final class GsonAdapter implements JsonSerializer<Alert>, JsonDeserializer<Alert> {
-            @Override
-            public JsonElement serialize(Alert src, Type type, JsonSerializationContext ctx) {
-                var obj = new JsonObject();
-                obj.addProperty("id", src.id.toString());
-                obj.addProperty("createdAt", src.createdAt);
-                obj.add("product", ctx.serialize(src.product, IndexedProduct.class));
-                obj.addProperty("kind", src.kind().name());
-                obj.add("condition", ctx.serialize(src.condition));
-                obj.addProperty("remindedAfter", src.remindedAfter);
-                return obj;
-            }
-
-            @Override
-            public Alert deserialize(JsonElement json, Type type, JsonDeserializationContext ctx) {
-                try {
-                    var obj = json.getAsJsonObject();
-                    var kind = Kind.valueOf(GsonUtils.required(obj, "kind", "Alert").getAsString());
-                    var conditionJson = GsonUtils.required(obj, "condition", "Alert");
-                    AlertCondition condition = switch (kind) {
-                        case Price -> ctx.deserialize(conditionJson, AlertCondition.Price.class);
-                        case Liquidity -> ctx.deserialize(conditionJson, AlertCondition.Liquidity.class);
-                    };
-                    var definition = new AlertDefinition(
-                        GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
-                        ctx.deserialize(GsonUtils.required(obj, "product", "Alert"), IndexedProduct.class),
-                        condition).validate().get();
-                    return new Alert(
-                        UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
-                        definition,
-                        GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
-                } catch (RuntimeException err) {
-                    log.warn("Skipping invalid alert entry", err);
-                    return null;
-                }
-            }
-        }
-    }
-
-    public static class AlertConfig {
-
-        public boolean enabled = true;
-        public boolean toastOnAlert = true;
-        public List<Alert> alerts = new ArrayList<>();
-        public List<ReachedAlert> reachedAlerts = new ArrayList<>();
-
-        public Option.Builder<Boolean> createEnabledOption() {
-            return Option
-                .<Boolean>createBuilder()
-                .name(Component.literal("Enable Alerts"))
-                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                    ConfigScreen.text(
-                        "Watch saved price and liquidity targets and notify you when one is reached."),
-                    ConfigScreen.note(
-                        "Alerts that become valid while this is off may fire immediately when it is enabled again."))))
-                .binding(true, () -> this.enabled, val -> this.enabled = val)
-                .controller(ConfigScreen::createBooleanController);
-        }
-
-        public Option.Builder<Boolean> createToastOnAlertOption() {
-            return Option
-                .<Boolean>createBuilder()
-                .name(Component.literal("Show Alert Toasts"))
-                .description(ConfigScreen.createDescription(
-                    "Show a toast when an alert hits its target. Find it later in the Reached tab."))
-                .binding(true, () -> this.toastOnAlert, val -> this.toastOnAlert = val)
-                .controller(ConfigScreen::createBooleanController);
-        }
-
     }
 }

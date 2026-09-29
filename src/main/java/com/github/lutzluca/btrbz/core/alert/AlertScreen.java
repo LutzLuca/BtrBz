@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 
 import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.core.Activation;
-import com.github.lutzluca.btrbz.core.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
@@ -592,7 +591,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.restoreScroll(offset);
     }
 
-    private FlowLayout activeAlertRow(AlertManager.Alert alert) {
+    private FlowLayout activeAlertRow(Alert alert) {
         var product = this.data.refreshIndexedProduct(alert.product);
         var current = text("", BazaarStyles.SECONDARY_TEXT);
         this.activeQuotes.add(new ActiveQuote(alert, current));
@@ -602,7 +601,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 () -> this.delete(alert.id, false), 32, buttonRenderer(false, false)));
     }
 
-    private FlowLayout reachedAlertRow(AlertManager.ReachedAlert entry) {
+    private FlowLayout reachedAlertRow(ReachedAlert entry) {
         var alert = entry.alert();
         var product = this.data.refreshIndexedProduct(alert.product);
         MutableComponent observed = switch (entry.observation()) {
@@ -626,7 +625,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private FlowLayout alertRow(
-        AlertManager.Alert alert,
+        Alert alert,
         IndexedProduct product,
         LabelComponent current,
         int actionsWidth,
@@ -943,7 +942,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
     }
 
-    private record ActiveQuote(AlertManager.Alert alert, LabelComponent label) {}
+    private record ActiveQuote(Alert alert, LabelComponent label) {}
 
     private enum Tab {
         Editor,

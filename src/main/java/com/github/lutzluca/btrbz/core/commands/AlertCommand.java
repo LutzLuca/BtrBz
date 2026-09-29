@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.commands.alert;
+package com.github.lutzluca.btrbz.core.commands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;

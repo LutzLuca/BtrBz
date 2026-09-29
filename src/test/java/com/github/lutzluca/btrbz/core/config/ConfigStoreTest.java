@@ -2,9 +2,9 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition;
 
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
-import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.Alert;
+import com.github.lutzluca.btrbz.core.alert.ReachedAlert;
+import com.github.lutzluca.btrbz.core.alert.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertType;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
@@ -155,15 +155,15 @@ class ConfigStoreTest {
             var path = ConfigStoreTest.this.tempDir.resolve("notification-settings.json");
             var store = new ConfigStore(path);
             Assertions.assertTrue(store.config().alert.toastOnAlert);
-            Assertions.assertFalse(store.config().notifications.alsoSendChatMessage);
-            Assertions.assertFalse(store.config().notifications.detailedAlertToasts);
+            Assertions.assertFalse(store.config().alert.alsoSendChatMessage);
+            Assertions.assertFalse(store.config().alert.detailedAlertToasts);
             var alert = createAlert();
             store.config().alert.alerts.add(alert);
             store.config().alert.reachedAlerts
                 .add(new ReachedAlert(alert, 2_000L, new AlertCondition.Observation.Price(1_012)));
             store.config().alert.toastOnAlert = false;
-            store.config().notifications.alsoSendChatMessage = true;
-            store.config().notifications.detailedAlertToasts = true;
+            store.config().alert.alsoSendChatMessage = true;
+            store.config().alert.detailedAlertToasts = true;
 
             store.save();
 
@@ -173,8 +173,8 @@ class ConfigStoreTest {
             Assertions.assertTrue(reloaded.load());
             var config = reloaded.config();
             Assertions.assertFalse(config.alert.toastOnAlert);
-            Assertions.assertTrue(config.notifications.alsoSendChatMessage);
-            Assertions.assertTrue(config.notifications.detailedAlertToasts);
+            Assertions.assertTrue(config.alert.alsoSendChatMessage);
+            Assertions.assertTrue(config.alert.detailedAlertToasts);
             Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
             Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),
@@ -191,7 +191,8 @@ class ConfigStoreTest {
                 .add(new ReachedAlert(alert, 2_000L, new AlertCondition.Observation.Price(1_012)));
             store.save();
             var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            serialized.remove("notifications");
+            serialized.getAsJsonObject("alert").remove("alsoSendChatMessage");
+            serialized.getAsJsonObject("alert").remove("detailedAlertToasts");
             serialized.getAsJsonObject("alert").remove("toastOnAlert");
             Files.writeString(path, serialized.toString());
 
@@ -199,8 +200,8 @@ class ConfigStoreTest {
             Assertions.assertTrue(reloaded.load());
             var config = reloaded.config();
             Assertions.assertTrue(config.alert.toastOnAlert);
-            Assertions.assertFalse(config.notifications.alsoSendChatMessage);
-            Assertions.assertFalse(config.notifications.detailedAlertToasts);
+            Assertions.assertFalse(config.alert.alsoSendChatMessage);
+            Assertions.assertFalse(config.alert.detailedAlertToasts);
             Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
             Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),

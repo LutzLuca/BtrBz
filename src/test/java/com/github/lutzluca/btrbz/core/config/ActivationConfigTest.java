@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
+import com.github.lutzluca.btrbz.core.alert.Alert;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import org.junit.jupiter.api.Assertions;

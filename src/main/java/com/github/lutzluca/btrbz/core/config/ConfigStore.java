@@ -1,8 +1,8 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
+import com.github.lutzluca.btrbz.core.alert.Alert;
+import com.github.lutzluca.btrbz.core.alert.ReachedAlert;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler;

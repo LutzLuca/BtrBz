@@ -1,9 +1,5 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.alert;
 
-import com.github.lutzluca.btrbz.core.AlertManager.Alert;
-import com.github.lutzluca.btrbz.core.AlertManager.ReachedAlert;
-import com.github.lutzluca.btrbz.core.alert.AlertCondition;
-import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.google.gson.Gson;
@@ -56,7 +52,7 @@ class AlertConfigSerializationTest {
 
     @Test
     void liquidityHistoryPreservesWholeQuantitiesBeyondDoublePrecision() {
-        var config = new AlertManager.AlertConfig();
+        var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var condition = new AlertCondition.Liquidity(AlertCondition.LiquiditySide.BuyOrders, Long.MAX_VALUE, 1_000);
         var alert = manager.saveAlert(null, new AlertDefinition(1_000,

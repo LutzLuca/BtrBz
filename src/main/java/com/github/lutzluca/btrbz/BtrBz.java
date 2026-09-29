@@ -2,8 +2,9 @@ package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.utils.Utils;
 
-import com.github.lutzluca.btrbz.core.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertScreen;
+import com.github.lutzluca.btrbz.core.alert.AlertNotifications;
 import com.github.lutzluca.btrbz.core.alert.AlertShortcut;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.SkyBlockDetector;
@@ -56,7 +57,6 @@ import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
-import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
 import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
@@ -186,7 +186,7 @@ public class BtrBz implements ClientModInitializer {
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
         this.toastNotifications = new ToastNotifications(this.activation::isActive);
         this.alertManager = new AlertManager(this.bazaarData,
-            reached -> Notifier.notifyAlertReached(reached, this.bazaarData, this.toastNotifications));
+            reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications));
         new ChatFilterManager();
         this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);

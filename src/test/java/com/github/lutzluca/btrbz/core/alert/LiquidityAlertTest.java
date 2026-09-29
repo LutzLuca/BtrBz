@@ -1,14 +1,8 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.alert;
 
-import com.github.lutzluca.btrbz.core.alert.AlertCondition;
-
-import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
-import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
-import com.github.lutzluca.btrbz.core.alert.AlertType;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
-import com.github.lutzluca.btrbz.core.alert.LiquidityEvaluation;
 import com.github.lutzluca.btrbz.core.alert.LiquidityEvaluation.Level;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -44,7 +38,7 @@ class LiquidityAlertTest {
     void retainsMissingProductsAndRecordsAStableObservationWhenTheyReturn() {
         var config = new AlertConfig();
         var data = new BazaarData();
-        var notified = new ArrayList<AlertManager.ReachedAlert>();
+        var notified = new ArrayList<ReachedAlert>();
         var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
         data.addListener(manager::onBazaarUpdate);
         manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT,
@@ -77,7 +71,7 @@ class LiquidityAlertTest {
     void saveAndWatchAgainImmediatelyReachAgainstLatestSnapshotButRespectDuplicates() {
         var config = new AlertConfig();
         var data = new BazaarData();
-        var notified = new ArrayList<AlertManager.ReachedAlert>();
+        var notified = new ArrayList<ReachedAlert>();
         var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
         publish(data, product("[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]"));
 
@@ -102,7 +96,7 @@ class LiquidityAlertTest {
         var config = new AlertConfig();
         config.enabled = false;
         var data = new BazaarData();
-        var notified = new ArrayList<AlertManager.ReachedAlert>();
+        var notified = new ArrayList<ReachedAlert>();
         var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
         data.addListener(manager::onBazaarUpdate);
         publish(data, product("[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]"));

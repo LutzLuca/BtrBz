@@ -1,10 +1,5 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.alert;
 
-import com.github.lutzluca.btrbz.core.alert.AlertCondition;
-
-import com.github.lutzluca.btrbz.core.AlertManager.AlertConfig;
-import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
-import com.github.lutzluca.btrbz.core.alert.AlertType;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.data.BazaarData;
