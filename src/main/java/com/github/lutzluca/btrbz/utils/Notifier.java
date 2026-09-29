@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
 import java.util.List;
-import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -275,6 +274,9 @@ public class Notifier {
     }
 
     public static void notifyPriceReached(ReachedAlert reached, BazaarData bazaarData, ToastNotifications toasts) {
+        if (!BtrBz.isActive() || Minecraft.getInstance().player == null) {
+            return;
+        }
         var alert = reached.alert();
         var product = bazaarData.refreshIndexedProduct(alert.product);
         var notice = PriceAlertNotice.from(reached, product);
@@ -283,34 +285,20 @@ public class Notifier {
             .append(Component.literal(" " + alert.type.direction().symbol() + " ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(notice.targetCoins()).withStyle(ChatFormatting.GOLD));
         var config = ConfigStore.get().config();
-        boolean toastEnabled = config.alert.toastOnAlert;
-        boolean chatEnabled = config.notifications.alsoSendChatMessage;
-        boolean soundEnabled = config.notifications.playNotificationSound;
-        long generation = BtrBz.activationGeneration();
-        long session = toasts.session();
-
-        Minecraft.getInstance().execute(() -> {
-            if (!BtrBz.isActive() || BtrBz.activationGeneration() != generation
-                || toasts.session() != session
-                || Minecraft.getInstance().player == null) {
-                return;
-            }
-            if (toastEnabled) {
-                toasts.show(
-                    Component.literal("BtrBz").withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal(" · Price target reached").withStyle(ChatFormatting.GRAY)),
-                    List.of(
-                        GameUtils.legacyFormattedComponent(notice.formattedProductName()),
-                        priceCondition,
-                        Component.literal("Reached at ").withStyle(ChatFormatting.GRAY)
-                            .append(Component.literal(notice.observedCoins()).withStyle(ChatFormatting.GOLD))),
-                    bazaarData.productStack(product));
-            }
-            SoundUtil.playSoundIf(soundEnabled, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 2);
-            if (chatEnabled) {
-                notifyPriceReachedInChat(reached, product, bazaarData);
-            }
-        });
+        if (config.alert.toastOnAlert) {
+            toasts.show(
+                Component.literal("BtrBz").withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal(" · Price target reached").withStyle(ChatFormatting.GRAY)),
+                List.of(
+                    GameUtils.legacyFormattedComponent(notice.formattedProductName()),
+                    priceCondition,
+                    Component.literal("Reached at ").withStyle(ChatFormatting.GRAY)
+                        .append(Component.literal(notice.observedCoins()).withStyle(ChatFormatting.GOLD))),
+                bazaarData.productStack(product));
+        }
+        if (config.notifications.alsoSendChatMessage) {
+            notifyPriceReachedInChat(reached, product, bazaarData);
+        }
     }
 
     private static void notifyPriceReachedInChat(

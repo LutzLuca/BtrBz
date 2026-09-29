@@ -8,7 +8,6 @@ import net.minecraft.network.chat.Component;
 public class NotificationConfig {
 
     public boolean alsoSendChatMessage;
-    public boolean playNotificationSound = true;
 
     public OptionGroup createGroup() {
         return OptionGroup
@@ -22,14 +21,6 @@ public class NotificationConfig {
                 .description(ConfigScreen.createDescription(
                     "Also send reached price alerts to chat with a clickable Bazaar link."))
                 .binding(false, () -> this.alsoSendChatMessage, value -> this.alsoSendChatMessage = value)
-                .controller(ConfigScreen::createBooleanController)
-                .build())
-            .option(Option
-                .<Boolean>createBuilder()
-                .name(Component.literal("Play Notification Sound"))
-                .description(ConfigScreen.createDescription(
-                    "Play a sound when a price target is reached, whether or not chat delivery is enabled."))
-                .binding(true, () -> this.playNotificationSound, value -> this.playNotificationSound = value)
                 .controller(ConfigScreen::createBooleanController)
                 .build())
             .collapsed(true)

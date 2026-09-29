@@ -149,13 +149,11 @@ class ConfigStoreTest {
             var store = new ConfigStore(path);
             Assertions.assertTrue(store.config().alert.toastOnAlert);
             Assertions.assertFalse(store.config().notifications.alsoSendChatMessage);
-            Assertions.assertTrue(store.config().notifications.playNotificationSound);
             var alert = createAlert();
             store.config().alert.alerts.add(alert);
             store.config().alert.reachedAlerts.add(new ReachedAlert(alert, 2_000L, 1_012));
             store.config().alert.toastOnAlert = false;
             store.config().notifications.alsoSendChatMessage = true;
-            store.config().notifications.playNotificationSound = false;
 
             store.save();
 
@@ -166,7 +164,6 @@ class ConfigStoreTest {
             var config = reloaded.config();
             Assertions.assertFalse(config.alert.toastOnAlert);
             Assertions.assertTrue(config.notifications.alsoSendChatMessage);
-            Assertions.assertFalse(config.notifications.playNotificationSound);
             Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
             Assertions.assertEquals(1_012, config.alert.reachedAlerts.getFirst().price());
@@ -190,7 +187,6 @@ class ConfigStoreTest {
             var config = reloaded.config();
             Assertions.assertTrue(config.alert.toastOnAlert);
             Assertions.assertFalse(config.notifications.alsoSendChatMessage);
-            Assertions.assertTrue(config.notifications.playNotificationSound);
             Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
             Assertions.assertEquals(1_012, config.alert.reachedAlerts.getFirst().price());

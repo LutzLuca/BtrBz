@@ -183,7 +183,7 @@ public class BtrBz implements ClientModInitializer {
         this.tooltipProvider = new OrderTooltipProvider(this.bazaarData, this.highlightManager);
         this.orderManager = new TrackedOrderManager(this.bazaarData);
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
-        this.toastNotifications = new ToastNotifications(this.activation::isActive, this.activation::generation);
+        this.toastNotifications = new ToastNotifications(this.activation::isActive);
         this.alertManager = new AlertManager(this.bazaarData,
             reached -> Notifier.notifyPriceReached(reached, this.bazaarData, this.toastNotifications));
         new ChatFilterManager();
@@ -306,7 +306,7 @@ public class BtrBz implements ClientModInitializer {
             this.bazaarPoller.close();
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            this.toastNotifications.clear();
+            this.toastNotifications.invalidate();
             SoundUtil.invalidatePending();
         });
 
@@ -422,7 +422,7 @@ public class BtrBz implements ClientModInitializer {
 
     private void deactivate() {
         log.info("BtrBz features deactivated (generation={})", this.activation.generation());
-        this.toastNotifications.clear();
+        this.toastNotifications.invalidate();
         SoundUtil.invalidatePending();
         this.bazaarPoller.stop();
         this.bazaarData.clearMarketData();
