@@ -171,55 +171,45 @@ public class AlertManager {
     }
 
     private Try<Alert> saveCondition(@Nullable UUID id, Alert saved) {
-        return Try.of(() -> {
-            var config = this.config();
-            var current = config.alerts;
-            int editIndex = -1;
-            if (id != null) {
-                for (int index = 0; index < current.size(); index++) {
-                    if (current.get(index).id.equals(id)) {
-                        editIndex = index;
-                        break;
-                    }
-                }
-                if (editIndex < 0) {
-                    throw new IllegalArgumentException("Alert " + id + " no longer exists");
-                }
-                if (current.get(editIndex).kind() != saved.kind()) {
-                    throw new IllegalArgumentException("An alert cannot change kind while editing");
+        var config = this.config();
+        var current = config.alerts;
+        int editIndex = -1;
+        if (id != null) {
+            for (int index = 0; index < current.size(); index++) {
+                if (current.get(index).id.equals(id)) {
+                    editIndex = index;
+                    break;
                 }
             }
+            if (editIndex < 0) {
+                return Try.failure(new IllegalArgumentException("Alert " + id + " no longer exists"));
+            }
+            if (current.get(editIndex).kind() != saved.kind()) {
+                return Try.failure(new IllegalArgumentException("An alert cannot change kind while editing"));
+            }
+        }
 
-            for (var alert : current) {
-                if ((id == null || !alert.id.equals(id)) && alert.matches(saved)) {
-                    throw new IllegalArgumentException("An identical alert is already active");
-                }
+        for (var alert : current) {
+            if ((id == null || !alert.id.equals(id)) && alert.matches(saved)) {
+                return Try.failure(new IllegalArgumentException("An identical alert is already active"));
             }
+        }
 
-            var reached = this.immediateObservation(saved);
-            var updated = new ArrayList<>(current);
-            var oldReached = config.reachedAlerts;
-            var newReached = new ArrayList<>(oldReached);
-            if (editIndex >= 0) {
-                updated.remove(editIndex);
-            }
-            if (reached.isPresent()) {
-                addReached(newReached, reached.get());
-            } else if (editIndex < 0) {
-                updated.add(saved);
-            } else {
-                updated.add(editIndex, saved);
-            }
+        var reached = this.immediateObservation(saved);
+        var updated = new ArrayList<>(current);
+        var newReached = new ArrayList<>(config.reachedAlerts);
+        if (editIndex >= 0) {
+            updated.remove(editIndex);
+        }
+        if (reached.isPresent()) {
+            addReached(newReached, reached.get());
+        } else if (editIndex < 0) {
+            updated.add(saved);
+        } else {
+            updated.add(editIndex, saved);
+        }
 
-            config.alerts = updated;
-            config.reachedAlerts = newReached;
-            try {
-                this.save.run();
-            } catch (RuntimeException err) {
-                config.alerts = current;
-                config.reachedAlerts = oldReached;
-                throw err;
-            }
+        return this.replaceAndSave(updated, newReached).map(_ -> {
             this.changes.invalidate(id == null ? "alert created" : "alert edited");
             reached.ifPresent(this::dispatchReached);
             return saved;
@@ -228,39 +218,43 @@ public class AlertManager {
 
     /** Reactivates a captured condition without resolving its original price expression again. */
     public Try<Alert> watchAgain(UUID id) {
-        return Try.of(() -> {
-            var cfg = this.config();
-            var original = cfg.reachedAlerts.stream()
-                .filter(entry -> entry.alert().id.equals(id))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Reached alert " + id + " no longer exists"));
-            var reactivated = original.alert().reactivated(System.currentTimeMillis());
-            if (cfg.alerts.stream().anyMatch(active -> active.matches(reactivated))) {
-                throw new IllegalArgumentException("An identical alert is already active");
-            }
-            var reached = this.immediateObservation(reactivated);
-            var oldActive = cfg.alerts;
-            var oldReached = cfg.reachedAlerts;
-            var newActive = new ArrayList<>(oldActive);
-            var newReached = new ArrayList<>(oldReached);
-            newReached.remove(original);
-            if (reached.isPresent()) {
-                addReached(newReached, reached.get());
-            } else {
-                newActive.add(reactivated);
-            }
-            cfg.alerts = newActive;
-            cfg.reachedAlerts = newReached;
-            try {
-                this.save.run();
-            } catch (RuntimeException err) {
-                cfg.alerts = oldActive;
-                cfg.reachedAlerts = oldReached;
-                throw err;
-            }
+        var cfg = this.config();
+        var original = cfg.reachedAlerts.stream()
+            .filter(entry -> entry.alert().id.equals(id))
+            .findFirst();
+        if (original.isEmpty()) {
+            return Try.failure(new IllegalArgumentException("Reached alert " + id + " no longer exists"));
+        }
+        var reactivated = original.get().alert().reactivated(System.currentTimeMillis());
+        if (cfg.alerts.stream().anyMatch(active -> active.matches(reactivated))) {
+            return Try.failure(new IllegalArgumentException("An identical alert is already active"));
+        }
+        var reached = this.immediateObservation(reactivated);
+        var newActive = new ArrayList<>(cfg.alerts);
+        var newReached = new ArrayList<>(cfg.reachedAlerts);
+        newReached.remove(original.get());
+        if (reached.isPresent()) {
+            addReached(newReached, reached.get());
+        } else {
+            newActive.add(reactivated);
+        }
+
+        return this.replaceAndSave(newActive, newReached).map(_ -> {
             this.changes.invalidate("alert reactivated");
             reached.ifPresent(this::dispatchReached);
             return reactivated;
+        });
+    }
+
+    private Try<Void> replaceAndSave(List<Alert> active, List<ReachedAlert> reached) {
+        var config = this.config();
+        var previousActive = config.alerts;
+        var previousReached = config.reachedAlerts;
+        config.alerts = active;
+        config.reachedAlerts = reached;
+        return Try.run(this.save::run).onFailure(_ -> {
+            config.alerts = previousActive;
+            config.reachedAlerts = previousReached;
         });
     }
 
@@ -335,13 +329,7 @@ public class AlertManager {
             return false;
         }
 
-        config.alerts = updated;
-        try {
-            this.save.run();
-        } catch (RuntimeException err) {
-            config.alerts = current;
-            throw err;
-        }
+        this.replaceAndSave(updated, config.reachedAlerts).get();
         this.changes.invalidate("alert removed");
         return true;
     }
@@ -353,13 +341,7 @@ public class AlertManager {
         if (!updated.removeIf(entry -> entry.alert().id.equals(id))) {
             return false;
         }
-        config.reachedAlerts = updated;
-        try {
-            this.save.run();
-        } catch (RuntimeException err) {
-            config.reachedAlerts = current;
-            throw err;
-        }
+        this.replaceAndSave(config.alerts, updated).get();
         this.changes.invalidate("reached alert removed");
         return true;
     }

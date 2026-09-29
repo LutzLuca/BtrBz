@@ -15,6 +15,7 @@ public final class LiquidityEvaluation {
         long total = 0;
         for (var level : levels) {
             if (level.items() <= 0 || !Double.isFinite(level.pricePerItem())
+                || level.pricePerItem() <= 0
                 || !qualifies(side, level.pricePerItem(), bound)) {
                 continue;
             }

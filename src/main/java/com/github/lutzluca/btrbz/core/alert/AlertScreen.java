@@ -571,67 +571,81 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.alertRows.clearChildren();
         this.activeQuotes.clear();
         boolean history = this.tab == Tab.Reached;
-        var reached = this.manager.reachedAlerts().stream()
-            .filter(entry -> entry.alert().kind() == this.editor.mode()).toList();
-        var alerts = history
-            ? reached.stream().map(AlertManager.ReachedAlert::alert).toList()
-            : this.manager.alerts().stream().filter(entry -> entry.kind() == this.editor.mode()).toList();
-        if (alerts.isEmpty()) {
+        if (history) {
+            for (var entry : this.manager.reachedAlerts()) {
+                if (entry.alert().kind() == this.editor.mode()) {
+                    this.alertRows.child(this.reachedAlertRow(entry));
+                }
+            }
+        } else {
+            for (var alert : this.manager.alerts()) {
+                if (alert.kind() == this.editor.mode()) {
+                    this.alertRows.child(this.activeAlertRow(alert));
+                }
+            }
+        }
+        if (this.alertRows.children().isEmpty()) {
             this.alertRows
                 .child(text(history ? "No alerts reached yet." : "No active alerts yet.", BazaarStyles.MUTED_TEXT));
         }
-        for (int index = 0; index < alerts.size(); index++) {
-            var alert = alerts.get(index);
-            var product = this.data.refreshIndexedProduct(alert.product);
-            var card = row();
-            card.surface(WidgetSurfaces.roundedPanel(CARD, 4));
-            card.padding(Insets.of(6));
-            var details = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
-            details.gap(3);
-            int actionsWidth = history ? 136 : 76;
-            int detailsWidth = this.contentWidth - actionsWidth - 18;
-            details.child(new AlertProductRow(this.data, product, detailsWidth, false, null));
-            var condition = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(detailsWidth);
-            condition.text(AlertNotice.conditionText(alert.condition));
-            details.child(condition);
-            var current = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(detailsWidth);
-            if (history) {
-                var entry = reached.get(index);
-                MutableComponent observed = switch (entry.observation()) {
-                    case AlertCondition.Observation.Price price -> Component.literal("Reached at ")
-                        .withColor(BazaarStyles.MUTED_TEXT).append(AlertNotice.coins(price.value()));
-                    case AlertCondition.Observation.Liquidity liquidity -> Component.literal("Reached with "
-                        + items(liquidity.quantity()) + " items").withColor(BazaarStyles.MUTED_TEXT);
-                };
-                current.text(observed.append(Component.literal(" on " + captureTime(entry.reachedAt()))
-                    .withColor(BazaarStyles.MUTED_TEXT)));
-            } else {
-                this.activeQuotes.add(new ActiveQuote(alert, current));
-            }
-            details.child(current);
-            var actions = UIContainers.horizontalFlow(Sizing.fixed(actionsWidth), Sizing.content());
-            actions.gap(6);
-            actions.verticalAlignment(VerticalAlignment.CENTER);
-            if (history) {
-                actions.child(button("Open Bazaar", () -> {
-                    GameUtils.setScreen(null);
-                    GameUtils.runCommand("bz " + product.strippedName());
-                }).horizontalSizing(Sizing.fixed(80)));
-                actions.child(new IconButton(Assets.REDO_ICON,
-                    Component.literal("Watch again: " + product.strippedName()), () -> this.watchAgain(alert.id), 64,
-                    buttonRenderer(false, false)));
-            } else {
-                actions.child(button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fixed(48)));
-            }
-            actions
-                .child(new IconButton(Assets.TRASHCAN, Component.literal("Delete alert for " + product.strippedName()),
-                    () -> this.delete(alert.id, history), 32, buttonRenderer(false, false)));
-            card.child(details);
-            card.child(actions);
-            this.alertRows.child(card);
-        }
         this.refreshActiveQuotes();
         this.restoreScroll(offset);
+    }
+
+    private FlowLayout activeAlertRow(AlertManager.Alert alert) {
+        var product = this.data.refreshIndexedProduct(alert.product);
+        var current = text("", BazaarStyles.SECONDARY_TEXT);
+        this.activeQuotes.add(new ActiveQuote(alert, current));
+        return this.alertRow(alert, product, current, 76,
+            button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fixed(48)),
+            new IconButton(Assets.TRASHCAN, Component.literal("Delete alert for " + product.strippedName()),
+                () -> this.delete(alert.id, false), 32, buttonRenderer(false, false)));
+    }
+
+    private FlowLayout reachedAlertRow(AlertManager.ReachedAlert entry) {
+        var alert = entry.alert();
+        var product = this.data.refreshIndexedProduct(alert.product);
+        MutableComponent observed = switch (entry.observation()) {
+            case AlertCondition.Observation.Price price -> Component.literal("Reached at ")
+                .withColor(BazaarStyles.MUTED_TEXT).append(AlertNotice.coins(price.value()));
+            case AlertCondition.Observation.Liquidity liquidity -> Component.literal("Reached with "
+                + items(liquidity.quantity()) + " items").withColor(BazaarStyles.MUTED_TEXT);
+        };
+        var current = text("", BazaarStyles.SECONDARY_TEXT);
+        current.text(observed.append(Component.literal(" on " + captureTime(entry.reachedAt()))
+            .withColor(BazaarStyles.MUTED_TEXT)));
+        return this.alertRow(alert, product, current, 136,
+            button("Open Bazaar", () -> {
+                GameUtils.setScreen(null);
+                GameUtils.runCommand("bz " + product.strippedName());
+            }).horizontalSizing(Sizing.fixed(80)),
+            new IconButton(Assets.REDO_ICON, Component.literal("Watch again: " + product.strippedName()),
+                () -> this.watchAgain(alert.id), 64, buttonRenderer(false, false)),
+            new IconButton(Assets.TRASHCAN, Component.literal("Delete alert for " + product.strippedName()),
+                () -> this.delete(alert.id, true), 32, buttonRenderer(false, false)));
+    }
+
+    private FlowLayout alertRow(
+        AlertManager.Alert alert,
+        IndexedProduct product,
+        LabelComponent current,
+        int actionsWidth,
+        UIComponent... buttons
+    ) {
+        var card = row();
+        card.surface(WidgetSurfaces.roundedPanel(CARD, 4));
+        card.padding(Insets.of(6));
+        var details = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
+        details.gap(3);
+        int detailsWidth = this.contentWidth - actionsWidth - 18;
+        details.child(new AlertProductRow(this.data, product, detailsWidth, false, null));
+        var condition = text("", BazaarStyles.SECONDARY_TEXT).maxWidth(detailsWidth);
+        condition.text(AlertNotice.conditionText(alert.condition));
+        details.child(condition);
+        details.child(current.maxWidth(detailsWidth));
+        card.child(details);
+        card.child(row(buttons).horizontalSizing(Sizing.fixed(actionsWidth)));
+        return card;
     }
 
     private void refreshActiveQuotes() {
