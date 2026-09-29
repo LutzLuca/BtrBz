@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 
 class OrderInfoParserTest {
 
@@ -166,6 +167,39 @@ class OrderInfoParserTest {
     @Nested
     @DisplayName("parseOrderInfo lore seam")
     class ParseOrderInfoLore {
+
+        @Test
+        void detectsOnlyTheExactStrippedExpiryLine() {
+            var active = OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
+                "Order amount: 8x", "Price per unit: 1,300,000 coins",
+                "Expires in 1m", "Not Expired!"), 12);
+            Assertions.assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, active.get());
+
+            var expired = OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
+                "Order amount: 8x", "Price per unit: 1,300,000 coins", " §cExpired! "), 12);
+            var info = Assertions.assertInstanceOf(OrderInfo.ExpiredOrderInfo.class, expired.get());
+            Assertions.assertEquals(0, info.filledAmountSnapshot());
+            Assertions.assertEquals(0, info.unclaimed());
+        }
+
+        @Test
+        void expiryPreservesPartialAndCompleteFillClaims() {
+            var sell = OrderInfoParser.parseOrderInfo("SELL Heat Core", orderLore(
+                "Offer amount: 8x", "Filled: 3/8 (37.5%)", "Price per unit: 7 coins",
+                "You have 11 coins to claim!", "Expired!"), 12);
+            var sellInfo = Assertions.assertInstanceOf(OrderInfo.ExpiredOrderInfo.class, sell.get());
+            Assertions.assertEquals(OrderType.Sell, sellInfo.type());
+            Assertions.assertEquals(3, sellInfo.filledAmountSnapshot());
+            Assertions.assertEquals(11, sellInfo.unclaimed());
+
+            var buy = OrderInfoParser.parseOrderInfo("BUY Heat Core", orderLore(
+                "Expired!", "Order amount: 8x", "Filled: 8/8 100%!",
+                "Price per unit: 5 coins", "You have 2 items to claim!"), 13);
+            var buyInfo = Assertions.assertInstanceOf(OrderInfo.ExpiredOrderInfo.class, buy.get());
+            Assertions.assertEquals(OrderType.Buy, buyInfo.type());
+            Assertions.assertEquals(8, buyInfo.filledAmountSnapshot());
+            Assertions.assertEquals(2, buyInfo.unclaimed());
+        }
 
         @Test
         void parsesUnfilledBuyOrder() {

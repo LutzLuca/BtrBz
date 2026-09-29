@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.Orde
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderFlipped;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage.OrderSetup;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.ExpiredOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.UnfilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -188,16 +189,10 @@ public final class OrderInfoParser {
 
     public static Try<OrderInfo> parseOrderInfo(ItemStack item, int slotIdx, BazaarData bazaarData) {
         return parseOrderInfo(item, slotIdx)
-            .map(info -> switch (info) {
-                case UnfilledOrderInfo unfilled -> unfilled.withProduct(bazaarData.resolveProduct(
-                    item,
-                    unfilled.uiProductName(),
-                    formattedProductNameFromOrderTitle(item.getHoverName(), unfilled.uiProductName()).orElse(null)));
-                case FilledOrderInfo filled -> filled.withProduct(bazaarData.resolveProduct(
-                    item,
-                    filled.uiProductName(),
-                    formattedProductNameFromOrderTitle(item.getHoverName(), filled.uiProductName()).orElse(null)));
-            });
+            .map(info -> info.withProduct(bazaarData.resolveProduct(
+                item,
+                info.uiProductName(),
+                formattedProductNameFromOrderTitle(item.getHoverName(), info.uiProductName()).orElse(null))));
     }
 
     static Try<OrderInfo> parseOrderInfo(String title, List<String> lore, int slotIdx) {
@@ -236,6 +231,17 @@ public final class OrderInfoParser {
             }
 
             var details = additionalInfo.get();
+            if (details.expired) {
+                return new ExpiredOrderInfo(
+                    ProductIdentity.fromName(productName.trim()),
+                    productName.trim(),
+                    orderTypeResult.get(),
+                    details.volume,
+                    details.pricePerUnit,
+                    details.filledAmount,
+                    details.unclaimed,
+                    slotIdx);
+            }
             if (details.filled) {
                 return new FilledOrderInfo(
                     ProductIdentity.fromName(productName.trim()),
@@ -267,6 +273,7 @@ public final class OrderInfoParser {
             Double filledPercentage = null;
             Integer exactFilledAmount = null;
             int unclaimed = 0;
+            boolean expired = false;
 
             for (String rawLine : lore) {
                 String line = Utils.stripFormattingCodes(rawLine).trim();
@@ -274,7 +281,9 @@ public final class OrderInfoParser {
                     continue;
                 }
 
-                if (pricePerUnit == null && line.startsWith("Price per unit:")) {
+                if (line.equals("Expired!")) {
+                    expired = true;
+                } else if (pricePerUnit == null && line.startsWith("Price per unit:")) {
                     var parsed = Utils.parseUsFormattedNumber(line
                         .replace("Price per unit:", "")
                         .replace("coins", "")
@@ -364,7 +373,8 @@ public final class OrderInfoParser {
                 volume,
                 filledAmount,
                 unclaimed,
-                filledPercentage != null && filledPercentage >= 100 && filledAmount >= volume);
+                filledPercentage != null && filledPercentage >= 100 && filledAmount >= volume,
+                expired);
         });
     }
 
@@ -506,6 +516,6 @@ public final class OrderInfoParser {
     private record ParsedVolume(int volume, String productName) {}
 
     private record OrderDetails(
-        double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled
+        double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled, boolean expired
     ) {}
 }

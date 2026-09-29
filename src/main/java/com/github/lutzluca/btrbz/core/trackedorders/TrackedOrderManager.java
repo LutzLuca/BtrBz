@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -60,7 +59,7 @@ public class TrackedOrderManager {
     private final List<Consumer<TrackedOrder>> onOrderRemovedListeners = new ArrayList<>();
     private final List<Consumer<TrackedOrder>> onOrderUpdatedListeners = new ArrayList<>();
     private final List<Runnable> onOrdersResetListeners = new ArrayList<>();
-    private BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> onSyncCompletedCallback = (_, _) -> {};
+    private Consumer<List<OrderInfo>> onSyncCompletedCallback = _ -> {};
 
     public TrackedOrderManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
@@ -138,21 +137,23 @@ public class TrackedOrderManager {
         this.onOrdersResetListeners.add(listener);
     }
 
-    public void afterOrderSync(BiConsumer<List<UnfilledOrderInfo>, List<FilledOrderInfo>> cb) {
+    public void afterOrderSync(Consumer<List<OrderInfo>> cb) {
         this.onSyncCompletedCallback = cb;
     }
 
     public void syncOrders(List<OrderInfo> parsedOrders) {
         log.debug("Syncing orders with parsed order from the UI: {}", parsedOrders);
         var toRemove = new ArrayList<TrackedOrder>();
-        var remaining = new ArrayList<>(parsedOrders);
+        var snapshot = List.copyOf(parsedOrders);
 
         var filledOrders = new ArrayList<FilledOrderInfo>();
         var unfilledOrders = new ArrayList<UnfilledOrderInfo>();
-        for (var order : remaining) {
+        for (var order : snapshot) {
             switch (order) {
                 case FilledOrderInfo filled -> filledOrders.add(filled);
                 case UnfilledOrderInfo unfilled -> unfilledOrders.add(unfilled);
+                case OrderInfo.ExpiredOrderInfo _ -> {
+                }
             }
         }
 
@@ -187,7 +188,7 @@ public class TrackedOrderManager {
             .map(TrackedOrder::new)
             .forEach(this::addTrackedOrder);
 
-        this.onSyncCompletedCallback.accept(unfilledOrders, filledOrders);
+        this.onSyncCompletedCallback.accept(snapshot);
     }
 
     private void removeTrackedOrder(TrackedOrder order) {
