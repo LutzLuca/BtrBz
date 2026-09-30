@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.orderbook;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
@@ -54,7 +53,7 @@ public final class OrderBookPriceComponent {
             return Optional.empty();
         }
 
-        return Optional.of(new Workflow(ProductIdentity.fromIndex(product.get()), side.get()));
+        return Optional.of(new Workflow(product.get(), side.get()));
     }
 
     public Optional<Snapshot> currentSnapshot() {
@@ -115,12 +114,12 @@ public final class OrderBookPriceComponent {
         return side == OrderType.Buy ? price + 0.1 : Math.max(price - 0.1, 0.1);
     }
 
-    private Optional<IndexedProduct> resolveProduct(ScreenInfo previous) {
+    private Optional<ProductIdentity> resolveProduct(ScreenInfo previous) {
         if (previous.inMenu(BazaarMenuType.OrderOptions)) {
             return this.flipProductContext.getSelectedProduct();
         }
 
-        return Optional.ofNullable(this.productContext.openedProduct());
+        return Optional.ofNullable(this.productContext.openedProduct()).map(ProductIdentity::fromIndex);
     }
 
     private Optional<OrderType> resolveSide(ScreenInfo previous) {

@@ -45,7 +45,6 @@ public class FlipHelper {
     private final FlipSubmissionTracker flipSubmissionTracker;
     private final TrackedOrderManager orderManager;
 
-    private TrackedFlipProduct potentialFlipProduct = null;
     private boolean pendingFlip = false;
     private CachedHelperDisplay cachedHelperDisplay = null;
 
@@ -66,26 +65,9 @@ public class FlipHelper {
 
     public void onOrderClick(OrderInfo info) {
         this.clearPendingFlipState();
-        if (info.type() != OrderType.Buy || !(info instanceof OrderInfo.FilledOrderInfo)) {
-            this.flipProductContext.clearProduct();
-            return;
-        }
-
-        var product = this.bazaarData.resolveIndexedProduct(info.product());
-        if (product.isEmpty()) {
-            this.flipProductContext.clearProduct();
-            log.warn("Could not resolve flip product '{}'", info.uiProductName());
-            return;
-        }
-
-        this.flipProductContext.selectProduct(product.get());
-
-        if (!ConfigStore.get().config().flipHelper.enabled) {
-            return;
-        }
-
-        this.potentialFlipProduct = new TrackedFlipProduct(this.bazaarData, product.get());
-        log.debug("Set `potentialFlipProduct` for product: {}", product.get());
+        this.flipProductContext.selectOrder(info);
+        this.flipProductContext.getSelectedProduct()
+            .ifPresent(product -> log.debug("Selected flip product: {}", product));
     }
 
     private void registerSlotHooks() {
@@ -108,12 +90,12 @@ public class FlipHelper {
             }
 
             log.debug("Leaving flip flow, clearing selected product context");
-            this.flipProductContext.clearProduct();
+            this.cancelPendingFlip();
         });
     }
 
     private ItemStack createHelperDisplayStack(double price) {
-        var formatted = Utils.formatDecimal(Math.max(price, .1), 1, true);
+        var formatted = Utils.formatDecimal(price, 1, true);
 
         var customHelperItem = new ItemStack(Items.NETHER_STAR);
         customHelperItem.set(
@@ -128,86 +110,59 @@ public class FlipHelper {
     }
 
     private ItemStack getCachedHelperDisplayStack() {
-        if (this.potentialFlipProduct == null) {
-            this.cachedHelperDisplay = null;
-            return null;
-        }
-
-        var cachedPrice = this.potentialFlipProduct.getSellOfferPrice()
-            .map(price -> Math.max(price - 0.1, .1));
+        var cachedPrice = this.flipProductContext.getFlipPrice(this.bazaarData);
         if (cachedPrice.isEmpty()) {
             this.cachedHelperDisplay = null;
             return null;
         }
 
-        var productName = this.potentialFlipProduct.getProductName();
         var displayPrice = cachedPrice.get();
 
         if (this.cachedHelperDisplay != null
-            && this.cachedHelperDisplay.productName().equals(productName)
             && Double.compare(this.cachedHelperDisplay.displayPrice(), displayPrice) == 0) {
             return this.cachedHelperDisplay.display().copy();
         }
 
         var display = this.createHelperDisplayStack(displayPrice);
-        this.cachedHelperDisplay = new CachedHelperDisplay(productName, displayPrice, display.copy());
+        this.cachedHelperDisplay = new CachedHelperDisplay(displayPrice, display.copy());
         return display;
     }
 
     private void registerFlipPriceScreenHandler() {
         ScreenTracker.registerOnSwitch(curr -> {
-            if (!ConfigStore.get().config().flipHelper.enabled) {
+            if (!ConfigStore.get().config().flipHelper.enabled || !this.pendingFlip) {
+                this.clearPendingFlipState();
                 return;
             }
 
+            this.clearPendingFlipState();
             var prev = ScreenTracker.get().getPrevInfo();
-            if (prev == null || !prev.inMenu(BazaarMenuType.OrderOptions)) {
-                this.pendingFlip = false;
+            if (!prev.inMenu(BazaarMenuType.OrderOptions)) {
                 return;
             }
 
             if (!(curr.getScreen() instanceof SignEditScreen signEditScreen)) {
-                if (this.pendingFlip) {
-                    log.warn("""
-                            Expected screen transition from OrderOptions to a SignEditScreen while pendingFlip is set,
-                            but switched to a non-SignEditScreen; resetting flip state
-                        """);
-                }
-                this.clearPendingFlipState();
+                log.warn("""
+                        Expected screen transition from OrderOptions to a SignEditScreen while pendingFlip is set,
+                        but switched to a non-SignEditScreen; resetting flip state
+                    """);
                 return;
             }
 
-            if (!this.pendingFlip) {
-                this.clearPendingFlipState();
-                return;
-            }
-
-            if (this.potentialFlipProduct == null) {
-                log.warn(
-                    "Expected `potentialFlipProduct` to be non-null to proceed with entering the flipPrice");
-                this.clearPendingFlipState();
-                return;
-            }
-
-            var flipPrice = this.potentialFlipProduct
-                .getSellOfferPrice()
-                .map(price -> Math.max(price - .1, 0.1));
+            var flipPrice = this.flipProductContext.getFlipPrice(this.bazaarData);
 
             if (flipPrice.isEmpty()) {
                 log.warn(
                     "Could not resolve price for product {}",
-                    this.potentialFlipProduct.getProduct());
-                this.clearPendingFlipState();
+                    this.flipProductContext.getSelectedProduct());
                 return;
             }
 
             var formatted = Utils.formatDecimal(flipPrice.get(), 1, false);
             this.flipSubmissionTracker.recordSubmittedFlip(
-                ProductIdentity.fromIndex(this.potentialFlipProduct.getProduct()),
+                this.flipProductContext.getSelectedProduct().orElseThrow(),
                 flipPrice.get());
             GameUtils.submitSignValue(signEditScreen, formatted);
-
-            this.clearPendingFlipState();
         });
     }
 
@@ -249,14 +204,7 @@ public class FlipHelper {
     }
 
     private void clearPendingFlipState() {
-        if (this.potentialFlipProduct != null) {
-            log.debug(
-                "Destroying `potentialFlipProduct` {}",
-                this.potentialFlipProduct.getProduct());
-            this.potentialFlipProduct.destroy();
-        }
         this.cachedHelperDisplay = null;
-        this.potentialFlipProduct = null;
         this.pendingFlip = false;
     }
 
@@ -270,7 +218,7 @@ public class FlipHelper {
                 && !view.playerInventorySlot()
                 && view.slotIdx() == CUSTOM_HELPER_ITEM_SLOT_IDX
                 && view.getCurrInfo().inMenu(BazaarMenuType.OrderOptions)
-                && FlipHelper.this.potentialFlipProduct != null;
+                && FlipHelper.this.flipProductContext.getSelectedProduct().isPresent();
         }
 
         @Override
@@ -293,23 +241,18 @@ public class FlipHelper {
                 return SlotClickResult.Pass;
             }
 
-            if (FlipHelper.this.potentialFlipProduct == null || FlipHelper.this.potentialFlipProduct
-                .getSellOfferPrice()
-                .isEmpty()) {
-
-                log.debug(
-                    "Ignoring flip execution click because it's price could not be resolved: '{}'",
-                    FlipHelper.this.potentialFlipProduct == null ? "no product selected" : "price not available");
+            if (FlipHelper.this.flipProductContext.getFlipPrice(FlipHelper.this.bazaarData).isEmpty()) {
+                log.debug("Ignoring flip execution click because its price is not available");
                 return SlotClickResult.Pass;
             }
 
+            FlipHelper.this.pendingFlip = true;
             interactionManager.handleContainerInput(
                 handler.containerId,
                 FLIP_ORDER_ITEM_SLOT_IDX,
                 ctx.button(),
                 ContainerInput.PICKUP,
                 player);
-            FlipHelper.this.pendingFlip = true;
             return SlotClickResult.Consume;
         }
     }
@@ -343,7 +286,7 @@ public class FlipHelper {
         }
     }
 
-    private record CachedHelperDisplay(String productName, double displayPrice, ItemStack display) {}
+    private record CachedHelperDisplay(double displayPrice, ItemStack display) {}
 
     public static class FlipHelperConfig {
 
