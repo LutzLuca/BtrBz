@@ -9,7 +9,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertShortcut;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.SkyBlockDetector;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
-import com.github.lutzluca.btrbz.core.ChatFilterManager;
+import com.github.lutzluca.btrbz.core.BazaarChatManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.OrderProtectionManager;
@@ -74,14 +74,10 @@ import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.fabricmc.fabric.api.resource.v1.reloader.ResourceReloaderKeys;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.ClickEvent.RunCommand;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.resources.Identifier;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
@@ -187,7 +183,7 @@ public class BtrBz implements ClientModInitializer {
         this.toastNotifications = new ToastNotifications(this.activation::isActive);
         this.alertManager = new AlertManager(this.bazaarData,
             reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications));
-        new ChatFilterManager();
+        new BazaarChatManager();
         this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);
         new ProductInformation(this.bazaarData, this.bazaarProductContext,
@@ -366,24 +362,6 @@ public class BtrBz implements ClientModInitializer {
             if (BtrBz.isActive()) {
                 messageDispatcher.handleChatMessage(Utils.stripFormattingCodes(message.getString()));
             }
-        });
-
-        ClientReceiveMessageEvents.MODIFY_GAME.register((message, overlay) -> {
-            if (!BtrBz.isActive()) {
-                return message;
-            }
-            var rawMsg = Utils.stripFormattingCodes(message.getString());
-            if (overlay || !rawMsg.startsWith("[Bazaar]") || !rawMsg.endsWith("was filled!")) {
-                return message;
-            }
-
-            // TODO: make this optional (config flag)
-            return message.copy()
-                .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/managebazaarorders"))
-                    .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))))
-                .append(Component.literal(" [Go To Orders]")
-                    .withStyle(ChatFormatting.DARK_AQUA));
         });
 
         ScreenTracker.registerOnLoaded(
