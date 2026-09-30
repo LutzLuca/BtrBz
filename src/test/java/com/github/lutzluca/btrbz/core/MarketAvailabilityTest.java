@@ -69,7 +69,7 @@ class MarketAvailabilityTest {
         this.market.clearMarketData();
         var unavailable = OrderProtectionManager.OrderValidator.validate(order, this.market, config).validationResult();
         Assertions.assertTrue(unavailable.protect());
-        Assertions.assertEquals("Bazaar prices are unavailable.", unavailable.reason());
+        Assertions.assertInstanceOf(OrderProtectionManager.ValidationUnavailable.class, unavailable);
 
         this.publish(50);
         Assertions.assertTrue(OrderProtectionManager.OrderValidator.validate(order, this.market, config)
