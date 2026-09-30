@@ -19,7 +19,7 @@ import net.minecraft.network.chat.Component;
 public class OrderHighlightManager {
 
     private final Map<Integer, TrackedOrder> slotToTrackedOrder = new HashMap<>();
-    private final Map<Integer, Integer> filledOrderSlots = new HashMap<>();
+    private final Map<Integer, Integer> inactiveOrderSlots = new HashMap<>();
 
     public static int colorForStatus(OrderStatus status) {
         return switch (status) {
@@ -32,17 +32,26 @@ public class OrderHighlightManager {
 
     public void sync(
         List<TrackedOrder> trackedOrders,
-        List<OrderInfo.FilledOrderInfo> filledOrders
+        List<OrderInfo> snapshot
     ) {
         this.slotToTrackedOrder.clear();
-        this.filledOrderSlots.clear();
+        this.inactiveOrderSlots.clear();
 
         trackedOrders
             .stream()
             .filter(order -> order.slot != -1)
             .forEach(order -> this.slotToTrackedOrder.put(order.slot, order));
 
-        filledOrders.forEach(order -> this.filledOrderSlots.put(order.slotIdx(), 0xFFEFBF04));
+        snapshot.forEach(order -> {
+            switch (order) {
+                case OrderInfo.FilledOrderInfo filled ->
+                    this.inactiveOrderSlots.put(filled.slotIdx(), 0xFFEFBF04);
+                case OrderInfo.ExpiredOrderInfo expired ->
+                    this.inactiveOrderSlots.put(expired.slotIdx(), 0xFF888888);
+                case OrderInfo.UnfilledOrderInfo _ -> {
+                }
+            }
+        });
     }
 
     public Optional<Integer> getHighlight(int idx) {
@@ -55,12 +64,12 @@ public class OrderHighlightManager {
             return Optional.of(colorForStatus(tracked.status));
         }
 
-        return Optional.ofNullable(this.filledOrderSlots.get(idx));
+        return Optional.ofNullable(this.inactiveOrderSlots.get(idx));
     }
 
     public void clear() {
         this.slotToTrackedOrder.clear();
-        this.filledOrderSlots.clear();
+        this.inactiveOrderSlots.clear();
     }
 
     public TrackedOrder getTrackedOrder(int slotIdx) {
@@ -108,7 +117,9 @@ public class OrderHighlightManager {
                 .append(Component.literal("Purple").withStyle(ChatFormatting.LIGHT_PURPLE))
                 .append(Component.literal(": status unknown\n").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal("Gold").withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(": filled and ready to claim").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal(": filled and ready to claim\n").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("Gray").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(": expired").withStyle(ChatFormatting.GRAY));
         }
     }
 }

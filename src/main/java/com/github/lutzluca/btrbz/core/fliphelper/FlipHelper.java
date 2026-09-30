@@ -65,27 +65,15 @@ public class FlipHelper {
     }
 
     public void onOrderClick(OrderInfo info) {
-        if (info.type() != OrderType.Buy) {
+        this.clearPendingFlipState();
+        if (info.type() != OrderType.Buy || !(info instanceof OrderInfo.FilledOrderInfo)) {
             this.flipProductContext.clearProduct();
-            this.clearPendingFlipState();
             return;
         }
 
-        if (info instanceof OrderInfo.UnfilledOrderInfo) {
-            this.flipProductContext.clearProduct();
-            this.clearPendingFlipState();
-            return;
-        }
-
-        if (this.potentialFlipProduct != null) {
-            this.potentialFlipProduct.destroy();
-        }
-
-        this.cachedHelperDisplay = null;
         var product = this.bazaarData.resolveIndexedProduct(info.product());
         if (product.isEmpty()) {
             this.flipProductContext.clearProduct();
-            this.clearPendingFlipState();
             log.warn("Could not resolve flip product '{}'", info.uiProductName());
             return;
         }
@@ -93,7 +81,6 @@ public class FlipHelper {
         this.flipProductContext.selectProduct(product.get());
 
         if (!ConfigStore.get().config().flipHelper.enabled) {
-            this.clearPendingFlipState();
             return;
         }
 
@@ -348,6 +335,8 @@ public class FlipHelper {
                 FlipHelper.this.bazaarData);
             if (orderInfo.isSuccess()) {
                 FlipHelper.this.onOrderClick(orderInfo.get());
+            } else {
+                FlipHelper.this.cancelPendingFlip();
             }
 
             return SlotClickResult.Pass;

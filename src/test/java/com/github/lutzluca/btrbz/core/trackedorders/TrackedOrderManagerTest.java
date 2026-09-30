@@ -28,8 +28,33 @@ import net.minecraft.ChatFormatting;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 
 class TrackedOrderManagerTest {
+
+    @Test
+    void expiryRemovesTrackingButRetainsTheCompleteConsumerSnapshot() {
+        var manager = new TrackedOrderManager(new BazaarData());
+        var received = new AtomicReference<List<OrderInfo>>();
+        var removed = new AtomicReference<TrackedOrder>();
+        manager.afterOrderSync(received::set);
+        manager.addOnOrderRemovedListener(removed::set);
+        manager.syncOrders(List.of(
+            new OrderInfo.UnfilledOrderInfo("Product", OrderType.Buy, 10, 5.0, 4, 2, 10)));
+        var tracked = manager.getTrackedOrders().getFirst();
+
+        List<OrderInfo> snapshot = List.of(
+            new OrderInfo.ExpiredOrderInfo("Product", OrderType.Buy, 10, 5.0, 4, 2, 10),
+            new OrderInfo.ExpiredOrderInfo("Expired Sell", OrderType.Sell, 8, 7.0, 8, 11, 11),
+            new FilledOrderInfo("Filled Sell", OrderType.Sell, 1, 9.0, 1, 9, 12));
+        manager.syncOrders(snapshot);
+
+        Assertions.assertEquals(tracked, removed.get());
+        Assertions.assertTrue(manager.getTrackedOrders().isEmpty());
+        Assertions.assertTrue(manager.currentOrders().isEmpty());
+        Assertions.assertEquals(1, manager.filledOrderCount());
+        Assertions.assertEquals(snapshot, received.get());
+    }
 
     @Test
     void marketInvalidationKeepsOrdersButDiscardsTheirPriceStatus() {

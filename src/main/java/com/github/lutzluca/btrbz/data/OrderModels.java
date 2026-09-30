@@ -34,7 +34,7 @@ public final class OrderModels {
 
     // Note: `unclaimed` when type == OrderType.Buy in items; when type == OrderType.Sell in coins
     public sealed interface OrderInfo permits OrderInfo.UnfilledOrderInfo,
-        OrderInfo.FilledOrderInfo {
+        OrderInfo.FilledOrderInfo, OrderInfo.ExpiredOrderInfo {
 
         ProductIdentity product();
 
@@ -55,6 +55,8 @@ public final class OrderModels {
         int filledAmountSnapshot();
 
         int unclaimed();
+
+        OrderInfo withProduct(ProductIdentity product);
 
         record UnfilledOrderInfo(
             ProductIdentity product,
@@ -141,6 +143,36 @@ public final class OrderModels {
                     this.filledAmountSnapshot,
                     this.unclaimed,
                     this.slotIdx);
+            }
+        }
+
+        record ExpiredOrderInfo(
+            ProductIdentity product,
+            String uiProductName,
+            OrderType type,
+            int volume,
+            double pricePerUnit,
+            int filledAmountSnapshot,
+            int unclaimed,
+            int slotIdx
+        ) implements OrderInfo {
+
+            public ExpiredOrderInfo(
+                String productName,
+                OrderType type,
+                int volume,
+                double pricePerUnit,
+                int filledAmountSnapshot,
+                int unclaimed,
+                int slotIdx
+            ) {
+                this(ProductIdentity.fromName(productName), productName, type, volume,
+                    pricePerUnit, filledAmountSnapshot, unclaimed, slotIdx);
+            }
+
+            public ExpiredOrderInfo withProduct(ProductIdentity product) {
+                return new ExpiredOrderInfo(product, this.uiProductName, this.type, this.volume,
+                    this.pricePerUnit, this.filledAmountSnapshot, this.unclaimed, this.slotIdx);
             }
         }
     }
