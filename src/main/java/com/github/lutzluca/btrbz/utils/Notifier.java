@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -324,9 +325,8 @@ public class Notifier {
     }
 
     public static void sendBlockedOrderMessage(ValidationResult validation) {
-        var reason = validation.reason() == null
-            ? "Order blocked."
-            : "Order blocked: " + validation.reason();
+        var reason = "Order blocked: " + validation.reasonLines().stream()
+            .map(Component::getString).collect(Collectors.joining(" "));
 
         var msg = Component
             .literal(reason)

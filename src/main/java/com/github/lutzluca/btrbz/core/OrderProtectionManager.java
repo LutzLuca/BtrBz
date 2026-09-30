@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -25,7 +26,9 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.DoubleSliderControllerBuilder;
-import java.util.Arrays;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
@@ -53,15 +56,14 @@ public class OrderProtectionManager {
     private final BazaarData bazaarData;
     private final WeakHashMap<ItemStack, PendingOrderData> validationCache = new WeakHashMap<>();
     private final WeakHashMap<ItemStack, ValidationResult> validationFailureCache = new WeakHashMap<>();
+    private @Nullable ValidationSettings validationSettings;
 
     private @Nullable BiConsumer<ItemStack, Optional<PendingOrderData>> setOrderCallback = null;
 
     public OrderProtectionManager(BazaarData bazaarData) {
         this.bazaarData = bazaarData;
-        this.bazaarData.addListener(_ -> {
-            this.validationCache.clear();
-            this.validationFailureCache.clear();
-        });
+        this.bazaarData.addListener(_ -> this.clearValidationCache());
+        this.bazaarData.addIndexChangeListener(this::clearValidationCache);
         SlotHookRegistry.register(new ConfirmationHook());
 
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
@@ -98,13 +100,7 @@ public class OrderProtectionManager {
                     .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
                     .append(Component.literal("Overridden").withStyle(ChatFormatting.GOLD)));
 
-                if (validation.reason() != null) {
-                    lines.add(Component.literal("Reason:").withStyle(ChatFormatting.GRAY));
-                    Arrays
-                        .stream(validation.reason().split("\n"))
-                        .map(line -> Component.literal("  " + line).withStyle(ChatFormatting.YELLOW))
-                        .forEach(lines::add);
-                }
+                appendReasonLines(lines, validation);
 
                 lines.add(Component
                     .literal("Release Ctrl to cancel override")
@@ -118,10 +114,7 @@ public class OrderProtectionManager {
                 .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
                 .append(Component.literal("Blocked").withStyle(ChatFormatting.RED)));
 
-            if (validation.reason() != null) {
-                lines.add(Component.literal("Reason:").withStyle(ChatFormatting.GRAY));
-                lines.add(Component.literal("  " + validation.reason()).withStyle(ChatFormatting.YELLOW));
-            }
+            appendReasonLines(lines, validation);
 
             lines.add(Component.literal("Hold Ctrl to override").withStyle(ChatFormatting.DARK_GRAY));
         });
@@ -131,7 +124,29 @@ public class OrderProtectionManager {
         this.setOrderCallback = cb;
     }
 
+    private static void appendReasonLines(List<Component> lines, ValidationResult validation) {
+        lines.add(Component.literal("Reason:").withStyle(ChatFormatting.GRAY));
+        for (var reason : validation.reasonLines()) {
+            lines.add(Component.literal("  ").append(reason).withStyle(ChatFormatting.YELLOW));
+        }
+    }
+
+    private void clearValidationCache() {
+        this.validationCache.clear();
+        this.validationFailureCache.clear();
+    }
+
+    private void invalidateChangedSettings() {
+        var settings = ValidationSettings.from(ConfigStore.get().config().orderProtection);
+
+        if (!settings.equals(this.validationSettings)) {
+            this.clearValidationCache();
+            this.validationSettings = settings;
+        }
+    }
+
     private Optional<ValidationResult> getValidationResult(ItemStack stack) {
+        this.invalidateChangedSettings();
         return Optional
             .ofNullable(this.validationCache.get(stack))
             .map(PendingOrderData::validationResult)
@@ -145,6 +160,7 @@ public class OrderProtectionManager {
     }
 
     private void validateConfirmationStack(ItemStack rawStack) {
+        this.invalidateChangedSettings();
         if (rawStack.isEmpty() || GameUtils.getLore(rawStack).isEmpty()) {
             return;
         }
@@ -165,14 +181,15 @@ public class OrderProtectionManager {
 
                 log.trace(
                     "Validated: {} - {}",
-                    pendingOrder.orderInfo().product().bazaarProductId().orElse(pendingOrder.orderInfo().productName()),
+                    pendingOrder.orderInfo().product().bazaarProductId()
+                        .orElse(pendingOrder.orderInfo().productName()),
                     pendingOrder.validationResult().protect() ? "BLOCKED" : "ALLOWED");
             })
             .onFailure(err -> {
                 this.validationCache.remove(rawStack);
                 this.validationFailureCache.put(
                     rawStack,
-                    ValidationResult.blocked(VALIDATION_FAILURE_REASON));
+                    new ValidationUnavailable(VALIDATION_FAILURE_REASON));
                 log.warn(
                     "Failed to parse or validate confirmation item '{}'",
                     rawStack.getHoverName().getString(),
@@ -185,7 +202,8 @@ public class OrderProtectionManager {
             return Optional.empty();
         }
 
-        return this.getValidationResult(stack).map(data -> Pair.of(data, false));
+        return this.getValidationResult(stack)
+            .map(data -> Pair.of(data, data.protect() && Minecraft.getInstance().hasControlDown()));
     }
 
     public final class ConfirmationHook implements SlotHook {
@@ -212,12 +230,18 @@ public class OrderProtectionManager {
         public SlotClickResult onClick(SlotClickContext ctx) {
             var stack = ctx.view().getRawStack();
             var cfg = ConfigStore.get().config().orderProtection;
+
+            // The server does not update the screen, re-check the latest market snapshot on
+            // the final click for the best available estimate.
+            OrderProtectionManager.this.validationCache.remove(stack);
+            OrderProtectionManager.this.validationFailureCache.remove(stack);
             OrderProtectionManager.this.validateConfirmationStack(stack);
+
             var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)
                 .orElseGet(() -> {
                     log.warn("No cached validation for confirmation item");
-                    return ValidationResult.blocked(VALIDATION_UNAVAILABLE_REASON);
+                    return new ValidationUnavailable(VALIDATION_UNAVAILABLE_REASON);
                 });
 
             if (!cfg.enabled) {
@@ -248,6 +272,24 @@ public class OrderProtectionManager {
         OutstandingOrderInfo orderInfo, ValidationResult validationResult
     ) {}
 
+    private record ValidationSettings(
+        boolean enabled,
+        boolean blockPercentage,
+        boolean blockOpposing,
+        double maxBuyPercentage,
+        double maxSellPercentage
+    ) {
+
+        static ValidationSettings from(OrderProtectionConfig cfg) {
+            return new ValidationSettings(
+                cfg.enabled,
+                cfg.blockUndercutPercentage,
+                cfg.blockUndercutOfOpposing,
+                cfg.maxBuyOrderUndercut,
+                cfg.maxSellOfferUndercut);
+        }
+    }
+
     static final class OrderValidator {
 
         public static PendingOrderData validate(
@@ -256,11 +298,12 @@ public class OrderProtectionManager {
             OrderProtectionConfig cfg
         ) {
             if (!cfg.enabled || (!cfg.blockUndercutPercentage && !cfg.blockUndercutOfOpposing)) {
-                return new PendingOrderData(info, ValidationResult.allowed());
+                return new PendingOrderData(info, new Allowed());
             }
 
-            if (!bazaarData.hasMarketData()) {
-                return new PendingOrderData(info, ValidationResult.blocked("Bazaar prices are unavailable."));
+            var market = bazaarData.currentSnapshot();
+            if (!market.available()) {
+                return new PendingOrderData(info, new ValidationUnavailable("Bazaar prices are unavailable."));
             }
 
             var product = bazaarData.resolveIndexedProduct(info.product());
@@ -268,92 +311,132 @@ public class OrderProtectionManager {
                 log.warn("Order protection blocked unresolved product '{}'", info.productName());
                 return new PendingOrderData(
                     info,
-                    ValidationResult.blocked("Unknown or unresolved product: " + info.productName()));
+                    new ValidationUnavailable("Unknown or unresolved product: " + info.productName()));
             }
 
-            var prices = bazaarData.getMarketPrices(ProductIdentity.fromIndex(product.get()));
+            var identity = ProductIdentity.fromIndex(product.get());
+            if (!market.contains(identity)) {
+                return new PendingOrderData(
+                    info,
+                    new ValidationUnavailable("Product is missing from Bazaar market data: " + info.productName()));
+            }
+
+            var prices = market.getMarketPrices(identity);
             var validationResult = validateOrder(info, prices, cfg);
             return new PendingOrderData(info, validationResult);
         }
 
-        private static ValidationResult validateOrder(
+        static ValidationResult validateOrder(
             OutstandingOrderInfo info,
             MarketPrices prices,
             OrderProtectionConfig cfg
         ) {
-            var bestSell = prices.lowestSellOfferPrice();
-            var bestBuy = prices.highestBuyOrderPrice();
-
-            return switch (info.type()) {
-                case Sell -> validateSellOffer(info, bestSell, bestBuy, cfg);
-                case Buy -> validateBuyOrder(info, bestSell, bestBuy, cfg);
-            };
-        }
-
-        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-        private static ValidationResult validateSellOffer(
-            OutstandingOrderInfo info,
-            Optional<Double> bestSell,
-            Optional<Double> bestBuy,
-            OrderProtectionConfig cfg
-        ) {
-            if (bestBuy.isPresent() && info.pricePerUnit() <= bestBuy.get() && cfg.blockUndercutOfOpposing) {
-                return ValidationResult.blocked(String.format(
-                    "Your Sell Offer price of (%s) is \nbelow the insta sell price of (%s)",
-                    Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestBuy.get(), 1, true)));
-            }
-
-            if (bestSell.isPresent() && cfg.blockUndercutPercentage) {
-                double undercut = (bestSell.get() - info.pricePerUnit()) / bestSell.get() * 100;
-                if (undercut >= cfg.maxSellOfferUndercut) {
-                    return ValidationResult.blocked(String.format(
-                        "Undercuts by %s%% (max %s%%)",
-                        Utils.formatDecimal(undercut, 1, true),
-                        Utils.formatDecimal(cfg.maxSellOfferUndercut, 1, true)));
+            var proposedTicks = priceTicks(info.pricePerUnit());
+            var opposingPrice = info.type() == OrderType.Buy
+                ? prices.lowestSellOfferPrice()
+                : prices.highestBuyOrderPrice();
+            if (cfg.blockUndercutOfOpposing && opposingPrice.isPresent()) {
+                int comparison = proposedTicks.compareTo(priceTicks(opposingPrice.get()));
+                boolean crossesSpread = info.type() == OrderType.Buy ? comparison >= 0 : comparison <= 0;
+                if (crossesSpread) {
+                    return new SpreadCrossing(info.type(), info.pricePerUnit(), opposingPrice.get());
                 }
             }
 
-            return ValidationResult.allowed();
-        }
+            var referencePrice = info.type() == OrderType.Buy
+                ? prices.highestBuyOrderPrice()
+                : prices.lowestSellOfferPrice();
+            if (cfg.blockUndercutPercentage && referencePrice.isPresent()) {
+                var referenceTicks = priceTicks(referencePrice.get());
+                var improvementTicks = info.type() == OrderType.Buy
+                    ? proposedTicks.subtract(referenceTicks)
+                    : referenceTicks.subtract(proposedTicks);
+                // Whole 0.1-coin ticks avoid classifying binary rounding noise as a larger
+                // improvement.
+                if (improvementTicks.compareTo(BigDecimal.ONE) <= 0) {
+                    return new Allowed();
+                }
 
-        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-        private static ValidationResult validateBuyOrder(
-            OutstandingOrderInfo info,
-            Optional<Double> bestSell,
-            Optional<Double> bestBuy,
-            OrderProtectionConfig cfg
-        ) {
-            if (bestSell.isPresent() && info.pricePerUnit() >= bestSell.get() && cfg.blockUndercutOfOpposing) {
-                return ValidationResult.blocked(String.format(
-                    "Your Buy Order price of (%s) is \nabove the insta buy price of (%s)",
-                    Utils.formatDecimal(info.pricePerUnit(), 1, true),
-                    Utils.formatDecimal(bestSell.get(), 1, true)));
-            }
-
-            if (bestBuy.isPresent() && cfg.blockUndercutPercentage) {
-                double undercut = (info.pricePerUnit() - bestBuy.get()) / bestBuy.get() * 100;
-
-                if (undercut >= cfg.maxBuyOrderUndercut) {
-                    return ValidationResult.blocked(String.format(
-                        "Undercuts by %s%% (max %s%%)",
-                        Utils.formatDecimal(undercut, 1, true),
-                        Utils.formatDecimal(cfg.maxBuyOrderUndercut, 1, true)));
+                double percentageLimit = info.type() == OrderType.Buy
+                    ? cfg.maxBuyOrderUndercut
+                    : cfg.maxSellOfferUndercut;
+                if (improvementTicks.multiply(BigDecimal.valueOf(100))
+                    .compareTo(referenceTicks.multiply(BigDecimal.valueOf(percentageLimit))) >= 0) {
+                    return new PercentageExceeded(
+                        info.type(), info.pricePerUnit(), referencePrice.get(), percentageLimit);
                 }
             }
 
-            return ValidationResult.allowed();
+            return new Allowed();
+        }
+
+        private static BigDecimal priceTicks(double price) {
+            return BigDecimal.valueOf(price).movePointRight(1).setScale(0, RoundingMode.HALF_UP);
         }
     }
 
-    public record ValidationResult(boolean protect, @Nullable String reason) {
+    public sealed interface ValidationResult
+        permits Allowed, SpreadCrossing, PercentageExceeded, ValidationUnavailable {
 
-        static ValidationResult blocked(String reason) {
-            return new ValidationResult(true, reason);
+        default boolean protect() {
+            return !(this instanceof Allowed);
         }
 
-        static ValidationResult allowed() {
-            return new ValidationResult(false, null);
+        List<Component> reasonLines();
+    }
+
+    record Allowed() implements ValidationResult {
+
+        @Override
+        public List<Component> reasonLines() {
+            return List.of();
+        }
+    }
+
+    record SpreadCrossing(OrderType type, double proposedPrice, double opposingPrice) implements ValidationResult {
+
+        @Override
+        public List<Component> reasonLines() {
+            var orderName = this.type == OrderType.Buy ? "Buy Order" : "Sell Offer";
+            var comparison = this.type == OrderType.Buy ? "at or above" : "at or below";
+            var instantTrade = this.type == OrderType.Buy ? "insta buy" : "insta sell";
+            return List.of(
+                Component.literal(String.format(
+                    "Your %s price of %s coins is %s",
+                    orderName, Utils.formatDecimal(this.proposedPrice, 1, true), comparison)),
+                Component.literal(String.format(
+                    "the %s price of %s coins.", instantTrade,
+                    Utils.formatDecimal(this.opposingPrice, 1, true))));
+        }
+    }
+
+    record PercentageExceeded(
+        OrderType type, double proposedPrice, double referencePrice, double limitPercentage
+    )
+        implements ValidationResult {
+
+        @Override
+        public List<Component> reasonLines() {
+            double improvement = this.type == OrderType.Buy
+                ? this.proposedPrice - this.referencePrice
+                : this.referencePrice - this.proposedPrice;
+            var change = this.type == OrderType.Buy
+                ? "Increases the best buy-order price"
+                : "Reduces the best sell-offer price";
+
+            return List.of(Component.literal(String.format(
+                "%s by %s%% (limit %s%%).",
+                change,
+                Utils.formatDecimal(improvement / this.referencePrice * 100, 1, true),
+                Utils.formatDecimal(this.limitPercentage, 1, true))));
+        }
+    }
+
+    record ValidationUnavailable(String reason) implements ValidationResult {
+
+        @Override
+        public List<Component> reasonLines() {
+            return List.of(Component.literal(this.reason));
         }
     }
 
@@ -407,14 +490,14 @@ public class OrderProtectionManager {
                 .name(Component.literal("Limit Price Undercutting"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block prices that improve on the current best order by the allowed percentage or more. "
-                            + "The buy-order and sell-offer limits below apply only while this is enabled."),
+                        "Block buy-order price increases and sell-offer price reductions at the configured percentage "
+                            + "or more relative to the best price on the same side."),
                     ConfigScreen.example(
                         "At a best price of 15M, a 100K change is about 0.67%. With a 15% limit, "
                             + "the blocked difference begins at 2.25M."),
                     ConfigScreen.note(
-                        "Known limitation: fixed 0.1-coin price steps make percentage checks unreliable for very "
-                            + "cheap items. Moving from 0.5 to 0.6 coins is already a 20% increase."))))
+                        "A one-tick improvement of 0.1 coins is exempt from percentage protection. "
+                            + "Protection against orders at instant-trade prices still applies."))))
                 .binding(
                     true,
                     () -> this.blockUndercutPercentage,
@@ -428,7 +511,8 @@ public class OrderProtectionManager {
                 .name(Component.literal("Maximum Buy-Order Increase (%)"))
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
-                        "Block a buy order when it is this percentage or more above the best current buy-order price."),
+                        "Block a buy order when it is this percentage or more above the best current buy-order price. "
+                            + "A 0.1-coin increase passes this check."),
                     ConfigScreen.example(
                         "With a best price of 15M and a 5% limit, 15.75M or more is blocked."))))
                 .binding(
@@ -448,7 +532,7 @@ public class OrderProtectionManager {
                 .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                     ConfigScreen.text(
                         "Block a sell offer when it is this percentage or more below the best current "
-                            + "sell-offer price."),
+                            + "sell-offer price. A 0.1-coin reduction passes this check."),
                     ConfigScreen.example(
                         "With a best price of 15M and a 5% limit, 14.25M or less is blocked."))))
                 .binding(
