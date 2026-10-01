@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 /** Config-screen images with their native dimensions and widget associations. */
 public enum ConfigImages {
-    PriceAlert("alert-registration-and-firing.png", 658, 202),
+    PriceAlert("alert-screen.png", 1426, 857),
     PriceDiff("price-diff.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
     FlipHelper("flip-helper.png", 994, 654),
