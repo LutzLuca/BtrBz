@@ -13,6 +13,9 @@ import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ReachedAlertsTest {
     private static final IndexedProduct PRODUCT = new IndexedProduct("ENCHANTED_DIAMOND", "§aEnchanted Diamond");
@@ -92,6 +95,92 @@ class ReachedAlertsTest {
         Assertions.assertTrue(manager.alerts().isEmpty());
     }
 
+    @ParameterizedTest
+    @EnumSource(PriceSource.class)
+    void waitsForTheWatchedQuoteThenPersistsAndNotifiesOnce(PriceSource source) {
+        var path = this.tempDir.resolve("price-alert.json");
+        var store = new ConfigStore(path);
+        var data = new BazaarData();
+        var notifications = new ArrayList<ReachedAlert>();
+        var saves = new int[1];
+        var manager = new AlertManager(data, () -> store.config().alert, () -> {
+            saves[0]++;
+            store.save();
+        }, notifications::add);
+        data.addListener(manager::onBazaarUpdate);
+        var condition = new AlertCondition.Price(
+            new AlertType(source, source == PriceSource.Sell ? Direction.Below : Direction.Above), 100);
+
+        publishBook(data, source == PriceSource.Sell ? "missing" : "90",
+            source == PriceSource.Sell ? "150" : "missing");
+        var alert = manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition)).get();
+        Assertions.assertEquals(1, manager.alerts().size());
+        Assertions.assertTrue(notifications.isEmpty());
+
+        data.onUpdate(Map.of());
+        publishBook(data, null, null);
+        publishBook(data, source == PriceSource.Sell ? "101" : "90", source == PriceSource.Sell ? "150" : "99");
+        Assertions.assertEquals(1, manager.alerts().size());
+        Assertions.assertEquals(1, saves[0]);
+
+        publishBook(data, source == PriceSource.Sell ? "95" : "101", source == PriceSource.Sell ? "99" : "105");
+        Assertions.assertTrue(manager.alerts().isEmpty());
+        Assertions.assertEquals(2, saves[0]);
+        Assertions.assertEquals(1, notifications.size());
+        var reached = manager.reachedAlerts().getFirst();
+        Assertions.assertEquals(alert.id, reached.alert().id);
+        Assertions.assertEquals(new AlertCondition.Observation.Price(source == PriceSource.Sell ? 95 : 105),
+            reached.observation());
+
+        publishBook(data, null, null);
+        Assertions.assertEquals(2, saves[0]);
+        Assertions.assertEquals(1, notifications.size());
+        Assertions.assertEquals(reached, manager.reachedAlerts().getFirst());
+
+        var restored = new ConfigStore(path);
+        Assertions.assertTrue(restored.load());
+        Assertions.assertTrue(restored.config().alert.alerts.isEmpty());
+        var saved = restored.config().alert.reachedAlerts.getFirst();
+        Assertions.assertEquals(alert.id, saved.alert().id);
+        Assertions.assertEquals(condition, saved.alert().condition);
+        Assertions.assertEquals(reached.observation(), saved.observation());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"Buy,Below,95", "Buy,Above,105", "Sell,Below,95", "Sell,Above,105"})
+    void emptySidesKeepSavedAndReactivatedAlertsPending(PriceSource source, Direction direction, String quote) {
+        var path = this.tempDir.resolve("empty-side-alert.json");
+        var store = new ConfigStore(path);
+        var data = new BazaarData();
+        var notifications = new ArrayList<ReachedAlert>();
+        var manager = new AlertManager(data, () -> store.config().alert, store::save, notifications::add);
+        var condition = new AlertCondition.Price(new AlertType(source, direction), 100);
+        publishBook(data, null, null);
+
+        var alert = manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition)).get();
+        Assertions.assertEquals(condition, manager.alerts().getFirst().condition);
+        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertTrue(notifications.isEmpty());
+
+        var restored = new ConfigStore(path);
+        Assertions.assertTrue(restored.load());
+        Assertions.assertEquals(condition, restored.config().alert.alerts.getFirst().condition);
+        Assertions.assertTrue(restored.config().alert.reachedAlerts.isEmpty());
+
+        publishBook(data, source == PriceSource.Sell ? quote : null, source == PriceSource.Buy ? quote : null);
+        manager.saveAlert(alert.id, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition)).get();
+        Assertions.assertTrue(manager.alerts().isEmpty());
+        Assertions.assertEquals(1, notifications.size());
+        Assertions.assertEquals(new AlertCondition.Observation.Price(Double.parseDouble(quote)),
+            notifications.getFirst().observation());
+
+        publishBook(data, null, null);
+        manager.watchAgain(alert.id).get();
+        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertEquals(condition, manager.alerts().getFirst().condition);
+        Assertions.assertEquals(1, notifications.size());
+    }
+
     @Test
     void failedSaveKeepsReachedHistoryAndFailedRemovalRollsBack() {
         var config = new AlertConfig();
@@ -144,10 +233,22 @@ class ReachedAlertsTest {
     }
 
     private static void publish(BazaarData data, String price) {
-        var summary = price == null ? "[]" : "[{\"pricePerUnit\":" + price + ",\"amount\":100,\"orders\":2}]";
+        publishBook(data, null, price);
+    }
+
+    private static void publishBook(BazaarData data, String buyOrder, String sellOffer) {
         var reply = new Gson().fromJson("""
-            {"products":{"ENCHANTED_DIAMOND":{"sell_summary":[],"buy_summary":%s}}}
-            """.formatted(summary), SkyBlockBazaarReply.class);
+            {"products":{"ENCHANTED_DIAMOND":{"sell_summary":%s,"buy_summary":%s}}}
+            """.formatted(summary(buyOrder), summary(sellOffer)), SkyBlockBazaarReply.class);
         data.onUpdate(reply.getProducts());
+    }
+
+    private static String summary(String price) {
+        if (price == null) {
+            return "[]";
+        }
+        return price.equals("missing")
+            ? "null"
+            : "[{\"pricePerUnit\":" + price + ",\"amount\":100,\"orders\":2}]";
     }
 }

@@ -78,6 +78,13 @@ public final class AlertConfig {
             .name(Component.literal("Alerts"))
             .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                 ConfigScreen.text("Get an alert when a Bazaar price or available quantity hits your target."),
+                ConfigScreen.text("Price alerts compare the selected Buy Price or Sell Price with your threshold. "
+                    + "Buy Price is the lowest sell offer. Sell Price is the highest buy order. "
+                    + "Below and Above include equality."),
+                ConfigScreen.note("Price alerts need a reference price. An empty order list has no price to compare "
+                    + "and cannot trigger alerts watching that side. "
+                    + "Missing or invalid prices also keep those alerts waiting."),
+                ConfigScreen.text("Use liquidity alerts to watch how many items you can buy or sell instantly."),
                 ConfigScreen.note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
             .options(alerts.build())
             .option(ButtonOption.createBuilder()
