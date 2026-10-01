@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
@@ -61,15 +62,31 @@ public class BazaarOrderActions {
     }
 
     public record CancelledOrderContext(ItemStack displayItem, String productName) {
-        public static CancelledOrderContext buildDisplayContext(ItemStack originalItem, String productName) {
-            var display = originalItem.copy();
+        public static CancelledOrderContext buildDisplayContext(
+            ItemStack originalItem,
+            ProductIdentity product,
+            BazaarData bazaarData
+        ) {
+            var display = bazaarData.productStack(product).orElseGet(() -> {
+                var fallback = new ItemStack(originalItem.getItem());
+
+                fallback.set(DataComponents.ITEM_MODEL, originalItem.get(DataComponents.ITEM_MODEL));
+                fallback.set(DataComponents.CUSTOM_MODEL_DATA, originalItem.get(DataComponents.CUSTOM_MODEL_DATA));
+                fallback.set(DataComponents.PROFILE, originalItem.get(DataComponents.PROFILE));
+                fallback.set(DataComponents.DYED_COLOR, originalItem.get(DataComponents.DYED_COLOR));
+                fallback.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, originalItem.hasFoil());
+                return fallback;
+            });
+
+            display.setCount(1);
             display.set(
                 DataComponents.CUSTOM_NAME,
                 Component.literal("Reopen: ")
                     .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.YELLOW))
                     .append(
-                        Component.literal(productName)
-                            .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GOLD))));
+                        Component.empty()
+                            .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GOLD))
+                            .append(GameUtils.legacyFormattedComponent(product.visualName()))));
 
             var loreLines = new ArrayList<Component>();
             loreLines.add(Component.empty());
@@ -79,7 +96,7 @@ public class BazaarOrderActions {
                     .withStyle(style -> style.withItalic(false)));
             display.set(DataComponents.LORE, new ItemLore(loreLines));
 
-            return new CancelledOrderContext(display, productName);
+            return new CancelledOrderContext(display, product.strippedName());
         }
     }
 
@@ -173,7 +190,8 @@ public class BazaarOrderActions {
             return;
         }
 
-        this.activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.productName());
+        this.activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.product(),
+            this.bazaarData);
         log.debug(
             "Set active order context for transition: productName='{}'",
             this.activeBuyOrderContext.productName());
