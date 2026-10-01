@@ -41,7 +41,7 @@ final class BtrBzToast implements Toast {
             var lines = font.split(title, WIDTH - CONTENT_X - 12);
             int lineCount = Math.min(lines.size(), MAX_DETAIL_LINES);
             int textHeight = font.lineHeight + Math.max(0, lineCount - 1) * LINE_HEIGHT;
-            this.height = Math.max(24, textHeight + 14);
+            this.height = Math.max(Toast.SLOT_HEIGHT, textHeight + 14);
             int top = (this.height - textHeight) / 2;
 
             for (int line = 0; line < lineCount; line++) {
