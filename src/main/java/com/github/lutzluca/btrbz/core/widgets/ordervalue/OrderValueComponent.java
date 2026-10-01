@@ -27,6 +27,10 @@ public final class OrderValueComponent {
         return calculateBreakdown(this.orders);
     }
 
+    public boolean hasOrders() {
+        return !this.orders.isEmpty();
+    }
+
     public static Breakdown calculateBreakdown(List<OrderInfo> orders) {
         double buyLocked = 0;
         double buyItems = 0;

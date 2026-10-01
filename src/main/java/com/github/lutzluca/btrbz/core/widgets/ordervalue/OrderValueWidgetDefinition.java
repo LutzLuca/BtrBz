@@ -33,6 +33,7 @@ public final class OrderValueWidgetDefinition {
                 + "are excluded, while unclaimed fills of expired orders still contribute.")
             .config(config)
             .supports(OrderValueWidgetDefinition::supportsSession)
+            .visibility((snapshot, _, _) -> snapshot.hasOrders())
             .data(data)
             .cachePrepared()
             .preview(() -> new WidgetPreview<>(OrderValueWidgetData.preview(),
