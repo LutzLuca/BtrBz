@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -31,29 +33,29 @@ public final class AlertNotifications {
             if (config.detailedAlertToasts) {
                 toasts.show(
                     Component.literal("BtrBz").withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal(": " + notice.title()).withStyle(ChatFormatting.GRAY)),
+                        .append(Component.literal(": " + notice.title()).withStyle(UiStyles.label())),
                     List.of(productName, notice.condition().copy(), notice.observation().copy()),
                     bazaarData.productStack(product));
             } else {
                 toasts.show(Component.empty().append(productName)
-                    .append(Component.literal(": " + notice.title()).withStyle(ChatFormatting.GRAY)));
+                    .append(Component.literal(": " + notice.title()).withStyle(UiStyles.label())));
             }
         }
 
         if (config.alsoSendChatMessage) {
             Notifier.notifyPlayer(Notifier.prefix()
-                .append(Component.literal(notice.title() + " for ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(notice.title() + " for ").withStyle(UiStyles.label()))
                 .append(Component.literal(product.formattedName()))
-                .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(": ").withStyle(UiStyles.label()))
                 .append(notice.condition().copy())
-                .append(Component.literal(". ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(". ").withStyle(UiStyles.label()))
                 .append(notice.observation().copy())
-                .append(Component.literal(". ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(". ").withStyle(UiStyles.label()))
                 .append(Component.literal("[Click to view]")
                     .withStyle(style -> style
                         .withClickEvent(new RunCommand("/bz " + product.strippedName()))
                         .withHoverEvent(new ShowText(Component.literal("Open in the Bazaar"))))
-                    .withStyle(ChatFormatting.AQUA)));
+                    .withStyle(UiStyles.action())));
         }
     }
 
@@ -64,19 +66,19 @@ public final class AlertNotifications {
         BazaarData bazaarData
     ) {
         Component msg = Notifier.prefix()
-            .append(Component.literal("Your alert for ").withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("Your alert for ").withStyle(UiStyles.label()))
             .append(Component.literal(bazaarData.refreshIndexedProduct(alert.product).formattedName()))
             .append(Component.literal(" at ")
-                .withStyle(ChatFormatting.GRAY))
-            .append(AlertNotice.coins(condition.price()))
+                .withStyle(UiStyles.label()))
+            .append(UiStyles.coins(condition.price()))
             .append(Component
                 .literal(" has not been reached for " + durationText + ". ")
-                .withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.label()))
             .append(Component.literal("[Manage alerts]")
                 .withStyle(style -> style
                     .withClickEvent(new RunCommand("/btrbz alert"))
                     .withHoverEvent(new ShowText(Component.literal("Open Alerts to edit or delete alerts"))))
-                .withStyle(ChatFormatting.AQUA));
+                .withStyle(UiStyles.action()));
 
         Notifier.notifyPlayer(msg);
     }

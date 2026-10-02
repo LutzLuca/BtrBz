@@ -1,18 +1,23 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.network.chat.Component;
 
 /** Shared order identity and market-position grammar for Bazaar order widgets. */
 public final class BazaarOrderText {
     private BazaarOrderText() {}
 
-    public static String orderIdentity(BazaarWidgetViewData.Order order) {
-        return order.amountText() + "x @ " + order.unitPriceText();
+    public static Component orderIdentity(BazaarWidgetViewData.Order order) {
+        return Component.literal(order.amountText()).withStyle(UiStyles.quantity())
+            .append(Component.literal("x @ ").withStyle(UiStyles.label()))
+            .append(Component.literal(order.unitPriceText()).withStyle(UiStyles.money()));
     }
 
-    public static List<String> marketPositionCandidates(
+    public static List<Component> marketPositionCandidates(
         BazaarWidgetViewData.Order order,
         boolean showQueue,
         boolean showUndercutGap
@@ -30,33 +35,33 @@ public final class BazaarOrderText {
         };
     }
 
-    private static List<String> undercutCandidates(
+    private static List<Component> undercutCandidates(
         BazaarWidgetViewData.MarketInfo market,
         boolean showQueue,
         boolean showGap
     ) {
-        String gap = market.priceDifference().isPresent()
-            ? "gap " + BazaarWidgetViewData.formatCompact(market.priceDifference().getAsDouble())
-            : "";
         var queue = queueCandidates(market, showQueue);
 
-        if (!showGap || gap.isBlank()) {
+        if (!showGap || market.priceDifference().isEmpty()) {
             return queue;
         }
 
-        var candidates = new ArrayList<String>();
+        var gap = Component.literal("gap ").withStyle(UiStyles.label())
+            .append(Component.literal(BazaarWidgetViewData.formatCompact(market.priceDifference().getAsDouble()))
+                .withStyle(UiStyles.money()));
+        var candidates = new ArrayList<Component>();
 
         for (var queueText : queue) {
-            candidates.add(gap + " · " + queueText);
+            candidates.add(gap.copy().append(Component.literal(" · ").withStyle(UiStyles.label())).append(queueText));
         }
 
         candidates.addAll(queue);
         candidates.add(gap);
 
-        return distinct(candidates);
+        return List.copyOf(candidates);
     }
 
-    private static List<String> queueCandidates(
+    private static List<Component> queueCandidates(
         BazaarWidgetViewData.MarketInfo market,
         boolean showQueue
     ) {
@@ -65,20 +70,21 @@ public final class BazaarOrderText {
         }
 
         String items = BazaarWidgetViewData.formatCompact(market.itemsAhead().getAsLong());
-        var candidates = new ArrayList<String>();
+        var candidates = new ArrayList<Component>();
 
         if (market.ordersAhead().isPresent()) {
-            candidates.add("["
-                + BazaarWidgetViewData.formatCompact(market.ordersAhead().getAsInt())
-                + "/" + items + "]");
+            candidates.add(Component.literal("[").withStyle(UiStyles.label())
+                .append(Component.literal(BazaarWidgetViewData.formatCompact(market.ordersAhead().getAsInt()))
+                    .withStyle(UiStyles.quantity()))
+                .append(Component.literal("/").withStyle(UiStyles.label()))
+                .append(Component.literal(items).withStyle(UiStyles.quantity()))
+                .append(Component.literal("]").withStyle(UiStyles.label())));
         }
 
-        candidates.add("[" + items + "]");
+        candidates.add(Component.literal("[").withStyle(UiStyles.label())
+            .append(Component.literal(items).withStyle(UiStyles.quantity()))
+            .append(Component.literal("]").withStyle(UiStyles.label())));
 
-        return distinct(candidates);
-    }
-
-    private static List<String> distinct(List<String> values) {
-        return values.stream().filter(value -> !value.isBlank()).distinct().toList();
+        return List.copyOf(candidates);
     }
 }

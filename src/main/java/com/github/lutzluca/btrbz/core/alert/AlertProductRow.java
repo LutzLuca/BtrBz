@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
@@ -42,16 +44,16 @@ final class AlertProductRow extends FlowLayout {
 
         var stack = data.productStack(product);
         stack.ifPresentOrElse(item -> this.child(BazaarUi.item(item, 18)),
-            () -> this.child(BazaarUi.text("?", BazaarStyles.MUTED_TEXT).sizing(Sizing.fixed(18))));
+            () -> this.child(BazaarUi.text("?", UiStyles.palette().muted()).sizing(Sizing.fixed(18))));
         var text = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
         text.gap(3);
-        var label = BazaarUi.text("", BazaarStyles.PRIMARY_TEXT);
+        var label = BazaarUi.text("", UiStyles.palette().primary());
         label.text(name);
         int nameWidth = Math.max(45, width - 23 - padding * 2);
         label.maxWidth(nameWidth);
         text.child(label);
         if (distinguishId) {
-            text.child(BazaarUi.text(product.productId(), BazaarStyles.MUTED_TEXT)
+            text.child(BazaarUi.text(product.productId(), UiStyles.palette().muted())
                 .maxWidth(nameWidth));
         }
         this.child(text);

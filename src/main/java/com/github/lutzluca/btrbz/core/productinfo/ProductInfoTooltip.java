@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.productinfo;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +27,7 @@ final class ProductInfoTooltip {
     private static @Nullable Component quantityHint(ProductInfoQuantity quantity, boolean shiftHeld) {
         var source = quantity.source();
         if (quantity.count().isEmpty()) {
-            return Component.literal(source.unavailableLabel()).withStyle(ChatFormatting.DARK_GRAY);
+            return Component.literal(source.unavailableLabel()).withStyle(UiStyles.muted());
         }
         var count = quantity.count().getAsInt();
         if (count <= 1) {
@@ -35,29 +36,29 @@ final class ProductInfoTooltip {
         var formattedCount = Utils.formatDecimal(count, 0, true);
         if (shiftHeld) {
             var detail = source == ProductInfoQuantity.Source.ORDER ? ", full order" : "";
-            return Component.literal(source.totalLabel() + " (").withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(formattedCount).withStyle(ChatFormatting.LIGHT_PURPLE))
-                .append(Component.literal(" " + source.unit() + detail + ")").withStyle(ChatFormatting.GRAY));
+            return Component.literal(source.totalLabel() + " (").withStyle(UiStyles.label())
+                .append(Component.literal(formattedCount).withStyle(UiStyles.quantity()))
+                .append(Component.literal(" " + source.unit() + detail + ")").withStyle(UiStyles.label()));
         }
-        return Component.literal("Hold ").withStyle(ChatFormatting.DARK_GRAY)
-            .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+        return Component.literal("Hold ").withStyle(UiStyles.muted())
+            .append(Component.literal("SHIFT").withStyle(UiStyles.key()))
             .append(Component.literal(" for " + source.totalLabel().toLowerCase(Locale.ROOT) + " (")
-                .withStyle(ChatFormatting.DARK_GRAY))
-            .append(Component.literal(formattedCount).withStyle(ChatFormatting.LIGHT_PURPLE))
-            .append(Component.literal(" " + source.unit() + ")").withStyle(ChatFormatting.DARK_GRAY));
+                .withStyle(UiStyles.muted()))
+            .append(Component.literal(formattedCount).withStyle(UiStyles.quantity()))
+            .append(Component.literal(" " + source.unit() + ")").withStyle(UiStyles.muted()));
     }
 
     private static Component priceText(String label, @Nullable Double price, int count, boolean showTotal) {
-        var text = Component.literal(label).withStyle(ChatFormatting.AQUA);
+        var text = Component.literal(label).withStyle(UiStyles.label());
         if (price == null) {
-            return text.append(Component.literal("Not Available").withStyle(ChatFormatting.GRAY));
+            return text.append(Component.literal("Not Available").withStyle(UiStyles.label()));
         }
         var displayPrice = showTotal ? price * count : price;
-        text.append(Component.literal(Utils.formatDecimal(displayPrice, 1, true) + " coins")
-            .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        text.append(UiStyles.coins(displayPrice));
         if (showTotal) {
-            text.append(Component.literal(" (" + Utils.formatDecimal(count, 0, true) + "x)")
-                .withStyle(ChatFormatting.DARK_GRAY));
+            text.append(Component.literal(" (").withStyle(UiStyles.muted()))
+                .append(Component.literal(Utils.formatDecimal(count, 0, true)).withStyle(UiStyles.quantity()))
+                .append(Component.literal("x)").withStyle(UiStyles.muted()));
         }
         return text;
     }

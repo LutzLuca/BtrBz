@@ -101,7 +101,7 @@ public final class BazaarUi {
         return current;
     }
 
-    public static String firstFittingText(List<String> candidates, int maximumWidth) {
+    public static Component firstFittingText(List<Component> candidates, int maximumWidth) {
         var font = Minecraft.getInstance().font;
         int availableWidth = Math.max(0, maximumWidth);
 
@@ -111,7 +111,7 @@ public final class BazaarUi {
             }
         }
 
-        return "";
+        return Component.empty();
     }
 
     public static FormattedCharSequence ellipsize(Component text, int maxWidth) {

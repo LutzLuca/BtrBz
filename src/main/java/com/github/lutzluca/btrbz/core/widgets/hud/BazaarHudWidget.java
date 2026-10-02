@@ -1,7 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,11 +17,11 @@ public final class BazaarHudWidget {
     public static List<StatusEntry> visibleStatusEntries(BazaarWidgetViewData.OrdersData data) {
         var counts = data.counts();
         var entries = new ArrayList<StatusEntry>();
-        addStatusEntry(entries, "Undercut", counts.undercut(), BazaarStyles.STATUS_UNDERCUT);
-        addStatusEntry(entries, "Matched", counts.matched(), BazaarStyles.STATUS_MATCHED);
-        addStatusEntry(entries, "Best", counts.top(), BazaarStyles.STATUS_TOP);
-        addStatusEntry(entries, "Filled", data.filledOrderCount(), BazaarStyles.STATUS_FILLED);
-        addStatusEntry(entries, "Unknown", counts.unknown(), BazaarStyles.STATUS_UNKNOWN);
+        addStatusEntry(entries, "Undercut", counts.undercut(), UiStyles.palette().error());
+        addStatusEntry(entries, "Matched", counts.matched(), UiStyles.palette().matched());
+        addStatusEntry(entries, "Best", counts.top(), UiStyles.palette().success());
+        addStatusEntry(entries, "Filled", data.filledOrderCount(), UiStyles.palette().filled());
+        addStatusEntry(entries, "Unknown", counts.unknown(), UiStyles.palette().unknown());
 
         return List.copyOf(entries);
     }

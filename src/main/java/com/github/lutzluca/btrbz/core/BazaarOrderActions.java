@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
@@ -92,7 +94,7 @@ public class BazaarOrderActions {
             loreLines.add(Component.empty());
             loreLines.add(
                 Component.literal("Click to reopen this product's Bazaar page")
-                    .withStyle(ChatFormatting.GRAY)
+                    .withStyle(UiStyles.label())
                     .withStyle(style -> style.withItalic(false)));
             display.set(DataComponents.LORE, new ItemLore(loreLines));
 
@@ -159,7 +161,7 @@ public class BazaarOrderActions {
             }
 
             lines.add(Component.empty());
-            lines.add(Component.literal("[BtrBz]").withStyle(ChatFormatting.AQUA));
+            lines.add(Component.literal("[BtrBz]").withStyle(UiStyles.heading()));
             var modifier = cfg.copyRemainingModifier;
             var keyName = switch (modifier) {
                 case Ctrl -> "Ctrl";
@@ -171,7 +173,7 @@ public class BazaarOrderActions {
                 ? String.format("Hold %s to copy the remaining amount.", keyName)
                 : "Copies the remaining amount.";
 
-            lines.add(Component.literal(hint).withStyle(ChatFormatting.GRAY));
+            lines.add(Component.literal(hint).withStyle(UiStyles.label()));
         });
     }
 

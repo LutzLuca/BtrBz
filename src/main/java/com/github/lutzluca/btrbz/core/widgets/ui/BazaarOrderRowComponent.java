@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
@@ -129,9 +131,9 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.prefix(),
-            this.x + layout.prefixX(), y, this.row.prefixColor(), false);
+            this.x + layout.prefixX(), y, UiStyles.palette().primary(), false);
         this.retainedText.draw(graphics, font, layout.text(),
-            this.x + layout.textX(), y, BazaarStyles.SECONDARY_TEXT, false);
+            this.x + layout.textX(), y, UiStyles.palette().label(), false);
 
         if (layout.rightText() != null) {
             this.retainedText.draw(graphics, font, layout.rightText(),
@@ -152,7 +154,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         int trailingInset = WidgetLayoutTokens.rowTrailingInset(this.reserveScrollbarSpace);
         int rowEnd = this.width - trailingInset;
         var rightText = Component.literal(this.row.rightText());
-        var prefix = Component.literal(this.row.prefix());
+        var prefix = this.row.prefix();
         boolean blankRight = this.row.rightText().isBlank();
 
         if (this.row.preservePrefix()) {
@@ -212,8 +214,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
     public record BazaarRow(
         String id,
-        String prefix,
-        int prefixColor,
+        Component prefix,
         String text,
         String rightText,
         int rightColor,
@@ -226,21 +227,20 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
         public Appearance appearance() {
             return new Appearance(
-                this.id, this.prefix, this.prefixColor, this.text, this.rightText,
+                this.id, this.prefix, this.text, this.rightText,
                 this.rightColor, this.statusColor, this.tooltip,
                 this.preservePrefix, this.backgroundColor);
         }
 
         public record Appearance(
-            String id, String prefix, int prefixColor, String text, String rightText,
+            String id, Component prefix, String text, String rightText,
             int rightColor, int statusColor, List<Component> tooltip,
             boolean preservePrefix, int backgroundColor
         ) {}
 
         public BazaarRow(
             String id,
-            String prefix,
-            int prefixColor,
+            Component prefix,
             String text,
             String rightText,
             int rightColor,
@@ -248,13 +248,12 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             List<Component> tooltip,
             Consumer<Boolean> clickAction
         ) {
-            this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction, false, 0);
+            this(id, prefix, text, rightText, rightColor, statusColor, tooltip, clickAction, false, 0);
         }
 
         public BazaarRow(
             String id,
-            String prefix,
-            int prefixColor,
+            Component prefix,
             String text,
             String rightText,
             int rightColor,
@@ -263,7 +262,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
             Consumer<Boolean> clickAction,
             boolean preservePrefix
         ) {
-            this(id, prefix, prefixColor, text, rightText, rightColor, statusColor, tooltip, clickAction,
+            this(id, prefix, text, rightText, rightColor, statusColor, tooltip, clickAction,
                 preservePrefix, 0);
         }
     }

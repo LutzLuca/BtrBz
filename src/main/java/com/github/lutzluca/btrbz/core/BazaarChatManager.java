@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.utils.Utils;
 
 import com.github.lutzluca.btrbz.BtrBz;
@@ -51,7 +53,7 @@ public class BazaarChatManager {
                     .withClickEvent(new RunCommand("/managebazaarorders"))
                     .withHoverEvent(new ShowText(Component.literal("Opens the Bazaar order screen"))))
                 .append(Component.literal(" [Go To Orders]")
-                    .withStyle(ChatFormatting.DARK_AQUA));
+                    .withStyle(UiStyles.action()));
         });
     }
 
@@ -74,7 +76,7 @@ public class BazaarChatManager {
                         .append(Component
                             .literal("• [Bazaar] Submitting buy order...\n"
                                 + "• [Bazaar] Claiming orders...")
-                            .withStyle(ChatFormatting.GRAY)),
+                            .withStyle(UiStyles.label())),
                     ConfigScreen.text(
                         "Add a clickable shortcut to filled-order messages. "
                             + "The filter and shortcut settings work independently."))))

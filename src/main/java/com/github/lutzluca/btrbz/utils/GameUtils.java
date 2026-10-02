@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.ArrayList;
@@ -190,17 +192,17 @@ public final class GameUtils {
 
         if (mode == QueueDisplayMode.ItemsOnly) {
             return Component.literal(Utils.formatDecimal(items, 0, true))
-                .withStyle(ChatFormatting.YELLOW)
-                .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
+                .withStyle(UiStyles.quantity())
+                .append(Component.literal(itemsLabel).withStyle(UiStyles.label()));
         }
 
         String ordersLabel = orders == 1 ? " order" : " orders";
 
         return Component.literal(String.valueOf(orders))
-            .withStyle(ChatFormatting.YELLOW)
-            .append(Component.literal(ordersLabel + " / ").withStyle(ChatFormatting.GRAY))
-            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(ChatFormatting.YELLOW))
-            .append(Component.literal(itemsLabel).withStyle(ChatFormatting.GRAY));
+            .withStyle(UiStyles.quantity())
+            .append(Component.literal(ordersLabel + " / ").withStyle(UiStyles.label()))
+            .append(Component.literal(Utils.formatDecimal(items, 0, true)).withStyle(UiStyles.quantity()))
+            .append(Component.literal(itemsLabel).withStyle(UiStyles.label()));
     }
 
     public static Optional<String> customDataId(ItemStack stack) {

@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.productinfo;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -81,20 +83,20 @@ public final class ProductInformation {
             DataComponents.CUSTOM_NAME,
             Component
                 .literal("Product Info")
-                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+                .withStyle(UiStyles.heading())
                 .withStyle(style -> style.withItalic(false)));
 
         var loreLines = Stream.of(
-            Component.literal("View detailed Bazaar statistics").withStyle(ChatFormatting.GRAY),
-            Component.literal("and live market data for this item.").withStyle(ChatFormatting.GRAY),
+            Component.literal("View detailed Bazaar statistics").withStyle(UiStyles.label()),
+            Component.literal("and live market data for this item.").withStyle(UiStyles.label()),
             Component.empty(),
             Component
                 .literal("➤ Click to open ")
-                .withStyle(ChatFormatting.DARK_GRAY)
+                .withStyle(UiStyles.muted())
                 .withStyle(style -> style.withItalic(false))
                 .append(Component
                     .literal(cfg.site.displayName())
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)))
+                    .withStyle(UiStyles.action())))
             .<Component>map(line -> line.withStyle(style -> style.withItalic(false))).toList();
 
         item.set(DataComponents.LORE, new ItemLore(loreLines));
@@ -114,13 +116,13 @@ public final class ProductInformation {
                 return;
             }
             lines.add(Component.empty());
-            lines.add(Component.literal("CTRL").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
-                .append(Component.literal("+").withStyle(ChatFormatting.DARK_GRAY))
-                .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                .append(Component.literal(" Click ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("to view on ").withStyle(ChatFormatting.DARK_GRAY)
+            lines.add(Component.literal("CTRL").withStyle(UiStyles.key())
+                .append(Component.literal("+").withStyle(UiStyles.muted()))
+                .append(Component.literal("SHIFT").withStyle(UiStyles.key()))
+                .append(Component.literal(" Click ").withStyle(UiStyles.label()))
+                .append(Component.literal("to view on ").withStyle(UiStyles.muted())
                     .withStyle(style -> style.withBold(false)))
-                .append(Component.literal(cfg.site.displayName()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
+                .append(Component.literal(cfg.site.displayName()).withStyle(UiStyles.action())));
         });
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
             if (!BtrBz.isActive()) {
@@ -234,7 +236,7 @@ public final class ProductInformation {
                             .withStyle(ChatFormatting.RED)
                             .append(Component
                                 .literal(link)
-                                .withStyle(ChatFormatting.UNDERLINE, ChatFormatting.BLUE))));
+                                .withStyle(UiStyles.action()))));
                 }
 
                 var prev = ScreenTracker.get().getPrevInfo();
