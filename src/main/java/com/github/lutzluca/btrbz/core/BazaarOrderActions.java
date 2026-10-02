@@ -161,7 +161,7 @@ public class BazaarOrderActions {
             }
 
             lines.add(Component.empty());
-            lines.add(Component.literal("[BtrBz]").withStyle(UiStyles.heading()));
+            lines.add(Component.literal("[BtrBz]").withStyle(UiStyles.modLabel()));
             var modifier = cfg.copyRemainingModifier;
             var keyName = switch (modifier) {
                 case Ctrl -> "Ctrl";

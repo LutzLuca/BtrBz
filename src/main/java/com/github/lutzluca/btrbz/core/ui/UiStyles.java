@@ -46,6 +46,10 @@ public final class UiStyles {
         return color(palette().action());
     }
 
+    public static Style modLabel() {
+        return color(palette().modLabel());
+    }
+
     public static Style money() {
         return Style.EMPTY.withColor(ChatFormatting.GOLD).withBold(false).withUnderlined(false);
     }

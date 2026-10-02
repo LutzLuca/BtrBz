@@ -9,7 +9,6 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import java.util.List;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
@@ -32,7 +31,7 @@ public final class AlertNotifications {
             Component productName = GameUtils.legacyFormattedComponent(notice.formattedProductName());
             if (config.detailedAlertToasts) {
                 toasts.show(
-                    Component.literal("BtrBz").withStyle(ChatFormatting.GOLD)
+                    Component.literal("BtrBz").withStyle(UiStyles.modLabel())
                         .append(Component.literal(": " + notice.title()).withStyle(UiStyles.label())),
                     List.of(productName, notice.condition().copy(), notice.observation().copy()),
                     bazaarData.productStack(product));

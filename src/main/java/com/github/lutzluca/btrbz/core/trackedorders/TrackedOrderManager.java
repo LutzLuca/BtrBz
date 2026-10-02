@@ -597,7 +597,7 @@ public class TrackedOrderManager {
         private static Component matchedNotificationExample() {
             return Component
                 .literal("[BtrBz] ")
-                .withStyle(ChatFormatting.GOLD)
+                .withStyle(UiStyles.modLabel())
                 .append(Component.literal("Your ").withStyle(UiStyles.label()))
                 .append(Component.literal("Buy Order").withStyle(ChatFormatting.GREEN))
                 .append(Component.literal(" for ").withStyle(UiStyles.label()))
@@ -618,7 +618,7 @@ public class TrackedOrderManager {
         private static Component undercutNotificationExample() {
             return Component
                 .literal("[BtrBz] ")
-                .withStyle(ChatFormatting.GOLD)
+                .withStyle(UiStyles.modLabel())
                 .append(Component.literal("Your ").withStyle(UiStyles.label()))
                 .append(Component.literal("Buy Order").withStyle(ChatFormatting.GREEN))
                 .append(Component.literal(" for ").withStyle(UiStyles.label()))

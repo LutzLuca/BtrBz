@@ -336,6 +336,6 @@ public class Notifier {
     }
 
     public static MutableComponent prefix() {
-        return Component.literal("[BtrBz] ").withStyle(ChatFormatting.GOLD);
+        return Component.literal("[BtrBz] ").withStyle(UiStyles.modLabel());
     }
 }

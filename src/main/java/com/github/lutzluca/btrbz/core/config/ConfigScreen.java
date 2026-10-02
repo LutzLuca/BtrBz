@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.config;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
@@ -52,7 +53,7 @@ public class ConfigScreen {
     public Screen create(Screen parent) {
         return YetAnotherConfigLib.create(
             ConfigStore.get().handler(), (_, config, builder) -> {
-                builder.title(Component.literal(BtrBz.MOD_ID));
+                builder.title(Component.literal(BtrBz.MOD_ID).withStyle(UiStyles.modLabel()));
                 this.buildCategories(builder, config);
 
                 return builder;
