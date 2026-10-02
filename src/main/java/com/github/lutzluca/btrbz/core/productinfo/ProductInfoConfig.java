@@ -113,14 +113,9 @@ public final class ProductInfoConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Require Matching Displayed Names"))
-            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                ConfigScreen.text(
-                    "Check item names before showing prices or allowing product lookup. "
-                        + "Colors and formatting are ignored."),
-                ConfigScreen.note(
-                    "Order stacks, enchanted books, Attribute Menu entries, Hunting Box shards, Collect Compost "
-                        + "and Experimentation Table rewards use their product information. "
-                        + "Stash quantity suffixes are ignored when comparing names."))))
+            .description(ConfigScreen.createDescription(
+                "Check item names before showing prices or allowing product lookup. "
+                    + "Colors and formatting are ignored."))
             .binding(true, () -> this.requireMatchingName, value -> this.requireMatchingName = value)
             .controller(ConfigScreen::createBooleanController);
     }
