@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 final class ProductInfoMatching {
 
@@ -17,6 +18,11 @@ final class ProductInfoMatching {
     static boolean matchesDisplayedName(String name, IndexedProduct product, boolean singleEnchantmentBook) {
         return singleEnchantmentBook && "Enchanted Book".equals(Utils.cleanDisplayName(name))
             || matchesName(name, product);
+    }
+
+    static boolean isOrderStack(ItemStack stack) {
+        var name = Utils.cleanDisplayName(stack.getHoverName().getString());
+        return name.startsWith("BUY ") || name.startsWith("SELL ");
     }
 
     static boolean isSuperpairsMenu(String title) {

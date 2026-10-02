@@ -284,13 +284,15 @@ public final class ProductInformation {
         var cfg = this.config.get();
         var screen = ScreenTracker.get().getCurrInfo().getGenericContainerScreen().orElse(null);
 
-        // Special Cases: Bazaar categories, Attribute Menu shards, order stacks and Experimentation Table
+        // Special Cases: Bazaar categories, Attribute Menu shards, order stacks and
+        // Experimentation Table
         if (menuSlot != null && screen != null
             && menuSlot.container == screen.getMenu().getContainer()) {
             var lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
 
             if (ScreenTracker.inMenu(BazaarMenuType.Main) && !ProductInfoMatching.isBazaarProductEntry(lore)) {
-                // Categories can share a product's name and ID. Their action identifies navigation
+                // Categories can share a product's name and ID. Their action identifies
+                // navigation
                 return null;
             }
 
@@ -316,7 +318,8 @@ public final class ProductInformation {
                     var info = order.get();
                     return this.productLookupCache.create(info.product(), new PriceQuantity.Order(info.volume()));
                 }
-                // Resolve unit prices independently of broken order lore. The card count is decorative.
+                // Resolve unit prices independently of broken order lore. The card count is
+                // decorative.
                 return this.productLookupCache.create(this.bazaarData.resolveProduct(stack),
                     new PriceQuantity.UnavailableOrder());
             }
@@ -337,7 +340,8 @@ public final class ProductInformation {
         return indexed != null && ProductInfoMatching.matchesDisplayedName(
             stack.getHoverName().getString(), indexed,
             this.isIdentifiedEnchantmentBook(stack, indexed.productId()))
-                ? lookup : null;
+                ? lookup
+                : null;
     }
 
     private @Nullable CachedProductLookup lookupExperimentationReward(
@@ -352,8 +356,10 @@ public final class ProductInformation {
         var displayedName = stack.getHoverName().getString();
         var genericBook = superpairs && "Enchanted Book".equals(Utils.cleanDisplayName(displayedName));
 
-        // Rewards normally name their product in the title. Generic Superpairs books use
-        // the third lore line unless stack resolution already identifies the enchantment
+        // Rewards normally name their product in the title. Generic Superpairs books
+        // use
+        // the third lore line unless stack resolution already identifies the
+        // enchantment
         var rewardName = genericBook && !identifiedBook
             ? ProductInfoMatching.superpairsEnchantmentName(lore).orElse(null)
             : displayedName;
@@ -375,7 +381,8 @@ public final class ProductInformation {
             return lookup;
         }
         return indexed != null && ProductInfoMatching.matchesDisplayedName(rewardName, indexed, identifiedBook)
-            ? lookup : null;
+            ? lookup
+            : null;
     }
 
     private boolean isIdentifiedEnchantmentBook(ItemStack stack, String productId) {
@@ -385,12 +392,13 @@ public final class ProductInformation {
 
     static int priceCount(int stackCount, ProductIdentity product, boolean singleItemPrice) {
         return singleItemPrice || product.bazaarProductId().filter(id -> id.startsWith("ENCHANTMENT_")).isPresent()
-            ? 1 : stackCount;
+            ? 1
+            : stackCount;
     }
 
     private boolean isOrderScreenProductRow(ItemStack stack) {
         return ScreenTracker.inMenu(BazaarMenuType.Orders)
-            && GameUtils.orderScreenNonOrderItemsFilter(stack);
+            && ProductInfoMatching.isOrderStack(stack);
     }
 
     private Optional<Slot> hoveredSlot(ItemStack stack) {
