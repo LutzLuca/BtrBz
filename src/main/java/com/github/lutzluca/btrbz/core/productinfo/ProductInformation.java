@@ -19,6 +19,7 @@ import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.function.Supplier;
@@ -169,12 +170,14 @@ public final class ProductInformation {
                 return;
             }
 
-            var cached = this.productLookupCache.get(stack).prices();
-            if (cached == null) {
+            var lookup = this.lookup(stack);
+            if (lookup == null || lookup.prices() == null) {
                 return;
             }
 
-            var count = stack.getItem() == Items.ENCHANTED_BOOK ? 1 : stack.getCount();
+            var cached = lookup.prices();
+            var count = priceCount(stack.getCount(), lookup.product(),
+                lookup.singleItemPrice() || stack.getItem() == Items.ENCHANTED_BOOK);
             var isShiftHeld = Minecraft.getInstance().hasShiftDown();
 
             lines.add(Component.empty());
@@ -208,8 +211,9 @@ public final class ProductInformation {
             return false;
         }
 
-        var lookup = this.productLookupCache.get(stack);
-        return this.isCtrlShiftContextEnabled(lookup.playerInventoryStack())
+        var lookup = this.lookup(stack);
+        return lookup != null
+            && this.isCtrlShiftContextEnabled(this.isStackInPlayerInventory(stack))
             && lookup.marketProductId().isPresent();
     }
 
@@ -227,28 +231,121 @@ public final class ProductInformation {
         return cfg.showOutsideBazaar;
     }
 
-    private ProductIdentity resolveProductForLookup(SlotView view) {
-        var stack = view.getRawStack();
-        if (this.isOrderScreenProductRow(stack) && !view.playerInventorySlot()) {
-            return OrderInfoParser
-                .parseOrderInfo(stack, view.slotIdx(), this.bazaarData)
-                .map(order -> order.product())
-                .getOrElse(() -> this.resolveProduct(stack));
-        }
-
-        return this.resolveProduct(stack);
+    private @Nullable CachedProductLookup lookup(SlotView view) {
+        // Clicks and tooltips resolve the displayed stack, which may be projected
+        return this.lookup(view.getSlot().getItem(), view.playerInventorySlot() ? null : view.getSlot());
     }
 
-    private ProductIdentity resolveProductForLookup(ItemStack stack) {
-        var hoveredSlot = this.hoveredNonPlayerSlot(stack);
-        if (this.isOrderScreenProductRow(stack) && hoveredSlot.isPresent()) {
-            return OrderInfoParser
-                .parseOrderInfo(stack, hoveredSlot.get().getContainerSlot(), this.bazaarData)
-                .map(order -> order.product())
-                .getOrElse(() -> this.resolveProduct(stack));
+    private @Nullable CachedProductLookup lookup(ItemStack stack) {
+        return this.lookup(stack, this.hoveredNonPlayerSlot(stack).orElse(null));
+    }
+
+    private @Nullable CachedProductLookup lookup(ItemStack stack, @Nullable Slot menuSlot) {
+        if (stack.isEmpty()) {
+            return null;
         }
 
-        return this.resolveProduct(stack);
+        var cfg = this.config.get();
+        var screen = ScreenTracker.get().getCurrInfo().getGenericContainerScreen().orElse(null);
+
+        // Special Cases: Bazaar categories, Attribute Menu shards, order stacks and Experimentation Table
+        if (menuSlot != null && screen != null
+            && menuSlot.container == screen.getMenu().getContainer()) {
+            var lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
+
+            if (ScreenTracker.inMenu(BazaarMenuType.Main) && !ProductInfoMatching.isBazaarProductEntry(lore)) {
+                // Categories can share a product's name and ID. Their action identifies navigation
+                return null;
+            }
+
+            var title = screen.getTitle().getString();
+            if (ProductInfoMatching.isAttributeMenu(title)) {
+                // Attribute titles describe progress, while the source holds the shard's name
+                var shardName = ProductInfoMatching.attributeShardName(lore).orElse(null);
+                if (shardName == null) {
+                    return null;
+                }
+
+                var shard = this.bazaarData.resolveProductName(shardName);
+                var indexed = this.bazaarData.resolveIndexedProduct(shard).orElse(null);
+                if (indexed == null || !indexed.productId().startsWith("SHARD_")) {
+                    return null;
+                }
+                return this.productLookupCache.create(shard, true);
+            }
+
+            if (this.isOrderScreenProductRow(stack)) {
+                var order = OrderInfoParser.parseOrderInfo(stack, menuSlot.getContainerSlot(), this.bazaarData);
+                if (order.isSuccess()) {
+                    return this.productLookupCache.create(order.get().product(), false);
+                }
+            }
+
+            var superpairs = ProductInfoMatching.isSuperpairsMenu(title);
+            if (superpairs || ProductInfoMatching.isRngMenu(title)) {
+                return this.lookupExperimentationReward(stack, lore, superpairs);
+            }
+        }
+
+        // default lookup
+        var lookup = this.productLookupCache.get(stack);
+        if (!cfg.requireMatchingName) {
+            return lookup;
+        }
+
+        var indexed = this.bazaarData.resolveIndexedProduct(lookup.product()).orElse(null);
+        return indexed != null && ProductInfoMatching.matchesDisplayedName(
+            stack.getHoverName().getString(), indexed,
+            this.isIdentifiedEnchantmentBook(stack, indexed.productId()))
+                ? lookup : null;
+    }
+
+    private @Nullable CachedProductLookup lookupExperimentationReward(
+        ItemStack stack,
+        List<Component> lore,
+        boolean superpairs
+    ) {
+        var lookup = this.productLookupCache.get(stack);
+        var indexed = this.bazaarData.resolveIndexedProduct(lookup.product()).orElse(null);
+        var identifiedBook = indexed != null && this.isIdentifiedEnchantmentBook(stack, indexed.productId());
+
+        var displayedName = stack.getHoverName().getString();
+        var genericBook = superpairs && "Enchanted Book".equals(Utils.cleanDisplayName(displayedName));
+
+        // Rewards normally name their product in the title. Generic Superpairs books use
+        // the third lore line unless stack resolution already identifies the enchantment
+        var rewardName = genericBook && !identifiedBook
+            ? ProductInfoMatching.superpairsEnchantmentName(lore).orElse(null)
+            : displayedName;
+        if (rewardName == null) {
+            return null;
+        }
+
+        // fallback to name lookup when stack resolution has no indexed product
+        if (indexed == null) {
+            var product = this.bazaarData.resolveProductName(rewardName);
+            indexed = this.bazaarData.resolveIndexedProduct(product).orElse(null);
+            lookup = this.productLookupCache.create(product, false);
+        }
+        if (genericBook && (indexed == null || !indexed.productId().startsWith("ENCHANTMENT_"))) {
+            return null;
+        }
+
+        if (!this.config.get().requireMatchingName) {
+            return lookup;
+        }
+        return indexed != null && ProductInfoMatching.matchesDisplayedName(rewardName, indexed, identifiedBook)
+            ? lookup : null;
+    }
+
+    private boolean isIdentifiedEnchantmentBook(ItemStack stack, String productId) {
+        // Trust the resolved enchantment ID when a book uses the generic title
+        return stack.getItem() == Items.ENCHANTED_BOOK && productId.startsWith("ENCHANTMENT_");
+    }
+
+    static int priceCount(int stackCount, ProductIdentity product, boolean singleItemPrice) {
+        return singleItemPrice || product.bazaarProductId().filter(id -> id.startsWith("ENCHANTMENT_")).isPresent()
+            ? 1 : stackCount;
     }
 
     private boolean isOrderScreenProductRow(ItemStack stack) {
@@ -257,6 +354,9 @@ public final class ProductInformation {
     }
 
     private Optional<Slot> hoveredNonPlayerSlot(ItemStack stack) {
+        // Some mods give the tooltip code a copy of the item.
+        // Check that it matches the item in the hovered slot.
+        // If it matches, we can apply that menu's special lookup rules.
         return ScreenTracker
             .get()
             .getCurrInfo()
@@ -264,12 +364,11 @@ public final class ProductInformation {
             .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor
                 ? accessor.getHoveredSlot()
                 : null)
-            .filter(slot -> slot != null && !GameUtils.isPlayerInventorySlot(slot) && slot.getItem() == stack);
+            .filter(slot -> slot != null && !GameUtils.isPlayerInventorySlot(slot)
+                && ItemStack.matches(slot.getItem(), stack));
     }
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
-        // NOTE: reference equality is intentional here
-        // noinspection DataFlowIssue
         var player = Minecraft.getInstance().player;
         if (player == null) {
             return false;
@@ -303,10 +402,6 @@ public final class ProductInformation {
             }, link, true));
     }
 
-    private ProductIdentity resolveProduct(ItemStack stack) {
-        return this.bazaarData.resolveProduct(stack);
-    }
-
     private record CachedPrice(
         @Nullable Double buyPrice,
         @Nullable Double sellPrice
@@ -314,8 +409,8 @@ public final class ProductInformation {
 
     private record CachedProductLookup(
         ProductIdentity product,
-        boolean playerInventoryStack,
-        @Nullable CachedPrice prices
+        @Nullable CachedPrice prices,
+        boolean singleItemPrice
     ) {
 
         Optional<String> marketProductId() {
@@ -358,8 +453,7 @@ public final class ProductInformation {
 
         @Override
         public boolean matches(SlotView view) {
-            // Keep matching cheap; ctrl-shift eligibility may inspect inventory and only matters on click.
-            return !view.getRawStack().isEmpty();
+            return true; // view displayed stack on click
         }
 
         @Override
@@ -372,14 +466,17 @@ public final class ProductInformation {
                 return SlotClickResult.Pass;
             }
 
-            var lookup = ProductInformation.this.productLookupCache.get(ctx.view());
-            if (!ProductInformation.this.isCtrlShiftContextEnabled(lookup.playerInventoryStack())) {
+            if (!ProductInformation.this.isCtrlShiftContextEnabled(ctx.view().playerInventorySlot())) {
+                return SlotClickResult.Pass;
+            }
+            var lookup = ProductInformation.this.lookup(ctx.view());
+            if (lookup == null) {
                 return SlotClickResult.Pass;
             }
 
             var productId = lookup.marketProductId();
             if (productId.isEmpty()) {
-                log.warn("No Bazaar product found for {}", ctx.view().getRawStack().getHoverName().getString());
+                log.warn("No Bazaar product found for {}", ctx.view().getSlot().getItem().getHoverName().getString());
                 return SlotClickResult.Pass;
             }
 
@@ -404,30 +501,12 @@ public final class ProductInformation {
                 return cached;
             }
 
-            return this.cache(
-                stack,
-                ProductInformation.this.resolveProductForLookup(stack),
-                ProductInformation.this.isStackInPlayerInventory(stack));
+            var lookup = this.create(ProductInformation.this.bazaarData.resolveProduct(stack), false);
+            this.cache.put(stack, lookup);
+            return lookup;
         }
 
-        CachedProductLookup get(SlotView view) {
-            var stack = view.getRawStack();
-            var cached = this.cache.get(stack);
-            if (cached != null) {
-                return cached;
-            }
-
-            return this.cache(
-                stack,
-                ProductInformation.this.resolveProductForLookup(view),
-                view.playerInventorySlot());
-        }
-
-        private CachedProductLookup cache(
-            ItemStack stack,
-            ProductIdentity product,
-            boolean playerInventoryStack
-        ) {
+        CachedProductLookup create(ProductIdentity product, boolean singleItemPrice) {
             var data = ProductInformation.this.bazaarData;
             CachedPrice prices = null;
             if (data.contains(product)) {
@@ -436,9 +515,7 @@ public final class ProductInformation {
                     data.highestBuyOrderPrice(product).orElse(null));
             }
 
-            var cached = new CachedProductLookup(product, playerInventoryStack, prices);
-            this.cache.put(stack, cached);
-            return cached;
+            return new CachedProductLookup(product, prices, singleItemPrice);
         }
 
         void clear() {
