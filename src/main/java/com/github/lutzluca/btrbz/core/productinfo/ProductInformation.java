@@ -90,6 +90,43 @@ public final class ProductInformation {
         return priceText;
     }
 
+    private @Nullable Component createOrderQuantityHint(int count, boolean isShiftHeld) {
+        if (count <= 1) {
+            return null;
+        }
+
+        var formattedCount = Utils.formatDecimal(count, 0, true);
+        if (isShiftHeld) {
+            return Component.literal("Market total (").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(formattedCount).withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal(" items, full order)").withStyle(ChatFormatting.GRAY));
+        }
+
+        return Component.literal("Hold ").withStyle(ChatFormatting.DARK_GRAY)
+            .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+            .append(Component.literal(" for market total (").withStyle(ChatFormatting.DARK_GRAY))
+            .append(Component.literal(formattedCount).withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(Component.literal(" items)").withStyle(ChatFormatting.DARK_GRAY));
+    }
+
+    private @Nullable Component createStackQuantityHint(int count, boolean isShiftHeld) {
+        if (count <= 1) {
+            return null;
+        }
+
+        if (isShiftHeld) {
+            return Component.literal("Showing price for ").withStyle(ChatFormatting.GRAY)
+                .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal("x").withStyle(ChatFormatting.GRAY));
+        }
+
+        return Component.literal("Hold ").withStyle(ChatFormatting.DARK_GRAY)
+            .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+            .append(Component.literal(" to show for (").withStyle(ChatFormatting.DARK_GRAY))
+            .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
+            .append(Component.literal("x)").withStyle(ChatFormatting.DARK_GRAY));
+    }
+
     private void registerSlotHooks() {
         SlotHookRegistry.register(new InfoSiteButtonHook());
         SlotHookRegistry.register(new ProductLookupHook());
@@ -176,29 +213,26 @@ public final class ProductInformation {
             }
 
             var cached = lookup.prices();
-            var count = priceCount(stack.getCount(), lookup.product(),
-                lookup.singleItemPrice() || stack.getItem() == Items.ENCHANTED_BOOK);
+            var quantity = lookup.quantity();
+            var count = switch (quantity) {
+                case PriceQuantity.Stack(var singleItemPrice) -> priceCount(stack.getCount(), lookup.product(),
+                    singleItemPrice || stack.getItem() == Items.ENCHANTED_BOOK);
+                case PriceQuantity.Order(var volume) -> volume;
+                case PriceQuantity.UnavailableOrder _ -> 1;
+            };
             var isShiftHeld = Minecraft.getInstance().hasShiftDown();
 
             lines.add(Component.empty());
 
-            if (count > 1 && !isShiftHeld) {
-                lines.add(Component
-                    .literal("Hold ")
-                    .withStyle(ChatFormatting.DARK_GRAY)
-                    .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                    .append(Component.literal(" to show for (").withStyle(ChatFormatting.DARK_GRAY))
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
-                    .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
-                    .append(Component.literal(")").withStyle(ChatFormatting.DARK_GRAY)));
-            }
+            var quantityHint = switch (quantity) {
+                case PriceQuantity.UnavailableOrder _ -> Component.literal("Order total unavailable")
+                    .withStyle(ChatFormatting.DARK_GRAY);
+                case PriceQuantity.Order _ -> this.createOrderQuantityHint(count, isShiftHeld);
+                case PriceQuantity.Stack _ -> this.createStackQuantityHint(count, isShiftHeld);
+            };
 
-            if (count > 1 && isShiftHeld) {
-                lines.add(Component
-                    .literal("Showing price for ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
-                    .append(Component.literal("x").withStyle(ChatFormatting.GRAY)));
+            if (quantityHint != null) {
+                lines.add(quantityHint);
             }
 
             lines.add(this.createPriceText("Buy Price: ", cached.buyPrice, count, isShiftHeld));
@@ -273,14 +307,18 @@ public final class ProductInformation {
                 if (indexed == null || !indexed.productId().startsWith("SHARD_")) {
                     return null;
                 }
-                return this.productLookupCache.create(shard, true);
+                return this.productLookupCache.create(shard, new PriceQuantity.Stack(true));
             }
 
             if (this.isOrderScreenProductRow(stack)) {
                 var order = OrderInfoParser.parseOrderInfo(stack, menuSlot.getContainerSlot(), this.bazaarData);
                 if (order.isSuccess()) {
-                    return this.productLookupCache.create(order.get().product(), false);
+                    var info = order.get();
+                    return this.productLookupCache.create(info.product(), new PriceQuantity.Order(info.volume()));
                 }
+                // Resolve unit prices independently of broken order lore. The card count is decorative.
+                return this.productLookupCache.create(this.bazaarData.resolveProduct(stack),
+                    new PriceQuantity.UnavailableOrder());
             }
 
             var superpairs = ProductInfoMatching.isSuperpairsMenu(title);
@@ -327,7 +365,7 @@ public final class ProductInformation {
         if (indexed == null) {
             var product = this.bazaarData.resolveProductName(rewardName);
             indexed = this.bazaarData.resolveIndexedProduct(product).orElse(null);
-            lookup = this.productLookupCache.create(product, false);
+            lookup = this.productLookupCache.create(product, new PriceQuantity.Stack(false));
         }
         if (genericBook && (indexed == null || !indexed.productId().startsWith("ENCHANTMENT_"))) {
             return null;
@@ -413,10 +451,18 @@ public final class ProductInformation {
         @Nullable Double sellPrice
     ) {}
 
+    private sealed interface PriceQuantity {
+        record Stack(boolean singleItemPrice) implements PriceQuantity {}
+
+        record Order(int volume) implements PriceQuantity {}
+
+        record UnavailableOrder() implements PriceQuantity {}
+    }
+
     private record CachedProductLookup(
         ProductIdentity product,
         @Nullable CachedPrice prices,
-        boolean singleItemPrice
+        PriceQuantity quantity
     ) {
 
         Optional<String> marketProductId() {
@@ -507,12 +553,13 @@ public final class ProductInformation {
                 return cached;
             }
 
-            var lookup = this.create(ProductInformation.this.bazaarData.resolveProduct(stack), false);
+            var lookup = this.create(ProductInformation.this.bazaarData.resolveProduct(stack),
+                new PriceQuantity.Stack(false));
             this.cache.put(stack, lookup);
             return lookup;
         }
 
-        CachedProductLookup create(ProductIdentity product, boolean singleItemPrice) {
+        CachedProductLookup create(ProductIdentity product, PriceQuantity quantity) {
             var data = ProductInformation.this.bazaarData;
             CachedPrice prices = null;
             if (data.contains(product)) {
@@ -521,7 +568,7 @@ public final class ProductInformation {
                     data.highestBuyOrderPrice(product).orElse(null));
             }
 
-            return new CachedProductLookup(product, prices, singleItemPrice);
+            return new CachedProductLookup(product, prices, quantity);
         }
 
         void clear() {
