@@ -237,7 +237,9 @@ public final class ProductInformation {
     }
 
     private @Nullable CachedProductLookup lookup(ItemStack stack) {
-        return this.lookup(stack, this.hoveredNonPlayerSlot(stack).orElse(null));
+        return this.lookup(stack, this.hoveredSlot(stack)
+            .filter(slot -> !GameUtils.isPlayerInventorySlot(slot))
+            .orElse(null));
     }
 
     private @Nullable CachedProductLookup lookup(ItemStack stack, @Nullable Slot menuSlot) {
@@ -353,10 +355,10 @@ public final class ProductInformation {
             && GameUtils.orderScreenNonOrderItemsFilter(stack);
     }
 
-    private Optional<Slot> hoveredNonPlayerSlot(ItemStack stack) {
+    private Optional<Slot> hoveredSlot(ItemStack stack) {
         // Some mods give the tooltip code a copy of the item.
         // Check that it matches the item in the hovered slot.
-        // If it matches, we can apply that menu's special lookup rules.
+        // Use that slot for menu lookup and player inventory checks.
         return ScreenTracker
             .get()
             .getCurrInfo()
@@ -364,11 +366,15 @@ public final class ProductInformation {
             .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor
                 ? accessor.getHoveredSlot()
                 : null)
-            .filter(slot -> slot != null && !GameUtils.isPlayerInventorySlot(slot)
-                && ItemStack.matches(slot.getItem(), stack));
+            .filter(slot -> slot != null && ItemStack.matches(slot.getItem(), stack));
     }
 
     private boolean isStackInPlayerInventory(ItemStack stack) {
+        var hoveredSlot = this.hoveredSlot(stack);
+        if (hoveredSlot.isPresent()) {
+            return GameUtils.isPlayerInventorySlot(hoveredSlot.get());
+        }
+
         var player = Minecraft.getInstance().player;
         if (player == null) {
             return false;
