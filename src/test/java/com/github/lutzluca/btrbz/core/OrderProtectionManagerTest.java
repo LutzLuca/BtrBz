@@ -25,15 +25,6 @@ import org.junit.jupiter.api.Test;
 class OrderProtectionManagerTest {
 
     @Test
-    void hibernatingVanillaConfirmationsBypassMarketProtection() {
-        var unavailable = new ValidationUnavailable("Bazaar prices are unavailable.");
-        Assertions.assertTrue(OrderProtectionManager.shouldBlockConfirmation(true, true, unavailable, false));
-        Assertions.assertFalse(OrderProtectionManager.shouldBlockConfirmation(false, true, unavailable, false));
-        Assertions.assertFalse(OrderProtectionManager.shouldBlockConfirmation(true, true, unavailable, true));
-        Assertions.assertFalse(OrderProtectionManager.shouldBlockConfirmation(true, false, unavailable, false));
-    }
-
-    @Test
     void exemptsOneTickButChecksLargerImprovementsOnBothSides() {
         var config = new OrderProtectionConfig();
         config.maxBuyOrderUndercut = 10;

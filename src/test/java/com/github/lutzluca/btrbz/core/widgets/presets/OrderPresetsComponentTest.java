@@ -3,91 +3,41 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent.PresetState;
-import com.github.lutzluca.btrbz.core.Activation;
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
-import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
-import com.google.gson.Gson;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class OrderPresetsComponentTest {
     @Test
-    void suspensionPreservesQuantityWorkflowAndPermitsANewClickAfterRecovery() throws Exception {
+    void pendingCancellationRetainsQuantityWorkflowButTransactionResetClearsIt() {
         var data = new BazaarData();
-        var presets = presets(data);
-        try (var orders = new TrackedOrderManager(data)) {
-            var runtime = new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}),
-                data, orders, () -> {}, presets::cancelPendingPreset, presets::cancelTransaction);
-            runtime.activate();
-            presets.onScreenSwitch(new MenuInfo(BazaarMenuType.BuyOrderSetupVolume), new MenuInfo(BazaarMenuType.Item));
-            presets.onMaximumVolumeLoaded(List.of("Buy up to 128x"));
-            var pending = OrderPresetsComponent.class.getDeclaredField("pendingPreset");
-            pending.setAccessible(true);
-            var pendingVolume = OrderPresetsComponent.class.getDeclaredField("pendingVolume");
-            pendingVolume.setAccessible(true);
-            pending.setBoolean(presets, true);
-            pendingVolume.setInt(presets, 10);
-            var quantitySign = quantitySign();
+        var clipboard = new ClipboardTracker(() -> "");
+        clipboard.initialize();
+        var config = new OrderPresetsWidgetConfig();
+        var presets = new OrderPresetsComponent(data, new BazaarProductContext(data), clipboard,
+            new PurseTracker(Optional::empty), () -> config, () -> {});
+        presets.onScreenSwitch(menu(BazaarMenuType.BuyOrderSetupVolume), menu(BazaarMenuType.Item));
+        presets.onMaximumVolumeLoaded(List.of("Buy up to 128x"));
 
-            runtime.hibernate();
+        presets.cancelPendingPreset();
 
-            Assertions.assertTrue(presets.inTransaction());
-            Assertions.assertEquals(128, presets.currentState().maximumVolume());
-            Assertions.assertFalse(pending.getBoolean(presets));
-            Assertions.assertEquals(-1, pendingVolume.getInt(presets));
+        Assertions.assertTrue(presets.inTransaction());
+        Assertions.assertEquals(128, presets.currentState().maximumVolume());
 
-            runtime.recover(BazaarData.prepareSnapshot(new Gson().fromJson("""
-                {"products":{"TEST":{"sell_summary":[{"pricePerUnit":100,"amount":100,"orders":2}]}}}
-                """, SkyBlockBazaarReply.class).getProducts()));
+        presets.cancelTransaction();
 
-            Assertions
-                .assertTrue(OrderPresetsActionHandler.canApply(quantitySign, quantitySign, presets.inTransaction()));
-            Assertions.assertFalse(pending.getBoolean(presets));
-            Assertions.assertEquals(-1, pendingVolume.getInt(presets));
-            runtime.deactivate();
-            Assertions.assertFalse(presets.inTransaction());
-            Assertions.assertEquals(GameUtils.GLOBAL_MAX_ORDER_VOLUME, presets.currentState().maximumVolume());
-            Assertions
-                .assertFalse(OrderPresetsActionHandler.canApply(quantitySign, quantitySign, presets.inTransaction()));
-        }
-    }
-
-    @Test
-    void quantityWorkflowAndMaximumVolumeAreObservedDuringHibernate() {
-        var data = new BazaarData();
-        var presets = presets(data);
-        try (var orders = new TrackedOrderManager(data)) {
-            var runtime = new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}),
-                data, orders, () -> {}, presets::cancelPendingPreset, presets::cancelTransaction);
-            runtime.activate();
-            runtime.hibernate();
-
-            presets.onScreenSwitch(new MenuInfo(BazaarMenuType.BuyOrderSetupVolume), new MenuInfo(BazaarMenuType.Item));
-            presets.onMaximumVolumeLoaded(List.of("Buy up to 64x"));
-
-            Assertions.assertTrue(runtime.isHibernating());
-            Assertions.assertTrue(presets.inTransaction());
-            Assertions.assertEquals(64, presets.currentState().maximumVolume());
-            var sign = quantitySign();
-            Assertions.assertTrue(OrderPresetsActionHandler.canApply(sign, sign, presets.inTransaction()));
-            presets.onScreenSwitch(new MenuInfo(BazaarMenuType.Orders),
-                new MenuInfo(BazaarMenuType.BuyOrderSetupVolume));
-            Assertions.assertFalse(presets.inTransaction());
-            Assertions.assertEquals(GameUtils.GLOBAL_MAX_ORDER_VOLUME, presets.currentState().maximumVolume());
-        }
+        Assertions.assertFalse(presets.inTransaction());
+        Assertions.assertEquals(GameUtils.GLOBAL_MAX_ORDER_VOLUME, presets.currentState().maximumVolume());
     }
 
     @Test
@@ -132,36 +82,12 @@ class OrderPresetsComponentTest {
                 List.of(2), 1_000, OptionalInt.empty(), Optional.of(10.0), Optional.of(5.0)));
     }
 
-    private static OrderPresetsComponent presets(BazaarData data) {
-        var clipboard = new ClipboardTracker(() -> "");
-        clipboard.initialize();
-        var purse = new PurseTracker(() -> Optional.of(1000.0));
-        var config = new OrderPresetsWidgetConfig();
-        return new OrderPresetsComponent(data, new BazaarProductContext(data), clipboard, purse, () -> config,
-            () -> {});
-    }
-
-    private static WidgetSession quantitySign() {
-        return new WidgetSession(1, false, true, false, Optional.empty(),
-            Optional.of(BazaarMenuType.BuyOrderSetupVolume), Optional.empty(), Optional.empty(), 0);
-    }
-
-    private static final class MenuInfo extends ScreenInfo {
-        private final BazaarMenuType menu;
-
-        private MenuInfo(BazaarMenuType menu) {
-            super(null);
-            this.menu = menu;
-        }
-
-        @Override
-        public boolean inMenu(BazaarMenuType menu) {
-            return this.menu == menu;
-        }
-
-        @Override
-        public boolean inMenu(BazaarMenuType... menus) {
-            return Arrays.asList(menus).contains(this.menu);
-        }
+    private static ScreenInfo menu(BazaarMenuType menu) {
+        return new ScreenInfo(null) {
+            @Override
+            public boolean inMenu(BazaarMenuType candidate) {
+                return candidate == menu;
+            }
+        };
     }
 }

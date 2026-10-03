@@ -170,15 +170,6 @@ public class OrderProtectionManager {
         this.dispatchSetOrder(view.getRawStack(), Optional.ofNullable(pending));
     }
 
-    static boolean shouldBlockConfirmation(
-        boolean active,
-        boolean enabled,
-        ValidationResult validation,
-        boolean override
-    ) {
-        return active && enabled && validation.protect() && !override;
-    }
-
     private void validateConfirmationStack(ItemStack rawStack) {
         this.invalidateChangedSettings();
         if (rawStack.isEmpty() || GameUtils.getLore(rawStack).isEmpty()) {
@@ -263,8 +254,7 @@ public class OrderProtectionManager {
                     return new ValidationUnavailable(VALIDATION_UNAVAILABLE_REASON);
                 });
 
-            if (shouldBlockConfirmation(BtrBz.isActive(), cfg.enabled, validation,
-                ctx.modifiers().controlDown())) {
+            if (BtrBz.isActive() && cfg.enabled && validation.protect() && !ctx.modifiers().controlDown()) {
                 if (cfg.showChatMessage) {
                     Notifier.sendBlockedOrderMessage(validation);
                 }
