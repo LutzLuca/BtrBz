@@ -99,8 +99,8 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
             && !this.isPointerOverScrollbar(mouseX, mouseY);
     }
 
-    public void scrollByProgress(double delta) {
-        this.scroller.scrollByProgress(delta);
+    public void scrollByPixels(double distance) {
+        this.scroller.scrollByPixels(distance);
     }
 
     public void flashScrollbar() {

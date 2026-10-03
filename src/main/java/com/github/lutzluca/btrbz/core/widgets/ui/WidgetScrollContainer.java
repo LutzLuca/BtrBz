@@ -260,16 +260,12 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         return mouseY >= thumbTop && mouseY < thumbTop + this.lastScrollbarLength;
     }
 
-    public void scrollByProgress(double delta) {
+    public void scrollByPixels(double distance) {
         if (!this.interactive) {
             return;
         }
 
-        double progress = this.maxScroll <= 0 ? 0.0 : this.scrollOffset / this.maxScroll;
-        double targetOffset = this.maxScroll * WidgetMath.unit(progress + delta);
-        this.scrollOffset = targetOffset;
-        this.currentScrollPosition = targetOffset;
-        this.smoothScrollTimeRemaining = 0.0;
+        this.scrollBy(distance, true, true);
         this.updateChildPosition();
         this.rememberState();
     }
