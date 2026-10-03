@@ -95,7 +95,6 @@ dependencies {
     implementation("dev.isxander:yet-another-config-lib:${getProp("yacl_version")}")
 
     implementation("io.wispforest:owo-lib:${getProp("owo_version")}")
-    annotationProcessor("io.wispforest:owo-lib:${getProp("owo_version")}")
 
     compileOnly("com.terraformersmc:modmenu:${getProp("modmenu_version")}")
 }
