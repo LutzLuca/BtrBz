@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.ReorderableScrollListComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import java.util.List;
@@ -15,7 +14,7 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
             BazaarBookmarkRowComponent.HEIGHT,
             WidgetLayoutTokens.LIST_GAP,
             true,
-            BazaarStyles.SCROLLBAR,
+            UiStyles.palette().scrollbar(),
             UiStyles.palette().action(),
             0,
             4,

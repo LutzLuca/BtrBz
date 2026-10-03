@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
@@ -171,10 +170,10 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
             && !this.list.hoverSuppressed()
             && this.list.isPointerInsideViewport(mouseX, mouseY)
             && this.isInBoundingBox(mouseX, mouseY)) {
-            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().rowHover());
         }
         if (this.list.dragging(this.bookmark.productId())) {
-            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_DRAG);
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().rowDrag());
         }
 
         this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, List.of(this.item));

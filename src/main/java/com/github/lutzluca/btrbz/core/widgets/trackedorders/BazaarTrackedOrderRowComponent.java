@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
@@ -234,13 +233,13 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         boolean hovered = this.interactive && this.list.isHovered(this.order.id());
 
         if (hovered) {
-            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().rowHover());
         }
 
         if (this.list.dragging(this.order.id())) {
-            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_DRAG);
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().rowDrag());
         } else if (this.order.status() == BazaarWidgetViewData.OrderStatus.Undercut) {
-            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.UNDERCUT_ROW);
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().undercutRow());
         }
 
         if (this.item != null) {
@@ -389,9 +388,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         int right = this.x + this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
         int top = this.y + this.height - progressHeight;
 
-        graphics.fill(left, top, right, top + progressHeight, BazaarStyles.PROGRESS_TRACK);
+        graphics.fill(left, top, right, top + progressHeight, UiStyles.palette().progressTrack());
         graphics.fill(left, top, left + progressFillWidth(right - left, progress.fraction()),
-            top + progressHeight, BazaarStyles.PROGRESS_FILL);
+            top + progressHeight, UiStyles.palette().progressFill());
     }
 
     static int progressFillWidth(int availableWidth, double fraction) {

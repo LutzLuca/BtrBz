@@ -106,7 +106,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         boolean hovered = this.hoverable && !this.hoverSuppressed && this.isInBoundingBox(mouseX, mouseY);
 
         if (hovered) {
-            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, BazaarStyles.ROW_HOVER);
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().rowHover());
         }
 
         long revision = TextRenderRevision.current();

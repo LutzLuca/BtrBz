@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import io.wispforest.owo.ui.core.Color;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.UIComponents;
@@ -44,7 +45,7 @@ public final class BazaarUi {
 
     public static LabelComponent label(String value, int color) {
         var label = new BazaarLabelComponent(Component.literal(value));
-        label.color(BazaarStyles.color(color));
+        label.color(Color.ofArgb(color));
         label.shadow(false);
         return label;
     }
@@ -55,7 +56,7 @@ public final class BazaarUi {
 
     public static LabelComponent boldLabel(String value, int color) {
         var label = new BazaarLabelComponent(Component.literal(value).withStyle(ChatFormatting.BOLD));
-        label.color(BazaarStyles.color(color));
+        label.color(Color.ofArgb(color));
         label.shadow(false);
         return label;
     }

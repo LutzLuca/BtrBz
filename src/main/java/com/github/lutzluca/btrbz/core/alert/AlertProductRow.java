@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -83,7 +82,7 @@ final class AlertProductRow extends FlowLayout {
         if (this.select != null) {
             boolean highlighted = this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this;
             WidgetSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
-                highlighted ? BazaarStyles.ROW_HOVER : 0x18000000, 3);
+                highlighted ? UiStyles.palette().rowHover() : 0x18000000, 3);
         }
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
     }

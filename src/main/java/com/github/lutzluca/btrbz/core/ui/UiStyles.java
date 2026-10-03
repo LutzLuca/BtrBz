@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.ui;
 
 import com.github.lutzluca.btrbz.utils.Utils;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -51,7 +50,7 @@ public final class UiStyles {
     }
 
     public static Style money() {
-        return Style.EMPTY.withColor(ChatFormatting.GOLD).withBold(false).withUnderlined(false);
+        return color(palette().money());
     }
 
     public static MutableComponent coins(double value) {

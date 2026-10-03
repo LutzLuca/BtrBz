@@ -1,12 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import io.wispforest.owo.ui.core.Color;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedRows;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
@@ -221,8 +221,8 @@ final class BazaarOrdersWidgetView
             this.label.text(Component.literal(entry.label()).withStyle(ChatFormatting.BOLD));
             this.count.text(Component.literal(entry.count() + "x").withStyle(UiStyles.quantity()));
 
-            this.label.color(BazaarStyles.color(entry.color()));
-            this.count.color(BazaarStyles.color(UiStyles.palette().quantity()));
+            this.label.color(Color.ofArgb(entry.color()));
+            this.count.color(Color.ofArgb(UiStyles.palette().quantity()));
         }
     }
 

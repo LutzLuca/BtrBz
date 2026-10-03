@@ -8,13 +8,20 @@ public record UiPalette(
     int quantity,
     int action,
     int modLabel,
+    int money,
     int buy,
     int sell,
     int success,
     int matched,
     int error,
     int unknown,
-    int filled
+    int filled,
+    int rowHover,
+    int rowDrag,
+    int undercutRow,
+    int progressTrack,
+    int progressFill,
+    int scrollbar
 ) {
     public static final UiPalette DEFAULT_PALETTE = new UiPalette(
         0xFFF3F5F8,
@@ -23,11 +30,18 @@ public record UiPalette(
         0xFFFFFFFF,
         0xFFF3F5F8,
         0xFFFFAA00,
-        0xFF58C77A,
-        0xFFE3B64B,
-        0xFF58C77A,
+        0xFFFFAA00,
+        0xFF55FF55,
+        0xFFFFAA00,
+        0xFF55FF55,
         0xFF8DAFFF,
         0xFFFF5555,
         0xFF808997,
-        0xFFFFC857);
+        0xFFFFC857,
+        0x18FFFFFF,
+        0x28FFFFFF,
+        0x303C1010,
+        0x503A414D,
+        0xFFFFAA00,
+        0xA0818A99);
 }

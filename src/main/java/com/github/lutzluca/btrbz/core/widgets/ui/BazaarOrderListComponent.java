@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.ParentUIComponent;
@@ -27,7 +28,7 @@ public final class BazaarOrderListComponent extends BaseParentUIComponent {
     public BazaarOrderListComponent(boolean hoverable, int rowHeight, int height) {
         super(Sizing.fill(100), Sizing.fixed(height));
         this.scrollList = new WidgetScrollListComponent(
-            height, WidgetLayoutTokens.LIST_GAP, hoverable, BazaarStyles.SCROLLBAR);
+            height, WidgetLayoutTokens.LIST_GAP, hoverable, UiStyles.palette().scrollbar());
 
         this.children = Collections.singletonList(this.scrollList);
         this.viewportHeight = Math.max(1, height);

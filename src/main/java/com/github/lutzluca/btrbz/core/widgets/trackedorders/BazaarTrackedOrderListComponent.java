@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.ReorderableScrollListComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
@@ -24,7 +23,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             BazaarTrackedOrderRowComponent.STANDARD_HEIGHT,
             WidgetLayoutTokens.LIST_GAP,
             true,
-            BazaarStyles.SCROLLBAR,
+            UiStyles.palette().scrollbar(),
             UiStyles.palette().action(),
             0,
             4,

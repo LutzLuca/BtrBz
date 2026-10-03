@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import io.wispforest.owo.ui.core.Color;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
@@ -10,7 +11,6 @@ import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.IconButton;
 import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
@@ -483,7 +483,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
         var resolved = this.resolveDraft();
         this.saveButton.active(resolved.isSuccess());
-        this.previewValue.color(BazaarStyles.color(UiStyles.palette().label()));
+        this.previewValue.color(Color.ofArgb(UiStyles.palette().label()));
         if (resolved.isFailure()) {
             String error = errorMessage(resolved.getCause());
             this.previewValue.text(Component.literal(this.editor.mode() == Kind.Price
@@ -830,7 +830,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.message = message;
         this.messageColor = color;
         this.feedback.text(Component.literal(message));
-        this.feedback.color(BazaarStyles.color(color));
+        this.feedback.color(Color.ofArgb(color));
         this.feedback.verticalSizing(message.isEmpty() ? Sizing.fixed(0) : Sizing.content());
     }
 
