@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
@@ -197,18 +199,18 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
         this.retainedText.begin();
         this.retainedText.draw(graphics, font, this.drawName, textX,
-            this.y + (this.height - font.lineHeight) / 2, BazaarStyles.PRIMARY_TEXT, false);
+            this.y + (this.height - font.lineHeight) / 2, UiStyles.palette().primary(), false);
 
         int dotX = this.x + this.width - trailingInset - indicatorWidth;
         int dotY = this.y + (this.height - DOT_SIZE) / 2;
 
         if (this.bookmark.buyOrder()) {
-            graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, BazaarStyles.BUY_ACCENT);
+            graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, UiStyles.palette().buy());
             dotX += DOT_SIZE + 3;
         }
 
         if (this.bookmark.sellOrder()) {
-            graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, BazaarStyles.SELL_ACCENT);
+            graphics.fill(dotX, dotY, dotX + DOT_SIZE, dotY + DOT_SIZE, UiStyles.palette().sell());
         }
     }
 }

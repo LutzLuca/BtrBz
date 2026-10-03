@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -8,7 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -307,14 +308,15 @@ public final class OrderModels {
                 .append(Component
                     .literal("[" + this.status.toString() + "] ")
                     .withStyle(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status))))
-                .append(Component.literal(typeStr).withStyle(ChatFormatting.AQUA))
-                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(this.volume + "x ").withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal(typeStr).withStyle(
+                    UiStyles.color(this.type == OrderType.Buy ? UiStyles.palette().buy() : UiStyles.palette().sell())))
+                .append(Component.literal(" for ").withStyle(UiStyles.label()))
+                .append(Component.literal(this.volume + "x ").withStyle(UiStyles.quantity()))
                 .append(productNameComponent)
-                .append(Component.literal(" at ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" at ").withStyle(UiStyles.label()))
                 .append(Component
                     .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
-                    .withStyle(ChatFormatting.YELLOW));
+                    .withStyle(UiStyles.money()));
         }
     }
 

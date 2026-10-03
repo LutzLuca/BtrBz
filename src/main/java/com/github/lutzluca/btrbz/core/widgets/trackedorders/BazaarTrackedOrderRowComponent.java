@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
@@ -275,7 +277,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productText(),
-            x, this.y + 1, BazaarStyles.PRIMARY_TEXT, false);
+            x, this.y + 1, UiStyles.palette().primary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
             this.x + layout.statusX(), this.y + 1, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
@@ -285,12 +287,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         if (layout.identityText() != null) {
             this.retainedText.draw(graphics, font, layout.identityText(),
-                x, secondY, BazaarStyles.SECONDARY_TEXT, false);
+                x, secondY, UiStyles.palette().label(), false);
         }
 
         if (layout.marketText() != null) {
             this.retainedText.draw(graphics, font, layout.marketText().getVisualOrderText(),
-                this.x + layout.marketX(), secondY, BazaarStyles.SECONDARY_TEXT, false);
+                this.x + layout.marketX(), secondY, UiStyles.palette().label(), false);
         }
     }
 
@@ -311,18 +313,18 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         var productText = ellipsize(this.productName, Math.max(0, statusX - TEXT_GAP - x));
 
-        String identity = BazaarOrderText.orderIdentity(this.order);
-        String market = BazaarUi.firstFittingText(
+        var identity = BazaarOrderText.orderIdentity(this.order);
+        var market = BazaarUi.firstFittingText(
             BazaarOrderText.marketPositionCandidates(this.order, true, true),
             Math.max(0, right - x - font.width(identity) - TEXT_GAP));
-        int marketX = market.isBlank() ? right : right - font.width(market);
+        int marketX = market.getString().isBlank() ? right : right - font.width(market);
 
-        var identityText = ellipsize(Component.literal(identity), Math.max(0, marketX - TEXT_GAP - x));
+        var identityText = ellipsize(identity, Math.max(0, marketX - TEXT_GAP - x));
 
         return new DrawLayout(
             side, sideX, status, statusX, productText,
             identityText,
-            market.isBlank() ? null : Component.literal(market),
+            market.getString().isBlank() ? null : market,
             marketX);
     }
 
@@ -348,7 +350,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productText(),
-            x, textY, BazaarStyles.PRIMARY_TEXT, false);
+            x, textY, UiStyles.palette().primary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
             this.x + layout.statusX(), textY, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),

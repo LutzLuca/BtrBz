@@ -1,8 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
@@ -39,8 +40,8 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private BazaarWidgetViewData.Order order;
     private BazaarOrdersWidgetConfig options;
     private Component productName;
-    private String identity;
-    private List<String> marketCandidates;
+    private Component identity;
+    private List<Component> marketCandidates;
 
     private @Nullable ItemComponent item;
     private @Nullable LayoutKey lastLayoutKey;
@@ -128,7 +129,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productName(),
-            this.x + layout.productX(), firstY, BazaarStyles.PRIMARY_TEXT, false);
+            this.x + layout.productX(), firstY, UiStyles.palette().primary(), false);
         this.retainedText.draw(graphics, font, layout.status(),
             this.x + layout.statusX(), firstY, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side(),
@@ -136,12 +137,12 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
         if (layout.identity() != null) {
             this.retainedText.draw(graphics, font, layout.identity(),
-                this.x + layout.identityX(), secondY, BazaarStyles.SECONDARY_TEXT, false);
+                this.x + layout.identityX(), secondY, UiStyles.palette().label(), false);
         }
 
         if (layout.market() != null) {
             this.retainedText.draw(graphics, font, layout.market(),
-                this.x + layout.marketX(), secondY, BazaarStyles.SECONDARY_TEXT, false);
+                this.x + layout.marketX(), secondY, UiStyles.palette().label(), false);
         }
     }
 
@@ -159,11 +160,11 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         int sideX = right - font.width(side);
         int statusX = sideX - WidgetLayoutTokens.ORDER_TEXT_GAP - font.width(status);
 
-        String identity = this.identity;
-        String marketText = BazaarUi.firstFittingText(
+        Component identity = this.identity;
+        var marketText = BazaarUi.firstFittingText(
             this.marketCandidates,
             Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP));
-        int marketX = marketText.isBlank() ? right : right - font.width(marketText);
+        int marketX = marketText.getString().isBlank() ? right : right - font.width(marketText);
 
         return new DrawLayout(
             ellipsize(this.productName, Math.max(
@@ -171,11 +172,11 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
             x,
             status.getVisualOrderText(), statusX,
             side.getVisualOrderText(), sideX,
-            identity.isBlank()
-                ? null : ellipsize(Component.literal(identity), Math.max(
+            identity.getString().isBlank()
+                ? null : ellipsize(identity, Math.max(
                     0, marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
             x,
-            marketText.isBlank() ? null : Component.literal(marketText).getVisualOrderText(), marketX);
+            marketText.getString().isBlank() ? null : marketText.getVisualOrderText(), marketX);
     }
 
     private ItemComponent itemComponent() {
@@ -195,8 +196,8 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         boolean hasItem,
         BazaarWidgetViewData.OrderSide side,
         BazaarWidgetViewData.OrderStatus status,
-        String identity,
-        List<String> marketCandidates
+        Component identity,
+        List<Component> marketCandidates
     ) {
         private LayoutKey {
             productName = productName.copy();

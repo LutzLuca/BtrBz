@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -595,53 +597,53 @@ public class TrackedOrderManager {
         private static Component matchedNotificationExample() {
             return Component
                 .literal("[BtrBz] ")
-                .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.modLabel())
+                .append(Component.literal("Your ").withStyle(UiStyles.label()))
                 .append(Component.literal("Buy Order").withStyle(ChatFormatting.GREEN))
-                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" for ").withStyle(UiStyles.label()))
                 .append(Component.literal("4").withStyle(ChatFormatting.GREEN))
-                .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
-                .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("x").withStyle(UiStyles.muted()))
+                .append(Component.literal(" ").withStyle(UiStyles.label()))
                 .append(Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE))
-                .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" was ").withStyle(UiStyles.label()))
                 .append(Component.literal("MATCHED!").withStyle(ChatFormatting.BLUE))
-                .append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("1").withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" order / ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("29").withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" items").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
+                .append(Component.literal(" • queue: ").withStyle(UiStyles.label()))
+                .append(Component.literal("1").withStyle(UiStyles.quantity()))
+                .append(Component.literal(" order / ").withStyle(UiStyles.label()))
+                .append(Component.literal("29").withStyle(UiStyles.quantity()))
+                .append(Component.literal(" items").withStyle(UiStyles.label()))
+                .append(Component.literal(" [Go To Orders]").withStyle(UiStyles.action()));
         }
 
         private static Component undercutNotificationExample() {
             return Component
                 .literal("[BtrBz] ")
-                .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("Your ").withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.modLabel())
+                .append(Component.literal("Your ").withStyle(UiStyles.label()))
                 .append(Component.literal("Buy Order").withStyle(ChatFormatting.GREEN))
-                .append(Component.literal(" for ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" for ").withStyle(UiStyles.label()))
                 .append(Component.literal("4").withStyle(ChatFormatting.GREEN))
-                .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
-                .append(Component.literal(" ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal("x").withStyle(UiStyles.muted()))
+                .append(Component.literal(" ").withStyle(UiStyles.label()))
                 .append(Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE))
-                .append(Component.literal(" was ").withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(" was ").withStyle(UiStyles.label()))
                 .append(Component.literal("UNDERCUT!").withStyle(ChatFormatting.RED))
-                .append(Component.literal(" • queue: ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("1").withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" order / ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("29").withStyle(ChatFormatting.YELLOW))
-                .append(Component.literal(" items").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(" [Go To Orders]").withStyle(ChatFormatting.DARK_AQUA));
+                .append(Component.literal(" • queue: ").withStyle(UiStyles.label()))
+                .append(Component.literal("1").withStyle(UiStyles.quantity()))
+                .append(Component.literal(" order / ").withStyle(UiStyles.label()))
+                .append(Component.literal("29").withStyle(UiStyles.quantity()))
+                .append(Component.literal(" items").withStyle(UiStyles.label()))
+                .append(Component.literal(" [Go To Orders]").withStyle(UiStyles.action()));
         }
 
         private static Component notificationLinkNote() {
             return ConfigScreen.note(Component
                 .literal("The final link changes between ")
-                .withStyle(ChatFormatting.GRAY)
-                .append(Component.literal("[Go To Orders]").withStyle(ChatFormatting.DARK_AQUA))
-                .append(Component.literal(" and ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("[Go To Item]").withStyle(ChatFormatting.DARK_AQUA))
-                .append(Component.literal(".").withStyle(ChatFormatting.GRAY)));
+                .withStyle(UiStyles.label())
+                .append(Component.literal("[Go To Orders]").withStyle(UiStyles.action()))
+                .append(Component.literal(" and ").withStyle(UiStyles.label()))
+                .append(Component.literal("[Go To Item]").withStyle(UiStyles.action()))
+                .append(Component.literal(".").withStyle(UiStyles.label())));
         }
 
         private Option.Builder<Action> createGotoUndercutOption() {

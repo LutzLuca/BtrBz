@@ -17,7 +17,7 @@ class BazaarHudOrderRowComponentTest {
     void hudIdentityCombinesVolumeAndUnitPriceWithoutASeparator() {
         var order = order(Optional.empty());
 
-        assertEquals("64x @ 12.4M", BazaarOrderText.orderIdentity(order));
+        assertEquals("64x @ 12.4M", BazaarOrderText.orderIdentity(order).getString());
     }
 
     @Test
@@ -44,16 +44,16 @@ class BazaarHudOrderRowComponentTest {
             BazaarOrderText.marketPositionCandidates(
                 order,
                 true,
-                true));
+                true).stream().map(Component::getString).toList());
         assertEquals(
             List.of("[3/72]", "[72]"),
             BazaarOrderText.marketPositionCandidates(
                 order,
                 true,
-                false));
+                false).stream().map(Component::getString).toList());
         assertEquals(
             List.of("gap 0.1"),
-            BazaarOrderText.marketPositionCandidates(order, false, true));
+            BazaarOrderText.marketPositionCandidates(order, false, true).stream().map(Component::getString).toList());
     }
 
     private static BazaarWidgetViewData.Order order(Optional<BazaarWidgetViewData.MarketInfo> marketInfo) {

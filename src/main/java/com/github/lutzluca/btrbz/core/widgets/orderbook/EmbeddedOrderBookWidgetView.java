@@ -1,11 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderListComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderRowComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -31,12 +32,12 @@ final class EmbeddedOrderBookWidgetView
 
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent itemName = text("", BazaarStyles.PRIMARY_TEXT);
-    private final LabelComponent prices = text("Prices", BazaarStyles.MUTED_TEXT);
+    private final LabelComponent itemName = text("", UiStyles.palette().primary());
+    private final LabelComponent prices = text("Prices", UiStyles.palette().muted());
 
     private final RetainedFlowLayout sides = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-    private final Side buy = new Side("Buy", BazaarStyles.BUY_ACCENT, BazaarWidgetViewData.OrderSide.Buy);
-    private final Side sell = new Side("Sell", BazaarStyles.SELL_ACCENT, BazaarWidgetViewData.OrderSide.Sell);
+    private final Side buy = new Side("Buy", UiStyles.palette().buy(), BazaarWidgetViewData.OrderSide.Buy);
+    private final Side sell = new Side("Sell", UiStyles.palette().sell(), BazaarWidgetViewData.OrderSide.Sell);
 
     EmbeddedOrderBookWidgetView() {
         this.root.allowOverflow(true);
@@ -108,14 +109,12 @@ final class EmbeddedOrderBookWidgetView
     }
 
     private static final class Side {
-        private final int color;
         private final BazaarWidgetViewData.OrderSide side;
 
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.expand(50), Sizing.content());
         private final BazaarOrderListComponent list = new BazaarOrderListComponent(true, 1, 1);
 
         private Side(String title, int color, BazaarWidgetViewData.OrderSide side) {
-            this.color = color;
             this.side = side;
 
             this.root.gap(0);
@@ -145,14 +144,16 @@ final class EmbeddedOrderBookWidgetView
 
                 rows.add(new BazaarOrderRowComponent.BazaarRow(
                     this.side.name() + "-" + Double.doubleToLongBits(entry.price()) + "-" + index,
-                    entry.priceText(), this.color, "", OrderBookWidget.embeddedMetadata(entry, config),
-                    BazaarStyles.MUTED_TEXT, 0,
+                    Component.literal(entry.priceText()).withStyle(UiStyles.money()), "",
+                    OrderBookWidget.embeddedMetadata(entry, config),
+                    UiStyles.palette().quantity(), 0,
                     List.of(
-                        Component.literal(
-                            "Click: submit "
-                                + BazaarWidgetViewData.formatPrice(submittedPrice)
-                                + adjustment),
-                        Component.literal("Ctrl-click: copy " + entry.priceText())),
+                        Component.literal("Click: submit ").withStyle(UiStyles.label())
+                            .append(Component.literal(BazaarWidgetViewData.formatPrice(submittedPrice))
+                                .withStyle(UiStyles.money()))
+                            .append(Component.literal(adjustment).withStyle(UiStyles.money())),
+                        Component.literal("Ctrl-click: copy ").withStyle(UiStyles.label())
+                            .append(Component.literal(entry.priceText()).withStyle(UiStyles.money()))),
                     copyOnly -> actions.accept(new OrderBookAction.SelectPrice(entry.price(), copyOnly)),
                     true));
             }

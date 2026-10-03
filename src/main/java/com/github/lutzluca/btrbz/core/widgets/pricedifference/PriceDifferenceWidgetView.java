@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.pricedifference;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.utils.Utils;
@@ -29,7 +30,7 @@ final class PriceDifferenceWidgetView
 
     private final RetainedFlowLayout product = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent productName = text("", BazaarStyles.PRIMARY_TEXT);
+    private final LabelComponent productName = text("", UiStyles.palette().primary());
 
     private final ValueLine perItem = new ValueLine(0);
     private final ValueLine total = new ValueLine(1);
@@ -73,16 +74,14 @@ final class PriceDifferenceWidgetView
 
         this.product.child(this.productName);
 
-        int color = data.total() >= 0 ? BazaarStyles.BUY_ACCENT : BazaarStyles.STATUS_UNDERCUT;
         String perItemValue = signed(data.perItem());
-        String totalLabel = "Total (" + BazaarWidgetViewData.formatInt(data.quantity()) + " items)";
+        var totalLabel = Component.literal("Total (").withStyle(UiStyles.label())
+            .append(Component.literal(BazaarWidgetViewData.formatInt(data.quantity())).withStyle(UiStyles.quantity()))
+            .append(Component.literal(" items)").withStyle(UiStyles.label()));
         String totalValue = signed(data.total());
 
-        this.perItem.update("Per item", perItemValue, color);
-        this.total.update(
-            totalLabel,
-            totalValue,
-            color);
+        this.perItem.update(Component.literal("Per item"), perItemValue);
+        this.total.update(totalLabel, totalValue);
 
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.root.clearChildren();
@@ -97,8 +96,8 @@ final class PriceDifferenceWidgetView
 
     private static final class ValueLine {
         private final FlowLayout root = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        private final LabelComponent label = text("", BazaarStyles.SECONDARY_TEXT);
-        private final LabelComponent value = text("", BazaarStyles.PRIMARY_TEXT);
+        private final LabelComponent label = text("", UiStyles.palette().label());
+        private final LabelComponent value = text("", UiStyles.palette().primary());
 
         private ValueLine(int labelInset) {
             this.label.margins(Insets.left(labelInset));
@@ -108,10 +107,9 @@ final class PriceDifferenceWidgetView
             this.root.child(this.value);
         }
 
-        private void update(String label, String value, int color) {
-            this.label.text(Component.literal(label));
-            this.value.text(Component.literal(value));
-            this.value.color(BazaarStyles.color(color));
+        private void update(Component label, String value) {
+            this.label.text(label);
+            this.value.text(Component.literal(value).withStyle(UiStyles.money()));
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.productinfo;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
@@ -8,7 +10,6 @@ import dev.isxander.yacl3.api.Option.Builder;
 import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 public final class ProductInfoConfig {
@@ -161,7 +162,7 @@ public final class ProductInfoConfig {
                     .literal("Use site: ")
                     .append(Component
                         .literal(site.displayName())
-                        .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
+                        .withStyle(UiStyles.action())));
         }
 
         public String format(String productId) {

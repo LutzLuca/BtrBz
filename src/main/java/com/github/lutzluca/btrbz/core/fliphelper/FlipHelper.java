@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.fliphelper;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
@@ -25,7 +27,6 @@ import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.core.component.DataComponents;
@@ -102,9 +103,9 @@ public class FlipHelper {
             DataComponents.CUSTOM_NAME,
             Component
                 .literal("Flip for ")
-                .withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(formatted).withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(" coins each").withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.label())
+                .append(Component.literal(formatted).withStyle(UiStyles.money()))
+                .append(Component.literal(" coins each").withStyle(UiStyles.label()))
                 .withStyle(style -> style.withItalic(false)));
         return customHelperItem;
     }

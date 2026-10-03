@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -41,20 +43,20 @@ public class PresetCommand {
                             OrderPresetsWidgetDefinition.ID, "preset volume added by command");
                         Notifier.notifyPlayer(Notifier
                             .prefix()
-                            .append(Component.literal("Added preset ").withStyle(ChatFormatting.GRAY))
+                            .append(Component.literal("Added preset ").withStyle(UiStyles.label()))
                             .append(Component
                                 .literal(String.valueOf(volume))
-                                .withStyle(ChatFormatting.AQUA)));
+                                .withStyle(UiStyles.quantity())));
                     } else {
                         Notifier.notifyPlayer(Notifier
                             .prefix()
-                            .append(Component.literal("Preset ").withStyle(ChatFormatting.GRAY))
+                            .append(Component.literal("Preset ").withStyle(UiStyles.label()))
                             .append(Component
                                 .literal(String.valueOf(volume))
-                                .withStyle(ChatFormatting.AQUA))
+                                .withStyle(UiStyles.quantity()))
                             .append(Component
                                 .literal(" already exists")
-                                .withStyle(ChatFormatting.GRAY)));
+                                .withStyle(UiStyles.label())));
                     }
 
                     return 1;
@@ -75,18 +77,18 @@ public class PresetCommand {
                                 OrderPresetsWidgetDefinition.ID, "preset volume removed by command");
                             Notifier.notifyPlayer(Notifier
                                 .prefix()
-                                .append(Component.literal("Removed preset ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal("Removed preset ").withStyle(UiStyles.label()))
                                 .append(Component
                                     .literal(String.valueOf(volume))
-                                    .withStyle(ChatFormatting.AQUA)));
+                                    .withStyle(UiStyles.quantity())));
                         } else {
                             Notifier.notifyPlayer(Notifier
                                 .prefix()
-                                .append(Component.literal("Preset ").withStyle(ChatFormatting.GRAY))
+                                .append(Component.literal("Preset ").withStyle(UiStyles.label()))
                                 .append(Component
                                     .literal(String.valueOf(volume))
                                     .withStyle(ChatFormatting.RED))
-                                .append(Component.literal(" not found").withStyle(ChatFormatting.GRAY)));
+                                .append(Component.literal(" not found").withStyle(UiStyles.label())));
                         }
 
                         return 1;
@@ -98,26 +100,26 @@ public class PresetCommand {
                 if (presets.isEmpty()) {
                     Notifier.notifyPlayer(Notifier
                         .prefix()
-                        .append(Component.literal("No presets configured").withStyle(ChatFormatting.GRAY)));
+                        .append(Component.literal("No presets configured").withStyle(UiStyles.label())));
                     return 1;
                 }
 
                 var builder = Notifier
                     .prefix()
-                    .append(Component.literal("Order Presets (").withStyle(ChatFormatting.GOLD))
+                    .append(Component.literal("Order Presets (").withStyle(UiStyles.heading()))
                     .append(Component
                         .literal(String.valueOf(presets.size()))
-                        .withStyle(ChatFormatting.YELLOW))
-                    .append(Component.literal("):").withStyle(ChatFormatting.GOLD))
+                        .withStyle(UiStyles.quantity()))
+                    .append(Component.literal("):").withStyle(UiStyles.heading()))
                     .append(Component.literal("\n"));
 
                 for (int i = 0; i < presets.size(); i++) {
                     if (i > 0) {
-                        builder.append(Component.literal("  ").withStyle(ChatFormatting.DARK_GRAY));
+                        builder.append(Component.literal("  ").withStyle(UiStyles.muted()));
                     }
                     int volume = presets.get(i);
 
-                    builder.append(Component.literal(String.valueOf(volume)).withStyle(ChatFormatting.AQUA));
+                    builder.append(Component.literal(String.valueOf(volume)).withStyle(UiStyles.quantity()));
                     builder.append(Component.literal(" "));
                     builder.append(Component
                         .literal("[x]")
@@ -148,9 +150,9 @@ public class PresetCommand {
 
                 Notifier.notifyPlayer(Notifier
                     .prefix()
-                    .append(Component.literal("Cleared ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.AQUA))
-                    .append(Component.literal(" preset(s)").withStyle(ChatFormatting.GRAY)));
+                    .append(Component.literal("Cleared ").withStyle(UiStyles.label()))
+                    .append(Component.literal(String.valueOf(count)).withStyle(UiStyles.quantity()))
+                    .append(Component.literal(" preset(s)").withStyle(UiStyles.label())));
 
                 return 1;
             }));

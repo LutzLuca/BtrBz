@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.utils.Utils;
 
@@ -35,15 +36,13 @@ public final class BazaarWidgetViewData {
     }
 
     public enum OrderSide {
-        Buy("Buy", BazaarStyles.BUY_ACCENT),
-        Sell("Sell", BazaarStyles.SELL_ACCENT);
+        Buy("Buy"),
+        Sell("Sell");
 
         private final String label;
-        private final int accentColor;
 
-        OrderSide(String label, int accentColor) {
+        OrderSide(String label) {
             this.label = label;
-            this.accentColor = accentColor;
         }
 
         public String label() {
@@ -51,22 +50,23 @@ public final class BazaarWidgetViewData {
         }
 
         public int accentColor() {
-            return this.accentColor;
+            return switch (this) {
+                case Buy -> UiStyles.palette().buy();
+                case Sell -> UiStyles.palette().sell();
+            };
         }
     }
 
     public enum OrderStatus {
-        Top("Best", BazaarStyles.STATUS_TOP),
-        Matched("Matched", BazaarStyles.STATUS_MATCHED),
-        Undercut("Undercut", BazaarStyles.STATUS_UNDERCUT),
-        Unknown("Unknown", BazaarStyles.STATUS_UNKNOWN);
+        Top("Best"),
+        Matched("Matched"),
+        Undercut("Undercut"),
+        Unknown("Unknown");
 
         private final String label;
-        private final int color;
 
-        OrderStatus(String label, int color) {
+        OrderStatus(String label) {
             this.label = label;
-            this.color = color;
         }
 
         public String label() {
@@ -74,7 +74,12 @@ public final class BazaarWidgetViewData {
         }
 
         public int color() {
-            return this.color;
+            return switch (this) {
+                case Top -> UiStyles.palette().success();
+                case Matched -> UiStyles.palette().matched();
+                case Undercut -> UiStyles.palette().error();
+                case Unknown -> UiStyles.palette().unknown();
+            };
         }
     }
 

@@ -1,11 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderListComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderRowComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
@@ -33,8 +34,8 @@ final class FullOrderBookWidgetView
 
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent itemName = label("", BazaarStyles.PRIMARY_TEXT);
-    private final LabelComponent bookTitle = label("Order Book", BazaarStyles.MUTED_TEXT);
+    private final LabelComponent itemName = label("", UiStyles.palette().primary());
+    private final LabelComponent bookTitle = label("Order Book", UiStyles.palette().muted());
 
     private final RetainedFlowLayout lists = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final Side buy = new Side("Buy Offers", BazaarWidgetViewData.OrderSide.Buy);
@@ -43,7 +44,7 @@ final class FullOrderBookWidgetView
     private final RetainedFlowLayout footer = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final LabelComponent instruction = label(
         "Click a price to copy it and return",
-        BazaarStyles.MUTED_TEXT);
+        UiStyles.palette().muted());
     private final ButtonComponent goBack = UIComponents.button(
         Component.literal("Go Back"),
         _ -> this.actions.accept(new OrderBookAction.GoBack()));
@@ -160,7 +161,7 @@ final class FullOrderBookWidgetView
             this.root.allowOverflow(true);
             this.root.gap(0);
 
-            this.root.child(label(title, BazaarStyles.SECONDARY_TEXT));
+            this.root.child(label(title, UiStyles.palette().label()));
             this.root.child(this.list);
         }
 
@@ -189,8 +190,8 @@ final class FullOrderBookWidgetView
 
                 rows.add(new BazaarOrderRowComponent.BazaarRow(
                     this.side.name() + "-" + Double.doubleToLongBits(entry.price()) + "-" + index,
-                    entry.priceText(), entry.side().accentColor(), "", metadata,
-                    BazaarStyles.MUTED_TEXT, 0, List.of(),
+                    Component.literal(entry.priceText()).withStyle(UiStyles.money()), "", metadata,
+                    UiStyles.palette().quantity(), 0, List.of(),
                     copyOnly -> actions.accept(new OrderBookAction.SelectPrice(entry.price(), copyOnly)),
                     true));
             }

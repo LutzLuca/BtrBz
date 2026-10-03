@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
@@ -163,7 +165,7 @@ public class OrderTooltipProvider {
 
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
                 .literal("Queue: ")
-                .withStyle(ChatFormatting.GRAY)
+                .withStyle(UiStyles.label())
                 .append(GameUtils.buildQueueComponent(
                     orderQueueInfo.ordersAhead,
                     orderQueueInfo.itemsAhead,
@@ -197,8 +199,8 @@ public class OrderTooltipProvider {
                 int remainingVolume = order.volume - order.fillAmountSnapshot;
 
                 this.bazaarData.getEstimatedFillTimeMinutes(product, order.type, remainingVolume).ifPresent(minutes -> {
-                    var time = Component.literal(formatDuration(minutes)).withStyle(ChatFormatting.YELLOW);
-                    var line = Component.literal("Estimated fill time: ").withStyle(ChatFormatting.GRAY).append(time);
+                    var time = Component.literal(formatDuration(minutes)).withStyle(UiStyles.primary());
+                    var line = Component.literal("Estimated fill time: ").withStyle(UiStyles.label()).append(time);
                     lines.add(line);
                 });
             }
@@ -216,7 +218,7 @@ public class OrderTooltipProvider {
 
             queueInfo.ifPresent(orderQueueInfo -> lines.add(Component
                 .literal("Queue: ")
-                .withStyle(ChatFormatting.GRAY)
+                .withStyle(UiStyles.label())
                 .append(GameUtils.buildQueueComponent(
                     orderQueueInfo.ordersAhead,
                     orderQueueInfo.itemsAhead,
@@ -243,19 +245,19 @@ public class OrderTooltipProvider {
     }
 
     private static List<Component> currOrderLines(TrackedOrder order) {
-        var header = Component.literal("Your Order").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        var header = Component.literal("Your Order").withStyle(UiStyles.heading());
 
         var priceLine = Component
             .literal("Price: ")
-            .withStyle(ChatFormatting.GRAY)
+            .withStyle(UiStyles.label())
             .append(Component
                 .literal(Utils.formatDecimal(order.pricePerUnit, 1, true))
-                .withStyle(ChatFormatting.WHITE));
+                .withStyle(UiStyles.money()));
 
         var volumeLine = Component
             .literal("Volume: ")
-            .withStyle(ChatFormatting.GRAY)
-            .append(Component.literal(String.valueOf(order.volume)).withStyle(ChatFormatting.WHITE));
+            .withStyle(UiStyles.label())
+            .append(Component.literal(String.valueOf(order.volume)).withStyle(UiStyles.quantity()));
 
         return List.of(header, priceLine, volumeLine);
     }
@@ -263,49 +265,49 @@ public class OrderTooltipProvider {
     private static Component statusLine(TrackedOrder order) {
         return switch (order.status) {
             case OrderStatus.Top _ -> Component.literal("Best Price!")
-                .withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+                .withStyle(UiStyles.color(UiStyles.palette().success()).withBold(true));
             case OrderStatus.Matched _ -> Component.literal("Matched!")
-                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
+                .withStyle(UiStyles.color(UiStyles.palette().matched()).withBold(true));
             case OrderStatus.Undercut _ -> Component.literal("Undercut!")
-                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
+                .withStyle(UiStyles.color(UiStyles.palette().error()).withBold(true));
             case OrderStatus.Unknown _ -> Component.literal("Status Unknown")
-                .withStyle(ChatFormatting.GRAY);
+                .withStyle(UiStyles.label());
         };
     }
 
     private static Component undercutAmountLine(double amount) {
         return Component
             .literal("By: ")
-            .withStyle(ChatFormatting.GRAY)
+            .withStyle(UiStyles.label())
             .append(Component
                 .literal(Utils.formatDecimal(Math.abs(amount), 1, true))
-                .withStyle(ChatFormatting.GOLD));
+                .withStyle(UiStyles.money()));
     }
 
     private static List<Component> priceLines(BazaarData data, ProductIdentity product) {
         var priceInfo = data.getMarketPrices(product);
 
-        var header = Component.literal("Current Prices").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+        var header = Component.literal("Current Prices").withStyle(UiStyles.heading());
 
         var buyOrderLine = Component
             .literal("Buy Orders: ")
-            .withStyle(ChatFormatting.YELLOW)
+            .withStyle(UiStyles.label())
             .append(priceInfo
                 .highestBuyOrderPrice()
                 .map(price -> Component
                     .literal(Utils.formatDecimal(price, 1, true))
-                    .withStyle(ChatFormatting.WHITE))
-                .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
+                    .withStyle(UiStyles.money()))
+                .orElse(Component.literal("N/A").withStyle(UiStyles.muted())));
 
         var sellOfferLine = Component
             .literal("Sell Offers: ")
-            .withStyle(ChatFormatting.YELLOW)
+            .withStyle(UiStyles.label())
             .append(priceInfo
                 .lowestSellOfferPrice()
                 .map(price -> Component
                     .literal(Utils.formatDecimal(price, 1, true))
-                    .withStyle(ChatFormatting.WHITE))
-                .orElse(Component.literal("N/A").withStyle(ChatFormatting.DARK_GRAY)));
+                    .withStyle(UiStyles.money()))
+                .orElse(Component.literal("N/A").withStyle(UiStyles.muted())));
 
         return List.of(header, buyOrderLine, sellOfferLine);
     }

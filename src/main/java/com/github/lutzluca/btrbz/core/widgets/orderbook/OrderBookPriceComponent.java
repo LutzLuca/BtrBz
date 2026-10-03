@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -15,7 +17,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.network.chat.Component;
 
@@ -92,9 +93,9 @@ public final class OrderBookPriceComponent {
             GameUtils.copyToClipboard(formatted);
 
             Notifier.notifyPlayer(Notifier.prefix()
-                .append(Component.literal("Copied price ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(formatted).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                .append(Component.literal(" to clipboard").withStyle(ChatFormatting.GRAY)));
+                .append(Component.literal("Copied price ").withStyle(UiStyles.label()))
+                .append(Component.literal(formatted).withStyle(UiStyles.money()))
+                .append(Component.literal(" to clipboard").withStyle(UiStyles.label())));
 
             return true;
         }

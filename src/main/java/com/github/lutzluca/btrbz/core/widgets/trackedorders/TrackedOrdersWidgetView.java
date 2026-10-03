@@ -1,10 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -23,7 +24,7 @@ final class TrackedOrdersWidgetView implements
     WidgetView<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>,
     ScrollOffsetView {
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent status = label("", BazaarStyles.MUTED_TEXT);
+    private final LabelComponent status = label("", UiStyles.palette().muted());
 
     private final BazaarTrackedOrderListComponent list = new BazaarTrackedOrderListComponent();
 
@@ -36,7 +37,7 @@ final class TrackedOrdersWidgetView implements
         header.allowOverflow(true);
         header.verticalAlignment(VerticalAlignment.CENTER);
 
-        header.child(label("Tracked Orders", BazaarStyles.PRIMARY_TEXT));
+        header.child(label("Tracked Orders", UiStyles.palette().primary()));
         header.child(spacer());
         header.child(this.status);
 

@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.Sizing;
@@ -17,7 +18,7 @@ final class BookmarksWidgetView implements
     WidgetView<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction>,
     ScrollOffsetView {
     private final FlowLayout root = panel(1);
-    private final LabelComponent title = text("Bookmarks", BazaarStyles.PRIMARY_TEXT);
+    private final LabelComponent title = text("Bookmarks", UiStyles.palette().primary());
 
     private final BazaarBookmarkListComponent list = new BazaarBookmarkListComponent();
 

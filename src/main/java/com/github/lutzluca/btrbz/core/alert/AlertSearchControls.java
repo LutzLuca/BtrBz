@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -69,7 +70,7 @@ final class AlertSearchControls extends FlowLayout {
         if (next.matches().isEmpty()) {
             String hint = next.emptyHint(this.searchBox.getValue());
             if (!hint.isEmpty()) {
-                this.resultRows.child(BazaarUi.text(hint, BazaarStyles.MUTED_TEXT).maxWidth(this.productWidth - 24));
+                this.resultRows.child(BazaarUi.text(hint, UiStyles.palette().muted()).maxWidth(this.productWidth - 24));
             }
             return;
         }

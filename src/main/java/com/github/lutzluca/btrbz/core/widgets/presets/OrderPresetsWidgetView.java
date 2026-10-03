@@ -1,10 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderListComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderRowComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -37,7 +38,7 @@ final class OrderPresetsWidgetView
         this.root.gap(WidgetLayoutTokens.SECTION_GAP);
 
         this.header.verticalAlignment(VerticalAlignment.CENTER);
-        this.header.child(text("Presets", BazaarStyles.PRIMARY_TEXT));
+        this.header.child(text("Presets", UiStyles.palette().primary()));
 
         this.root.child(this.header);
         this.root.child(this.list);
@@ -84,11 +85,11 @@ final class OrderPresetsWidgetView
 
             rows.add(new BazaarOrderRowComponent.BazaarRow(
                 rowId(preset),
-                preset.label(),
-                preset.available() ? BazaarStyles.PRIMARY_TEXT : BazaarStyles.MUTED_TEXT,
+                Component.literal(preset.label())
+                    .withStyle(preset.available() ? UiStyles.quantity() : UiStyles.muted()),
                 "",
                 "",
-                BazaarStyles.MUTED_TEXT,
+                UiStyles.palette().muted(),
                 0,
                 tooltip,
                 click,

@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.component.LabelComponent;
@@ -20,15 +21,15 @@ import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
 
 final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent header = label("Bazaar Overview", BazaarStyles.SELL_ACCENT);
+    private final LabelComponent header = boldLabel("Bazaar Overview", UiStyles.palette().primary());
 
-    private final ValueLine buyLocked = new ValueLine("Buy Orders (Locked)", false);
-    private final ValueLine buyItems = new ValueLine("Buy Orders (Items)", false);
+    private final ValueLine buyLocked = new ValueLine("Buy Orders (Locked)");
+    private final ValueLine buyItems = new ValueLine("Buy Orders (Items)");
 
-    private final ValueLine sellClaimable = new ValueLine("Sell Offers (Claimable)", false);
-    private final ValueLine sellPending = new ValueLine("Sell Offers (Pending)", false);
+    private final ValueLine sellClaimable = new ValueLine("Sell Offers (Claimable)");
+    private final ValueLine sellPending = new ValueLine("Sell Offers (Pending)");
 
-    private final ValueLine total = new ValueLine("Total Worth", true);
+    private final ValueLine total = new ValueLine("Total Worth");
 
     OrderValueWidgetView() {
         this.root.allowOverflow(true);
@@ -47,13 +48,13 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.buyLocked.update(data.buyLocked(), BazaarStyles.BUY_ACCENT);
-        this.buyItems.update(data.buyItems(), BazaarStyles.BUY_ACCENT);
+        this.buyLocked.update(data.buyLocked());
+        this.buyItems.update(data.buyItems());
 
-        this.sellClaimable.update(data.sellClaimable(), BazaarStyles.SELL_ACCENT);
-        this.sellPending.update(data.sellPending(), BazaarStyles.SELL_ACCENT);
+        this.sellClaimable.update(data.sellClaimable());
+        this.sellPending.update(data.sellPending());
 
-        this.total.update(data.total(), BazaarStyles.SELL_ACCENT);
+        this.total.update(data.total());
 
         this.root.horizontalSizing(Sizing.fixed(config.contentWidth));
         this.root.clearChildren();
@@ -88,22 +89,21 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         private final FlowLayout root = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
         private final LabelComponent value;
 
-        private ValueLine(String name, boolean bold) {
+        private ValueLine(String name) {
             this.root.allowOverflow(true);
 
-            this.root.child(label(name, BazaarStyles.SECONDARY_TEXT));
+            this.root.child(label(name, UiStyles.palette().label()));
             this.root.child(spacer());
 
-            this.value = bold ? boldLabel("", BazaarStyles.PRIMARY_TEXT) : label("", BazaarStyles.PRIMARY_TEXT);
+            this.value = label("", UiStyles.palette().primary());
 
             this.root.child(this.value);
         }
 
-        private void update(long amount, int color) {
+        private void update(long amount) {
             String text = number(amount) + " coins";
 
-            this.value.text(Component.literal(text).setStyle(this.value.text().getStyle()));
-            this.value.color(BazaarStyles.color(color));
+            this.value.text(Component.literal(text).withStyle(UiStyles.money()));
         }
     }
 }

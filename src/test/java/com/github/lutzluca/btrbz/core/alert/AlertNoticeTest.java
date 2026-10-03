@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarStyles;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import net.minecraft.ChatFormatting;
@@ -29,7 +29,7 @@ class AlertNoticeTest {
         Assertions.assertEquals("Sell Price ≥ 1,000.0 coins", notice.condition().getString());
         Assertions.assertEquals("Price target reached", notice.title());
         Assertions.assertEquals("Reached at 1,012.0 coins", notice.observation().getString());
-        Assertions.assertEquals(TextColor.fromRgb(BazaarStyles.SELL_ACCENT),
+        Assertions.assertEquals(UiStyles.label().getColor(),
             notice.condition().getSiblings().getFirst().getStyle().getColor());
         Assertions.assertEquals(TextColor.fromLegacyFormat(ChatFormatting.GOLD),
             notice.condition().getSiblings().getLast().getStyle().getColor());
@@ -51,11 +51,11 @@ class AlertNoticeTest {
         Assertions.assertEquals("Liquidity target reached", notice.title());
         Assertions.assertEquals("Instantly sell 12 items at ≥ 12.0 coins each", notice.condition().getString());
         Assertions.assertEquals("Observed: 180 qualifying items", notice.observation().getString());
-        Assertions.assertTrue(notice.condition().getSiblings().stream().noneMatch(part -> part.getStyle().isBold()));
-        Assertions.assertEquals(TextColor.fromLegacyFormat(ChatFormatting.GRAY),
+        Assertions.assertFalse(notice.condition().getSiblings().get(4).getStyle().isBold());
+        Assertions.assertEquals(UiStyles.quantity().getColor(),
             notice.condition().getSiblings().get(2).getStyle().getColor());
         Assertions.assertEquals(TextColor.fromLegacyFormat(ChatFormatting.GOLD),
-            notice.condition().getSiblings().get(3).getStyle().getColor());
+            notice.condition().getSiblings().get(4).getStyle().getColor());
         Assertions.assertEquals("Instantly buy 12 items at ≤ 12.0 coins each",
             AlertNotice.conditionText(new AlertCondition.Liquidity(
                 AlertCondition.LiquiditySide.SellOffers, 12, 12.0)).getString());

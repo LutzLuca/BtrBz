@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.arguments.FloatArgumentType;
@@ -39,15 +41,15 @@ public class TaxCommand {
                                 .append(Component.literal("Invalid rate").withStyle(ChatFormatting.RED))
                                 .append(Component
                                     .literal(" (" + rate + ")")
-                                    .withStyle(ChatFormatting.DARK_GRAY))
-                                .append(Component.literal(": must be ").withStyle(ChatFormatting.GRAY))
-                                .append(Component.literal("1, 1.125").withStyle(ChatFormatting.AQUA))
-                                .append(Component.literal(", or ").withStyle(ChatFormatting.GRAY))
-                                .append(Component.literal("1.25").withStyle(ChatFormatting.AQUA))
+                                    .withStyle(UiStyles.muted()))
+                                .append(Component.literal(": must be ").withStyle(UiStyles.label()))
+                                .append(Component.literal("1, 1.125").withStyle(UiStyles.quantity()))
+                                .append(Component.literal(", or ").withStyle(UiStyles.label()))
+                                .append(Component.literal("1.25").withStyle(UiStyles.quantity()))
                                 .append(Component
                                     .literal(
                                         " depending on your Bazaar Flipper level in the Community Shop")
-                                    .withStyle(ChatFormatting.GRAY));
+                                    .withStyle(UiStyles.label()));
 
                             Notifier.notifyPlayer(msg);
                             return 1;
@@ -65,18 +67,18 @@ public class TaxCommand {
                             .prefix()
                             .append(Component
                                 .literal("Successfully set tax rate to ")
-                                .withStyle(ChatFormatting.GRAY))
-                            .append(Component.literal(rate + "%").withStyle(ChatFormatting.AQUA)));
+                                .withStyle(UiStyles.label()))
+                            .append(Component.literal(rate + "%").withStyle(UiStyles.quantity())));
                         return 1;
                     })))
 
             .then(ClientCommands.literal("show").executes(ctx -> {
                 Notifier.notifyPlayer(Notifier
                     .prefix()
-                    .append(Component.literal("Your tax rate is ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal("Your tax rate is ").withStyle(UiStyles.label()))
                     .append(Component
                         .literal(ConfigStore.get().config().tax + "%")
-                        .withStyle(ChatFormatting.AQUA)));
+                        .withStyle(UiStyles.quantity())));
                 return 1;
             }));
     }
