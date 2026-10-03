@@ -94,7 +94,7 @@ public final class ScreenTracker {
 
     public boolean isContainerActive(int containerId) {
         var player = Minecraft.getInstance().player;
-        return BtrBz.isActive() && player != null && player.containerMenu.containerId == containerId;
+        return BtrBz.isRunning() && player != null && player.containerMenu.containerId == containerId;
     }
 
     public void onOpenScreen(ClientboundOpenScreenPacket packet) {
@@ -179,7 +179,7 @@ public final class ScreenTracker {
     }
 
     public void setScreen(@Nullable Screen screen) {
-        if (!BtrBz.isActive() || this.awaitingContainerOpen) {
+        if (!BtrBz.isRunning() || this.awaitingContainerOpen) {
             return;
         }
         if (this.currInfo.getScreen() == screen) {
@@ -213,7 +213,7 @@ public final class ScreenTracker {
     }
 
     public void fireScreenSwitchCallbacks() {
-        if (!BtrBz.isActive() || this.awaitingContainerOpen) {
+        if (!BtrBz.isRunning() || this.awaitingContainerOpen) {
             return;
         }
         if (this.dispatchedScreenTransitionVersion == this.screenTransitionVersion) {

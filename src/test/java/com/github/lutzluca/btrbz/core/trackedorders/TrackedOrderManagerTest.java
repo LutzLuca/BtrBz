@@ -383,6 +383,47 @@ class TrackedOrderManagerTest {
     class SelfUndercutDetection {
 
         @Test
+        void recoveryBaselinesGroupedOrdersAndSelfUndercutWithoutChangingInitialTransitions() throws Exception {
+            var marketProduct = product("TROUBLED_BUBBLE");
+            setSummaries(marketProduct,
+                List.of(summary(marketProduct, 10.0, 2, 2), summary(marketProduct, 9.0, 1, 1)), List.of());
+            var market = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
+            var data = new BazaarData();
+            var config = new TrackedOrderManager.OrderManagerConfig();
+            config.enabled = false;
+            var manager = new TrackedOrderManager(data, () -> config);
+            var identity = ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null);
+            var first = trackedOrder(identity, 10);
+            var second = trackedOrder(identity, 10);
+            var third = trackedOrder(identity, 9);
+            List<TrackedOrder> orders = List.of(first, second, third);
+            orders.forEach(manager::addTrackedOrder);
+            var evaluator = new TrackedOrderStatusEvaluator();
+            var initialUpdates = evaluator.computeStatusUpdates(orders, market).toList();
+            Assertions.assertEquals(3, initialUpdates.size());
+            Assertions
+                .assertTrue(initialUpdates.stream().allMatch(update -> update.prev() instanceof OrderStatus.Unknown));
+
+            manager.baselineMarket(market);
+
+            Assertions.assertInstanceOf(OrderStatus.Matched.class, first.status);
+            Assertions.assertInstanceOf(OrderStatus.Matched.class, second.status);
+            Assertions.assertInstanceOf(OrderStatus.Undercut.class, third.status);
+            Assertions.assertTrue(evaluator.computeStatusUpdates(orders, market).toList().isEmpty());
+            Assertions.assertInstanceOf(GroupStatus.SelfMatched.class,
+                evaluator.getCurrentGroupStatus(GroupKey.from(first), List.of(first, second), market));
+            var field = TrackedOrderManager.class.getDeclaredField("selfUndercutDetector");
+            field.setAccessible(true);
+            var detector = (SelfUndercutDetector) field.get(manager);
+            Assertions.assertTrue(detector.resolve(orders, market).isEmpty());
+
+            setSummaries(marketProduct,
+                List.of(summary(marketProduct, 11.0, 1, 1), summary(marketProduct, 10.0, 2, 2)), List.of());
+            var changed = snapshot(Map.of("TROUBLED_BUBBLE", marketProduct));
+            Assertions.assertEquals(3, evaluator.computeStatusUpdates(orders, changed).count());
+        }
+
+        @Test
         void emitsOnlyMeaningfulPriceChanges() {
             var marketProduct = product("TROUBLED_BUBBLE");
             setSummaries(

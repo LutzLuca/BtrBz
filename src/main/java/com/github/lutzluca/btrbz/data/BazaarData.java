@@ -28,7 +28,7 @@ public class BazaarData {
 
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
-    private Map<String, Product> lastProducts = Collections.emptyMap();
+    private MarketSnapshot marketSnapshot = new MarketSnapshot(Map.of());
 
     @Getter
     @Accessors(fluent = true)
@@ -146,9 +146,22 @@ public class BazaarData {
     }
 
     public void onUpdate(Map<String, Product> products) {
-        this.lastProducts = Collections.unmodifiableMap(new LinkedHashMap<>(
-            products == null ? Map.of() : products));
+        this.installSnapshot(prepareSnapshot(products));
+        this.notifyListeners();
+    }
+
+    /** Prepare a candidate without exposing its quotes or notifying consumers. */
+    public static MarketSnapshot prepareSnapshot(Map<String, Product> products) {
+        return new MarketSnapshot(Collections.unmodifiableMap(new LinkedHashMap<>(
+            products == null ? Map.of() : products)));
+    }
+
+    public void installSnapshot(MarketSnapshot snapshot) {
+        this.marketSnapshot = snapshot;
         this.marketChanges.invalidate("market snapshot published");
+    }
+
+    public void notifyListeners() {
         var snapshot = this.currentSnapshot();
 
         for (var listener : this.listeners) {
@@ -160,10 +173,12 @@ public class BazaarData {
         }
     }
 
-    /** Drop the previous activation's prices and invalidate all market-derived caches. */
+    /** Make quotes unavailable without representing a successful producer publication. */
     public void clearMarketData() {
-        log.debug("Clearing Bazaar market snapshot with {} products", this.lastProducts.size());
-        this.onUpdate(Map.of());
+        log.debug("Clearing Bazaar market snapshot with {} products", this.marketSnapshot.size());
+        this.marketSnapshot = new MarketSnapshot(Map.of());
+        this.marketChanges.invalidate("market unavailable");
+        this.notifyListeners();
     }
 
     public boolean hasMarketData() {
@@ -179,7 +194,7 @@ public class BazaarData {
     }
 
     public MarketSnapshot currentSnapshot() {
-        return new MarketSnapshot(this.lastProducts);
+        return this.marketSnapshot;
     }
 
     public Optional<Double> lowestSellOfferPrice(ProductIdentity product) {
@@ -305,9 +320,12 @@ public class BazaarData {
     public static final class MarketSnapshot {
 
         private final Map<String, Product> products;
+        private final boolean available;
 
         private MarketSnapshot(Map<String, Product> products) {
             this.products = products;
+            this.available = !products.isEmpty() && products.entrySet().stream()
+                .allMatch(entry -> entry.getKey() != null && entry.getValue() != null);
         }
 
         public int size() {
@@ -315,7 +333,7 @@ public class BazaarData {
         }
 
         public boolean available() {
-            return !this.products.isEmpty();
+            return this.available;
         }
 
         public boolean contains(ProductIdentity product) {

@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertScreen;
 import com.github.lutzluca.btrbz.core.alert.AlertNotifications;
 import com.github.lutzluca.btrbz.core.alert.AlertShortcut;
 import com.github.lutzluca.btrbz.core.Activation;
+import com.github.lutzluca.btrbz.core.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.SkyBlockDetector;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.BazaarChatManager;
@@ -62,6 +63,7 @@ import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -95,6 +97,7 @@ public class BtrBz implements ClientModInitializer {
     private static BtrBz instance;
 
     private Activation activation;
+    private FeatureRuntime runtime;
     private BazaarData bazaarData;
     private TrackedOrderManager orderManager;
     private OrderHighlightManager highlightManager;
@@ -117,11 +120,15 @@ public class BtrBz implements ClientModInitializer {
     private boolean automaticConversionRefreshStarted;
 
     public static boolean isActive() {
-        return instance != null && instance.activation != null && instance.activation.isActive();
+        return instance != null && instance.runtime != null && instance.runtime.isActive();
+    }
+
+    public static boolean isRunning() {
+        return instance != null && instance.runtime != null && instance.runtime.isRunning();
     }
 
     public static long activationGeneration() {
-        return instance.activation.generation();
+        return instance.runtime.sessionGeneration();
     }
 
     private String setEnabled(boolean enabled) {
@@ -142,6 +149,11 @@ public class BtrBz implements ClientModInitializer {
 
     public static OrderProtectionManager orderProtectionManager() {
         return instance.orderProtectionManager;
+    }
+
+    public static void observeAcceptedClick(SlotClickContext context) {
+        instance.orderProtectionManager.observeAcceptedConfirmation(context);
+        instance.flipHelper.observeAcceptedOrderClick(context);
     }
 
     public static OrderHighlightManager highlightManager() {
@@ -172,15 +184,18 @@ public class BtrBz implements ClientModInitializer {
         this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         this.purseTracker = new PurseTracker(GameUtils::getPurse);
-        this.bazaarPoller = new BazaarPoller(this.bazaarData::onUpdate);
+        this.bazaarPoller = new BazaarPoller(products -> this.runtime.onMarketUpdate(products));
         var flipProductContext = new FlipProductContext();
         this.flipSubmissionTracker = new FlipSubmissionTracker();
 
         this.highlightManager = new OrderHighlightManager();
         this.tooltipProvider = new OrderTooltipProvider(this.bazaarData, this.highlightManager);
         this.orderManager = new TrackedOrderManager(this.bazaarData);
+        this.runtime = new FeatureRuntime(this.activation, this.bazaarData, this.orderManager,
+            this::startSession, this::suspendMarketFeatures, this::endSession);
+        this.orderManager.addOnOrdersResetListener(() -> this.tooltipProvider.clearCache());
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
-        this.toastNotifications = new ToastNotifications(this.activation::isActive);
+        this.toastNotifications = new ToastNotifications(this.runtime::isActive);
         this.alertManager = new AlertManager(this.bazaarData,
             reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications));
         new BazaarChatManager();
@@ -246,18 +261,18 @@ public class BtrBz implements ClientModInitializer {
             dailyLimitWidgetDefinition,
             priceDifferenceWidgetDefinition);
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
-        this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.activation);
+        this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime);
 
         var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
         new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
-            var screen = new AlertScreen(parent, this.bazaarData, this.alertManager, this.activation,
+            var screen = new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController);
             screen.preselectProduct(product);
             return screen;
         });
 
         this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
-            parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.activation,
+            parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController));
         var hudHint = new BazaarHudHintController(
             bazaarOrdersWidgetDefinition.getConfigHandle(),
@@ -269,7 +284,7 @@ public class BtrBz implements ClientModInitializer {
             hudHint::onWidgetRendered);
         Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager,
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
-                new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.activation,
+                new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
                     orderBookController))),
             this.configScreen::open, this::setEnabled);
         BtrBzWidgetKeybinds.registerHandler(
@@ -295,7 +310,9 @@ public class BtrBz implements ClientModInitializer {
                     .parseSetOrderItem(stack, this.bazaarData)
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err)));
-            this.orderActions.setReopenBazaar();
+            if (this.runtime.isActive()) {
+                this.orderActions.setReopenBazaar();
+            }
         });
 
         this.bazaarData.addListener(this.alertManager::onBazaarUpdate);
@@ -306,9 +323,10 @@ public class BtrBz implements ClientModInitializer {
                 "BtrBz client shutdown started (active={}, generation={})",
                 this.activation.isActive(),
                 this.activation.generation());
-            this.activation.setSkyBlockConfirmed(false);
+            this.runtime.deactivate();
             configStore.save();
             this.flipSubmissionTracker.close();
+            this.orderManager.close();
             this.bazaarPoller.close();
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -359,7 +377,7 @@ public class BtrBz implements ClientModInitializer {
             ResourceReloaderKeys.AFTER_VANILLA, textRevisionId);
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            if (BtrBz.isActive()) {
+            if (BtrBz.isRunning()) {
                 messageDispatcher.handleChatMessage(Utils.stripFormattingCodes(message.getString()));
             }
         });
@@ -386,13 +404,13 @@ public class BtrBz implements ClientModInitializer {
 
     private void onActivationChanged(boolean active) {
         if (active) {
-            this.activate();
+            this.runtime.activate();
         } else {
-            this.deactivate();
+            this.runtime.deactivate();
         }
     }
 
-    private void activate() {
+    private void startSession() {
         log.info("BtrBz features activated (generation={})", this.activation.generation());
         this.utcDayTracker.start();
         this.clipboardTracker.initialize();
@@ -408,35 +426,39 @@ public class BtrBz implements ClientModInitializer {
         }
     }
 
-    private void deactivate() {
-        log.info("BtrBz features deactivated (generation={})", this.activation.generation());
+    private void suspendMarketFeatures() {
         this.toastNotifications.invalidate();
         SoundUtil.invalidatePending();
+        this.orderActions.cancelPendingActions();
+        this.orderPresets.cancelPendingPreset();
+        this.flipHelper.cancelPendingFlip();
+        this.widgetRuntime.disposeRuntimeWidgets();
+    }
+
+    private void endSession() {
+        log.info("BtrBz features deactivated (generation={})", this.activation.generation());
         this.bazaarPoller.stop();
-        this.bazaarData.clearMarketData();
+        this.suspendMarketFeatures();
         this.utcDayTracker.close();
         this.clipboardTracker.close();
         this.purseTracker.close();
-        this.orderActions.cancelPendingActions();
+        this.orderActions.resetSession();
         this.orderPresets.cancelTransaction();
-        this.flipHelper.cancelPendingFlip();
+        this.flipHelper.resetWorkflow();
         this.flipSubmissionTracker.clear();
-        this.orderManager.cancelOutstandingOrders();
         this.bazaarProductContext.clear();
         this.highlightManager.clear();
         this.orderValue.clear();
         ScreenTracker.get().discard();
-        this.widgetRuntime.disposeRuntimeWidgets();
         if (GameUtils.screen() instanceof OrderBookScreen) {
             GameUtils.setScreen(null);
         }
         log.debug(
-            "Deactivation cleanup completed: trackers stopped, marketDataAvailable={}, session UI cleared",
-            this.bazaarData.hasMarketData());
+            "Deactivation cleanup completed: trackers stopped and session UI cleared");
     }
 
     private void handleConversionEvent(ConversionEvent event) {
-        if (!event.manual() && !BtrBz.isActive()) {
+        if (!event.manual() && !BtrBz.isRunning()) {
             return;
         }
         switch (event.kind()) {

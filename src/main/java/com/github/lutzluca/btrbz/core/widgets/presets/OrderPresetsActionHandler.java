@@ -13,17 +13,20 @@ public final class OrderPresetsActionHandler implements WidgetActionHandler<Orde
 
     @Override
     public void handle(OrderPresetsAction action, WidgetSession source, WidgetSession current) {
-        boolean eligible = current.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
-            || current.inSign()
-                && current.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
-                && this.presets.inTransaction();
-
-        if (!eligible || !source.sameWorkflow(current)) {
+        if (!canApply(source, current, this.presets.inTransaction())) {
             return;
         }
 
         switch (action) {
             case OrderPresetsAction.Apply apply -> this.presets.apply(apply.preset());
         }
+    }
+
+    static boolean canApply(WidgetSession source, WidgetSession current, boolean inTransaction) {
+        boolean eligible = current.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
+            || current.inSign()
+                && current.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
+                && inTransaction;
+        return eligible && source.sameWorkflow(current);
     }
 }

@@ -17,33 +17,36 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class ScreenInventoryTracker {
 
-    private static final Map<MenuType<?>, Integer> SLOT_COUNT_MAP = new HashMap<>();
+    private static final class MenuSlots {
+        private static final Map<MenuType<?>, Integer> SLOT_COUNT_MAP = new HashMap<>();
 
-    static {
-        SLOT_COUNT_MAP.put(MenuType.ANVIL, 3);
-        SLOT_COUNT_MAP.put(MenuType.BEACON, 1);
-        SLOT_COUNT_MAP.put(MenuType.BLAST_FURNACE, 3);
-        SLOT_COUNT_MAP.put(MenuType.BREWING_STAND, 5);
-        SLOT_COUNT_MAP.put(MenuType.CARTOGRAPHY_TABLE, 3);
-        SLOT_COUNT_MAP.put(MenuType.CRAFTING, 10);
-        SLOT_COUNT_MAP.put(MenuType.ENCHANTMENT, 2);
-        SLOT_COUNT_MAP.put(MenuType.FURNACE, 3);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_3x3, 9);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x1, 9);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x2, 18);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x3, 27);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x4, 36);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x5, 45);
-        SLOT_COUNT_MAP.put(MenuType.GENERIC_9x6, 54);
-        SLOT_COUNT_MAP.put(MenuType.GRINDSTONE, 3);
-        SLOT_COUNT_MAP.put(MenuType.HOPPER, 5);
-        SLOT_COUNT_MAP.put(MenuType.LECTERN, 1);
-        SLOT_COUNT_MAP.put(MenuType.LOOM, 4);
-        SLOT_COUNT_MAP.put(MenuType.MERCHANT, 3);
-        SLOT_COUNT_MAP.put(MenuType.SHULKER_BOX, 27);
-        SLOT_COUNT_MAP.put(MenuType.SMITHING, 4);
-        SLOT_COUNT_MAP.put(MenuType.SMOKER, 3);
-        SLOT_COUNT_MAP.put(MenuType.STONECUTTER, 2);
+        static {
+            SLOT_COUNT_MAP.put(MenuType.ANVIL, 3);
+            SLOT_COUNT_MAP.put(MenuType.BEACON, 1);
+            SLOT_COUNT_MAP.put(MenuType.BLAST_FURNACE, 3);
+            SLOT_COUNT_MAP.put(MenuType.BREWING_STAND, 5);
+            SLOT_COUNT_MAP.put(MenuType.CARTOGRAPHY_TABLE, 3);
+            SLOT_COUNT_MAP.put(MenuType.CRAFTING, 10);
+            SLOT_COUNT_MAP.put(MenuType.ENCHANTMENT, 2);
+            SLOT_COUNT_MAP.put(MenuType.FURNACE, 3);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_3x3, 9);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_9x1, 9);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_9x2, 18);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_9x3, 27);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_9x4, 36);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_9x5, 45);
+            SLOT_COUNT_MAP.put(MenuType.GENERIC_9x6, 54);
+            SLOT_COUNT_MAP.put(MenuType.GRINDSTONE, 3);
+            SLOT_COUNT_MAP.put(MenuType.HOPPER, 5);
+            SLOT_COUNT_MAP.put(MenuType.LECTERN, 1);
+            SLOT_COUNT_MAP.put(MenuType.LOOM, 4);
+            SLOT_COUNT_MAP.put(MenuType.MERCHANT, 3);
+            SLOT_COUNT_MAP.put(MenuType.SHULKER_BOX, 27);
+            SLOT_COUNT_MAP.put(MenuType.SMITHING, 4);
+            SLOT_COUNT_MAP.put(MenuType.SMOKER, 3);
+            SLOT_COUNT_MAP.put(MenuType.STONECUTTER, 2);
+        }
+
     }
 
     @Getter
@@ -100,7 +103,7 @@ public class ScreenInventoryTracker {
         int syncId = packet.getContainerId();
         var handlerType = packet.getType();
 
-        var slotCount = SLOT_COUNT_MAP.get(handlerType);
+        var slotCount = MenuSlots.SLOT_COUNT_MAP.get(handlerType);
         if (slotCount == null) {
             log.error(
                 "Unknown screen handler type for inventory '{}'. Ignoring this inventory.",
