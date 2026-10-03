@@ -21,7 +21,8 @@ import org.jetbrains.annotations.Nullable;
 /** Retained keyed rows plus shared scrolling, dragging, insertion, and auto-scroll mechanics. */
 public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     private static final int AUTO_SCROLL_THRESHOLD = 14;
-    private static final double AUTO_SCROLL_STEP = 0.028;
+    private static final double MAX_AUTO_SCROLL_SPEED = 180.0;
+    private static final double MAX_AUTO_SCROLL_FRAME_SECONDS = 0.1;
     private static final long DRAG_HOLD_MILLIS = 120;
 
     private final WidgetScrollListComponent scrollList;
@@ -39,7 +40,6 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     private final int insertionHeight;
 
     private int viewportHeight;
-    private boolean interactive;
     private boolean reorderable;
 
     private @Nullable K pendingDragKey;
@@ -99,7 +99,6 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.rows.clear();
         this.rows.addAll(ordered);
 
-        this.interactive = interactive;
         this.reorderable = interactive && reorderable;
 
         if (!this.reorderable) {
@@ -131,7 +130,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
         this.activatePendingDragIfReady(System.currentTimeMillis());
-        this.autoScroll(mouseX, mouseY);
+        this.autoScroll(mouseX, mouseY, delta);
         this.updateDropIndex(mouseY);
         this.beforeChildrenDraw(mouseX, mouseY);
         this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, this.children);
@@ -261,7 +260,7 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
         this.dropIndex = gap;
     }
 
-    private void autoScroll(int mouseX, int mouseY) {
+    private void autoScroll(int mouseX, int mouseY, float delta) {
         if (!this.reorderable || this.draggedKey == null) {
             return;
         }
@@ -270,11 +269,32 @@ public class ReorderableScrollListComponent<K> extends BaseParentUIComponent {
             return;
         }
 
-        if (mouseY < this.scrollList.y() + AUTO_SCROLL_THRESHOLD) {
-            this.scrollList.scrollByProgress(-AUTO_SCROLL_STEP);
-        } else if (mouseY > this.scrollList.y() + this.scrollList.height() - AUTO_SCROLL_THRESHOLD) {
-            this.scrollList.scrollByProgress(AUTO_SCROLL_STEP);
+        double distance = autoScrollDistance(mouseY, this.scrollList.y(), this.scrollList.height(), delta);
+        if (distance != 0.0) {
+            this.scrollList.scrollByPixels(distance);
         }
+    }
+
+    static double autoScrollDistance(int pointerY, int viewportTop, int viewportHeight, float delta) {
+        int threshold = Math.min(AUTO_SCROLL_THRESHOLD, Math.max(1, viewportHeight / 2));
+        int topBoundary = viewportTop + threshold;
+        int bottomBoundary = viewportTop + viewportHeight - threshold;
+        double depth;
+        int direction;
+        if (pointerY < topBoundary) {
+            depth = (topBoundary - pointerY) / (double) threshold;
+            direction = -1;
+        } else if (pointerY > bottomBoundary) {
+            depth = (pointerY - bottomBoundary) / (double) threshold;
+            direction = 1;
+        } else {
+            return 0.0;
+        }
+
+        depth = WidgetMath.unit(depth);
+        // owo supplies delta in ticks. Cap a stalled frame so the drop target cannot jump far.
+        double elapsedSeconds = Math.min(MAX_AUTO_SCROLL_FRAME_SECONDS, Math.max(0.0, delta) / 20.0);
+        return direction * MAX_AUTO_SCROLL_SPEED * depth * depth * elapsedSeconds;
     }
 
     private void drawInsertionIndicator(OwoUIGraphics graphics) {

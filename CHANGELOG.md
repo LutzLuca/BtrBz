@@ -17,6 +17,7 @@
 - Holding Shift now shows tooltip totals for full order volumes and quantities in sacks, the Stash, the Composter, and the Hunting Box
 - The alert editor now explains which market price it watches and that Below and Above include equality
 - Restyled Bazaar widgets, alerts, notifications, and tooltips with neutral labels and gold coin values
+- Bookmark and tracked-order drag scrolling now accelerates near list edges and is capped at 180 GUI pixels per second
 
 ### Fixed
 
