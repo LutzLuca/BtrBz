@@ -58,6 +58,9 @@ import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
+import com.github.lutzluca.btrbz.utils.Notifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
 import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
@@ -184,7 +187,12 @@ public class BtrBz implements ClientModInitializer {
         this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         this.purseTracker = new PurseTracker(GameUtils::getPurse);
-        this.bazaarPoller = new BazaarPoller(products -> this.runtime.onMarketUpdate(products));
+        this.bazaarPoller = new BazaarPoller(reply -> this.runtime.onMarketReply(reply),
+            () -> this.runtime.hibernate(),
+            () -> this
+                .warnBazaarUnavailable("Bazaar API requests have failed for five minutes; retrying automatically."),
+            () -> this
+                .warnBazaarUnavailable("Bazaar API data has not advanced for five minutes; retrying automatically."));
         var flipProductContext = new FlipProductContext();
         this.flipSubmissionTracker = new FlipSubmissionTracker();
 
@@ -424,6 +432,10 @@ public class BtrBz implements ClientModInitializer {
             this.automaticConversionRefreshStarted = true;
             this.bazaarData.refreshConversions(false);
         }
+    }
+
+    private void warnBazaarUnavailable(String message) {
+        Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(message).withStyle(ChatFormatting.YELLOW)));
     }
 
     private void suspendMarketFeatures() {

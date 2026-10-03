@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertType;
 import com.github.lutzluca.btrbz.core.alert.ReachedAlert;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.BazaarPoller.MarketReply;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
@@ -48,12 +49,11 @@ class FeatureRuntimeTest {
             runtime.activate();
             orders.syncOrders(List.of(order(100)));
             var id = orders.currentOrders().getFirst().id();
-            runtime.onMarketUpdate(products(100));
+            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(100)), true));
 
             runtime.hibernate();
             runtime.activate();
             runtime.hibernate();
-            runtime.onMarketUpdate(products(110));
 
             Assertions.assertTrue(runtime.isHibernating());
             Assertions.assertFalse(data.hasMarketData());
@@ -64,7 +64,7 @@ class FeatureRuntimeTest {
             runtime.deactivate();
             runtime.deactivate();
             runtime.recover(BazaarData.MarketSnapshot.fromProducts(products(110)));
-            runtime.onMarketUpdate(products(110));
+            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
 
             Assertions.assertFalse(runtime.isRunning());
             Assertions.assertFalse(data.hasMarketData());
@@ -90,7 +90,7 @@ class FeatureRuntimeTest {
             orders.syncOrders(List.of(order(100)));
             saveAlert(alerts);
 
-            runtime.recover(BazaarData.MarketSnapshot.fromProducts(products(110)));
+            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
 
             Assertions.assertEquals(List.of(new Publication(true, 110)), notices);
             Assertions.assertInstanceOf(OrderStatus.Undercut.class, orders.currentOrders().getFirst().status());
