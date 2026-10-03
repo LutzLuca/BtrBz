@@ -87,7 +87,8 @@ public final class ProductInfoConfig {
             .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
                 ConfigScreen.text(
                     "Add the best current buy-order and sell-offer prices to Bazaar product tooltips."),
-                ConfigScreen.note("Hold Shift over a stack to show its total value instead of the per-item value."))))
+                ConfigScreen
+                    .note("Hold Shift to show the total for a stack or the quantity represented by a menu item."))))
             .binding(
                 true,
                 () -> this.priceTooltipEnabled,
@@ -112,13 +113,9 @@ public final class ProductInfoConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Require Matching Displayed Names"))
-            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                ConfigScreen.text(
-                    "Check item names before showing prices or allowing product lookup. "
-                        + "Colors and formatting are ignored."),
-                ConfigScreen.note(
-                    "Order stacks in the Order Menu, enchanted books, attributes in the Attribute Menu "
-                        + "and Experimentation Table rewards are exceptions to this rule."))))
+            .description(ConfigScreen.createDescription(
+                "Check item names before showing prices or allowing product lookup. "
+                    + "Colors and formatting are ignored."))
             .binding(true, () -> this.requireMatchingName, value -> this.requireMatchingName = value)
             .controller(ConfigScreen::createBooleanController);
     }

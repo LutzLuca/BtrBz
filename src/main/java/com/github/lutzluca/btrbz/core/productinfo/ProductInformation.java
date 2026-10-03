@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.productinfo;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
@@ -16,12 +15,11 @@ import com.github.lutzluca.btrbz.screen.slot.SlotRenderContext;
 import com.github.lutzluca.btrbz.screen.slot.SlotView;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.net.URI;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
-import java.util.WeakHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +43,8 @@ public final class ProductInformation {
     private final BazaarData bazaarData;
     private final BazaarProductContext productContext;
     private final Supplier<ProductInfoConfig> config;
-    private final ProductLookupCache productLookupCache;
+    private final ProductInfoContextResolver contextResolver;
+    private final PriceCache priceCache;
 
     private @Nullable ItemStack cachedProductInfoItem = null;
     private @Nullable ProductInfoConfig.Site cachedProductInfoSite = null;
@@ -58,36 +57,11 @@ public final class ProductInformation {
         this.bazaarData = bazaarData;
         this.productContext = productContext;
         this.config = config;
-        this.productLookupCache = new ProductLookupCache();
-        ScreenTracker.registerOnSwitch(_ -> this.productLookupCache.clear());
+        this.contextResolver = new ProductInfoContextResolver(bazaarData);
+        this.priceCache = new PriceCache();
+        ScreenTracker.registerOnSwitch(_ -> this.priceCache.clear());
         this.registerSlotHooks();
         this.registerTooltipDisplay();
-    }
-
-    private Component createPriceText(
-        String label,
-        @Nullable Double price,
-        int stackCount,
-        boolean isShiftHeld
-    ) {
-        var priceText = Component.literal(label).withStyle(ChatFormatting.AQUA);
-
-        if (price != null) {
-            var displayPrice = isShiftHeld && stackCount > 1 ? price * stackCount : price;
-            priceText.append(Component
-                .literal(Utils.formatDecimal(displayPrice, 1, true) + " coins")
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
-
-            if (isShiftHeld && stackCount > 1) {
-                priceText.append(Component
-                    .literal(" (" + stackCount + "x)")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-            }
-        } else {
-            priceText.append(Component.literal("Not Available").withStyle(ChatFormatting.GRAY));
-        }
-
-        return priceText;
     }
 
     private void registerSlotHooks() {
@@ -136,31 +110,18 @@ public final class ProductInformation {
                 return;
             }
             var cfg = this.config.get();
-            if (!cfg.enabled || !cfg.ctrlShiftEnabled) {
+            if (!cfg.enabled || !cfg.ctrlShiftEnabled || !this.shouldApplyCtrlShiftClick(stack)) {
                 return;
             }
-
-            if (!this.shouldApplyCtrlShiftClick(stack)) {
-                return;
-            }
-
             lines.add(Component.empty());
-            lines.add(Component
-                .literal("CTRL")
-                .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
+            lines.add(Component.literal("CTRL").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)
                 .append(Component.literal("+").withStyle(ChatFormatting.DARK_GRAY))
                 .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
                 .append(Component.literal(" Click ").withStyle(ChatFormatting.GRAY))
-                .append(Component
-                    .literal("to view on ")
-                    .withStyle(ChatFormatting.DARK_GRAY)
+                .append(Component.literal("to view on ").withStyle(ChatFormatting.DARK_GRAY)
                     .withStyle(style -> style.withBold(false)))
-                .append(Component
-                    .literal(cfg.site.displayName())
-                    .withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
-
+                .append(Component.literal(cfg.site.displayName()).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
         });
-
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
             if (!BtrBz.isActive()) {
                 return;
@@ -169,40 +130,12 @@ public final class ProductInformation {
             if (!cfg.enabled || !cfg.priceTooltipEnabled) {
                 return;
             }
-
             var lookup = this.lookup(stack);
             if (lookup == null || lookup.prices() == null) {
                 return;
             }
-
-            var cached = lookup.prices();
-            var count = priceCount(stack.getCount(), lookup.product(),
-                lookup.singleItemPrice() || stack.getItem() == Items.ENCHANTED_BOOK);
-            var isShiftHeld = Minecraft.getInstance().hasShiftDown();
-
-            lines.add(Component.empty());
-
-            if (count > 1 && !isShiftHeld) {
-                lines.add(Component
-                    .literal("Hold ")
-                    .withStyle(ChatFormatting.DARK_GRAY)
-                    .append(Component.literal("SHIFT").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-                    .append(Component.literal(" to show for (").withStyle(ChatFormatting.DARK_GRAY))
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
-                    .append(Component.literal("x").withStyle(ChatFormatting.DARK_GRAY))
-                    .append(Component.literal(")").withStyle(ChatFormatting.DARK_GRAY)));
-            }
-
-            if (count > 1 && isShiftHeld) {
-                lines.add(Component
-                    .literal("Showing price for ")
-                    .withStyle(ChatFormatting.GRAY)
-                    .append(Component.literal(String.valueOf(count)).withStyle(ChatFormatting.LIGHT_PURPLE))
-                    .append(Component.literal("x").withStyle(ChatFormatting.GRAY)));
-            }
-
-            lines.add(this.createPriceText("Buy Price: ", cached.buyPrice, count, isShiftHeld));
-            lines.add(this.createPriceText("Sell Price: ", cached.sellPrice, count, isShiftHeld));
+            ProductInfoTooltip.append(lines, lookup.prices(), lookup.quantity(),
+                Minecraft.getInstance().hasShiftDown());
         });
     }
 
@@ -231,128 +164,29 @@ public final class ProductInformation {
         return cfg.showOutsideBazaar;
     }
 
-    private @Nullable CachedProductLookup lookup(SlotView view) {
-        // Clicks and tooltips resolve the displayed stack, which may be projected
+    private @Nullable ProductLookup lookup(SlotView view) {
+        // Clicks and tooltips resolve the displayed stack, which may be projected.
         return this.lookup(view.getSlot().getItem(), view.playerInventorySlot() ? null : view.getSlot());
     }
 
-    private @Nullable CachedProductLookup lookup(ItemStack stack) {
+    private @Nullable ProductLookup lookup(ItemStack stack) {
         return this.lookup(stack, this.hoveredSlot(stack)
-            .filter(slot -> !GameUtils.isPlayerInventorySlot(slot))
-            .orElse(null));
+            .filter(slot -> !GameUtils.isPlayerInventorySlot(slot)).orElse(null));
     }
 
-    private @Nullable CachedProductLookup lookup(ItemStack stack, @Nullable Slot menuSlot) {
-        if (stack.isEmpty()) {
-            return null;
+    private @Nullable ProductLookup lookup(ItemStack stack, @Nullable Slot menuSlot) {
+        var info = ScreenTracker.get().getCurrInfo();
+        var screen = info.getGenericContainerScreen().orElse(null);
+        ProductInfoContextResolver.MenuContext menu = null;
+        if (menuSlot != null && screen != null && menuSlot.container == screen.getMenu().getContainer()) {
+            menu = new ProductInfoContextResolver.MenuContext(screen.getTitle().getString(),
+                info.getMenuType().orElse(null), menuSlot.getContainerSlot());
         }
-
-        var cfg = this.config.get();
-        var screen = ScreenTracker.get().getCurrInfo().getGenericContainerScreen().orElse(null);
-
-        // Special Cases: Bazaar categories, Attribute Menu shards, order stacks and Experimentation Table
-        if (menuSlot != null && screen != null
-            && menuSlot.container == screen.getMenu().getContainer()) {
-            var lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
-
-            if (ScreenTracker.inMenu(BazaarMenuType.Main) && !ProductInfoMatching.isBazaarProductEntry(lore)) {
-                // Categories can share a product's name and ID. Their action identifies navigation
-                return null;
-            }
-
-            var title = screen.getTitle().getString();
-            if (ProductInfoMatching.isAttributeMenu(title)) {
-                // Attribute titles describe progress, while the source holds the shard's name
-                var shardName = ProductInfoMatching.attributeShardName(lore).orElse(null);
-                if (shardName == null) {
-                    return null;
-                }
-
-                var shard = this.bazaarData.resolveProductName(shardName);
-                var indexed = this.bazaarData.resolveIndexedProduct(shard).orElse(null);
-                if (indexed == null || !indexed.productId().startsWith("SHARD_")) {
-                    return null;
-                }
-                return this.productLookupCache.create(shard, true);
-            }
-
-            if (this.isOrderScreenProductRow(stack)) {
-                var order = OrderInfoParser.parseOrderInfo(stack, menuSlot.getContainerSlot(), this.bazaarData);
-                if (order.isSuccess()) {
-                    return this.productLookupCache.create(order.get().product(), false);
-                }
-            }
-
-            var superpairs = ProductInfoMatching.isSuperpairsMenu(title);
-            if (superpairs || ProductInfoMatching.isRngMenu(title)) {
-                return this.lookupExperimentationReward(stack, lore, superpairs);
-            }
-        }
-
-        // default lookup
-        var lookup = this.productLookupCache.get(stack);
-        if (!cfg.requireMatchingName) {
-            return lookup;
-        }
-
-        var indexed = this.bazaarData.resolveIndexedProduct(lookup.product()).orElse(null);
-        return indexed != null && ProductInfoMatching.matchesDisplayedName(
-            stack.getHoverName().getString(), indexed,
-            this.isIdentifiedEnchantmentBook(stack, indexed.productId()))
-                ? lookup : null;
-    }
-
-    private @Nullable CachedProductLookup lookupExperimentationReward(
-        ItemStack stack,
-        List<Component> lore,
-        boolean superpairs
-    ) {
-        var lookup = this.productLookupCache.get(stack);
-        var indexed = this.bazaarData.resolveIndexedProduct(lookup.product()).orElse(null);
-        var identifiedBook = indexed != null && this.isIdentifiedEnchantmentBook(stack, indexed.productId());
-
-        var displayedName = stack.getHoverName().getString();
-        var genericBook = superpairs && "Enchanted Book".equals(Utils.cleanDisplayName(displayedName));
-
-        // Rewards normally name their product in the title. Generic Superpairs books use
-        // the third lore line unless stack resolution already identifies the enchantment
-        var rewardName = genericBook && !identifiedBook
-            ? ProductInfoMatching.superpairsEnchantmentName(lore).orElse(null)
-            : displayedName;
-        if (rewardName == null) {
-            return null;
-        }
-
-        // fallback to name lookup when stack resolution has no indexed product
-        if (indexed == null) {
-            var product = this.bazaarData.resolveProductName(rewardName);
-            indexed = this.bazaarData.resolveIndexedProduct(product).orElse(null);
-            lookup = this.productLookupCache.create(product, false);
-        }
-        if (genericBook && (indexed == null || !indexed.productId().startsWith("ENCHANTMENT_"))) {
-            return null;
-        }
-
-        if (!this.config.get().requireMatchingName) {
-            return lookup;
-        }
-        return indexed != null && ProductInfoMatching.matchesDisplayedName(rewardName, indexed, identifiedBook)
-            ? lookup : null;
-    }
-
-    private boolean isIdentifiedEnchantmentBook(ItemStack stack, String productId) {
-        // Trust the resolved enchantment ID when a book uses the generic title
-        return stack.getItem() == Items.ENCHANTED_BOOK && productId.startsWith("ENCHANTMENT_");
-    }
-
-    static int priceCount(int stackCount, ProductIdentity product, boolean singleItemPrice) {
-        return singleItemPrice || product.bazaarProductId().filter(id -> id.startsWith("ENCHANTMENT_")).isPresent()
-            ? 1 : stackCount;
-    }
-
-    private boolean isOrderScreenProductRow(ItemStack stack) {
-        return ScreenTracker.inMenu(BazaarMenuType.Orders)
-            && GameUtils.orderScreenNonOrderItemsFilter(stack);
+        var resolved = this.contextResolver.resolve(stack, menu, this.config.get().requireMatchingName);
+        return resolved != null
+            ? new ProductLookup(resolved.product(), this.priceCache.get(resolved.product()),
+                resolved.quantity())
+            : null;
     }
 
     private Optional<Slot> hoveredSlot(ItemStack stack) {
@@ -408,17 +242,11 @@ public final class ProductInformation {
             }, link, true));
     }
 
-    private record CachedPrice(
-        @Nullable Double buyPrice,
-        @Nullable Double sellPrice
-    ) {}
-
-    private record CachedProductLookup(
+    private record ProductLookup(
         ProductIdentity product,
-        @Nullable CachedPrice prices,
-        boolean singleItemPrice
+        @Nullable ProductInfoTooltip.Prices prices,
+        ProductInfoQuantity quantity
     ) {
-
         Optional<String> marketProductId() {
             return this.prices != null ? this.product.bazaarProductId() : Optional.empty();
         }
@@ -492,42 +320,29 @@ public final class ProductInformation {
         }
     }
 
-    private class ProductLookupCache {
+    private final class PriceCache {
+        private final Map<ProductIdentity, ProductInfoTooltip.Prices> cache = new HashMap<>();
 
-        private final WeakHashMap<ItemStack, CachedProductLookup> cache = new WeakHashMap<>();
-
-        ProductLookupCache() {
-            ProductInformation.this.bazaarData.addListener(products -> this.clear());
+        PriceCache() {
+            ProductInformation.this.bazaarData.addListener(_ -> this.clear());
             ProductInformation.this.bazaarData.addIndexChangeListener(this::clear);
         }
 
-        CachedProductLookup get(ItemStack stack) {
-            var cached = this.cache.get(stack);
-            if (cached != null) {
-                return cached;
+        @Nullable
+        ProductInfoTooltip.Prices get(ProductIdentity product) {
+            if (this.cache.containsKey(product)) {
+                return this.cache.get(product);
             }
-
-            var lookup = this.create(ProductInformation.this.bazaarData.resolveProduct(stack), false);
-            this.cache.put(stack, lookup);
-            return lookup;
-        }
-
-        CachedProductLookup create(ProductIdentity product, boolean singleItemPrice) {
             var data = ProductInformation.this.bazaarData;
-            CachedPrice prices = null;
-            if (data.contains(product)) {
-                prices = new CachedPrice(
-                    data.lowestSellOfferPrice(product).orElse(null),
-                    data.highestBuyOrderPrice(product).orElse(null));
-            }
-
-            return new CachedProductLookup(product, prices, singleItemPrice);
+            var prices = data.contains(product)
+                ? new ProductInfoTooltip.Prices(data.lowestSellOfferPrice(product).orElse(null),
+                    data.highestBuyOrderPrice(product).orElse(null))
+                : null;
+            this.cache.put(product, prices);
+            return prices;
         }
 
         void clear() {
-            if (!this.cache.isEmpty()) {
-                log.trace("Clearing product lookup cache with {} mappings", this.cache.size());
-            }
             this.cache.clear();
         }
     }

@@ -247,7 +247,51 @@ class OrderInfoParserTest {
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
+            assertEquals(64, info.volume());
             assertEquals(17, info.filledAmountSnapshot());
+        }
+
+        @Test
+        void preservesFullBookOrderVolumeAfterPartialFills() {
+            var result = OrderInfoParser.parseOrderInfo("§aBUY §9Bane of Arthropods VI", orderLore(
+                "Worth 9 coins",
+                "§7Order amount: §a32x",
+                "Filled: 4/32 (12.5%)",
+                "Price per unit: 0.3 coins",
+                "You have 4 items to claim!"), 10);
+
+            var info = Assertions.assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
+            Assertions.assertEquals("Bane of Arthropods VI", info.productName());
+            Assertions.assertEquals(32, info.volume());
+            Assertions.assertEquals(4, info.filledAmountSnapshot());
+            Assertions.assertEquals(4, info.unclaimed());
+        }
+
+        @Test
+        void preservesExactOrderVolumeWhenFillLoreUsesAnAbbreviatedTotal() {
+            var result = OrderInfoParser.parseOrderInfo("BUY Flawed Topaz Gemstone", orderLore(
+                "Worth 16.1M coins",
+                "Order amount: 51,200x",
+                "Filled: 652/51.2k (1.3%)",
+                "Price per unit: 314.0 coins",
+                "You have 652 items to claim!"), 11);
+
+            var info = Assertions.assertInstanceOf(OrderInfo.UnfilledOrderInfo.class, result.get());
+            Assertions.assertEquals(51_200, info.volume());
+            Assertions.assertEquals(652, info.filledAmountSnapshot());
+            Assertions.assertEquals(652, info.unclaimed());
+        }
+
+        @Test
+        void preservesSingleItemSellOrderVolumeAfterFilling() {
+            var result = OrderInfoParser.parseOrderInfo("SELL Bane of Arthropods VI", orderLore(
+                "Offer amount: 1x",
+                "Filled: 1/1 100%!",
+                "Price per unit: 0.3 coins"), 12);
+
+            var info = Assertions.assertInstanceOf(OrderInfo.FilledOrderInfo.class, result.get());
+            Assertions.assertEquals(OrderType.Sell, info.type());
+            Assertions.assertEquals(1, info.volume());
         }
 
         @Test
@@ -260,6 +304,7 @@ class OrderInfoParserTest {
 
             assertTrue(result.isSuccess());
             var info = assertInstanceOf(OrderInfo.FilledOrderInfo.class, result.get());
+            assertEquals(51_200, info.volume());
             assertEquals(51_200, info.filledAmountSnapshot());
         }
 

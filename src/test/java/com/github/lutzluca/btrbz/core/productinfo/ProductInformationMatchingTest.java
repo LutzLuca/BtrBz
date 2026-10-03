@@ -53,47 +53,13 @@ class ProductInformationMatchingTest {
     }
 
     @Test
-    void usesTheSourceShardAcrossAttributeProgressStates() {
-        var source = Component.literal("§7Source: §fChill Shard §8(C12)");
-        for (var progress : List.of("Syphon 1 shard to unlock!", "Attribute Level: 4", "Attribute Level: 10 (MAX!)")) {
-            Assertions.assertEquals("Chill Shard", ProductInfoMatching.attributeShardName(List.of(
-                source, Component.literal(progress), Component.literal("Left-Click to open!"))).orElseThrow());
-        }
-        Assertions.assertEquals("Chill Shard", ProductInfoMatching.attributeShardName(List.of(source)).orElseThrow());
-        Assertions.assertEquals("Chill Shard", ProductInfoMatching.attributeShardName(List.of(
-            source, Component.literal("Source: Phanflare Shard (C7)"))).orElseThrow());
-        Assertions
-            .assertTrue(ProductInfoMatching.attributeShardName(List.of(Component.literal("Source: (C12)"))).isEmpty());
-        Assertions.assertTrue(
-            ProductInfoMatching.attributeShardName(List.of(Component.literal("Source: Chill Shard"))).isEmpty());
-        Assertions.assertTrue(
-            ProductInfoMatching.attributeShardName(List.of(Component.literal("Attribute Level: 4"))).isEmpty());
-    }
-
-    @Test
-    void readsSuperpairsEnchantmentNameFromTheThirdLoreLine() {
-        List<Component> lore = List.of(Component.literal("Rare Book!"), Component.empty(),
-            Component.literal("§9Giant Killer VI"));
-        var name = ProductInfoMatching.superpairsEnchantmentName(lore).orElseThrow();
-
-        Assertions.assertEquals("Giant Killer VI", name);
-        Assertions.assertTrue(ProductInfoMatching.matchesName(name,
-            new IndexedProduct("ENCHANTMENT_GIANT_KILLER_6", "§9Giant Killer VI")));
-        Assertions.assertFalse(ProductInfoMatching.matchesName(name,
-            new IndexedProduct("ENCHANTMENT_GIANT_KILLER_7", "§5Giant Killer VII")));
-        Assertions.assertTrue(ProductInfoMatching.superpairsEnchantmentName(List.of(lore.getFirst())).isEmpty());
-        Assertions.assertTrue(ProductInfoMatching.superpairsEnchantmentName(List.of(
-            lore.getFirst(), Component.empty(), Component.empty())).isEmpty());
-    }
-
-    @Test
-    void usesOneShardForAttributeCardsWithoutChangingOwnedShardQuantities() {
+    void keepsOrdinaryBooksIndividualWithoutLimitingShardStacks() {
         var shard = ProductIdentity.fromIndex(new IndexedProduct("SHARD_CHILL", "§fChill Shard"));
         var book = ProductIdentity.fromIndex(new IndexedProduct("ENCHANTMENT_GIANT_KILLER_7", "§5Giant Killer VII"));
 
-        Assertions.assertEquals(1, ProductInformation.priceCount(4, shard, true));
-        Assertions.assertEquals(1, ProductInformation.priceCount(64, shard, true));
-        Assertions.assertEquals(64, ProductInformation.priceCount(64, shard, false));
-        Assertions.assertEquals(1, ProductInformation.priceCount(7, book, false));
+        Assertions.assertEquals(1, ProductInfoQuantity.stack(7, book, false).count().orElseThrow());
+        Assertions.assertEquals(1, ProductInfoQuantity.stack(7, ProductIdentity.fromName("Enchanted Book"), true)
+            .count().orElseThrow());
+        Assertions.assertEquals(64, ProductInfoQuantity.stack(64, shard, false).count().orElseThrow());
     }
 }

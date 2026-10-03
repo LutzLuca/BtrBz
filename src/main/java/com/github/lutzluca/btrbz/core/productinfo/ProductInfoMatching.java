@@ -3,8 +3,10 @@ package com.github.lutzluca.btrbz.core.productinfo;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
-import java.util.Optional;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemLore;
 
 final class ProductInfoMatching {
 
@@ -19,6 +21,20 @@ final class ProductInfoMatching {
             || matchesName(name, product);
     }
 
+    static boolean isOrderStack(ItemStack stack) {
+        var name = Utils.cleanDisplayName(stack.getHoverName().getString());
+        return name.startsWith("BUY ") || name.startsWith("SELL ");
+    }
+
+    static boolean isSackStack(ItemStack stack) {
+        var lore = stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines();
+        if (lore.isEmpty()) {
+            return false;
+        }
+        var header = Utils.cleanDisplayName(lore.getFirst().getString());
+        return header.endsWith("Sack") || header.equals("Gemstones");
+    }
+
     static boolean isSuperpairsMenu(String title) {
         return title.startsWith("Superpairs (") && title.endsWith(")");
     }
@@ -31,6 +47,10 @@ final class ProductInfoMatching {
         return title.endsWith("Attribute Menu");
     }
 
+    static boolean isHuntingBoxMenu(String title) {
+        return title.equals("Hunting Box") || title.startsWith("(") && title.endsWith(") Hunting Box");
+    }
+
     static boolean isBazaarProductEntry(List<Component> lore) {
         for (var line : lore) {
             var text = Utils.cleanDisplayName(line.getString());
@@ -41,29 +61,4 @@ final class ProductInfoMatching {
         return false;
     }
 
-    static Optional<String> attributeShardName(List<Component> lore) {
-        // Source: <shard name> (<shard identifier>)
-        for (var line : lore) {
-            var text = Utils.cleanDisplayName(line.getString());
-            if (text.startsWith("Source:")) {
-                var identifierStart = text.lastIndexOf(" (");
-                if (identifierStart < "Source:".length()) {
-                    return Optional.empty();
-                }
-
-                var name = text.substring("Source:".length(), identifierStart).trim();
-                return name.isEmpty() ? Optional.empty() : Optional.of(name);
-            }
-        }
-
-        return Optional.empty();
-    }
-
-    static Optional<String> superpairsEnchantmentName(List<Component> lore) {
-        if (lore.size() < 3) {
-            return Optional.empty();
-        }
-        var name = Utils.cleanDisplayName(lore.get(2).getString());
-        return name.isEmpty() ? Optional.empty() : Optional.of(name);
-    }
 }
