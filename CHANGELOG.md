@@ -1,6 +1,6 @@
 # Changelog
 
-## [TBA] - TBA
+## [0.13.0-alpha] - 2026-10-03
 
 ### Breaking
 
