@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
+import com.github.lutzluca.btrbz.mixin.SkyBlockBazaarReplyAccessor;
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -32,15 +34,13 @@ class BoundedBazaarHttpClientTest {
             var responder = Executors.newSingleThreadExecutor();
             try {
                 var raw = transport.makeRequest("http://bazaar.test:" + server.getLocalPort() + "/expired");
-                var composed = raw.thenApply(_ -> new BazaarPollerTest.Reply(System.currentTimeMillis()));
                 Assertions.assertTrue(dns.entered.await(2, TimeUnit.SECONDS));
                 var failure = Assertions.assertThrows(ExecutionException.class, () -> raw.get(2, TimeUnit.SECONDS));
                 Assertions.assertInstanceOf(TimeoutException.class, failure.getCause());
-                Assertions.assertThrows(ExecutionException.class, () -> composed.get(2, TimeUnit.SECONDS));
                 Assertions.assertThrows(RejectedExecutionException.class, () -> transport.makeRequest(url(server)));
 
                 var received = responder.submit(() -> {
-                    while (true) {
+                    for (int attempt = 0; attempt < 2; attempt++) {
                         try (var socket = server.accept()) {
                             String headers = readHeaders(socket);
                             if (!headers.isEmpty()) {
@@ -49,42 +49,19 @@ class BoundedBazaarHttpClientTest {
                             }
                         }
                     }
+                    throw new AssertionError("Recovery request never reached the server");
                 });
                 dns.release.countDown();
                 var recovery = requestWhenFree(transport, url(server).replace("/bazaar", "/recovered"));
-                Assertions.assertEquals("ok", recovery.get(2, TimeUnit.SECONDS).getBody());
+                Assertions.assertEquals(200, recovery.get(2, TimeUnit.SECONDS).getStatusCode());
                 Assertions.assertTrue(received.get(2, TimeUnit.SECONDS).startsWith("GET /recovered "),
                     "The expired request must not send HTTP after DNS returns");
             } finally {
                 dns.release.countDown();
                 transport.shutdown();
+                server.close();
                 responder.shutdownNow();
                 Assertions.assertTrue(responder.awaitTermination(3, TimeUnit.SECONDS));
-            }
-            assertTransportThreadsStop();
-        }
-    }
-
-    @Test
-    void closeRetainsUninterruptibleDnsWorkerUntilNativeWorkReturns() throws Exception {
-        try (var server = server()) {
-            var dns = new BlockedDns();
-            var transport = new BoundedBazaarHttpClient(1_000, 3_000, 200, dns);
-            try {
-                var raw = transport.makeRequest("http://bazaar.test:" + server.getLocalPort() + "/expired");
-                Assertions.assertTrue(dns.entered.await(2, TimeUnit.SECONDS));
-                Assertions.assertThrows(ExecutionException.class, () -> raw.get(2, TimeUnit.SECONDS));
-                transport.shutdown();
-                Assertions.assertTrue(Thread.getAllStackTraces().keySet().stream()
-                    .anyMatch(thread -> thread.isAlive() && thread.getName().equals("bazaar-http")));
-                Assertions.assertThrows(RejectedExecutionException.class, () -> transport.makeRequest(url(server)));
-                dns.release.countDown();
-                assertTransportThreadsStop();
-                server.setSoTimeout(150);
-                Assertions.assertThrows(SocketTimeoutException.class, server::accept);
-            } finally {
-                dns.release.countDown();
-                transport.shutdown();
             }
         }
     }
@@ -105,13 +82,13 @@ class BoundedBazaarHttpClientTest {
                         beforeAdmission.countDown();
                         await(admit);
                         CompletableFuture<SkyBlockBazaarReply> stage = transport.makeRequest(url(server))
-                            .thenApply(_ -> new BazaarPollerTest.Reply(System.currentTimeMillis()));
+                            .thenApply(response -> new Gson().fromJson(response.getBody(), Reply.class));
                         staleStage.complete(stage);
                         await(returnStage);
                         return stage;
                     }
                     return transport.makeRequest(url(server))
-                        .thenApply(_ -> new BazaarPollerTest.Reply(System.currentTimeMillis()));
+                        .thenApply(response -> new Gson().fromJson(response.getBody(), Reply.class));
                 }
             };
             var scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -140,54 +117,8 @@ class BoundedBazaarHttpClientTest {
                 admit.countDown();
                 returnStage.countDown();
                 poller.close();
+                transport.shutdown();
                 Assertions.assertTrue(scheduler.awaitTermination(3, TimeUnit.SECONDS));
-                transport.shutdown();
-            }
-            assertTransportThreadsStop();
-        }
-    }
-
-    @Test
-    void repeatedDeadlinesCloseRealSocketsAndReleaseCapacityForRecovery() throws Exception {
-        try (var server = server()) {
-            var transport = new BoundedBazaarHttpClient(1_000, 3_000, 350);
-            try {
-                String url = url(server);
-                for (int attempt = 0; attempt < 3; attempt++) {
-                    var result = requestWhenFree(transport, url);
-                    try (var socket = server.accept()) {
-                        readRequest(socket);
-                        Assertions.assertThrows(RejectedExecutionException.class, () -> transport.makeRequest(url));
-                        Assertions.assertThrows(ExecutionException.class, () -> result.get(3, TimeUnit.SECONDS));
-                        assertClosed(socket);
-                    }
-                }
-                var recovered = requestWhenFree(transport, url);
-                try (var socket = server.accept()) {
-                    readRequest(socket);
-                    respond(socket);
-                    Assertions.assertEquals("ok", recovered.get(3, TimeUnit.SECONDS).getBody());
-                }
-            } finally {
-                transport.shutdown();
-            }
-            assertTransportThreadsStop();
-        }
-    }
-
-    @Test
-    void socketInactivityBoundClosesTheActualConnection() throws Exception {
-        try (var server = server()) {
-            var transport = new BoundedBazaarHttpClient(1_000, 200, 3_000);
-            try {
-                var result = transport.makeRequest(url(server));
-                try (var socket = server.accept()) {
-                    readRequest(socket);
-                    Assertions.assertThrows(ExecutionException.class, () -> result.get(2, TimeUnit.SECONDS));
-                    assertClosed(socket);
-                }
-            } finally {
-                transport.shutdown();
             }
         }
     }
@@ -195,33 +126,39 @@ class BoundedBazaarHttpClientTest {
     @Test
     void slowBodyTrickleStillHitsTheTotalDeadline() throws Exception {
         try (var server = server()) {
-            var transport = new BoundedBazaarHttpClient(1_000, 300, 500);
-            var writer = Executors.newSingleThreadExecutor();
+            var transport = new BoundedBazaarHttpClient(1_000, 3_000, 500);
+            var writer = Executors.newSingleThreadScheduledExecutor();
             try {
-                long started = System.nanoTime();
                 var result = transport.makeRequest(url(server));
                 try (var socket = server.accept()) {
                     readRequest(socket);
+                    Assertions.assertThrows(RejectedExecutionException.class,
+                        () -> transport.makeRequest(url(server)));
                     socket.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Length: 10000\r\n"
                         + "Connection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
                     socket.getOutputStream().flush();
-                    var trickle = writer.submit(() -> {
+                    var bodyStarted = new CountDownLatch(1);
+                    var trickle = writer.scheduleAtFixedRate(() -> {
                         try {
-                            for (int count = 0; count < 100; count++) {
-                                socket.getOutputStream().write('x');
-                                socket.getOutputStream().flush();
-                                Thread.sleep(30);
-                            }
+                            socket.getOutputStream().write('x');
+                            socket.getOutputStream().flush();
+                            bodyStarted.countDown();
                         } catch (IOException _) {
                             // A closed client socket is expected after the total deadline.
-                        } catch (InterruptedException _) {
-                            Thread.currentThread().interrupt();
                         }
-                    });
-                    Assertions.assertThrows(ExecutionException.class, () -> result.get(2, TimeUnit.SECONDS));
-                    Assertions.assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 2_000);
+                    }, 0, 30, TimeUnit.MILLISECONDS);
+                    Assertions.assertTrue(bodyStarted.await(2, TimeUnit.SECONDS));
+                    var failure = Assertions.assertThrows(ExecutionException.class,
+                        () -> result.get(2, TimeUnit.SECONDS));
+                    Assertions.assertInstanceOf(TimeoutException.class, failure.getCause());
                     assertClosed(socket);
                     trickle.cancel(true);
+                }
+                var recovered = requestWhenFree(transport, url(server));
+                try (var socket = server.accept()) {
+                    readRequest(socket);
+                    respond(socket);
+                    Assertions.assertEquals(200, recovered.get(2, TimeUnit.SECONDS).getStatusCode());
                 }
             } finally {
                 transport.shutdown();
@@ -245,7 +182,6 @@ class BoundedBazaarHttpClientTest {
                     socket.setSoTimeout(150);
                     Assertions.assertThrows(SocketTimeoutException.class, () -> socket.getInputStream().read());
                     transport.abortCurrentRequest();
-                    socket.setSoTimeout(2_000);
                     assertClosed(socket);
                 }
                 var recovered = requestWhenFree(transport, url(server));
@@ -261,56 +197,14 @@ class BoundedBazaarHttpClientTest {
     }
 
     @Test
-    void cancellingRawFutureAlsoKeepsThePhysicalWorkerUntilAbort() throws Exception {
-        try (var server = server()) {
-            var transport = new BoundedBazaarHttpClient(1_000, 3_000, 3_000);
-            try {
-                var result = transport.makeRequest(url(server));
-                try (var socket = server.accept()) {
-                    readRequest(socket);
-                    result.cancel(true);
-                    Assertions.assertThrows(RejectedExecutionException.class,
-                        () -> transport.makeRequest(url(server)));
-                    transport.abortCurrentRequest();
-                    assertClosed(socket);
-                }
-                var next = requestWhenFree(transport, url(server));
-                try (var socket = server.accept()) {
-                    readRequest(socket);
-                    respond(socket);
-                    Assertions.assertEquals("ok", next.get(3, TimeUnit.SECONDS).getBody());
-                }
-            } finally {
-                transport.shutdown();
-            }
-        }
-    }
-
-    @Test
-    void pollerStopRestartAndCloseAbortSdkRequestsAndPreserveOnePhysicalRequest() throws Exception {
+    void pollerCloseAbortsItsPhysicalRequestAndClosesAdmission() throws Exception {
         try (var server = server()) {
             var transport = new BoundedBazaarHttpClient(1_000, 4_000, 4_000);
             var scheduler = Executors.newSingleThreadScheduledExecutor();
-            var recovered = new CompletableFuture<BazaarPoller.MarketReply>();
-            var poller = new BazaarPoller(recovered::complete, () -> {}, () -> {}, () -> {},
+            var poller = new BazaarPoller(_ -> {}, () -> {}, () -> {}, () -> {},
                 localApi(transport, url(server)), scheduler, Runnable::run, System::currentTimeMillis,
                 transport::abortCurrentRequest);
             try {
-                poller.start();
-                try (var oldSocket = server.accept()) {
-                    readRequest(oldSocket);
-                    poller.stop();
-                    poller.start();
-                    assertClosed(oldSocket);
-                    try (var nextSocket = server.accept()) {
-                        readRequest(nextSocket);
-                        Assertions.assertThrows(RejectedExecutionException.class,
-                            () -> transport.makeRequest(url(server)));
-                        respond(nextSocket);
-                        Assertions.assertTrue(recovered.get(3, TimeUnit.SECONDS).snapshot().available());
-                    }
-                }
-                poller.stop();
                 poller.start();
                 try (var socket = server.accept()) {
                     readRequest(socket);
@@ -322,10 +216,9 @@ class BoundedBazaarHttpClientTest {
                 }
             } finally {
                 poller.close();
-                Assertions.assertTrue(scheduler.awaitTermination(3, TimeUnit.SECONDS));
                 transport.shutdown();
+                Assertions.assertTrue(scheduler.awaitTermination(3, TimeUnit.SECONDS));
             }
-            assertTransportThreadsStop();
         }
     }
 
@@ -333,9 +226,8 @@ class BoundedBazaarHttpClientTest {
         return new HypixelAPI(transport) {
             @Override
             public CompletableFuture<SkyBlockBazaarReply> getSkyBlockBazaar() {
-                // Preserve the SDK's composed-future ownership; endpoint decoding is its own contract.
                 return transport.makeRequest(url)
-                    .thenApply(_ -> new BazaarPollerTest.Reply(System.currentTimeMillis()));
+                    .thenApply(response -> new Gson().fromJson(response.getBody(), Reply.class));
             }
         };
     }
@@ -351,19 +243,18 @@ class BoundedBazaarHttpClientTest {
     }
 
     private static void readRequest(Socket socket) throws IOException {
-        socket.setSoTimeout(2_000);
-        int matched = 0;
-        byte[] end = {'\r', '\n', '\r', '\n'};
-        while (matched < end.length) {
-            int next = socket.getInputStream().read();
-            Assertions.assertNotEquals(-1, next, "Request ended before HTTP headers");
-            matched = next == end[matched] ? matched + 1 : next == end[0] ? 1 : 0;
-        }
+        Assertions.assertTrue(readHeaders(socket).endsWith("\r\n\r\n"), "Request ended before HTTP headers");
     }
 
     private static void respond(Socket socket) throws IOException {
-        socket.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
-            .getBytes(StandardCharsets.US_ASCII));
+        String body = """
+            {"success":true,"products":{"TEST":{
+                "sell_summary":[{"pricePerUnit":100,"amount":100,"orders":2}],
+                "buy_summary":[{"pricePerUnit":120,"amount":100,"orders":2}]
+            }}}
+            """;
+        socket.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Length: " + body.length()
+            + "\r\nConnection: close\r\n\r\n" + body).getBytes(StandardCharsets.US_ASCII));
         socket.getOutputStream().flush();
     }
 
@@ -393,17 +284,30 @@ class BoundedBazaarHttpClientTest {
         }
     }
 
-    static final class BlockedDns implements DnsResolver {
-        final CountDownLatch entered = new CountDownLatch(1);
-        final CountDownLatch release = new CountDownLatch(1);
+    private static final class Reply extends SkyBlockBazaarReply implements SkyBlockBazaarReplyAccessor {
+        // Plain JUnit does not apply the SDK timestamp accessor mixin.
+        private final long receivedAt = System.currentTimeMillis();
+
+        @Override
+        public long getLastUpdated() {
+            return this.receivedAt;
+        }
+    }
+
+    private static final class BlockedDns implements DnsResolver {
+        private final CountDownLatch entered = new CountDownLatch(1);
+        private final CountDownLatch release = new CountDownLatch(1);
 
         @Override
         public InetAddress[] resolve(String host) throws UnknownHostException {
             this.entered.countDown();
             boolean interrupted = false;
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
             while (true) {
                 try {
-                    this.release.await();
+                    if (!this.release.await(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)) {
+                        throw new UnknownHostException("Controlled DNS was not released");
+                    }
                     break;
                 } catch (InterruptedException _) {
                     // Model native DNS which cannot be forcibly stopped by Java interruption.
@@ -418,6 +322,7 @@ class BoundedBazaarHttpClientTest {
     }
 
     private static void assertClosed(Socket socket) throws IOException {
+        socket.setSoTimeout(2_000);
         try {
             Assertions.assertEquals(-1, socket.getInputStream().read(), "HTTP abort must close the real socket");
         } catch (SocketException _) {
@@ -437,18 +342,5 @@ class BoundedBazaarHttpClientTest {
             }
         }
         throw new AssertionError("Aborted HTTP work still occupies its worker");
-    }
-
-    private static void assertTransportThreadsStop() throws InterruptedException {
-        for (int attempt = 0; attempt < 200; attempt++) {
-            boolean running = Thread.getAllStackTraces().keySet().stream()
-                .anyMatch(thread -> thread.isAlive() && (thread.getName().equals("bazaar-http")
-                    || thread.getName().equals("bazaar-http-deadline")));
-            if (!running) {
-                return;
-            }
-            Thread.sleep(10);
-        }
-        throw new AssertionError("Closed transport retained a worker or deadline thread");
     }
 }

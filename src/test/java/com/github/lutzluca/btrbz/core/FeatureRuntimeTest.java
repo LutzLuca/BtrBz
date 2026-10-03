@@ -28,13 +28,38 @@ class FeatureRuntimeTest {
     private static final ProductIdentity PRODUCT = ProductIdentity.fromRuntime("Test Product", "TEST", null);
 
     @Test
+    void startupClosesTheMarketGateBeforeStartingSessionProducers() {
+        var data = new BazaarData();
+        try (var orders = orders(data)) {
+            var owner = new AtomicReference<FeatureRuntime>();
+            var runtime = new FeatureRuntime(new Activation(() -> true, () -> false, _ -> {}), data,
+                () -> {
+                    Assertions.assertTrue(owner.get().isRunning());
+                    Assertions.assertTrue(owner.get().isHibernating());
+                    Assertions.assertFalse(owner.get().isActive());
+                }, () -> {}, () -> {});
+            owner.set(runtime);
+
+            runtime.activate();
+
+            Assertions.assertFalse(data.hasMarketData());
+            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
+            Assertions.assertTrue(runtime.isActive());
+            Assertions.assertEquals(110, data.highestBuyOrderPrice(PRODUCT).orElseThrow());
+        }
+    }
+
+    @Test
     void hibernationRetainsTheSessionWhileDeactivationEndsIt() {
         var data = new BazaarData();
         try (var orders = orders(data)) {
             var owner = new AtomicReference<FeatureRuntime>();
             var operations = new ArrayList<String>();
             var runtime = new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data,
-                () -> operations.add("start"), () -> {
+                () -> {
+                    Assertions.assertTrue(owner.get().isActive());
+                    operations.add("start");
+                }, () -> {
                     Assertions.assertTrue(owner.get().isRunning());
                     Assertions.assertFalse(owner.get().isActive());
                     operations.add("suspend");
@@ -63,7 +88,6 @@ class FeatureRuntimeTest {
 
             runtime.deactivate();
             runtime.deactivate();
-            runtime.recover(BazaarData.MarketSnapshot.fromProducts(products(110)));
             runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
 
             Assertions.assertFalse(runtime.isRunning());
@@ -117,7 +141,7 @@ class FeatureRuntimeTest {
                 {"products":{"TEST":{"sell_summary":[{"pricePerUnit":110,"orders":1},null]}}}
                 """, SkyBlockBazaarReply.class);
 
-            runtime.recover(BazaarData.MarketSnapshot.fromProducts(candidate.getProducts()));
+            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(candidate.getProducts()), false));
 
             Assertions.assertTrue(runtime.isActive());
             Assertions.assertTrue(alerts.alerts().isEmpty());
