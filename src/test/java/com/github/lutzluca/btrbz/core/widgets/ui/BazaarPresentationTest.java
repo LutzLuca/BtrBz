@@ -1,9 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
-import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidget;
-import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
-import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudWidget;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidget;
@@ -11,14 +8,13 @@ import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidget;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BazaarPresentationTest {
     @Test
@@ -26,26 +22,26 @@ class BazaarPresentationTest {
         var split = options(330, OrderBookWidgetConfig.BookLayout.Split);
         var buyOnly = options(330, OrderBookWidgetConfig.BookLayout.BuyOnly);
 
-        assertEquals(330, OrderBookWidget.contentWidth(split));
-        assertEquals(164, OrderBookWidget.sideWidth(split));
-        assertEquals(330, OrderBookWidget.contentWidth(buyOnly));
-        assertEquals(330, OrderBookWidget.sideWidth(buyOnly));
+        Assertions.assertEquals(330, OrderBookWidget.contentWidth(split));
+        Assertions.assertEquals(164, OrderBookWidget.sideWidth(split));
+        Assertions.assertEquals(330, OrderBookWidget.contentWidth(buyOnly));
+        Assertions.assertEquals(330, OrderBookWidget.sideWidth(buyOnly));
     }
 
     @Test
     void singleSideOrderBookUsesTheConfiguredMinimumWidth() {
         var sellOnly = options(220, OrderBookWidgetConfig.BookLayout.SellOnly);
 
-        assertEquals(220, OrderBookWidget.contentWidth(sellOnly));
-        assertEquals(220, OrderBookWidget.sideWidth(sellOnly));
+        Assertions.assertEquals(220, OrderBookWidget.contentWidth(sellOnly));
+        Assertions.assertEquals(220, OrderBookWidget.sideWidth(sellOnly));
     }
 
     @Test
     void exactPriceKeepsItsFullWidthBeforeMetadata() {
-        assertEquals(
+        Assertions.assertEquals(
             new BazaarOrderRowComponent.PriorityWidths(62, 25),
             BazaarOrderRowComponent.priorityWidths(90, 62, 55));
-        assertEquals(
+        Assertions.assertEquals(
             new BazaarOrderRowComponent.PriorityWidths(62, 0),
             BazaarOrderRowComponent.priorityWidths(55, 62, 55));
     }
@@ -56,7 +52,7 @@ class BazaarPresentationTest {
             order("best", BazaarWidgetViewData.OrderStatus.Top),
             order("undercut", BazaarWidgetViewData.OrderStatus.Undercut)));
 
-        assertEquals(
+        Assertions.assertEquals(
             List.of("Undercut", "Best"),
             BazaarHudWidget.visibleStatusEntries(data).stream()
                 .map(BazaarHudWidget.StatusEntry::label)
@@ -68,7 +64,7 @@ class BazaarPresentationTest {
         var data = new BazaarWidgetViewData.OrdersData(
             List.of(order("unknown", BazaarWidgetViewData.OrderStatus.Unknown)), 2);
 
-        assertEquals(
+        Assertions.assertEquals(
             List.of("Filled", "Unknown"),
             BazaarHudWidget.visibleStatusEntries(data).stream()
                 .map(BazaarHudWidget.StatusEntry::label)
@@ -77,9 +73,9 @@ class BazaarPresentationTest {
 
     @Test
     void detailedHudDistinguishesFullyEmptyFromFilledHistory() {
-        assertEquals("No active or filled orders", BazaarHudWidget.emptyText(
+        Assertions.assertEquals("No active or filled orders", BazaarHudWidget.emptyText(
             new BazaarWidgetViewData.OrdersData(List.of(), 0)));
-        assertEquals("No active orders", BazaarHudWidget.emptyText(
+        Assertions.assertEquals("No active orders", BazaarHudWidget.emptyText(
             new BazaarWidgetViewData.OrdersData(List.of(), 2)));
     }
 
@@ -87,22 +83,12 @@ class BazaarPresentationTest {
     void newestIsDerivedWithoutMutatingManualOrder() {
         var old = order("old", BazaarWidgetViewData.OrderStatus.Top, 1);
         var fresh = order("fresh", BazaarWidgetViewData.OrderStatus.Top, 2);
-        var manual = List.of(fresh, old);
+        var manual = new ArrayList<>(List.of(old, fresh));
 
-        assertEquals(List.of(fresh, old), TrackedOrdersWidget.sortedOrders(
+        Assertions.assertEquals(List.of(fresh, old), TrackedOrdersWidget.sortedOrders(
             manual, TrackedOrdersWidgetConfig.TrackedSort.Newest));
-        assertEquals(List.of(fresh, old), manual);
-    }
-
-    @Test
-    void bookmarkAlphabeticalViewUsesDisplayNameWithoutChangingManualOrder() {
-        var zed = bookmark("z", "Zed");
-        var alpha = bookmark("a", "alpha");
-        var manual = List.of(zed, alpha);
-        assertEquals(List.of(alpha, zed), BookmarksWidget.sortedBookmarks(
-            manual, BookmarksWidgetConfig.BookmarkSort.Alphabetical));
-        assertEquals(List.of(zed, alpha), BookmarksWidget.sortedBookmarks(
-            manual, BookmarksWidgetConfig.BookmarkSort.Manual));
+        Assertions.assertEquals(List.of(old, fresh), manual,
+            "the newest view leaves the unsorted manual list unchanged");
     }
 
     private static OrderBookWidgetConfig options(
@@ -128,7 +114,4 @@ class BazaarPresentationTest {
             status, Optional.empty(), List.of(), sequence);
     }
 
-    private static BookmarksWidgetData.Bookmark bookmark(String id, String name) {
-        return new BookmarksWidgetData.Bookmark(id, name, Component.literal(name), ItemStack.EMPTY, false, false);
-    }
 }

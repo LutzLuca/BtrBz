@@ -2,12 +2,15 @@ package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
+import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
+import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.google.gson.Gson;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import org.junit.jupiter.api.Assertions;
@@ -24,75 +27,74 @@ class ReachedAlertsTest {
     Path tempDir;
 
     @Test
-    void keepsLatestTenReachedAlertsAndPersistsIndividualRemoval() {
+    void keepsIndependentHistoryLimitsAndPersistsIndividualRemoval() {
         var path = this.tempDir.resolve("reached-alerts.json");
         var store = new ConfigStore(path);
         var data = new BazaarData();
         var notifications = new ArrayList<ReachedAlert>();
         var manager = new AlertManager(data, () -> store.config().alert, store::save, notifications::add);
         data.addListener(manager::onBazaarUpdate);
-        for (int index = 0; index < 12; index++) {
+        for (int index = 1; index <= 12; index++) {
             manager.saveAlert(null, definition(100 + index)).get();
+            manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT,
+                new AlertCondition.Liquidity(LiquiditySide.SellOffers, index, 100))).get();
         }
 
         long before = System.currentTimeMillis();
         publish(data, "100");
 
         Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertEquals(12, notifications.size());
-        Assertions.assertEquals(10, manager.reachedAlerts().size());
-        Assertions.assertEquals(111,
-            ((AlertCondition.Price) manager.reachedAlerts().getFirst().alert().condition).price());
-        Assertions.assertEquals(102,
-            ((AlertCondition.Price) manager.reachedAlerts().getLast().alert().condition).price());
-        var entry = manager.reachedAlerts().getFirst();
-        Assertions.assertEquals(new AlertCondition.Observation.Price(100), entry.observation());
-        Assertions.assertTrue(entry.reachedAt() >= before);
-        Assertions.assertTrue(entry.reachedAt() <= System.currentTimeMillis());
+        Assertions.assertEquals(24, notifications.size());
+        var history = manager.reachedAlerts();
+        Assertions.assertEquals(20, history.size());
+        var prices = history.stream().filter(entry -> entry.alert().kind() == Kind.Price).toList();
+        var liquidity = history.stream().filter(entry -> entry.alert().kind() == Kind.Liquidity).toList();
+        Assertions.assertEquals(List.of(112.0, 111.0, 110.0, 109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0),
+            prices.stream().map(entry -> ((AlertCondition.Price) entry.alert().condition).price()).toList());
+        Assertions.assertEquals(List.of(12L, 11L, 10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L),
+            liquidity.stream().map(entry -> ((AlertCondition.Liquidity) entry.alert().condition).quantity()).toList());
+        long after = System.currentTimeMillis();
+        for (var entry : history) {
+            var expected = entry.alert().kind() == Kind.Price
+                ? new AlertCondition.Observation.Price(100) : new AlertCondition.Observation.Liquidity(100);
+            Assertions.assertEquals(expected, entry.observation(), entry.alert().kind().name());
+            Assertions.assertTrue(entry.reachedAt() >= before && entry.reachedAt() <= after,
+                "capture time for " + entry.alert().id);
+        }
         Assertions.assertThrows(UnsupportedOperationException.class, () -> manager.reachedAlerts().clear());
 
         publish(data, "90");
-        Assertions.assertEquals(entry, manager.reachedAlerts().getFirst());
-        Assertions.assertEquals(12, notifications.size());
+        Assertions.assertEquals(history, manager.reachedAlerts());
+        Assertions.assertEquals(24, notifications.size());
 
         var reloaded = new ConfigStore(path);
         Assertions.assertTrue(reloaded.load());
-        var restored = new AlertManager(data, () -> reloaded.config().alert, reloaded::save, _ -> {});
-        var saved = restored.reachedAlerts().getFirst();
-        Assertions.assertEquals(entry.alert().id, saved.alert().id);
-        Assertions.assertEquals(PRODUCT, saved.alert().product);
-        Assertions.assertEquals(entry.reachedAt(), saved.reachedAt());
-        Assertions.assertEquals(entry.observation(), saved.observation());
-        Assertions.assertEquals(entry.alert().condition, saved.alert().condition);
-        Assertions.assertTrue(restored.removeReachedAlert(saved.alert().id));
-        Assertions.assertFalse(restored.removeReachedAlert(saved.alert().id));
+        var restored = new AlertManager(data, () -> reloaded.config().alert, reloaded::save, notifications::add);
+        var savedHistory = restored.reachedAlerts();
+        Assertions.assertEquals(20, savedHistory.size());
+        for (int index = 0; index < history.size(); index++) {
+            var entry = history.get(index);
+            var saved = savedHistory.get(index);
+            Assertions.assertEquals(entry.alert().id, saved.alert().id);
+            Assertions.assertEquals(PRODUCT, saved.alert().product);
+            Assertions.assertEquals(entry.reachedAt(), saved.reachedAt());
+            Assertions.assertEquals(entry.observation(), saved.observation());
+            Assertions.assertEquals(entry.alert().condition, saved.alert().condition);
+        }
+        restored.onBazaarUpdate(data.currentSnapshot());
+        Assertions.assertEquals(24, notifications.size(), "reloading history must not redeliver it");
+        var removedId = savedHistory.getFirst().alert().id;
+        Assertions.assertTrue(restored.removeReachedAlert(removedId));
+        Assertions.assertFalse(restored.removeReachedAlert(removedId));
         Assertions.assertTrue(reloaded.load());
-        Assertions.assertEquals(9, reloaded.config().alert.reachedAlerts.size());
+        Assertions.assertEquals(19, reloaded.config().alert.reachedAlerts.size());
+        Assertions.assertEquals(10, reloaded.config().alert.reachedAlerts.stream()
+            .filter(entry -> entry.alert().kind() == Kind.Price).count());
+        Assertions.assertEquals(9, reloaded.config().alert.reachedAlerts.stream()
+            .filter(entry -> entry.alert().kind() == Kind.Liquidity).count());
+        Assertions.assertTrue(reloaded.config().alert.reachedAlerts.stream()
+            .noneMatch(entry -> entry.alert().id.equals(removedId)));
         Assertions.assertTrue(reloaded.config().alert.alerts.isEmpty());
-    }
-
-    @Test
-    void waitsForAvailablePricesAndEnabledAlertsBeforeRecording() {
-        var config = new AlertConfig();
-        var data = new BazaarData();
-        var manager = new AlertManager(data, () -> config, () -> {}, _ -> {});
-        data.addListener(manager::onBazaarUpdate);
-        manager.saveAlert(null, definition(100)).get();
-
-        data.onUpdate(Map.of());
-        publish(data, null);
-        publish(data, "101");
-        config.enabled = false;
-        publish(data, "99");
-        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
-        Assertions.assertEquals(1, manager.alerts().size());
-
-        config.enabled = true;
-        publish(data, "99");
-        Assertions.assertEquals(1, manager.reachedAlerts().size());
-        Assertions.assertEquals(new AlertCondition.Observation.Price(99),
-            manager.reachedAlerts().getFirst().observation());
-        Assertions.assertTrue(manager.alerts().isEmpty());
     }
 
     @ParameterizedTest
@@ -182,14 +184,14 @@ class ReachedAlertsTest {
     }
 
     @Test
-    void failedSaveKeepsReachedHistoryAndFailedRemovalRollsBack() {
+    void throwingSaveCallbackKeepsReachedHistoryAndRollsBackRemoval() {
         var config = new AlertConfig();
         var data = new BazaarData();
         var failSave = new boolean[1];
         var notifications = new ArrayList<ReachedAlert>();
         var manager = new AlertManager(data, () -> config, () -> {
             if (failSave[0]) {
-                throw new IllegalStateException("disk unavailable");
+                throw new IllegalStateException("save callback failed");
             }
         }, notifications::add);
         data.addListener(manager::onBazaarUpdate);

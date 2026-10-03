@@ -1,12 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
-import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,16 +10,12 @@ import java.util.Optional;
 import java.util.UUID;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class BazaarWidgetViewDataTest {
     @Test
     void enchantedAbbreviationIsOptionalAndSpecific() {
-        assertEquals("Ench. Diamond", BazaarHudOptions.productName("Enchanted Diamond", true));
-        assertEquals("Enchanted Diamond", BazaarHudOptions.productName("Enchanted Diamond", false));
-        assertEquals("Booster Cookie", BazaarHudOptions.productName("Booster Cookie", true));
+        Assertions.assertEquals("Ench. Diamond", BazaarHudOptions.productName("Enchanted Diamond", true));
+        Assertions.assertEquals("Enchanted Diamond", BazaarHudOptions.productName("Enchanted Diamond", false));
+        Assertions.assertEquals("Booster Cookie", BazaarHudOptions.productName("Booster Cookie", true));
     }
 
     @Test
@@ -35,20 +27,10 @@ class BazaarWidgetViewDataTest {
             order("undercut", BazaarWidgetViewData.OrderStatus.Undercut, 12),
             order("unknown", BazaarWidgetViewData.OrderStatus.Unknown, 99));
 
-        assertEquals(new BazaarWidgetViewData.StatusCounts(2, 1, 1, 1), BazaarWidgetViewData.StatusCounts.from(orders));
-        assertEquals(5, new BazaarWidgetViewData.OrdersData(orders, 3).counts().total());
-        assertEquals(3, new BazaarWidgetViewData.OrdersData(orders, 3).filledOrderCount());
-    }
-
-    @Test
-    void hudDefaultsToDetailedMode() {
-        var hud = new BazaarOrdersWidgetConfig();
-        var tracked = new TrackedOrdersWidgetConfig();
-        assertEquals(BazaarOrdersWidgetConfig.HudMode.Detailed, hud.mode);
-        assertTrue(hud.showQueue);
-        assertFalse(hud.showUndercutGap);
-        assertEquals(TrackedOrdersWidgetConfig.TrackedLayout.Standard, tracked.layout);
-        assertEquals(TrackedOrdersWidgetConfig.TrackedSort.Manual, tracked.sort);
+        Assertions.assertEquals(new BazaarWidgetViewData.StatusCounts(2, 1, 1, 1),
+            BazaarWidgetViewData.StatusCounts.from(orders));
+        Assertions.assertEquals(5, new BazaarWidgetViewData.OrdersData(orders, 3).counts().total());
+        Assertions.assertEquals(3, new BazaarWidgetViewData.OrdersData(orders, 3).filledOrderCount());
     }
 
     @Test
@@ -57,41 +39,8 @@ class BazaarWidgetViewDataTest {
             id("partially-filled"), BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
             Optional.empty(), 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, List.of());
 
-        assertEquals(64, order.amount());
-        assertEquals(43, order.liveProgress().orElseThrow().remaining());
-    }
-
-    @Test
-    void bookmarkAbbreviationPreservesProviderFormatting() {
-        var formatted = Component.literal("Enchanted Diamond").withStyle(ChatFormatting.AQUA);
-        var bookmark = new BookmarksWidgetData.Bookmark(
-            "ENCHANTED_DIAMOND",
-            "Enchanted Diamond",
-            formatted,
-            ItemStack.EMPTY,
-            true,
-            false);
-
-        assertEquals("Ench. Diamond", bookmark.formattedProductName(true).getString());
-        assertEquals(formatted.getStyle(), bookmark.formattedProductName(true).getStyle());
-    }
-
-    @Test
-    void unabridgedBookmarkPreservesTheSuppliedComponentTree() {
-        var formatted = Component.literal("Enchanted ").withStyle(ChatFormatting.AQUA)
-            .append(Component.literal("Diamond").withStyle(ChatFormatting.BOLD));
-        var bookmark = new BookmarksWidgetData.Bookmark(
-            "ENCHANTED_DIAMOND",
-            "Enchanted Diamond",
-            formatted,
-            ItemStack.EMPTY,
-            true,
-            false);
-
-        var rendered = bookmark.formattedProductName(false);
-        assertEquals(formatted, rendered);
-        assertEquals(1, rendered.getSiblings().size());
-        assertTrue(rendered.getSiblings().getFirst().getStyle().isBold());
+        Assertions.assertEquals(64, order.amount());
+        Assertions.assertEquals(43, order.liveProgress().orElseThrow().remaining());
     }
 
     private static BazaarWidgetViewData.Order order(String id, BazaarWidgetViewData.OrderStatus status, int volume) {

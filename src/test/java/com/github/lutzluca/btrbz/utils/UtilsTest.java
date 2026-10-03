@@ -1,165 +1,99 @@
 package com.github.lutzluca.btrbz.utils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class UtilsTest {
 
-    @Nested
-    @DisplayName("formatting codes")
-    class FormattingCodes {
-
-        @Test
-        void stripsStandardLegacyFormattingCodes() {
-            assertEquals("Enchanted Diamond", Utils.stripFormattingCodes("§a§lEnchanted Diamond"));
-            assertEquals("", Utils.stripFormattingCodes(null));
-        }
-
-        @Test
-        void stripsNonstandardScoreboardFormattingTokens() {
-            var line = "Purse: §61,395,2§j§639,458";
-            var stripped = Utils.stripScoreboardFormattingCodes(line);
-            var parsed = Utils.parseUsFormattedNumber(stripped.replace("Purse:", "").trim());
-
-            assertEquals("Purse: 1,395,239,458", stripped);
-            assertTrue(parsed.isSuccess());
-            assertEquals(1_395_239_458L, parsed.get().longValue());
-        }
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = "\u00a7a\u00a7lEnchanted Diamond")
+    void stripsStandardLegacyFormattingCodes(String input) {
+        Assertions.assertEquals(input == null ? "" : "Enchanted Diamond", Utils.stripFormattingCodes(input));
     }
 
-    @Nested
-    @DisplayName("formatDecimal")
-    class FormatDecimal {
+    @Test
+    void stripsNonstandardScoreboardFormattingTokens() {
+        var line = "Purse: \u00a761,395,2\u00a7j\u00a7639,458";
+        var stripped = Utils.stripScoreboardFormattingCodes(line);
+        var parsed = Utils.parseUsFormattedNumber(stripped.replace("Purse:", "").trim());
 
-        @Test
-        void formatsWithGroupingAndRounding() {
-            assertEquals("1,234.57", Utils.formatDecimal(1234.567, 2, true));
-        }
-
-        @Test
-        void formatsWithZeroDecimalPlaces() {
-            assertEquals("1,235", Utils.formatDecimal(1234.567, 0, true));
-        }
-
-        @Test
-        void formatsWithoutGrouping() {
-            assertEquals("1234.57", Utils.formatDecimal(1234.567, 2, false));
-        }
-
-        @Test
-        void formatsNegativeValues() {
-            assertEquals("-12.30", Utils.formatDecimal(-12.3, 2, false));
-        }
-
-        @Test
-        void rejectsNegativePlaces() {
-            assertThrows(IllegalArgumentException.class, () -> Utils.formatDecimal(1.23, -1, true));
-        }
+        Assertions.assertEquals("Purse: 1,395,239,458", stripped);
+        Assertions.assertTrue(parsed.isSuccess());
+        Assertions.assertEquals(1_395_239_458L, parsed.get().longValue());
     }
 
-    @Nested
-    @DisplayName("formatCompact")
-    class FormatCompact {
-
-        @Test
-        void rejectsNegativePlaces() {
-            assertThrows(IllegalArgumentException.class, () -> Utils.formatCompact(100, -1));
-        }
-
-        @Test
-        void formatsPlainValues() {
-            assertEquals("999", Utils.formatCompact(999, 0));
-        }
-
-        @Test
-        void formatsThousands() {
-            assertEquals("1.5k", Utils.formatCompact(1500, 1));
-        }
-
-        @Test
-        void formatsMillions() {
-            assertEquals("2.5M", Utils.formatCompact(2_500_000, 1));
-        }
-
-        @Test
-        void formatsBillions() {
-            assertEquals("3.1B", Utils.formatCompact(3_100_000_000d, 1));
-        }
-
-        @Test
-        void formatsTierBoundaries() {
-            assertEquals("999", Utils.formatCompact(999, 0));
-            assertEquals("1.0k", Utils.formatCompact(1_000, 1));
-            assertEquals("1.0M", Utils.formatCompact(1_000_000, 1));
-            assertEquals("1.0B", Utils.formatCompact(1_000_000_000d, 1));
-        }
-
-        @Test
-        void promotesValuesThatRoundIntoTheNextTier() {
-            assertEquals("1M", Utils.formatCompact(999_950));
-            assertEquals("1.0M", Utils.formatCompact(999_950, 1));
-        }
-
-        @Test
-        void formatsZero() {
-            assertEquals("0", Utils.formatCompact(0, 0));
-        }
-
-        @Test
-        void formatsNegativeValues() {
-            assertEquals("-1.5k", Utils.formatCompact(-1500, 1));
-        }
-
-        @Test
-        void formatsWidgetValuesWithoutForcedTrailingZeros() {
-            assertEquals("26.12B", Utils.formatCompact(26_120_000_000d));
-            assertEquals("26B", Utils.formatCompact(26_000_000_000d));
-            assertEquals("21.2M", Utils.formatCompact(21_200_000d));
-            assertEquals("875", Utils.formatCompact(875d));
-        }
+    @ParameterizedTest(name = "{0}, places={1}, grouped={2} -> {3}")
+    @CsvSource(delimiter = '|', value = {
+        "1234.567 | 2 | true | 1,234.57",
+        "1234.567 | 0 | true | 1,235",
+        "1234.567 | 2 | false | 1234.57",
+        "-12.3 | 2 | false | -12.30"
+    })
+    void formatsDecimals(double value, int places, boolean grouped, String expected) {
+        Assertions.assertEquals(expected, Utils.formatDecimal(value, places, grouped));
     }
 
-    @Nested
-    @DisplayName("parseUsFormattedNumber")
-    class ParseUsFormattedNumber {
+    @Test
+    void rejectsNegativePrecisionInBothFormatters() {
+        Assertions.assertAll(
+            () -> Assertions.assertThrows(
+                IllegalArgumentException.class, () -> Utils.formatDecimal(1.23, -1, true),
+                "decimal precision"),
+            () -> Assertions.assertThrows(
+                IllegalArgumentException.class, () -> Utils.formatCompact(100, -1),
+                "compact precision"));
+    }
 
-        @Test
-        void parsesValidIntegers() {
-            var parsed = Utils.parseUsFormattedNumber("1234");
+    @ParameterizedTest(name = "{0}, places={1} -> {2}")
+    @CsvSource({
+        "999, 0, 999",
+        "1500, 1, 1.5k",
+        "2500000, 1, 2.5M",
+        "3100000000, 1, 3.1B",
+        "1000, 1, 1.0k",
+        "1000000, 1, 1.0M",
+        "1000000000, 1, 1.0B",
+        "999950, 1, 1.0M",
+        "0, 0, 0",
+        "-1500, 1, -1.5k"
+    })
+    void formatsCompactValuesAtRequestedPrecision(double value, int places, String expected) {
+        Assertions.assertEquals(expected, Utils.formatCompact(value, places));
+    }
 
-            assertTrue(parsed.isSuccess());
-            assertEquals(1234L, parsed.get().longValue());
-        }
+    @ParameterizedTest(name = "{0} -> {1}")
+    @CsvSource({
+        "999950, 1M",
+        "26120000000, 26.12B",
+        "26000000000, 26B",
+        "21200000, 21.2M",
+        "875, 875"
+    })
+    void formatsWidgetValuesWithoutForcedTrailingZeros(double value, String expected) {
+        Assertions.assertEquals(expected, Utils.formatCompact(value));
+    }
 
-        @Test
-        void parsesValidDecimals() {
-            var parsed = Utils.parseUsFormattedNumber("12.75");
+    @ParameterizedTest(name = "{0} -> {1}")
+    @CsvSource(delimiter = '|', value = {
+        "1234 | 1234",
+        "12.75 | 12.75",
+        "1,234,567.89 | 1234567.89"
+    })
+    void parsesUsFormattedNumbers(String input, double expected) {
+        var parsed = Utils.parseUsFormattedNumber(input);
 
-            assertTrue(parsed.isSuccess());
-            assertEquals(12.75d, parsed.get().doubleValue(), 0.000001d);
-        }
+        Assertions.assertTrue(parsed.isSuccess());
+        Assertions.assertEquals(expected, parsed.get().doubleValue(), 0.000001d);
+    }
 
-        @Test
-        void parsesCommaGroupedNumbers() {
-            var parsed = Utils.parseUsFormattedNumber("1,234,567.89");
-
-            assertTrue(parsed.isSuccess());
-            assertEquals(1_234_567.89d, parsed.get().doubleValue(), 0.000001d);
-        }
-
-        @Test
-        void failsForInvalidStrings() {
-            assertTrue(Utils.parseUsFormattedNumber("abc").isFailure());
-        }
-
-        @Test
-        void failsForEmptyString() {
-            assertTrue(Utils.parseUsFormattedNumber("").isFailure());
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {"abc", ""})
+    void rejectsInvalidNumbers(String input) {
+        Assertions.assertTrue(Utils.parseUsFormattedNumber(input).isFailure());
     }
 }

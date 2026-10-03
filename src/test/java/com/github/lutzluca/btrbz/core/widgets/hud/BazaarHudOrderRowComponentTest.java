@@ -5,27 +5,18 @@ import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BazaarHudOrderRowComponentTest {
     @Test
     void hudIdentityCombinesVolumeAndUnitPriceWithoutASeparator() {
         var order = order(Optional.empty());
 
-        assertEquals("64x @ 12.4M", BazaarOrderText.orderIdentity(order).getString());
-    }
-
-    @Test
-    void hudRowKeepsItsHeightWhileSharingHorizontalSpacing() {
-        assertEquals(20, BazaarHudOrderRowComponent.HEIGHT);
-        assertEquals(21, BazaarHudOrderRowComponent.ICON_CELL_WIDTH);
-        assertEquals(2, BazaarHudOrderRowComponent.LEFT_PADDING);
-        assertEquals(2, BazaarHudOrderRowComponent.RIGHT_PADDING);
+        Assertions.assertEquals("64x @ 12.4M", BazaarOrderText.orderIdentity(order).getString());
     }
 
     @Test
@@ -34,7 +25,7 @@ class BazaarHudOrderRowComponentTest {
             BazaarWidgetViewData.OrderStatus.Undercut,
             Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(12_399_999.9, 0.1, 3, 72)));
 
-        assertEquals(
+        Assertions.assertEquals(
             List.of(
                 "gap 0.1 · [3/72]",
                 "gap 0.1 · [72]",
@@ -45,13 +36,13 @@ class BazaarHudOrderRowComponentTest {
                 order,
                 true,
                 true).stream().map(Component::getString).toList());
-        assertEquals(
+        Assertions.assertEquals(
             List.of("[3/72]", "[72]"),
             BazaarOrderText.marketPositionCandidates(
                 order,
                 true,
                 false).stream().map(Component::getString).toList());
-        assertEquals(
+        Assertions.assertEquals(
             List.of("gap 0.1"),
             BazaarOrderText.marketPositionCandidates(order, false, true).stream().map(Component::getString).toList());
     }

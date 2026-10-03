@@ -1,86 +1,56 @@
 package com.github.lutzluca.btrbz.data.conversions;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 import net.minecraft.nbt.CompoundTag;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class EnchantedBookIdParserTest {
 
-    @Nested
-    @DisplayName("custom data")
-    class CustomData {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("customData")
+    void requiresOneCustomDataEnchantment(
+        String description,
+        Map<String, Integer> levels,
+        String expectedId
+    ) {
+        var customData = new CompoundTag();
+        var enchantments = new CompoundTag();
+        levels.forEach(enchantments::putInt);
+        customData.put("enchantments", enchantments);
 
-        @Test
-        void derivesIdFromSingleEnchantment() {
-            var customData = new CompoundTag();
-            var enchantments = new CompoundTag();
-            enchantments.putInt("quick_bite", 5);
-            customData.put("enchantments", enchantments);
-
-            assertEquals(
-                "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookIdParser.fromCustomData(customData).orElseThrow());
-        }
-
-        @Test
-        void rejectsEmptyEnchantments() {
-            var customData = new CompoundTag();
-            customData.put("enchantments", new CompoundTag());
-
-            assertTrue(EnchantedBookIdParser.fromCustomData(customData).isEmpty());
-        }
-
-        @Test
-        void rejectsMultipleEnchantments() {
-            var customData = new CompoundTag();
-            var enchantments = new CompoundTag();
-            enchantments.putInt("growth", 6);
-            enchantments.putInt("protection", 6);
-            customData.put("enchantments", enchantments);
-
-            assertTrue(EnchantedBookIdParser.fromCustomData(customData).isEmpty());
-        }
+        Assertions.assertEquals(
+            Optional.ofNullable(expectedId), EnchantedBookIdParser.fromCustomData(customData));
     }
 
-    @Nested
-    @DisplayName("display names")
-    class DisplayNames {
+    private static Stream<Arguments> customData() {
+        return Stream.of(
+            Arguments.of("single enchantment", Map.of("quick_bite", 5), "ENCHANTMENT_QUICK_BITE_5"),
+            Arguments.of("empty enchantments", Map.of(), null),
+            Arguments.of("multiple enchantments", Map.of("growth", 6, "protection", 6), null));
+    }
 
-        @Test
-        void derivesIdFromRomanLevel() {
-            assertEquals(
-                "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookIdParser.fromDisplayName("Quick Bite V").orElseThrow());
-        }
+    @ParameterizedTest(name = "{0} -> {1}")
+    @CsvSource({
+        "Quick Bite V, ENCHANTMENT_QUICK_BITE_5",
+        "SELL Quick Bite V, ENCHANTMENT_QUICK_BITE_5",
+        "Counter-Strike 5, ENCHANTMENT_COUNTER_STRIKE_5",
+        "Growth 6-7,"
+    })
+    void derivesOnlyAnUnambiguousDisplayNameId(String displayName, String expectedId) {
+        Assertions.assertEquals(
+            Optional.ofNullable(expectedId), EnchantedBookIdParser.fromDisplayName(displayName));
+    }
 
-        @Test
-        void stripsBazaarActionPrefix() {
-            assertEquals(
-                "ENCHANTMENT_QUICK_BITE_5",
-                EnchantedBookIdParser.fromDisplayName("SELL Quick Bite V").orElseThrow());
-        }
-
-        @Test
-        void derivesIdFromArabicLevel() {
-            assertEquals(
-                "ENCHANTMENT_COUNTER_STRIKE_5",
-                EnchantedBookIdParser.fromDisplayName("Counter-Strike 5").orElseThrow());
-        }
-
-        @Test
-        void derivesCanonicalNameFromArabicLevel() {
-            assertEquals(
-                "Turbo-Cacti V",
-                EnchantedBookIdParser.canonicalDisplayName("Turbo-Cacti 5").orElseThrow());
-        }
-
-        @Test
-        void rejectsLevelRanges() {
-            assertTrue(EnchantedBookIdParser.fromDisplayName("Growth 6-7").isEmpty());
-        }
+    @Test
+    void canonicalizesArabicDisplayLevel() {
+        Assertions.assertEquals(
+            Optional.of("Turbo-Cacti V"), EnchantedBookIdParser.canonicalDisplayName("Turbo-Cacti 5"));
     }
 }

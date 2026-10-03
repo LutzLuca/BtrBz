@@ -1,89 +1,66 @@
 package com.github.lutzluca.btrbz.data;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.util.Optional;
+import java.util.stream.Stream;
 import net.minecraft.ChatFormatting;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ProductIdentityTest {
 
-    @Nested
-    @DisplayName("strippedName")
-    class StrippedName {
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = "   ")
+    void missingNameFallsBackToUnknownProduct(String name) {
+        var product = ProductIdentity.fromRuntime(name, "TROUBLED_BUBBLE", null);
 
-        @Test
-        void blankNameFallsBackToUnknownProduct() {
-            var product = ProductIdentity.fromRuntime("   ", "TROUBLED_BUBBLE", null);
-
-            assertEquals("Unknown Product", product.strippedName());
-        }
-
-        @Test
-        void nullNameFallsBackToUnknownProduct() {
-            var product = ProductIdentity.fromRuntime(null, "TROUBLED_BUBBLE", null);
-
-            assertEquals("Unknown Product", product.strippedName());
-        }
+        Assertions.assertEquals("Unknown Product", product.strippedName());
     }
 
-    @Nested
-    @DisplayName("visualName")
-    class VisualName {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("visualNames")
+    void choosesRuntimeVisualName(String description, String formattedName, String expected) {
+        var product = ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", formattedName);
 
-        @Test
-        void runtimeProductPrefersFormattedName() {
-            var product = ProductIdentity.fromRuntime(
-                "Troubled Bubble",
-                "TROUBLED_BUBBLE",
-                ChatFormatting.GOLD + "Troubled Bubble");
-
-            assertEquals(ChatFormatting.GOLD + "Troubled Bubble", product.visualName());
-        }
-
-        @Test
-        void runtimeProductFallsBackToStrippedName() {
-            var product = ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null);
-
-            assertEquals("Troubled Bubble", product.visualName());
-        }
+        Assertions.assertEquals(expected, product.visualName());
     }
 
-    @Nested
-    @DisplayName("bazaarProductId")
-    class BazaarProductId {
+    private static Stream<Arguments> visualNames() {
+        return Stream.of(
+            Arguments.of("prefers formatted evidence",
+                ChatFormatting.GOLD + "Troubled Bubble", ChatFormatting.GOLD + "Troubled Bubble"),
+            Arguments.of("falls back to stripped name", null, "Troubled Bubble"));
+    }
 
-        @Test
-        void fromIndexUsesCanonicalProductId() {
-            var indexed = new IndexedProduct("TROUBLED_BUBBLE", ChatFormatting.GOLD + "Troubled Bubble");
-            var product = ProductIdentity.fromIndex(indexed);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("marketIdentities")
+    void preservesOnlySpecificMarketIds(
+        String description,
+        ProductIdentity product,
+        String expectedId,
+        String expectedVisualName
+    ) {
+        Assertions.assertEquals(Optional.ofNullable(expectedId), product.bazaarProductId());
+        Assertions.assertEquals(expectedVisualName, product.visualName());
+    }
 
-            assertEquals(Optional.of("TROUBLED_BUBBLE"), product.bazaarProductId());
-            assertEquals(ChatFormatting.GOLD + "Troubled Bubble", product.visualName());
-        }
-
-        @Test
-        void fromRuntimeUsesRawProductId() {
-            var product = ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null);
-
-            assertEquals(Optional.of("TROUBLED_BUBBLE"), product.bazaarProductId());
-        }
-
-        @Test
-        void genericEnchantedBookIsNotBazaarProductId() {
-            var product = ProductIdentity.fromRuntime("Habanero Tactics V", "ENCHANTED_BOOK", null);
-
-            assertTrue(product.bazaarProductId().isEmpty());
-        }
-
-        @Test
-        void fromNameHasNoMarketId() {
-            var product = ProductIdentity.fromName("Unknown Product");
-
-            assertTrue(product.bazaarProductId().isEmpty());
-        }
+    private static Stream<Arguments> marketIdentities() {
+        return Stream.of(
+            Arguments.of("indexed canonical id and formatting",
+                ProductIdentity.fromIndex(new IndexedProduct(
+                    "TROUBLED_BUBBLE", ChatFormatting.GOLD + "Troubled Bubble")),
+                "TROUBLED_BUBBLE", ChatFormatting.GOLD + "Troubled Bubble"),
+            Arguments.of("runtime raw id",
+                ProductIdentity.fromRuntime("Troubled Bubble", "TROUBLED_BUBBLE", null),
+                "TROUBLED_BUBBLE", "Troubled Bubble"),
+            Arguments.of("generic enchanted book has no specific market id",
+                ProductIdentity.fromRuntime("Habanero Tactics V", "ENCHANTED_BOOK", null),
+                null, "Habanero Tactics V"),
+            Arguments.of("name-only evidence has no market id",
+                ProductIdentity.fromName("Unknown Product"), null, "Unknown Product"));
     }
 }

@@ -81,22 +81,22 @@ class AlertManagerTest {
     }
 
     @Test
-    void failedPersistenceRollsBackTheInMemoryMutation() {
+    void throwingSaveCallbackRollsBackTheInMemoryMutation() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {
-            throw new IllegalStateException("disk unavailable");
+            throw new IllegalStateException("save callback failed");
         }, _ -> {});
 
         var result = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0));
 
         Assertions.assertTrue(result.isFailure());
-        Assertions.assertEquals("disk unavailable", result.getCause().getMessage());
+        Assertions.assertEquals("save callback failed", result.getCause().getMessage());
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(0, manager.changes().revision());
     }
 
     @Test
-    void cleanupSurvivesFailedPersistenceAndKeepsValidAlerts() {
+    void cleanupSurvivesAThrowingSaveCallbackAndKeepsValidAlerts() {
         var config = new AlertConfig();
         var original = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var valid = original.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
@@ -105,7 +105,7 @@ class AlertManagerTest {
 
         var manager = Assertions.assertDoesNotThrow(() -> new AlertManager(new BazaarData(), () -> config, () -> {
             saves[0]++;
-            throw new IllegalStateException("disk unavailable");
+            throw new IllegalStateException("save callback failed");
         }, _ -> {}));
 
         Assertions.assertEquals(1, saves[0]);

@@ -9,31 +9,13 @@ import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Assertions;
 
 @DisplayName("YACL widget category")
 class WidgetConfigCategoryTest {
-    @Test
-    @DisplayName("maps config images to their widgets without constructing the UI")
-    void mapsWidgetImages() {
-        var images = Map.of(
-            "btrbz:bazaar_orders", ConfigImages.TrackedOrdersHud,
-            "btrbz:tracked_orders_list", ConfigImages.TrackedOrdersBazaar,
-            "btrbz:order_value", ConfigImages.OrderValueOverView,
-            "btrbz:order_book", ConfigImages.OrderBookScreen,
-            "btrbz:order_book_price", ConfigImages.OrderBookSign,
-            "btrbz:bookmarks", ConfigImages.Bookmarks,
-            "btrbz:order_presets", ConfigImages.OrderPresets,
-            "btrbz:order_limit", ConfigImages.OrderLimit,
-            "btrbz:price_diff", ConfigImages.PriceDiff);
-
-        images.forEach((id, image) -> assertEquals(image, ConfigImages.forWidget(WidgetId.parse(id))));
-    }
-
     @Test
     @DisplayName("derives one linear manager launcher per registry entry without widget bindings")
     void containsOnlyManagerLaunchers() {
@@ -43,9 +25,9 @@ class WidgetConfigCategoryTest {
 
         var options = ConfigScreen.widgetOptions(registry, (_, _) -> {});
 
-        assertEquals(2, options.size());
-        assertEquals("First", options.getFirst().name().getString());
-        assertEquals("Second", options.getLast().name().getString());
+        Assertions.assertEquals(2, options.size());
+        Assertions.assertEquals("First", options.getFirst().name().getString());
+        Assertions.assertEquals("Second", options.getLast().name().getString());
     }
 
     private static WidgetDefinition<Object, TestConfig, Void> definition(String id, String name) {

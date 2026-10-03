@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 class AlertSearchControlsTest {
     @Test
-    void availabilityChangesRefreshEmptyResultsInBothDirections() {
+    void availabilityChangesEmptyResultEqualityAndHintsInBothDirections() {
         var data = new BazaarData();
         var waiting = Results.lookup(data, "unmatched");
         Assertions.assertTrue(waiting.matches().isEmpty());

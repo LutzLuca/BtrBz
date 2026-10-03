@@ -394,11 +394,6 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
             top + progressHeight, BazaarStyles.PROGRESS_FILL);
     }
 
-    static int progressHeight(TrackedOrdersWidgetConfig.TrackedLayout layout) {
-        return layout == TrackedOrdersWidgetConfig.TrackedLayout.Compact
-            ? COMPACT_PROGRESS_HEIGHT : STANDARD_PROGRESS_HEIGHT;
-    }
-
     static int progressFillWidth(int availableWidth, double fraction) {
         return WidgetMath.portion(availableWidth, fraction);
     }

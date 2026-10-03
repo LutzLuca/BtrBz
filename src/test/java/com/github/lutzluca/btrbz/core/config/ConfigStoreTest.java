@@ -14,6 +14,9 @@ import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
+import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig.Site;
+import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig.ToggleHintState;
+import java.util.List;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,65 +123,62 @@ class ConfigStoreTest {
 
         @Test
         void roundTripsCurrentSettingsAndRegisteredAdapters() throws IOException {
-            var path = ConfigStoreTest.this.tempDir.resolve("round-trip.json");
-            var store = new ConfigStore(path);
-            var config = store.config();
-            config.enabled = false;
-            config.tax = 3.25;
-            config.widgets.globalFineTuneScale = 1.35;
-            config.alert.alerts.add(createAlert());
+            record Preferences(Site site, String wireName, ToggleHintState hintState, boolean enabled) {}
+            var cases = List.of(
+                new Preferences(Site.Coflnet, "Coflnet", ToggleHintState.Unseen, false),
+                new Preferences(Site.SkyblockBz, "SkyblockBz", ToggleHintState.Shown, true),
+                new Preferences(Site.SkyblockFinance, "SkyblockFinance", ToggleHintState.Dismissed, false));
+            for (var preferences : cases) {
+                var path = ConfigStoreTest.this.tempDir.resolve(preferences.wireName() + ".json");
+                var store = new ConfigStore(path);
+                var config = store.config();
+                config.enabled = preferences.enabled();
+                config.alwaysActive = !preferences.enabled();
+                config.tax = 3.25;
+                config.widgets.globalFineTuneScale = 1.35;
+                config.widgets.bazaarOrders.toggleHintState = preferences.hintState();
+                config.productInfo.site = preferences.site();
+                var alert = createAlert();
+                config.alert.alerts.add(alert);
+                config.alert.reachedAlerts.add(new ReachedAlert(alert, 2_000L,
+                    new AlertCondition.Observation.Price(1_012)));
+                config.alert.toastOnAlert = false;
+                config.alert.alsoSendChatMessage = true;
+                config.alert.detailedAlertToasts = true;
 
-            store.save();
+                store.save();
 
-            var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            var serializedAlert = serialized
-                .getAsJsonObject("alert")
-                .getAsJsonArray("alerts")
-                .get(0)
-                .getAsJsonObject();
-            Assertions.assertTrue(serializedAlert.has("product"));
-            Assertions.assertFalse(serializedAlert.has("productId"));
+                var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+                Assertions.assertEquals(preferences.wireName(),
+                    serialized.getAsJsonObject("productInfo").get("site").getAsString(), preferences.wireName());
+                var serializedAlert = serialized.getAsJsonObject("alert").getAsJsonArray("alerts")
+                    .get(0).getAsJsonObject();
+                Assertions.assertTrue(serializedAlert.has("product"));
+                Assertions.assertFalse(serializedAlert.has("productId"));
+                Assertions.assertFalse(serialized.getAsJsonObject("alert").has("sound_on_alert"));
 
-            var reloaded = new ConfigStore(path);
-            Assertions.assertTrue(reloaded.load());
-            var result = reloaded.config();
-            Assertions.assertFalse(result.enabled);
-            Assertions.assertEquals(3.25, result.tax);
-            Assertions.assertEquals(1.35, result.widgets.globalFineTuneScale);
-            Assertions.assertEquals(1, result.alert.alerts.size());
-            Assertions.assertEquals("ENCHANTED_DIAMOND", result.alert.alerts.getFirst().productId());
-            Assertions.assertEquals("Enchanted Diamond", result.alert.alerts.getFirst().productName());
-        }
-
-        @Test
-        void notificationSettingsPreserveActiveAlertsAndReachedHistory() throws IOException {
-            var path = ConfigStoreTest.this.tempDir.resolve("notification-settings.json");
-            var store = new ConfigStore(path);
-            Assertions.assertTrue(store.config().alert.toastOnAlert);
-            Assertions.assertFalse(store.config().alert.alsoSendChatMessage);
-            Assertions.assertFalse(store.config().alert.detailedAlertToasts);
-            var alert = createAlert();
-            store.config().alert.alerts.add(alert);
-            store.config().alert.reachedAlerts
-                .add(new ReachedAlert(alert, 2_000L, new AlertCondition.Observation.Price(1_012)));
-            store.config().alert.toastOnAlert = false;
-            store.config().alert.alsoSendChatMessage = true;
-            store.config().alert.detailedAlertToasts = true;
-
-            store.save();
-
-            var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            Assertions.assertFalse(serialized.getAsJsonObject("alert").has("soundOnAlert"));
-            var reloaded = new ConfigStore(path);
-            Assertions.assertTrue(reloaded.load());
-            var config = reloaded.config();
-            Assertions.assertFalse(config.alert.toastOnAlert);
-            Assertions.assertTrue(config.alert.alsoSendChatMessage);
-            Assertions.assertTrue(config.alert.detailedAlertToasts);
-            Assertions.assertEquals(alert.id, config.alert.alerts.getFirst().id);
-            Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
-            Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),
-                config.alert.reachedAlerts.getFirst().observation());
+                var reloaded = new ConfigStore(path);
+                Assertions.assertTrue(reloaded.load(), preferences.wireName());
+                var result = reloaded.config();
+                Assertions.assertEquals(preferences.enabled(), result.enabled, preferences.wireName());
+                Assertions.assertEquals(!preferences.enabled(), result.alwaysActive, preferences.wireName());
+                Assertions.assertEquals(3.25, result.tax);
+                Assertions.assertEquals(1.35, result.widgets.globalFineTuneScale);
+                Assertions.assertEquals(preferences.site(), result.productInfo.site, preferences.wireName());
+                Assertions.assertEquals(preferences.hintState(), result.widgets.bazaarOrders.supportedToggleHintState(),
+                    preferences.wireName());
+                Assertions.assertFalse(result.alert.toastOnAlert);
+                Assertions.assertTrue(result.alert.alsoSendChatMessage);
+                Assertions.assertTrue(result.alert.detailedAlertToasts);
+                Assertions.assertEquals(1, result.alert.alerts.size());
+                Assertions.assertEquals(alert.id, result.alert.alerts.getFirst().id);
+                Assertions.assertEquals("ENCHANTED_DIAMOND", result.alert.alerts.getFirst().productId());
+                Assertions.assertEquals("Enchanted Diamond", result.alert.alerts.getFirst().productName());
+                Assertions.assertEquals(alert.id, result.alert.reachedAlerts.getFirst().alert().id);
+                Assertions.assertEquals(2_000L, result.alert.reachedAlerts.getFirst().reachedAt());
+                Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),
+                    result.alert.reachedAlerts.getFirst().observation());
+            }
         }
 
         @Test
@@ -189,11 +189,16 @@ class ConfigStoreTest {
             store.config().alert.alerts.add(alert);
             store.config().alert.reachedAlerts
                 .add(new ReachedAlert(alert, 2_000L, new AlertCondition.Observation.Price(1_012)));
+            store.config().alert.toastOnAlert = false;
+            store.config().alert.alsoSendChatMessage = true;
+            store.config().alert.detailedAlertToasts = true;
             store.save();
             var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            serialized.getAsJsonObject("alert").remove("alsoSendChatMessage");
-            serialized.getAsJsonObject("alert").remove("detailedAlertToasts");
-            serialized.getAsJsonObject("alert").remove("toastOnAlert");
+            var settings = serialized.getAsJsonObject("alert");
+            for (var key : List.of("also_send_chat_message", "detailed_alert_toasts", "toast_on_alert")) {
+                Assertions.assertNotNull(settings.remove(key), key + " must exist before removal");
+                Assertions.assertFalse(settings.has(key), key + " must be absent in the load fixture");
+            }
             Files.writeString(path, serialized.toString());
 
             var reloaded = new ConfigStore(path);
@@ -206,6 +211,25 @@ class ConfigStoreTest {
             Assertions.assertEquals(alert.id, config.alert.reachedAlerts.getFirst().alert().id);
             Assertions.assertEquals(new AlertCondition.Observation.Price(1_012),
                 config.alert.reachedAlerts.getFirst().observation());
+        }
+
+        @Test
+        void writeIoFailureIsNotReportedToTheManager() throws IOException {
+            var blocker = ConfigStoreTest.this.tempDir.resolve("blocked-parent");
+            Files.writeString(blocker, "existing file blocks directory creation");
+            var path = blocker.resolve("config.json");
+            var store = new ConfigStore(path);
+            var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save, _ -> {});
+
+            var result = manager.saveAlert(null, new AlertDefinition(1_000L,
+                new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond"),
+                new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 100)));
+
+            // YACL logs the real IOException and returns normally; the manager sees a successful callback.
+            Assertions.assertTrue(result.isSuccess());
+            Assertions.assertEquals(result.get().id, manager.alerts().getFirst().id);
+            Assertions.assertFalse(Files.exists(path));
+            Assertions.assertEquals("existing file blocks directory creation", Files.readString(blocker));
         }
 
         @Test

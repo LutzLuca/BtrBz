@@ -31,8 +31,6 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     static final int ICON_SIZE = 16;
     static final int LEFT_PADDING = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING - 1;
     static final int RIGHT_PADDING = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING - 1;
-    static final int ICON_CELL_WIDTH = LEFT_PADDING
-        + ICON_SIZE + WidgetLayoutTokens.ORDER_TEXT_GAP;
     static final int HEIGHT = 20;
 
     private final RetainedTextRow retainedText = new RetainedTextRow();

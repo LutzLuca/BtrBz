@@ -9,11 +9,10 @@ import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.google.gson.Gson;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class FlipProductContextTest {
 
@@ -49,36 +48,23 @@ class FlipProductContextTest {
     }
 
     @Test
-    void emptySellOffersKeepSelectionWithoutInventingAFlipPrice() {
-        this.context.selectOrder(filledBuy(PRODUCT));
-        var reply = new Gson().fromJson("""
-            {"products":{"TEST":{
-                "sell_summary":[{"pricePerUnit":80,"amount":100,"orders":2}],
-                "buy_summary":[]
-            }}}
-            """, SkyBlockBazaarReply.class);
-        this.market.onUpdate(reply.getProducts());
+    void keepsSelectionWhileRejectingUnusableQuotesAndRespectingTheMinimumPrice() {
+        var cases = List.of(
+            new QuoteCase("empty sell-offer book", null, Optional.empty()),
+            new QuoteCase("zero quote", "0", Optional.empty()),
+            new QuoteCase("negative quote", "-1", Optional.empty()),
+            new QuoteCase("NaN quote", "NaN", Optional.empty()),
+            new QuoteCase("infinite quote", "Infinity", Optional.empty()),
+            new QuoteCase("minimum quote", "0.1", Optional.of(0.1)));
 
-        Assertions.assertEquals(PRODUCT, this.context.getSelectedProduct().orElseThrow());
-        Assertions.assertTrue(this.context.getFlipPrice(this.market).isEmpty());
-    }
+        for (var example : cases) {
+            this.context.selectOrder(filledBuy(PRODUCT));
+            this.publish("TEST", example.quote());
 
-    @ParameterizedTest
-    @ValueSource(doubles = {0, -1, Double.NaN, Double.POSITIVE_INFINITY})
-    void unusableSellQuotesDoNotProduceAFlipPrice(double price) {
-        this.context.selectOrder(filledBuy(PRODUCT));
-        this.publish("TEST", price);
-
-        Assertions.assertEquals(PRODUCT, this.context.getSelectedProduct().orElseThrow());
-        Assertions.assertTrue(this.context.getFlipPrice(this.market).isEmpty());
-    }
-
-    @Test
-    void minimumSellQuoteUsesTheMinimumFlipPrice() {
-        this.context.selectOrder(filledBuy(PRODUCT));
-        this.publish("TEST", 0.1);
-
-        Assertions.assertEquals(0.1, this.context.getFlipPrice(this.market).orElseThrow());
+            Assertions.assertEquals(PRODUCT, this.context.getSelectedProduct().orElseThrow(), example.description());
+            Assertions.assertEquals(example.expectedPrice(), this.context.getFlipPrice(this.market),
+                example.description());
+        }
     }
 
     @Test
@@ -116,12 +102,21 @@ class FlipProductContextTest {
     }
 
     private void publish(String productId, double sellPrice) {
+        this.publish(productId, Double.toString(sellPrice));
+    }
+
+    private void publish(String productId, String sellPrice) {
+        var sellSummary = sellPrice == null
+            ? "[]"
+            : "[{\"pricePerUnit\":" + sellPrice + ",\"amount\":100,\"orders\":2}]";
         var reply = new Gson().fromJson("""
             {"products":{"%s":{
                 "sell_summary":[{"pricePerUnit":80,"amount":100,"orders":2}],
-                "buy_summary":[{"pricePerUnit":%s,"amount":100,"orders":2}]
+                "buy_summary":%s
             }}}
-            """.formatted(productId, sellPrice), SkyBlockBazaarReply.class);
+            """.formatted(productId, sellSummary), SkyBlockBazaarReply.class);
         this.market.onUpdate(reply.getProducts());
     }
+
+    private record QuoteCase(String description, String quote, Optional<Double> expectedPrice) {}
 }

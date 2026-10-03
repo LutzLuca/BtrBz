@@ -10,25 +10,25 @@ import org.junit.jupiter.api.Test;
 
 class ProductInformationMatchingTest {
     @Test
-    void ignoresFormattingButPreservesTheProductName() {
-        var product = new IndexedProduct("STOCK_OF_STONKS", "§5Stock of Stonks");
+    void matchesExactDisplayedNamesAndOnlyExemptsIdentifiedGenericBooks() {
+        var stock = new IndexedProduct("STOCK_OF_STONKS", "§5Stock of Stonks");
+        var book = new IndexedProduct("ENCHANTMENT_GIANT_KILLER_7", "§5Giant Killer VII");
         var menuName = Component.literal("§d  Stock  of Stonks ").withStyle(ChatFormatting.BOLD, ChatFormatting.ITALIC);
+        var cases = List.of(
+            new NameCase("plain exact name", "Stock of Stonks", stock, false, true),
+            new NameCase("formatted exact name", menuName.getString(), stock, false, true),
+            new NameCase("reopen prefix", "Reopen: Stock of Stonks", stock, false, false),
+            new NameCase("different case", "stock of stonks", stock, false, false),
+            new NameCase("quantity suffix", "Stock of Stonks x2", stock, false, false),
+            new NameCase("different enchantment level", "Giant Killer VI", book, false, false),
+            new NameCase("identified generic book", "§9Enchanted Book", book, true, true),
+            new NameCase("generic book without identification", "Enchanted Book", book, false, false),
+            new NameCase("unrelated title despite identification", "Reopen: Giant Killer VII", book, true, false));
 
-        Assertions.assertTrue(ProductInfoMatching.matchesName(menuName.getString(), product));
-        Assertions.assertFalse(ProductInfoMatching.matchesName("Reopen: Stock of Stonks", product));
-        Assertions.assertFalse(ProductInfoMatching.matchesName("stock of stonks", product));
-        Assertions.assertFalse(ProductInfoMatching.matchesName("Stock of Stonks x2", product));
-        Assertions.assertFalse(ProductInfoMatching.matchesName("Giant Killer VI",
-            new IndexedProduct("ENCHANTMENT_GIANT_KILLER_7", "§5Giant Killer VII")));
-    }
-
-    @Test
-    void onlyExemptsTheGenericTitleOfAnIdentifiedBook() {
-        var product = new IndexedProduct("ENCHANTMENT_GIANT_KILLER_7", "§5Giant Killer VII");
-
-        Assertions.assertTrue(ProductInfoMatching.matchesDisplayedName("§9Enchanted Book", product, true));
-        Assertions.assertFalse(ProductInfoMatching.matchesDisplayedName("Enchanted Book", product, false));
-        Assertions.assertFalse(ProductInfoMatching.matchesDisplayedName("Reopen: Giant Killer VII", product, true));
+        for (var example : cases) {
+            Assertions.assertEquals(example.expected(), ProductInfoMatching.matchesDisplayedName(
+                example.displayedName(), example.product(), example.identifiedBook()), example.description());
+        }
     }
 
     @Test
@@ -62,4 +62,9 @@ class ProductInformationMatchingTest {
             .count().orElseThrow());
         Assertions.assertEquals(64, ProductInfoQuantity.stack(64, shard, false).count().orElseThrow());
     }
+
+    private record NameCase(
+        String description, String displayedName, IndexedProduct product, boolean identifiedBook,
+        boolean expected
+    ) {}
 }

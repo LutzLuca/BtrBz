@@ -482,11 +482,6 @@ final class RemoteNeuConversionIndexBuilder {
             .map(name -> new ConversionProductEntry(name, new ProductNameSource.Derived(), itemStack));
     }
 
-    static Optional<ConversionProductEntry> derivedEnchantmentEntry(String productId) {
-        return deriveEnchantmentDisplayName(productId)
-            .map(name -> new ConversionProductEntry(name, new ProductNameSource.Derived()));
-    }
-
     static Optional<String> deriveEnchantmentDisplayName(String productId) {
         if (productId == null || !productId.startsWith("ENCHANTMENT_")) {
             return Optional.empty();
@@ -562,10 +557,6 @@ final class RemoteNeuConversionIndexBuilder {
             }
         });
         return overlays;
-    }
-
-    static Optional<Integer> newestCompatibleOverlayVersion(Set<Integer> versions, int maxDataVersion) {
-        return versions.stream().filter(version -> version <= maxDataVersion).max(Integer::compareTo);
     }
 
     private static Optional<ProductStackData> readProductStack(

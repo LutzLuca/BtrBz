@@ -1,34 +1,19 @@
 package com.github.lutzluca.btrbz.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class OrderTooltipProviderTest {
 
-    @Nested
-    @DisplayName("formatDuration")
-    class FormatDuration {
-
-        @Test
-        void formatsSubMinuteDurations() {
-            assertEquals("< 1m", OrderTooltipProvider.formatDuration(0.5));
-        }
-
-        @Test
-        void formatsExactHours() {
-            assertEquals("2h", OrderTooltipProvider.formatDuration(120));
-        }
-
-        @Test
-        void formatsHoursAndMinutes() {
-            assertEquals("2h 5m", OrderTooltipProvider.formatDuration(125));
-        }
-
-        @Test
-        void formatsZero() {
-            assertEquals("< 1m", OrderTooltipProvider.formatDuration(0));
-        }
+    @ParameterizedTest(name = "{0} minutes -> {1}")
+    @CsvSource({
+        "0.5, < 1m",
+        "120, 2h",
+        "125, 2h 5m",
+        "0, < 1m"
+    })
+    void formatsDuration(double minutes, String expected) {
+        Assertions.assertEquals(expected, OrderTooltipProvider.formatDuration(minutes));
     }
 }
