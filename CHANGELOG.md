@@ -1,5 +1,35 @@
 # Changelog
 
+## [TBA] - TBA
+
+### Breaking
+
+- Updating clears saved price alerts and reached-alert history. Recreate active price alerts after updating
+
+### Added
+
+- Added toast notifications for reached price and liquidity alerts, with optional detailed text and chat messages
+- Added liquidity alerts for item quantities available for instant buys or sells at a per-item price limit
+- Added a setting to disable clickable shortcuts on filled-order chat messages while keeping order tracking active
+
+### Changed
+
+- Holding Shift now shows tooltip totals for full order volumes and quantities in sacks, the Stash, the Composter, and the Hunting Box
+- The alert editor now explains which market price it watches and that Below and Above include equality
+- Restyled Bazaar widgets, alerts, notifications, and tooltips with neutral labels and gold coin values
+
+### Fixed
+
+- Fixed alert search results not refreshing when market or product data changed
+- Fixed saved price alerts being discarded when their product disappears from Bazaar data. Alerts now wait for a usable price and keep their reminder schedule
+- Fixed missing product price tooltips and lookup links on SkyBlock menu items with alternate display names
+- Fixed Order Protection blocking orders that improve the best price by 0.1 coins
+- Fixed Flip Helper failing to select or price filled buy orders when item metadata is missing
+- Expired orders are now marked gray in Manage Orders and no longer count as active for order tracking or Flip Helper
+- Order Value excludes expired order remainders while still counting unclaimed fills
+- Fixed the Order Value widget remaining visible when there are no orders
+- Fixed the item shown by Reopen after cancelling an order
+
 ## [0.12.0-alpha] - 2026-09-16
 
 ### Breaking
