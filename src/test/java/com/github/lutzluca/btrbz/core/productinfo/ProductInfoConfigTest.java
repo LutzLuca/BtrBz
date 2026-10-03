@@ -30,6 +30,7 @@ class ProductInfoConfigTest {
         assertTrue(config.ctrlShiftOnBazaarItems);
         assertFalse(config.showOutsideBazaar);
         assertTrue(config.priceTooltipEnabled);
+        assertTrue(config.requireMatchingName);
         assertEquals(Site.SkyblockBz, config.site);
     }
 

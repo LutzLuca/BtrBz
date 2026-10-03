@@ -18,6 +18,7 @@ public final class ProductInfoConfig {
     public boolean ctrlShiftOnBazaarItems = true;
     public boolean showOutsideBazaar = false;
     public boolean priceTooltipEnabled = true;
+    public boolean requireMatchingName = true;
     public Site site = Site.SkyblockBz;
 
     public Builder<Boolean> createEnabledOption() {
@@ -107,6 +108,21 @@ public final class ProductInfoConfig {
             .controller(Site::controller);
     }
 
+    public Builder<Boolean> createRequireMatchingNameOption() {
+        return Option
+            .<Boolean>createBuilder()
+            .name(Component.literal("Require Matching Displayed Names"))
+            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
+                ConfigScreen.text(
+                    "Check item names before showing prices or allowing product lookup. "
+                        + "Colors and formatting are ignored."),
+                ConfigScreen.note(
+                    "Order stacks in the Order Menu, enchanted books, attributes in the Attribute Menu "
+                        + "and Experimentation Table rewards are exceptions to this rule."))))
+            .binding(true, () -> this.requireMatchingName, value -> this.requireMatchingName = value)
+            .controller(ConfigScreen::createBooleanController);
+    }
+
     public OptionGroup createGroup() {
         var enabledBuilder = this.createEnabledOption();
         var ctrlShiftGroup = new OptionGrouping(this.createCtrlShiftOption()).addOptions(
@@ -115,7 +131,8 @@ public final class ProductInfoConfig {
         var rootGroup = new OptionGrouping(enabledBuilder)
             .addOptions(this.createItemClickOption())
             .addSubgroups(ctrlShiftGroup)
-            .addOptions(this.createPriceTooltipOption(), this.createSiteOption());
+            .addOptions(this.createPriceTooltipOption(), this.createRequireMatchingNameOption(),
+                this.createSiteOption());
 
         return OptionGroup
             .createBuilder()
