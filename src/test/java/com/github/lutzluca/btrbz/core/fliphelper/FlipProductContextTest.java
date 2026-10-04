@@ -39,7 +39,7 @@ class FlipProductContextTest {
         this.publish("TEST", 120);
         Assertions.assertEquals(119.9, this.context.getFlipPrice(this.market).orElseThrow(), 0.000001);
 
-        this.market.onUpdate(Map.of());
+        this.market.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(Map.of()));
         Assertions.assertEquals(PRODUCT, this.context.getSelectedProduct().orElseThrow());
         Assertions.assertTrue(this.context.getFlipPrice(this.market).isEmpty());
 
@@ -115,7 +115,7 @@ class FlipProductContextTest {
                 "buy_summary":%s
             }}}
             """.formatted(productId, sellSummary), SkyBlockBazaarReply.class);
-        this.market.onUpdate(reply.getProducts());
+        this.market.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(reply.getProducts()));
     }
 
     private record QuoteCase(String description, String quote, Optional<Double> expectedPrice) {}

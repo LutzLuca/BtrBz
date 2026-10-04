@@ -145,23 +145,14 @@ public class BazaarData {
         return this.conversionIndexService.changes();
     }
 
-    public void onUpdate(Map<String, Product> products) {
-        this.installSnapshot(prepareSnapshot(products));
+    /** Install a snapshot and notify consumers after invalidating derived market data. */
+    public void publishSnapshot(MarketSnapshot snapshot) {
+        this.marketSnapshot = snapshot;
+        this.marketChanges.invalidate("market snapshot published");
         this.notifyListeners();
     }
 
-    /** Prepare a candidate without exposing its quotes or notifying consumers. */
-    public static MarketSnapshot prepareSnapshot(Map<String, Product> products) {
-        return new MarketSnapshot(Collections.unmodifiableMap(new LinkedHashMap<>(
-            products == null ? Map.of() : products)));
-    }
-
-    public void installSnapshot(MarketSnapshot snapshot) {
-        this.marketSnapshot = snapshot;
-        this.marketChanges.invalidate("market snapshot published");
-    }
-
-    public void notifyListeners() {
+    private void notifyListeners() {
         var snapshot = this.currentSnapshot();
 
         for (var listener : this.listeners) {
@@ -326,6 +317,11 @@ public class BazaarData {
             this.products = products;
             this.available = !products.isEmpty() && products.entrySet().stream()
                 .allMatch(entry -> entry.getKey() != null && entry.getValue() != null);
+        }
+
+        public static MarketSnapshot fromProducts(Map<String, Product> products) {
+            return new MarketSnapshot(Collections.unmodifiableMap(new LinkedHashMap<>(
+                products == null ? Map.of() : products)));
         }
 
         public int size() {

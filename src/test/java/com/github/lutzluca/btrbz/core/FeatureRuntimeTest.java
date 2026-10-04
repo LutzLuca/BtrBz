@@ -32,13 +32,15 @@ class FeatureRuntimeTest {
         try (var orders = orders(data)) {
             var owner = new AtomicReference<FeatureRuntime>();
             var operations = new ArrayList<String>();
-            var runtime = new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data, orders,
+            var runtime = new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data,
                 () -> operations.add("start"), () -> {
                     Assertions.assertTrue(owner.get().isRunning());
                     Assertions.assertFalse(owner.get().isActive());
                     operations.add("suspend");
                 }, () -> {
                     Assertions.assertFalse(owner.get().isRunning());
+                    orders.cancelOutstandingOrders();
+                    orders.resetTrackedOrders();
                     operations.add("end");
                 });
             owner.set(runtime);
@@ -61,7 +63,7 @@ class FeatureRuntimeTest {
 
             runtime.deactivate();
             runtime.deactivate();
-            runtime.recover(BazaarData.prepareSnapshot(products(110)));
+            runtime.recover(BazaarData.MarketSnapshot.fromProducts(products(110)));
             runtime.onMarketUpdate(products(110));
 
             Assertions.assertFalse(runtime.isRunning());
@@ -72,16 +74,15 @@ class FeatureRuntimeTest {
     }
 
     @Test
-    void recoveryPublishesTheBaselineAndActiveGateBeforeNotifyingAlerts() {
+    void recoveryPublishesTheSnapshotAndActiveGateBeforeNotifyingAlerts() {
         var data = new BazaarData();
         try (var orders = orders(data)) {
-            var runtime = runtime(data, orders);
+            var runtime = runtime(data);
             var notices = new ArrayList<Publication>();
             var config = new AlertConfig();
             var alerts = new AlertManager(data, () -> config, () -> {}, reached -> notices.add(new Publication(
-                runtime.isActive(), data.highestBuyOrderPrice(PRODUCT).orElseThrow(),
-                orders.currentOrders().getFirst().status() instanceof OrderStatus.Undercut)));
-            // Production registers alerts first; recovery cannot rely on the orders listener running first.
+                runtime.isActive(), data.highestBuyOrderPrice(PRODUCT).orElseThrow())));
+            // Alerts read BazaarData directly, before the orders listener processes this publication.
             data.addListener(alerts::onBazaarUpdate);
             data.addListener(orders::onBazaarUpdate);
             runtime.activate();
@@ -89,41 +90,34 @@ class FeatureRuntimeTest {
             orders.syncOrders(List.of(order(100)));
             saveAlert(alerts);
 
-            runtime.recover(BazaarData.prepareSnapshot(products(110)));
+            runtime.recover(BazaarData.MarketSnapshot.fromProducts(products(110)));
 
-            Assertions.assertEquals(List.of(new Publication(true, 110, true)), notices);
+            Assertions.assertEquals(List.of(new Publication(true, 110)), notices);
+            Assertions.assertInstanceOf(OrderStatus.Undercut.class, orders.currentOrders().getFirst().status());
             Assertions.assertTrue(alerts.alerts().isEmpty());
         }
     }
 
     @Test
-    void failedBaselineKeepsAlertsAndMarketGatedUntilRetrySucceeds() {
+    void anOrderListenerFailureDoesNotBlockRecoveryOrSavedAlerts() {
         var data = new BazaarData();
         try (var orders = orders(data)) {
-            var runtime = runtime(data, orders);
+            var runtime = runtime(data);
             var config = new AlertConfig();
             var notices = new ArrayList<ReachedAlert>();
             var alerts = new AlertManager(data, () -> config, () -> {}, notices::add);
+            data.addListener(orders::onBazaarUpdate);
             data.addListener(alerts::onBazaarUpdate);
             runtime.activate();
             runtime.hibernate();
             orders.syncOrders(List.of(order(110), order(90)));
             saveAlert(alerts);
-            // This candidate reaches the alert, but its second level fails the real self-undercut baseline.
+            // A malformed second level fails the orders listener, while its first price can reach the alert.
             var candidate = new Gson().fromJson("""
                 {"products":{"TEST":{"sell_summary":[{"pricePerUnit":110,"orders":1},null]}}}
                 """, SkyBlockBazaarReply.class);
 
-            runtime.recover(BazaarData.prepareSnapshot(candidate.getProducts()));
-
-            Assertions.assertTrue(runtime.isHibernating());
-            Assertions.assertFalse(data.hasMarketData());
-            Assertions.assertEquals(1, alerts.alerts().size());
-            Assertions.assertTrue(notices.isEmpty());
-            Assertions.assertTrue(
-                orders.currentOrders().stream().allMatch(order -> order.status() instanceof OrderStatus.Unknown));
-
-            runtime.recover(BazaarData.prepareSnapshot(products(110)));
+            runtime.recover(BazaarData.MarketSnapshot.fromProducts(candidate.getProducts()));
 
             Assertions.assertTrue(runtime.isActive());
             Assertions.assertTrue(alerts.alerts().isEmpty());
@@ -131,8 +125,8 @@ class FeatureRuntimeTest {
         }
     }
 
-    private static FeatureRuntime runtime(BazaarData data, TrackedOrderManager orders) {
-        return new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data, orders,
+    private static FeatureRuntime runtime(BazaarData data) {
+        return new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data,
             () -> {}, () -> {}, () -> {});
     }
 
@@ -161,5 +155,5 @@ class FeatureRuntimeTest {
             """.formatted(price), SkyBlockBazaarReply.class).getProducts();
     }
 
-    private record Publication(boolean active, double buyPrice, boolean undercut) {}
+    private record Publication(boolean active, double buyPrice) {}
 }

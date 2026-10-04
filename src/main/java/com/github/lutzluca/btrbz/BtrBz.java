@@ -191,7 +191,7 @@ public class BtrBz implements ClientModInitializer {
         this.highlightManager = new OrderHighlightManager();
         this.tooltipProvider = new OrderTooltipProvider(this.bazaarData, this.highlightManager);
         this.orderManager = new TrackedOrderManager(this.bazaarData);
-        this.runtime = new FeatureRuntime(this.activation, this.bazaarData, this.orderManager,
+        this.runtime = new FeatureRuntime(this.activation, this.bazaarData,
             this::startSession, this::suspendMarketFeatures, this::endSession);
         this.orderManager.addOnOrdersResetListener(() -> this.tooltipProvider.clearCache());
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
@@ -443,6 +443,8 @@ public class BtrBz implements ClientModInitializer {
         this.clipboardTracker.close();
         this.purseTracker.close();
         this.orderActions.resetSession();
+        this.orderManager.cancelOutstandingOrders();
+        this.orderManager.resetTrackedOrders();
         this.orderPresets.cancelTransaction();
         this.flipHelper.resetWorkflow();
         this.flipSubmissionTracker.clear();

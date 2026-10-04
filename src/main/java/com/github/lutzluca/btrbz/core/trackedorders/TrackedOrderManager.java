@@ -236,14 +236,6 @@ public class TrackedOrderManager implements AutoCloseable {
         this.resolveSelfUndercutStates(snapshot);
     }
 
-    /** Establish recovery statuses and self-undercut history without delivering notifications. */
-    public void baselineMarket(MarketSnapshot snapshot) {
-        var updates = this.statusEvaluator.computeStatusUpdates(this.trackedOrders, snapshot).toList();
-        this.selfUndercutDetector.resolve(this.trackedOrders, snapshot);
-        updates.forEach(update -> update.order().status = update.curr());
-        this.dataChanges.invalidate("market recovery baseline");
-    }
-
     // Known limitation: transitions that only change `GroupStatus` without changing the underlying
     // `OrderStatus` variant are not detected. Concretely, if a stranger cancels their order from
     // your bucket, all your orders stay `OrderStatus.Matched`, no order-level status change is

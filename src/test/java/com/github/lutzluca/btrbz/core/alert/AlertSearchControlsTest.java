@@ -16,9 +16,9 @@ class AlertSearchControlsTest {
         Assertions.assertFalse(waiting.marketAvailable());
         Assertions.assertFalse(waiting.emptyHint("").isEmpty());
 
-        data.onUpdate(new Gson().fromJson("""
+        data.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(new Gson().fromJson("""
             {"products":{"OTHER":{"sell_summary":[],"buy_summary":[]}}}
-            """, SkyBlockBazaarReply.class).getProducts());
+            """, SkyBlockBazaarReply.class).getProducts()));
         var ready = Results.lookup(data, "unmatched");
 
         Assertions.assertEquals(waiting.matches(), ready.matches());

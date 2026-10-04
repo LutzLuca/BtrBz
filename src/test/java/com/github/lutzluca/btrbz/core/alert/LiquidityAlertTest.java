@@ -145,6 +145,6 @@ class LiquidityAlertTest {
 
     private static void publish(BazaarData data, String products) {
         var reply = new Gson().fromJson("{\"products\":" + products + "}", SkyBlockBazaarReply.class);
-        data.onUpdate(reply.getProducts());
+        data.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(reply.getProducts()));
     }
 }
