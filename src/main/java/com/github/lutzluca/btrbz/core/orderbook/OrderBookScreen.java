@@ -25,12 +25,12 @@ public final class OrderBookScreen extends Screen {
     @Accessors(fluent = true)
     private final String productName;
     private final WidgetHost host;
-    private final long activationGeneration = BtrBz.activationGeneration();
+    private final long sessionGeneration = BtrBz.sessionGeneration();
     private final Object parentLevel = Minecraft.getInstance().level;
     private final Object parentConnection = Minecraft.getInstance().getConnection();
 
     public boolean isCurrent() {
-        return BtrBz.isRunning() && this.activationGeneration == BtrBz.activationGeneration()
+        return BtrBz.isRunning() && this.sessionGeneration == BtrBz.sessionGeneration()
             && Minecraft.getInstance().level == this.parentLevel
             && Minecraft.getInstance().getConnection() == this.parentConnection;
     }

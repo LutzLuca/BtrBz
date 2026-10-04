@@ -34,7 +34,7 @@ public class SoundUtil {
             return;
         }
 
-        long generation = BtrBz.activationGeneration();
+        long generation = BtrBz.sessionGeneration();
         long currentSession = session.get();
         long now = System.currentTimeMillis();
         lastPlayedTimes.compute(sound, (key, lastTime) -> {
@@ -76,7 +76,7 @@ public class SoundUtil {
     }
 
     private static void play(SoundEvent sound, float volume, long generation, long currentSession, int attemptsLeft) {
-        if (!BtrBz.isActive() || generation != BtrBz.activationGeneration() || currentSession != session.get()) {
+        if (!BtrBz.isActive() || generation != BtrBz.sessionGeneration() || currentSession != session.get()) {
             return;
         }
         Minecraft client = Minecraft.getInstance();

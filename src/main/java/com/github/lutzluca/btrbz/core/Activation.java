@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core;
 import java.util.function.Consumer;
 import java.util.function.BooleanSupplier;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 /** Client-thread activation derived from the user's settings and the server's location. */
@@ -15,9 +14,6 @@ public final class Activation {
     @Getter
     private boolean active;
     private boolean skyBlockConfirmed;
-    @Getter
-    @Accessors(fluent = true)
-    private long generation;
 
     public Activation(BooleanSupplier enabled, BooleanSupplier alwaysActive, Consumer<Boolean> onChange) {
         this.enabled = enabled;
@@ -40,14 +36,12 @@ public final class Activation {
         boolean nextActive = enabledNow && (alwaysActiveNow || this.skyBlockConfirmed);
         if (this.active != nextActive) {
             this.active = nextActive;
-            this.generation++;
             log.debug(
-                "Activation changed: active={}, enabled={}, alwaysActive={}, skyBlockConfirmed={}, generation={}",
+                "Activation changed: active={}, enabled={}, alwaysActive={}, skyBlockConfirmed={}",
                 nextActive,
                 enabledNow,
                 alwaysActiveNow,
-                this.skyBlockConfirmed,
-                this.generation);
+                this.skyBlockConfirmed);
             this.onChange.accept(nextActive);
         }
     }
@@ -68,5 +62,4 @@ public final class Activation {
             ? "Enabled; active in SkyBlock."
             : "Enabled; inactive outside SkyBlock or awaiting confirmation.";
     }
-
 }

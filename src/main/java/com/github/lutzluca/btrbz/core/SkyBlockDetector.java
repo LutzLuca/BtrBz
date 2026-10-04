@@ -16,17 +16,23 @@ import net.minecraft.client.Minecraft;
 @Slf4j
 public final class SkyBlockDetector {
     private final Activation activation;
+    private final Consumer<Optional<String>> locationObserver;
     private final Consumer<Runnable> clientExecutor;
     private final AtomicBoolean confirmationResetPending = new AtomicBoolean(true);
     private final AtomicLong connectionGeneration = new AtomicLong();
     private boolean connected;
 
-    public SkyBlockDetector(Activation activation) {
-        this(activation, Minecraft.getInstance()::execute);
+    public SkyBlockDetector(Activation activation, Consumer<Optional<String>> locationObserver) {
+        this(activation, locationObserver, Minecraft.getInstance()::execute);
     }
 
-    SkyBlockDetector(Activation activation, Consumer<Runnable> clientExecutor) {
+    SkyBlockDetector(
+        Activation activation,
+        Consumer<Optional<String>> locationObserver,
+        Consumer<Runnable> clientExecutor
+    ) {
         this.activation = activation;
+        this.locationObserver = locationObserver;
         this.clientExecutor = clientExecutor;
     }
 
@@ -36,10 +42,11 @@ public final class SkyBlockDetector {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> this.endConnection());
 
         var api = HypixelModAPI.getInstance();
-        api.createHandler(ClientboundLocationPacket.class, packet -> this.onLocation(packet.getServerType()))
+        api.createHandler(ClientboundLocationPacket.class,
+            packet -> this.onLocation(packet.getServerName(), packet.getServerType()))
             .onError(error -> {
                 log.warn("Hypixel location update failed: {}", error);
-                this.onLocation(Optional.empty());
+                this.onLocation("", Optional.empty());
             });
         api.subscribeToEventPacket(ClientboundLocationPacket.class);
     }
@@ -60,6 +67,7 @@ public final class SkyBlockDetector {
                     generation);
                 if (resetConfirmation) {
                     this.activation.setSkyBlockConfirmed(false);
+                    this.locationObserver.accept(Optional.empty());
                 }
             }
         });
@@ -73,11 +81,12 @@ public final class SkyBlockDetector {
                 this.connected = false;
                 log.debug("Hypixel connection ended: generation={}", generation);
                 this.activation.setSkyBlockConfirmed(false);
+                this.locationObserver.accept(Optional.empty());
             }
         });
     }
 
-    void onLocation(Optional<ServerType> serverType) {
+    void onLocation(String serverName, Optional<ServerType> serverType) {
         long generation = this.connectionGeneration.get();
         boolean skyBlock = serverType.orElse(null) == GameType.SKYBLOCK;
         // The official Fabric implementation also receives location packets on the configuration
@@ -90,6 +99,7 @@ public final class SkyBlockDetector {
                     skyBlock,
                     generation);
                 this.activation.setSkyBlockConfirmed(skyBlock);
+                this.locationObserver.accept(skyBlock ? Optional.of(serverName) : Optional.empty());
             } else {
                 log.trace(
                     "Ignored obsolete Hypixel location: connected={}, packetGeneration={}, currentGeneration={}",

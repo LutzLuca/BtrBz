@@ -36,7 +36,7 @@ class FeatureRuntimeTest {
                 Assertions.assertTrue(owner.get().isRunning());
                 Assertions.assertTrue(owner.get().isHibernating());
                 Assertions.assertFalse(owner.get().isActive());
-            }, () -> {}, () -> {});
+            }, () -> {}, () -> {}, () -> {});
         owner.set(runtime);
 
         runtime.activate();
@@ -66,7 +66,7 @@ class FeatureRuntimeTest {
                     orders.cancelOutstandingOrders();
                     orders.resetTrackedOrders();
                     operations.add("end");
-                });
+                }, () -> {});
             owner.set(runtime);
             data.addListener(orders::onBazaarUpdate);
             runtime.activate();
@@ -148,9 +148,47 @@ class FeatureRuntimeTest {
         }
     }
 
+    @Test
+    void resettingSessionInvalidatesOldWorkWithoutRestartingServicesOrChangingMarketAvailability() {
+        var data = new BazaarData();
+        try (var orders = orders(data)) {
+            var owner = new AtomicReference<FeatureRuntime>();
+            var services = new ArrayList<String>();
+            var cleanupGenerations = new ArrayList<Long>();
+            var runtime = new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data,
+                () -> services.add("start"), () -> services.add("suspend"), () -> services.add("end"), () -> {
+                    cleanupGenerations.add(owner.get().sessionGeneration());
+                    orders.cancelOutstandingOrders();
+                    orders.resetTrackedOrders();
+                });
+            owner.set(runtime);
+            runtime.activate();
+            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
+            orders.syncOrders(List.of(order(100)));
+            long previousGeneration = runtime.sessionGeneration();
+
+            runtime.resetSession();
+
+            Assertions.assertTrue(runtime.sessionGeneration() > previousGeneration);
+            Assertions.assertEquals(List.of(runtime.sessionGeneration()), cleanupGenerations);
+            Assertions.assertTrue(orders.currentOrders().isEmpty());
+            Assertions.assertTrue(runtime.isActive());
+            Assertions.assertEquals(110, data.highestBuyOrderPrice(PRODUCT).orElseThrow());
+            Assertions.assertEquals(List.of("start"), services);
+
+            runtime.hibernate();
+            previousGeneration = runtime.sessionGeneration();
+            runtime.resetSession();
+            Assertions.assertTrue(runtime.sessionGeneration() > previousGeneration);
+            Assertions.assertTrue(runtime.isHibernating());
+            Assertions.assertFalse(data.hasMarketData());
+            Assertions.assertEquals(List.of("start", "suspend"), services);
+        }
+    }
+
     private static FeatureRuntime runtime(BazaarData data) {
         return new FeatureRuntime(new Activation(() -> true, () -> true, _ -> {}), data,
-            () -> {}, () -> {}, () -> {});
+            () -> {}, () -> {}, () -> {}, () -> {});
     }
 
     private static TrackedOrderManager orders(BazaarData data) {

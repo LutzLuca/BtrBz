@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertShortcut;
 import com.github.lutzluca.btrbz.core.Activation;
 import com.github.lutzluca.btrbz.core.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.SkyBlockDetector;
+import com.github.lutzluca.btrbz.core.profile.ProfileTracker;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions;
 import com.github.lutzluca.btrbz.core.BazaarChatManager;
 import com.github.lutzluca.btrbz.core.OrderHighlightManager;
@@ -57,10 +58,13 @@ import com.github.lutzluca.btrbz.data.ConversionEvent;
 import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
+import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ClickEvent.RunCommand;
+import net.minecraft.network.chat.HoverEvent.ShowText;
 import com.github.lutzluca.btrbz.utils.SoundUtil;
 import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import com.github.lutzluca.btrbz.utils.MessageQueue.Level;
@@ -101,6 +105,7 @@ public class BtrBz implements ClientModInitializer {
 
     private Activation activation;
     private FeatureRuntime runtime;
+    private ProfileTracker profileTracker;
     private BazaarData bazaarData;
     private TrackedOrderManager orderManager;
     private OrderHighlightManager highlightManager;
@@ -131,7 +136,7 @@ public class BtrBz implements ClientModInitializer {
         return instance != null && instance.runtime != null && instance.runtime.isRunning();
     }
 
-    public static long activationGeneration() {
+    public static long sessionGeneration() {
         return instance.runtime.sessionGeneration();
     }
 
@@ -211,7 +216,10 @@ public class BtrBz implements ClientModInitializer {
         this.tooltipProvider = new OrderTooltipProvider(this.bazaarData, this.highlightManager);
         this.orderManager = new TrackedOrderManager(this.bazaarData);
         this.runtime = new FeatureRuntime(this.activation, this.bazaarData,
-            this::startSession, this::suspendMarketFeatures, this::endSession);
+            this::startSession, this::suspendMarketFeatures, this::endSession, this::resetSessionState);
+        this.profileTracker = new ProfileTracker(this.activation::isEnabled,
+            (ticks, task) -> ClientTickDispatcher.scheduleAfter(_ -> task.run(), ticks),
+            () -> GameUtils.runCommand("profileid"), this.runtime::resetSession, this::notifyProfileNotice);
         this.orderManager.addOnOrdersResetListener(() -> this.tooltipProvider.clearCache());
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
         this.toastNotifications = new ToastNotifications(this.runtime::isActive);
@@ -301,7 +309,7 @@ public class BtrBz implements ClientModInitializer {
             Identifier.fromNamespaceAndPath(MOD_ID, "widgets_hud"),
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
-        Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager,
+        Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager, this.profileTracker,
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
                 new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
                     orderBookController))),
@@ -341,7 +349,8 @@ public class BtrBz implements ClientModInitializer {
             log.info(
                 "BtrBz client shutdown started (active={}, generation={})",
                 this.activation.isActive(),
-                this.activation.generation());
+                this.runtime.sessionGeneration());
+            this.profileTracker.onLocation(Optional.empty());
             this.runtime.deactivate();
             configStore.save();
             this.flipSubmissionTracker.close();
@@ -417,7 +426,14 @@ public class BtrBz implements ClientModInitializer {
                 this.orderManager.syncOrders(parsed);
             });
 
-        new SkyBlockDetector(this.activation).register();
+        this.profileTracker.register();
+        new SkyBlockDetector(this.activation, server -> {
+            this.profileTracker.onLocation(server);
+            if (server.isEmpty() && this.runtime.isRunning()) {
+                // Normal deactivation already cleared facts. Always-active sessions survive context loss.
+                this.runtime.resetSession();
+            }
+        }).register();
         this.activation.refresh();
     }
 
@@ -427,11 +443,12 @@ public class BtrBz implements ClientModInitializer {
         } else {
             this.runtime.deactivate();
         }
+        this.profileTracker.refreshEnabled();
     }
 
     private void startSession() {
         this.marketHibernationAnnounced = false;
-        log.info("BtrBz features activated (generation={})", this.activation.generation());
+        log.info("BtrBz features activated (generation={})", this.runtime.sessionGeneration());
         this.utcDayTracker.start();
         this.clipboardTracker.initialize();
         this.clipboardTracker.start();
@@ -470,11 +487,16 @@ public class BtrBz implements ClientModInitializer {
 
     private void endSession() {
         this.marketHibernationAnnounced = false;
-        log.info("BtrBz features deactivated (generation={})", this.activation.generation());
+        log.info("BtrBz features deactivated (generation={})", this.runtime.sessionGeneration());
         this.bazaarPoller.stop();
-        this.suspendMarketFeatures();
         this.utcDayTracker.close();
         this.clipboardTracker.close();
+        this.resetSessionState();
+        log.debug("Deactivation cleanup completed: trackers stopped and session UI cleared");
+    }
+
+    private void resetSessionState() {
+        this.suspendMarketFeatures();
         this.purseTracker.close();
         this.orderActions.resetSession();
         this.orderManager.cancelOutstandingOrders();
@@ -489,8 +511,23 @@ public class BtrBz implements ClientModInitializer {
         if (GameUtils.screen() instanceof OrderBookScreen) {
             GameUtils.setScreen(null);
         }
-        log.debug(
-            "Deactivation cleanup completed: trackers stopped and session UI cleared");
+        if (this.runtime.isRunning()) {
+            this.purseTracker.start();
+        }
+        log.debug("Session state reset: generation={}", this.runtime.sessionGeneration());
+    }
+
+    private void notifyProfileNotice(ProfileTracker.Notice notice) {
+        var message = Notifier.prefix().append(Component.literal(notice.message())
+            .withStyle(notice.offerReset() ? ChatFormatting.YELLOW : ChatFormatting.GREEN));
+        if (notice.offerReset()) {
+            message.append(Component.literal(" [Reset session]").withStyle(style -> style
+                .withColor(ChatFormatting.YELLOW)
+                .withUnderlined(true)
+                .withClickEvent(new RunCommand("/btrbz profile reset"))
+                .withHoverEvent(new ShowText(Component.literal("Clear tracked orders and pending actions")))));
+        }
+        Notifier.notifyPlayer(message);
     }
 
     private void handleConversionEvent(ConversionEvent event) {

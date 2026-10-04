@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.commands;
 
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.profile.ProfileTracker;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -15,6 +16,7 @@ public class Commands {
         BazaarData bazaarData,
         WidgetRuntime widgetRuntime,
         TrackedOrderManager orderManager,
+        ProfileTracker profileTracker,
         Runnable openAlertScreen,
         Runnable openConfigScreen,
         Function<Boolean, String> setEnabled
@@ -35,6 +37,7 @@ public class Commands {
         rootCommand.then(AlertCommand.build(openAlertScreen));
         rootCommand.then(ConversionCommand.build(bazaarData));
         rootCommand.then(TrackedOrderCommand.build(orderManager));
+        rootCommand.then(ProfileCommand.build(profileTracker));
         rootCommand.then(TaxCommand.build());
         rootCommand.then(PresetCommand.build(widgetRuntime));
 

@@ -64,13 +64,11 @@ class ActivationTest {
         @Test
         void disablingPreservesLocationAndReenablingStartsFresh() {
             ActivationTest.this.activation.setSkyBlockConfirmed(true);
-            long firstRun = ActivationTest.this.activation.generation();
             ActivationTest.this.setEnabled(false);
             Assertions.assertFalse(ActivationTest.this.activation.isActive());
             Assertions.assertEquals("Disabled manually.", ActivationTest.this.activation.description());
             ActivationTest.this.setEnabled(true);
             Assertions.assertTrue(ActivationTest.this.activation.isActive());
-            Assertions.assertNotEquals(firstRun, ActivationTest.this.activation.generation());
             Assertions.assertEquals(List.of(true, false, true), ActivationTest.this.changes);
         }
 
@@ -103,7 +101,6 @@ class ActivationTest {
         @Test
         void readsExternalSettingAndRefreshesTheTransitionExactlyOnce() {
             ActivationTest.this.activation.setSkyBlockConfirmed(true);
-            long run = ActivationTest.this.activation.generation();
 
             ActivationTest.this.enabled = false;
             Assertions.assertFalse(ActivationTest.this.activation.isEnabled());
@@ -111,7 +108,6 @@ class ActivationTest {
             ActivationTest.this.activation.refresh();
 
             Assertions.assertFalse(ActivationTest.this.activation.isActive());
-            Assertions.assertEquals(run + 1, ActivationTest.this.activation.generation());
             Assertions.assertEquals(List.of(true, false), ActivationTest.this.changes);
         }
 
@@ -122,16 +118,13 @@ class ActivationTest {
                 () -> Assertions.fail("Configuration is not loaded yet"),
                 _ -> Assertions.fail("Construction must not activate features"));
             Assertions.assertFalse(activation.isActive());
-            Assertions.assertEquals(0, activation.generation());
         }
 
         @Test
         void repeatedUpdatesDoNotRestartOrCancelWorkAgain() {
             ActivationTest.this.activation.setSkyBlockConfirmed(true);
-            long run = ActivationTest.this.activation.generation();
             ActivationTest.this.activation.setSkyBlockConfirmed(true);
             ActivationTest.this.setEnabled(true);
-            Assertions.assertEquals(run, ActivationTest.this.activation.generation());
             ActivationTest.this.activation.setSkyBlockConfirmed(false);
             ActivationTest.this.activation.setSkyBlockConfirmed(false);
             ActivationTest.this.setEnabled(false);

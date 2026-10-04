@@ -139,14 +139,13 @@ public final class GameUtils {
         return lines;
     }
 
-    public static void runCommand(String command) {
-        if (!BtrBz.isRunning()) {
-            return;
-        }
+    public static boolean runCommand(String command) {
         var client = Minecraft.getInstance();
         if (client.player != null) {
             client.player.connection.sendCommand(command);
+            return true;
         }
+        return false;
     }
 
     public static <T> void copyToClipboard(T value) {
