@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;

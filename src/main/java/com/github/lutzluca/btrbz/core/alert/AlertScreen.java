@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 
 import com.github.lutzluca.btrbz.Assets;
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;

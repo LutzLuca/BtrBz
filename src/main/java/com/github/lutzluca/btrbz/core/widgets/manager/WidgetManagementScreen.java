@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;

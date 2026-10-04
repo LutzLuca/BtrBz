@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.commands;
 
-import com.github.lutzluca.btrbz.core.profile.ProfileTracker;
+import com.github.lutzluca.btrbz.core.runtime.ProfileTracker;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -12,7 +13,7 @@ public final class ProfileCommand {
         return ClientCommands.literal("profile")
             .executes(context -> {
                 context.getSource().sendFeedback(Notifier.prefix()
-                    .append(Component.literal(tracker.status().description())));
+                    .append(Component.literal(tracker.status().description()).withStyle(UiStyles.label())));
                 return 1;
             })
             .then(ClientCommands.literal("reset").executes(_ -> {

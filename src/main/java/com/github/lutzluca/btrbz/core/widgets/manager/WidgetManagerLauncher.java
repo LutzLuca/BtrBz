@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.manager;
 
 import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;

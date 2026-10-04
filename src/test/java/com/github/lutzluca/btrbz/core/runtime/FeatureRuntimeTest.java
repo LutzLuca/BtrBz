@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.runtime;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition;
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;

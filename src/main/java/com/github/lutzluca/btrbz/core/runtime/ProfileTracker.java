@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.profile;
+package com.github.lutzluca.btrbz.core.runtime;
 
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;

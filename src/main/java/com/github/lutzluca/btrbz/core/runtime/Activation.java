@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.runtime;
 
 import java.util.function.Consumer;
 import java.util.function.BooleanSupplier;

@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.runtime;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;

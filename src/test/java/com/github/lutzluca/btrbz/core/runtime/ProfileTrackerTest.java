@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.profile;
+package com.github.lutzluca.btrbz.core.runtime;
 
 import java.util.ArrayList;
 import java.util.Comparator;
