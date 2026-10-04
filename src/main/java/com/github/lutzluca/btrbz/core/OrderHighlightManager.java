@@ -54,13 +54,13 @@ public class OrderHighlightManager {
         });
     }
 
-    public Optional<Integer> getHighlight(int idx) {
+    public Optional<Integer> getHighlight(int idx, boolean marketActive) {
         if (!ConfigStore.get().config().orderHighlight.enabled) {
             return Optional.empty();
         }
 
         var tracked = this.slotToTrackedOrder.get(idx);
-        if (tracked != null) {
+        if (marketActive && tracked != null) {
             return Optional.of(colorForStatus(tracked.status));
         }
 

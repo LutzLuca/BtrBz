@@ -19,6 +19,10 @@ public interface SlotHook {
 
     boolean matches(SlotView view);
 
+    default boolean requiresMarketData() {
+        return true;
+    }
+
     default @Nullable ItemStack createDisplayStack(SlotRenderContext ctx) {
         return null;
     }

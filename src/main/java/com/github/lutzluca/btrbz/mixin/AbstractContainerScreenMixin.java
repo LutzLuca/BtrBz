@@ -97,7 +97,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
         int mouseY,
         CallbackInfo ci
     ) {
-        if (!ScreenTracker.inMenu(ScreenTracker.BazaarMenuType.Orders)) {
+        if (!BtrBz.isRunning() || !ScreenTracker.get().getCurrInfo().inMenu(ScreenTracker.BazaarMenuType.Orders)) {
             return;
         }
 
@@ -112,7 +112,7 @@ public abstract class AbstractContainerScreenMixin implements WidgetHostOwner, W
 
         BtrBz
             .highlightManager()
-            .getHighlight(idx)
+            .getHighlight(idx, BtrBz.isActive())
             .ifPresent(color -> context.fill(x, y, x + 16, y + 16, color));
     }
 

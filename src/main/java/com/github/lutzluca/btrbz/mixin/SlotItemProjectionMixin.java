@@ -25,10 +25,7 @@ public abstract class SlotItemProjectionMixin {
 
     @Inject(method = "getItem", at = @At("RETURN"), cancellable = true)
     private void projectItem(CallbackInfoReturnable<ItemStack> cir) {
-        if (!Minecraft.getInstance().isSameThread()) {
-            return;
-        }
-        if (!BtrBz.isActive()) {
+        if (!Minecraft.getInstance().isSameThread() || !BtrBz.isRunning()) {
             return;
         }
 

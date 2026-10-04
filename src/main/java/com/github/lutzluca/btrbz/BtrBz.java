@@ -121,6 +121,7 @@ public class BtrBz implements ClientModInitializer {
     private BazaarProductContext bazaarProductContext;
     private ConfigScreen configScreen;
     private boolean automaticConversionRefreshStarted;
+    private boolean marketHibernationAnnounced;
 
     public static boolean isActive() {
         return instance != null && instance.runtime != null && instance.runtime.isActive();
@@ -187,12 +188,21 @@ public class BtrBz implements ClientModInitializer {
         this.clipboardTracker = new ClipboardTracker(
             () -> Minecraft.getInstance().keyboardHandler.getClipboard());
         this.purseTracker = new PurseTracker(GameUtils::getPurse);
-        this.bazaarPoller = new BazaarPoller(reply -> this.runtime.onMarketReply(reply),
-            () -> this.runtime.hibernate(),
+        this.bazaarPoller = new BazaarPoller(reply -> {
+            this.runtime.onMarketReply(reply);
+            if (this.marketHibernationAnnounced && this.runtime.isActive()) {
+                this.marketHibernationAnnounced = false;
+                Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
+                    "Bazaar market data is usable again, and market features have resumed.").withStyle(ChatFormatting.GREEN)));
+            }
+        },
+            this::hibernateMarket,
             () -> this
-                .warnBazaarUnavailable("Bazaar API requests have failed for five minutes; retrying automatically."),
+                .warnBazaarUnavailable(
+                    "Bazaar API requests are still failing after five minutes, retrying automatically."),
             () -> this
-                .warnBazaarUnavailable("Bazaar API data has not advanced for five minutes; retrying automatically."));
+                .warnBazaarUnavailable(
+                    "Bazaar API data still has not advanced after five minutes, retrying automatically."));
         var flipProductContext = new FlipProductContext();
         this.flipSubmissionTracker = new FlipSubmissionTracker();
 
@@ -318,7 +328,7 @@ public class BtrBz implements ClientModInitializer {
                     .parseSetOrderItem(stack, this.bazaarData)
                     .onSuccess(addOutstanding)
                     .onFailure(err -> log.warn("Failed to parse confirm item", err)));
-            if (this.runtime.isActive()) {
+            if (this.runtime.isRunning()) {
                 this.orderActions.setReopenBazaar();
             }
         });
@@ -419,6 +429,7 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void startSession() {
+        this.marketHibernationAnnounced = false;
         log.info("BtrBz features activated (generation={})", this.activation.generation());
         this.utcDayTracker.start();
         this.clipboardTracker.initialize();
@@ -438,6 +449,15 @@ public class BtrBz implements ClientModInitializer {
         Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(message).withStyle(ChatFormatting.YELLOW)));
     }
 
+    private void hibernateMarket() {
+        this.runtime.hibernate();
+        if (!this.marketHibernationAnnounced) {
+            this.marketHibernationAnnounced = true;
+            this.warnBazaarUnavailable(
+                "Bazaar API data is unavailable or outdated; market features are paused. Retrying automatically.");
+        }
+    }
+
     private void suspendMarketFeatures() {
         this.toastNotifications.invalidate();
         SoundUtil.invalidatePending();
@@ -448,6 +468,7 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void endSession() {
+        this.marketHibernationAnnounced = false;
         log.info("BtrBz features deactivated (generation={})", this.activation.generation());
         this.bazaarPoller.stop();
         this.suspendMarketFeatures();

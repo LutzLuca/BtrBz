@@ -51,6 +51,12 @@ public final class FeatureRuntime {
         this.startSession.run();
     }
 
+    /**
+     * Pauses features requiring current market data: quotes, order books, market-derived order
+     * statuses, pricing input, protection, and their UI. Unsent automation is cancelled, while
+     * session facts and passive observations/accounting are kept. Inventory-only reopening,
+     * copying remaining amounts, and lore-based filled/expired highlights remain usable.
+     */
     public void hibernate() {
         if (!this.isActive()) {
             return;
