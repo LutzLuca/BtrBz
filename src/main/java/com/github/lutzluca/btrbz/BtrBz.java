@@ -193,7 +193,8 @@ public class BtrBz implements ClientModInitializer {
             if (this.marketHibernationAnnounced && this.runtime.isActive()) {
                 this.marketHibernationAnnounced = false;
                 Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
-                    "Bazaar market data is usable again, and market features have resumed.").withStyle(ChatFormatting.GREEN)));
+                    "Bazaar market data is usable again, and market features have resumed.")
+                    .withStyle(ChatFormatting.GREEN)));
             }
         },
             this::hibernateMarket,

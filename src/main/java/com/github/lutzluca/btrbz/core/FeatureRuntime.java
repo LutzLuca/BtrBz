@@ -66,7 +66,7 @@ public final class FeatureRuntime {
         this.market.clearMarketData();
     }
 
-    public void recover(MarketSnapshot candidate) {
+    private void recover(MarketSnapshot candidate) {
         if (!this.isHibernating() || candidate == null || !candidate.available()) {
             return;
         }

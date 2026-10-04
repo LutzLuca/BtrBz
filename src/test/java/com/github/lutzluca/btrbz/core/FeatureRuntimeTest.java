@@ -30,23 +30,21 @@ class FeatureRuntimeTest {
     @Test
     void startupClosesTheMarketGateBeforeStartingSessionProducers() {
         var data = new BazaarData();
-        try (var orders = orders(data)) {
-            var owner = new AtomicReference<FeatureRuntime>();
-            var runtime = new FeatureRuntime(new Activation(() -> true, () -> false, _ -> {}), data,
-                () -> {
-                    Assertions.assertTrue(owner.get().isRunning());
-                    Assertions.assertTrue(owner.get().isHibernating());
-                    Assertions.assertFalse(owner.get().isActive());
-                }, () -> {}, () -> {});
-            owner.set(runtime);
+        var owner = new AtomicReference<FeatureRuntime>();
+        var runtime = new FeatureRuntime(new Activation(() -> true, () -> false, _ -> {}), data,
+            () -> {
+                Assertions.assertTrue(owner.get().isRunning());
+                Assertions.assertTrue(owner.get().isHibernating());
+                Assertions.assertFalse(owner.get().isActive());
+            }, () -> {}, () -> {});
+        owner.set(runtime);
 
-            runtime.activate();
+        runtime.activate();
 
-            Assertions.assertFalse(data.hasMarketData());
-            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
-            Assertions.assertTrue(runtime.isActive());
-            Assertions.assertEquals(110, data.highestBuyOrderPrice(PRODUCT).orElseThrow());
-        }
+        Assertions.assertFalse(data.hasMarketData());
+        runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(products(110)), true));
+        Assertions.assertTrue(runtime.isActive());
+        Assertions.assertEquals(110, data.highestBuyOrderPrice(PRODUCT).orElseThrow());
     }
 
     @Test
@@ -141,7 +139,8 @@ class FeatureRuntimeTest {
                 {"products":{"TEST":{"sell_summary":[{"pricePerUnit":110,"orders":1},null]}}}
                 """, SkyBlockBazaarReply.class);
 
-            runtime.onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(candidate.getProducts()), false));
+            runtime
+                .onMarketReply(new MarketReply(BazaarData.MarketSnapshot.fromProducts(candidate.getProducts()), false));
 
             Assertions.assertTrue(runtime.isActive());
             Assertions.assertTrue(alerts.alerts().isEmpty());

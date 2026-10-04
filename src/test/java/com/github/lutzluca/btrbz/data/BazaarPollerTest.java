@@ -65,7 +65,7 @@ class BazaarPollerTest {
         this.assertNextDelay(20_000, 21_000);
         Assertions.assertEquals(2, this.delivered.size());
         Assertions.assertTrue(this.delivered.getFirst().advanced());
-        // Recovery can retry after a failed baseline even without a newer source publication.
+        // A hibernating runtime can recover even without a newer source publication.
         Assertions.assertFalse(this.delivered.getLast().advanced());
         Assertions.assertTrue(this.health.isEmpty());
     }
@@ -217,7 +217,7 @@ class BazaarPollerTest {
     }
 
     @Test
-    void sourceAdvancementRearmsFrozenWarningsWithoutWarningOnEveryReply() {
+    void sourceAdvancementAndFailuresKeepFrozenWarningsOncePerSource() {
         this.scheduler.advanceBy(600_000);
         long first = this.scheduler.now;
         this.reply(this.startFetch(), new Reply(first));
@@ -242,6 +242,9 @@ class BazaarPollerTest {
 
         long next = this.scheduler.now;
         this.reply(this.api.requests.getLast(), new Reply(next));
+        this.drainClient();
+        this.fail(this.nextFetch(), new IllegalStateException("brief failure on the new source"));
+        this.reply(this.nextFetch(), new Reply(next));
         this.scheduler.advanceTo(next + 300_000);
         this.drainClient();
 
@@ -290,7 +293,8 @@ class BazaarPollerTest {
         Assertions.assertEquals(List.of("unavailable"), this.health);
         this.scheduler.advanceBy(0);
         this.drainClient();
-        Assertions.assertEquals(1, this.health.size());
+        // Both expiry observations are valid. The lifecycle owner makes suspension and messaging idempotent.
+        Assertions.assertEquals(List.of("unavailable", "unavailable"), this.health);
     }
 
     @Test

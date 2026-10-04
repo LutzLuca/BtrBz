@@ -328,7 +328,7 @@ public final class GameUtils {
             /*String serialized = color.serialize();
             if (!serialized.startsWith("#")) {
                 try {
-                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(Locale.ROOT)));
+                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(java.util.Locale.ROOT)));
                 } catch (IllegalArgumentException _) {
                     //ignore unknown color names
                 }

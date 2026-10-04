@@ -20,7 +20,10 @@ import net.hypixel.api.exceptions.BadStatusCodeException;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import net.minecraft.client.Minecraft;
 
-/** Owns polling and health clocks on its worker, with guarded publication on the client thread. */
+/**
+ * Owns polling and health clocks on its worker, with guarded publication on the client thread.
+ * Unavailability observations may repeat; lifecycle owners handle them idempotently.
+ */
 @Slf4j
 public final class BazaarPoller implements AutoCloseable {
     private static final long NORMAL_INTERVAL_MS = 20_000;
@@ -42,12 +45,11 @@ public final class BazaarPoller implements AutoCloseable {
     private volatile boolean running;
     private volatile long generation;
     private volatile long latestSourceTime = -1;
-    private volatile long healthRevision;
     private volatile boolean unavailable;
     private volatile long failureEpisode;
     private volatile long failureStartedAt = -1;
     private volatile long frozenEpisode;
-    private volatile boolean frozenWarningDelivered;
+    private volatile FrozenWarningSource deliveredFrozenWarning;
     // Remaining worker-owned state.
     private ScheduledFuture<?> scheduledFetch;
     private ScheduledFuture<?> sourceExpiry;
@@ -61,7 +63,6 @@ public final class BazaarPoller implements AutoCloseable {
     // These fields are only read/written while delivering on the client.
     private long clientRun = -1;
     private long clientSourceTime = -1;
-    private boolean clientUnavailable;
 
     public BazaarPoller(
         Consumer<MarketReply> onReply,
@@ -126,11 +127,9 @@ public final class BazaarPoller implements AutoCloseable {
             this.failedRequests = 0;
             this.failureStartedAt = -1;
             this.unavailable = false;
-            this.healthRevision++;
             this.failureEpisode++;
             this.frozenEpisode++;
             this.frozenWarningIssued = false;
-            this.frozenWarningDelivered = false;
             this.fetch(run);
         });
     }
@@ -229,7 +228,6 @@ public final class BazaarPoller implements AutoCloseable {
                 this.publicationStartedAt = this.clock.getAsLong();
                 this.frozenEpisode++;
                 this.frozenWarningIssued = false;
-                this.frozenWarningDelivered = false;
                 cancel(this.frozenWarning);
                 this.frozenWarning = null;
                 cancel(this.sourceExpiry);
@@ -240,10 +238,7 @@ public final class BazaarPoller implements AutoCloseable {
             }
             if (sourceTime == this.latestSourceTime) {
                 if (this.usable(sourceTime)) {
-                    if (this.unavailable) {
-                        this.unavailable = false;
-                        this.healthRevision++;
-                    }
+                    this.unavailable = false;
                     this.deliverCandidate(run, sourceTime, snapshot);
                 } else {
                     this.markUnavailable(run);
@@ -262,7 +257,6 @@ public final class BazaarPoller implements AutoCloseable {
         if (this.clientRun != run) {
             this.clientRun = run;
             this.clientSourceTime = -1;
-            this.clientUnavailable = false;
         }
     }
 
@@ -272,7 +266,7 @@ public final class BazaarPoller implements AutoCloseable {
                 return;
             }
             if (!this.usable(sourceTime)) {
-                this.deliverUnavailable(run);
+                this.onUnavailable.run();
                 return;
             }
             if (this.unavailable) {
@@ -281,8 +275,7 @@ public final class BazaarPoller implements AutoCloseable {
             this.resetClientRun(run);
             boolean advanced = sourceTime > this.clientSourceTime;
             this.clientSourceTime = sourceTime;
-            this.clientUnavailable = false;
-            // Even unchanged candidates reach recovery: a previous quiet baseline may have failed.
+            // Recovery accepts an unchanged usable source even when ordinary publication would skip it.
             this.onReply.accept(new MarketReply(snapshot, advanced));
         });
     }
@@ -292,20 +285,11 @@ public final class BazaarPoller implements AutoCloseable {
             return;
         }
         this.unavailable = true;
-        long revision = ++this.healthRevision;
         this.dispatch(() -> {
-            if (this.isCurrent(run) && this.unavailable && revision == this.healthRevision) {
-                this.deliverUnavailable(run);
+            if (this.isCurrent(run) && this.unavailable) {
+                this.onUnavailable.run();
             }
         });
-    }
-
-    private void deliverUnavailable(long run) {
-        this.resetClientRun(run);
-        if (!this.clientUnavailable) {
-            this.clientUnavailable = true;
-            this.onUnavailable.run();
-        }
     }
 
     private void succeeded() {
@@ -328,7 +312,8 @@ public final class BazaarPoller implements AutoCloseable {
             this.frozenEpisode++;
             cancel(this.frozenWarning);
             this.frozenWarning = null;
-            this.frozenWarningIssued = this.frozenWarningDelivered;
+            this.frozenWarningIssued = new FrozenWarningSource(run, this.latestSourceTime)
+                .equals(this.deliveredFrozenWarning);
             this.failureGrace = this.schedule(run, FAILURE_GRACE_MS, () -> {
                 this.failureGrace = null;
                 if (this.failureStartedAt >= 0 && episode == this.failureEpisode) {
@@ -369,6 +354,7 @@ public final class BazaarPoller implements AutoCloseable {
             return;
         }
         long episode = this.frozenEpisode;
+        var source = new FrozenWarningSource(run, this.latestSourceTime);
         this.frozenWarning = this.schedule(run, this.publicationStartedAt + WARNING_MS - this.clock.getAsLong(), () -> {
             this.frozenWarning = null;
             if (episode != this.frozenEpisode || this.failureStartedAt >= 0) {
@@ -377,7 +363,8 @@ public final class BazaarPoller implements AutoCloseable {
             this.frozenWarningIssued = true;
             this.dispatch(() -> {
                 if (this.isCurrent(run) && episode == this.frozenEpisode && this.failureStartedAt < 0) {
-                    this.frozenWarningDelivered = true;
+                    // A newer source can arrive after the guard, so retain the acknowledged source identity.
+                    this.deliveredFrozenWarning = source;
                     this.onFrozenSource.run();
                 }
             });
@@ -430,4 +417,6 @@ public final class BazaarPoller implements AutoCloseable {
     }
 
     public record MarketReply(MarketSnapshot snapshot, boolean advanced) {}
+
+    private record FrozenWarningSource(long run, long sourceTime) {}
 }
