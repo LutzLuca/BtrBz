@@ -104,7 +104,8 @@ final class BoundedBazaarHttpClient implements HypixelHttpClient {
                 String body = entity == null ? "" : EntityUtils.toString(entity, "UTF-8");
                 result.complete(new HypixelHttpResponse(response.getStatusLine().getStatusCode(), body, null));
             }
-        } catch (Exception error) {
+        } catch (Throwable error) {
+            // Complete the asynchronous result before cleanup cancels its remaining deadline.
             result.completeExceptionally(error);
         } finally {
             if (deadline != null) {

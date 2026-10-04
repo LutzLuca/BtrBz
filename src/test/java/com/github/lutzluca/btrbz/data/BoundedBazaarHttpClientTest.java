@@ -27,6 +27,34 @@ import org.junit.jupiter.api.Test;
 
 class BoundedBazaarHttpClientTest {
     @Test
+    void linkageErrorCompletesTheFutureAndReleasesRequestCapacity() throws Exception {
+        try (var server = server()) {
+            var error = new LinkageError("HTTP stack linkage failure");
+            var failOnce = new AtomicBoolean(true);
+            DnsResolver dns = _ -> {
+                if (failOnce.getAndSet(false)) {
+                    throw error;
+                }
+                return new InetAddress[]{InetAddress.getByName("127.0.0.1")};
+            };
+            var transport = new BoundedBazaarHttpClient(1_000, 3_000, 10_000, dns);
+            String endpoint = "http://bazaar.test:" + server.getLocalPort() + "/bazaar";
+            try {
+                var result = transport.makeRequest(endpoint);
+                var failure = Assertions.assertThrows(ExecutionException.class,
+                    () -> result.get(2, TimeUnit.SECONDS));
+                Assertions.assertSame(error, failure.getCause());
+
+                // Apache closes its connection pool on Error, but transport admission must reopen.
+                var retry = requestWhenFree(transport, endpoint);
+                Assertions.assertThrows(ExecutionException.class, () -> retry.get(2, TimeUnit.SECONDS));
+            } finally {
+                transport.shutdown();
+            }
+        }
+    }
+
+    @Test
     void totalDeadlineCompletesDuringBlockedDnsWithoutReleasingPhysicalCapacity() throws Exception {
         try (var server = server()) {
             var dns = new BlockedDns();
