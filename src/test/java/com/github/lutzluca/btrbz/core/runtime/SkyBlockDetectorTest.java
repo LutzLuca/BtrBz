@@ -100,11 +100,11 @@ class SkyBlockDetectorTest {
         }
 
         @Test
-        void oldQueuedErrorCannotDeactivateANewerConnection() {
+        void oldQueuedUnknownLocationCannotDeactivateANewerConnection() {
             SkyBlockDetectorTest.this.tracker.beginConnection();
             SkyBlockDetectorTest.this.clientTasks.remove().run();
             SkyBlockDetectorTest.this.tracker.onLocation("miniA", Optional.empty());
-            var oldError = SkyBlockDetectorTest.this.clientTasks.remove();
+            var oldLocation = SkyBlockDetectorTest.this.clientTasks.remove();
             SkyBlockDetectorTest.this.tracker.endConnection();
             while (!SkyBlockDetectorTest.this.clientTasks.isEmpty()) {
                 SkyBlockDetectorTest.this.clientTasks.remove().run();
@@ -113,7 +113,7 @@ class SkyBlockDetectorTest {
             SkyBlockDetectorTest.this.clientTasks.remove().run();
             SkyBlockDetectorTest.this.tracker.onLocation("miniA", Optional.of(GameType.SKYBLOCK));
             SkyBlockDetectorTest.this.clientTasks.remove().run();
-            oldError.run();
+            oldLocation.run();
             Assertions.assertTrue(SkyBlockDetectorTest.this.activation.isActive());
             Assertions.assertEquals(Optional.of("miniA"), SkyBlockDetectorTest.this.profileLocations.getLast());
         }

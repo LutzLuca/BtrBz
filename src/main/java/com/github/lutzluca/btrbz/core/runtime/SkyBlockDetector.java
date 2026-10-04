@@ -42,12 +42,10 @@ public final class SkyBlockDetector {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> this.endConnection());
 
         var api = HypixelModAPI.getInstance();
+        // A failed update does not establish a departure. Keep the last confirmed location.
         api.createHandler(ClientboundLocationPacket.class,
             packet -> this.onLocation(packet.getServerName(), packet.getServerType()))
-            .onError(error -> {
-                log.warn("Hypixel location update failed: {}", error);
-                this.onLocation("", Optional.empty());
-            });
+            .onError(error -> log.warn("Hypixel location update failed: {}", error));
         api.subscribeToEventPacket(ClientboundLocationPacket.class);
     }
 
