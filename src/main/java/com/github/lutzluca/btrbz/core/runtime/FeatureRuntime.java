@@ -1,8 +1,10 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.runtime;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.BazaarPoller.MarketReply;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Client-thread owner of the surviving session and its market publication boundary. */
 public final class FeatureRuntime {
@@ -11,6 +13,10 @@ public final class FeatureRuntime {
     private final Runnable startSession;
     private final Runnable suspendFeatures;
     private final Runnable endSession;
+    private final Runnable resetSessionState;
+    @Getter
+    @Accessors(fluent = true)
+    private long sessionGeneration;
     private State state = State.Inactive;
 
     public FeatureRuntime(
@@ -18,13 +24,15 @@ public final class FeatureRuntime {
         BazaarData market,
         Runnable startSession,
         Runnable suspendFeatures,
-        Runnable endSession
+        Runnable endSession,
+        Runnable resetSessionState
     ) {
         this.activation = activation;
         this.market = market;
         this.startSession = startSession;
         this.suspendFeatures = suspendFeatures;
         this.endSession = endSession;
+        this.resetSessionState = resetSessionState;
     }
 
     public boolean isRunning() {
@@ -39,14 +47,17 @@ public final class FeatureRuntime {
         return this.state == State.Hibernating;
     }
 
-    public long sessionGeneration() {
-        return this.activation.generation();
+    /** Invalidate old work and clear session facts without restarting shared services or market gates. */
+    public void resetSession() {
+        this.sessionGeneration++;
+        this.resetSessionState.run();
     }
 
     public void activate() {
         if (this.isRunning()) {
             return;
         }
+        this.sessionGeneration++;
         this.state = this.activation.isAlwaysActive() ? State.Active : State.Hibernating;
         this.startSession.run();
     }
@@ -87,6 +98,7 @@ public final class FeatureRuntime {
         if (!this.isRunning()) {
             return;
         }
+        this.sessionGeneration++;
         this.state = State.Inactive;
         this.endSession.run();
         this.market.clearMarketData();

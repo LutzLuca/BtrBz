@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
@@ -63,7 +63,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private final @Nullable Screen previousScreen;
     private final FeatureRuntime runtime;
-    private final long activationGeneration;
+    private final long sessionGeneration;
     private final Object parentLevel = Minecraft.getInstance().level;
     private final Object parentConnection = Minecraft.getInstance().getConnection();
     private final @Nullable AbstractContainerScreen<?> backgroundScreen;
@@ -165,7 +165,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         super(Component.literal("BtrBz Widgets"));
         this.previousScreen = previousScreen;
         this.runtime = Objects.requireNonNull(runtime, "runtime");
-        this.activationGeneration = this.runtime.sessionGeneration();
+        this.sessionGeneration = this.runtime.sessionGeneration();
         this.backgroundScreen = context == null ? null : context.backgroundScreen();
         this.configurationPreview = context == null;
 
@@ -360,7 +360,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private boolean hasCurrentGameContext() {
-        return this.runtime.isRunning() && this.activationGeneration == this.runtime.sessionGeneration()
+        return this.runtime.isRunning() && this.sessionGeneration == this.runtime.sessionGeneration()
             && Minecraft.getInstance().level == this.parentLevel
             && Minecraft.getInstance().getConnection() == this.parentConnection;
     }

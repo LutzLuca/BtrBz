@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 
 import com.github.lutzluca.btrbz.Assets;
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
@@ -65,7 +65,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private final AlertManager manager;
     private final FeatureRuntime runtime;
     private final OrderBookScreenController orderBook;
-    private final long activationGeneration;
+    private final long sessionGeneration;
     private final @Nullable Object parentLevel;
     private final @Nullable Object parentConnection;
     private final AlertEditorState editor = new AlertEditorState();
@@ -120,7 +120,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.manager = Objects.requireNonNull(manager, "manager");
         this.runtime = Objects.requireNonNull(runtime, "runtime");
         this.orderBook = Objects.requireNonNull(orderBook, "orderBook");
-        this.activationGeneration = runtime.sessionGeneration();
+        this.sessionGeneration = runtime.sessionGeneration();
         this.parentLevel = Minecraft.getInstance().level;
         this.parentConnection = Minecraft.getInstance().getConnection();
     }
@@ -578,6 +578,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             .withStyle(UiStyles.muted())));
         return this.alertRow(alert, product, current, 136,
             button("Open Bazaar", () -> {
+                if (!this.sameSession()) {
+                    return;
+                }
                 GameUtils.setScreen(null);
                 GameUtils.runCommand("bz " + product.strippedName());
             }).horizontalSizing(Sizing.fixed(80)),
@@ -823,7 +826,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         return this.runtime.isRunning()
             && Minecraft.getInstance().level == this.parentLevel
             && Minecraft.getInstance().getConnection() == this.parentConnection
-            && this.runtime.sessionGeneration() == this.activationGeneration;
+            && this.runtime.sessionGeneration() == this.sessionGeneration;
     }
 
     private void setMessage(String message, int color) {

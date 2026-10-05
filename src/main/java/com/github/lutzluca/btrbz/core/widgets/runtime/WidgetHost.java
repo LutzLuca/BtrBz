@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
-import com.github.lutzluca.btrbz.core.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
