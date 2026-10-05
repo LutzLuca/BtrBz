@@ -37,7 +37,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -65,6 +67,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private final HistoryViewport viewport = new HistoryViewport();
     private final HistoryPanel history;
     private final OrderBookPanel book;
+    private final List<Runnable> deferred = new ArrayList<>();
     private final EnumMap<ItemInfoRange, ButtonComponent> ranges = new EnumMap<>(ItemInfoRange.class);
     private boolean orderBook;
     private Modal modal;
@@ -138,6 +141,12 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
         return OwoUIAdapter.create(this, UIContainers::verticalFlow);
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        this.runDeferred();
     }
 
     @Override
@@ -661,11 +670,21 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void defer(Runnable action) {
-        this.uiAdapter.rootComponent.queue(() -> {
+        this.deferred.add(action);
+    }
+
+    private void runDeferred() {
+        if (this.uiAdapter == null || this.uiAdapter.rootComponent.focusHandler() == null) {
+            return;
+        }
+        // Builds can schedule focus before mount or enqueue another action during a rebuild.
+        var actions = List.copyOf(this.deferred);
+        this.deferred.clear();
+        for (var action : actions) {
             if (this.session.isCurrent() && GameUtils.screen() == this) {
                 action.run();
             }
-        });
+        }
     }
 
     @Override
@@ -683,6 +702,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
         super.tick();
+        this.runDeferred();
         this.history.tick();
         if (++this.ageTicks >= 20) {
             this.ageTicks = 0;
@@ -724,6 +744,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void removed() {
+        this.deferred.clear();
         this.session.close();
         super.removed();
     }

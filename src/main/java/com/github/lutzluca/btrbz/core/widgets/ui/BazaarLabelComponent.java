@@ -4,12 +4,20 @@ import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 
 final class BazaarLabelComponent extends LabelComponent {
     private final RetainedTextRow retainedText = new RetainedTextRow();
 
     BazaarLabelComponent(Component text) {
         super(text);
+    }
+
+    @Override
+    protected Style styleAt(int mouseX, int mouseY) {
+        // Explicit tooltips also run owo's rich-hover path over label whitespace.
+        var style = super.styleAt(mouseX, mouseY);
+        return style == null ? Style.EMPTY : style;
     }
 
     @Override
