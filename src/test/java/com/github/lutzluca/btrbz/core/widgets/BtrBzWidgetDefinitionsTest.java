@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinitio
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetData;
@@ -33,8 +32,6 @@ class BtrBzWidgetDefinitionsTest {
             session(false, false, false, BazaarMenuType.Item, null, false)));
         assertTrue(OrderValueWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Orders, null, false)));
-        assertTrue(OrderBookWidgetDefinition.supportsSession(
-            session(false, false, true, null, null, true)));
         assertTrue(OrderBookPriceWidgetDefinition.supportsSession(
             session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)));
         assertTrue(BookmarksWidgetDefinition.supportsSession(
@@ -55,7 +52,6 @@ class BtrBzWidgetDefinitionsTest {
 
         var staleMenuOnCustomScreen = session(false, false, true, BazaarMenuType.Orders, null, true);
         assertFalse(OrderValueWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
-        assertTrue(OrderBookWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
     }
 
     @Test
@@ -70,7 +66,7 @@ class BtrBzWidgetDefinitionsTest {
     private static WidgetSession session(
         boolean hud,
         boolean sign,
-        boolean orderBook,
+        boolean customScreen,
         BazaarMenuType menu,
         BazaarMenuType previous,
         boolean product
@@ -80,7 +76,7 @@ class BtrBzWidgetDefinitionsTest {
                 ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty()))
             : Optional.empty();
         return new WidgetSession(
-            1, hud, sign, orderBook,
+            1, hud, sign, customScreen,
             Optional.ofNullable(menu), Optional.ofNullable(previous), context,
             sign ? Optional.of(OrderType.Buy) : Optional.empty(), 1);
     }

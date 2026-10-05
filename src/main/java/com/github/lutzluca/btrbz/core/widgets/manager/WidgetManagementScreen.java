@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
 import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
-import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
@@ -343,8 +342,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         if (!this.hasCurrentGameContext()
             && (this.backgroundScreen != null
                 || this.previousScreen instanceof AbstractContainerScreen<?>
-                || this.previousScreen instanceof SignEditScreen
-                || this.previousScreen instanceof OrderBookScreen)) {
+                || this.previousScreen instanceof SignEditScreen)) {
             return null;
         }
         if (this.backgroundScreen == null) {

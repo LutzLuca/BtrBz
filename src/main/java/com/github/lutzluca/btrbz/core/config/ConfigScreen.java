@@ -97,6 +97,7 @@ public class ConfigScreen {
                 () -> this.tooltipProvider.onListSettingsChanged("order-list tooltip setting changed")))
             .group(config.orderItemTooltip.createGroup(this.tooltipProvider::onItemSettingsChanged))
             .group(config.productInfo.createGroup())
+            .group(config.itemInfo.createGroup())
             .group(config.chatFilter.createGroup())
             .build();
 

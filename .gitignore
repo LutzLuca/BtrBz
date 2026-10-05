@@ -3,6 +3,7 @@
 build/
 logs/
 versions/*/bin/
+coflnet-sdk/bin/
 
 # local
 run/

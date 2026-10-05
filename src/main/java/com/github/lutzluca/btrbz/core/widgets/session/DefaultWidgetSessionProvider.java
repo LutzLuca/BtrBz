@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.session;
 
 import com.github.lutzluca.btrbz.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceComponent;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
@@ -12,6 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -72,16 +72,12 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         var previous = helper.getPrevInfo();
         boolean hud = screen == null;
         boolean sign = screen instanceof SignEditScreen;
-        boolean orderBook = screen instanceof OrderBookScreen orderBookScreen && orderBookScreen.isCurrent();
+        boolean customScreen = screen != null && !sign && !(screen instanceof AbstractContainerScreen<?>);
 
         Optional<WidgetProductContext> product = Optional.empty();
         Optional<OrderType> side = Optional.empty();
 
-        if (screen instanceof OrderBookScreen orderBookScreen && orderBook) {
-            product = Optional.of(this.context(
-                orderBookScreen.product(), Component.literal(orderBookScreen.productName()),
-                previous.getItemStack(PRODUCT_SLOT).or(() -> current.getItemStack(PRODUCT_SLOT))));
-        } else if (sign) {
+        if (sign) {
             var workflow = this.orderBookPrice.currentWorkflow();
             product = workflow.map(OrderBookPriceComponent.Workflow::product)
                 .map(identity -> this.context(
@@ -94,7 +90,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         }
 
         var candidate = new WidgetSession(
-            this.semanticSessionId, hud, sign, orderBook,
+            this.semanticSessionId, hud, sign, customScreen,
             current.getMenuType(), previous.getMenuType(), product, side,
             this.contextChanges.revision());
 
@@ -107,7 +103,7 @@ public final class DefaultWidgetSessionProvider implements WidgetSessionProvider
         }
 
         var session = new WidgetSession(
-            this.semanticSessionId, hud, sign, orderBook,
+            this.semanticSessionId, hud, sign, customScreen,
             current.getMenuType(), previous.getMenuType(), product, side,
             this.contextChanges.revision());
 

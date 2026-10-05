@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import java.util.function.Function;
+import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.minecraft.network.chat.Component;
@@ -19,6 +20,7 @@ public class Commands {
         ProfileTracker profileTracker,
         Runnable openAlertScreen,
         Runnable openConfigScreen,
+        Consumer<String> openItemInfo,
         Function<Boolean, String> setEnabled
     ) {
         var rootCommand = ClientCommands.literal("btrbz").executes(_ -> {
@@ -35,6 +37,7 @@ public class Commands {
         }));
         rootCommand.then(WidgetCommand.build(widgetRuntime));
         rootCommand.then(AlertCommand.build(openAlertScreen));
+        rootCommand.then(ItemInfoCommand.build(bazaarData, openItemInfo));
         rootCommand.then(ConversionCommand.build(bazaarData));
         rootCommand.then(TrackedOrderCommand.build(orderManager));
         rootCommand.then(ProfileCommand.build(profileTracker));
