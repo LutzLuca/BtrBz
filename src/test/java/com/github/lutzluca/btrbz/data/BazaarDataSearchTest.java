@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionProductEntry;
 import com.github.lutzluca.btrbz.data.conversions.ProductNameSource;
 import com.google.gson.Gson;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ class BazaarDataSearchTest {
         var market = marketWithProducts(Map.of("VALID", "Valid Product"));
 
         Assertions.assertTrue(market.searchProducts("valid", 10).isEmpty());
+        Assertions.assertEquals(List.of("VALID"), ids(market.searchIndexedProducts("valid", 10)));
         publish(market, """
             {"products":{"VALID":{"sell_summary":[{"pricePerUnit":1,"amount":1,"orders":1}]}}}
             """);
@@ -70,6 +72,41 @@ class BazaarDataSearchTest {
         market.clearMarketData();
 
         Assertions.assertTrue(market.searchProducts("valid", 10).isEmpty());
+    }
+
+    @Test
+    void copiesSortedBooksWithSourceTimeAndFullSideTotals() {
+        var reply = new Gson().fromJson("""
+            {"products":{"TEST":{
+                "sell_summary":[{"pricePerUnit":0.1,"amount":3,"orders":2},
+                                {"pricePerUnit":0.2,"amount":5,"orders":1},
+                                {"pricePerUnit":0.1,"amount":4,"orders":1}],
+                "buy_summary":[{"pricePerUnit":0.4,"amount":2,"orders":1},
+                               {"pricePerUnit":0.3,"amount":8,"orders":2},
+                               {"pricePerUnit":0,"amount":8,"orders":2}],
+                "quick_status":{"sellVolume":123,"sellOrders":12,"buyVolume":456,"buyOrders":34}
+            },"EMPTY":{"sell_summary":[],"buy_summary":[]}}}
+            """, SkyBlockBazaarReply.class);
+        var sourceTime = Instant.parse("2026-10-05T10:00:00Z");
+        var snapshot = BazaarData.MarketSnapshot.fromProducts(reply.getProducts(), sourceTime);
+        var live = snapshot.liveProduct(ProductIdentity.fromRuntime("Test", "TEST", null)).orElseThrow();
+
+        Assertions.assertEquals(sourceTime, live.sourceUpdatedAt().orElseThrow());
+        Assertions.assertEquals(0.3, live.buyPrice().orElseThrow());
+        Assertions.assertEquals(0.2, live.sellPrice().orElseThrow());
+        Assertions.assertEquals(List.of(new LiveProductSnapshot.PriceLevel(0.2, 5, 1),
+            new LiveProductSnapshot.PriceLevel(0.1, 7, 3)), live.buyOrders().levels());
+        Assertions.assertEquals(new LiveProductSnapshot.Totals(123, 12), live.buyOrders().totals().orElseThrow());
+        Assertions.assertEquals(new LiveProductSnapshot.Totals(456, 34), live.sellOffers().totals().orElseThrow());
+        var empty = snapshot.liveProduct(ProductIdentity.fromRuntime("Empty", "EMPTY", null)).orElseThrow();
+        Assertions.assertTrue(empty.buyOrders().totals().isEmpty());
+        Assertions.assertTrue(empty.buyPrice().isEmpty());
+        reply.getProducts().get("TEST").getSellSummary().clear();
+        Assertions.assertEquals(2, live.buyOrders().levels().size());
+        var data = new BazaarData();
+        data.publishSnapshot(snapshot);
+        data.clearMarketData();
+        Assertions.assertTrue(data.currentSnapshot().sourceUpdatedAt().isEmpty());
     }
 
     private static BazaarData marketWithProducts(Map<String, String> names) {
