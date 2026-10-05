@@ -119,7 +119,7 @@ class ReachedAlertsTest {
         Assertions.assertEquals(1, manager.alerts().size());
         Assertions.assertTrue(notifications.isEmpty());
 
-        data.onUpdate(Map.of());
+        data.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(Map.of()));
         publishBook(data, null, null);
         publishBook(data, source == PriceSource.Sell ? "101" : "90", source == PriceSource.Sell ? "150" : "99");
         Assertions.assertEquals(1, manager.alerts().size());
@@ -242,7 +242,7 @@ class ReachedAlertsTest {
         var reply = new Gson().fromJson("""
             {"products":{"ENCHANTED_DIAMOND":{"sell_summary":%s,"buy_summary":%s}}}
             """.formatted(summary(buyOrder), summary(sellOffer)), SkyBlockBazaarReply.class);
-        data.onUpdate(reply.getProducts());
+        data.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(reply.getProducts()));
     }
 
     private static String summary(String price) {

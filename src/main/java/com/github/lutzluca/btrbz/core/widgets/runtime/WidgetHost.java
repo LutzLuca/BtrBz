@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.runtime;
 
-import com.github.lutzluca.btrbz.core.Activation;
+import com.github.lutzluca.btrbz.core.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetActionHandler;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
@@ -46,10 +46,10 @@ public final class WidgetHost {
     private final WidgetStateStore stateStore;
     private final boolean runtime;
     private final boolean runtimePlacementDragging;
-    private final Activation activation;
+    private final FeatureRuntime features;
 
     private final @Nullable WidgetSessionProvider sessionProvider;
-    private final @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
+    private @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews;
     private final @Nullable Map<WidgetId, Double> scrollOffsets;
 
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
@@ -68,13 +68,13 @@ public final class WidgetHost {
         @Nullable WidgetSessionProvider sessionProvider,
         @Nullable Map<WidgetId, WidgetPreview<?>> capturedPreviews,
         @Nullable Map<WidgetId, Double> scrollOffsets,
-        Activation activation
+        FeatureRuntime features
     ) {
         this.definitions = List.copyOf(definitions);
         this.stateStore = stateStore;
         this.runtime = runtime;
         this.runtimePlacementDragging = runtimePlacementDragging;
-        this.activation = Objects.requireNonNull(activation, "activation");
+        this.features = Objects.requireNonNull(features, "features");
 
         this.sessionProvider = sessionProvider;
         this.capturedPreviews = capturedPreviews == null ? null : Map.copyOf(capturedPreviews);
@@ -87,27 +87,32 @@ public final class WidgetHost {
         WidgetSessionProvider sessionProvider,
         Map<WidgetId, Double> scrollOffsets,
         boolean placementDragging,
-        Activation activation
+        FeatureRuntime features
     ) {
         return new WidgetHost(
-            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets, activation);
+            definitions, stateStore, true, placementDragging, sessionProvider, null, scrollOffsets, features);
     }
 
     public static WidgetHost preview(
         List<WidgetDefinition<?, ?, ?>> definitions,
         WidgetStateStore stateStore,
-        Activation activation
+        FeatureRuntime features
     ) {
-        return new WidgetHost(definitions, stateStore, false, false, null, null, null, activation);
+        return new WidgetHost(definitions, stateStore, false, false, null, null, null, features);
     }
 
     public static WidgetHost preview(
         List<WidgetDefinition<?, ?, ?>> definitions,
         WidgetStateStore stateStore,
         Map<WidgetId, WidgetPreview<?>> capturedPreviews,
-        Activation activation
+        FeatureRuntime features
     ) {
-        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews, null, activation);
+        return new WidgetHost(definitions, stateStore, false, false, null, capturedPreviews, null, features);
+    }
+
+    public void discardCapturedPreviews() {
+        this.capturedPreviews = null;
+        this.dispose();
     }
 
     public List<WidgetRenderResult> render(
@@ -119,7 +124,7 @@ public final class WidgetHost {
         WidgetHostOptions options,
         @Nullable Screen screen
     ) {
-        if (this.runtime && !this.activation.isActive()) {
+        if (this.runtime && !this.features.isActive()) {
             return List.of();
         }
         this.ensureAdapter();
@@ -260,7 +265,7 @@ public final class WidgetHost {
     }
 
     private boolean acceptsInput() {
-        return this.adapter != null && (!this.runtime || this.activation.isActive());
+        return this.adapter != null && (!this.runtime || this.features.isActive());
     }
 
     private void ensureAdapter() {
@@ -465,7 +470,7 @@ public final class WidgetHost {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void dispatch(MountedWidget mountedWidget, long generation, Object action) {
-        if (!this.activation.isActive() || generation != mountedWidget.generation
+        if (!this.features.isActive() || generation != mountedWidget.generation
             || !CacheRevisions.match(
                 mountedWidget.preparedDependencyRevisions, mountedWidget.dependencies)) {
             return;

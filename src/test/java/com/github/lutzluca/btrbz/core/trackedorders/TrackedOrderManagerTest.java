@@ -447,13 +447,13 @@ class TrackedOrderManagerTest {
         var data = data(products);
         var snapshot = new AtomicReference<MarketSnapshot>();
         data.addListener(snapshot::set);
-        data.onUpdate(products);
+        data.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(products));
         return snapshot.get();
     }
 
     private static BazaarData data(Map<String, Product> products) {
         var data = new BazaarData();
-        data.onUpdate(products);
+        data.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(products));
         return data;
     }
 

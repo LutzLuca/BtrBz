@@ -32,7 +32,7 @@ class MarketAvailabilityTest {
                 "buy_summary":[{"pricePerUnit":110,"amount":100,"orders":2}]
             }}}
             """.formatted(buyPrice), SkyBlockBazaarReply.class);
-        this.market.onUpdate(reply.getProducts());
+        this.market.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(reply.getProducts()));
     }
 
     @Test

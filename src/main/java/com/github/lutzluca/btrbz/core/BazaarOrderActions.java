@@ -114,7 +114,7 @@ public class BazaarOrderActions {
                 BazaarMenuType.SellOfferConfirmation,
                 BazaarMenuType.BuyOrderConfirmation),
             info -> {
-                if (ConfigStore.get().config().orderActions.reopenBazaar
+                if (BtrBz.isActive() && ConfigStore.get().config().orderActions.reopenBazaar
                     && BazaarOrderActions.this.shouldReopenBazaar) {
                     GameUtils.runCommand("bz");
                 }
@@ -206,13 +206,19 @@ public class BazaarOrderActions {
     }
 
     public void setReopenBazaar() {
-        this.shouldReopenBazaar = true;
+        this.shouldReopenBazaar = BtrBz.isActive();
     }
 
     public void cancelPendingActions() {
         this.shouldReopenBazaar = false;
         this.remainingOrderAmount = null;
         this.activeBuyOrderContext = null;
+    }
+
+    public void resetSession() {
+        this.cancelPendingActions();
+        this.lastCancelledBuyOrder = null;
+        this.hideCancelledOrderButton = false;
     }
 
     private int getReopenTargetSlotIdx(SlotView slot) {

@@ -83,7 +83,8 @@ class BazaarDataSearchTest {
     }
 
     private static void publish(BazaarData market, String json) {
-        market.onUpdate(new Gson().fromJson(json, SkyBlockBazaarReply.class).getProducts());
+        market.publishSnapshot(
+            BazaarData.MarketSnapshot.fromProducts(new Gson().fromJson(json, SkyBlockBazaarReply.class).getProducts()));
     }
 
     private static List<String> ids(List<IndexedProduct> products) {

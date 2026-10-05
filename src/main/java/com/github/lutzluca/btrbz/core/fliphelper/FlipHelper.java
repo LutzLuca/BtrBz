@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.fliphelper;
 
+import com.github.lutzluca.btrbz.BtrBz;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -73,7 +75,6 @@ public class FlipHelper {
 
     private void registerSlotHooks() {
         SlotHookRegistry.register(new OrderFlipHook());
-        SlotHookRegistry.register(new OrderProductObserverHook());
     }
 
     private void registerFlipProductContextHandler() {
@@ -91,7 +92,7 @@ public class FlipHelper {
             }
 
             log.debug("Leaving flip flow, clearing selected product context");
-            this.cancelPendingFlip();
+            this.resetWorkflow();
         });
     }
 
@@ -131,7 +132,7 @@ public class FlipHelper {
 
     private void registerFlipPriceScreenHandler() {
         ScreenTracker.registerOnSwitch(curr -> {
-            if (!ConfigStore.get().config().flipHelper.enabled || !this.pendingFlip) {
+            if (!BtrBz.isActive() || !ConfigStore.get().config().flipHelper.enabled || !this.pendingFlip) {
                 this.clearPendingFlipState();
                 return;
             }
@@ -201,7 +202,25 @@ public class FlipHelper {
 
     public void cancelPendingFlip() {
         this.clearPendingFlipState();
+    }
+
+    public void resetWorkflow() {
+        this.cancelPendingFlip();
         this.flipProductContext.clearProduct();
+    }
+
+    /** Observe allowed vanilla Orders clicks independently of market action hooks. */
+    public void observeAcceptedOrderClick(SlotClickContext ctx) {
+        var cfg = ConfigStore.get().config();
+        if ((!cfg.flipHelper.enabled && !cfg.widgets.orderBookPrice.frame.enabled)
+            || !ctx.view().getCurrInfo().inMenu(BazaarMenuType.Orders)
+            || ctx.view().playerInventorySlot()) {
+            return;
+        }
+
+        OrderInfoParser.parseOrderInfo(ctx.view().getRawStack(), ctx.view().slotIdx(), this.bazaarData)
+            .onSuccess(this::onOrderClick)
+            .onFailure(_ -> this.resetWorkflow());
     }
 
     private void clearPendingFlipState() {
@@ -255,35 +274,6 @@ public class FlipHelper {
                 ContainerInput.PICKUP,
                 player);
             return SlotClickResult.Consume;
-        }
-    }
-
-    public final class OrderProductObserverHook implements SlotHook {
-
-        private OrderProductObserverHook() {}
-
-        @Override
-        public boolean matches(SlotView view) {
-            var cfg = ConfigStore.get().config();
-            boolean tracksFlipProduct = cfg.widgets.orderBookPrice.frame.enabled;
-            return (cfg.flipHelper.enabled || tracksFlipProduct)
-                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
-                && !view.playerInventorySlot();
-        }
-
-        @Override
-        public SlotClickResult onClick(SlotClickContext ctx) {
-            var orderInfo = OrderInfoParser.parseOrderInfo(
-                ctx.view().getRawStack(),
-                ctx.view().slotIdx(),
-                FlipHelper.this.bazaarData);
-            if (orderInfo.isSuccess()) {
-                FlipHelper.this.onOrderClick(orderInfo.get());
-            } else {
-                FlipHelper.this.cancelPendingFlip();
-            }
-
-            return SlotClickResult.Pass;
         }
     }
 

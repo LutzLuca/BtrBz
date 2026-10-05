@@ -12,6 +12,8 @@ import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
@@ -58,6 +60,10 @@ final class ManagementPreviewComponent extends BaseUIComponent {
                 this.screen.renderedWidgets(),
                 this.screen.previewProfiles()),
             this.screen);
+        if (this.screen.configurationPreview()) {
+            graphics.text(Minecraft.getInstance().font, Component.literal("Configuration preview"),
+                this.x + 8, this.y + 8, 0xFFAAAAAA, true);
+        }
     }
 
     @Override

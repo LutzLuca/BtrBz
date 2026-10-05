@@ -30,7 +30,7 @@ public final class OrderBookScreen extends Screen {
     private final Object parentConnection = Minecraft.getInstance().getConnection();
 
     public boolean isCurrent() {
-        return BtrBz.isActive() && this.activationGeneration == BtrBz.activationGeneration()
+        return BtrBz.isRunning() && this.activationGeneration == BtrBz.activationGeneration()
             && Minecraft.getInstance().level == this.parentLevel
             && Minecraft.getInstance().getConnection() == this.parentConnection;
     }
@@ -71,6 +71,12 @@ public final class OrderBookScreen extends Screen {
             return;
         }
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+
+        if (!BtrBz.isActive()) {
+            graphics.text(this.font, Component.literal("Bazaar market features are paused."),
+                12, 12, 0xFFAAAAAA, true);
+            return;
+        }
 
         this.host.render(
             graphics,

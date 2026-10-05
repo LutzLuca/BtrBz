@@ -28,7 +28,7 @@ public class ClientPlayNetworkHandlerMixin {
         ClientboundContainerSetSlotPacket packet,
         CallbackInfo ci
     ) {
-        if (!BtrBz.isActive()) {
+        if (!BtrBz.isRunning()) {
             return;
         }
         ScreenTracker.get().onSlotUpdate(packet);

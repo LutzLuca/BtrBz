@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
-import com.github.lutzluca.btrbz.core.Activation;
+import com.github.lutzluca.btrbz.core.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
@@ -39,6 +39,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -61,9 +62,12 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private static final long TOOLTIP_DELAY_MILLIS = 200;
 
     private final @Nullable Screen previousScreen;
-    private final Activation activation;
+    private final FeatureRuntime runtime;
     private final long activationGeneration;
+    private final Object parentLevel = Minecraft.getInstance().level;
+    private final Object parentConnection = Minecraft.getInstance().getConnection();
     private final @Nullable AbstractContainerScreen<?> backgroundScreen;
+    private boolean configurationPreview;
 
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
@@ -96,23 +100,23 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        Activation activation
+        FeatureRuntime runtime
     ) {
-        this(previousScreen, registry, stateStore, activation, WidgetManagementLaunchState.empty(), null);
+        this(previousScreen, registry, stateStore, runtime, WidgetManagementLaunchState.empty(), null);
     }
 
     public WidgetManagementScreen(
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        Activation activation,
+        FeatureRuntime runtime,
         WidgetId initiallySelectedWidget
     ) {
         this(
             previousScreen,
             registry,
             stateStore,
-            activation,
+            runtime,
             WidgetManagementLaunchState.configure(initiallySelectedWidget),
             null);
     }
@@ -121,14 +125,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        Activation activation,
+        FeatureRuntime runtime,
         WidgetManagementContext context
     ) {
         this(
             previousScreen,
             registry,
             stateStore,
-            activation,
+            runtime,
             WidgetManagementLaunchState.contextual(context.initiallyRendered()),
             context);
     }
@@ -137,7 +141,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        Activation activation,
+        FeatureRuntime runtime,
         WidgetId initiallySelectedWidget,
         WidgetManagementContext context
     ) {
@@ -145,7 +149,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             previousScreen,
             registry,
             stateStore,
-            activation,
+            runtime,
             WidgetManagementLaunchState.contextual(context.initiallyRendered(), initiallySelectedWidget),
             context);
     }
@@ -154,23 +158,24 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        Activation activation,
+        FeatureRuntime runtime,
         WidgetManagementLaunchState launchState,
         @Nullable WidgetManagementContext context
     ) {
         super(Component.literal("BtrBz Widgets"));
         this.previousScreen = previousScreen;
-        this.activation = Objects.requireNonNull(activation, "activation");
-        this.activationGeneration = this.activation.generation();
+        this.runtime = Objects.requireNonNull(runtime, "runtime");
+        this.activationGeneration = this.runtime.sessionGeneration();
         this.backgroundScreen = context == null ? null : context.backgroundScreen();
+        this.configurationPreview = context == null;
 
         this.registry = registry;
         this.stateStore = stateStore;
 
         this.editSession = new WidgetManagerEditSession(stateStore::save);
         this.previewHost = context == null
-            ? WidgetHost.preview(registry.all(), stateStore, this.activation)
-            : WidgetHost.preview(registry.all(), stateStore, context.frozenPreviews(), this.activation);
+            ? WidgetHost.preview(registry.all(), stateStore, this.runtime)
+            : WidgetHost.preview(registry.all(), stateStore, context.frozenPreviews(), this.runtime);
 
         if (launchState.selectedWidget() != null) {
             if (registry.find(launchState.selectedWidget()).isEmpty()) {
@@ -237,6 +242,15 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     boolean hasBazaarBackground() {
         return this.backgroundScreen != null;
+    }
+
+    boolean configurationPreview() {
+        return this.configurationPreview;
+    }
+
+    public void invalidateMarketPreview() {
+        this.configurationPreview = true;
+        this.previewHost.discardCapturedPreviews();
     }
 
     String placementProfile(WidgetDefinition<?, ?, ?> definition) {
@@ -346,7 +360,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private boolean hasCurrentGameContext() {
-        return this.activation.isActive() && this.activationGeneration == this.activation.generation();
+        return this.runtime.isRunning() && this.activationGeneration == this.runtime.sessionGeneration()
+            && Minecraft.getInstance().level == this.parentLevel
+            && Minecraft.getInstance().getConnection() == this.parentConnection;
     }
 
     @Override

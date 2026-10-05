@@ -7,7 +7,7 @@ import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 
 import com.github.lutzluca.btrbz.Assets;
-import com.github.lutzluca.btrbz.core.Activation;
+import com.github.lutzluca.btrbz.core.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
@@ -63,7 +63,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private final @Nullable Screen parent;
     private final BazaarData data;
     private final AlertManager manager;
-    private final Activation activation;
+    private final FeatureRuntime runtime;
     private final OrderBookScreenController orderBook;
     private final long activationGeneration;
     private final @Nullable Object parentLevel;
@@ -111,16 +111,16 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen parent,
         BazaarData data,
         AlertManager manager,
-        Activation activation,
+        FeatureRuntime runtime,
         OrderBookScreenController orderBook
     ) {
         super(Component.literal("BtrBz Alerts"));
         this.parent = parent;
         this.data = Objects.requireNonNull(data, "data");
         this.manager = Objects.requireNonNull(manager, "manager");
-        this.activation = Objects.requireNonNull(activation, "activation");
+        this.runtime = Objects.requireNonNull(runtime, "runtime");
         this.orderBook = Objects.requireNonNull(orderBook, "orderBook");
-        this.activationGeneration = activation.generation();
+        this.activationGeneration = runtime.sessionGeneration();
         this.parentLevel = Minecraft.getInstance().level;
         this.parentConnection = Minecraft.getInstance().getConnection();
     }
@@ -820,10 +820,10 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private boolean sameSession() {
-        return this.activation.isActive()
+        return this.runtime.isRunning()
             && Minecraft.getInstance().level == this.parentLevel
             && Minecraft.getInstance().getConnection() == this.parentConnection
-            && this.activation.generation() == this.activationGeneration;
+            && this.runtime.sessionGeneration() == this.activationGeneration;
     }
 
     private void setMessage(String message, int color) {

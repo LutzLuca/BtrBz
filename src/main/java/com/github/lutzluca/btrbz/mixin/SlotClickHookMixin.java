@@ -31,7 +31,7 @@ public abstract class SlotClickHookMixin {
         ContainerInput type,
         CallbackInfo ci
     ) {
-        if (!BtrBz.isActive() || slot == null) {
+        if (!BtrBz.isRunning() || slot == null) {
             return;
         }
 
@@ -50,6 +50,10 @@ public abstract class SlotClickHookMixin {
             type,
             button,
             SlotInputModifiers.from(Minecraft.getInstance()));
-        return SlotHookRegistry.handleClick(ctx);
+        if (BtrBz.isActive() && SlotHookRegistry.handleClick(ctx)) {
+            return true;
+        }
+        BtrBz.observeAcceptedClick(ctx);
+        return false;
     }
 }

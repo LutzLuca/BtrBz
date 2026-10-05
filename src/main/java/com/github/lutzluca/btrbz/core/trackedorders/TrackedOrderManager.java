@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -40,9 +41,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
-public class TrackedOrderManager {
+public class TrackedOrderManager implements AutoCloseable {
 
     private final BazaarData bazaarData;
+    private final Supplier<OrderManagerConfig> config;
 
     private final List<TrackedOrder> trackedOrders = new ArrayList<>();
     private final List<TrackedOrder> displayOrders = new ArrayList<>();
@@ -64,7 +66,12 @@ public class TrackedOrderManager {
     private Consumer<List<OrderInfo>> onSyncCompletedCallback = _ -> {};
 
     public TrackedOrderManager(BazaarData bazaarData) {
+        this(bazaarData, () -> ConfigStore.get().config().trackedOrders);
+    }
+
+    public TrackedOrderManager(BazaarData bazaarData, Supplier<OrderManagerConfig> config) {
         this.bazaarData = bazaarData;
+        this.config = config;
         this.productUpdater = new TrackedOrderProductUpdater(bazaarData);
         this.outstandingOrderStore = new TimedStore<>(15_000L);
         this.bazaarData.addIndexChangeListener(this::refreshTrackedOrderProducts);
@@ -208,6 +215,7 @@ public class TrackedOrderManager {
                 log.debug("Market unavailable; resetting {} tracked order statuses", this.trackedOrders.size());
             }
             this.trackedOrders.forEach(order -> order.status = new OrderStatus.Unknown());
+            this.selfUndercutDetector.clear();
             this.dataChanges.invalidate("market unavailable");
             return;
         }
@@ -236,7 +244,7 @@ public class TrackedOrderManager {
     // `GroupStatus` across polls), which adds meaningful complexity for a low-value scenario.
     // Accepted as a known limitation (for now).
     private void sendNotifications(List<StatusUpdate> statusUpdates, MarketSnapshot snapshot) {
-        var cfg = ConfigStore.get().config().trackedOrders;
+        var cfg = this.config.get();
         if (!cfg.enabled) {
             return;
         }
@@ -269,7 +277,7 @@ public class TrackedOrderManager {
         List<StatusUpdate> updates,
         MarketSnapshot snapshot
     ) {
-        var cfg = ConfigStore.get().config().trackedOrders;
+        var cfg = this.config.get();
 
         if (!cfg.groupOrders) {
             updates.stream()
@@ -300,7 +308,7 @@ public class TrackedOrderManager {
     }
 
     private boolean shouldNotify(StatusUpdate update) {
-        var cfg = ConfigStore.get().config().trackedOrders;
+        var cfg = this.config.get();
 
         return cfg.enabled && switch (update.curr()) {
             case OrderStatus.Top _ -> {
@@ -322,6 +330,11 @@ public class TrackedOrderManager {
 
     public void cancelOutstandingOrders() {
         this.outstandingOrderStore.clear();
+    }
+
+    @Override
+    public void close() {
+        this.outstandingOrderStore.close();
     }
 
     public void resetTrackedOrders() {
@@ -454,7 +467,7 @@ public class TrackedOrderManager {
     }
 
     private void resolveSelfUndercutStates(MarketSnapshot snapshot) {
-        var cfg = ConfigStore.get().config().trackedOrders;
+        var cfg = this.config.get();
         var events = this.selfUndercutDetector.resolve(this.trackedOrders, snapshot);
         if (!cfg.enabled || !cfg.notifySelfUndercut) {
             return;

@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
+import com.github.lutzluca.btrbz.BtrBz;
+
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
@@ -25,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.world.inventory.ContainerInput;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 /** Buy-volume workflow facts and semantic preset application. */
@@ -74,7 +75,7 @@ public final class OrderPresetsComponent {
             this.save.run();
         }
 
-        ScreenTracker.registerOnSwitch(this::onScreenSwitch);
+        ScreenTracker.registerOnSwitch(current -> this.onScreenSwitch(current, ScreenTracker.get().getPrevInfo()));
 
         ScreenTracker.registerOnLoaded(
             info -> info.inMenu(BazaarMenuType.BuyOrderSetupVolume),
@@ -83,8 +84,8 @@ public final class OrderPresetsComponent {
                     return;
                 }
 
-                inventory.getItem(CUSTOM_AMOUNT_SLOT).flatMap(this::readMaximumVolume)
-                    .ifPresent(value -> this.setMaximumVolume(value, "maximum order volume loaded"));
+                inventory.getItem(CUSTOM_AMOUNT_SLOT).map(GameUtils::getLore)
+                    .ifPresent(this::onMaximumVolumeLoaded);
             });
     }
 
@@ -177,6 +178,9 @@ public final class OrderPresetsComponent {
     }
 
     public boolean apply(OrderPreset preset) {
+        if (!BtrBz.isActive()) {
+            return false;
+        }
         int volume = switch (preset) {
             case OrderPreset.Maximum _ -> {
                 var product = this.currentProduct();
@@ -235,19 +239,18 @@ public final class OrderPresetsComponent {
         return true;
     }
 
-    private void onScreenSwitch(ScreenInfo current) {
-        var previous = ScreenTracker.get().getPrevInfo();
+    void onScreenSwitch(ScreenInfo current, ScreenInfo previous) {
         if (current.inMenu(BazaarMenuType.BuyOrderSetupVolume)
             && previous.inMenu(BazaarMenuType.Item)) {
             this.maximumVolume = current.getItemStack(CUSTOM_AMOUNT_SLOT)
-                .flatMap(this::readMaximumVolume)
+                .map(GameUtils::getLore).flatMap(OrderPresetsComponent::readMaximumVolume)
                 .orElse(GameUtils.GLOBAL_MAX_ORDER_VOLUME);
             this.inTransaction = true;
             this.stateChanges.invalidate("order preset transaction started");
             return;
         }
 
-        if (previous.inMenu(BazaarMenuType.BuyOrderSetupVolume)
+        if (BtrBz.isActive() && previous.inMenu(BazaarMenuType.BuyOrderSetupVolume)
             && current.getScreen() instanceof SignEditScreen sign
             && this.pendingPreset
             && this.pendingVolume > 0) {
@@ -276,11 +279,19 @@ public final class OrderPresetsComponent {
     }
 
     public void cancelTransaction() {
+        this.cancelPendingPreset();
         this.inTransaction = false;
-        this.pendingPreset = false;
-        this.pendingVolume = -1;
         this.maximumVolume = GameUtils.GLOBAL_MAX_ORDER_VOLUME;
         this.stateChanges.invalidate("order preset transaction ended");
+    }
+
+    public void cancelPendingPreset() {
+        this.pendingPreset = false;
+        this.pendingVolume = -1;
+    }
+
+    void onMaximumVolumeLoaded(List<String> lore) {
+        readMaximumVolume(lore).ifPresent(value -> this.setMaximumVolume(value, "maximum order volume loaded"));
     }
 
     private @Nullable IndexedProduct currentProduct() {
@@ -296,8 +307,8 @@ public final class OrderPresetsComponent {
         this.stateChanges.invalidate(reason);
     }
 
-    private Optional<Integer> readMaximumVolume(ItemStack item) {
-        return GameUtils.getLore(item).stream()
+    private static Optional<Integer> readMaximumVolume(List<String> lore) {
+        return lore.stream()
             .filter(line -> line.startsWith("Buy up to"))
             .findFirst()
             .map(line -> line.replaceFirst("Buy up to", "").replaceAll("x+", ""))

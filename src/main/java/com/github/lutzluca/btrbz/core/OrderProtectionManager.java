@@ -159,6 +159,17 @@ public class OrderProtectionManager {
         }
     }
 
+    /** Called once only after all market hooks allow the vanilla click to proceed. */
+    public void observeAcceptedConfirmation(SlotClickContext ctx) {
+        var view = ctx.view();
+        if (view.playerInventorySlot() || view.slotIdx() != CONFIRMATION_SLOT_INDEX
+            || !view.getCurrInfo().inMenu(CONFIRMATION_MENUS)) {
+            return;
+        }
+        var pending = BtrBz.isActive() ? this.validationCache.get(view.getRawStack()) : null;
+        this.dispatchSetOrder(view.getRawStack(), Optional.ofNullable(pending));
+    }
+
     private void validateConfirmationStack(ItemStack rawStack) {
         this.invalidateChangedSettings();
         if (rawStack.isEmpty() || GameUtils.getLore(rawStack).isEmpty()) {
@@ -237,20 +248,13 @@ public class OrderProtectionManager {
             OrderProtectionManager.this.validationFailureCache.remove(stack);
             OrderProtectionManager.this.validateConfirmationStack(stack);
 
-            var pending = OrderProtectionManager.this.validationCache.get(stack);
             var validation = OrderProtectionManager.this.getValidationResult(stack)
                 .orElseGet(() -> {
                     log.warn("No cached validation for confirmation item");
                     return new ValidationUnavailable(VALIDATION_UNAVAILABLE_REASON);
                 });
 
-            if (!cfg.enabled) {
-                OrderProtectionManager.this.dispatchSetOrder(stack, Optional.ofNullable(pending));
-                return SlotClickResult.Pass;
-            }
-
-            boolean isBlocked = validation.protect();
-            if (isBlocked && !ctx.modifiers().controlDown()) {
+            if (BtrBz.isActive() && cfg.enabled && validation.protect() && !ctx.modifiers().controlDown()) {
                 if (cfg.showChatMessage) {
                     Notifier.sendBlockedOrderMessage(validation);
                 }
@@ -258,12 +262,6 @@ public class OrderProtectionManager {
                 return SlotClickResult.Consume;
             }
 
-            if (pending == null) {
-                OrderProtectionManager.this.dispatchSetOrder(stack, Optional.empty());
-                return SlotClickResult.Pass;
-            }
-
-            OrderProtectionManager.this.dispatchSetOrder(stack, Optional.of(pending));
             return SlotClickResult.Pass;
         }
     }

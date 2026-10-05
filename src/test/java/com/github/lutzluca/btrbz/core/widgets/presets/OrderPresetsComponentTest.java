@@ -3,13 +3,43 @@ package com.github.lutzluca.btrbz.core.widgets.presets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsComponent.PresetState;
+import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
+import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
+import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.screen.BazaarProductContext;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class OrderPresetsComponentTest {
+    @Test
+    void pendingCancellationRetainsQuantityWorkflowButTransactionResetClearsIt() {
+        var data = new BazaarData();
+        var clipboard = new ClipboardTracker(() -> "");
+        clipboard.initialize();
+        var config = new OrderPresetsWidgetConfig();
+        var presets = new OrderPresetsComponent(data, new BazaarProductContext(data), clipboard,
+            new PurseTracker(Optional::empty), () -> config, () -> {});
+        presets.onScreenSwitch(menu(BazaarMenuType.BuyOrderSetupVolume), menu(BazaarMenuType.Item));
+        presets.onMaximumVolumeLoaded(List.of("Buy up to 128x"));
+
+        presets.cancelPendingPreset();
+
+        Assertions.assertTrue(presets.inTransaction());
+        Assertions.assertEquals(128, presets.currentState().maximumVolume());
+
+        presets.cancelTransaction();
+
+        Assertions.assertFalse(presets.inTransaction());
+        Assertions.assertEquals(GameUtils.GLOBAL_MAX_ORDER_VOLUME, presets.currentState().maximumVolume());
+    }
+
     @Test
     void normalizesDurableConfiguredVolumesAscending() {
         assertEquals(
@@ -50,5 +80,14 @@ class OrderPresetsComponentTest {
             new PresetState.InsufficientCoins(new OrderPreset.Fixed(2))),
             OrderPresetsComponent.resolvePresets(
                 List.of(2), 1_000, OptionalInt.empty(), Optional.of(10.0), Optional.of(5.0)));
+    }
+
+    private static ScreenInfo menu(BazaarMenuType menu) {
+        return new ScreenInfo(null) {
+            @Override
+            public boolean inMenu(BazaarMenuType candidate) {
+                return candidate == menu;
+            }
+        };
     }
 }
