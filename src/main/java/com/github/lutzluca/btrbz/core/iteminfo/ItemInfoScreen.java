@@ -95,8 +95,11 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable ButtonComponent coflnet;
     private @Nullable ProductIdentity headerProduct;
     private boolean rebuilding;
+    private boolean displayOpen;
+    private @Nullable FlowLayout displayOptions;
     private int bodyWidth;
     private int bodyHeight;
+    private int panelHeight;
     private int ageTicks;
     private boolean focusStart;
     private boolean focusEnd;
@@ -126,7 +129,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.modal = session.data().product() == null ? Modal.Search : Modal.None;
         this.customStart = UTC.format(session.data().query().start());
         this.customEnd = UTC.format(session.data().query().end());
-        this.history = new HistoryPanel(config, save, this.viewport, () -> this.showModal(Modal.Quantity));
+        this.history = new HistoryPanel(config, save, this.viewport);
         this.book = new OrderBookPanel(config, price -> {
             if (this.session.isCurrent() && this.session.data().live().isPresent()) {
                 Minecraft.getInstance().keyboardHandler.setClipboard(price);
@@ -154,8 +157,10 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.rebuilding = true;
         root.surface(Surface.flat(0x90000000));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-        this.bodyWidth = Math.max(140, this.width - 40);
-        this.bodyHeight = Math.max(70, this.height - 200);
+        int panelWidth = Math.max(160, Math.min(720, this.width - (this.width >= 800 ? 64 : 24)));
+        this.panelHeight = Math.max(100, Math.min(460, this.height - (this.height >= 400 ? 48 : 16)));
+        this.bodyWidth = panelWidth - 20;
+        this.bodyHeight = Math.max(70, this.panelHeight - 160);
         this.search = null;
         this.startBox = null;
         this.endBox = null;
@@ -164,8 +169,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.feedbackLabel = null;
         this.ranges.clear();
         this.rangeMenu = null;
-        var panel = UIContainers.verticalFlow(Sizing.fixed(Math.max(160, this.width - 20)),
-            Sizing.fixed(Math.max(100, this.height - 20)));
+        this.displayOptions = null;
+        var panel = UIContainers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(this.panelHeight));
         panel.padding(Insets.of(10));
         panel.gap(6);
         panel.surface(WidgetSurfaces.roundedPanel(0xF0100F0E, 6));
@@ -206,7 +211,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             quotes.child(this.buy).child(this.sell).child(this.spread);
         }
         panel.child(quotes);
-        this.coflnet = UiControls.button("View on Coflnet", () -> this.showModal(Modal.Link));
+        this.coflnet = UiControls.iconButton("View on Coflnet", new ItemStack(Items.GOLD_BLOCK),
+            () -> this.showModal(Modal.Link));
         panel.child(UiControls.row(UiControls.tab("History", () -> this.switchTab(false), !this.orderBook),
             UiControls.tab("Order Book", () -> this.switchTab(true), this.orderBook)));
         this.buildToolbar(panel);
@@ -215,6 +221,9 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         panel.child(this.historyStatus);
         panel.child(this.mayorStatus);
         var body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
+        this.displayOptions = UIContainers.verticalFlow(Sizing.fill(100), Sizing.fixed(0));
+        body.child(this.displayOptions);
+        this.refreshDisplayOptions();
         if (this.orderBook) {
             this.book.layoutFor(this.bodyWidth, this.bodyHeight);
             body.child(this.book);
@@ -228,14 +237,13 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.bodyScroll.scrollbarThiccness(3);
         this.bodyScroll.restoreScrollOffset(this.orderBook ? this.bookOffset : this.historyOffset);
         panel.child(this.bodyScroll);
-        var referral = UiControls.row(BazaarUi.item(new ItemStack(Items.GOLD_BLOCK), 14), this.coflnet);
         if (this.bodyWidth >= 420) {
-            this.source.maxWidth(this.bodyWidth - 145).horizontalSizing(Sizing.expand(100));
-            referral.horizontalSizing(Sizing.fixed(139));
-            panel.child(UiControls.row(this.source, referral));
+            this.source.maxWidth(this.bodyWidth - Minecraft.getInstance().font.width(this.coflnet.getMessage()) - 42)
+                .horizontalSizing(Sizing.expand(100));
+            panel.child(UiControls.row(this.source, this.coflnet));
         } else {
             panel.child(this.source);
-            panel.child(referral);
+            panel.child(this.coflnet);
         }
         this.feedbackLabel = UiControls.text(this.feedback, UiStyles.palette().label()).maxWidth(this.bodyWidth);
         panel.child(this.feedbackLabel);
@@ -243,12 +251,14 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void buildToolbar(FlowLayout panel) {
+        var toolbar = UiControls.row();
         if (!this.orderBook) {
-            if (this.bodyWidth < 330 || this.height < 300) {
+            if (this.bodyWidth < 330 || this.panelHeight < 300) {
                 this.rangeMenu = UiControls.button("Range", () -> this.showModal(Modal.Range));
-                panel.child(this.rangeMenu);
+                toolbar.child(this.rangeMenu);
             } else {
                 var presets = UiControls.row();
+                presets.horizontalSizing(Sizing.content());
                 for (var range : ItemInfoRange.values()) {
                     var button = UiControls.button(range.name(), () -> {
                         if (range == ItemInfoRange.Custom) {
@@ -259,38 +269,76 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                             this.session.range(range);
                         }
                     });
-                    button.horizontalSizing(Sizing.expand(16));
                     this.ranges.put(range, button);
                     presets.child(button);
                 }
-                panel.child(presets);
+                toolbar.child(presets);
             }
         }
         var actions = UiControls.row();
+        actions.horizontalSizing(Sizing.content());
         if (!this.orderBook) {
-            actions
-                .child(UiControls.button("+", () -> this.viewport.zoom(1.5, 0.5)).horizontalSizing(Sizing.fixed(20)));
-            actions.child(
-                UiControls.button("-", () -> this.viewport.zoom(1 / 1.5, 0.5)).horizontalSizing(Sizing.fixed(20)));
-            actions.child(UiControls.button("Reset", this.viewport::reset).horizontalSizing(Sizing.fixed(40)));
-            if (this.bodyWidth < 220) {
-                panel.child(actions);
-                actions = UiControls.row();
-            }
+            actions.child(UiControls.button("Reset", this.viewport::reset));
         }
-        actions.child(UiControls.button(this.orderBook ? "Refresh reference" : "Refresh", this.session::refresh)
-            .horizontalSizing(Sizing.fixed(this.orderBook ? 104 : 50)));
-        actions.child(
-            UiControls.button("Display", () -> this.showModal(Modal.Display)).horizontalSizing(Sizing.fixed(50)));
-        panel.child(actions);
+        actions.child(UiControls.button(this.orderBook ? "Refresh reference" : "Refresh", this.session::refresh));
+        var display = UiControls.button("Display", () -> {});
+        display.renderer(UiControls.buttonRenderer(false, this.displayOpen));
+        display.onPress(_ -> this.defer(() -> {
+            this.displayOpen = !this.displayOpen;
+            this.refreshDisplayOptions();
+            if (this.displayOpen && this.bodyScroll != null) {
+                this.bodyScroll.restoreScrollOffset(0);
+            }
+            display.renderer(UiControls.buttonRenderer(false, this.displayOpen));
+        }));
+        actions.child(display);
+        if (this.bodyWidth >= 520 || (this.rangeMenu != null && this.bodyWidth >= 260)
+            || toolbar.children().isEmpty()) {
+            toolbar.child(BazaarUi.spacer()).child(actions);
+            panel.child(toolbar);
+        } else {
+            panel.child(toolbar);
+            panel.child(actions);
+        }
+    }
+
+    private void refreshDisplayOptions() {
+        if (this.displayOptions == null) {
+            return;
+        }
+        this.displayOptions.clearChildren();
+        this.displayOptions.verticalSizing(this.displayOpen ? Sizing.content() : Sizing.fixed(0));
+        this.displayOptions.padding(Insets.of(this.displayOpen ? 6 : 0));
+        if (!this.displayOpen) {
+            return;
+        }
+        this.displayOptions.surface(WidgetSurfaces.roundedPanel(0xC021201E, 4));
+        var controls = this.bodyWidth >= 440
+            ? UiControls.row()
+            : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(4);
+        if (this.orderBook) {
+            this.toggle(controls, "Cumulative items", () -> this.config.showCumulative,
+                value -> this.config.showCumulative = value);
+            this.toggle(controls, "Order counts", () -> this.config.showOrders,
+                value -> this.config.showOrders = value);
+            this.toggle(controls, "Relative item bars", () -> this.config.showBars,
+                value -> this.config.showBars = value);
+        } else {
+            this.toggle(controls, "Price bands", () -> this.config.showBands, value -> this.config.showBands = value);
+            this.toggle(controls, "Mayor timeline", () -> this.config.showMayors, value -> {
+                this.config.showMayors = value;
+                this.session.mayorVisible(value);
+            });
+            this.toggle(controls, "Quantity chart", () -> this.config.showQuantity,
+                value -> this.config.showQuantity = value);
+        }
+        this.displayOptions.child(controls);
     }
 
     private void buildModal(FlowLayout panel) {
         String title = switch (this.modal) {
             case Search -> "Find a product";
-            case Display -> "Display";
             case Custom -> "Custom range (UTC)";
-            case Quantity -> "What quantity means";
             case Link -> "Open Coflnet";
             case Range -> "History range";
             case None -> "Item Info";
@@ -307,7 +355,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             case Search -> {
                 this.search = new ProductSearchControls(this.market,
                     query -> this.market.searchIndexedProducts(query, 12), () -> "", this.bodyWidth,
-                    Math.max(60, this.height - 120), this.searchQuery, query -> this.searchQuery = query,
+                    Math.max(60, this.panelHeight - 100), this.searchQuery, query -> this.searchQuery = query,
                     product -> this.defer(() -> this.selectProduct(ProductIdentity.fromIndex(product))));
                 content.child(this.search);
                 var controls = this.search;
@@ -320,22 +368,6 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                         }
                     }
                 });
-            }
-            case Display -> {
-                this.toggle(content, "Price bands", () -> this.config.showBands,
-                    value -> this.config.showBands = value);
-                this.toggle(content, "Mayor timeline", () -> this.config.showMayors, value -> {
-                    this.config.showMayors = value;
-                    this.session.mayorVisible(value);
-                });
-                this.toggle(content, "Quantity chart", () -> this.config.showQuantity,
-                    value -> this.config.showQuantity = value);
-                this.toggle(content, "Cumulative items", () -> this.config.showCumulative,
-                    value -> this.config.showCumulative = value);
-                this.toggle(content, "Order counts", () -> this.config.showOrders,
-                    value -> this.config.showOrders = value);
-                this.toggle(content, "Relative item bars", () -> this.config.showBars,
-                    value -> this.config.showBars = value);
             }
             case Custom -> {
                 this.paragraph(content, "Use yyyy-MM-dd HH:mm in UTC");
@@ -356,15 +388,6 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                         target.focusHandler().focus(target, UIComponent.FocusSource.MOUSE_CLICK);
                     }
                 });
-            }
-            case Quantity -> {
-                this.paragraph(content,
-                    "Open-order quantity: Items waiting in outstanding orders. "
-                        + "Changes include placements, fills and cancellations.");
-                this.paragraph(content,
-                    "7-day moving volume: Activity across the preceding seven days at each timestamp, "
-                        + "including Hypixel's live-state component. Older activity leaves the window continuously.");
-                this.paragraph(content, "Neither measures exact trades per interval.");
             }
             case Link -> {
                 this.paragraph(content, "Open sky.coflnet.com in your browser?");
@@ -485,7 +508,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         Double buyPrice = data.live().flatMap(value -> value.buyPrice()).orElse(null);
         Double sellPrice = data.live().flatMap(value -> value.sellPrice()).orElse(null);
         this.cacheAverages(data);
-        boolean compact = this.height < 300;
+        boolean compact = this.panelHeight < 300;
         this.buy.text(Component.literal("Buy Price " + HistoryAnalysis.exact(buyPrice) + (compact
             ? "" : "\n"
                 + this.average(buyPrice, this.buyAverage))));
@@ -750,6 +773,6 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private enum Modal {
-        None, Search, Display, Custom, Quantity, Link, Range
+        None, Search, Custom, Link, Range
     }
 }

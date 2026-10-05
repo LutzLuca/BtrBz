@@ -11,6 +11,8 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 public final class UiControls {
     private UiControls() {}
@@ -35,6 +37,14 @@ public final class UiControls {
         button.sizing(Sizing.content(8), Sizing.fixed(22));
         button.renderer(buttonRenderer(false, false));
         return button;
+    }
+
+    public static ButtonComponent iconButton(String label, ItemStack icon, Runnable action) {
+        return new IconTextButton(label, icon, action);
+    }
+
+    public static ButtonComponent iconButton(String label, Identifier texture, int sourceSize, Runnable action) {
+        return new IconTextButton(label, texture, sourceSize, action);
     }
 
     public static ButtonComponent.Renderer buttonRenderer(boolean primary, boolean selected) {
