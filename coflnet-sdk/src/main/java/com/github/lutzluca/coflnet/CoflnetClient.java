@@ -180,7 +180,7 @@ public final class CoflnetClient implements AutoCloseable {
             connection.setRequestProperty("Accept", "application/json");
             int status = connection.getResponseCode();
             Instant checked = this.clock.instant();
-            if (status == 429 || status == 503) {
+            if (status == 429 || status >= 500 && status <= 599) {
                 long delay = retryDelay(connection.getHeaderField("Retry-After"), checked);
                 synchronized (this) {
                     this.nextRequestNanos = Math.max(this.nextRequestNanos,
@@ -304,16 +304,22 @@ public final class CoflnetClient implements AutoCloseable {
                 continue;
             }
             JsonObject winner = row.getAsJsonObject("winner");
+            String name = string(winner, "name");
+            if (name == null || name.isBlank()) {
+                continue;
+            }
             List<MayorPerk> perks = new ArrayList<>();
             if (winner.has("perks") && winner.get("perks").isJsonArray()) {
                 for (JsonElement perk : winner.getAsJsonArray("perks")) {
                     if (perk.isJsonObject()) {
-                        perks.add(new MayorPerk(string(perk.getAsJsonObject(), "name"),
-                            string(perk.getAsJsonObject(), "description")));
+                        String perkName = string(perk.getAsJsonObject(), "name");
+                        if (perkName != null && !perkName.isBlank()) {
+                            perks.add(new MayorPerk(perkName, string(perk.getAsJsonObject(), "description")));
+                        }
                     }
                 }
             }
-            terms.putIfAbsent(start, new MayorTerm(start, end, string(winner, "name"), perks));
+            terms.putIfAbsent(start, new MayorTerm(start, end, name, perks));
         }
         return new MayorResponse(List.copyOf(terms.values()), checked);
     }
@@ -327,7 +333,7 @@ public final class CoflnetClient implements AutoCloseable {
         try {
             String value = string(row, name);
             Double number = value == null ? null : Double.valueOf(value);
-            return number == null || !Double.isFinite(number) ? null : number;
+            return number == null || !Double.isFinite(number) || number <= 0 ? null : number;
         } catch (NumberFormatException _) {
             return null;
         }
@@ -336,7 +342,8 @@ public final class CoflnetClient implements AutoCloseable {
     private static Long integer(JsonObject row, String name) {
         try {
             String value = string(row, name);
-            return value == null ? null : Long.valueOf(value);
+            Long quantity = value == null ? null : Long.valueOf(value);
+            return quantity == null || quantity < 0 ? null : quantity;
         } catch (NumberFormatException _) {
             return null;
         }

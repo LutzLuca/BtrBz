@@ -30,9 +30,10 @@ class CoflnetClientTest {
                 entered.countDown();
                 await(release);
             }
-            respond(exchange, call > 1 ? 500 : 200,
+            respond(exchange, call > 1 ? 400 : 200,
                 "[{\"timestamp\":\"2025-10-01T02:00:00\",\"buy\":4},"
-                    + "{\"timestamp\":\"2025-10-01T00:00:00Z\",\"sellVolume\":12},"
+                    + "{\"timestamp\":\"2025-10-01T00:00:00Z\",\"sellVolume\":12,\"sell\":0,"
+                    + "\"minBuy\":-1,\"maxBuy\":\"NaN\",\"buyVolume\":-5,\"buyMovingWeek\":0},"
                     + "{\"timestamp\":\"2025-10-01T02:00:00Z\",\"buy\":99}]");
         })) {
             CoflnetRequest<HistoryResponse> first = fixture.client.history("DIAMOND", RANGE, false);
@@ -44,6 +45,11 @@ class CoflnetClientTest {
             Assertions.assertEquals(2, response.points().size());
             Assertions.assertNull(response.points().getFirst().buy());
             Assertions.assertEquals(12L, response.points().getFirst().sellVolume());
+            Assertions.assertNull(response.points().getFirst().sell());
+            Assertions.assertNull(response.points().getFirst().minBuy());
+            Assertions.assertNull(response.points().getFirst().maxBuy());
+            Assertions.assertNull(response.points().getFirst().buyVolume());
+            Assertions.assertEquals(0L, response.points().getFirst().buyMovingWeek());
             Assertions.assertEquals(4.0, response.points().getLast().buy());
             Assertions.assertEquals(RANGE.start(), response.coverageStart());
             Assertions.assertThrows(Exception.class, () -> fixture.client.history("DIAMOND", RANGE, true).completion()
@@ -81,25 +87,28 @@ class CoflnetClientTest {
     @Test
     void retryAfterCooldownAndAgePreventPrematureReuse() throws Exception {
         AtomicInteger calls = new AtomicInteger();
-        long[] requests = new long[3];
+        long[] requests = new long[4];
         try (Fixture fixture = new Fixture(exchange -> {
             int call = calls.getAndIncrement();
-            requests[Math.min(call, 2)] = System.nanoTime();
+            requests[Math.min(call, 3)] = System.nanoTime();
             if (call == 0) {
                 exchange.getResponseHeaders().set("Retry-After", "1");
                 respond(exchange, 429, "");
+            } else if (call == 1) {
+                exchange.getResponseHeaders().set("Retry-After", "0");
+                respond(exchange, 502, "");
             } else {
                 exchange.getResponseHeaders().set("Age", "600");
                 respond(exchange, 204, "");
             }
         })) {
             HistoryResponse result = fixture.client.history("DIAMOND", RANGE, false).completion().toCompletableFuture()
-                .get(4, TimeUnit.SECONDS);
+                .get(6, TimeUnit.SECONDS);
             Assertions.assertTrue(result.points().isEmpty());
             Assertions.assertNull(result.coverageStart());
             Assertions.assertTrue(requests[1] - requests[0] >= TimeUnit.MILLISECONDS.toNanos(950));
             fixture.client.history("DIAMOND", RANGE, false).completion().toCompletableFuture().get(3, TimeUnit.SECONDS);
-            Assertions.assertEquals(3, calls.get());
+            Assertions.assertEquals(4, calls.get());
         }
     }
 
