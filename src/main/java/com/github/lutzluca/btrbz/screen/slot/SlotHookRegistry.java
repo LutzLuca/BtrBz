@@ -14,11 +14,11 @@ public final class SlotHookRegistry {
         HOOKS.add(hook);
     }
 
-    public static ItemStack getDisplayStack(SlotRenderContext ctx) {
+    public static ItemStack getDisplayStack(SlotRenderContext ctx, boolean marketActive) {
         var view = ctx.view();
 
         for (SlotHook hook : HOOKS) {
-            if (!hook.matches(view)) {
+            if ((!marketActive && hook.requiresMarketData()) || !hook.matches(view)) {
                 continue;
             }
 
@@ -31,11 +31,11 @@ public final class SlotHookRegistry {
         return view.getRawStack();
     }
 
-    public static boolean handleClick(SlotClickContext ctx) {
+    public static boolean handleClick(SlotClickContext ctx, boolean marketActive) {
         var view = ctx.view();
 
         for (SlotHook hook : HOOKS) {
-            if (!hook.matches(view)) {
+            if ((!marketActive && hook.requiresMarketData()) || !hook.matches(view)) {
                 continue;
             }
 

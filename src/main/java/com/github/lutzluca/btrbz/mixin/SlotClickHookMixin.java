@@ -50,7 +50,7 @@ public abstract class SlotClickHookMixin {
             type,
             button,
             SlotInputModifiers.from(Minecraft.getInstance()));
-        if (BtrBz.isActive() && SlotHookRegistry.handleClick(ctx)) {
+        if (SlotHookRegistry.handleClick(ctx, BtrBz.isActive())) {
             return true;
         }
         BtrBz.observeAcceptedClick(ctx);

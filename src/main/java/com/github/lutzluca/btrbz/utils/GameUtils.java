@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
@@ -141,7 +140,7 @@ public final class GameUtils {
     }
 
     public static void runCommand(String command) {
-        if (!BtrBz.isActive()) {
+        if (!BtrBz.isRunning()) {
             return;
         }
         var client = Minecraft.getInstance();
@@ -329,7 +328,7 @@ public final class GameUtils {
             /*String serialized = color.serialize();
             if (!serialized.startsWith("#")) {
                 try {
-                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(Locale.ROOT)));
+                    out.append(ChatFormatting.valueOf(serialized.toUpperCase(java.util.Locale.ROOT)));
                 } catch (IllegalArgumentException _) {
                     //ignore unknown color names
                 }

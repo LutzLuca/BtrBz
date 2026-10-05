@@ -114,7 +114,7 @@ public class BazaarOrderActions {
                 BazaarMenuType.SellOfferConfirmation,
                 BazaarMenuType.BuyOrderConfirmation),
             info -> {
-                if (BtrBz.isActive() && ConfigStore.get().config().orderActions.reopenBazaar
+                if (BtrBz.isRunning() && ConfigStore.get().config().orderActions.reopenBazaar
                     && BazaarOrderActions.this.shouldReopenBazaar) {
                     GameUtils.runCommand("bz");
                 }
@@ -137,7 +137,7 @@ public class BazaarOrderActions {
 
     private void registerTooltipCallback() {
         ItemTooltipCallback.EVENT.register((stack, ctx, type, lines) -> {
-            if (!BtrBz.isActive()) {
+            if (!BtrBz.isRunning()) {
                 return;
             }
             var cfg = ConfigStore.get().config().orderActions;
@@ -206,17 +206,17 @@ public class BazaarOrderActions {
     }
 
     public void setReopenBazaar() {
-        this.shouldReopenBazaar = BtrBz.isActive();
+        this.shouldReopenBazaar = BtrBz.isRunning();
     }
 
     public void cancelPendingActions() {
         this.shouldReopenBazaar = false;
-        this.remainingOrderAmount = null;
-        this.activeBuyOrderContext = null;
     }
 
     public void resetSession() {
         this.cancelPendingActions();
+        this.remainingOrderAmount = null;
+        this.activeBuyOrderContext = null;
         this.lastCancelledBuyOrder = null;
         this.hideCancelledOrderButton = false;
     }
@@ -240,6 +240,11 @@ public class BazaarOrderActions {
     public final class CancelOrderHook implements SlotHook {
 
         private CancelOrderHook() {}
+
+        @Override
+        public boolean requiresMarketData() {
+            return false;
+        }
 
         @Override
         public boolean matches(SlotView view) {
@@ -282,6 +287,11 @@ public class BazaarOrderActions {
         }
 
         @Override
+        public boolean requiresMarketData() {
+            return false;
+        }
+
+        @Override
         public boolean matches(SlotView view) {
             var cfg = ConfigStore.get().config().orderActions;
 
@@ -311,6 +321,11 @@ public class BazaarOrderActions {
     public final class OrdersObserverHook implements SlotHook {
 
         private OrdersObserverHook() {}
+
+        @Override
+        public boolean requiresMarketData() {
+            return false;
+        }
 
         @Override
         public boolean matches(SlotView view) {

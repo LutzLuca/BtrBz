@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import com.github.lutzluca.btrbz.compat.CatharsisSupport;
+import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 
 public final class VirtualSlotProjection {
@@ -36,7 +37,7 @@ public final class VirtualSlotProjection {
         try {
             var helper = ScreenTracker.get();
             view.update(helper.getCurrInfo(), helper.getPrevInfo(), slot, raw);
-            var proj = SlotHookRegistry.getDisplayStack(ctx);
+            var proj = SlotHookRegistry.getDisplayStack(ctx, BtrBz.isActive());
             return proj == raw ? raw : CatharsisSupport.disableCatharsisModifications(proj);
         } finally {
             SUPPRESSION_DEPTH.set(prevDepth);

@@ -2,8 +2,7 @@ package com.github.lutzluca.btrbz.core;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
-import java.util.Map;
-import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply.Product;
+import com.github.lutzluca.btrbz.data.BazaarPoller.MarketReply;
 
 /** Client-thread owner of the surviving session and its market publication boundary. */
 public final class FeatureRuntime {
@@ -48,10 +47,16 @@ public final class FeatureRuntime {
         if (this.isRunning()) {
             return;
         }
-        this.state = State.Active;
+        this.state = this.activation.isAlwaysActive() ? State.Active : State.Hibernating;
         this.startSession.run();
     }
 
+    /**
+     * Pauses features requiring current market data: quotes, order books, market-derived order
+     * statuses, pricing input, protection, and their UI. Unsent automation is cancelled, while
+     * session facts and passive observations/accounting are kept. Inventory-only reopening,
+     * copying remaining amounts, and lore-based filled/expired highlights remain usable.
+     */
     public void hibernate() {
         if (!this.isActive()) {
             return;
@@ -61,7 +66,7 @@ public final class FeatureRuntime {
         this.market.clearMarketData();
     }
 
-    public void recover(MarketSnapshot candidate) {
+    private void recover(MarketSnapshot candidate) {
         if (!this.isHibernating() || candidate == null || !candidate.available()) {
             return;
         }
@@ -69,10 +74,12 @@ public final class FeatureRuntime {
         this.market.publishSnapshot(candidate);
     }
 
-    /** Ordinary successful replies retain their existing notification behavior. */
-    public void onMarketUpdate(Map<String, Product> products) {
-        if (this.isActive()) {
-            this.market.publishSnapshot(MarketSnapshot.fromProducts(products));
+    /** The poller validates source age before this ordered client-thread publication/recovery. */
+    public void onMarketReply(MarketReply reply) {
+        if (this.isHibernating()) {
+            this.recover(reply.snapshot());
+        } else if (this.isActive() && reply.advanced()) {
+            this.market.publishSnapshot(reply.snapshot());
         }
     }
 
