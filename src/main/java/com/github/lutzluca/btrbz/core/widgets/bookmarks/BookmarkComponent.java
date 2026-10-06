@@ -73,7 +73,7 @@ public final class BookmarkComponent {
             item.product().productId(),
             item.productName(),
             item.product().formattedName(),
-            item.itemStack(),
+            this.bazaarData.productStack(item.product()).orElseGet(item::itemStack),
             this.buyProducts.contains(item.product().productId()),
             this.sellProducts.contains(item.product().productId()))).toList();
     }
@@ -170,8 +170,8 @@ public final class BookmarkComponent {
             }
         }
 
+        this.dataChanges.invalidate("bookmark conversion index refreshed");
         if (changed) {
-            this.dataChanges.invalidate("bookmark products refreshed");
             this.save.run();
         }
     }
