@@ -223,7 +223,8 @@ public final class BazaarPoller implements AutoCloseable {
                 throw new IllegalArgumentException("Bazaar reply has no valid source timestamp/products");
             }
             this.succeeded();
-            if (sourceTime > this.latestSourceTime) {
+            boolean sourceAdvanced = sourceTime > this.latestSourceTime;
+            if (sourceAdvanced) {
                 this.latestSourceTime = sourceTime;
                 this.publicationStartedAt = this.clock.getAsLong();
                 this.frozenEpisode++;
@@ -245,7 +246,10 @@ public final class BazaarPoller implements AutoCloseable {
                 }
             }
             this.scheduleFrozenWarning(run);
-            this.scheduleFetch(run, NORMAL_INTERVAL_MS + ThreadLocalRandom.current().nextLong(200, 400));
+            long interval = NORMAL_INTERVAL_MS + ThreadLocalRandom.current().nextLong(200, 400);
+            long delay = sourceTime + interval - this.clock.getAsLong();
+            // Unchanged or overdue sources keep the normal polling interval.
+            this.scheduleFetch(run, sourceAdvanced && delay > 0 ? delay : interval);
         }).onFailure(error -> this.failed(run, error));
     }
 
