@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.iteminfo;
 
 import com.github.lutzluca.btrbz.core.iteminfo.charts.HistoryAnalysis;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.HistoryViewport;
+import com.github.lutzluca.btrbz.core.iteminfo.charts.HistoryTime;
 import com.github.lutzluca.btrbz.core.ui.ProductSearchControls;
 import com.github.lutzluca.btrbz.core.ui.UiControls;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -39,10 +40,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -63,8 +60,6 @@ import org.jetbrains.annotations.Nullable;
 
 /** One inspection session, with local dialogs that block background input. */
 public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
-    private static final DateTimeFormatter UTC = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm")
-        .withResolverStyle(ResolverStyle.STRICT).withZone(ZoneOffset.UTC);
     private final @Nullable Screen parent;
     private final BazaarData market;
     private final ItemInfoSession session;
@@ -113,6 +108,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable Double sellAverage;
     private @Nullable ButtonComponent rangeMenu;
     private @Nullable ButtonComponent tableOptions;
+    private @Nullable ButtonComponent chartOptions;
     private @Nullable FlowLayout mainPanel;
     private boolean keyboardInput;
 
@@ -134,8 +130,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.searchQuery = initialSearch;
         this.orderBook = initialOrderBook;
         this.modal = session.data().product() == null ? Modal.Search : Modal.None;
-        this.customStart = UTC.format(session.data().query().start());
-        this.customEnd = UTC.format(session.data().query().end());
+        this.customStart = HistoryTime.editor(session.data().query().start());
+        this.customEnd = HistoryTime.editor(session.data().query().end());
         this.history = new HistoryPanel(config, save, this.viewport, this::showPopover, this.session::mayorVisible);
         this.book = new OrderBookPanel(config, price -> {
             if (this.session.isCurrent() && this.session.data().live().isPresent()) {
@@ -179,6 +175,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.ranges.clear();
         this.rangeMenu = null;
         this.tableOptions = null;
+        this.chartOptions = null;
         var panel = UIContainers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(this.panelHeight));
         panel.padding(Insets.of(10));
         panel.gap(4);
@@ -210,18 +207,13 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         var tabs = UiControls.row(UiControls.tab("History", () -> this.switchTab(false), !this.orderBook),
             UiControls.tab("Order Book", () -> this.switchTab(true), this.orderBook));
         if (this.orderBook) {
-            this.tableOptions = UiControls.button(this.bodyWidth < 300 ? "Options" : "Table options",
+            this.tableOptions = this.optionsButton(this.bodyWidth < 300 ? "Options" : "Table options",
                 this::showTableOptions);
-            this.tableOptions.horizontalSizing(Sizing.content(28));
-            this.tableOptions.renderer((graphics, button, delta) -> {
-                UiControls.quietRenderer().draw(graphics, button, delta);
-                int x = button.getX() + button.getWidth() - 9;
-                int y = button.getY() + button.getHeight() / 2 - 1;
-                graphics.fill(x - 2, y, x + 3, y + 1, UiStyles.palette().muted());
-                graphics.fill(x - 1, y + 1, x + 2, y + 2, UiStyles.palette().muted());
-                graphics.fill(x, y + 2, x + 1, y + 3, UiStyles.palette().muted());
-            });
             tabs.child(BazaarUi.spacer()).child(this.tableOptions);
+        } else {
+            this.chartOptions = this.optionsButton(this.bodyWidth < 300 ? "Options" : "Chart options", () -> {});
+            this.chartOptions.onPress(_ -> this.showPopover(this.chartOptions, 200, this.history::buildSettings));
+            tabs.child(BazaarUi.spacer()).child(this.chartOptions);
         }
         panel.child(tabs);
         this.buildToolbar(panel);
@@ -261,11 +253,14 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         }
         var toolbar = UiControls.row();
         toolbar.gap(3);
-        if (this.bodyWidth < 360) {
+        var font = Minecraft.getInstance().font;
+        int presetWidth = java.util.Arrays.stream(ItemInfoRange.values())
+            .mapToInt(range -> font.width(range.name()) + 16).sum() + 5;
+        int actionsWidth = font.width("Reset") + font.width("Refresh") + 35;
+        if (this.bodyWidth < presetWidth + actionsWidth + 12) {
             this.rangeMenu = UiControls.button("Range: " + this.session.data().range().name(), () -> {});
             this.rangeMenu.renderer(UiControls.segmentRenderer(true));
-            this.rangeMenu.onPress(_ -> this.showPopover(this.rangeMenu, content -> {
-                content.child(UiControls.text("History range", UiStyles.palette().primary()));
+            this.rangeMenu.onPress(_ -> this.showPopover(this.rangeMenu, 140, content -> {
                 for (var range : ItemInfoRange.values()) {
                     content.child(UiControls.button(range.name(), () -> this.selectRange(range))
                         .renderer(UiControls.segmentRenderer(range == this.session.data().range())));
@@ -278,6 +273,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             presets.gap(1);
             for (var range : ItemInfoRange.values()) {
                 var button = UiControls.button(range.name(), () -> this.selectRange(range));
+                button.horizontalSizing(Sizing.content(8));
                 button.verticalSizing(Sizing.fixed(20));
                 button.renderer(UiControls.segmentRenderer(range == this.session.data().range()));
                 this.ranges.put(range, button);
@@ -289,13 +285,22 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         var refresh = UiControls.button("Refresh", this.session::refresh).renderer(UiControls.quietRenderer());
         reset.verticalSizing(Sizing.fixed(20));
         refresh.verticalSizing(Sizing.fixed(20));
-        if (this.bodyWidth >= 440 || this.rangeMenu != null) {
-            toolbar.child(BazaarUi.spacer()).child(reset).child(refresh);
-            panel.child(toolbar);
-        } else {
-            panel.child(toolbar);
-            panel.child(UiControls.row(reset, refresh));
-        }
+        toolbar.child(BazaarUi.spacer()).child(reset).child(refresh);
+        panel.child(toolbar);
+    }
+
+    private ButtonComponent optionsButton(String label, Runnable action) {
+        var control = UiControls.button(label, action);
+        control.horizontalSizing(Sizing.content(28));
+        control.renderer((graphics, button, delta) -> {
+            UiControls.quietRenderer().draw(graphics, button, delta);
+            int x = button.getX() + button.getWidth() - 9;
+            int y = button.getY() + button.getHeight() / 2 - 1;
+            graphics.fill(x - 2, y, x + 3, y + 1, UiStyles.palette().muted());
+            graphics.fill(x - 1, y + 1, x + 2, y + 2, UiStyles.palette().muted());
+            graphics.fill(x, y + 2, x + 1, y + 3, UiStyles.palette().muted());
+        });
+        return control;
     }
 
     private void selectRange(ItemInfoRange range) {
@@ -323,52 +328,14 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void showTableOptions() {
-        var anchor = this.tableOptions;
-        boolean keyboard = this.keyboardInput;
-        this.defer(() -> {
-            if (anchor == null || anchor != this.tableOptions || this.mainPanel == null) {
-                return;
-            }
-            if (this.popoverAnchor == anchor) {
-                this.closePopover();
-                return;
-            }
-            this.closePopover();
-            var root = this.uiAdapter.rootComponent;
-            var handler = root.focusHandler();
-            this.previousFocus = anchor;
-            var cumulative = this.tablePreference("Cumulative items", this.config.showCumulative,
-                value -> this.config.showCumulative = value);
-            var orders = this.tablePreference("Order counts", this.config.showOrders,
-                value -> this.config.showOrders = value);
-            var bars = this.tablePreference("Item bars", this.config.showBars, value -> this.config.showBars = value);
-            var content = UIContainers.verticalFlow(Sizing.content(), Sizing.content()).gap(5);
-            content.children(List.of(cumulative, orders, bars));
-            int leftBound = this.mainPanel.x() + 8;
-            int rightBound = this.mainPanel.x() + this.mainPanel.width() - 8;
-            int topBound = this.mainPanel.y() + 8;
-            int bottomBound = this.mainPanel.y() + this.mainPanel.height() - 8;
-            content.inflate(Size.of(rightBound - leftBound - 16, bottomBound - topBound - 16));
-            int width = Math.min(rightBound - leftBound, Math.max(180, content.width() + 16));
-            var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.content());
-            panel.padding(Insets.of(8));
-            panel.surface(WidgetSurfaces.roundedPanel(0xFF24282E, 4));
-            panel.child(content);
-            panel.inflate(Size.of(width, bottomBound - topBound));
-            int left = Math.clamp(anchor.x() + anchor.width() - width, leftBound, rightBound - width);
-            int top = anchor.y() + anchor.height() + 3;
-            if (top + panel.height() > bottomBound) {
-                top = anchor.y() - panel.height() - 3;
-            }
-            top = Math.clamp(top, topBound, Math.max(topBound, bottomBound - panel.height()));
-            panel.positioning(Positioning.absolute(left, top));
-            this.popover = panel;
-            this.popoverAnchor = anchor;
-            root.child(panel);
-            if (keyboard && handler != null) {
-                handler.focus(cumulative, UIComponent.FocusSource.KEYBOARD_CYCLE);
-            }
-        });
+        if (this.tableOptions == null) {
+            return;
+        }
+        this.showPopover(this.tableOptions, 180, content -> content.children(List.of(
+            this.tablePreference("Cumulative items", this.config.showCumulative,
+                value -> this.config.showCumulative = value),
+            this.tablePreference("Order counts", this.config.showOrders, value -> this.config.showOrders = value),
+            this.tablePreference("Item bars", this.config.showBars, value -> this.config.showBars = value))));
     }
 
     private SmallCheckboxComponent tablePreference(String label, boolean checked, Consumer<Boolean> write) {
@@ -382,27 +349,30 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         return checkbox;
     }
 
-    private void showPopover(UIComponent anchor, Consumer<FlowLayout> build) {
+    private void showPopover(UIComponent anchor, int preferredWidth, Consumer<FlowLayout> build) {
+        boolean keyboard = this.keyboardInput;
         this.defer(() -> {
+            if (this.mainPanel == null || anchor.root() != this.uiAdapter.rootComponent) {
+                return;
+            }
             if (this.popoverAnchor == anchor) {
                 this.closePopover();
                 return;
             }
             this.closePopover();
             var root = this.uiAdapter.rootComponent;
-            var handler = root.focusHandler();
-            this.previousFocus = handler == null ? null : handler.focused();
-            int width = Math.min(286, this.width - 16);
-            int maximumHeight = Math.min(300, this.height - 16);
-            var content = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(6);
+            this.previousFocus = anchor;
+            int leftBound = this.mainPanel.x() + 8;
+            int rightBound = this.mainPanel.x() + this.mainPanel.width() - 8;
+            int topBound = this.mainPanel.y() + 8;
+            int bottomBound = this.mainPanel.y() + this.mainPanel.height() - 8;
+            int width = Math.min(preferredWidth, rightBound - leftBound);
+            int maximumHeight = bottomBound - topBound;
+            var content = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(5);
             build.accept(content);
-            var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.content()).gap(4);
+            var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.content());
             panel.padding(Insets.of(8));
             panel.surface(WidgetSurfaces.roundedPanel(0xFF24282E, 4));
-            var close = UiControls.button("Close", () -> this.defer(this::closePopover));
-            close.renderer(UiControls.quietRenderer());
-            close.verticalSizing(Sizing.fixed(18));
-            panel.child(close);
             panel.child(content);
             panel.inflate(Size.of(width, maximumHeight));
             if (panel.height() > maximumHeight) {
@@ -410,21 +380,27 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                 panel.verticalSizing(Sizing.fixed(maximumHeight));
                 var scroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100), content);
                 scroll.scrollbarThiccness(3);
+                scroll.padding(Insets.right(7));
                 panel.child(scroll);
                 panel.inflate(Size.of(width, maximumHeight));
             }
-            int left = Math.clamp(anchor.x() + anchor.width() - width, 8, Math.max(8, this.width - width - 8));
-            int top = anchor.y() + anchor.height() + 4;
-            if (top + panel.height() > this.height - 8) {
-                top = anchor.y() - panel.height() - 4;
+            int left = Math.clamp(anchor.x() + anchor.width() - width, leftBound, rightBound - width);
+            int top = anchor.y() + anchor.height() + 3;
+            if (top + panel.height() > bottomBound) {
+                top = anchor.y() - panel.height() - 3;
             }
-            top = Math.clamp(top, 8, Math.max(8, this.height - panel.height() - 8));
+            top = Math.clamp(top, topBound, Math.max(topBound, bottomBound - panel.height()));
             panel.positioning(Positioning.absolute(left, top));
             this.popover = panel;
             this.popoverAnchor = anchor;
             root.child(panel);
-            if (handler != null) {
-                handler.focus(close, UIComponent.FocusSource.KEYBOARD_CYCLE);
+            var handler = root.focusHandler();
+            if (keyboard && handler != null) {
+                var targets = new ArrayList<UIComponent>();
+                this.collectFocusable(content, targets);
+                if (!targets.isEmpty()) {
+                    handler.focus(targets.getFirst(), UIComponent.FocusSource.KEYBOARD_CYCLE);
+                }
             }
         });
     }
@@ -438,7 +414,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (handler != null) {
             handler.focus(this.previousFocus != null && this.previousFocus.focusHandler() == handler
                 ? this.previousFocus : null,
-                this.popoverAnchor == this.tableOptions && !this.keyboardInput
+                !this.keyboardInput
                     ? UIComponent.FocusSource.MOUSE_CLICK : UIComponent.FocusSource.KEYBOARD_CYCLE);
         }
         root.removeChild(this.popover);
@@ -460,7 +436,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private void buildModal(FlowLayout panel) {
         String title = switch (this.modal) {
             case Search -> "Find a product";
-            case Custom -> "Custom range (UTC)";
+            case Custom -> "Custom range";
             case Link -> "Open Coflnet";
             case None -> "Item Info";
         };
@@ -491,7 +467,9 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                 });
             }
             case Custom -> {
-                this.paragraph(content, "Use yyyy-MM-dd HH:mm in UTC");
+                this.paragraph(content, "Local time zone: " + HistoryTime.zone().getId());
+                this.paragraph(content, "Use yyyy-MM-dd HH:mm with an optional offset, such as +02:00. "
+                    + "An offset is required when the clock repeats during daylight saving.");
                 content.child(UiControls.text("Start", UiStyles.palette().label()));
                 this.startBox = UIComponents.textBox(Sizing.fill(100)).text(this.customStart);
                 this.startBox.onChanged().subscribe(value -> this.customStart = value);
@@ -537,15 +515,17 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     private void applyCustom() {
         var parsed = Try.of(() -> {
-            var start = LocalDateTime.parse(this.customStart, UTC).toInstant(ZoneOffset.UTC);
-            var end = LocalDateTime.parse(this.customEnd, UTC).toInstant(ZoneOffset.UTC);
+            var start = HistoryTime.parseEditor(this.customStart).get();
+            var end = HistoryTime.parseEditor(this.customEnd).get();
             if (!start.isBefore(end) || end.isAfter(Instant.now())) {
-                throw new IllegalArgumentException("Invalid range");
+                throw new IllegalArgumentException("Start must be before end, with no future end.");
             }
             return new com.github.lutzluca.coflnet.HistoryQuery(start, end);
         });
         if (parsed.isFailure()) {
-            this.feedback = "Enter valid UTC dates with start before end and no future end";
+            this.feedback = parsed.getCause() instanceof java.time.format.DateTimeParseException
+                ? "Use yyyy-MM-dd HH:mm, optionally followed by a valid local offset."
+                : parsed.getCause().getMessage();
             this.updateFeedback();
             return;
         }
@@ -606,7 +586,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.quotes.update(buyPrice, sellPrice, this.buyAverage, this.sellAverage, hypixel,
             this.referenceDetail(data, buyPrice, this.buyAverage, true),
             this.referenceDetail(data, sellPrice, this.sellAverage, false));
-        var historyData = data.history().value() == null ? data.reference().value() : data.history().value();
+        var historyData = this.orderBook && data.history().value() == null
+            ? data.reference().value() : data.history().value();
         String coflnetText = historyData == null
             ? "Coflnet history" : "Coflnet checked " + age(historyData.checkedAt())
                 + ", sample " + age(historyData.coverageEnd());
@@ -660,8 +641,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         detail.add(Component.literal(comparison).withColor(palette.label()));
         detail.add(Component.literal("Returned Coflnet samples are equally weighted.").withColor(palette.muted()));
         if (result.query() != null) {
-            detail.add(Component.literal("Period: " + UTC.format(result.query().start()) + " to "
-                + UTC.format(result.query().end()) + " UTC").withColor(palette.muted()));
+            detail.add(Component.literal("Period: " + HistoryTime.detailed(result.query().start()) + " to "
+                + HistoryTime.detailed(result.query().end())).withColor(palette.muted()));
         }
         if (result.value() != null) {
             detail.add(
@@ -703,7 +684,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (this.feedbackLabel != null) {
             this.feedbackLabel.text(Component.literal(this.feedback));
             if (this.modal != Modal.None) {
-                this.feedbackLabel.verticalSizing(Sizing.fixed(this.feedback.isEmpty() ? 0 : 12));
+                this.feedbackLabel.verticalSizing(this.feedback.isEmpty() ? Sizing.fixed(0) : Sizing.content());
             }
         }
     }

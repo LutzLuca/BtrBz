@@ -15,27 +15,20 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
+import com.github.lutzluca.coflnet.MayorTerm;
 
 abstract class HistoryChartComponent extends BaseUIComponent {
     static final int LEFT = 56;
     static final int RIGHT = 6;
     private static final int TOP = 7;
     private static final int BOTTOM = 16;
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("MMM d HH:mm", Locale.ROOT)
-        .withZone(ZoneOffset.UTC);
-    private static final DateTimeFormatter AXIS_TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT)
-        .withZone(ZoneOffset.UTC);
-    private static final DateTimeFormatter AXIS_DATE = DateTimeFormatter.ofPattern("MMM d", Locale.ROOT)
-        .withZone(ZoneOffset.UTC);
-    private static final DateTimeFormatter AXIS_SECONDS = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT)
-        .withZone(ZoneOffset.UTC);
 
     protected final HistoryViewport viewport;
     private final Supplier<ChartOptions> options;
@@ -43,6 +36,10 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     private final RetainedTextRow text = new RetainedTextRow();
     private List<Segment> segments = List.of();
     private List<Band> bands = List.of();
+    private List<Dot> dots = List.of();
+    private MayorGuide mayorGuide;
+    private BooleanSupplier mayorsVisible = () -> false;
+    private boolean cachedMayors;
     private List<FormattedCharSequence> labels = List.of();
     private List<YTick> yTicks = List.of();
     private List<TimeTick> timeTicks = List.of();
@@ -79,14 +76,26 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     }
 
     public void timeAxisVisible(boolean visible) {
-        this.timeAxisVisible = visible;
+        if (this.timeAxisVisible != visible) {
+            this.timeAxisVisible = visible;
+            this.cachedRevision = -1;
+        }
+    }
+
+    public void mayors(Supplier<List<MayorTerm>> mayors, BooleanSupplier visible) {
+        this.mayorGuide = new MayorGuide(this.viewport, mayors);
+        this.mayorsVisible = visible;
+    }
+
+    public int verticalOverhead(boolean timeAxis) {
+        return this.top() + (timeAxis ? BOTTOM : 3);
     }
 
     @Override
     public void update(float delta, int mouseX, int mouseY) {
         super.update(delta, mouseX, mouseY);
         if (this.plotHovered(mouseX, mouseY) && !this.dragged) {
-            this.viewport.hoverAt(this, this.timeAt(mouseX - this.x));
+            this.inspect(this.timeAt(mouseX - this.x));
         } else {
             this.viewport.clearHover(this);
         }
@@ -97,8 +106,8 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         return root != null && root.childAt((int) mouseX, (int) mouseY) == this
             && mouseX >= this.x + LEFT
             && mouseX < this.x + this.width - RIGHT
-            && mouseY >= this.y + TOP
-            && mouseY < this.y + this.height - BOTTOM;
+            && mouseY >= this.y + this.top()
+            && mouseY < this.y + this.height - this.bottom();
     }
 
     @Override
@@ -106,12 +115,13 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         var current = this.options.get();
         if (this.cachedRevision != this.viewport.revision() || !current.equals(this.cachedOptions)
             || this.cachedWidth != this.width
-            || this.cachedHeight != this.height) {
+            || this.cachedHeight != this.height
+            || this.cachedMayors != this.mayorsVisible.getAsBoolean()) {
             this.rebuild(current);
         }
         boolean hovered = this.plotHovered(mouseX, mouseY);
-        graphics.fill(this.x + LEFT, this.y + TOP, this.x + this.width - RIGHT,
-            this.y + this.height - BOTTOM, 0xFF1C2026);
+        graphics.fill(this.x + LEFT, this.y + this.top(), this.x + this.width - RIGHT,
+            this.y + this.height - this.bottom(), 0xFF1C2026);
         this.text.begin();
         var font = Minecraft.getInstance().font;
         for (var tick : this.yTicks) {
@@ -122,8 +132,8 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         }
         if (this.timeAxisVisible) {
             for (var tick : this.timeTicks) {
-                graphics.fill(this.x + tick.position(), this.y + this.height - BOTTOM,
-                    this.x + tick.position() + 1, this.y + this.height - BOTTOM + 3, 0x55514D45);
+                graphics.fill(this.x + tick.position(), this.y + this.height - this.bottom(),
+                    this.x + tick.position() + 1, this.y + this.height - this.bottom() + 3, 0x55514D45);
                 this.text.draw(graphics, font, tick.text(), this.x + tick.labelX(),
                     this.y + this.height - 11, UiStyles.palette().muted(), false);
             }
@@ -136,11 +146,19 @@ abstract class HistoryChartComponent extends BaseUIComponent {
             graphics.drawLine(this.x + segment.x1(), this.y + segment.y1(), this.x + segment.x2(),
                 this.y + segment.y2(), 1, Color.ofArgb(segment.color()));
         }
+        for (var dot : this.dots) {
+            graphics.fill(this.x + dot.x() - 1, this.y + dot.y() - 1,
+                this.x + dot.x() + 2, this.y + dot.y() + 2, dot.color());
+        }
+        if (this.mayorGuide != null && this.mayorsVisible.getAsBoolean()) {
+            this.mayorGuide.draw(graphics, this.x + LEFT, this.y + 2, this.plotWidth(),
+                this.y + this.height - this.bottom(), mouseX, mouseY, this.unobstructed(mouseX, mouseY));
+        }
         this.drawCrosshair(graphics, this.viewport.pin(), 0x99C8BFAE);
         this.drawCrosshair(graphics, this.viewport.hover(), 0x779C978D);
         if (this.unavailable) {
             this.text.draw(graphics, font, this.labels.getFirst(), this.x + LEFT + 8,
-                this.y + TOP + 8, 0xFFAAA59B, false);
+                this.y + this.top() + 8, 0xFFAAA59B, false);
         }
         if (hovered) {
             this.updateTooltip(current);
@@ -154,26 +172,29 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         this.cachedHeight = this.height;
         this.minimum = Double.POSITIVE_INFINITY;
         this.maximum = Double.NEGATIVE_INFINITY;
-        for (var point : this.viewport.history()) {
-            if (!this.visible(point.timestamp())) {
-                continue;
-            }
-            if (options.buy()) {
-                this.include(this.value(point, true, options));
-            }
-            if (options.sell()) {
-                this.include(this.value(point, false, options));
-            }
+        this.cachedMayors = this.mayorsVisible.getAsBoolean();
+        var paths = new ArrayList<RenderPath>();
+        var shading = new ArrayList<Shading>();
+        if (options.buy()) {
+            paths.addAll(this.paths(true, UiStyles.palette().buy(), options));
             if (!this.quantity && options.bands()) {
-                if (options.buy()) {
-                    this.include(point.minBuy());
-                    this.include(point.maxBuy());
-                }
-                if (options.sell()) {
-                    this.include(point.minSell());
-                    this.include(point.maxSell());
-                }
+                shading.addAll(this.shading(true, UiStyles.palette().buy()));
             }
+        }
+        if (options.sell()) {
+            paths.addAll(this.paths(false, UiStyles.palette().sell(), options));
+            if (!this.quantity && options.bands()) {
+                shading.addAll(this.shading(false, UiStyles.palette().sell()));
+            }
+        }
+        for (var path : paths) {
+            path.points().forEach(point -> this.include(point.value()));
+        }
+        for (var band : shading) {
+            this.include(band.low().startValue());
+            this.include(band.low().endValue());
+            this.include(band.high().startValue());
+            this.include(band.high().endValue());
         }
         this.unavailable = !Double.isFinite(this.minimum);
         if (this.unavailable) {
@@ -195,15 +216,13 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         }
         this.yTicks = this.buildYTicks();
         var lines = new ArrayList<Segment>();
-        var ranges = new ArrayList<Band>();
-        if (options.buy()) {
-            this.buildSeries(true, UiStyles.palette().buy(), options, lines, ranges);
-        }
-        if (options.sell()) {
-            this.buildSeries(false, UiStyles.palette().sell(), options, lines, ranges);
+        var points = new ArrayList<Dot>();
+        for (var path : paths) {
+            this.buildSeries(path, lines, points);
         }
         this.segments = List.copyOf(lines);
-        this.bands = List.copyOf(ranges);
+        this.dots = List.copyOf(points);
+        this.bands = this.buildBands(shading);
         this.labels = List.of(this.label(options.buy() || options.sell()
             ? "No returned values in this view" : "Select Buy or Sell"));
         this.timeTicks = this.buildTimeTicks();
@@ -231,23 +250,17 @@ abstract class HistoryChartComponent extends BaseUIComponent {
 
     private List<TimeTick> buildTimeTicks() {
         var font = Minecraft.getInstance().font;
-        long start = this.viewport.start().toEpochMilli();
-        long span = this.viewport.end().toEpochMilli() - start;
-        var intermediateFormat = span < 60_000 ? AXIS_SECONDS : span <= 86_400_000 ? AXIS_TIME : AXIS_DATE;
-        for (int count = 6; count >= 2; count--) {
+        var span = Duration.between(this.viewport.start(), this.viewport.end());
+        for (int count = Math.min(9, Math.max(2, this.plotWidth() / 60)); count >= 2; count--) {
             var ticks = new ArrayList<TimeTick>();
             int previousEnd = Integer.MIN_VALUE;
             boolean fits = true;
-            for (int index = 0; index < count; index++) {
-                Instant time = Instant.ofEpochMilli(start + Math.round((double) span * index / (count - 1)));
-                var format = index == 0 || index == count - 1 ? TIME : intermediateFormat;
-                var sequence = this.label(format.format(time) + (index == 0 ? " UTC" : ""));
+            for (var time : HistoryTime.ticks(this.viewport.start(), this.viewport.end(), count)) {
+                var sequence = this.label(HistoryTime.axis(time, span));
                 int width = font.width(sequence);
                 int position = this.localX(time);
-                int labelX = index == 0
-                    ? LEFT : index == count - 1
-                        ? LEFT + this.plotWidth() - width
-                        : position - width / 2;
+                int labelX = Math.clamp(position - width / 2, LEFT,
+                    Math.max(LEFT, LEFT + this.plotWidth() - width));
                 if (labelX < previousEnd + 8) {
                     fits = false;
                     break;
@@ -255,92 +268,96 @@ abstract class HistoryChartComponent extends BaseUIComponent {
                 ticks.add(new TimeTick(position, labelX, sequence));
                 previousEnd = labelX + width;
             }
-            if (fits) {
+            if (fits && !ticks.isEmpty()) {
                 return List.copyOf(ticks);
             }
         }
-        var first = this.label(intermediateFormat.format(this.viewport.start()) + " UTC");
-        var last = this.label(intermediateFormat.format(this.viewport.end()));
-        if (font.width(first) + font.width(last) + 8 > this.plotWidth() && span <= 86_400_000) {
-            first = this.label(AXIS_TIME.format(this.viewport.start()) + " UTC");
-            last = this.label(AXIS_TIME.format(this.viewport.end()));
-        }
-        return List.of(new TimeTick(LEFT, LEFT, first),
-            new TimeTick(LEFT + this.plotWidth(), LEFT + this.plotWidth() - font.width(last), last));
+        return List.of(new TimeTick(LEFT, LEFT, this.label(HistoryTime.axis(this.viewport.start(), span))));
     }
 
-    /** Per pixel, keep first, minimum, maximum and last returned values in timestamp order. */
-    private void buildSeries(boolean buy, int color, ChartOptions options, List<Segment> lines, List<Band> ranges) {
-        var bucket = new ArrayList<HistoryPoint>();
+    /** Clip raw connections first, then reduce dense paths without losing their extrema. */
+    private List<RenderPath> paths(boolean buy, int color, ChartOptions options) {
+        var result = new ArrayList<RenderPath>();
+        var points = new ArrayList<PlotPoint>();
         HistoryPoint previous = null;
-        HistoryPoint previousReturned = null;
-        int column = -1;
-        for (var point : this.viewport.history()) {
-            if (!this.visible(point.timestamp())) {
-                continue;
-            }
+        for (var point : this.viewport.drawingSamples()) {
             Double value = this.value(point, buy, options);
-            int x = this.localX(point.timestamp());
-            boolean gap = previousReturned != null && !this.viewport.connects(previousReturned, point);
-            if (value == null || !Double.isFinite(value) || gap || (column != x && !bucket.isEmpty())) {
-                previous = this.flush(bucket, previous, buy, color, options, lines);
+            var connection = previous == null
+                ? java.util.Optional.<HistoryViewport.Connection>empty()
+                : this.viewport.clippedConnection(previous, point, this.value(previous, buy, options), value);
+            if (connection.isPresent()) {
+                var clipped = connection.orElseThrow();
+                this.append(points, clipped.start(), clipped.startValue());
+                this.append(points, clipped.end(), clipped.endValue());
+            } else {
+                this.finishPath(result, points, color);
+                if (finite(value) && this.visible(point.timestamp())) {
+                    this.append(points, point.timestamp(), value);
+                }
+            }
+            previous = finite(value) ? point : null;
+        }
+        this.finishPath(result, points, color);
+        return List.copyOf(result);
+    }
+
+    private void append(List<PlotPoint> points, Instant time, double value) {
+        if (points.isEmpty() || !points.getLast().time().equals(time)) {
+            points.add(new PlotPoint(time, value));
+        }
+    }
+
+    private void finishPath(List<RenderPath> paths, List<PlotPoint> points, int color) {
+        if (!points.isEmpty()) {
+            paths.add(new RenderPath(List.copyOf(points), color));
+            points.clear();
+        }
+    }
+
+    private void buildSeries(RenderPath path, List<Segment> lines, List<Dot> points) {
+        if (path.points().size() == 1) {
+            var point = path.points().getFirst();
+            points.add(new Dot(this.localX(point.time()), this.localY(point.value()), path.color()));
+            return;
+        }
+        var bucket = new ArrayList<PlotPoint>();
+        PlotPoint previous = null;
+        int column = -1;
+        for (var point : path.points()) {
+            int x = this.localX(point.time());
+            if (column != x) {
+                previous = this.flush(bucket, previous, path.color(), lines);
                 bucket.clear();
-            }
-            if (gap) {
-                previous = null;
-            }
-            if (value == null || !Double.isFinite(value)) {
-                previous = null;
-                previousReturned = null;
-                continue;
             }
             column = x;
             bucket.add(point);
-            previousReturned = point;
         }
-        this.flush(bucket, previous, buy, color, options, lines);
-        if (!this.quantity && options.bands()) {
-            this.buildBands(buy, color, ranges);
-        }
+        this.flush(bucket, previous, path.color(), lines);
     }
 
-    private HistoryPoint flush(
-        List<HistoryPoint> bucket,
-        HistoryPoint previous,
-        boolean buy,
-        int color,
-        ChartOptions options,
-        List<Segment> lines
-    ) {
+    private PlotPoint flush(List<PlotPoint> bucket, PlotPoint previous, int color, List<Segment> lines) {
         if (bucket.isEmpty()) {
             return previous;
         }
         int low = 0;
         int high = 0;
-        for (int i = 0; i < bucket.size(); i++) {
-            var point = bucket.get(i);
-            if (this.value(point, buy, options) < this.value(bucket.get(low), buy, options)) {
-                low = i;
+        for (int index = 0; index < bucket.size(); index++) {
+            if (bucket.get(index).value() < bucket.get(low).value()) {
+                low = index;
             }
-            if (this.value(point, buy, options) > this.value(bucket.get(high), buy, options)) {
-                high = i;
+            if (bucket.get(index).value() > bucket.get(high).value()) {
+                high = index;
             }
         }
-        int[] selected = {0, Math.min(low, high), Math.max(low, high), bucket.size() - 1};
         int lastIndex = -1;
-        for (int index : selected) {
+        for (int index : new int[]{0, Math.min(low, high), Math.max(low, high), bucket.size() - 1}) {
             if (index == lastIndex) {
                 continue;
             }
             var point = bucket.get(index);
-            int x = this.localX(point.timestamp());
-            int y = this.localY(this.value(point, buy, options));
             if (previous != null) {
-                lines
-                    .add(new Segment(this.localX(previous.timestamp()), this.localY(this.value(previous, buy, options)),
-                        x, y, color));
-            } else {
-                lines.add(new Segment(x, y, x, y + 1, color));
+                lines.add(new Segment(this.localX(previous.time()), this.localY(previous.value()),
+                    this.localX(point.time()), this.localY(point.value()), color));
             }
             previous = point;
             lastIndex = index;
@@ -348,46 +365,63 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         return previous;
     }
 
-    private void buildBands(boolean buy, int color, List<Band> ranges) {
-        int[] tops = new int[this.plotWidth() + 1];
-        int[] bottoms = new int[this.plotWidth() + 1];
-        java.util.Arrays.fill(tops, Integer.MAX_VALUE);
+    private List<Shading> shading(boolean buy, int color) {
+        var result = new ArrayList<Shading>();
         HistoryPoint previous = null;
-        for (var point : this.viewport.history()) {
-            if (!this.visible(point.timestamp())) {
-                continue;
-            }
-            Double lower = buy ? point.minBuy() : point.minSell();
-            Double upper = buy ? point.maxBuy() : point.maxSell();
-            if (lower == null || upper == null
-                || !Double.isFinite(lower)
-                || !Double.isFinite(upper)
-                || upper < lower
-                || this.value(point, buy, this.cachedOptions) == null
-                || !Double.isFinite(this.value(point, buy, this.cachedOptions))) {
+        for (var point : this.viewport.drawingSamples()) {
+            Double low = buy ? point.minBuy() : point.minSell();
+            Double high = buy ? point.maxBuy() : point.maxSell();
+            if (!finite(low) || !finite(high) || high < low || !finite(buy ? point.buy() : point.sell())) {
                 previous = null;
                 continue;
             }
-            int end = this.localX(point.timestamp()) - LEFT;
-            if (previous != null && !this.viewport.connects(previous, point)) {
-                previous = null;
-            }
-            int start = previous == null ? end : this.localX(previous.timestamp()) - LEFT;
-            double previousLow = previous == null ? lower : (buy ? previous.minBuy() : previous.minSell());
-            double previousHigh = previous == null ? upper : (buy ? previous.maxBuy() : previous.maxSell());
-            for (int column = start; column <= end; column++) {
-                double fraction = end == start ? 1 : (double) (column - start) / (end - start);
-                tops[column] = Math.min(tops[column], this.localY(previousHigh + (upper - previousHigh) * fraction));
-                bottoms[column] = Math.max(bottoms[column],
-                    this.localY(previousLow + (lower - previousLow) * fraction));
+            var lower = previous == null
+                ? java.util.Optional.<HistoryViewport.Connection>empty()
+                : this.viewport.clippedConnection(previous, point, buy ? previous.minBuy() : previous.minSell(), low);
+            var upper = previous == null
+                ? java.util.Optional.<HistoryViewport.Connection>empty()
+                : this.viewport.clippedConnection(previous, point, buy ? previous.maxBuy() : previous.maxSell(), high);
+            if (lower.isPresent() && upper.isPresent()) {
+                result.add(new Shading(lower.orElseThrow(), upper.orElseThrow(), color));
+            } else if (this.visible(point.timestamp())) {
+                result.add(new Shading(new HistoryViewport.Connection(point.timestamp(), low, point.timestamp(), low),
+                    new HistoryViewport.Connection(point.timestamp(), high, point.timestamp(), high), color));
             }
             previous = point;
         }
-        for (int column = 0; column < tops.length; column++) {
-            if (tops[column] != Integer.MAX_VALUE) {
-                ranges.add(new Band(LEFT + column, tops[column], bottoms[column], (color & 0x00FFFFFF) | 0x22000000));
+        return List.copyOf(result);
+    }
+
+    private List<Band> buildBands(List<Shading> shading) {
+        var result = new ArrayList<Band>();
+        for (int color : new int[]{UiStyles.palette().buy(), UiStyles.palette().sell()}) {
+            int[] tops = new int[this.plotWidth() + 1];
+            int[] bottoms = new int[this.plotWidth() + 1];
+            java.util.Arrays.fill(tops, Integer.MAX_VALUE);
+            for (var band : shading) {
+                if (band.color() != color) {
+                    continue;
+                }
+                int start = this.localX(band.low().start()) - LEFT;
+                int end = this.localX(band.low().end()) - LEFT;
+                for (int column = start; column <= end; column++) {
+                    double fraction = end == start ? 1 : (double) (column - start) / (end - start);
+                    double upper = band.high().startValue()
+                        + (band.high().endValue() - band.high().startValue()) * fraction;
+                    double lower = band.low().startValue()
+                        + (band.low().endValue() - band.low().startValue()) * fraction;
+                    tops[column] = Math.min(tops[column], this.localY(upper));
+                    bottoms[column] = Math.max(bottoms[column], this.localY(lower));
+                }
+            }
+            for (int column = 0; column < tops.length; column++) {
+                if (tops[column] != Integer.MAX_VALUE) {
+                    result.add(new Band(LEFT + column, tops[column], bottoms[column],
+                        (color & 0x00FFFFFF) | 0x22000000));
+                }
             }
         }
+        return List.copyOf(result);
     }
 
     private void drawCrosshair(OwoUIGraphics graphics, Instant time, int color) {
@@ -395,7 +429,7 @@ abstract class HistoryChartComponent extends BaseUIComponent {
             return;
         }
         int x = this.x + this.localX(time);
-        graphics.fill(x, this.y + TOP, x + 1, this.y + this.height - BOTTOM, color);
+        graphics.fill(x, this.y + this.top(), x + 1, this.y + this.height - this.bottom(), color);
     }
 
     private void updateTooltip(ChartOptions options) {
@@ -423,7 +457,10 @@ abstract class HistoryChartComponent extends BaseUIComponent {
 
     @Override
     public void drawTooltip(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
-        if (this.shouldDrawTooltip(mouseX, mouseY)) {
+        if (this.guideHovered(mouseX, mouseY) && !this.mayorGuide.tooltip().isEmpty()) {
+            graphics.tooltip(Minecraft.getInstance().font, this.mayorGuide.tooltip(), mouseX, mouseY,
+                HistoryInspectionTooltip.POSITIONER, null);
+        } else if (this.shouldDrawTooltip(mouseX, mouseY)) {
             graphics.tooltip(Minecraft.getInstance().font, this.tooltip(), mouseX, mouseY,
                 HistoryInspectionTooltip.POSITIONER, null);
         }
@@ -438,7 +475,7 @@ abstract class HistoryChartComponent extends BaseUIComponent {
             return super.onMouseScroll(mouseX, mouseY, amount);
         }
         this.viewport.zoom(Math.pow(1.25, amount), (mouseX - LEFT) / this.plotWidth());
-        this.viewport.hoverAt(this, this.timeAt(mouseX));
+        this.inspect(this.timeAt(mouseX));
         return true;
     }
 
@@ -490,7 +527,9 @@ abstract class HistoryChartComponent extends BaseUIComponent {
             return super.onMouseUp(click);
         }
         if (!this.dragged && this.plotHovered(this.x + click.x(), this.y + click.y())) {
-            this.viewport.pinAt(this.timeAt(click.x()));
+            var options = this.options.get();
+            this.viewport.pinAt(this.timeAt(click.x()), this.pickTolerance(), point -> this.available(point, options),
+                (before, after) -> this.commonSeries(before, after, options));
         }
         this.pressed = false;
         this.dragged = false;
@@ -499,7 +538,57 @@ abstract class HistoryChartComponent extends BaseUIComponent {
 
     @Override
     public boolean shouldDrawTooltip(double mouseX, double mouseY) {
-        return !this.dragged && this.plotHovered(mouseX, mouseY) && super.shouldDrawTooltip(mouseX, mouseY);
+        return !this.dragged && (this.guideHovered(mouseX, mouseY) && !this.mayorGuide.tooltip().isEmpty()
+            || this.plotHovered(mouseX, mouseY) && this.viewport.hover() != null
+                && super.shouldDrawTooltip(mouseX, mouseY));
+    }
+
+    private void inspect(Instant time) {
+        var options = this.options.get();
+        this.viewport.hoverAt(this, time, this.pickTolerance(), point -> this.available(point, options),
+            (before, after) -> this.commonSeries(before, after, options));
+    }
+
+    private boolean available(HistoryPoint point, ChartOptions options) {
+        return options.buy() && finite(this.value(point, true, options))
+            || options.sell() && finite(this.value(point, false, options));
+    }
+
+    private boolean commonSeries(HistoryPoint before, HistoryPoint after, ChartOptions options) {
+        return options.buy() && finite(this.value(before, true, options)) && finite(this.value(after, true, options))
+            || options.sell() && finite(this.value(before, false, options))
+                && finite(this.value(after, false, options));
+    }
+
+    private long pickTolerance() {
+        return Math.max(1, Math.round(3.0 * Duration.between(this.viewport.start(), this.viewport.end()).toMillis()
+            / this.plotWidth()));
+    }
+
+    private boolean unobstructed(double mouseX, double mouseY) {
+        var root = this.root();
+        return root != null && root.childAt((int) mouseX, (int) mouseY) == this;
+    }
+
+    private boolean guideHovered(double mouseX, double mouseY) {
+        return this.mayorGuide != null && this.mayorsVisible.getAsBoolean()
+            && this.unobstructed(mouseX, mouseY)
+            && mouseX >= this.x + LEFT
+            && mouseX < this.x + this.width - RIGHT
+            && mouseY >= this.y + 2
+            && mouseY < this.y + 2 + MayorGuide.HEIGHT;
+    }
+
+    private int top() {
+        return TOP + (this.mayorsVisible.getAsBoolean() ? MayorGuide.HEIGHT : 0);
+    }
+
+    private int bottom() {
+        return this.timeAxisVisible ? BOTTOM : 3;
+    }
+
+    private static boolean finite(Double value) {
+        return value != null && Double.isFinite(value);
     }
 
     private boolean visible(Instant time) {
@@ -526,7 +615,7 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     }
 
     private int plotHeight() {
-        return Math.max(1, this.height - TOP - BOTTOM);
+        return Math.max(1, this.height - this.top() - this.bottom());
     }
 
     private int localX(Instant time) {
@@ -536,8 +625,9 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     }
 
     private int localY(double value) {
-        return TOP + (int) Math.round((1 - Math.clamp((value - this.minimum) / (this.maximum - this.minimum), 0, 1))
-            * this.plotHeight());
+        return this.top()
+            + (int) Math.round((1 - Math.clamp((value - this.minimum) / (this.maximum - this.minimum), 0, 1))
+                * this.plotHeight());
     }
 
     private Instant timeAt(double localX) {
@@ -563,6 +653,14 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         int decimals = Math.clamp((int) Math.ceil(-Math.log10(step / divisor)), 0, 6);
         return String.format(Locale.ROOT, "%." + decimals + "f", value / divisor) + suffix;
     }
+
+    private record PlotPoint(Instant time, double value) {}
+
+    private record RenderPath(List<PlotPoint> points, int color) {}
+
+    private record Shading(HistoryViewport.Connection low, HistoryViewport.Connection high, int color) {}
+
+    private record Dot(int x, int y, int color) {}
 
     private record Segment(int x1, int y1, int x2, int y2, int color) {}
 

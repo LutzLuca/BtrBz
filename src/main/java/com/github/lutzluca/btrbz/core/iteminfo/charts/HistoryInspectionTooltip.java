@@ -11,8 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import org.joml.Vector2i;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -33,8 +31,6 @@ final class HistoryInspectionTooltip implements ClientTooltipComponent {
         return new Vector2i(Math.clamp(x, 8, Math.max(8, screenWidth - width - 8)),
             Math.clamp(y, 8, Math.max(8, screenHeight - height - 8)));
     };
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("MMM d, uuuu HH:mm:ss 'UTC'", Locale.ROOT)
-        .withZone(ZoneOffset.UTC);
     private static final int GAP = 12;
     private final List<Row> rows;
     private final int labelWidth;
@@ -48,7 +44,7 @@ final class HistoryInspectionTooltip implements ClientTooltipComponent {
         var font = Minecraft.getInstance().font;
         this.maximumWidth = Math.max(80, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 24);
         var content = new ArrayList<Row>();
-        this.heading(content, TIME.format(point.timestamp()), UiStyles.palette().primary());
+        this.heading(content, HistoryTime.detailed(point.timestamp()), UiStyles.palette().primary());
         this.heading(content, options.metric().label(), UiStyles.palette().muted());
         int headerWidth = font.width("Buy") + font.width("Price (coins)") + font.width("Quantity (items)") + GAP * 2;
         boolean compactHeaders = headerWidth > this.maximumWidth;
@@ -60,7 +56,8 @@ final class HistoryInspectionTooltip implements ClientTooltipComponent {
         content.add(this.values("Sell", HistoryAnalysis.exact(point.sell()),
             this.quantity(options.metric().value(point, false)), UiStyles.palette().sell()));
         if (pinned != null && !point.timestamp().equals(pinned.timestamp())) {
-            this.heading(content, "Compared to " + TIME.format(pinned.timestamp()), UiStyles.palette().muted());
+            this.heading(content, "Compared to " + HistoryTime.detailed(pinned.timestamp()),
+                UiStyles.palette().muted());
             content.add(this.values("Buy", this.change(point.buy(), pinned.buy()), null, UiStyles.palette().buy()));
             content.add(this.values("Sell", this.change(point.sell(), pinned.sell()), null, UiStyles.palette().sell()));
         }

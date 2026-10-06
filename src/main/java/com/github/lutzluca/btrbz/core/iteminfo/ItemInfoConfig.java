@@ -20,7 +20,7 @@ public final class ItemInfoConfig {
     @SerialEntry
     public boolean showBands;
     @SerialEntry
-    public boolean showMayors = true;
+    public boolean showMayors;
     @SerialEntry
     public boolean showQuantity = true;
     @SerialEntry
