@@ -77,19 +77,28 @@ public final class CoflnetClient implements AutoCloseable {
             throw new IllegalArgumentException("Invalid product ID");
         }
         Objects.requireNonNull(query);
-        URI uri = this.base.resolve("bazaar/" + encode(productId) + "/history?start="
-            + encode(query.start().toString()) + "&end=" + encode(query.end().toString()));
-        return this.request(uri, true, refresh);
+        HistorySource source = query.source();
+        Instant now = this.clock.instant();
+        if (source != HistorySource.Range && (!Duration.between(query.start(), query.end()).equals(source.duration())
+            || query.end().isBefore(now.minusSeconds(60))
+            || query.end().isAfter(now))) {
+            source = HistorySource.Range;
+        }
+        String suffix = source == HistorySource.Range
+            ? "?start=" + encode(query.start().toString()) + "&end=" + encode(query.end().toString())
+            : "/" + source.name().toLowerCase(Locale.ROOT);
+        URI uri = this.base.resolve("bazaar/" + encode(productId) + "/history" + suffix);
+        return this.request(uri, source, refresh);
     }
 
     public CoflnetRequest<MayorResponse> mayors(Instant start, Instant end, boolean refresh) {
         new HistoryQuery(start, end);
         return this.request(this.base.resolve("mayor?from=" + encode(start.toString())
-            + "&to=" + encode(end.toString())), false, refresh);
+            + "&to=" + encode(end.toString())), null, refresh);
     }
 
     @SuppressWarnings("unchecked")
-    private synchronized <T> CoflnetRequest<T> request(URI uri, boolean history, boolean refresh) {
+    private synchronized <T> CoflnetRequest<T> request(URI uri, HistorySource source, boolean refresh) {
         Job job = this.inFlight.get(uri);
         if (job != null) {
             return this.subscribe(job);
@@ -108,7 +117,7 @@ public final class CoflnetClient implements AutoCloseable {
             immediate.fail(error(CoflnetException.Kind.QUEUE_FULL, uri, 0, "Request queue is full", null));
             return immediate;
         }
-        job = new Job(uri, history);
+        job = new Job(uri, source);
         this.inFlight.put(uri, job);
         this.queue.add(job);
         CoflnetRequest<T> request = this.subscribe(job);
@@ -193,7 +202,7 @@ public final class CoflnetClient implements AutoCloseable {
             }
             byte[] bytes = status == 204 ? new byte[0] : this.readBody(connection, job);
             weight = bytes.length * 4;
-            result = this.parse(bytes, job.history, checked);
+            result = this.parse(bytes, job.source, checked);
             if (result instanceof HistoryResponse response) {
                 weight += response.points().size() * 256;
             }
@@ -266,11 +275,11 @@ public final class CoflnetClient implements AutoCloseable {
         }
     }
 
-    private Object parse(byte[] bytes, boolean history, Instant checked) {
+    private Object parse(byte[] bytes, HistorySource source, Instant checked) {
         JsonArray array = bytes.length == 0
             ? new JsonArray()
             : JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonArray();
-        if (history) {
+        if (source != null) {
             TreeMap<Instant, HistoryPoint> points = new TreeMap<>();
             for (JsonElement element : array) {
                 if (!element.isJsonObject()) {
@@ -287,7 +296,7 @@ public final class CoflnetClient implements AutoCloseable {
                     integer(row, "sellMovingWeek")));
             }
             return new HistoryResponse(List.copyOf(points.values()), checked,
-                points.isEmpty() ? null : points.firstKey(), points.isEmpty() ? null : points.lastKey());
+                points.isEmpty() ? null : points.firstKey(), points.isEmpty() ? null : points.lastKey(), source);
         }
         TreeMap<Instant, MayorTerm> terms = new TreeMap<>();
         for (JsonElement element : array) {
@@ -475,15 +484,15 @@ public final class CoflnetClient implements AutoCloseable {
 
     private static final class Job {
         private final URI uri;
-        private final boolean history;
+        private final HistorySource source;
         private final List<CoflnetRequest<?>> subscribers = new ArrayList<>();
         private volatile boolean cancelled;
         private HttpURLConnection connection;
         private int attempts;
 
-        private Job(URI uri, boolean history) {
+        private Job(URI uri, HistorySource source) {
             this.uri = uri;
-            this.history = history;
+            this.source = source;
         }
     }
 }

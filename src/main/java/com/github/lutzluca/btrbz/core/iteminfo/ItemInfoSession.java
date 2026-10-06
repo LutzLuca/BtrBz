@@ -12,7 +12,6 @@ import com.github.lutzluca.coflnet.MayorResponse;
 import io.vavr.control.Try;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.function.BooleanSupplier;
@@ -57,8 +56,8 @@ public final class ItemInfoSession implements AutoCloseable {
         this.dispatch = dispatch;
         this.clock = clock;
         this.range = initialRange == null || initialRange == ItemInfoRange.Custom ? ItemInfoRange.Week : initialRange;
-        this.referenceEnd = this.clock.instant().truncatedTo(ChronoUnit.MINUTES);
-        this.query = new HistoryQuery(this.referenceEnd.minus(this.range.duration()), this.referenceEnd);
+        this.referenceEnd = this.clock.instant();
+        this.query = this.presetQuery(this.range, this.referenceEnd);
         this.mayorVisible = showMayors;
         this.market.addListener(this.marketListener);
     }
@@ -87,9 +86,9 @@ public final class ItemInfoSession implements AutoCloseable {
             this.history.reset();
             this.reference.reset();
             this.mayors.reset();
-            this.referenceEnd = this.clock.instant().truncatedTo(ChronoUnit.MINUTES);
+            this.referenceEnd = this.clock.instant();
             if (this.range != ItemInfoRange.Custom) {
-                this.query = new HistoryQuery(this.referenceEnd.minus(this.range.duration()), this.referenceEnd);
+                this.query = this.presetQuery(this.range, this.referenceEnd);
             }
         }
         this.live = this.market.liveProduct(selected);
@@ -101,7 +100,11 @@ public final class ItemInfoSession implements AutoCloseable {
         if (range == ItemInfoRange.Custom || !this.isCurrent()) {
             return;
         }
-        this.setQuery(range, new HistoryQuery(this.referenceEnd.minus(range.duration()), this.referenceEnd));
+        this.setQuery(range, this.presetQuery(range, this.clock.instant()));
+    }
+
+    private HistoryQuery presetQuery(ItemInfoRange range, Instant end) {
+        return new HistoryQuery(end.minus(range.duration()), end, range.source());
     }
 
     public void customRange(Instant start, Instant end) {
@@ -148,9 +151,9 @@ public final class ItemInfoSession implements AutoCloseable {
         if (!this.isCurrent()) {
             return;
         }
-        this.referenceEnd = this.clock.instant().truncatedTo(ChronoUnit.MINUTES);
+        this.referenceEnd = this.clock.instant();
         if (this.range != ItemInfoRange.Custom) {
-            this.query = new HistoryQuery(this.referenceEnd.minus(this.range.duration()), this.referenceEnd);
+            this.query = this.presetQuery(this.range, this.referenceEnd);
         }
         this.requestNeeded(true);
     }
@@ -160,7 +163,7 @@ public final class ItemInfoSession implements AutoCloseable {
             return;
         }
         var id = this.product.bazaarProductId().orElseThrow();
-        var week = new HistoryQuery(this.referenceEnd.minus(ItemInfoRange.Week.duration()), this.referenceEnd);
+        var week = this.presetQuery(ItemInfoRange.Week, this.referenceEnd);
         if (this.reference.needs(week) || refresh) {
             this.request(this.reference, week, () -> this.client.history(id, week, refresh));
         }

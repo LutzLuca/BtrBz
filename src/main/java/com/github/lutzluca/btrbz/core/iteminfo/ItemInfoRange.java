@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.iteminfo;
 
+import com.github.lutzluca.coflnet.HistorySource;
 import java.time.Duration;
 
 public enum ItemInfoRange {
@@ -18,5 +19,14 @@ public enum ItemInfoRange {
 
     public Duration duration() {
         return this.duration;
+    }
+
+    public HistorySource source() {
+        return switch (this) {
+            case Hour -> HistorySource.Hour;
+            case Day -> HistorySource.Day;
+            case Week -> HistorySource.Week;
+            case Month, Year, Custom -> HistorySource.Range;
+        };
     }
 }

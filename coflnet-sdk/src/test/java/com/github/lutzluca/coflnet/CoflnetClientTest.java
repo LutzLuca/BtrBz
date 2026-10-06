@@ -8,6 +8,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +21,47 @@ import org.junit.jupiter.api.Test;
 class CoflnetClientTest {
     private static final HistoryQuery RANGE = new HistoryQuery(Instant.parse("2025-10-01T00:00:00Z"),
         Instant.parse("2025-10-02T00:00:00Z"));
+
+    @Test
+    void namedRoutesDeduplicateAndHistoricalQueriesKeepTheirRequestedRange() throws Exception {
+        Instant now = Instant.parse("2026-10-07T12:00:00Z");
+        List<String> targets = new CopyOnWriteArrayList<>();
+        try (Fixture fixture = new Fixture(exchange -> {
+            targets.add(exchange.getRequestURI().toString());
+            respond(exchange, 200, "[]");
+        }, Clock.fixed(now, ZoneOffset.UTC))) {
+            HistoryResponse hour = fixture.client.history("DIAMOND",
+                new HistoryQuery(now.minusSeconds(3600), now, HistorySource.Hour), false)
+                .completion().toCompletableFuture().get(3, TimeUnit.SECONDS);
+            Assertions.assertEquals(HistorySource.Hour, hour.source());
+            Assertions.assertEquals(java.time.Duration.ofSeconds(20), hour.source().cadence());
+            Assertions.assertSame(hour, fixture.client.history("DIAMOND",
+                new HistoryQuery(now.minusSeconds(3630), now.minusSeconds(30), HistorySource.Hour), false)
+                .completion().toCompletableFuture().get(3, TimeUnit.SECONDS));
+            for (HistorySource source : List.of(HistorySource.Day, HistorySource.Week)) {
+                HistoryResponse response = fixture.client.history("DIAMOND",
+                    new HistoryQuery(now.minus(source.duration()), now, source), false)
+                    .completion().toCompletableFuture().get(3, TimeUnit.SECONDS);
+                Assertions.assertEquals(source, response.source());
+            }
+            HistoryQuery historical = new HistoryQuery(RANGE.start(), RANGE.start().plusSeconds(3600));
+            HistoryResponse custom = fixture.client.history("DIAMOND", historical, false)
+                .completion().toCompletableFuture().get(3, TimeUnit.SECONDS);
+            Assertions.assertEquals(HistorySource.Range, custom.source());
+            Assertions.assertNull(custom.source().cadence());
+            Assertions.assertSame(custom, fixture.client.history("DIAMOND",
+                new HistoryQuery(historical.start(), historical.end(), HistorySource.Hour), false)
+                .completion().toCompletableFuture().get(3, TimeUnit.SECONDS));
+            HistoryResponse ineligible = fixture.client.history("DIAMOND",
+                new HistoryQuery(now.minusSeconds(7200), now, HistorySource.Hour), false)
+                .completion().toCompletableFuture().get(3, TimeUnit.SECONDS);
+            Assertions.assertEquals(HistorySource.Range, ineligible.source());
+            Assertions.assertEquals(List.of("/api/bazaar/DIAMOND/history/hour", "/api/bazaar/DIAMOND/history/day",
+                "/api/bazaar/DIAMOND/history/week",
+                "/api/bazaar/DIAMOND/history?start=2025-10-01T00%3A00%3A00Z&end=2025-10-01T01%3A00%3A00Z",
+                "/api/bazaar/DIAMOND/history?start=2026-10-07T10%3A00%3A00Z&end=2026-10-07T12%3A00%3A00Z"), targets);
+        }
+    }
 
     @Test
     void sharedInterestRefreshAndFailedRefreshPreserveCachedData() throws Exception {
@@ -51,6 +95,8 @@ class CoflnetClientTest {
             Assertions.assertNull(response.points().getFirst().buyVolume());
             Assertions.assertEquals(0L, response.points().getFirst().buyMovingWeek());
             Assertions.assertEquals(4.0, response.points().getLast().buy());
+            Assertions.assertNull(response.points().getLast().minBuy());
+            Assertions.assertNull(response.points().getLast().maxSell());
             Assertions.assertEquals(RANGE.start(), response.coverageStart());
             Assertions.assertThrows(Exception.class, () -> fixture.client.history("DIAMOND", RANGE, true).completion()
                 .toCompletableFuture().get(3, TimeUnit.SECONDS));
@@ -175,12 +221,16 @@ class CoflnetClientTest {
         private final CoflnetClient client;
 
         private Fixture(com.sun.net.httpserver.HttpHandler handler) throws IOException {
+            this(handler, Clock.systemUTC());
+        }
+
+        private Fixture(com.sun.net.httpserver.HttpHandler handler, Clock clock) throws IOException {
             this.server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             this.server.createContext("/api/", handler);
             this.server.setExecutor(this.executor);
             this.server.start();
             this.client = new CoflnetClient(
-                URI.create("http://127.0.0.1:" + this.server.getAddress().getPort() + "/api/"), Clock.systemUTC());
+                URI.create("http://127.0.0.1:" + this.server.getAddress().getPort() + "/api/"), clock);
         }
 
         @Override

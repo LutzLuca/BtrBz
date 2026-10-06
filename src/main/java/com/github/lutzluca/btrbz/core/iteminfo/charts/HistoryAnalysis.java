@@ -54,8 +54,9 @@ public final class HistoryAnalysis {
         }
         double initial = buy ? first.buy() : first.sell();
         double latest = buy ? last.buy() : last.sell();
-        return Optional.of(new Stats(count, sum / count, low, high, latest - initial,
-            initial == 0 ? null : (latest - initial) / initial * 100));
+        return Optional.of(new Stats(count, sum / count, low, high, count < 2 ? null : latest - initial,
+            count < 2 || initial == 0 ? null : (latest - initial) / initial * 100, first.timestamp(),
+            last.timestamp()));
     }
 
     public static String exact(Double value) {
@@ -73,5 +74,8 @@ public final class HistoryAnalysis {
             : coins + String.format(Locale.ROOT, " (%+.2f%%)", change / pinned * 100);
     }
 
-    public record Stats(int samples, double average, double low, double high, double change, Double percent) {}
+    public record Stats(
+        int samples, double average, double low, double high, Double change, Double percent,
+        Instant firstSample, Instant lastSample
+    ) {}
 }
