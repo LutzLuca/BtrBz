@@ -199,7 +199,11 @@ public final class HistoryPanel extends FlowLayout {
         this.summary.setMessage(Component.literal(this.availableWidth < 200
             ? "Stats"
             : this.availableWidth < 330 ? "Summary" : "Range summary"));
-        controls.inflate(Size.of(this.availableWidth, this.availableHeight));
+        // Inflating an unfinished flow caches its layout without mounting later additions.
+        // Measure only the leaves until the heading has all of its children.
+        for (var control : controls.children()) {
+            control.inflate(Size.of(this.availableWidth, this.availableHeight));
+        }
         var series = UiControls.row(this.buy, this.sell);
         series.horizontalSizing(Sizing.content());
         series.gap(3);
