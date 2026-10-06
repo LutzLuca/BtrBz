@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.iteminfo;
 
 import com.github.lutzluca.btrbz.core.ui.UiControls;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
 import com.github.lutzluca.btrbz.data.LiveProductSnapshot;
@@ -34,6 +35,10 @@ import net.minecraft.network.chat.MutableComponent;
 public final class OrderBookPanel extends FlowLayout {
     private static final int BUY = 0xFF55FF55;
     private static final int SELL = 0xFFFFAA00;
+    private static final int CARD_PADDING = 8;
+    private static final int SCROLLBAR_WIDTH = 3;
+    private static final int SCROLLBAR_GUTTER = SCROLLBAR_WIDTH + 5;
+    private static final int ROW_HEIGHT = 15;
     private final ItemInfoConfig config;
     private final Consumer<String> copyPrice;
     private final BiConsumer<UIComponent, Consumer<FlowLayout>> showPopover;
@@ -116,8 +121,8 @@ public final class OrderBookPanel extends FlowLayout {
         var sellMarket = this.snapshot.map(LiveProductSnapshot::buyOrders)
             .orElse(new MarketSide(List.of(), Optional.empty()));
         int halfWidth = (this.availableWidth - 8) / 2;
-        boolean columns = this.measureColumns(buyMarket).totalWidth() + 10 <= halfWidth
-            && this.measureColumns(sellMarket).totalWidth() + 10 <= halfWidth;
+        boolean columns = this.measureColumns(buyMarket).totalWidth() + CARD_PADDING * 2 + SCROLLBAR_GUTTER <= halfWidth
+            && this.measureColumns(sellMarket).totalWidth() + CARD_PADDING * 2 + SCROLLBAR_GUTTER <= halfWidth;
         var heading = UiControls.row(UiControls.text("Order book", UiStyles.palette().primary()));
         var preferences = UiControls.button("Columns", () -> {});
         preferences.renderer(UiControls.quietRenderer());
@@ -182,33 +187,48 @@ public final class OrderBookPanel extends FlowLayout {
 
     private FlowLayout side(MarketSide market, int accent, int width, int height, boolean buy) {
         var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.fixed(height));
-        panel.padding(Insets.of(3));
+        panel.padding(Insets.of(CARD_PADDING));
         panel.gap(3);
         panel.surface(WidgetSurfaces.roundedPanel(0xFF1D2127, 4));
         var title = UiControls.text(buy ? "Buy Price" : "Sell Price", accent);
         title.tooltip(Component.literal((buy ? "Sell offers, lowest first." : "Buy orders, highest first.")
             + " Click a price to copy it."));
-        panel.child(title);
+        int innerWidth = width - CARD_PADDING * 2;
+        String levelsText = market.levels().size() + " levels shown";
+        if (Minecraft.getInstance().font.width(title.text()) + Minecraft.getInstance().font.width(levelsText)
+            + 6 > innerWidth) {
+            levelsText = market.levels().size() + " levels";
+        }
+        var levels = UiControls.text(levelsText, UiStyles.palette().muted());
+        var heading = UiControls.row(title, BazaarUi.spacer(), levels);
+        panel.child(heading);
         String exactTotals = market.totals().map(value -> integer(value.items()) + " items"
             + (this.config.showOrders ? ", " + integer(value.orders()) + " orders" : ""))
             .orElse("Full-side totals unavailable");
-        String totals = Minecraft.getInstance().font.width(exactTotals) <= width - 6
+        var font = Minecraft.getInstance().font;
+        String totals = font.width(exactTotals) <= innerWidth
             ? exactTotals
             : market.totals().map(value -> Utils.formatCompact(value.items()) + " items"
                 + (this.config.showOrders ? ", " + Utils.formatCompact(value.orders()) + " orders" : ""))
                 .orElse("Totals unavailable");
-        var totalsLabel = UiControls.text(totals, UiStyles.palette().label()).maxWidth(width - 6);
+        var totalsLabel = UiControls.text(totals, UiStyles.palette().muted()).maxWidth(innerWidth);
+        totalsLabel.margins(Insets.bottom(3));
         totalsLabel.tooltip(Component.literal("Full side: " + exactTotals
             + ". Includes levels outside this returned summary."));
         panel.child(totalsLabel);
-        panel.child(UiControls.text(market.levels().size() + " levels shown", UiStyles.palette().muted()));
-        var columns = this.measureColumns(market).spreadTo(width - 10);
-        int tableWidth = Math.max(width - 10, columns.totalWidth());
-        var table = UIContainers.verticalFlow(Sizing.fixed(tableWidth), Sizing.expand(100));
+        var columns = this.measureColumns(market).spreadTo(innerWidth - SCROLLBAR_GUTTER);
+        int tableWidth = columns.totalWidth() + SCROLLBAR_GUTTER;
+        boolean horizontalScroll = tableWidth > innerWidth;
+        int metadataHeight = font.lineHeight * (1 + font.split(Component.literal(totals), innerWidth).size()) + 9;
+        int availableRows = height - CARD_PADDING * 2 - metadataHeight - ROW_HEIGHT - 2
+            - (horizontalScroll ? 5 : 0);
+        int rowsHeight = Math.max(ROW_HEIGHT, (availableRows + 1) / (ROW_HEIGHT + 1) * (ROW_HEIGHT + 1) - 1);
+        var table = UIContainers.verticalFlow(Sizing.fixed(tableWidth), Sizing.fixed(ROW_HEIGHT + 2 + rowsHeight));
         table.gap(2);
         table.child(new TableRow(columns, new String[]{"Price", "Items", "Cumul.", "Orders"},
             UiStyles.palette().muted(), 0, false, null));
-        var rows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
+        // The same fixed data width is used by headings and rows, even when the bar is hidden.
+        var rows = UIContainers.verticalFlow(Sizing.fixed(columns.totalWidth()), Sizing.content());
         rows.gap(1);
         long largest = market.levels().stream().mapToLong(LiveProductSnapshot.PriceLevel::items).max().orElse(1);
         long cumulative = 0;
@@ -216,7 +236,7 @@ public final class OrderBookPanel extends FlowLayout {
             cumulative = cumulative > Long.MAX_VALUE - level.items() ? Long.MAX_VALUE : cumulative + level.items();
             var price = new PriceCell(decimal(level.price(), true),
                 () -> this.copyPrice.accept(decimal(level.price(), false)));
-            price.sizing(Sizing.fixed(columns.price()), Sizing.fixed(15));
+            price.sizing(Sizing.fixed(columns.price()), Sizing.fixed(ROW_HEIGHT));
             price.tooltip(Component.literal("Copy price " + decimal(level.price(), true)));
             this.prices.put(new PriceFocus(this.snapshot.orElseThrow().product().bazaarProductId().orElse(null),
                 buy, level.price()), price);
@@ -229,13 +249,13 @@ public final class OrderBookPanel extends FlowLayout {
             rows.child(UiControls.text(this.snapshot.isEmpty() ? "Live book unavailable" : "No returned levels",
                 UiStyles.palette().muted()));
         }
-        var scroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100), rows);
-        scroll.scrollbarThiccness(3);
+        var scroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.fixed(rowsHeight), rows);
+        scroll.scrollbarThiccness(SCROLLBAR_WIDTH);
         table.child(scroll);
-        if (columns.totalWidth() > width - 10) {
-            table.verticalSizing(Sizing.fill(100));
-            var horizontal = UIContainers.horizontalScroll(Sizing.fill(100), Sizing.expand(100), table);
-            horizontal.scrollbarThiccness(3);
+        if (horizontalScroll) {
+            var horizontal = UIContainers.horizontalScroll(Sizing.fill(100),
+                Sizing.fixed(ROW_HEIGHT + 2 + rowsHeight + 5), table);
+            horizontal.scrollbarThiccness(SCROLLBAR_WIDTH);
             panel.child(horizontal);
         } else {
             panel.child(table);
@@ -274,10 +294,10 @@ public final class OrderBookPanel extends FlowLayout {
 
         Columns spreadTo(int width) {
             int extra = Math.max(0, width - this.totalWidth());
-            int count = 2 + (this.cumulative > 0 ? 1 : 0) + (this.orders > 0 ? 1 : 0);
+            int count = 2 + (this.cumulative > 0 ? 1 : 0);
             int share = extra / count;
             return new Columns(this.price + share, this.items + share + extra % count,
-                this.cumulative > 0 ? this.cumulative + share : 0, this.orders > 0 ? this.orders + share : 0);
+                this.cumulative > 0 ? this.cumulative + share : 0, this.orders);
         }
     }
 
@@ -312,7 +332,7 @@ public final class OrderBookPanel extends FlowLayout {
             boolean data,
             ButtonComponent price
         ) {
-            super(Sizing.fill(100), Sizing.fixed(15), Algorithm.HORIZONTAL);
+            super(Sizing.fixed(columns.totalWidth()), Sizing.fixed(ROW_HEIGHT), Algorithm.HORIZONTAL);
             this.columns = columns;
             this.values = values;
             this.accent = accent;
@@ -334,7 +354,7 @@ public final class OrderBookPanel extends FlowLayout {
             int itemLeft = this.x() + this.columns.price() + 6;
             if (this.ratio > 0) {
                 graphics.fill(itemLeft, this.y() + 1, itemLeft + (int) (this.columns.items() * this.ratio),
-                    this.y() + this.height() - 1, this.accent == BUY ? 0x3555FF55 : 0x35FFAA00);
+                    this.y() + this.height() - 1, this.accent == BUY ? 0x4055FF55 : 0x40FFAA00);
             }
             var font = Minecraft.getInstance().font;
             int baseline = this.y() + (this.height() - font.lineHeight) / 2;
