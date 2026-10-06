@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -41,11 +39,11 @@ public final class OrderBookPanel extends FlowLayout {
     private static final int ROW_HEIGHT = 15;
     private final ItemInfoConfig config;
     private final Consumer<String> copyPrice;
-    private final BiConsumer<UIComponent, Consumer<FlowLayout>> showPopover;
-    private final Runnable save;
     private Optional<LiveProductSnapshot> snapshot = Optional.empty();
     private RestorableVerticalScrollContainer<FlowLayout> buyScroll;
     private RestorableVerticalScrollContainer<FlowLayout> sellScroll;
+    private ButtonComponent buySelector;
+    private ButtonComponent sellSelector;
     private ViewState viewState = new ViewState(0, 0);
     private final Map<PriceFocus, ButtonComponent> prices = new HashMap<>();
     private int availableWidth = 500;
@@ -54,15 +52,11 @@ public final class OrderBookPanel extends FlowLayout {
 
     public OrderBookPanel(
         ItemInfoConfig config,
-        Consumer<String> copyPrice,
-        BiConsumer<UIComponent, Consumer<FlowLayout>> showPopover,
-        Runnable save
+        Consumer<String> copyPrice
     ) {
         super(Sizing.fill(100), Sizing.content(), Algorithm.VERTICAL);
         this.config = config;
         this.copyPrice = copyPrice;
-        this.showPopover = showPopover;
-        this.save = save;
         this.gap(5);
         this.refresh();
     }
@@ -103,12 +97,21 @@ public final class OrderBookPanel extends FlowLayout {
 
     public void refresh() {
         var handler = this.focusHandler();
+        var focused = handler == null ? null : handler.focused();
         PriceFocus focusedPrice = handler == null
             ? null : this.prices.entrySet().stream()
-                .filter(entry -> entry.getValue() == handler.focused()).map(Map.Entry::getKey).findFirst().orElse(null);
+                .filter(entry -> entry.getValue() == focused).map(Map.Entry::getKey).findFirst().orElse(null);
+        boolean buyScrollFocus = focused != null && focused == this.buyScroll;
+        boolean sellScrollFocus = focused != null && focused == this.sellScroll;
+        boolean buySelectorFocus = focused != null && focused == this.buySelector;
+        boolean sellSelectorFocus = focused != null && focused == this.sellSelector;
+        boolean ownedFocus = focusedPrice != null || buyScrollFocus
+            || sellScrollFocus
+            || buySelectorFocus
+            || sellSelectorFocus;
         var source = handler == null || handler.lastFocusSource() == null
             ? UIComponent.FocusSource.KEYBOARD_CYCLE : handler.lastFocusSource();
-        if (focusedPrice != null) {
+        if (ownedFocus) {
             handler.focus(null, source);
         }
         this.viewState = this.saveViewState();
@@ -116,19 +119,15 @@ public final class OrderBookPanel extends FlowLayout {
         this.prices.clear();
         this.buyScroll = null;
         this.sellScroll = null;
+        this.buySelector = null;
+        this.sellSelector = null;
         var buyMarket = this.snapshot.map(LiveProductSnapshot::sellOffers)
             .orElse(new MarketSide(List.of(), Optional.empty()));
         var sellMarket = this.snapshot.map(LiveProductSnapshot::buyOrders)
             .orElse(new MarketSide(List.of(), Optional.empty()));
         int halfWidth = (this.availableWidth - 8) / 2;
-        boolean columns = this.measureColumns(buyMarket).totalWidth() + CARD_PADDING * 2 + SCROLLBAR_GUTTER <= halfWidth
-            && this.measureColumns(sellMarket).totalWidth() + CARD_PADDING * 2 + SCROLLBAR_GUTTER <= halfWidth;
-        var heading = UiControls.row(UiControls.text("Order book", UiStyles.palette().primary()));
-        var preferences = UiControls.button("Columns", () -> {});
-        preferences.renderer(UiControls.quietRenderer());
-        preferences.onPress(_ -> this.showPopover.accept(preferences, this::buildPreferences));
-        heading.child(preferences);
-        this.child(heading);
+        boolean columns = this.minimumSideWidth(buyMarket, true) <= halfWidth
+            && this.minimumSideWidth(sellMarket, false) <= halfWidth;
         if (!columns) {
             var buy = UiControls.button("Buy Price", () -> this.selectSide(true));
             var sell = UiControls.button("Sell Price", () -> this.selectSide(false));
@@ -136,10 +135,12 @@ public final class OrderBookPanel extends FlowLayout {
             sell.renderer(UiControls.segmentRenderer(!this.selectedBuy));
             buy.horizontalSizing(Sizing.expand(50));
             sell.horizontalSizing(Sizing.expand(50));
+            this.buySelector = buy;
+            this.sellSelector = sell;
             this.child(UiControls.row(buy, sell));
         }
         int width = columns ? halfWidth : this.availableWidth;
-        int height = Math.max(100, this.availableHeight - (columns ? 25 : 52));
+        int height = Math.max(100, this.availableHeight - (columns ? 0 : 27));
         var sides = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
         sides.gap(8);
         if (columns || this.selectedBuy) {
@@ -150,8 +151,17 @@ public final class OrderBookPanel extends FlowLayout {
         }
         this.child(sides);
         this.restoreViewState(this.viewState);
-        if (focusedPrice != null && this.focusHandler() == handler && handler.focused() == null) {
-            var replacement = this.prices.get(focusedPrice);
+        if (ownedFocus && this.focusHandler() == handler && handler.focused() == null) {
+            UIComponent replacement = this.prices.get(focusedPrice);
+            if (buyScrollFocus) {
+                replacement = this.buyScroll;
+            } else if (sellScrollFocus) {
+                replacement = this.sellScroll;
+            } else if (buySelectorFocus) {
+                replacement = this.buySelector;
+            } else if (sellSelectorFocus) {
+                replacement = this.sellSelector;
+            }
             if (replacement != null && replacement.focusHandler() == handler) {
                 handler.focus(replacement, source);
             }
@@ -165,26 +175,6 @@ public final class OrderBookPanel extends FlowLayout {
         });
     }
 
-    private void buildPreferences(FlowLayout content) {
-        content.child(UiControls.text("Order book columns", UiStyles.palette().primary()));
-        this.preference(content, "Cumulative items", () -> this.config.showCumulative,
-            value -> this.config.showCumulative = value);
-        this.preference(content, "Order counts", () -> this.config.showOrders, value -> this.config.showOrders = value);
-        this.preference(content, "Item bars", () -> this.config.showBars, value -> this.config.showBars = value);
-    }
-
-    private void preference(FlowLayout content, String label, BooleanSupplier read, Consumer<Boolean> write) {
-        var button = UiControls.button(label + ": " + (read.getAsBoolean() ? "On" : "Off"), () -> {});
-        button.renderer(UiControls.quietRenderer());
-        button.onPress(_ -> {
-            write.accept(!read.getAsBoolean());
-            this.save.run();
-            button.setMessage(Component.literal(label + ": " + (read.getAsBoolean() ? "On" : "Off")));
-            this.queue(this::refresh);
-        });
-        content.child(button);
-    }
-
     private FlowLayout side(MarketSide market, int accent, int width, int height, boolean buy) {
         var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.fixed(height));
         panel.padding(Insets.of(CARD_PADDING));
@@ -196,7 +186,7 @@ public final class OrderBookPanel extends FlowLayout {
         int innerWidth = width - CARD_PADDING * 2;
         String levelsText = market.levels().size() + " levels shown";
         if (Minecraft.getInstance().font.width(title.text()) + Minecraft.getInstance().font.width(levelsText)
-            + 6 > innerWidth) {
+            + 12 > innerWidth) {
             levelsText = market.levels().size() + " levels";
         }
         var levels = UiControls.text(levelsText, UiStyles.palette().muted());
@@ -284,6 +274,13 @@ public final class OrderBookPanel extends FlowLayout {
         }
         return new Columns(price, items, this.config.showCumulative ? cumulativeWidth : 0,
             this.config.showOrders ? orders : 0);
+    }
+
+    private int minimumSideWidth(MarketSide market, boolean buy) {
+        var font = Minecraft.getInstance().font;
+        int headingWidth = font.width(buy ? "Buy Price" : "Sell Price")
+            + font.width(market.levels().size() + " levels shown") + 12;
+        return CARD_PADDING * 2 + Math.max(headingWidth, this.measureColumns(market).totalWidth() + SCROLLBAR_GUTTER);
     }
 
     private record Columns(int price, int items, int cumulative, int orders) {
