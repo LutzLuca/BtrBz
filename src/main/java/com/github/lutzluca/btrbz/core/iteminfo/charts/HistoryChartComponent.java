@@ -1,13 +1,12 @@
 package com.github.lutzluca.btrbz.core.iteminfo.charts;
 
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.coflnet.HistoryPoint;
-import com.github.lutzluca.coflnet.MayorTerm;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.Color;
+import io.wispforest.owo.ui.core.CursorStyle;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.Minecraft;
@@ -25,8 +24,8 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 abstract class HistoryChartComponent extends BaseUIComponent {
-    private static final int LEFT = 43;
-    private static final int RIGHT = 6;
+    static final int LEFT = 56;
+    static final int RIGHT = 6;
     private static final int TOP = 7;
     private static final int BOTTOM = 16;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("MMM d HH:mm", Locale.ROOT)
@@ -40,16 +39,15 @@ abstract class HistoryChartComponent extends BaseUIComponent {
 
     protected final HistoryViewport viewport;
     private final Supplier<ChartOptions> options;
-    private final Supplier<List<MayorTerm>> mayors;
     private final boolean quantity;
     private final RetainedTextRow text = new RetainedTextRow();
     private List<Segment> segments = List.of();
     private List<Band> bands = List.of();
-    private List<MayorRegion> mayorRegions = List.of();
     private List<FormattedCharSequence> labels = List.of();
+    private List<YTick> yTicks = List.of();
     private List<TimeTick> timeTicks = List.of();
+    private boolean timeAxisVisible = true;
     private ChartOptions cachedOptions;
-    private List<MayorTerm> cachedMayors = List.of();
     private long cachedRevision = -1;
     private int cachedWidth = -1;
     private int cachedHeight = -1;
@@ -59,8 +57,8 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     private Instant tooltipPoint;
     private Instant tooltipPin;
     private long tooltipRevision = -1;
+    private int tooltipScreenWidth = -1;
     private ChartOptions tooltipOptions;
-    private List<MayorTerm> tooltipMayors = List.of();
     private boolean pressed;
     private boolean dragged;
     private double pressX;
@@ -70,15 +68,18 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     HistoryChartComponent(
         HistoryViewport viewport,
         Supplier<ChartOptions> options,
-        Supplier<List<MayorTerm>> mayors,
         boolean quantity,
         int height
     ) {
         this.viewport = viewport;
         this.options = options;
-        this.mayors = mayors;
         this.quantity = quantity;
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
+        this.cursorStyle(CursorStyle.POINTER);
+    }
+
+    public void timeAxisVisible(boolean visible) {
+        this.timeAxisVisible = visible;
     }
 
     @Override
@@ -103,33 +104,29 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         var current = this.options.get();
-        var terms = this.mayors.get();
         if (this.cachedRevision != this.viewport.revision() || !current.equals(this.cachedOptions)
             || this.cachedWidth != this.width
-            || this.cachedHeight != this.height
-            || !terms.equals(this.cachedMayors)) {
-            this.rebuild(current, terms);
+            || this.cachedHeight != this.height) {
+            this.rebuild(current);
         }
         boolean hovered = this.plotHovered(mouseX, mouseY);
         graphics.fill(this.x + LEFT, this.y + TOP, this.x + this.width - RIGHT,
-            this.y + this.height - BOTTOM, 0x44302E2B);
+            this.y + this.height - BOTTOM, 0xFF1C2026);
         this.text.begin();
-        if (!this.quantity) {
-            this.drawMayors(graphics);
-        }
         var font = Minecraft.getInstance().font;
-        for (int i = 0; i < 3; i++) {
-            int lineY = TOP + i * this.plotHeight() / 2;
-            graphics.fill(this.x + LEFT, this.y + lineY, this.x + this.width - RIGHT,
-                this.y + lineY + 1, 0x24514D45);
-            this.text.draw(graphics, font, this.labels.get(i), this.x + 2,
-                this.y + lineY - 3, 0xFFAAA59B, false);
+        for (var tick : this.yTicks) {
+            graphics.fill(this.x + LEFT, this.y + tick.position(), this.x + this.width - RIGHT,
+                this.y + tick.position() + 1, 0x24514D45);
+            this.text.draw(graphics, font, tick.text(), this.x + LEFT - 5 - font.width(tick.text()),
+                this.y + tick.position() - 3, UiStyles.palette().label(), false);
         }
-        for (var tick : this.timeTicks) {
-            graphics.fill(this.x + tick.position(), this.y + this.height - BOTTOM,
-                this.x + tick.position() + 1, this.y + this.height - BOTTOM + 3, 0x55514D45);
-            this.text.draw(graphics, font, tick.text(), this.x + tick.labelX(),
-                this.y + this.height - 11, UiStyles.palette().muted(), false);
+        if (this.timeAxisVisible) {
+            for (var tick : this.timeTicks) {
+                graphics.fill(this.x + tick.position(), this.y + this.height - BOTTOM,
+                    this.x + tick.position() + 1, this.y + this.height - BOTTOM + 3, 0x55514D45);
+                this.text.draw(graphics, font, tick.text(), this.x + tick.labelX(),
+                    this.y + this.height - 11, UiStyles.palette().muted(), false);
+            }
         }
         for (var band : this.bands) {
             graphics.fill(this.x + band.x(), this.y + band.top(), this.x + band.x() + 1,
@@ -142,17 +139,16 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         this.drawCrosshair(graphics, this.viewport.pin(), 0x99C8BFAE);
         this.drawCrosshair(graphics, this.viewport.hover(), 0x779C978D);
         if (this.unavailable) {
-            this.text.draw(graphics, font, this.labels.get(3), this.x + LEFT + 8,
+            this.text.draw(graphics, font, this.labels.getFirst(), this.x + LEFT + 8,
                 this.y + TOP + 8, 0xFFAAA59B, false);
         }
         if (hovered) {
-            this.updateTooltip(current, terms);
+            this.updateTooltip(current);
         }
     }
 
-    private void rebuild(ChartOptions options, List<MayorTerm> terms) {
+    private void rebuild(ChartOptions options) {
         this.cachedOptions = options;
-        this.cachedMayors = List.copyOf(terms);
         this.cachedRevision = this.viewport.revision();
         this.cachedWidth = this.width;
         this.cachedHeight = this.height;
@@ -190,7 +186,14 @@ abstract class HistoryChartComponent extends BaseUIComponent {
             double padding = Math.max(1, Math.abs(this.minimum) * .02);
             this.minimum = Math.max(0, this.minimum - padding);
             this.maximum += padding;
+        } else {
+            double padding = (this.maximum - this.minimum) * .04;
+            if (!this.quantity) {
+                this.minimum = Math.max(0, this.minimum - padding);
+            }
+            this.maximum += padding;
         }
+        this.yTicks = this.buildYTicks();
         var lines = new ArrayList<Segment>();
         var ranges = new ArrayList<Band>();
         if (options.buy()) {
@@ -201,25 +204,29 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         }
         this.segments = List.copyOf(lines);
         this.bands = List.copyOf(ranges);
-        this.labels = List.of(this.label(this.compact(this.maximum)),
-            this.label(this.compact((this.maximum + this.minimum) / 2)), this.label(this.compact(this.minimum)),
-            this.label(options.buy() || options.sell() ? "No returned values in this view" : "Select Buy or Sell"));
+        this.labels = List.of(this.label(options.buy() || options.sell()
+            ? "No returned values in this view" : "Select Buy or Sell"));
         this.timeTicks = this.buildTimeTicks();
-        if (!this.quantity) {
-            var regions = new ArrayList<MayorRegion>();
-            var font = Minecraft.getInstance().font;
-            for (var term : terms) {
-                if (term.end().isBefore(this.viewport.start()) || term.start().isAfter(this.viewport.end())) {
-                    continue;
-                }
-                int left = this
-                    .localX(term.start().isBefore(this.viewport.start()) ? this.viewport.start() : term.start());
-                int right = this.localX(term.end().isAfter(this.viewport.end()) ? this.viewport.end() : term.end());
-                var name = this.label(term.name());
-                regions.add(new MayorRegion(left, right, font.width(name) + 8 <= right - left ? name : null));
-            }
-            this.mayorRegions = List.copyOf(regions);
+    }
+
+    private List<YTick> buildYTicks() {
+        double desiredStep = (this.maximum - this.minimum) / Math.max(2, Math.min(4, this.plotHeight() / 28));
+        double scale = Math.pow(10, Math.floor(Math.log10(desiredStep)));
+        double fraction = desiredStep / scale;
+        double step = (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10) * scale;
+        if (this.quantity) {
+            step = Math.max(1, step);
         }
+        var ticks = new ArrayList<YTick>();
+        double first = Math.ceil(this.minimum / step) * step;
+        for (int index = 0; index < 8; index++) {
+            double value = first + index * step;
+            if (value > this.maximum) {
+                break;
+            }
+            ticks.add(new YTick(this.localY(value), this.label(this.compact(value, step))));
+        }
+        return List.copyOf(ticks);
     }
 
     private List<TimeTick> buildTimeTicks() {
@@ -383,19 +390,6 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         }
     }
 
-    private void drawMayors(OwoUIGraphics graphics) {
-        for (var region : this.mayorRegions) {
-            graphics.fill(this.x + region.left(), this.y + TOP, this.x + region.right(),
-                this.y + this.height - BOTTOM, 0x18514D45);
-            graphics.fill(this.x + region.left(), this.y + TOP, this.x + region.left() + 1,
-                this.y + this.height - BOTTOM, 0x55514D45);
-            if (region.name() != null) {
-                this.text.draw(graphics, Minecraft.getInstance().font, region.name(), this.x + region.left() + 4,
-                    this.y + TOP + 3, 0xFF928A7E, false);
-            }
-        }
-    }
-
     private void drawCrosshair(OwoUIGraphics graphics, Instant time, int color) {
         if (time == null || !this.visible(time)) {
             return;
@@ -404,83 +398,35 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         graphics.fill(x, this.y + TOP, x + 1, this.y + this.height - BOTTOM, color);
     }
 
-    private void updateTooltip(ChartOptions options, List<MayorTerm> terms) {
+    private void updateTooltip(ChartOptions options) {
         var inspected = this.viewport.inspected().orElse(null);
         Instant timestamp = inspected == null ? null : inspected.timestamp();
+        int screenWidth = Minecraft.getInstance().getWindow().getGuiScaledWidth();
         if (Objects.equals(timestamp, this.tooltipPoint) && Objects.equals(this.viewport.pin(), this.tooltipPin)
             && this.tooltipRevision == this.viewport.revision()
             && options.equals(this.tooltipOptions)
-            && terms.equals(this.tooltipMayors)) {
+            && this.tooltipScreenWidth == screenWidth) {
             return;
         }
         this.tooltipPoint = timestamp;
         this.tooltipPin = this.viewport.pin();
         this.tooltipRevision = this.viewport.revision();
+        this.tooltipScreenWidth = screenWidth;
         this.tooltipOptions = options;
-        this.tooltipMayors = List.copyOf(terms);
         if (inspected == null) {
             this.tooltip(List.<Component>of());
             return;
         }
-        var lines = new ArrayList<Component>();
-        lines.add(Component.literal(TIME.format(timestamp) + " UTC").withStyle(UiStyles.muted()));
-        var pinned = this.viewport.pinnedPoint().orElse(null);
-        if (options.buy()) {
-            this.inspection(lines, "Buy", inspected, pinned, true, options);
-        }
-        if (options.sell()) {
-            this.inspection(lines, "Sell", inspected, pinned, false, options);
-        }
-        if (pinned != null && !timestamp.equals(pinned.timestamp())) {
-            lines.add(Component.literal("Compared with " + TIME.format(pinned.timestamp()) + " UTC")
-                .withStyle(UiStyles.muted()));
-        }
-        for (var term : terms) {
-            if (timestamp.isBefore(term.start()) || !timestamp.isBefore(term.end())) {
-                continue;
-            }
-            lines.add(Component.literal("Recorded mayor: ").withStyle(UiStyles.muted())
-                .append(Component.literal(term.name()).withStyle(UiStyles.label())));
-            for (var perk : term.perks()) {
-                lines.add(Component.literal(perk.name()).withStyle(UiStyles.label())
-                    .append(Component.literal(perk.description() == null || perk.description().isBlank()
-                        ? "" : ": " + perk.description()).withStyle(UiStyles.muted())));
-            }
-        }
-        this.tooltip(WidgetTooltips.wrapped(lines));
+        this.tooltip(
+            List.of(new HistoryInspectionTooltip(inspected, this.viewport.pinnedPoint().orElse(null), options)));
     }
 
-    private void inspection(
-        List<Component> lines,
-        String label,
-        HistoryPoint point,
-        HistoryPoint pinned,
-        boolean buy,
-        ChartOptions options
-    ) {
-        Double price = buy ? point.buy() : point.sell();
-        int accent = buy ? UiStyles.palette().buy() : UiStyles.palette().sell();
-        lines.add(this.inspectionLine(label, "price", HistoryAnalysis.exact(price)
-            + (price == null ? "" : " coins"), accent));
-        Long quantityValue = options.metric().value(point, buy);
-        lines.add(this.inspectionLine(label, options.metric().label(),
-            quantityValue == null ? "Unavailable" : String.format(Locale.ROOT, "%,d", quantityValue), accent));
-        if (pinned != null && !point.timestamp().equals(pinned.timestamp())) {
-            lines.add(this.inspectionLine(label, "change",
-                HistoryAnalysis.comparison(price, buy ? pinned.buy() : pinned.sell()), accent));
+    @Override
+    public void drawTooltip(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+        if (this.shouldDrawTooltip(mouseX, mouseY)) {
+            graphics.tooltip(Minecraft.getInstance().font, this.tooltip(), mouseX, mouseY,
+                HistoryInspectionTooltip.POSITIONER, null);
         }
-        if (options.bands()) {
-            lines.add(this.inspectionLine(label, "returned range",
-                HistoryAnalysis.exact(buy ? point.minBuy() : point.minSell()) + " to "
-                    + HistoryAnalysis.exact(buy ? point.maxBuy() : point.maxSell()),
-                accent));
-        }
-    }
-
-    private Component inspectionLine(String side, String label, String value, int accent) {
-        return Component.literal(side).withStyle(UiStyles.color(accent))
-            .append(Component.literal(" " + label + ": ").withStyle(UiStyles.label()))
-            .append(Component.literal(value).withStyle(UiStyles.color(accent)));
     }
 
     @Override
@@ -604,25 +550,25 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         return Component.literal(value).getVisualOrderText();
     }
 
-    private String compact(double value) {
+    private String compact(double value, double step) {
         double absolute = Math.abs(value);
-        if (absolute >= 1_000_000_000) {
-            return String.format(Locale.ROOT, "%.1fB", value / 1_000_000_000);
+        double divisor = absolute >= 1_000_000_000
+            ? 1_000_000_000 : absolute >= 1_000_000
+                ? 1_000_000
+                : absolute >= 1_000 ? 1_000 : 1;
+        if (-Math.log10(step / divisor) > 3) {
+            divisor = 1;
         }
-        if (absolute >= 1_000_000) {
-            return String.format(Locale.ROOT, "%.1fM", value / 1_000_000);
-        }
-        if (absolute >= 1_000) {
-            return String.format(Locale.ROOT, "%.1fk", value / 1_000);
-        }
-        return String.format(Locale.ROOT, this.quantity ? "%.0f" : "%.1f", value);
+        String suffix = divisor == 1_000_000_000 ? "B" : divisor == 1_000_000 ? "M" : divisor == 1_000 ? "k" : "";
+        int decimals = Math.clamp((int) Math.ceil(-Math.log10(step / divisor)), 0, 6);
+        return String.format(Locale.ROOT, "%." + decimals + "f", value / divisor) + suffix;
     }
 
     private record Segment(int x1, int y1, int x2, int y2, int color) {}
 
     private record Band(int x, int top, int bottom, int color) {}
 
-    private record MayorRegion(int left, int right, FormattedCharSequence name) {}
-
     private record TimeTick(int position, int labelX, FormattedCharSequence text) {}
+
+    private record YTick(int position, FormattedCharSequence text) {}
 }

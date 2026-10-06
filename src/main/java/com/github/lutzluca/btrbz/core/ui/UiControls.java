@@ -82,4 +82,37 @@ public final class UiControls {
             }
         };
     }
+
+    public static ButtonComponent.Renderer quietRenderer() {
+        return (graphics, button, delta) -> {
+            if (button.isHoveredOrFocused()) {
+                WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
+                    button.getHeight(), 0xFF30343A, 3);
+            }
+        };
+    }
+
+    public static ButtonComponent.Renderer segmentRenderer(boolean selected) {
+        return (graphics, button, delta) -> {
+            WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
+                button.getHeight(), selected ? 0xFF40454D : button.isHoveredOrFocused() ? 0xFF30343A : 0xFF22262B, 2);
+            if (selected) {
+                graphics.fill(button.getX() + 3, button.getY() + button.getHeight() - 2,
+                    button.getX() + button.getWidth() - 3, button.getY() + button.getHeight(), 0xFFB7BEC7);
+            }
+        };
+    }
+
+    public static ButtonComponent.Renderer seriesRenderer(boolean enabled, int accent) {
+        return (graphics, button, delta) -> {
+            quietRenderer().draw(graphics, button, delta);
+            int x = button.getX() + 3;
+            int y = button.getY() + (button.getHeight() - 6) / 2;
+            graphics.fill(x, y, x + 6, y + 6, enabled ? accent : 0xFF444A52);
+            if (enabled) {
+                graphics.fill(button.getX() + 12, button.getY() + button.getHeight() - 2,
+                    button.getX() + button.getWidth() - 3, button.getY() + button.getHeight(), accent);
+            }
+        };
+    }
 }

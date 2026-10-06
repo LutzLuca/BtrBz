@@ -13,6 +13,7 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.coflnet.HistoryQuery;
 import com.github.lutzluca.coflnet.HistoryResponse;
+import com.mojang.blaze3d.platform.InputConstants;
 import io.vavr.control.Try;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
@@ -24,7 +25,10 @@ import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
+import io.wispforest.owo.ui.core.ParentUIComponent;
 import io.wispforest.owo.ui.core.Sizing;
+import io.wispforest.owo.ui.core.Size;
+import io.wispforest.owo.ui.core.Positioning;
 import io.wispforest.owo.ui.core.Surface;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
@@ -41,13 +45,13 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import net.minecraft.world.item.ItemStack;
@@ -85,18 +89,16 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable TextBoxComponent startBox;
     private @Nullable TextBoxComponent endBox;
     private @Nullable LabelComponent feedbackLabel;
-    private @Nullable LabelComponent buy;
-    private @Nullable LabelComponent sell;
-    private @Nullable LabelComponent spread;
+    private @Nullable LiveQuoteStrip quotes;
     private @Nullable LabelComponent source;
-    private @Nullable LabelComponent historyStatus;
-    private @Nullable LabelComponent mayorStatus;
     private @Nullable FlowLayout productHeader;
     private @Nullable ButtonComponent coflnet;
     private @Nullable ProductIdentity headerProduct;
     private boolean rebuilding;
-    private boolean displayOpen;
-    private @Nullable FlowLayout displayOptions;
+    private @Nullable FlowLayout popover;
+    private @Nullable UIComponent popoverAnchor;
+    private @Nullable UIComponent previousFocus;
+    private int feedbackTicks;
     private int bodyWidth;
     private int bodyHeight;
     private int panelHeight;
@@ -129,14 +131,15 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.modal = session.data().product() == null ? Modal.Search : Modal.None;
         this.customStart = UTC.format(session.data().query().start());
         this.customEnd = UTC.format(session.data().query().end());
-        this.history = new HistoryPanel(config, save, this.viewport);
+        this.history = new HistoryPanel(config, save, this.viewport, this::showPopover, this.session::mayorVisible);
         this.book = new OrderBookPanel(config, price -> {
             if (this.session.isCurrent() && this.session.data().live().isPresent()) {
                 Minecraft.getInstance().keyboardHandler.setClipboard(price);
                 this.feedback = "Price copied";
+                this.feedbackTicks = 40;
                 this.updateFeedback();
             }
-        });
+        }, this::showPopover, save);
         this.session.onChanged(this::refreshData);
         this.session.historyVisible(!this.orderBook);
     }
@@ -150,6 +153,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     protected void init() {
         super.init();
         this.runDeferred();
+        this.layoutViews();
     }
 
     @Override
@@ -169,11 +173,10 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.feedbackLabel = null;
         this.ranges.clear();
         this.rangeMenu = null;
-        this.displayOptions = null;
         var panel = UIContainers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(this.panelHeight));
         panel.padding(Insets.of(10));
-        panel.gap(6);
-        panel.surface(WidgetSurfaces.roundedPanel(0xF0100F0E, 6));
+        panel.gap(4);
+        panel.surface(WidgetSurfaces.roundedPanel(0xFC181B20, 6));
         root.child(panel);
         if (this.modal != Modal.None) {
             this.buildModal(panel);
@@ -192,47 +195,24 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.headerProduct = null;
         panel.child(UiControls.row(this.productHeader, UiControls.button("Search", () -> this.showModal(Modal.Search)),
             UiControls.button("\u00d7", this::onClose).horizontalSizing(Sizing.fixed(22))));
-        boolean quoteColumns = this.bodyWidth >= 500;
-        int quoteWidth = quoteColumns ? (this.bodyWidth - 12) / 3 : this.bodyWidth;
-        this.buy = UiControls.text("", UiStyles.palette().buy()).maxWidth(quoteWidth);
-        this.sell = UiControls.text("", UiStyles.palette().sell()).maxWidth(quoteWidth);
-        this.spread = UiControls.text("", UiStyles.palette().label()).maxWidth(quoteWidth);
-        var quotes = quoteColumns
-            ? UiControls.row()
-            : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(2);
-        if (quoteColumns) {
-            this.buy.horizontalSizing(Sizing.expand(33));
-            this.sell.horizontalSizing(Sizing.expand(33));
-            this.spread.horizontalSizing(Sizing.expand(33));
-        }
-        if (quoteColumns) {
-            quotes.child(this.buy).child(this.spread).child(this.sell);
-        } else {
-            quotes.child(this.buy).child(this.sell).child(this.spread);
-        }
-        panel.child(quotes);
+        this.quotes = new LiveQuoteStrip();
+        this.quotes.layoutFor(this.bodyWidth);
+        panel.child(this.quotes);
         this.coflnet = UiControls.iconButton("View on Coflnet", new ItemStack(Items.GOLD_BLOCK),
             () -> this.showModal(Modal.Link));
         panel.child(UiControls.row(UiControls.tab("History", () -> this.switchTab(false), !this.orderBook),
             UiControls.tab("Order Book", () -> this.switchTab(true), this.orderBook)));
         this.buildToolbar(panel);
-        this.historyStatus = UiControls.text("", UiStyles.palette().muted()).maxWidth(this.bodyWidth);
-        this.mayorStatus = UiControls.text("", UiStyles.palette().muted()).maxWidth(this.bodyWidth);
-        panel.child(this.historyStatus);
-        panel.child(this.mayorStatus);
         var body = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-        this.displayOptions = UIContainers.verticalFlow(Sizing.fill(100), Sizing.fixed(0));
-        body.child(this.displayOptions);
-        this.refreshDisplayOptions();
         if (this.orderBook) {
             this.book.layoutFor(this.bodyWidth, this.bodyHeight);
             body.child(this.book);
         } else {
-            this.history.layoutFor(this.bodyWidth);
+            this.history.layoutFor(this.bodyWidth, this.bodyHeight);
             body.child(this.history);
         }
         this.source = UiControls.text("", UiStyles.palette().muted()).maxWidth(this.bodyWidth);
-        body.gap(6);
+        this.source.verticalSizing(Sizing.fixed(20));
         this.bodyScroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100), body);
         this.bodyScroll.scrollbarThiccness(3);
         this.bodyScroll.restoreScrollOffset(this.orderBook ? this.bookOffset : this.historyOffset);
@@ -245,94 +225,148 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             panel.child(this.source);
             panel.child(this.coflnet);
         }
-        this.feedbackLabel = UiControls.text(this.feedback, UiStyles.palette().label()).maxWidth(this.bodyWidth);
+        this.feedbackLabel = UiControls.text(this.feedback, UiStyles.palette().muted()).maxWidth(this.bodyWidth);
         panel.child(this.feedbackLabel);
         this.updateFeedback();
     }
 
     private void buildToolbar(FlowLayout panel) {
+        if (this.orderBook) {
+            return;
+        }
         var toolbar = UiControls.row();
-        if (!this.orderBook) {
-            if (this.bodyWidth < 330 || this.panelHeight < 300) {
-                this.rangeMenu = UiControls.button("Range", () -> this.showModal(Modal.Range));
-                toolbar.child(this.rangeMenu);
-            } else {
-                var presets = UiControls.row();
-                presets.horizontalSizing(Sizing.content());
+        toolbar.gap(3);
+        if (this.bodyWidth < 360) {
+            this.rangeMenu = UiControls.button("Range: " + this.session.data().range().name(), () -> {});
+            this.rangeMenu.renderer(UiControls.segmentRenderer(true));
+            this.rangeMenu.onPress(_ -> this.showPopover(this.rangeMenu, content -> {
+                content.child(UiControls.text("History range", UiStyles.palette().primary()));
                 for (var range : ItemInfoRange.values()) {
-                    var button = UiControls.button(range.name(), () -> {
-                        if (range == ItemInfoRange.Custom) {
-                            this.showModal(Modal.Custom);
-                        } else {
-                            this.config.range = range;
-                            this.save.run();
-                            this.session.range(range);
-                        }
-                    });
-                    this.ranges.put(range, button);
-                    presets.child(button);
+                    content.child(UiControls.button(range.name(), () -> this.selectRange(range))
+                        .renderer(UiControls.segmentRenderer(range == this.session.data().range())));
                 }
-                toolbar.child(presets);
+            }));
+            toolbar.child(this.rangeMenu);
+        } else {
+            var presets = UiControls.row();
+            presets.horizontalSizing(Sizing.content());
+            presets.gap(1);
+            for (var range : ItemInfoRange.values()) {
+                var button = UiControls.button(range.name(), () -> this.selectRange(range));
+                button.verticalSizing(Sizing.fixed(20));
+                button.renderer(UiControls.segmentRenderer(range == this.session.data().range()));
+                this.ranges.put(range, button);
+                presets.child(button);
             }
+            toolbar.child(presets);
         }
-        var actions = UiControls.row();
-        actions.horizontalSizing(Sizing.content());
-        if (!this.orderBook) {
-            actions.child(UiControls.button("Reset", this.viewport::reset));
-        }
-        actions.child(UiControls.button(this.orderBook ? "Refresh reference" : "Refresh", this.session::refresh));
-        var display = UiControls.button("Display", () -> {});
-        display.renderer(UiControls.buttonRenderer(false, this.displayOpen));
-        display.onPress(_ -> this.defer(() -> {
-            this.displayOpen = !this.displayOpen;
-            this.refreshDisplayOptions();
-            if (this.displayOpen && this.bodyScroll != null) {
-                this.bodyScroll.restoreScrollOffset(0);
-            }
-            display.renderer(UiControls.buttonRenderer(false, this.displayOpen));
-        }));
-        actions.child(display);
-        if (this.bodyWidth >= 520 || (this.rangeMenu != null && this.bodyWidth >= 260)
-            || toolbar.children().isEmpty()) {
-            toolbar.child(BazaarUi.spacer()).child(actions);
+        var reset = UiControls.button("Reset", this.viewport::reset).renderer(UiControls.quietRenderer());
+        var refresh = UiControls.button("Refresh", this.session::refresh).renderer(UiControls.quietRenderer());
+        reset.verticalSizing(Sizing.fixed(20));
+        refresh.verticalSizing(Sizing.fixed(20));
+        if (this.bodyWidth >= 440 || this.rangeMenu != null) {
+            toolbar.child(BazaarUi.spacer()).child(reset).child(refresh);
             panel.child(toolbar);
         } else {
             panel.child(toolbar);
-            panel.child(actions);
+            panel.child(UiControls.row(reset, refresh));
         }
     }
 
-    private void refreshDisplayOptions() {
-        if (this.displayOptions == null) {
+    private void selectRange(ItemInfoRange range) {
+        this.defer(() -> {
+            this.closePopover();
+            if (range == ItemInfoRange.Custom) {
+                this.showModal(Modal.Custom);
+            } else {
+                this.config.range = range;
+                this.save.run();
+                this.session.range(range);
+            }
+        });
+    }
+
+    private void layoutViews() {
+        if (this.modal != Modal.None || this.bodyScroll == null || this.bodyScroll.width() <= 0) {
             return;
         }
-        this.displayOptions.clearChildren();
-        this.displayOptions.verticalSizing(this.displayOpen ? Sizing.content() : Sizing.fixed(0));
-        this.displayOptions.padding(Insets.of(this.displayOpen ? 6 : 0));
-        if (!this.displayOpen) {
-            return;
-        }
-        this.displayOptions.surface(WidgetSurfaces.roundedPanel(0xC021201E, 4));
-        var controls = this.bodyWidth >= 440
-            ? UiControls.row()
-            : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(4);
         if (this.orderBook) {
-            this.toggle(controls, "Cumulative items", () -> this.config.showCumulative,
-                value -> this.config.showCumulative = value);
-            this.toggle(controls, "Order counts", () -> this.config.showOrders,
-                value -> this.config.showOrders = value);
-            this.toggle(controls, "Relative item bars", () -> this.config.showBars,
-                value -> this.config.showBars = value);
+            this.book.layoutFor(this.bodyScroll.width(), this.bodyScroll.height());
         } else {
-            this.toggle(controls, "Price bands", () -> this.config.showBands, value -> this.config.showBands = value);
-            this.toggle(controls, "Mayor timeline", () -> this.config.showMayors, value -> {
-                this.config.showMayors = value;
-                this.session.mayorVisible(value);
-            });
-            this.toggle(controls, "Quantity chart", () -> this.config.showQuantity,
-                value -> this.config.showQuantity = value);
+            this.history.layoutFor(this.bodyScroll.width(), this.bodyScroll.height());
         }
-        this.displayOptions.child(controls);
+    }
+
+    private void showPopover(UIComponent anchor, Consumer<FlowLayout> build) {
+        this.defer(() -> {
+            if (this.popoverAnchor == anchor) {
+                this.closePopover();
+                return;
+            }
+            this.closePopover();
+            var root = this.uiAdapter.rootComponent;
+            var handler = root.focusHandler();
+            this.previousFocus = handler == null ? null : handler.focused();
+            int width = Math.min(286, this.width - 16);
+            int maximumHeight = Math.min(300, this.height - 16);
+            var content = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(6);
+            build.accept(content);
+            var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.content()).gap(4);
+            panel.padding(Insets.of(8));
+            panel.surface(WidgetSurfaces.roundedPanel(0xFF24282E, 4));
+            var close = UiControls.button("Close", () -> this.defer(this::closePopover));
+            close.renderer(UiControls.quietRenderer());
+            close.verticalSizing(Sizing.fixed(18));
+            panel.child(close);
+            panel.child(content);
+            panel.inflate(Size.of(width, maximumHeight));
+            if (panel.height() > maximumHeight) {
+                panel.removeChild(content);
+                panel.verticalSizing(Sizing.fixed(maximumHeight));
+                var scroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100), content);
+                scroll.scrollbarThiccness(3);
+                panel.child(scroll);
+                panel.inflate(Size.of(width, maximumHeight));
+            }
+            int left = Math.clamp(anchor.x() + anchor.width() - width, 8, Math.max(8, this.width - width - 8));
+            int top = anchor.y() + anchor.height() + 4;
+            if (top + panel.height() > this.height - 8) {
+                top = anchor.y() - panel.height() - 4;
+            }
+            top = Math.clamp(top, 8, Math.max(8, this.height - panel.height() - 8));
+            panel.positioning(Positioning.absolute(left, top));
+            this.popover = panel;
+            this.popoverAnchor = anchor;
+            root.child(panel);
+            if (handler != null) {
+                handler.focus(close, UIComponent.FocusSource.KEYBOARD_CYCLE);
+            }
+        });
+    }
+
+    private void closePopover() {
+        if (this.popover == null || this.uiAdapter == null) {
+            return;
+        }
+        var root = this.uiAdapter.rootComponent;
+        var handler = root.focusHandler();
+        if (handler != null) {
+            handler.focus(this.previousFocus != null && this.previousFocus.focusHandler() == handler
+                ? this.previousFocus : null, UIComponent.FocusSource.KEYBOARD_CYCLE);
+        }
+        root.removeChild(this.popover);
+        this.popover = null;
+        this.popoverAnchor = null;
+        this.previousFocus = null;
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
+        if (this.popover != null && !this.popover.isInBoundingBox(click.x(), click.y())) {
+            this.closePopover();
+            return true;
+        }
+        return super.mouseClicked(click, doubled);
     }
 
     private void buildModal(FlowLayout panel) {
@@ -340,7 +374,6 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             case Search -> "Find a product";
             case Custom -> "Custom range (UTC)";
             case Link -> "Open Coflnet";
-            case Range -> "History range";
             case None -> "Item Info";
         };
         panel.child(UiControls.row(UiControls.text(title, UiStyles.palette().primary()), BazaarUi.spacer(),
@@ -393,44 +426,16 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                 this.paragraph(content, "Open sky.coflnet.com in your browser?");
                 content.child(UiControls.button("Open website", this::openLink));
             }
-            case Range -> {
-                for (var range : ItemInfoRange.values()) {
-                    content.child(UiControls.button(range.name(), () -> this.defer(() -> {
-                        if (range == ItemInfoRange.Custom) {
-                            this.showModal(Modal.Custom);
-                        } else {
-                            this.config.range = range;
-                            this.save.run();
-                            this.session.range(range);
-                            this.closeModal();
-                        }
-                    })));
-                }
-            }
             case None -> {
             }
         }
-        this.feedbackLabel = UiControls.text(this.feedback, UiStyles.palette().label()).maxWidth(this.bodyWidth);
+        this.feedbackLabel = UiControls.text(this.feedback, UiStyles.palette().muted()).maxWidth(this.bodyWidth);
         panel.child(this.feedbackLabel);
         this.updateFeedback();
     }
 
     private void paragraph(FlowLayout content, String value) {
         content.child(UiControls.text(value, UiStyles.palette().label()).maxWidth(this.bodyWidth));
-    }
-
-    private void toggle(FlowLayout content, String label, BooleanSupplier value, Consumer<Boolean> set) {
-        var button = UiControls.button(label + ": " + (value.getAsBoolean() ? "On" : "Off"), () -> {});
-        button.onPress(_ -> this.defer(() -> {
-            set.accept(!value.getAsBoolean());
-            this.save.run();
-            this.history.refreshPreferences();
-            this.book.refresh();
-            button.setMessage(Component.literal(label + ": " + (value.getAsBoolean() ? "On" : "Off")));
-            button.renderer(UiControls.buttonRenderer(false, value.getAsBoolean()));
-        }));
-        button.renderer(UiControls.buttonRenderer(false, value.getAsBoolean()));
-        content.child(button);
     }
 
     private void selectProduct(ProductIdentity product) {
@@ -508,38 +513,24 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         Double buyPrice = data.live().flatMap(value -> value.buyPrice()).orElse(null);
         Double sellPrice = data.live().flatMap(value -> value.sellPrice()).orElse(null);
         this.cacheAverages(data);
-        boolean compact = this.panelHeight < 300;
-        this.buy.text(Component.literal("Buy Price " + HistoryAnalysis.exact(buyPrice) + (compact
-            ? "" : "\n"
-                + this.average(buyPrice, this.buyAverage))));
-        this.sell.text(Component.literal("Sell Price " + HistoryAnalysis.exact(sellPrice) + (compact
-            ? "" : "\n"
-                + this.average(sellPrice, this.sellAverage))));
-        this.buy.tooltip(Component.literal(this.referenceDetail(data, buyPrice, this.buyAverage)));
-        this.sell.tooltip(Component.literal(this.referenceDetail(data, sellPrice, this.sellAverage)));
-        Double difference = buyPrice == null || sellPrice == null ? null : buyPrice - sellPrice;
-        String percent = difference == null || buyPrice == 0
-            ? "Unavailable"
-            : String.format(java.util.Locale.ROOT, "%.1f%%", difference / buyPrice * 100);
-        this.spread.text(Component.literal("Spread " + HistoryAnalysis.exact(difference)
-            + (compact ? " (" + percent + ")" : "\n" + percent)));
-        String historyText = this.orderBook ? "" : this.resultStatus(data.history());
-        this.historyStatus.text(Component.literal(historyText));
-        this.historyStatus.verticalSizing(historyText.isEmpty() ? Sizing.fixed(0) : Sizing.content());
-        String mayorText = !this.orderBook && this.config.showMayors && data.mayors().failure() != null
-            ? "Mayor timeline unavailable. Refresh to retry." : "";
-        this.mayorStatus.text(Component.literal(mayorText));
-        this.mayorStatus.verticalSizing(mayorText.isEmpty() ? Sizing.fixed(0) : Sizing.content());
         String hypixel = data.live().flatMap(value -> value.sourceUpdatedAt()).map(value -> "Hypixel " + age(value))
-            .orElse("Hypixel timestamp unavailable");
+            .orElse("Hypixel unavailable");
+        this.quotes.update(buyPrice, sellPrice, this.buyAverage, this.sellAverage, hypixel,
+            this.referenceDetail(data, buyPrice, this.buyAverage),
+            this.referenceDetail(data, sellPrice, this.sellAverage));
         var historyData = data.history().value() == null ? data.reference().value() : data.history().value();
         String coflnetText = historyData == null
             ? "Coflnet history" : "Coflnet checked " + age(historyData.checkedAt())
                 + ", sample " + age(historyData.coverageEnd());
-        this.source.text(Component.literal(hypixel + "\n" + coflnetText));
+        String status = this.orderBook ? "" : this.resultStatus(data.history());
+        if (status.isEmpty() && this.config.showMayors && data.mayors().failure() != null) {
+            status = "Mayor timeline unavailable";
+        }
+        this.source.text(Component.literal(coflnetText + (status.isEmpty() ? "" : "\n" + status)));
+        this.source.tooltip(Component.literal(coflnetText + "\nHistory provided by Coflnet"));
         this.coflnet.active(data.product() != null && data.product().bazaarProductId().isPresent());
         this.ranges
-            .forEach((range, button) -> button.renderer(UiControls.buttonRenderer(false, range == data.range())));
+            .forEach((range, button) -> button.renderer(UiControls.segmentRenderer(range == data.range())));
         if (this.rangeMenu != null) {
             this.rangeMenu.setMessage(Component.literal("Range: " + data.range().name()));
         }
@@ -567,7 +558,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         String comparison = current == null || average == null || average == 0
             ? "comparison unavailable"
             : String.format(java.util.Locale.ROOT, "%+.1f%%", (current - average) / average * 100);
-        return "7d sample avg " + HistoryAnalysis.exact(average) + " (" + comparison + ")";
+        return "vs 7d average " + HistoryAnalysis.exact(average) + " (" + comparison + ")";
     }
 
     private String referenceDetail(ItemInfoSession.Data data, Double price, Double average) {
@@ -614,7 +605,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private void updateFeedback() {
         if (this.feedbackLabel != null) {
             this.feedbackLabel.text(Component.literal(this.feedback));
-            this.feedbackLabel.verticalSizing(this.feedback.isEmpty() ? Sizing.fixed(0) : Sizing.content());
+            this.feedbackLabel.verticalSizing(Sizing.fixed(12));
         }
     }
 
@@ -636,6 +627,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             this.modal = modal;
             this.modalOffset = 0;
             this.feedback = "";
+            this.feedbackTicks = 0;
             if (modal == Modal.Custom) {
                 this.focusStart = true;
                 this.focusEnd = false;
@@ -653,6 +645,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             this.captureView();
             this.modal = Modal.None;
             this.feedback = "";
+            this.feedbackTicks = 0;
             this.rebuild();
         });
     }
@@ -684,6 +677,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         if (this.uiAdapter == null || !this.session.isCurrent() || GameUtils.screen() != this) {
             return;
         }
+        this.closePopover();
         var root = this.uiAdapter.rootComponent;
         if (root.focusHandler() != null) {
             root.focusHandler().focus(null, UIComponent.FocusSource.MOUSE_CLICK);
@@ -712,6 +706,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void resize(int width, int height) {
+        this.closePopover();
         this.captureView();
         super.resize(width, height);
         this.rebuild();
@@ -726,7 +721,11 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         }
         super.tick();
         this.runDeferred();
-        this.history.tick();
+        this.layoutViews();
+        if (this.feedbackTicks > 0 && --this.feedbackTicks == 0) {
+            this.feedback = "";
+            this.updateFeedback();
+        }
         if (++this.ageTicks >= 20) {
             this.ageTicks = 0;
             this.refreshData();
@@ -735,6 +734,21 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (this.popover != null && event.isEscape()) {
+            this.closePopover();
+            return true;
+        }
+        if (this.popover != null && event.key() == InputConstants.KEY_TAB) {
+            var targets = new ArrayList<UIComponent>();
+            this.collectFocusable(this.popover, targets);
+            var handler = this.uiAdapter.rootComponent.focusHandler();
+            if (handler != null && !targets.isEmpty()) {
+                int current = targets.indexOf(handler.focused());
+                int next = Math.floorMod(current + (event.hasShiftDown() ? -1 : 1), targets.size());
+                handler.focus(targets.get(next), UIComponent.FocusSource.KEYBOARD_CYCLE);
+            }
+            return true;
+        }
         if (this.modal != Modal.None) {
             if (event.isEscape()) {
                 this.closeModal();
@@ -747,6 +761,15 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             }
         }
         return super.keyPressed(event);
+    }
+
+    private void collectFocusable(UIComponent component, List<UIComponent> targets) {
+        if (component.canFocus(UIComponent.FocusSource.KEYBOARD_CYCLE)) {
+            targets.add(component);
+        }
+        if (component instanceof ParentUIComponent parent) {
+            parent.children().forEach(child -> this.collectFocusable(child, targets));
+        }
     }
 
     @Override
@@ -767,12 +790,13 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void removed() {
+        this.closePopover();
         this.deferred.clear();
         this.session.close();
         super.removed();
     }
 
     private enum Modal {
-        None, Search, Custom, Link, Range
+        None, Search, Custom, Link
     }
 }

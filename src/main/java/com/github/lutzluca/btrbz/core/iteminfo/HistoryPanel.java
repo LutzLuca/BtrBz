@@ -4,11 +4,13 @@ import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.ChartOptions;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.HistoryAnalysis;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.HistoryViewport;
+import com.github.lutzluca.btrbz.core.iteminfo.charts.MayorLaneComponent;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.PriceChartComponent;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.QuantityChartComponent;
 import com.github.lutzluca.btrbz.core.iteminfo.charts.QuantityMetric;
 import com.github.lutzluca.btrbz.core.ui.UiControls;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.widgets.ui.IconButton;
 import com.github.lutzluca.coflnet.HistoryResponse;
 import com.github.lutzluca.coflnet.HistoryQuery;
 import com.github.lutzluca.coflnet.MayorTerm;
@@ -16,27 +18,33 @@ import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.Sizing;
+import io.wispforest.owo.ui.core.UIComponent;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-/** The two plots share time and inspection, while retaining separate quantity and price scales. */
+/** Stable plots with secondary detail in anchored popovers. */
 public final class HistoryPanel extends FlowLayout {
     private final ItemInfoConfig config;
     private final Runnable save;
     private final HistoryViewport viewport;
-    private final FlowLayout quantity = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-    private final FlowLayout statistics = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-    private final ButtonComponent metric;
+    private final BiConsumer<UIComponent, Consumer<FlowLayout>> showPopover;
+    private final Consumer<Boolean> mayorVisible;
     private final ButtonComponent buy;
     private final ButtonComponent sell;
+    private final ButtonComponent settings;
+    private final ButtonComponent summary;
+    private final PriceChartComponent priceChart;
     private final QuantityChartComponent quantityChart;
-    private final FlowLayout quantityControls;
-    private final FlowLayout priceControls;
-    private final FlowLayout quantityHelp = UIContainers.verticalFlow(Sizing.fill(100), Sizing.fixed(0));
-    private boolean quantityHelpVisible;
+    private final MayorLaneComponent mayorLane;
+    private final List<ButtonComponent> metricButtons = new ArrayList<>();
     private List<MayorTerm> mayors = List.of();
     private @Nullable HistoryResponse lastHistory;
     private @Nullable String productId;
@@ -45,57 +53,57 @@ public final class HistoryPanel extends FlowLayout {
     private @Nullable ItemInfoRange selectedRange;
     private boolean initialized;
     private boolean awaitingSelection;
-    private boolean quantityMounted;
-    private long statisticsRevision = -1;
+    private boolean quantitySelected;
     private int availableWidth = 500;
+    private int availableHeight = 300;
 
-    public HistoryPanel(ItemInfoConfig config, Runnable save, HistoryViewport viewport) {
+    public HistoryPanel(
+        ItemInfoConfig config,
+        Runnable save,
+        HistoryViewport viewport,
+        BiConsumer<UIComponent, Consumer<FlowLayout>> showPopover,
+        Consumer<Boolean> mayorVisible
+    ) {
         super(Sizing.fill(100), Sizing.content(), Algorithm.VERTICAL);
         this.config = config;
         this.save = save;
         this.viewport = viewport;
-        this.gap(5);
-        this.buy = UiControls.button("Buy Price", () -> {
+        this.showPopover = showPopover;
+        this.mayorVisible = mayorVisible;
+        this.gap(3);
+        this.buy = UiControls.button("Buy", () -> {
             this.config.showBuy = !this.config.showBuy;
-            this.preferenceChanged();
+            this.preferenceChanged(false);
         });
-        this.sell = UiControls.button("Sell Price", () -> {
+        this.sell = UiControls.button("Sell", () -> {
             this.config.showSell = !this.config.showSell;
-            this.preferenceChanged();
+            this.preferenceChanged(false);
         });
-        this.priceControls = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(4);
-        this.child(this.priceControls);
-        this.child(new PriceChartComponent(this.viewport, this::options,
-            () -> this.config.showMayors ? this.mayors : List.of()));
-        this.metric = UiControls.button(this.config.quantityMetric.label(), () -> {
-            this.config.quantityMetric = this.config.quantityMetric == QuantityMetric.MovingWeek
-                ? QuantityMetric.OpenOrders : QuantityMetric.MovingWeek;
-            this.preferenceChanged();
-        });
-        this.metric.tooltip(net.minecraft.network.chat.Component.literal("Choose the other quantity metric"));
-        this.quantityChart = new QuantityChartComponent(this.viewport, this::options,
-            () -> this.config.showMayors ? this.mayors : List.of());
-        this.quantityControls = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(4);
-        this.quantityHelp.gap(4);
-        this.layoutControls();
-        this.quantity.gap(4);
-        this.child(this.quantity);
-        this.child(UiControls.text("Ctrl+scroll zooms. Drag pans. Left-click pins. Right-click clears.",
-            UiStyles.palette().muted()).horizontalSizing(Sizing.fill(100)));
-        this.statistics.gap(4);
-        this.child(this.statistics);
+        this.buy.sizing(Sizing.content(12), Sizing.fixed(18));
+        this.sell.sizing(Sizing.content(12), Sizing.fixed(18));
+        this.settings = UiControls.button("Chart options", () -> {});
+        this.settings.renderer(UiControls.quietRenderer());
+        this.settings.verticalSizing(Sizing.fixed(18));
+        this.settings.onPress(_ -> this.showPopover.accept(this.settings, this::buildSettings));
+        this.summary = UiControls.button("Range summary", () -> {});
+        this.summary.renderer(UiControls.quietRenderer());
+        this.summary.verticalSizing(Sizing.fixed(18));
+        this.summary.onPress(_ -> this.showPopover.accept(this.summary, this::buildSummary));
+        this.priceChart = new PriceChartComponent(this.viewport, this::options);
+        this.quantityChart = new QuantityChartComponent(this.viewport, this::options);
+        this.mayorLane = new MayorLaneComponent(this.viewport, () -> this.mayors);
+        this.rebuildLayout();
         this.refreshPreferences();
     }
 
-    public void layoutFor(int width) {
-        if (this.availableWidth == width) {
+    public void layoutFor(int width, int height) {
+        int nextHeight = Math.max(180, height);
+        if (this.availableWidth == width && this.availableHeight == nextHeight) {
             return;
         }
         this.availableWidth = width;
-        this.layoutControls();
-        this.refreshQuantityHelp();
-        this.statisticsRevision = -1;
-        this.tick();
+        this.availableHeight = nextHeight;
+        this.rebuildLayout();
     }
 
     public void update(ItemInfoSession.Data data) {
@@ -133,125 +141,201 @@ public final class HistoryPanel extends FlowLayout {
         }
         var mayorData = data.mayors().value();
         this.mayors = mayorData == null ? List.of() : mayorData.terms();
-        this.tick();
     }
 
-    public void tick() {
-        if (this.statisticsRevision == this.viewport.revision()) {
-            return;
+    private void rebuildLayout() {
+        this.viewport.clearHover();
+        this.clearChildren();
+        var controls = UiControls.row(UiControls.text("Price history", UiStyles.palette().label()), this.buy, this.sell,
+            this.settings);
+        controls.gap(3);
+        this.child(controls);
+        boolean singlePlot = this.config.showQuantity && this.availableHeight < 255;
+        if (singlePlot) {
+            var price = UiControls.button("Price", () -> this.selectPlot(false));
+            var quantity = UiControls.button("Quantity", () -> this.selectPlot(true));
+            price.renderer(UiControls.segmentRenderer(!this.quantitySelected));
+            quantity.renderer(UiControls.segmentRenderer(this.quantitySelected));
+            price.verticalSizing(Sizing.fixed(18));
+            quantity.verticalSizing(Sizing.fixed(18));
+            this.child(UiControls.row(price, quantity));
         }
-        this.statisticsRevision = this.viewport.revision();
-        this.statistics.clearChildren();
-        var buyStats = this.stats(true);
-        var sellStats = this.stats(false);
-        if (this.availableWidth >= 440) {
-            buyStats.horizontalSizing(Sizing.expand(50));
-            sellStats.horizontalSizing(Sizing.expand(50));
-            this.statistics.child(UiControls.row(buyStats, sellStats));
-        } else {
-            this.statistics.child(buyStats);
-            this.statistics.child(sellStats);
-        }
-    }
-
-    private FlowLayout stats(boolean buy) {
-        var column = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-        column.gap(3);
-        int accent = buy ? UiStyles.palette().buy() : UiStyles.palette().sell();
-        column.child(UiControls.text("Visible range: " + (buy ? "Buy Price" : "Sell Price"), accent));
-        Optional<HistoryAnalysis.Stats> result = HistoryAnalysis.stats(this.viewport.history(),
-            this.viewport.start(), this.viewport.end(), buy);
-        if (result.isEmpty()) {
-            column.child(UiControls.text("No price samples", UiStyles.palette().muted()));
-            return column;
-        }
-        var values = result.orElseThrow();
-        column.child(UiControls.text("Start to end: " + (values.percent() == null
-            ? "Unavailable"
-            : String.format(Locale.ROOT, "%+.1f%%", values.percent())), UiStyles.palette().label())
-            .horizontalSizing(Sizing.fill(100)));
-        column.child(UiControls.text("Low: " + HistoryAnalysis.exact(values.low()), UiStyles.palette().label())
-            .horizontalSizing(Sizing.fill(100)));
-        column.child(UiControls.text("High: " + HistoryAnalysis.exact(values.high()), UiStyles.palette().label())
-            .horizontalSizing(Sizing.fill(100)));
-        column.child(UiControls.text("Sample average: " + HistoryAnalysis.exact(values.average()),
-            UiStyles.palette().label()).horizontalSizing(Sizing.fill(100)));
-        return column;
-    }
-
-    public void refreshPreferences() {
-        this.buy.renderer(UiControls.buttonRenderer(false, this.config.showBuy, UiStyles.palette().buy()));
-        this.sell.renderer(UiControls.buttonRenderer(false, this.config.showSell, UiStyles.palette().sell()));
-        this.metric.setMessage(net.minecraft.network.chat.Component.literal(this.config.quantityMetric.label()));
-        if (this.quantityMounted != this.config.showQuantity) {
-            if (!this.config.showQuantity) {
-                this.viewport.clearHover();
+        boolean showPrice = !singlePlot || !this.quantitySelected;
+        boolean showQuantity = this.config.showQuantity && (!singlePlot || this.quantitySelected);
+        int chrome = 18 + 18 + 9 + (singlePlot ? 21 : 0) + (showQuantity ? 25 : 0)
+            + (showPrice && this.config.showMayors ? 21 : 0);
+        int plotHeight = Math.max(showPrice && showQuantity ? 192 : 112, this.availableHeight - chrome);
+        int quantityHeight = showPrice && showQuantity ? Math.max(76, (int) (plotHeight * .32)) : plotHeight;
+        if (showPrice) {
+            if (this.config.showMayors) {
+                this.child(this.mayorLane);
             }
-            this.quantity.clearChildren();
-            if (this.config.showQuantity) {
-                this.quantity.child(this.quantityControls);
-                this.quantity.child(this.quantityHelp);
-                this.quantity.child(this.quantityChart);
+            int priceHeight = showQuantity ? plotHeight - quantityHeight : plotHeight;
+            this.priceChart.verticalSizing(Sizing.fixed(priceHeight));
+            this.priceChart.timeAxisVisible(!showQuantity);
+            this.child(this.priceChart);
+        }
+        if (showQuantity) {
+            this.child(this.quantityControls());
+            this.quantityChart.verticalSizing(Sizing.fixed(quantityHeight));
+            this.quantityChart.timeAxisVisible(true);
+            this.child(this.quantityChart);
+        }
+        this.child(this.summary);
+    }
+
+    private void selectPlot(boolean quantity) {
+        this.quantitySelected = quantity;
+        this.queue(this::rebuildLayout);
+    }
+
+    private FlowLayout quantityControls() {
+        this.metricButtons.clear();
+        var controls = UiControls.row(UiControls.text("Quantity", UiStyles.palette().label()));
+        controls.gap(3);
+        int metricWidth = Minecraft.getInstance().font.width(QuantityMetric.OpenOrders.label())
+            + Minecraft.getInstance().font.width(QuantityMetric.MovingWeek.label()) + 128;
+        if (this.availableWidth >= metricWidth) {
+            var segments = UiControls.row();
+            segments.horizontalSizing(Sizing.content());
+            segments.gap(1);
+            for (var metric : QuantityMetric.values()) {
+                var button = UiControls.button(metric.label(), () -> this.selectMetric(metric));
+                button.verticalSizing(Sizing.fixed(18));
+                button.renderer(UiControls.segmentRenderer(metric == this.config.quantityMetric));
+                this.metricButtons.add(button);
+                segments.child(button);
             }
-            this.quantityMounted = this.config.showQuantity;
-        }
-    }
-
-    private void layoutControls() {
-        this.priceControls.clearChildren();
-        var prices = UiControls.row(this.buy, this.sell);
-        prices.horizontalSizing(Sizing.content());
-        var priceTitle = UiControls.text("Price history (coins per item)", UiStyles.palette().label());
-        if (this.availableWidth >= 440) {
-            this.priceControls.child(UiControls.row(priceTitle, prices));
+            controls.child(segments);
         } else {
-            this.priceControls.child(priceTitle);
-            this.priceControls.child(prices);
+            var selector = UiControls.button(this.config.quantityMetric.label() + " v", () -> {});
+            selector.verticalSizing(Sizing.fixed(18));
+            selector.renderer(UiControls.segmentRenderer(true));
+            selector.onPress(_ -> this.showPopover.accept(selector, content -> {
+                content.child(UiControls.text("Quantity metric", UiStyles.palette().primary()));
+                var choices = new ArrayList<ButtonComponent>();
+                for (var metric : QuantityMetric.values()) {
+                    var choice = UiControls.button(metric.label(), () -> {
+                        this.selectMetric(metric);
+                        for (int index = 0; index < choices.size(); index++) {
+                            choices.get(index)
+                                .renderer(UiControls.segmentRenderer(QuantityMetric.values()[index] == metric));
+                        }
+                    });
+                    choice.renderer(UiControls.segmentRenderer(metric == this.config.quantityMetric));
+                    choices.add(choice);
+                    content.child(choice);
+                }
+            }));
+            this.metricButtons.add(selector);
+            controls.child(selector);
         }
-        this.quantityControls.clearChildren();
-        var about = UiControls.iconButton("About quantities", Assets.INFO_ICON, 64, () -> {
-            this.quantityHelpVisible = !this.quantityHelpVisible;
-            this.refreshQuantityHelp();
-        });
-        var metrics = this.availableWidth >= 440
-            ? UiControls.row(this.metric, about)
-            : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).gap(4).child(this.metric).child(about);
-        metrics.horizontalSizing(Sizing.content());
-        var quantityTitle = UiControls.text("Quantity (items)", UiStyles.palette().label());
-        if (this.availableWidth >= 540) {
-            this.quantityControls.child(UiControls.row(quantityTitle, metrics));
-        } else {
-            this.quantityControls.child(quantityTitle);
-            this.quantityControls.child(metrics);
-        }
+        var information = new IconButton(Assets.INFO_ICON, Component.literal("About quantities"), () -> {}, 64,
+            UiControls.quietRenderer());
+        information.onPress(_ -> this.showPopover.accept(information, this::buildQuantityHelp));
+        controls.child(information);
+        return controls;
     }
 
-    private void refreshQuantityHelp() {
-        this.quantityHelp.clearChildren();
-        this.quantityHelp.verticalSizing(this.quantityHelpVisible ? Sizing.content() : Sizing.fixed(0));
-        if (!this.quantityHelpVisible) {
-            return;
-        }
-        this.quantityHelp.child(UiControls.text(
-            "Open-order quantity: Items waiting in outstanding orders. "
-                + "Changes include placements, fills and cancellations.",
-            UiStyles.palette().label())
-            .horizontalSizing(Sizing.fill(100)));
-        this.quantityHelp.child(UiControls.text(
-            "7-day moving volume: Activity across the preceding seven days at each timestamp, "
-                + "including Hypixel's live-state component. Older activity leaves the window continuously.",
-            UiStyles.palette().label()).horizontalSizing(Sizing.fill(100)));
-        this.quantityHelp.child(UiControls.text("Neither measures exact trades per interval.",
-            UiStyles.palette().muted()).horizontalSizing(Sizing.fill(100)));
-    }
-
-    private void preferenceChanged() {
+    private void selectMetric(QuantityMetric metric) {
+        this.config.quantityMetric = metric;
         this.save.run();
         this.refreshPreferences();
     }
 
+    public void refreshPreferences() {
+        this.buy.renderer(UiControls.seriesRenderer(this.config.showBuy, UiStyles.palette().buy()));
+        this.sell.renderer(UiControls.seriesRenderer(this.config.showSell, UiStyles.palette().sell()));
+        if (this.metricButtons.size() == 1) {
+            this.metricButtons.getFirst().setMessage(Component.literal(this.config.quantityMetric.label() + " v"));
+        } else {
+            for (int index = 0; index < this.metricButtons.size(); index++) {
+                this.metricButtons.get(index).renderer(UiControls.segmentRenderer(
+                    QuantityMetric.values()[index] == this.config.quantityMetric));
+            }
+        }
+    }
+
+    private void buildSettings(FlowLayout content) {
+        content.child(UiControls.text("Chart options", UiStyles.palette().primary()));
+        this.toggle(content, "Min/max shading", () -> this.config.showBands, value -> this.config.showBands = value,
+            false);
+        this.toggle(content, "Mayor timeline", () -> this.config.showMayors, value -> {
+            this.config.showMayors = value;
+            this.mayorVisible.accept(value);
+        }, true);
+        this.toggle(content, "Quantity plot", () -> this.config.showQuantity, value -> this.config.showQuantity = value,
+            true);
+    }
+
+    private void toggle(
+        FlowLayout content,
+        String label,
+        BooleanSupplier read,
+        Consumer<Boolean> write,
+        boolean layout
+    ) {
+        var button = UiControls.button(label + ": " + (read.getAsBoolean() ? "On" : "Off"), () -> {});
+        button.renderer(UiControls.quietRenderer());
+        button.onPress(_ -> {
+            write.accept(!read.getAsBoolean());
+            button.setMessage(Component.literal(label + ": " + (read.getAsBoolean() ? "On" : "Off")));
+            this.preferenceChanged(layout);
+        });
+        content.child(button);
+    }
+
+    private void preferenceChanged(boolean layout) {
+        this.save.run();
+        this.refreshPreferences();
+        if (layout) {
+            this.queue(this::rebuildLayout);
+        }
+    }
+
+    private void buildQuantityHelp(FlowLayout content) {
+        this.explainMetric(content, this.config.quantityMetric);
+        this.explainMetric(content, this.config.quantityMetric == QuantityMetric.MovingWeek
+            ? QuantityMetric.OpenOrders : QuantityMetric.MovingWeek);
+        content.child(UiControls.text("Neither measures exact trades per interval.", UiStyles.palette().muted())
+            .horizontalSizing(Sizing.fill(100)));
+    }
+
+    private void explainMetric(FlowLayout content, QuantityMetric metric) {
+        content.child(UiControls.text(metric.label(), UiStyles.palette().primary()));
+        String explanation = metric == QuantityMetric.OpenOrders
+            ? "Items waiting in outstanding orders. Changes include placements, fills and cancellations."
+            : "Activity across the preceding seven days at each timestamp, including Hypixel's live-state component. "
+                + "Older activity leaves the window continuously.";
+        content.child(UiControls.text(explanation, UiStyles.palette().muted()).horizontalSizing(Sizing.fill(100)));
+    }
+
+    private void buildSummary(FlowLayout content) {
+        content.child(UiControls.text("Visible range summary", UiStyles.palette().primary()));
+        content.child(UiControls.text("Returned price samples have equal weight.", UiStyles.palette().muted())
+            .horizontalSizing(Sizing.fill(100)));
+        for (boolean buy : new boolean[]{true, false}) {
+            var values = HistoryAnalysis.stats(this.viewport.history(), this.viewport.start(), this.viewport.end(),
+                buy);
+            content.child(UiControls.text(buy ? "Buy Price" : "Sell Price",
+                buy ? UiStyles.palette().buy() : UiStyles.palette().sell()));
+            if (values.isEmpty()) {
+                content.child(UiControls.text("No price samples", UiStyles.palette().muted()));
+                continue;
+            }
+            var stats = values.orElseThrow();
+            content.child(UiControls.text("Start to end: " + (stats.percent() == null
+                ? "Unavailable"
+                : String.format(Locale.ROOT, "%+.1f%%", stats.percent())), UiStyles.palette().label()));
+            content.child(UiControls.text("Low: " + HistoryAnalysis.exact(stats.low()), UiStyles.palette().label()));
+            content.child(UiControls.text("High: " + HistoryAnalysis.exact(stats.high()), UiStyles.palette().label()));
+            content.child(UiControls.text("Sample average: " + HistoryAnalysis.exact(stats.average()),
+                UiStyles.palette().label()));
+        }
+    }
+
     private ChartOptions options() {
-        return new ChartOptions(this.config.showBuy, this.config.showSell,
-            this.config.showBands, this.config.quantityMetric);
+        return new ChartOptions(this.config.showBuy, this.config.showSell, this.config.showBands,
+            this.config.quantityMetric);
     }
 }
