@@ -91,7 +91,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable TextBoxComponent startBox;
     private @Nullable TextBoxComponent endBox;
     private @Nullable LabelComponent feedbackLabel;
-    private @Nullable LiveQuoteStrip quotes;
+    private final LiveQuoteStrip quotes = new LiveQuoteStrip();
     private @Nullable LabelComponent source;
     private @Nullable FlowLayout productHeader;
     private @Nullable ButtonComponent coflnet;
@@ -202,7 +202,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.headerProduct = null;
         panel.child(UiControls.row(this.productHeader, UiControls.button("Search", () -> this.showModal(Modal.Search)),
             UiControls.button("\u00d7", this::onClose).horizontalSizing(Sizing.fixed(22))));
-        this.quotes = new LiveQuoteStrip();
+        this.quotes.margins(Insets.of(8, 4, 0, 0));
         this.quotes.layoutFor(this.bodyWidth);
         panel.child(this.quotes);
         this.coflnet = UiControls.iconButton("View on Coflnet", new ItemStack(Items.GOLD_BLOCK),
@@ -647,17 +647,18 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         var result = data.reference();
         var palette = UiStyles.palette();
         var detail = new ArrayList<Component>();
-        detail.add(Component.literal((buy ? "Buy" : "Sell") + " seven-day reference").withColor(palette.primary()));
-        detail.add(Component.literal("Average: ").withColor(palette.muted())
-            .append(Component.literal(HistoryAnalysis.exact(average) + (average == null ? "" : " coins"))
+        detail.add(Component.literal("Compared with the 7-day average").withColor(palette.primary()));
+        detail.add(Component.literal((buy ? "Buy" : "Sell") + " average: ").withColor(palette.muted())
+            .append(Component.literal(HistoryAnalysis.exact(average)
+                + (average == null || !Double.isFinite(average) ? "" : " coins"))
                 .withColor(buy ? palette.buy() : palette.sell())));
-        String comparison = price == null || average == null || average == 0
+        Double percent = LiveQuoteStrip.comparisonPercent(price, average);
+        String comparison = percent == null
             ? "Current comparison unavailable"
             : String.format(java.util.Locale.ROOT, "Current: %.1f%% %s average",
-                Math.abs((price - average) / average * 100),
-                price >= average ? "above" : "below");
+                Math.abs(percent), percent >= 0 ? "above" : "below");
         detail.add(Component.literal(comparison).withColor(palette.label()));
-        detail.add(Component.literal("Returned samples are equally weighted.").withColor(palette.muted()));
+        detail.add(Component.literal("Returned Coflnet samples are equally weighted.").withColor(palette.muted()));
         if (result.query() != null) {
             detail.add(Component.literal("Period: " + UTC.format(result.query().start()) + " to "
                 + UTC.format(result.query().end()) + " UTC").withColor(palette.muted()));
