@@ -1,42 +1,31 @@
 # BtrBz
 
-BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. It puts order status, market prices, alerts, and quick actions into Bazaar screens. Configure BtrBz with `/btrbz`.
+BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders inside and outside the Bazaar, with notifications when their status changes.
 
 [Download on Modrinth](https://modrinth.com/project/btrbz) | [Discord](https://discord.gg/HVaZA7PfUU) | [Issue tracker](https://github.com/LutzLuca/BtrBz/issues)
 
 ## Features
 
-### Track orders
-
-BtrBz tracks active buy orders and sell offers against current Bazaar data. See whether each order is at the top, matched, or undercut, and get a notification when its status changes. It can also flag when your own orders compete. The Orders HUD keeps them visible while the Bazaar is closed.
-
-Queue position, items ahead, and fill time are estimates.
-
-### Check prices and order books
-
-Open an order book for the selected product, including while entering a price. Product tooltips show the current price to buy or sell an item instantly. Hold Shift to see the total for a stack or the quantity represented by a supported menu item. The Price Difference widget shows the spread per item and across your sellable inventory.
-
-Product lookup shortcuts open items on Skyblock.bz, Coflnet, or Skyblock.Finance.
-
-### Reuse common Bazaar actions
-
-Keep frequently traded products in the Bookmarks widget, which also shows whether you have a buy order or sell offer on a product. Save amount presets for the quantity menu and sign entry. Filled buy orders can be flipped into sell offers with one click.
-
-### Set price and liquidity alerts
-
-Price alerts notify you when a price to buy or sell instantly reaches a saved target. Liquidity alerts watch whether enough items are available to buy or sell instantly within your price bound. Open the alert editor with `/btrbz alert` or the bell on a Bazaar product page. Alerts are saved between sessions.
-
-### Protect orders and track daily usage
-
-Order Protection can block prices that undercut too aggressively or cross the spread to a price where an instant trade would fill. The warning explains why an order was blocked, and you can hold Ctrl while confirming to override it. The Daily Limit widget compares estimated Bazaar transaction value with a personal daily limit.
-
-### Customize widgets
-
-The Widget Manager lets you choose which widgets appear, where they sit, and how large they are. You can also set a background color and opacity for individual widgets. Open it from `/btrbz` settings or the quick access button in the Bazaar.
+- Track buy orders and sell offers as top, matched, or undercut, with status colours, notifications, and warnings when your own orders compete
+- Keep orders visible outside the Bazaar with the Orders HUD
+- See order details in tooltips, including estimated queue positions, items ahead, and fill times
+- View order books while entering a price and select a price from the book
+- Check instant buy and sell prices in item tooltips, with totals for stacks and supported menu quantities
+- Compare the buy and sell price gap per item and across your sellable inventory
+- Get price alerts when instant buy or sell prices reach your targets
+- Set liquidity alerts for when enough items are available to trade instantly within your price limit
+- Bookmark products with active-order indicators and save reusable amount presets
+- Flip filled buy orders into sell offers with a suggested price from the Flip Helper
+- Reopen a cancelled buy order's product page, copy its remaining amount, or return to the Bazaar after placing an order
+- Open product pages on Skyblock.bz, Coflnet, or Skyblock.Finance
+- Guard against aggressive undercuts and prices that would trigger an instant trade, with an option to override the block
+- See an overview of your order value and track estimated daily transaction value against a personal limit
+- Hide temporary Bazaar progress messages and open your orders from filled-order chat messages
+- Configurable widgets
 
 ## Getting started
 
-Run `/btrbz` to configure features. Use `/btrbz alert` to manage alerts and `/btrbz preset add <amount>` to save an amount preset.
+Run `/btrbz` to configure the mod.
 
 ## Installation
 
@@ -52,9 +41,9 @@ BtrBz currently supports Minecraft 26.1 and 26.2. It requires Java 25 or newer a
 
 ## Notes
 
-- Bazaar prices may be delayed. Liquidity alerts can only check the top 30 orders per side returned by Hypixel.
-- The Daily Limit widget estimates usage from transactions observed by the mod and uses the tax rate set with `/btrbz tax set <rate>`.
-- Opening a bookmarked product uses `/bz` and requires an active Cookie Buff.
+- Bazaar prices may be delayed. Liquidity alerts can only check the top 30 orders per side returned by Hypixel
+- The Daily Limit widget estimates usage from transactions observed by the mod and uses the tax rate set with `/btrbz tax set <rate>`
+- Opening a bookmarked product uses `/bz` and requires an active Cookie Buff
 
 ## Icon attribution
 
