@@ -28,14 +28,12 @@ public final class ItemInfoSession implements AutoCloseable {
     private final Clock clock;
     private final Consumer<MarketSnapshot> marketListener = this::marketChanged;
     private final Slot<HistoryResponse> history = new Slot<>();
-    private final Slot<HistoryResponse> reference = new Slot<>();
     private final Slot<MayorResponse> mayors = new Slot<>();
     private @Nullable ProductIdentity product;
     private Optional<LiveProductSnapshot> live = Optional.empty();
     private ItemInfoRange range;
     private HistoryQuery query;
-    private Instant referenceEnd;
-    private boolean historyVisible = true;
+    private boolean historyVisible;
     private boolean mayorVisible;
     private boolean closed;
     private long revision;
@@ -56,8 +54,7 @@ public final class ItemInfoSession implements AutoCloseable {
         this.dispatch = dispatch;
         this.clock = clock;
         this.range = initialRange == null || initialRange == ItemInfoRange.Custom ? ItemInfoRange.Week : initialRange;
-        this.referenceEnd = this.clock.instant();
-        this.query = this.presetQuery(this.range, this.referenceEnd);
+        this.query = this.presetQuery(this.range, this.clock.instant());
         this.mayorVisible = showMayors;
         this.market.addListener(this.marketListener);
     }
@@ -72,7 +69,7 @@ public final class ItemInfoSession implements AutoCloseable {
 
     public Data data() {
         return new Data(this.product, this.live, this.range, this.query,
-            this.history.result(), this.reference.result(), this.mayors.result(), this.revision);
+            this.history.result(), this.mayors.result(), this.revision);
     }
 
     public void select(ProductIdentity selected) {
@@ -84,11 +81,9 @@ public final class ItemInfoSession implements AutoCloseable {
         this.product = selected;
         if (!sameProduct) {
             this.history.reset();
-            this.reference.reset();
             this.mayors.reset();
-            this.referenceEnd = this.clock.instant();
             if (this.range != ItemInfoRange.Custom) {
-                this.query = this.presetQuery(this.range, this.referenceEnd);
+                this.query = this.presetQuery(this.range, this.clock.instant());
             }
         }
         this.live = this.market.liveProduct(selected);
@@ -131,10 +126,20 @@ public final class ItemInfoSession implements AutoCloseable {
     }
 
     public void historyVisible(boolean visible) {
+        if (!this.isCurrent() || this.historyVisible == visible) {
+            return;
+        }
         this.historyVisible = visible;
         if (visible) {
+            if (this.history.value == null && this.range != ItemInfoRange.Custom) {
+                this.query = this.presetQuery(this.range, this.clock.instant());
+            }
             this.requestNeeded(false);
+        } else {
+            this.history.cancel();
+            this.mayors.cancel();
         }
+        this.emit();
     }
 
     public void mayorVisible(boolean visible) {
@@ -148,30 +153,27 @@ public final class ItemInfoSession implements AutoCloseable {
     }
 
     public void refresh() {
-        if (!this.isCurrent()) {
+        if (!this.isCurrent() || !this.historyVisible) {
             return;
         }
-        this.referenceEnd = this.clock.instant();
         if (this.range != ItemInfoRange.Custom) {
-            this.query = this.presetQuery(this.range, this.referenceEnd);
+            this.query = this.presetQuery(this.range, this.clock.instant());
         }
         this.requestNeeded(true);
     }
 
     private void requestNeeded(boolean refresh) {
-        if (!this.isCurrent() || this.product == null || this.product.bazaarProductId().isEmpty()) {
+        if (!this.isCurrent() || !this.historyVisible
+            || this.product == null
+            || this.product.bazaarProductId().isEmpty()) {
             return;
         }
         var id = this.product.bazaarProductId().orElseThrow();
-        var week = this.presetQuery(ItemInfoRange.Week, this.referenceEnd);
-        if (this.reference.needs(week) || refresh) {
-            this.request(this.reference, week, () -> this.client.history(id, week, refresh));
-        }
         var selected = this.query;
-        if (this.historyVisible && (this.history.needs(selected) || refresh)) {
+        if (this.history.needs(selected) || refresh) {
             this.request(this.history, selected, () -> this.client.history(id, selected, refresh));
         }
-        if (this.historyVisible && this.mayorVisible && (this.mayors.needs(selected) || refresh)) {
+        if (this.mayorVisible && (this.mayors.needs(selected) || refresh)) {
             this.request(this.mayors, selected,
                 () -> this.client.mayors(selected.start(), selected.end(), refresh));
         }
@@ -239,7 +241,6 @@ public final class ItemInfoSession implements AutoCloseable {
         this.closed = true;
         this.market.removeListener(this.marketListener);
         this.history.reset();
-        this.reference.reset();
         this.mayors.reset();
         this.live = Optional.empty();
         this.changed = () -> {};
@@ -255,7 +256,6 @@ public final class ItemInfoSession implements AutoCloseable {
         ItemInfoRange range,
         HistoryQuery query,
         Result<HistoryResponse> history,
-        Result<HistoryResponse> reference,
         Result<MayorResponse> mayors,
         long revision
     ) {}

@@ -67,7 +67,7 @@ public final class ItemInfoController implements AutoCloseable {
         var product = this.market.resolveProduct(stack);
         boolean known = this.market.resolveIndexedProduct(product).isPresent()
             || this.market.liveProduct(product).isPresent();
-        return known && this.open(parent, product, "", false);
+        return known && this.open(parent, product, "");
     }
 
     public void openFromCommand(String query) {
@@ -85,7 +85,7 @@ public final class ItemInfoController implements AutoCloseable {
             if (product != null && product.bazaarProductId().isEmpty()) {
                 product = null;
             }
-            this.open(GameUtils.screen(), product, product == null ? normalized : "", false);
+            this.open(GameUtils.screen(), product, product == null ? normalized : "");
         });
     }
 
@@ -97,10 +97,10 @@ public final class ItemInfoController implements AutoCloseable {
     }
 
     public boolean openBook(@Nullable Screen parent, IndexedProduct product) {
-        return this.open(parent, ProductIdentity.fromIndex(product), "", true);
+        return this.open(parent, ProductIdentity.fromIndex(product), "");
     }
 
-    private boolean open(@Nullable Screen parent, @Nullable ProductIdentity product, String search, boolean book) {
+    private boolean open(@Nullable Screen parent, @Nullable ProductIdentity product, String search) {
         if (this.unavailableReason() != null) {
             return false;
         }
@@ -115,11 +115,10 @@ public final class ItemInfoController implements AutoCloseable {
                 && minecraft.level == level
                 && minecraft.getConnection() == connection,
             minecraft::execute, Clock.systemUTC(), section.range, section.showMayors);
-        this.session.historyVisible(!book);
         if (product != null) {
             this.session.select(product);
         }
-        GameUtils.setScreen(new ItemInfoScreen(parent, this.market, this.session, section, this.save, search, book));
+        GameUtils.setScreen(new ItemInfoScreen(parent, this.market, this.session, section, this.save, search));
         return true;
     }
 

@@ -70,7 +70,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private final OrderBookPanel book;
     private final List<Runnable> deferred = new ArrayList<>();
     private final EnumMap<ItemInfoRange, ButtonComponent> ranges = new EnumMap<>(ItemInfoRange.class);
-    private boolean orderBook;
+    private boolean orderBook = true;
     private Modal modal;
     private String searchQuery;
     private String customStart;
@@ -118,8 +118,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         ItemInfoSession session,
         ItemInfoConfig config,
         Runnable save,
-        String initialSearch,
-        boolean initialOrderBook
+        String initialSearch
     ) {
         super(Component.literal("BtrBz Item Info"));
         this.parent = parent;
@@ -128,7 +127,6 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.config = config;
         this.save = save;
         this.searchQuery = initialSearch;
-        this.orderBook = initialOrderBook;
         this.modal = session.data().product() == null ? Modal.Search : Modal.None;
         this.customStart = HistoryTime.editor(session.data().query().start());
         this.customEnd = HistoryTime.editor(session.data().query().end());
@@ -204,8 +202,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         panel.child(this.quotes);
         this.coflnet = UiControls.iconButton("View on Coflnet", new ItemStack(Items.GOLD_BLOCK),
             () -> this.showModal(Modal.Link));
-        var tabs = UiControls.row(UiControls.tab("History", () -> this.switchTab(false), !this.orderBook),
-            UiControls.tab("Order Book", () -> this.switchTab(true), this.orderBook));
+        var tabs = UiControls.row(UiControls.tab("Order Book", () -> this.switchTab(true), this.orderBook),
+            UiControls.tab("History", () -> this.switchTab(false), !this.orderBook));
         if (this.orderBook) {
             this.tableOptions = this.optionsButton(this.bodyWidth < 300 ? "Options" : "Table options",
                 this::showTableOptions);
@@ -583,21 +581,25 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.cacheAverages(data);
         String hypixel = data.live().flatMap(value -> value.sourceUpdatedAt()).map(value -> "Hypixel " + age(value))
             .orElse("Hypixel unavailable");
-        this.quotes.update(buyPrice, sellPrice, this.buyAverage, this.sellAverage, hypixel,
-            this.referenceDetail(data, buyPrice, this.buyAverage, true),
-            this.referenceDetail(data, sellPrice, this.sellAverage, false));
-        var historyData = this.orderBook && data.history().value() == null
-            ? data.reference().value() : data.history().value();
+        this.quotes.update(buyPrice, sellPrice, this.orderBook ? null : this.buyAverage,
+            this.orderBook ? null : this.sellAverage, hypixel,
+            this.priceDetail(data, buyPrice, this.buyAverage, true),
+            this.priceDetail(data, sellPrice, this.sellAverage, false));
+        var historyData = data.history().value();
         String coflnetText = historyData == null
             ? "Coflnet history" : "Coflnet checked " + age(historyData.checkedAt())
                 + ", sample " + age(historyData.coverageEnd());
-        String status = this.orderBook ? "" : this.resultStatus(data.history());
+        String status = this.resultStatus(data.history());
         if (status.isEmpty() && this.config.showMayors && data.mayors().failure() != null) {
             status = "Mayor timeline unavailable";
         }
-        this.source.text(Component.literal(coflnetText + (status.isEmpty() ? "" : "\n" + status)));
-        this.source.tooltip(WidgetTooltips.wrapped(List.of(Component.literal(coflnetText),
-            Component.literal(status), Component.literal("History provided by Coflnet"))));
+        this.source.text(Component.literal(this.orderBook
+            ? hypixel
+            : coflnetText + (status.isEmpty() ? "" : "\n" + status)));
+        this.source.tooltip(WidgetTooltips.wrapped(this.orderBook
+            ? List.of(Component.literal("Live order book provided by Hypixel"), Component.literal(hypixel))
+            : List.of(Component.literal(coflnetText), Component.literal(status),
+                Component.literal("History provided by Coflnet"))));
         this.coflnet.active(data.product() != null && data.product().bazaarProductId().isPresent());
         this.ranges
             .forEach((range, button) -> button.renderer(UiControls.segmentRenderer(range == data.range())));
@@ -607,28 +609,37 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void cacheAverages(ItemInfoSession.Data data) {
-        var reference = data.reference().value();
-        var query = data.reference().query();
-        if (reference == this.averageHistory && Objects.equals(query, this.averageQuery)) {
+        var historyData = data.history().value();
+        var query = data.history().query();
+        if (historyData == this.averageHistory && Objects.equals(query, this.averageQuery)) {
             return;
         }
-        this.averageHistory = reference;
+        this.averageHistory = historyData;
         this.averageQuery = query;
-        this.buyAverage = reference == null || query == null
+        this.buyAverage = historyData == null || query == null
             ? null
-            : HistoryAnalysis.stats(reference.points(), query.start(), query.end(), true)
+            : HistoryAnalysis.stats(historyData.points(), query.start(), query.end(), true)
                 .map(HistoryAnalysis.Stats::average).orElse(null);
-        this.sellAverage = reference == null || query == null
+        this.sellAverage = historyData == null || query == null
             ? null
-            : HistoryAnalysis.stats(reference.points(), query.start(), query.end(), false)
+            : HistoryAnalysis.stats(historyData.points(), query.start(), query.end(), false)
                 .map(HistoryAnalysis.Stats::average).orElse(null);
     }
 
-    private List<Component> referenceDetail(ItemInfoSession.Data data, Double price, Double average, boolean buy) {
-        var result = data.reference();
+    private List<Component> priceDetail(ItemInfoSession.Data data, Double price, Double average, boolean buy) {
+        var result = data.history();
         var palette = UiStyles.palette();
         var detail = new ArrayList<Component>();
-        detail.add(Component.literal("Compared with the 7-day average").withColor(palette.primary()));
+        detail.add(Component.literal(buy ? "Buy Price" : "Sell Price").withColor(palette.primary()));
+        detail.add(Component.literal(buy
+            ? "Lowest current sell offer from Hypixel."
+            : "Highest current buy order from Hypixel.").withColor(palette.label()));
+        detail.add(Component.literal("Current price: " + HistoryAnalysis.exact(price)
+            + (price == null || !Double.isFinite(price) ? "" : " coins")).withColor(palette.label()));
+        if (this.orderBook) {
+            return List.copyOf(detail);
+        }
+        detail.add(Component.literal("Compared with the selected-range average").withColor(palette.primary()));
         detail.add(Component.literal((buy ? "Buy" : "Sell") + " average: ").withColor(palette.muted())
             .append(Component.literal(HistoryAnalysis.exact(average)
                 + (average == null || !Double.isFinite(average) ? "" : " coins"))
@@ -649,9 +660,9 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
                 Component.literal("Coflnet checked " + age(result.value().checkedAt())).withColor(palette.muted()));
         }
         if (result.updating()) {
-            detail.add(Component.literal("Updating reference...").withColor(palette.muted()));
+            detail.add(Component.literal("Updating history...").withColor(palette.muted()));
         } else if (result.failure() != null) {
-            detail.add(Component.literal("Reference refresh unavailable.").withColor(palette.muted()));
+            detail.add(Component.literal("History refresh unavailable.").withColor(palette.muted()));
         }
         return List.copyOf(detail);
     }

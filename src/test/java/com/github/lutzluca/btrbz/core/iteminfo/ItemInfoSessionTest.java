@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,27 +33,86 @@ class ItemInfoSessionTest {
     private static final ProductIdentity SECOND = ProductIdentity.fromRuntime("Second", "SECOND", null);
 
     @Test
+    void orderBookMakesNoRequestsAndHistoryOnlyLoadsItsSelectedRangeAndEnabledMayors() throws Exception {
+        try (var fixture = new Fixture(); var session = fixture.session(new BazaarData(), () -> true)) {
+            session.select(FIRST);
+            session.range(ItemInfoRange.Day);
+            session.mayorVisible(true);
+            session.select(SECOND);
+            session.select(FIRST);
+            fixture.clock.advanceMinute();
+            fixture.clock.advanceMinute();
+            session.refresh();
+            session.mayorVisible(false);
+            Assertions.assertNull(fixture.dispatch.poll(250, TimeUnit.MILLISECONDS));
+            Assertions.assertEquals(0, fixture.calls.get());
+
+            session.historyVisible(true);
+            fixture.completions(1).forEach(Runnable::run);
+            Assertions.assertEquals(fixture.clock.instant(), session.data().query().end());
+            Assertions.assertEquals(List.of("/api/bazaar/FIRST/history/day"), fixture.paths);
+            var retained = session.data().history().value();
+            Assertions.assertNotNull(retained);
+            session.historyVisible(true);
+            session.select(FIRST);
+
+            session.historyVisible(false);
+            fixture.clock.advanceMinute();
+            session.refresh();
+            session.mayorVisible(true);
+            Assertions.assertNull(fixture.dispatch.poll(250, TimeUnit.MILLISECONDS));
+            Assertions.assertEquals(1, fixture.calls.get());
+            session.historyVisible(true);
+            fixture.completions(1).forEach(Runnable::run);
+            Assertions.assertSame(retained, session.data().history().value());
+            Assertions.assertEquals(List.of("/api/bazaar/FIRST/history/day", "/api/mayor"), fixture.paths);
+
+            session.refresh();
+            var pending = fixture.completions(2);
+            session.historyVisible(false);
+            pending.forEach(Runnable::run);
+            Assertions.assertSame(retained, session.data().history().value());
+            Assertions.assertFalse(session.data().history().updating());
+            Assertions.assertFalse(session.data().mayors().updating());
+            int callsAfterHistory = fixture.calls.get();
+            session.select(SECOND);
+            session.range(ItemInfoRange.Hour);
+            session.mayorVisible(false);
+            session.refresh();
+            Assertions.assertNull(fixture.dispatch.poll(250, TimeUnit.MILLISECONDS));
+            Assertions.assertEquals(callsAfterHistory, fixture.calls.get());
+            Assertions.assertNull(session.data().history().value());
+            session.historyVisible(true);
+            fixture.completions(1).forEach(Runnable::run);
+            Assertions.assertEquals("/api/bazaar/SECOND/history/hour", fixture.paths.getLast());
+            Assertions.assertNull(fixture.dispatch.poll(250, TimeUnit.MILLISECONDS));
+            Assertions.assertEquals(callsAfterHistory + 1, fixture.calls.get());
+        }
+    }
+
+    @Test
     void queuedCompletionsCannotPublishAfterProductChangeRuntimeInvalidationOrClose() throws Exception {
         try (var fixture = new Fixture()) {
             var current = new AtomicBoolean(true);
             try (var session = fixture.session(new BazaarData(), current::get)) {
+                session.historyVisible(true);
                 session.select(FIRST);
-                var obsolete = fixture.completions(2);
+                var obsolete = fixture.completions(1);
                 session.select(SECOND);
                 obsolete.forEach(Runnable::run);
                 Assertions.assertEquals(SECOND, session.data().product());
                 Assertions.assertNull(session.data().history().value());
-                Assertions.assertNull(session.data().reference().value());
 
-                var pending = fixture.completions(2);
+                var pending = fixture.completions(1);
                 current.set(false);
                 pending.getFirst().run();
                 Assertions.assertNull(session.data().history().value());
-                Assertions.assertNull(session.data().reference().value());
+                current.set(true);
+                session.select(FIRST);
+                var closing = fixture.completions(1);
                 session.close();
-                pending.getLast().run();
+                closing.forEach(Runnable::run);
                 Assertions.assertNull(session.data().history().value());
-                Assertions.assertNull(session.data().reference().value());
             }
         }
     }
@@ -69,12 +129,12 @@ class ItemInfoSessionTest {
                 """, SkyBlockBazaarReply.class).getProducts();
             market.publishSnapshot(BazaarData.MarketSnapshot.fromProducts(products));
             try (var session = fixture.session(market, runtime::isRunning)) {
+                session.historyVisible(true);
                 session.select(FIRST);
-                fixture.completions(2).forEach(Runnable::run);
+                fixture.completions(1).forEach(Runnable::run);
                 var retained = session.data().history().value();
                 var retainedQuery = session.data().history().query();
                 Assertions.assertNotNull(retained);
-                Assertions.assertSame(retained, session.data().reference().value());
                 Assertions.assertEquals(1, fixture.calls.get());
                 Assertions.assertTrue(session.data().live().isPresent());
                 runtime.hibernate();
@@ -83,25 +143,16 @@ class ItemInfoSessionTest {
 
                 fixture.clock.advanceMinute();
                 session.refresh();
-                var superseded = fixture.completions(2);
+                var superseded = fixture.completions(1);
                 fixture.clock.advanceMinute();
                 session.refresh();
                 superseded.forEach(Runnable::run);
                 Assertions.assertSame(retained, session.data().history().value());
                 Assertions.assertEquals(retainedQuery, session.data().history().query());
                 Assertions.assertTrue(session.data().history().updating());
-                fixture.completions(2).forEach(Runnable::run);
-                Assertions.assertEquals(session.data().query(), session.data().history().query());
-
-                session.historyVisible(false);
-                fixture.clock.advanceMinute();
-                session.refresh();
-                fixture.completions(1).forEach(Runnable::run);
-                Assertions.assertNotEquals(session.data().query(), session.data().history().query());
-                session.historyVisible(true);
                 fixture.completions(1).forEach(Runnable::run);
                 Assertions.assertEquals(session.data().query(), session.data().history().query());
-                Assertions.assertEquals(4, fixture.calls.get());
+                Assertions.assertEquals(3, fixture.calls.get());
                 var customQuery = new HistoryQuery(session.data().query().start(), session.data().query().end());
                 session.customRange(customQuery.start(), customQuery.end());
                 Assertions.assertEquals(ItemInfoRange.Custom, session.data().range());
@@ -110,6 +161,7 @@ class ItemInfoSessionTest {
                 fixture.clock.advanceMinute();
                 session.refresh();
                 Assertions.assertEquals(customQuery, session.data().query());
+                fixture.completions(1).forEach(Runnable::run);
             }
         }
     }
@@ -117,6 +169,7 @@ class ItemInfoSessionTest {
     private static final class Fixture implements AutoCloseable {
         private final MutableClock clock = new MutableClock();
         private final AtomicInteger calls = new AtomicInteger();
+        private final List<String> paths = new CopyOnWriteArrayList<>();
         private final LinkedBlockingQueue<Runnable> dispatch = new LinkedBlockingQueue<>();
         private final HttpServer server;
         private final CoflnetClient client;
@@ -124,9 +177,13 @@ class ItemInfoSessionTest {
         private Fixture() throws IOException {
             this.server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             this.server.createContext("/api/", exchange -> {
+                String path = exchange.getRequestURI().getPath();
+                this.paths.add(path);
                 this.calls.incrementAndGet();
-                byte[] body = "[{\"timestamp\":\"2026-10-05T10:00:00Z\",\"buy\":0.1}]"
-                    .getBytes(StandardCharsets.UTF_8);
+                byte[] body = (path.equals("/api/mayor")
+                    ? "[]"
+                    : "[{\"timestamp\":\"2026-10-05T10:00:00Z\",\"buy\":0.1}]")
+                        .getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Cache-Control", "public, max-age=600");
                 exchange.sendResponseHeaders(200, body.length);
                 try (var response = exchange.getResponseBody()) {
