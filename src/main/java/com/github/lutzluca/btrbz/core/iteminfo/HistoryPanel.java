@@ -82,7 +82,7 @@ public final class HistoryPanel extends FlowLayout {
         this.buy.sizing(Sizing.content(12), Sizing.fixed(18));
         this.sell.sizing(Sizing.content(12), Sizing.fixed(18));
         this.summary = UiControls.button("Range summary", () -> {});
-        this.summary.renderer(UiControls.quietRenderer());
+        this.summary.renderer(UiControls.secondaryRenderer());
         this.summary.verticalSizing(Sizing.fixed(18));
         this.summary.onPress(_ -> this.showPopover.open(this.summary, 340, this::buildSummary));
         this.priceChart = new PriceChartComponent(this.viewport, this::options);
@@ -296,6 +296,10 @@ public final class HistoryPanel extends FlowLayout {
     }
 
     public void refreshPreferences() {
+        this.buy.setMessage(Component.literal("Buy").withColor(this.config.showBuy
+            ? UiStyles.palette().primary() : UiStyles.palette().muted()));
+        this.sell.setMessage(Component.literal("Sell").withColor(this.config.showSell
+            ? UiStyles.palette().primary() : UiStyles.palette().muted()));
         this.buy.renderer(UiControls.seriesRenderer(this.config.showBuy, UiStyles.palette().buy()));
         this.sell.renderer(UiControls.seriesRenderer(this.config.showSell, UiStyles.palette().sell()));
         if (this.metricButtons.size() == 1) {

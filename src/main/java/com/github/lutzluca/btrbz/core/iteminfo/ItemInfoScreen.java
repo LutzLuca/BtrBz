@@ -279,8 +279,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             }
             toolbar.child(presets);
         }
-        var reset = UiControls.button("Reset", this.viewport::reset).renderer(UiControls.quietRenderer());
-        var refresh = UiControls.button("Refresh", this.session::refresh).renderer(UiControls.quietRenderer());
+        var reset = UiControls.button("Reset", this.viewport::reset).renderer(UiControls.secondaryRenderer());
+        var refresh = UiControls.button("Refresh", this.session::refresh).renderer(UiControls.secondaryRenderer());
         reset.verticalSizing(Sizing.fixed(20));
         refresh.verticalSizing(Sizing.fixed(20));
         toolbar.child(BazaarUi.spacer()).child(reset).child(refresh);

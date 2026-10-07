@@ -92,6 +92,17 @@ public final class UiControls {
         };
     }
 
+    public static ButtonComponent.Renderer secondaryRenderer() {
+        return (graphics, button, delta) -> {
+            boolean hover = button.isHoveredOrFocused();
+            WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
+                button.getHeight(), hover ? 0xFF30343A : 0xFF22262B, 3);
+            graphics.fill(button.getX() + 3, button.getY() + button.getHeight() - 1,
+                button.getX() + button.getWidth() - 3, button.getY() + button.getHeight(),
+                hover ? 0xFF65707D : 0xFF3A4149);
+        };
+    }
+
     public static ButtonComponent.Renderer segmentRenderer(boolean selected) {
         return (graphics, button, delta) -> {
             WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
@@ -105,13 +116,18 @@ public final class UiControls {
 
     public static ButtonComponent.Renderer seriesRenderer(boolean enabled, int accent) {
         return (graphics, button, delta) -> {
-            quietRenderer().draw(graphics, button, delta);
-            int x = button.getX() + 3;
-            int y = button.getY() + (button.getHeight() - 6) / 2;
-            graphics.fill(x, y, x + 6, y + 6, enabled ? accent : 0xFF444A52);
+            boolean hover = button.isHoveredOrFocused();
+            WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
+                button.getHeight(), hover ? 0xFF30343A : 0xFF22262B, 3);
             if (enabled) {
-                graphics.fill(button.getX() + 12, button.getY() + button.getHeight() - 2,
-                    button.getX() + button.getWidth() - 3, button.getY() + button.getHeight(), accent);
+                WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
+                    button.getHeight(), (hover ? 0x20000000 : 0x14000000) | (accent & 0xFFFFFF), 3);
+            }
+            int x = button.getX() + 4;
+            int y = button.getY() + (button.getHeight() - 5) / 2;
+            WidgetSurfaces.drawRoundedPanel(graphics, x, y, 5, 5, enabled ? accent : 0xFF67717D, 1);
+            if (!enabled) {
+                graphics.fill(x + 1, y + 1, x + 4, y + 4, hover ? 0xFF30343A : 0xFF22262B);
             }
         };
     }
