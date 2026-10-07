@@ -106,7 +106,7 @@ final class MayorGuide {
             var name = Component.literal(term.name()).getVisualOrderText();
             boolean boundary = !term.start().isBefore(this.viewport.start());
             result.add(new Region(left, right, Minecraft.getInstance().font.width(name) + 6 <= right - left
-                ? name : null, boundary, index % 2 == 0 ? 0xFF22323D : 0xFF292C30, term));
+                ? name : null, boundary, index % 2 == 0 ? 0xFF30283D : 0xFF20242A, term));
         }
         this.regions = List.copyOf(result);
     }
