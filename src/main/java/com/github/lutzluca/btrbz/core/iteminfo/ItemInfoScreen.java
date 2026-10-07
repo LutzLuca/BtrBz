@@ -109,6 +109,8 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable ButtonComponent rangeMenu;
     private @Nullable ButtonComponent tableOptions;
     private @Nullable ButtonComponent chartOptions;
+    private @Nullable ButtonComponent refreshButton;
+    private boolean refreshing;
     private @Nullable FlowLayout mainPanel;
     private boolean keyboardInput;
 
@@ -174,6 +176,7 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
         this.rangeMenu = null;
         this.tableOptions = null;
         this.chartOptions = null;
+        this.refreshButton = null;
         var panel = UIContainers.verticalFlow(Sizing.fixed(panelWidth), Sizing.fixed(this.panelHeight));
         panel.padding(Insets.of(10));
         panel.gap(4);
@@ -280,10 +283,20 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             toolbar.child(presets);
         }
         var reset = UiControls.button("Reset", this.viewport::reset).renderer(UiControls.secondaryRenderer());
-        var refresh = UiControls.button("Refresh", this.session::refresh).renderer(UiControls.secondaryRenderer());
+        this.refreshButton = UiControls.button("Refresh", this.session::refresh);
+        this.refreshButton.renderer((graphics, button, delta) -> {
+            UiControls.secondaryRenderer().draw(graphics, button, delta);
+            if (this.refreshing) {
+                int travel = Math.max(0, button.getWidth() - 16);
+                long phase = Math.abs(Util.getMillis() % 1600 - 800);
+                int x = button.getX() + 3 + (int) (travel * phase / 800);
+                int y = button.getY() + button.getHeight() - 2;
+                graphics.fill(x, y, x + 10, y + 1, UiStyles.palette().primary());
+            }
+        });
         reset.verticalSizing(Sizing.fixed(20));
-        refresh.verticalSizing(Sizing.fixed(20));
-        toolbar.child(BazaarUi.spacer()).child(reset).child(refresh);
+        this.refreshButton.verticalSizing(Sizing.fixed(20));
+        toolbar.child(BazaarUi.spacer()).child(reset).child(this.refreshButton);
         panel.child(toolbar);
     }
 
@@ -553,6 +566,13 @@ public final class ItemInfoScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
         var data = this.session.data();
+        this.refreshing = data.history().updating() || data.mayors().updating();
+        if (this.refreshButton != null) {
+            this.refreshButton.active(!this.refreshing && data.product() != null
+                && data.product().bazaarProductId().isPresent());
+            this.refreshButton.tooltip(Component.literal(this.refreshing
+                ? "Refreshing history..." : "Refresh history"));
+        }
         this.history.update(data);
         this.book.update(data.live());
         if (this.search != null) {
