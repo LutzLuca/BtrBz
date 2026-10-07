@@ -162,7 +162,19 @@ public class BtrBz implements ClientModInitializer {
 
     public static void observeAcceptedClick(SlotClickContext context) {
         instance.orderProtectionManager.observeAcceptedConfirmation(context);
-        instance.flipHelper.observeAcceptedOrderClick(context);
+
+        var view = context.view();
+        if (!view.getCurrInfo().inMenu(BazaarMenuType.Orders) || view.playerInventorySlot()) {
+            return;
+        }
+
+        var raw = view.getRawStack();
+        OrderInfoParser.parseOrderInfo(raw, view.slotIdx(), instance.bazaarData)
+            .onSuccess(info -> {
+                instance.orderActions.observeAcceptedOrderClick(info, raw);
+                instance.flipHelper.observeAcceptedOrderClick(info);
+            })
+            .onFailure(_ -> instance.flipHelper.observeOrderClickParseFailure());
     }
 
     public static OrderHighlightManager highlightManager() {

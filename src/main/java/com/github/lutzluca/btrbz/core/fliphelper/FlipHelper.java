@@ -11,7 +11,6 @@ import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
@@ -209,18 +208,21 @@ public class FlipHelper {
         this.flipProductContext.clearProduct();
     }
 
-    /** Observe allowed vanilla Orders clicks independently of market action hooks. */
-    public void observeAcceptedOrderClick(SlotClickContext ctx) {
-        var cfg = ConfigStore.get().config();
-        if ((!cfg.flipHelper.enabled && !cfg.widgets.orderBookPrice.frame.enabled)
-            || !ctx.view().getCurrInfo().inMenu(BazaarMenuType.Orders)
-            || ctx.view().playerInventorySlot()) {
-            return;
+    public void observeAcceptedOrderClick(OrderInfo info) {
+        if (this.shouldObserveOrderClicks()) {
+            this.onOrderClick(info);
         }
+    }
 
-        OrderInfoParser.parseOrderInfo(ctx.view().getRawStack(), ctx.view().slotIdx(), this.bazaarData)
-            .onSuccess(this::onOrderClick)
-            .onFailure(_ -> this.resetWorkflow());
+    public void observeOrderClickParseFailure() {
+        if (this.shouldObserveOrderClicks()) {
+            this.resetWorkflow();
+        }
+    }
+
+    private boolean shouldObserveOrderClicks() {
+        var cfg = ConfigStore.get().config();
+        return cfg.flipHelper.enabled || cfg.widgets.orderBookPrice.frame.enabled;
     }
 
     private void clearPendingFlipState() {

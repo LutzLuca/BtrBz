@@ -8,7 +8,6 @@ import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.OrderInfoParser;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -105,7 +104,6 @@ public class BazaarOrderActions {
     private void registerSlotHooks() {
         SlotHookRegistry.register(new CancelOrderHook());
         SlotHookRegistry.register(new ReopenOrderHook());
-        SlotHookRegistry.register(new OrdersObserverHook());
     }
 
     private void registerCloseHandlers() {
@@ -177,7 +175,11 @@ public class BazaarOrderActions {
         });
     }
 
-    public void onOrderClick(OrderInfo info, ItemStack slotItem) {
+    public void observeAcceptedOrderClick(OrderInfo info, ItemStack slotItem) {
+        if (!ConfigStore.get().config().orderActions.enabled) {
+            return;
+        }
+
         if (info.type() != OrderType.Buy) {
             log.debug("Order is not a buy order, clearing `activeBuyOrderContext` and `remainingOrderAmount`");
             this.activeBuyOrderContext = null;
@@ -315,37 +317,6 @@ public class BazaarOrderActions {
                 BazaarOrderActions.this.lastCancelledBuyOrder.productName());
             GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.productName());
             return SlotClickResult.Consume;
-        }
-    }
-
-    public final class OrdersObserverHook implements SlotHook {
-
-        private OrdersObserverHook() {}
-
-        @Override
-        public boolean requiresMarketData() {
-            return false;
-        }
-
-        @Override
-        public boolean matches(SlotView view) {
-            return ConfigStore.get().config().orderActions.enabled
-                && view.getCurrInfo().inMenu(BazaarMenuType.Orders)
-                && !view.playerInventorySlot();
-        }
-
-        @Override
-        public SlotClickResult onClick(SlotClickContext ctx) {
-            var slot = ctx.view();
-            var orderInfo = OrderInfoParser.parseOrderInfo(
-                slot.getRawStack(),
-                slot.slotIdx(),
-                BazaarOrderActions.this.bazaarData);
-            if (orderInfo.isSuccess()) {
-                BazaarOrderActions.this.onOrderClick(orderInfo.get(), slot.getRawStack());
-            }
-
-            return SlotClickResult.Pass;
         }
     }
 
