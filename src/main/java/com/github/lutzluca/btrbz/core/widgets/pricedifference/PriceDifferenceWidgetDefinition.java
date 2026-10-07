@@ -29,8 +29,8 @@ public final class PriceDifferenceWidgetDefinition {
 
         return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID,
             "Price Difference")
-            .description(
-                "Shows the per-item and total difference between the entered price and the current market price.")
+            .description("Shows the gap between the lowest sell offer and highest buy order, "
+                + "per item and across your sellable inventory.")
             .config(config)
             .supports(PriceDifferenceWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> PriceDifferenceWidgetDefinition.isVisible(data))
