@@ -39,6 +39,7 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     private List<Dot> dots = List.of();
     private MayorGuide mayorGuide;
     private BooleanSupplier mayorsVisible = () -> false;
+    private boolean mayorNamesVisible = true;
     private boolean cachedMayors;
     private List<FormattedCharSequence> labels = List.of();
     private List<YTick> yTicks = List.of();
@@ -87,6 +88,13 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         this.mayorsVisible = visible;
     }
 
+    public void mayorNamesVisible(boolean visible) {
+        if (this.mayorNamesVisible != visible) {
+            this.mayorNamesVisible = visible;
+            this.cachedRevision = -1;
+        }
+    }
+
     public int verticalOverhead(boolean timeAxis) {
         return this.top() + (timeAxis ? BOTTOM : 3);
     }
@@ -122,6 +130,10 @@ abstract class HistoryChartComponent extends BaseUIComponent {
         boolean hovered = this.plotHovered(mouseX, mouseY);
         graphics.fill(this.x + LEFT, this.y + this.top(), this.x + this.width - RIGHT,
             this.y + this.height - this.bottom(), 0xFF1C2026);
+        if (this.mayorGuide != null && this.mayorsVisible.getAsBoolean()) {
+            this.mayorGuide.drawShading(graphics, this.x + LEFT, this.y + this.top(), this.plotWidth(),
+                this.y + this.height - this.bottom());
+        }
         this.text.begin();
         var font = Minecraft.getInstance().font;
         for (var tick : this.yTicks) {
@@ -150,9 +162,9 @@ abstract class HistoryChartComponent extends BaseUIComponent {
             graphics.fill(this.x + dot.x() - 1, this.y + dot.y() - 1,
                 this.x + dot.x() + 2, this.y + dot.y() + 2, dot.color());
         }
-        if (this.mayorGuide != null && this.mayorsVisible.getAsBoolean()) {
-            this.mayorGuide.draw(graphics, this.x + LEFT, this.y + 2, this.plotWidth(),
-                this.y + this.height - this.bottom(), mouseX, mouseY, this.unobstructed(mouseX, mouseY));
+        if (this.mayorGuide != null && this.mayorsVisible.getAsBoolean() && this.mayorNamesVisible) {
+            this.mayorGuide.drawNames(graphics, this.x + LEFT, this.y + 2, this.plotWidth(),
+                mouseX, mouseY, this.unobstructed(mouseX, mouseY));
         }
         this.drawCrosshair(graphics, this.viewport.pin(), 0x99C8BFAE);
         this.drawCrosshair(graphics, this.viewport.hover(), 0x779C978D);
@@ -572,6 +584,7 @@ abstract class HistoryChartComponent extends BaseUIComponent {
 
     private boolean guideHovered(double mouseX, double mouseY) {
         return this.mayorGuide != null && this.mayorsVisible.getAsBoolean()
+            && this.mayorNamesVisible
             && this.unobstructed(mouseX, mouseY)
             && mouseX >= this.x + LEFT
             && mouseX < this.x + this.width - RIGHT
@@ -580,7 +593,7 @@ abstract class HistoryChartComponent extends BaseUIComponent {
     }
 
     private int top() {
-        return TOP + (this.mayorsVisible.getAsBoolean() ? MayorGuide.HEIGHT : 0);
+        return TOP + (this.mayorsVisible.getAsBoolean() && this.mayorNamesVisible ? MayorGuide.HEIGHT : 0);
     }
 
     private int bottom() {

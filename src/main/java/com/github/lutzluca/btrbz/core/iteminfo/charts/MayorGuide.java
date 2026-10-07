@@ -16,7 +16,7 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
-/** A thin annotation inset owned by the price plot, without persistent lines through prices. */
+/** Matching term shading for the plots with details confined to the name inset. */
 final class MayorGuide {
     static final int HEIGHT = 14;
     private final HistoryViewport viewport;
@@ -34,21 +34,26 @@ final class MayorGuide {
         this.mayors = mayors;
     }
 
-    void draw(
+    void drawShading(OwoUIGraphics graphics, int x, int top, int width, int bottom) {
+        this.prepare(width);
+        for (var region : this.regions) {
+            graphics.fill(x + region.left(), top, x + region.right(), bottom, region.color());
+            if (region.boundary()) {
+                graphics.fill(x + region.left(), top, x + region.left() + 1, bottom, 0x285C6773);
+            }
+        }
+    }
+
+    void drawNames(
         OwoUIGraphics graphics,
         int x,
         int y,
         int width,
-        int plotBottom,
         int mouseX,
         int mouseY,
         boolean unobstructed
     ) {
-        var terms = this.mayors.get();
-        if (this.revision != this.viewport.revision() || this.cachedWidth != width
-            || !terms.equals(this.cachedTerms)) {
-            this.rebuild(terms, width);
-        }
+        this.prepare(width);
         this.text.begin();
         MayorTerm hovered = null;
         for (var region : this.regions) {
@@ -65,9 +70,6 @@ final class MayorGuide {
                 && mouseX >= x + region.left()
                 && mouseX < x + region.right()) {
                 hovered = region.term();
-                if (region.boundary() && Math.abs(mouseX - x - region.left()) <= 4) {
-                    graphics.fill(x + region.left(), y + HEIGHT, x + region.left() + 1, plotBottom, 0x507B766A);
-                }
             }
         }
         if (!Objects.equals(hovered, this.tooltipTerm)) {
@@ -80,12 +82,22 @@ final class MayorGuide {
         return this.tooltip;
     }
 
+    private void prepare(int width) {
+        var terms = this.mayors.get();
+        if (this.revision != this.viewport.revision() || this.cachedWidth != width
+            || !terms.equals(this.cachedTerms)) {
+            this.rebuild(terms, width);
+        }
+    }
+
     private void rebuild(List<MayorTerm> terms, int width) {
         this.cachedTerms = List.copyOf(terms);
         this.revision = this.viewport.revision();
         this.cachedWidth = width;
         var result = new ArrayList<Region>();
-        for (var term : terms.stream().sorted(Comparator.comparing(MayorTerm::start)).toList()) {
+        var ordered = terms.stream().sorted(Comparator.comparing(MayorTerm::start)).toList();
+        for (int index = 0; index < ordered.size(); index++) {
+            var term = ordered.get(index);
             if (!term.end().isAfter(this.viewport.start()) || !term.start().isBefore(this.viewport.end())) {
                 continue;
             }
@@ -94,7 +106,7 @@ final class MayorGuide {
             var name = Component.literal(term.name()).getVisualOrderText();
             boolean boundary = !term.start().isBefore(this.viewport.start());
             result.add(new Region(left, right, Minecraft.getInstance().font.width(name) + 6 <= right - left
-                ? name : null, boundary, term));
+                ? name : null, boundary, index % 2 == 0 ? 0xFF22323D : 0xFF292C30, term));
         }
         this.regions = List.copyOf(result);
     }
@@ -122,5 +134,7 @@ final class MayorGuide {
         return WidgetTooltips.wrapped(lines);
     }
 
-    private record Region(int left, int right, FormattedCharSequence name, boolean boundary, MayorTerm term) {}
+    private record Region(
+        int left, int right, FormattedCharSequence name, boolean boundary, int color, MayorTerm term
+    ) {}
 }

@@ -88,6 +88,7 @@ public final class HistoryPanel extends FlowLayout {
         this.priceChart = new PriceChartComponent(this.viewport, this::options);
         this.quantityChart = new QuantityChartComponent(this.viewport, this::options);
         this.priceChart.mayors(() -> this.mayors, () -> this.config.showMayors);
+        this.quantityChart.mayors(() -> this.mayors, () -> this.config.showMayors);
         this.rebuildLayout();
         this.refreshPreferences();
     }
@@ -143,6 +144,7 @@ public final class HistoryPanel extends FlowLayout {
     private void rebuildLayout() {
         this.viewport.clearHover();
         this.clearChildren();
+        this.quantityChart.mayorNamesVisible(false);
         var quantityControls = this.quantityControls();
         quantityControls.inflate(Size.of(this.availableWidth, this.availableHeight));
         var controls = this.plotHeading(false);
@@ -160,6 +162,7 @@ public final class HistoryPanel extends FlowLayout {
         this.child(controls);
         boolean showPrice = !singlePlot || !this.quantitySelected;
         boolean showQuantity = this.config.showQuantity && (!singlePlot || this.quantitySelected);
+        this.quantityChart.mayorNamesVisible(!showPrice);
         int chrome = headingHeight + (showQuantity ? quantityControlHeight + 6 : 0) + 3;
         int priceOverhead = showPrice ? this.priceChart.verticalOverhead(!showQuantity) : 0;
         int quantityOverhead = showQuantity ? this.quantityChart.verticalOverhead(true) : 0;
