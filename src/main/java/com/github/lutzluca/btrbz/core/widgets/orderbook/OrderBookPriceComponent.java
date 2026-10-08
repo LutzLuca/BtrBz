@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
-import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
@@ -14,26 +13,21 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.Utils;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import net.minecraft.network.chat.Component;
 
 /** Price-entry workflow facts, copy, and sign submission. */
 public final class OrderBookPriceComponent {
-    private final BazaarData bazaarData;
     private final BazaarProductContext productContext;
     private final FlipProductContext flipProductContext;
     private final FlipSubmissionTracker flipSubmissionTracker;
 
     public OrderBookPriceComponent(
-        BazaarData bazaarData,
         BazaarProductContext productContext,
         FlipProductContext flipProductContext,
         FlipSubmissionTracker flipSubmissionTracker
     ) {
-        this.bazaarData = bazaarData;
         this.productContext = productContext;
         this.flipProductContext = flipProductContext;
         this.flipSubmissionTracker = flipSubmissionTracker;
@@ -55,28 +49,6 @@ public final class OrderBookPriceComponent {
         }
 
         return Optional.of(new Workflow(product.get(), side.get()));
-    }
-
-    public Optional<Snapshot> currentSnapshot() {
-        return this.currentWorkflow().map(workflow -> {
-            var lists = this.bazaarData.getOrderLists(workflow.product());
-            var levels = new ArrayList<PriceLevel>();
-            double cumulative = 0;
-
-            var summaries = workflow.side() == OrderType.Buy ? lists.buyOrders() : lists.sellOffers();
-
-            for (var summary : summaries) {
-                cumulative += summary.getAmount();
-
-                levels.add(new PriceLevel(
-                    summary.getPricePerUnit(),
-                    summary.getAmount(),
-                    (int) summary.getOrders(),
-                    cumulative));
-            }
-
-            return new Snapshot(workflow, levels);
-        });
     }
 
     public boolean selectPrice(double rawPrice, boolean copyOnly) {
@@ -137,11 +109,4 @@ public final class OrderBookPriceComponent {
 
     public record Workflow(ProductIdentity product, OrderType side) {}
 
-    public record Snapshot(Workflow workflow, List<PriceLevel> levels) {
-        public Snapshot {
-            levels = List.copyOf(levels);
-        }
-    }
-
-    public record PriceLevel(double price, double volume, int orders, double cumulativeVolume) {}
 }

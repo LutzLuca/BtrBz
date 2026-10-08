@@ -256,7 +256,6 @@ public class BtrBz implements ClientModInitializer {
             this.bazaarData, this.bazaarProductContext, this.clipboardTracker, this.purseTracker,
             () -> configStore.config().widgets.orderPresets, configStore::save);
         var orderBookPrice = new OrderBookPriceComponent(
-            this.bazaarData,
             this.bazaarProductContext,
             flipProductContext,
             this.flipSubmissionTracker);
