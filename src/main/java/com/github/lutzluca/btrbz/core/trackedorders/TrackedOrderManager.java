@@ -261,7 +261,7 @@ public class TrackedOrderManager {
             if (orders.size() == 1) {
                 var statusUpdate = updates.getFirst();
                 if (this.shouldNotify(statusUpdate)) {
-                    Notifier.notifyOrderStatus(statusUpdate, bazaarData);
+                    TrackedOrderNotifications.notifyOrderStatus(statusUpdate, this.bazaarData, cfg);
                 }
                 continue;
             }
@@ -282,7 +282,7 @@ public class TrackedOrderManager {
         if (!cfg.groupOrders) {
             updates.stream()
                 .filter(this::shouldNotify)
-                .forEach(update -> Notifier.notifyOrderStatus(update, bazaarData));
+                .forEach(update -> TrackedOrderNotifications.notifyOrderStatus(update, this.bazaarData, cfg));
             return;
         }
 
@@ -304,7 +304,7 @@ public class TrackedOrderManager {
         }
 
         GroupStatus prev = this.statusEvaluator.getPreviousGroupStatus(key, orders, updates);
-        Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
+        TrackedOrderNotifications.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData, cfg);
     }
 
     private boolean shouldNotify(StatusUpdate update) {
@@ -469,7 +469,7 @@ public class TrackedOrderManager {
         }
 
         for (var event : events) {
-            Notifier.notifySelfUndercut(
+            TrackedOrderNotifications.notifySelfUndercut(
                 event.key(),
                 event.bestPrice(),
                 event.secondBestPrice(),

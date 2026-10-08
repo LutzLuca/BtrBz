@@ -1,8 +1,5 @@
 package com.github.lutzluca.btrbz.data;
 
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
-
-import com.github.lutzluca.btrbz.core.OrderHighlightManager;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
@@ -10,9 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
 import java.util.UUID;
 
 public final class OrderModels {
@@ -293,30 +287,6 @@ public final class OrderModels {
             return Utils
                 .normalizeDisplayName(this.uiProductName)
                 .equals(Utils.normalizeDisplayName(info.uiProductName()));
-        }
-
-        public MutableComponent format() {
-            var typeStr = switch (type) {
-                case Buy -> "Buy Order";
-                case Sell -> "Sell Offer";
-            };
-            var visualName = this.product.visualName();
-            var productNameComponent = Component.literal(visualName);
-
-            return Component
-                .empty()
-                .append(Component
-                    .literal("[" + this.status.toString() + "] ")
-                    .withStyle(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(this.status))))
-                .append(Component.literal(typeStr).withStyle(
-                    UiStyles.color(this.type == OrderType.Buy ? UiStyles.palette().buy() : UiStyles.palette().sell())))
-                .append(Component.literal(" for ").withStyle(UiStyles.label()))
-                .append(Component.literal(this.volume + "x ").withStyle(UiStyles.quantity()))
-                .append(productNameComponent)
-                .append(Component.literal(" at ").withStyle(UiStyles.label()))
-                .append(Component
-                    .literal(Utils.formatDecimal(this.pricePerUnit, 1, true) + "coins")
-                    .withStyle(UiStyles.money()));
         }
     }
 
