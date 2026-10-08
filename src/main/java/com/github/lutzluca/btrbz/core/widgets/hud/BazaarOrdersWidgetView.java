@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import io.wispforest.owo.ui.core.Color;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
@@ -24,17 +26,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.boldLabel;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
-
 final class BazaarOrdersWidgetView
     implements WidgetView<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final Detailed detailed = new Detailed();
     private final Counts counts = new Counts();
-    private final LabelComponent toggleHint = label("", UiStyles.palette().muted());
+    private final LabelComponent toggleHint = UiComponents.label("", UiStyles.palette().muted());
     private final Supplier<Component> toggleKeyLabel;
 
     BazaarOrdersWidgetView(Supplier<Component> toggleKeyLabel) {
@@ -78,8 +76,8 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
 
         private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        private final LabelComponent count = label("", UiStyles.palette().muted());
-        private final LabelComponent empty = label("", UiStyles.palette().muted());
+        private final LabelComponent count = UiComponents.label("", UiStyles.palette().muted());
+        private final LabelComponent empty = UiComponents.label("", UiStyles.palette().muted());
 
         private final RetainedFlowLayout rows = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         private final RetainedRows<TrackedOrderId, BazaarHudOrderRowComponent> retainedRows = new RetainedRows<>();
@@ -93,8 +91,8 @@ final class BazaarOrdersWidgetView
             this.header.allowOverflow(true);
             this.header.verticalAlignment(VerticalAlignment.CENTER);
 
-            this.header.child(label("Bazaar Orders", UiStyles.palette().primary()));
-            this.header.child(spacer());
+            this.header.child(UiComponents.label("Bazaar Orders", UiStyles.palette().primary()));
+            this.header.child(UiComponents.spacer());
             this.header.child(this.count);
 
             this.rows.allowOverflow(true);
@@ -137,8 +135,9 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
 
         private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        private final LabelComponent active = label("", UiStyles.palette().muted());
-        private final LabelComponent empty = label("No active or filled orders", UiStyles.palette().muted());
+        private final LabelComponent active = UiComponents.label("", UiStyles.palette().muted());
+        private final LabelComponent empty = UiComponents.label("No active or filled orders",
+            UiStyles.palette().muted());
 
         private final RetainedFlowLayout grid = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         private final List<StatusSummary> summaries = new ArrayList<>();
@@ -146,7 +145,8 @@ final class BazaarOrdersWidgetView
             RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9)),
             RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9)),
             RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(9)));
-        private final List<UIComponent> rowSpacers = List.of(spacer(), spacer(), spacer());
+        private final List<UIComponent> rowSpacers = List.of(UiComponents.spacer(), UiComponents.spacer(),
+            UiComponents.spacer());
 
         private Counts() {
             this.root.allowOverflow(true);
@@ -154,8 +154,8 @@ final class BazaarOrdersWidgetView
 
             this.header.allowOverflow(true);
 
-            this.header.child(label("Bazaar Orders", UiStyles.palette().primary()));
-            this.header.child(spacer());
+            this.header.child(UiComponents.label("Bazaar Orders", UiStyles.palette().primary()));
+            this.header.child(UiComponents.spacer());
             this.header.child(this.active);
 
             this.grid.gap(WidgetLayoutTokens.LINE_GAP);
@@ -203,15 +203,15 @@ final class BazaarOrdersWidgetView
 
     private static final class StatusSummary {
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.fixed(1), Sizing.fixed(9));
-        private final LabelComponent label = boldLabel("", UiStyles.palette().primary());
-        private final LabelComponent count = boldLabel("", UiStyles.palette().primary());
+        private final LabelComponent label = UiComponents.boldLabel("", UiStyles.palette().primary());
+        private final LabelComponent count = UiComponents.boldLabel("", UiStyles.palette().primary());
 
         private StatusSummary() {
             this.root.allowOverflow(true);
             this.root.verticalAlignment(VerticalAlignment.CENTER);
 
             this.root.child(this.label);
-            this.root.child(spacer());
+            this.root.child(UiComponents.spacer());
             this.root.child(this.count);
         }
 
@@ -228,7 +228,7 @@ final class BazaarOrdersWidgetView
 
     private static final class Overflow {
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        private final LabelComponent more = label("", UiStyles.palette().muted());
+        private final LabelComponent more = UiComponents.label("", UiStyles.palette().muted());
         private final List<StatusCount> statuses = List.of(
             new StatusCount(Assets.STATUS_OUTDATED), new StatusCount(Assets.STATUS_MATCHED),
             new StatusCount(Assets.STATUS_BEST_ORDER), new StatusCount(Assets.STATUS_UNKNOWN));
@@ -270,7 +270,7 @@ final class BazaarOrdersWidgetView
 
     private static final class StatusCount {
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.content(), Sizing.fixed(9));
-        private final LabelComponent count = label("", UiStyles.palette().label());
+        private final LabelComponent count = UiComponents.label("", UiStyles.palette().label());
 
         private StatusCount(Identifier texture) {
             this.root.allowOverflow(true);

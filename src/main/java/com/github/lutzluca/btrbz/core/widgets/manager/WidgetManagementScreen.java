@@ -1,5 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.core.ui.UiButton;
+import com.github.lutzluca.btrbz.Assets;
+
 import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
@@ -11,9 +14,9 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.ui.ScrollSafeDiscreteSliderComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
+import com.github.lutzluca.btrbz.core.ui.RestorableVerticalScrollContainer;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetColorFormat;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.github.lutzluca.btrbz.core.widgets.ui.TooltipDelayState;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -90,7 +93,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout sidebarHeader;
     private FlowLayout sidebarContent;
     private RestorableVerticalScrollContainer<FlowLayout> sidebarScroller;
-    private ButtonComponent sidebarSizeButton;
+    private UiButton sidebarSizeButton;
 
     private boolean sidebarMinimized;
     private boolean sidebarCapturedMouse;
@@ -481,7 +484,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 : Sizing.fill(this.sidebarHeightPercent()));
 
         this.sidebar.positioning(Positioning.absolute(this.sidebarPosition.x(), this.sidebarPosition.y()));
-        this.sidebar.surface(WidgetSurfaces.roundedPanel(0xF0181B22, 6));
+        this.sidebar.surface(UiSurfaces.roundedPanel(0xF0181B22, 6));
         this.sidebar.padding(Insets.of(SIDEBAR_PADDING));
         this.sidebar.gap(7);
 
@@ -650,10 +653,12 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         if (configurationPanel != null) {
             this.sidebarContent.child(label("Content & behavior", 0xFFB8C0CF));
             this.sidebarContent.child(configurationPanel);
-            var resetContent = button("Reset content settings", _ -> {
-                selected.binding(this::markDirty).resetPreferences();
-                this.rebuildSidebar();
-            });
+            var resetContent = UiButton.iconText(Assets.REDO_ICON, 64, Component.literal("Reset content settings"),
+                () -> {
+                    selected.binding(this::markDirty).resetPreferences();
+                    this.rebuildSidebar();
+                });
+            resetContent.sizing(Sizing.fill(100), Sizing.fixed(20));
             resetContent.tooltip(WidgetTooltips.wrapped(
                 "Restores this widget's content settings while preserving placement and appearance."));
             this.sidebarContent.child(resetContent);
@@ -782,11 +787,10 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         String buttonText = this.sidebarMinimized ? "+" : "-";
         String tooltip = this.sidebarMinimized ? "Maximize widget manager" : "Minimize widget manager";
-        this.sidebarSizeButton = UIComponents.button(
+        this.sidebarSizeButton = UiButton.text(
             Component.literal(buttonText),
             _ -> this.setSidebarMinimized(!this.sidebarMinimized));
-        this.sidebarSizeButton.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF465066, 0xFF20242D));
-        this.sidebarSizeButton.textShadow(false);
+        this.sidebarSizeButton.bottomAccent(false);
         this.sidebarSizeButton.sizing(Sizing.fixed(HEADER_HEIGHT), Sizing.fixed(HEADER_HEIGHT));
         this.sidebarSizeButton.tooltip(WidgetTooltips.wrapped(tooltip));
         this.sidebarHeader.child(this.sidebarSizeButton);
@@ -981,7 +985,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         select.horizontalSizing(Sizing.expand(100));
 
         if (definition.getId().equals(this.selectionState.selectedWidget())) {
-            select.renderer(ButtonComponent.Renderer.flat(0xFF3B4252, 0xFF465066, 0xFF292D36));
+            select.selected(true);
         }
 
         row.child(select);
@@ -993,11 +997,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         return UIComponents.label(Component.literal(text)).color(Color.ofArgb(color));
     }
 
-    private static ButtonComponent button(String text, Consumer<ButtonComponent> onPress) {
-        var button = UIComponents.button(Component.literal(text), onPress);
+    private static UiButton button(String text, Consumer<ButtonComponent> onPress) {
+        var button = UiButton.text(Component.literal(text), onPress);
 
-        button.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));
-        button.textShadow(false);
         button.sizing(Sizing.fill(100), Sizing.fixed(20));
 
         return button;

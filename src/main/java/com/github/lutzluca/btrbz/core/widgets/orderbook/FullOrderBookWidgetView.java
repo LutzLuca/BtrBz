@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
@@ -10,10 +12,9 @@ import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderRowComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.RetainedFlowLayout;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
-import io.wispforest.owo.ui.component.ButtonComponent;
+import com.github.lutzluca.btrbz.core.ui.UiButton;
 import io.wispforest.owo.ui.component.ItemComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
-import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
@@ -25,27 +26,24 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
-
 final class FullOrderBookWidgetView
     implements WidgetView<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent itemName = label("", UiStyles.palette().primary());
-    private final LabelComponent bookTitle = label("Order Book", UiStyles.palette().muted());
+    private final LabelComponent itemName = UiComponents.label("", UiStyles.palette().primary());
+    private final LabelComponent bookTitle = UiComponents.label("Order Book", UiStyles.palette().muted());
 
     private final RetainedFlowLayout lists = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final Side buy = new Side("Buy Offers", BazaarWidgetViewData.OrderSide.Buy);
     private final Side sell = new Side("Sell Offers", BazaarWidgetViewData.OrderSide.Sell);
 
     private final RetainedFlowLayout footer = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-    private final LabelComponent instruction = label(
+    private final LabelComponent instruction = UiComponents.label(
         "Click a price to copy it and return",
         UiStyles.palette().muted());
-    private final ButtonComponent goBack = UIComponents.button(
+    private final UiButton goBack = UiButton.text(
         Component.literal("Go Back"),
         _ -> this.actions.accept(new OrderBookAction.GoBack()));
 
@@ -70,8 +68,6 @@ final class FullOrderBookWidgetView
         this.instruction.horizontalSizing(Sizing.expand(100));
 
         this.goBack.sizing(Sizing.fixed(60), Sizing.fixed(16));
-        this.goBack.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));
-        this.goBack.textShadow(false);
 
         this.footer.child(this.instruction);
         this.footer.child(this.goBack);
@@ -101,7 +97,7 @@ final class FullOrderBookWidgetView
             var stack = itemStack.orElseThrow();
 
             if (this.item == null) {
-                this.item = icon(stack);
+                this.item = UiComponents.icon(stack);
             } else {
                 this.item.stack(stack);
             }
@@ -148,20 +144,18 @@ final class FullOrderBookWidgetView
     }
 
     private static final class Side {
-        private final String title;
         private final BazaarWidgetViewData.OrderSide side;
 
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.expand(50), Sizing.fill(100));
         private final BazaarOrderListComponent list = new BazaarOrderListComponent(true, 1, 1);
 
         private Side(String title, BazaarWidgetViewData.OrderSide side) {
-            this.title = title;
             this.side = side;
 
             this.root.allowOverflow(true);
             this.root.gap(0);
 
-            this.root.child(label(title, UiStyles.palette().label()));
+            this.root.child(UiComponents.label(title, UiStyles.palette().label()));
             this.root.child(this.list);
         }
 

@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
@@ -15,13 +17,9 @@ import io.wispforest.owo.ui.core.UIComponent;
 import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.boldLabel;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
-
 final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent header = boldLabel("Bazaar Overview", UiStyles.palette().primary());
+    private final LabelComponent header = UiComponents.boldLabel("Bazaar Overview", UiStyles.palette().primary());
 
     private final ValueLine buyLocked = new ValueLine("Buy Orders (Locked)");
     private final ValueLine buyItems = new ValueLine("Buy Orders (Items)");
@@ -92,10 +90,10 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         private ValueLine(String name) {
             this.root.allowOverflow(true);
 
-            this.root.child(label(name, UiStyles.palette().label()));
-            this.root.child(spacer());
+            this.root.child(UiComponents.label(name, UiStyles.palette().label()));
+            this.root.child(UiComponents.spacer());
 
-            this.value = label("", UiStyles.palette().primary());
+            this.value = UiComponents.label("", UiStyles.palette().primary());
 
             this.root.child(this.value);
         }

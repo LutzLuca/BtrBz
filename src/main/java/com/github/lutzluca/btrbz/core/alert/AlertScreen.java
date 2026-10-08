@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import io.wispforest.owo.ui.core.Color;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
@@ -11,17 +13,15 @@ import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
-import com.github.lutzluca.btrbz.core.widgets.ui.IconButton;
-import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.core.ui.UiButton;
+import com.github.lutzluca.btrbz.core.ui.RestorableVerticalScrollContainer;
+import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import io.vavr.control.Try;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
-import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.component.UIComponents;
@@ -94,18 +94,18 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable LabelComponent previewValue;
     private LabelComponent status;
     private LabelComponent feedback;
-    private ButtonComponent editorTabButton;
-    private ButtonComponent priceModeButton;
-    private ButtonComponent liquidityModeButton;
-    private ButtonComponent activeTabButton;
-    private ButtonComponent reachedTabButton;
-    private @Nullable ButtonComponent buyButton;
-    private @Nullable ButtonComponent sellButton;
-    private @Nullable ButtonComponent belowButton;
-    private @Nullable ButtonComponent aboveButton;
-    private @Nullable ButtonComponent saveButton;
+    private UiButton editorTabButton;
+    private UiButton priceModeButton;
+    private UiButton liquidityModeButton;
+    private UiButton activeTabButton;
+    private UiButton reachedTabButton;
+    private @Nullable UiButton buyButton;
+    private @Nullable UiButton sellButton;
+    private @Nullable UiButton belowButton;
+    private @Nullable UiButton aboveButton;
+    private @Nullable UiButton saveButton;
     private @Nullable TextBoxComponent quantityBox;
-    private @Nullable ButtonComponent orderBookButton;
+    private @Nullable UiButton orderBookButton;
 
     public AlertScreen(
         @Nullable Screen parent,
@@ -148,21 +148,21 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         root.surface(Surface.flat(0x70000000));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
         var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.fixed(height));
-        panel.surface(WidgetSurfaces.roundedPanel(PANEL, 6));
+        panel.surface(UiSurfaces.roundedPanel(PANEL, 6));
         panel.padding(Insets.of(12));
         panel.gap(8);
 
         var title = text("Alerts", UiStyles.palette().primary()).shadow(true);
         this.status = text("", UiStyles.palette().muted());
-        var close = button("×", this::onClose);
+        var close = UiButton.text("×", this::onClose);
         close.horizontalSizing(Sizing.fixed(22));
-        panel.child(row(title, BazaarUi.spacer(), this.status, close));
-        this.priceModeButton = button("Price", () -> this.switchMode(Kind.Price));
-        this.liquidityModeButton = button("Liquidity", () -> this.switchMode(Kind.Liquidity));
+        panel.child(row(title, UiComponents.spacer(), this.status, close));
+        this.priceModeButton = UiButton.text("Price", () -> this.switchMode(Kind.Price));
+        this.liquidityModeButton = UiButton.text("Liquidity", () -> this.switchMode(Kind.Liquidity));
         panel.child(segments(this.priceModeButton, this.liquidityModeButton));
-        this.editorTabButton = button("Editor", () -> this.switchTab(Tab.Editor));
-        this.activeTabButton = button("Active alerts", () -> this.switchTab(Tab.Active));
-        this.reachedTabButton = button("Reached", () -> this.switchTab(Tab.Reached));
+        this.editorTabButton = UiButton.text("Editor", () -> this.switchTab(Tab.Editor));
+        this.activeTabButton = UiButton.text("Active alerts", () -> this.switchTab(Tab.Active));
+        this.reachedTabButton = UiButton.text("Reached", () -> this.switchTab(Tab.Reached));
         this.editorTabButton.horizontalSizing(Sizing.expand(34));
         this.activeTabButton.horizontalSizing(Sizing.expand(33));
         this.reachedTabButton.horizontalSizing(Sizing.expand(33));
@@ -200,7 +200,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.belowButton = null;
         this.aboveButton = null;
         if (this.tab != Tab.Editor) {
-            var create = button("New alert", () -> {
+            var create = UiButton.text("New alert", () -> {
                 this.editor.reset();
                 this.message = "";
                 this.tab = Tab.Editor;
@@ -208,7 +208,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 this.focusSearch();
             });
             this.content.child(row(text(this.tab == Tab.Reached ? "Last 10 reached alerts" : "Your saved alerts",
-                UiStyles.palette().label()), BazaarUi.spacer(), create));
+                UiStyles.palette().label()), UiComponents.spacer(), create));
             this.alertRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
             this.alertRows.gap(6);
             this.content.child(this.alertRows);
@@ -232,16 +232,16 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout buildSettings() {
         var settings = card(this.settingsWidth);
         if (this.editor.mode() == Kind.Price) {
-            this.buyButton = button(PriceSource.Buy.label(), () -> this.setSource(PriceSource.Buy));
-            this.sellButton = button(PriceSource.Sell.label(), () -> this.setSource(PriceSource.Sell));
+            this.buyButton = UiButton.text(PriceSource.Buy.label(), () -> this.setSource(PriceSource.Buy));
+            this.sellButton = UiButton.text(PriceSource.Sell.label(), () -> this.setSource(PriceSource.Sell));
             settings.child(segments(this.buyButton, this.sellButton));
-            this.belowButton = button("Below", () -> this.setDirection(Direction.Below));
-            this.aboveButton = button("Above", () -> this.setDirection(Direction.Above));
+            this.belowButton = UiButton.text("Below", () -> this.setDirection(Direction.Below));
+            this.aboveButton = UiButton.text("Above", () -> this.setDirection(Direction.Above));
             settings.child(segments(this.belowButton, this.aboveButton));
         } else {
-            this.buyButton = button("Instant sell", () -> this.setLiquiditySide(LiquiditySide.BuyOrders));
+            this.buyButton = UiButton.text("Instant sell", () -> this.setLiquiditySide(LiquiditySide.BuyOrders));
             this.buyButton.tooltip(Component.literal("Sell instantly to buy orders (Sell Price)."));
-            this.sellButton = button("Instant buy", () -> this.setLiquiditySide(LiquiditySide.SellOffers));
+            this.sellButton = UiButton.text("Instant buy", () -> this.setLiquiditySide(LiquiditySide.SellOffers));
             this.sellButton
                 .tooltip(Component.literal("Buy instantly from sell offers (Buy Price)."));
             settings.child(segments(this.buyButton, this.sellButton));
@@ -285,16 +285,16 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         var preview = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         preview.padding(Insets.of(7));
         preview.gap(4);
-        preview.surface(WidgetSurfaces.roundedPanel(0x60000000, 3));
+        preview.surface(UiSurfaces.roundedPanel(0x60000000, 3));
         this.previewValue = text("", UiStyles.palette().primary()).maxWidth(this.settingsWidth - 30);
         preview.child(this.previewValue);
         footer.child(preview);
-        this.saveButton = button(this.editor.editingId() == null ? "Create alert" : "Save changes", this::save);
+        this.saveButton = UiButton.text(this.editor.editingId() == null ? "Create alert" : "Save changes", this::save);
         this.saveButton.sizing(Sizing.fill(100), Sizing.fixed(24));
-        this.saveButton.renderer(buttonRenderer(true, false));
+        this.saveButton.primary(true);
         footer.child(this.saveButton);
         if (this.editor.editingId() != null) {
-            footer.child(button("Cancel edit", () -> {
+            footer.child(UiButton.text("Cancel edit", () -> {
                 this.editor.reset();
                 this.switchTab(Tab.Active);
             }));
@@ -311,24 +311,24 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.buyQuote = null;
         this.sellQuote = null;
         if (this.editor.searching()) {
-            var heading = row(text("Item", UiStyles.palette().primary()), BazaarUi.spacer());
+            var heading = row(text("Item", UiStyles.palette().primary()), UiComponents.spacer());
             if (this.editor.product() != null) {
-                heading.child(button("Cancel", () -> this.defer(this::cancelSearch)));
+                heading.child(UiButton.text("Cancel", () -> this.defer(this::cancelSearch)));
             }
             this.productPane.child(heading);
             this.searchControls = new AlertSearchControls(this.data, this.productWidth, this.resultHeight,
                 this.editor.query(), this.editor::query, product -> this.defer(() -> this.selectProduct(product)));
             this.productPane.child(this.searchControls);
         } else {
-            this.productPane.child(row(text("Item", UiStyles.palette().label()), BazaarUi.spacer(),
-                button("Change", () -> this.defer(this::beginSearch))));
+            this.productPane.child(row(text("Item", UiStyles.palette().label()), UiComponents.spacer(),
+                UiButton.text("Change", () -> this.defer(this::beginSearch))));
             this.productPane.child(new AlertProductRow(this.data, this.editor.product(), this.productWidth - 16,
                 false, null));
             this.buyQuote = text("", UiStyles.palette().buy()).maxWidth(this.productWidth - 16);
             this.sellQuote = text("", UiStyles.palette().sell()).maxWidth(this.productWidth - 16);
             this.productPane.child(this.buyQuote);
             this.productPane.child(this.sellQuote);
-            this.orderBookButton = button("Open order book", this::openOrderBook);
+            this.orderBookButton = UiButton.text("Open order book", this::openOrderBook);
             this.orderBookButton.horizontalSizing(Sizing.fill(100));
             String unavailable = this.orderBook.unavailableReason();
             this.orderBookButton.active(unavailable == null);
@@ -414,7 +414,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
     private void refreshControls() {
         boolean selected = this.editor.hasSelection();
-        for (var button : new ButtonComponent[]{this.buyButton, this.sellButton, this.belowButton, this.aboveButton}) {
+        for (var button : new UiButton[]{this.buyButton, this.sellButton, this.belowButton, this.aboveButton}) {
             if (button != null) {
                 button.active(selected);
             }
@@ -425,20 +425,20 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
         if (this.editor.mode() == Kind.Price) {
             this.buyButton
-                .renderer(buttonRenderer(false, this.editor.source() == PriceSource.Buy, UiStyles.palette().buy()));
+                .selected(this.editor.source() == PriceSource.Buy).accent(UiStyles.palette().buy());
             this.sellButton
-                .renderer(buttonRenderer(false, this.editor.source() == PriceSource.Sell, UiStyles.palette().sell()));
+                .selected(this.editor.source() == PriceSource.Sell).accent(UiStyles.palette().sell());
             this.buyButton.setMessage(
                 Component.literal(PriceSource.Buy.label()).withStyle(UiStyles.color(UiStyles.palette().buy())));
             this.sellButton.setMessage(
                 Component.literal(PriceSource.Sell.label()).withStyle(UiStyles.color(UiStyles.palette().sell())));
-            this.belowButton.renderer(buttonRenderer(false, this.editor.direction() == Direction.Below));
-            this.aboveButton.renderer(buttonRenderer(false, this.editor.direction() == Direction.Above));
+            this.belowButton.selected(this.editor.direction() == Direction.Below);
+            this.aboveButton.selected(this.editor.direction() == Direction.Above);
         } else {
-            this.buyButton.renderer(buttonRenderer(false, this.editor.liquiditySide() == LiquiditySide.BuyOrders,
-                UiStyles.palette().buy()));
-            this.sellButton.renderer(buttonRenderer(false, this.editor.liquiditySide() == LiquiditySide.SellOffers,
-                UiStyles.palette().sell()));
+            this.buyButton.selected(this.editor.liquiditySide() == LiquiditySide.BuyOrders)
+                .accent(UiStyles.palette().buy());
+            this.sellButton.selected(this.editor.liquiditySide() == LiquiditySide.SellOffers)
+                .accent(UiStyles.palette().sell());
             this.buyButton
                 .setMessage(Component.literal("Instant sell").withStyle(UiStyles.color(UiStyles.palette().buy())));
             this.sellButton
@@ -557,9 +557,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         var current = text("", UiStyles.palette().label());
         this.activeQuotes.add(new ActiveQuote(alert, current));
         return this.alertRow(alert, product, current, 76,
-            button("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fixed(48)),
-            new IconButton(Assets.TRASHCAN, Component.literal("Delete alert for " + product.strippedName()),
-                () -> this.delete(alert.id, false), 32, buttonRenderer(false, false)));
+            UiButton.text("Edit", () -> this.edit(alert.id)).horizontalSizing(Sizing.fixed(48)),
+            UiButton.icon(Assets.TRASHCAN, 32, Component.literal("Delete alert for " + product.strippedName()),
+                () -> this.delete(alert.id, false)));
     }
 
     private FlowLayout reachedAlertRow(ReachedAlert entry) {
@@ -577,17 +577,17 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         current.text(observed.append(Component.literal(" on " + captureTime(entry.reachedAt()))
             .withStyle(UiStyles.muted())));
         return this.alertRow(alert, product, current, 136,
-            button("Open Bazaar", () -> {
+            UiButton.text("Open Bazaar", () -> {
                 if (!this.sameSession()) {
                     return;
                 }
                 GameUtils.setScreen(null);
                 GameUtils.runCommand("bz " + product.strippedName());
             }).horizontalSizing(Sizing.fixed(80)),
-            new IconButton(Assets.REDO_ICON, Component.literal("Watch again: " + product.strippedName()),
-                () -> this.watchAgain(alert.id), 64, buttonRenderer(false, false)),
-            new IconButton(Assets.TRASHCAN, Component.literal("Delete alert for " + product.strippedName()),
-                () -> this.delete(alert.id, true), 32, buttonRenderer(false, false)));
+            UiButton.icon(Assets.REDO_ICON, 64, Component.literal("Watch again: " + product.strippedName()),
+                () -> this.watchAgain(alert.id)),
+            UiButton.icon(Assets.TRASHCAN, 32, Component.literal("Delete alert for " + product.strippedName()),
+                () -> this.delete(alert.id, true)));
     }
 
     private FlowLayout alertRow(
@@ -598,7 +598,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         UIComponent... buttons
     ) {
         var card = row();
-        card.surface(WidgetSurfaces.roundedPanel(CARD, 4));
+        card.surface(UiSurfaces.roundedPanel(CARD, 4));
         card.padding(Insets.of(6));
         var details = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
         details.gap(3);
@@ -693,11 +693,11 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.activeTabButton.setMessage(Component.literal((this.contentWidth < 426 ? "Active" : "Active alerts")
             + " (" + activeCount + ")"));
         this.reachedTabButton.setMessage(Component.literal("Reached (" + reachedCount + ")"));
-        this.priceModeButton.renderer(buttonRenderer(false, this.editor.mode() == Kind.Price));
-        this.liquidityModeButton.renderer(buttonRenderer(false, this.editor.mode() == Kind.Liquidity));
-        this.editorTabButton.renderer(buttonRenderer(false, this.tab == Tab.Editor));
-        this.activeTabButton.renderer(buttonRenderer(false, this.tab == Tab.Active));
-        this.reachedTabButton.renderer(buttonRenderer(false, this.tab == Tab.Reached));
+        this.priceModeButton.selected(this.editor.mode() == Kind.Price);
+        this.liquidityModeButton.selected(this.editor.mode() == Kind.Liquidity);
+        this.editorTabButton.selected(this.tab == Tab.Editor);
+        this.activeTabButton.selected(this.tab == Tab.Active);
+        this.reachedTabButton.selected(this.tab == Tab.Reached);
     }
 
     private void captureRevisions() {
@@ -845,7 +845,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         var card = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.content());
         card.padding(Insets.of(8));
         card.gap(7);
-        card.surface(WidgetSurfaces.roundedPanel(CARD, 4));
+        card.surface(UiSurfaces.roundedPanel(CARD, 4));
         return card;
     }
 
@@ -859,41 +859,14 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         return row;
     }
 
-    private static FlowLayout segments(ButtonComponent first, ButtonComponent second) {
+    private static FlowLayout segments(UiButton first, UiButton second) {
         first.horizontalSizing(Sizing.expand(50));
         second.horizontalSizing(Sizing.expand(50));
         return row(first, second);
     }
 
     private static LabelComponent text(String value, int color) {
-        return BazaarUi.text(value, color);
-    }
-
-    private static ButtonComponent button(String label, Runnable action) {
-        var button = UIComponents.button(Component.literal(label), _ -> action.run());
-        button.textShadow(false);
-        button.sizing(Sizing.content(8), Sizing.fixed(22));
-        button.renderer(buttonRenderer(false, false));
-        return button;
-    }
-
-    private static ButtonComponent.Renderer buttonRenderer(boolean primary, boolean selected) {
-        return buttonRenderer(primary, selected, 0xFF89929C);
-    }
-
-    private static ButtonComponent.Renderer buttonRenderer(boolean primary, boolean selected, int accent) {
-        return (graphics, button, delta) -> {
-            boolean hover = button.isHoveredOrFocused();
-            int color = primary
-                ? (button.active() ? (hover ? 0xFF555C65 : 0xFF3F454C) : (hover ? 0xFF2D3136 : 0xFF22252A))
-                : (hover ? 0xFF484D54 : selected ? 0xFF3B3F44 : 0xFF25282C);
-            WidgetSurfaces.drawRoundedPanel(graphics, button.getX(), button.getY(), button.getWidth(),
-                button.getHeight(),
-                color, 3);
-            int border = (primary || selected) && button.active() ? accent : hover ? 0xFF707780 : 0xFF45494E;
-            graphics.fill(button.getX() + 3, button.getY() + button.getHeight() - 1,
-                button.getX() + button.getWidth() - 3, button.getY() + button.getHeight(), border);
-        };
+        return UiComponents.label(value, color);
     }
 
     private static MutableComponent priceLabel(PriceSource source) {

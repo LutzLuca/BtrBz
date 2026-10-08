@@ -11,7 +11,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.component.UIComponents;
@@ -196,7 +196,7 @@ public final class WidgetManagerLauncher {
 
         this.button = UIContainers.verticalFlow(Sizing.fixed(SIZE), Sizing.fixed(SIZE));
         this.button.padding(Insets.of((SIZE - ICON_SIZE) / 2));
-        this.button.surface(WidgetSurfaces.roundedPanel(0xE0222730, 5));
+        this.button.surface(UiSurfaces.roundedPanel(0xE0222730, 5));
         this.button.cursorStyle(CursorStyle.HAND);
         this.button.tooltip(Component.literal("Open widget manager"));
 

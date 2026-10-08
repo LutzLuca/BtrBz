@@ -1,6 +1,5 @@
-package com.github.lutzluca.btrbz.core.widgets.ui;
+package com.github.lutzluca.btrbz.core.ui;
 
-import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.wispforest.owo.ui.core.OwoUIPipelines;
@@ -90,7 +89,7 @@ final class RoundedRectangleElementRenderState implements GuiElementRenderState 
         int radius,
         int cornerSegments
     ) {
-        int safeRadius = WidgetMath.clamp(radius, 0, Math.max(0, Math.min(width, height) / 2));
+        int safeRadius = Math.clamp(radius, 0, Math.max(0, Math.min(width, height) / 2));
         int safeSegments = Math.max(1, cornerSegments);
 
         float[] points = new float[(5 + safeSegments * 4) * 2];

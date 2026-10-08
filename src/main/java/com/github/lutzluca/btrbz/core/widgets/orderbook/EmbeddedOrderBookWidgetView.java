@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
@@ -22,18 +24,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.icon;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
-
 final class EmbeddedOrderBookWidgetView
     implements WidgetView<OrderBookWidgetData.Snapshot, OrderBookPriceWidgetConfig, OrderBookAction> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent itemName = text("", UiStyles.palette().primary());
-    private final LabelComponent prices = text("Prices", UiStyles.palette().muted());
+    private final LabelComponent itemName = UiComponents.label("", UiStyles.palette().primary());
+    private final LabelComponent prices = UiComponents.label("Prices", UiStyles.palette().muted());
 
     private final RetainedFlowLayout sides = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final Side buy = new Side("Buy", UiStyles.palette().buy(), BazaarWidgetViewData.OrderSide.Buy);
@@ -72,7 +70,7 @@ final class EmbeddedOrderBookWidgetView
             var stack = itemStack.orElseThrow();
 
             if (this.item == null) {
-                this.item = icon(stack);
+                this.item = UiComponents.icon(stack);
             } else {
                 this.item.stack(stack);
             }
@@ -119,7 +117,7 @@ final class EmbeddedOrderBookWidgetView
 
             this.root.gap(0);
 
-            this.root.child(label(title, color));
+            this.root.child(UiComponents.label(title, color));
             this.root.child(this.list);
         }
 

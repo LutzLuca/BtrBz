@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
-import io.wispforest.owo.ui.component.ButtonComponent;
+import com.github.lutzluca.btrbz.core.ui.UiButton;
 import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.UIContainers;
@@ -78,7 +78,7 @@ public final class WidgetSettingsPanel {
         String description,
         Runnable afterChange
     ) {
-        var control = UIComponents.button(enumMessage(label, getter.apply(binding.current())), button -> {
+        var control = UiButton.text(enumMessage(label, getter.apply(binding.current())), button -> {
             var current = getter.apply(binding.current());
             var values = current.getDeclaringClass().getEnumConstants();
             var next = values[(current.ordinal() + 1) % values.length];
@@ -88,8 +88,6 @@ public final class WidgetSettingsPanel {
             afterChange.run();
         });
 
-        control.renderer(ButtonComponent.Renderer.flat(0xFF2C3340, 0xFF384252, 0xFF20242D));
-        control.textShadow(false);
         control.sizing(Sizing.fill(100), Sizing.fixed(20));
         control.tooltip(WidgetTooltips.wrapped(description));
 

@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
@@ -16,15 +18,13 @@ import io.wispforest.owo.ui.core.VerticalAlignment;
 
 import java.util.function.Consumer;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.label;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.spacer;
 import static net.minecraft.network.chat.Component.literal;
 
 final class TrackedOrdersWidgetView implements
     WidgetView<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>,
     ScrollOffsetView {
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent status = label("", UiStyles.palette().muted());
+    private final LabelComponent status = UiComponents.label("", UiStyles.palette().muted());
 
     private final BazaarTrackedOrderListComponent list = new BazaarTrackedOrderListComponent();
 
@@ -37,8 +37,8 @@ final class TrackedOrdersWidgetView implements
         header.allowOverflow(true);
         header.verticalAlignment(VerticalAlignment.CENTER);
 
-        header.child(label("Tracked Orders", UiStyles.palette().primary()));
-        header.child(spacer());
+        header.child(UiComponents.label("Tracked Orders", UiStyles.palette().primary()));
+        header.child(UiComponents.spacer());
         header.child(this.status);
 
         this.root.child(header);

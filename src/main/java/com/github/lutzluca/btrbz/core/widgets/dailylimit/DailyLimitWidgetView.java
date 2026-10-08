@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.dailylimit;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
@@ -17,15 +19,13 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
-
 final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snapshot, DailyLimitWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(
         Sizing.fixed(DailyLimitWidgetDefinition.MINIMUM_CONTENT_WIDTH),
         Sizing.content());
 
-    private final LabelComponent header = text("Daily Limit", UiStyles.palette().primary());
-    private final LabelComponent value = text("", UiStyles.palette().primary());
+    private final LabelComponent header = UiComponents.label("Daily Limit", UiStyles.palette().primary());
+    private final LabelComponent value = UiComponents.label("", UiStyles.palette().primary());
 
     private String displayedValue = "";
 
