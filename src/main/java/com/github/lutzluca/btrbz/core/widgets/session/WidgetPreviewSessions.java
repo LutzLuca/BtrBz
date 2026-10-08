@@ -19,10 +19,6 @@ public final class WidgetPreviewSessions {
         return session(false, false, false, Optional.of(menu), Optional.empty(), Optional.empty(), Optional.empty());
     }
 
-    public static WidgetSession orderBook(OrderBookWidgetData.Snapshot data) {
-        return session(false, false, true, Optional.empty(), Optional.empty(), product(data), Optional.empty());
-    }
-
     public static WidgetSession sign(OrderBookWidgetData.Snapshot data) {
         return session(false, true, false, Optional.empty(), Optional.empty(), product(data),
             Optional.of(OrderType.Buy));
@@ -36,12 +32,12 @@ public final class WidgetPreviewSessions {
     private static WidgetSession session(
         boolean hud,
         boolean sign,
-        boolean orderBook,
+        boolean customScreen,
         Optional<BazaarMenuType> menu,
         Optional<BazaarMenuType> previous,
         Optional<WidgetProductContext> product,
         Optional<OrderType> side
     ) {
-        return new WidgetSession(1, hud, sign, orderBook, menu, previous, product, side, 1);
+        return new WidgetSession(1, hud, sign, customScreen, menu, previous, product, side, 1);
     }
 }

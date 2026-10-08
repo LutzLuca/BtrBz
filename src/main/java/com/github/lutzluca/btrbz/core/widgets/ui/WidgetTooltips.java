@@ -17,10 +17,12 @@ public final class WidgetTooltips {
     }
 
     public static List<ClientTooltipComponent> wrapped(Collection<Component> lines) {
-        var font = Minecraft.getInstance().font;
+        var client = Minecraft.getInstance();
+        var font = client.font;
+        int width = Math.min(MAXIMUM_WIDTH, Math.max(1, client.getWindow().getGuiScaledWidth() - 16));
         var tooltip = new ArrayList<ClientTooltipComponent>();
         for (var line : lines) {
-            for (var wrapped : font.split(line, MAXIMUM_WIDTH)) {
+            for (var wrapped : font.split(line, width)) {
                 tooltip.add(ClientTooltipComponent.create(wrapped));
             }
         }

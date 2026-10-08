@@ -23,6 +23,9 @@ val checkstyleJava by tasks.registering(Checkstyle::class) {
     source(fileTree("src") {
         include("main/java/**/*.java", "test/java/**/*.java")
     })
+    source(fileTree("coflnet-sdk/src") {
+        include("main/java/**/*.java", "test/java/**/*.java")
+    })
     classpath = files()
 
     reports {
@@ -40,6 +43,8 @@ afterEvaluate {
         java {
             target(fileTree("src") {
                 include("main/java/**/*.java", "test/java/**/*.java")
+            }, fileTree("coflnet-sdk/src") {
+                include("main/java/**/*.java", "test/java/**/*.java")
             })
 
             eclipse("4.40").configFile(file("config/formatting/eclipse-java-formatter.xml"))
@@ -50,6 +55,7 @@ afterEvaluate {
 
     tasks.named("check") {
         dependsOn(checkstyleJava)
+        dependsOn(":coflnet-sdk:check")
         dependsOn(stonecutter.versions.map { ":${it.project}:check" })
     }
 

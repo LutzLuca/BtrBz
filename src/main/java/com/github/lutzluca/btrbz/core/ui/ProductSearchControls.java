@@ -1,6 +1,4 @@
-package com.github.lutzluca.btrbz.core.alert;
-
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
+package com.github.lutzluca.btrbz.core.ui;
 
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.RestorableVerticalScrollContainer;
@@ -15,12 +13,15 @@ import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import net.minecraft.client.input.KeyEvent;
 import org.jetbrains.annotations.Nullable;
 
 /** Mounted product search controls. The screen owns the draft and selection transitions. */
-final class AlertSearchControls extends FlowLayout {
-    private static final int SEARCH_LIMIT = 12;
+public final class ProductSearchControls extends FlowLayout {
+    private final Function<String, List<IndexedProduct>> lookup;
+    private final Supplier<String> unavailableHint;
 
     private final BazaarData data;
     private final int productWidth;
@@ -28,10 +29,12 @@ final class AlertSearchControls extends FlowLayout {
     private final FlowLayout resultRows;
     private final RestorableVerticalScrollContainer<FlowLayout> scroller;
     private final Consumer<IndexedProduct> select;
-    private Results results = new Results(List.of(), false);
+    private Results results = new Results(List.of(), "");
 
-    AlertSearchControls(
+    public ProductSearchControls(
         BazaarData data,
+        Function<String, List<IndexedProduct>> lookup,
+        Supplier<String> unavailableHint,
         int productWidth,
         int resultHeight,
         String query,
@@ -40,6 +43,8 @@ final class AlertSearchControls extends FlowLayout {
     ) {
         super(Sizing.fill(100), Sizing.content(), Algorithm.VERTICAL);
         this.data = data;
+        this.lookup = lookup;
+        this.unavailableHint = unavailableHint;
         this.productWidth = productWidth;
         this.select = select;
         this.gap(7);
@@ -60,11 +65,13 @@ final class AlertSearchControls extends FlowLayout {
         this.refresh(true);
     }
 
-    void refresh(boolean force) {
-        var next = Results.lookup(this.data, this.searchBox.getValue());
+    public void refresh(boolean force) {
+        var next = Results.lookup(this.lookup, this.unavailableHint, this.searchBox.getValue());
         if (!force && next.equals(this.results)) {
             return;
         }
+        double offset = force ? 0 : this.scroller.savedScrollOffset();
+        this.scroller.restoreScrollOffset(offset);
         this.results = next;
         this.resultRows.clearChildren();
         if (next.matches().isEmpty()) {
@@ -77,13 +84,13 @@ final class AlertSearchControls extends FlowLayout {
         for (var product : next.matches()) {
             boolean duplicate = next.matches().stream().filter(other -> other.strippedName()
                 .equalsIgnoreCase(product.strippedName())).count() > 1;
-            this.resultRows.child(new AlertProductRow(this.data, product, this.productWidth - 20, duplicate,
+            this.resultRows.child(new ProductSearchRow(this.data, product, this.productWidth - 20, duplicate,
                 () -> this.select.accept(product)));
         }
     }
 
     @Nullable
-    IndexedProduct selectionFor(KeyEvent event) {
+    public IndexedProduct selectionFor(KeyEvent event) {
         if (this.searchFocused()
             && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER)
             && !this.results.matches().isEmpty()) {
@@ -92,18 +99,18 @@ final class AlertSearchControls extends FlowLayout {
         return null;
     }
 
-    void focusSearch() {
+    public void focusSearch() {
         var handler = this.focusHandler();
         if (handler != null) {
             handler.focus(this.searchBox, UIComponent.FocusSource.MOUSE_CLICK);
         }
     }
 
-    ViewState saveViewState() {
+    public ViewState saveViewState() {
         return new ViewState(this.scroller.savedScrollOffset(), this.searchFocused());
     }
 
-    void restoreViewState(ViewState state) {
+    public void restoreViewState(ViewState state) {
         this.scroller.restoreScrollOffset(state.scrollOffset());
         if (state.searchFocused()) {
             this.focusSearch();
@@ -115,16 +122,20 @@ final class AlertSearchControls extends FlowLayout {
         return handler != null && handler.focused() == this.searchBox;
     }
 
-    record ViewState(double scrollOffset, boolean searchFocused) {}
+    public record ViewState(double scrollOffset, boolean searchFocused) {}
 
-    record Results(List<IndexedProduct> matches, boolean marketAvailable) {
-        static Results lookup(BazaarData data, String query) {
-            return new Results(data.searchProducts(query, SEARCH_LIMIT), data.hasMarketData());
+    public record Results(List<IndexedProduct> matches, String unavailableHint) {
+        public static Results lookup(
+            Function<String, List<IndexedProduct>> lookup,
+            Supplier<String> unavailableHint,
+            String query
+        ) {
+            return new Results(lookup.apply(query), unavailableHint.get());
         }
 
-        String emptyHint(String query) {
-            return !this.marketAvailable
-                ? "Waiting for market data…"
+        public String emptyHint(String query) {
+            return !this.unavailableHint.isEmpty()
+                ? this.unavailableHint
                 : query.isBlank() ? "" : "No matches. Try a shorter name.";
         }
     }

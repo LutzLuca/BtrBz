@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.data;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.mixin.SkyBlockBazaarReplyAccessor;
 import io.vavr.control.Try;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -218,7 +219,8 @@ public final class BazaarPoller implements AutoCloseable {
                 throw new IllegalArgumentException("Bazaar reply is null or unsuccessful");
             }
             long sourceTime = ((SkyBlockBazaarReplyAccessor) reply).getLastUpdated();
-            MarketSnapshot snapshot = MarketSnapshot.fromProducts(reply.getProducts());
+            MarketSnapshot snapshot = MarketSnapshot.fromProducts(reply.getProducts(),
+                Instant.ofEpochMilli(sourceTime));
             if (sourceTime <= 0 || !snapshot.available()) {
                 throw new IllegalArgumentException("Bazaar reply has no valid source timestamp/products");
             }

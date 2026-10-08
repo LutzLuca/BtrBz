@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,7 +29,7 @@ public class BazaarData {
 
     private final List<Consumer<MarketSnapshot>> listeners = new ArrayList<>();
     private final ConversionIndexService conversionIndexService;
-    private MarketSnapshot marketSnapshot = new MarketSnapshot(Map.of());
+    private MarketSnapshot marketSnapshot = MarketSnapshot.fromProducts(Map.of());
 
     @Getter
     @Accessors(fluent = true)
@@ -90,6 +91,16 @@ public class BazaarData {
             .filter(product -> hasUsableQuote(this.getMarketPrices(ProductIdentity.fromIndex(product))))
             .limit(limit)
             .toList();
+    }
+
+    /** Returns ranked conversion-index matches regardless of current market availability. */
+    public List<IndexedProduct> searchIndexedProducts(String query, int limit) {
+        return limit <= 0
+            ? List.of() : this.conversionIndexService.searchProducts(query).stream().limit(limit).toList();
+    }
+
+    public Optional<LiveProductSnapshot> liveProduct(ProductIdentity product) {
+        return this.currentSnapshot().liveProduct(product);
     }
 
     public Optional<ItemStack> productStack(ProductIdentity identity) {
@@ -167,7 +178,7 @@ public class BazaarData {
     /** Make quotes unavailable without representing a successful producer publication. */
     public void clearMarketData() {
         log.debug("Clearing Bazaar market snapshot with {} products", this.marketSnapshot.size());
-        this.marketSnapshot = new MarketSnapshot(Map.of());
+        this.marketSnapshot = MarketSnapshot.fromProducts(Map.of());
         this.marketChanges.invalidate("market unavailable");
         this.notifyListeners();
     }
@@ -312,16 +323,40 @@ public class BazaarData {
 
         private final Map<String, Product> products;
         private final boolean available;
+        private final Optional<Instant> sourceUpdatedAt;
+        private final Map<String, LiveProductSnapshot> liveProducts;
 
-        private MarketSnapshot(Map<String, Product> products) {
+        private MarketSnapshot(Map<String, Product> products, Optional<Instant> sourceUpdatedAt) {
             this.products = products;
+            this.sourceUpdatedAt = sourceUpdatedAt;
+            var live = new LinkedHashMap<String, LiveProductSnapshot>();
+            products.forEach((id, product) -> {
+                if (id != null && product != null) {
+                    live.put(id, LiveProductSnapshot.fromProduct(
+                        ProductIdentity.fromRuntime(id, id, null), sourceUpdatedAt, product));
+                }
+            });
+            this.liveProducts = Collections.unmodifiableMap(live);
             this.available = !products.isEmpty() && products.entrySet().stream()
                 .allMatch(entry -> entry.getKey() != null && entry.getValue() != null);
         }
 
         public static MarketSnapshot fromProducts(Map<String, Product> products) {
+            return fromProducts(products, null);
+        }
+
+        public static MarketSnapshot fromProducts(Map<String, Product> products, @Nullable Instant sourceUpdatedAt) {
             return new MarketSnapshot(Collections.unmodifiableMap(new LinkedHashMap<>(
-                products == null ? Map.of() : products)));
+                products == null ? Map.of() : products)), Optional.ofNullable(sourceUpdatedAt));
+        }
+
+        public Optional<Instant> sourceUpdatedAt() {
+            return this.sourceUpdatedAt;
+        }
+
+        public Optional<LiveProductSnapshot> liveProduct(ProductIdentity product) {
+            return product.bazaarProductId().map(this.liveProducts::get).map(live -> new LiveProductSnapshot(
+                product, live.sourceUpdatedAt(), live.buyOrders(), live.sellOffers()));
         }
 
         public int size() {

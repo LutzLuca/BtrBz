@@ -3,8 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.ui;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudWidget;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidget;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidget;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import net.minecraft.network.chat.Component;
@@ -17,25 +15,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 class BazaarPresentationTest {
-    @Test
-    void singleSideOrderBookRetainsConfiguredContentWidth() {
-        var split = options(330, OrderBookWidgetConfig.BookLayout.Split);
-        var buyOnly = options(330, OrderBookWidgetConfig.BookLayout.BuyOnly);
-
-        Assertions.assertEquals(330, OrderBookWidget.contentWidth(split));
-        Assertions.assertEquals(164, OrderBookWidget.sideWidth(split));
-        Assertions.assertEquals(330, OrderBookWidget.contentWidth(buyOnly));
-        Assertions.assertEquals(330, OrderBookWidget.sideWidth(buyOnly));
-    }
-
-    @Test
-    void singleSideOrderBookUsesTheConfiguredMinimumWidth() {
-        var sellOnly = options(220, OrderBookWidgetConfig.BookLayout.SellOnly);
-
-        Assertions.assertEquals(220, OrderBookWidget.contentWidth(sellOnly));
-        Assertions.assertEquals(220, OrderBookWidget.sideWidth(sellOnly));
-    }
-
     @Test
     void exactPriceKeepsItsFullWidthBeforeMetadata() {
         Assertions.assertEquals(
@@ -89,16 +68,6 @@ class BazaarPresentationTest {
             manual, TrackedOrdersWidgetConfig.TrackedSort.Newest));
         Assertions.assertEquals(List.of(old, fresh), manual,
             "the newest view leaves the unsorted manual list unchanged");
-    }
-
-    private static OrderBookWidgetConfig options(
-        int width,
-        OrderBookWidgetConfig.BookLayout layout
-    ) {
-        var options = new OrderBookWidgetConfig();
-        options.contentWidth = width;
-        options.layout = layout;
-        return options;
     }
 
     private static BazaarWidgetViewData.Order order(String id, BazaarWidgetViewData.OrderStatus status) {

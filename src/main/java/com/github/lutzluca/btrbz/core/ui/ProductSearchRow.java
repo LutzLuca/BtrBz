@@ -1,6 +1,4 @@
-package com.github.lutzluca.btrbz.core.alert;
-
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
+package com.github.lutzluca.btrbz.core.ui;
 
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
@@ -21,10 +19,10 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 /** The same item and styled name presentation is used for results, selection and saved alerts. */
-final class AlertProductRow extends FlowLayout {
+public final class ProductSearchRow extends FlowLayout {
     private final @Nullable Runnable select;
 
-    AlertProductRow(
+    public ProductSearchRow(
         BazaarData data,
         IndexedProduct product,
         int width,
@@ -80,7 +78,8 @@ final class AlertProductRow extends FlowLayout {
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         if (this.select != null) {
-            boolean highlighted = this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this;
+            boolean highlighted = this.isInBoundingBox(mouseX, mouseY)
+                || (this.focusHandler() != null && this.focusHandler().focused() == this);
             WidgetSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
                 highlighted ? UiStyles.palette().rowHover() : 0x18000000, 3);
         }

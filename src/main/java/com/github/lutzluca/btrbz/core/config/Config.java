@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
+import com.github.lutzluca.btrbz.core.iteminfo.ItemInfoConfig;
 import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.BazaarChatManager.ChatConfig;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper.FlipHelperConfig;
@@ -28,6 +29,9 @@ public class Config {
 
     @SerialEntry
     public ProductInfoConfig productInfo = new ProductInfoConfig();
+
+    @SerialEntry
+    public ItemInfoConfig itemInfo = new ItemInfoConfig();
 
     @SerialEntry
     public OrderActionsConfig orderActions = new OrderActionsConfig();

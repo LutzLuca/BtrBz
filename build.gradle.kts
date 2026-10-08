@@ -57,6 +57,9 @@ fabricApi {
 }
 
 dependencies {
+    implementation(project(":coflnet-sdk"))
+    include(project(":coflnet-sdk"))
+
     minecraft("com.mojang:minecraft:${stonecutter.current.project}")
     implementation("net.fabricmc:fabric-loader:${getProp("loader_version")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${getProp("fabric_version")}")

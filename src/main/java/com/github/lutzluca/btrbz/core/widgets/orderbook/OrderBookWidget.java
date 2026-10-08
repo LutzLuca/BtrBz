@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.orderbook;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import java.util.ArrayList;
 
-/** Pure order-book presentation decisions shared by the retained full and embedded views. */
+/** Pure presentation decisions for the embedded sign-price order book. */
 public final class OrderBookWidget {
     private OrderBookWidget() {}
 
@@ -41,16 +41,6 @@ public final class OrderBookWidget {
         }
 
         return visibleSides;
-    }
-
-    public static int contentWidth(OrderBookWidgetConfig options) {
-        return options.contentWidth;
-    }
-
-    public static int sideWidth(OrderBookWidgetConfig options) {
-        return options.layout == OrderBookWidgetConfig.BookLayout.Split
-            ? Math.max(1, (contentWidth(options) - 2) / 2)
-            : contentWidth(options);
     }
 
     static String embeddedMetadata(

@@ -1,6 +1,10 @@
 package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.utils.Utils;
+import com.github.lutzluca.btrbz.core.iteminfo.ItemInfoController;
+import com.github.lutzluca.coflnet.CoflnetClient;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertScreen;
@@ -23,14 +27,11 @@ import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
-import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
-import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
@@ -125,6 +126,8 @@ public class BtrBz implements ClientModInitializer {
     private FlipSubmissionTracker flipSubmissionTracker;
     private BazaarProductContext bazaarProductContext;
     private ConfigScreen configScreen;
+    private CoflnetClient coflnetClient;
+    private ItemInfoController itemInfo;
     private boolean automaticConversionRefreshStarted;
     private boolean marketHibernationAnnounced;
 
@@ -154,6 +157,10 @@ public class BtrBz implements ClientModInitializer {
 
     public static ConfigScreen configScreen() {
         return instance.configScreen;
+    }
+
+    public static boolean handleItemInfoKey(AbstractContainerScreen<?> screen, KeyEvent event) {
+        return instance != null && instance.itemInfo != null && instance.itemInfo.handleKey(screen, event);
     }
 
     public static OrderProtectionManager orderProtectionManager() {
@@ -276,8 +283,6 @@ public class BtrBz implements ClientModInitializer {
             ordersWidgetData, this.orderManager, () -> configStore.config().widgets.trackedOrders);
         var orderValueWidgetDefinition = OrderValueWidgetDefinition.create(
             this.orderValue, () -> configStore.config().widgets.orderValue);
-        var orderBookWidgetDefinition = OrderBookWidgetDefinition.create(
-            orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookScreen);
         var orderBookPriceWidgetDefinition = OrderBookPriceWidgetDefinition.create(
             orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookPrice);
         var bookmarksWidgetDefinition = BookmarksWidgetDefinition.create(
@@ -293,7 +298,6 @@ public class BtrBz implements ClientModInitializer {
             bazaarOrdersWidgetDefinition,
             trackedOrdersWidgetDefinition,
             orderValueWidgetDefinition,
-            orderBookWidgetDefinition,
             orderBookPriceWidgetDefinition,
             bookmarksWidgetDefinition,
             orderPresetsWidgetDefinition,
@@ -302,17 +306,19 @@ public class BtrBz implements ClientModInitializer {
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime);
 
-        var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
+        this.coflnetClient = new CoflnetClient();
+        this.itemInfo = new ItemInfoController(this.bazaarData, this.coflnetClient, this.runtime,
+            () -> configStore.config().itemInfo, configStore::save);
         new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
             var screen = new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
-                orderBookController);
+                this.itemInfo);
             screen.preselectProduct(product);
             return screen;
         });
 
         this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
             parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
-                orderBookController));
+                this.itemInfo));
         var hudHint = new BazaarHudHintController(
             bazaarOrdersWidgetDefinition.getConfigHandle(),
             toggleHudKey::getTranslatedKeyMessage,
@@ -324,8 +330,8 @@ public class BtrBz implements ClientModInitializer {
         Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager, this.profileTracker,
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
                 new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
-                    orderBookController))),
-            this.configScreen::open, this::setEnabled);
+                    this.itemInfo))),
+            this.configScreen::open, this.itemInfo::openFromCommand, this::setEnabled);
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidgetDefinition, widgetStateStore, hudHint::dismiss);
 
@@ -368,6 +374,8 @@ public class BtrBz implements ClientModInitializer {
             this.flipSubmissionTracker.close();
             this.orderManager.close();
             this.bazaarPoller.close();
+            this.itemInfo.close();
+            this.coflnetClient.close();
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             this.toastNotifications.invalidate();
@@ -508,6 +516,7 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void resetSessionState() {
+        this.itemInfo.close();
         this.suspendMarketFeatures();
         this.purseTracker.close();
         this.orderActions.resetSession();
@@ -520,9 +529,6 @@ public class BtrBz implements ClientModInitializer {
         this.highlightManager.clear();
         this.orderValue.clear();
         ScreenTracker.get().discard();
-        if (GameUtils.screen() instanceof OrderBookScreen) {
-            GameUtils.setScreen(null);
-        }
         if (this.runtime.isRunning()) {
             this.purseTracker.start();
         }
