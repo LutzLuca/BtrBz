@@ -36,6 +36,60 @@ class ConfigStoreTest {
     class Persistence {
 
         @Test
+        void bookmarksPersistOnlyProductMetadataAndKeepManualOrder() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("bookmarks.json");
+            var store = new ConfigStore(path);
+            var products = List.of(
+                new IndexedProduct("ENCHANTMENT_ULTIMATE_WISE_5", "§9Ultimate Wise V"),
+                new IndexedProduct("BOOSTER_COOKIE", "§6Booster Cookie"),
+                new IndexedProduct("MISSING_PRODUCT", "§dSaved Product Name"));
+            store.config().widgets.bookmarks.products.addAll(products);
+
+            store.save();
+
+            var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject()
+                .getAsJsonObject("widgets").getAsJsonObject("bookmarks").getAsJsonArray("products");
+            Assertions.assertEquals(JsonParser.parseString("""
+                [
+                  {"productId": "ENCHANTMENT_ULTIMATE_WISE_5", "formattedName": "§9Ultimate Wise V"},
+                  {"productId": "BOOSTER_COOKIE", "formattedName": "§6Booster Cookie"},
+                  {"productId": "MISSING_PRODUCT", "formattedName": "§dSaved Product Name"}
+                ]
+                """), serialized);
+
+            var reloaded = new ConfigStore(path);
+            Assertions.assertTrue(reloaded.load());
+            Assertions.assertEquals(products, reloaded.config().widgets.bookmarks.products);
+        }
+
+        @Test
+        void retiredBookmarkStorageDoesNotPreventLoadingWidgetPreferences() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("retired-bookmarks.json");
+            Files.writeString(path, """
+                {
+                  "widgets": {
+                    "global_fine_tune_scale": 1.35,
+                    "bookmarks": {
+                      "content_width": 240,
+                      "items": [
+                        {
+                          "product": {"productId": "BOOSTER_COOKIE", "formattedName": "§6Booster Cookie"},
+                          "itemStack": {"id": "minecraft:cookie", "components": "obsolete stack data"}
+                        }
+                      ]
+                    }
+                  }
+                }
+                """);
+
+            var store = new ConfigStore(path);
+            Assertions.assertTrue(store.load());
+            Assertions.assertEquals(1.35, store.config().widgets.globalFineTuneScale);
+            Assertions.assertEquals(240, store.config().widgets.bookmarks.contentWidth);
+            Assertions.assertTrue(store.config().widgets.bookmarks.products.isEmpty());
+        }
+
+        @Test
         void alertEditsAndDeletionPersistThroughTheManager() {
             var path = ConfigStoreTest.this.tempDir.resolve("alert-editor.json");
             var store = new ConfigStore(path);

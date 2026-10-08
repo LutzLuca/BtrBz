@@ -3,8 +3,8 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
-import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedItem;
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
@@ -53,7 +53,7 @@ public final class BookmarkComponent {
         this.config = config;
         this.save = save;
 
-        if (this.items().removeIf(Objects::isNull)) {
+        if (this.products().removeIf(Objects::isNull)) {
             this.save.run();
         }
 
@@ -69,32 +69,32 @@ public final class BookmarkComponent {
     }
 
     public List<Snapshot> currentBookmarks() {
-        return this.items().stream().map(item -> new Snapshot(
-            item.product().productId(),
-            item.productName(),
-            item.product().formattedName(),
-            this.bazaarData.productStack(item.product()).orElseGet(item::itemStack),
-            this.buyProducts.contains(item.product().productId()),
-            this.sellProducts.contains(item.product().productId()))).toList();
+        return this.products().stream().map(product -> new Snapshot(
+            product.productId(),
+            product.strippedName(),
+            product.formattedName(),
+            this.bazaarData.productStack(product).orElse(ItemStack.EMPTY),
+            this.buyProducts.contains(product.productId()),
+            this.sellProducts.contains(product.productId()))).toList();
     }
 
     public boolean contains(String productId) {
-        return this.items().stream().anyMatch(item -> item.product().productId().equals(productId));
+        return this.products().stream().anyMatch(product -> product.productId().equals(productId));
     }
 
     public boolean open(String productId) {
-        return this.items().stream()
-            .filter(item -> item.product().productId().equals(productId))
+        return this.products().stream()
+            .filter(product -> product.productId().equals(productId))
             .findFirst()
-            .map(item -> {
-                GameUtils.runCommand("bz " + item.productName());
+            .map(product -> {
+                GameUtils.runCommand("bz " + product.strippedName());
                 return true;
             })
             .orElse(false);
     }
 
     public boolean remove(String productId) {
-        boolean changed = this.items().removeIf(item -> item.product().productId().equals(productId));
+        boolean changed = this.products().removeIf(product -> product.productId().equals(productId));
 
         if (changed) {
             this.dataChanges.invalidate("bookmark removed");
@@ -106,16 +106,16 @@ public final class BookmarkComponent {
 
     /** Uses a drop-boundary insertion index in {@code 0..size}. */
     public boolean reorder(String productId, int insertionIndex) {
-        var items = this.items();
+        var products = this.products();
 
-        if (insertionIndex < 0 || insertionIndex > items.size()) {
+        if (insertionIndex < 0 || insertionIndex > products.size()) {
             return false;
         }
 
         int source = -1;
 
-        for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).product().productId().equals(productId)) {
+        for (int i = 0; i < products.size(); i++) {
+            if (products.get(i).productId().equals(productId)) {
                 source = i;
                 break;
             }
@@ -125,10 +125,10 @@ public final class BookmarkComponent {
             return false;
         }
 
-        var item = items.remove(source);
+        var product = products.remove(source);
         int target = insertionIndex > source ? insertionIndex - 1 : insertionIndex;
 
-        items.add(Math.min(target, items.size()), item);
+        products.add(Math.min(target, products.size()), product);
 
         this.dataChanges.invalidate("bookmarks reordered");
         this.save.run();
@@ -136,7 +136,7 @@ public final class BookmarkComponent {
         return true;
     }
 
-    private boolean toggle(ItemStack stack) {
+    private boolean toggle() {
         var product = this.productContext.openedProduct();
 
         if (product == null) {
@@ -148,7 +148,7 @@ public final class BookmarkComponent {
             return false;
         }
 
-        this.items().add(new BookmarkedItem(product, stack.copy()));
+        this.products().add(product);
 
         this.dataChanges.invalidate("bookmark added");
         this.save.run();
@@ -158,14 +158,14 @@ public final class BookmarkComponent {
 
     private void refreshProducts() {
         boolean changed = false;
-        var iterator = this.items().listIterator();
+        var iterator = this.products().listIterator();
 
         while (iterator.hasNext()) {
-            var item = iterator.next();
-            var refreshed = this.bazaarData.refreshIndexedProduct(item.product());
+            var product = iterator.next();
+            var refreshed = this.bazaarData.refreshIndexedProduct(product);
 
-            if (!refreshed.equals(item.product())) {
-                iterator.set(new BookmarkedItem(refreshed, item.itemTemplate()));
+            if (!refreshed.equals(product)) {
+                iterator.set(refreshed);
                 changed = true;
             }
         }
@@ -190,8 +190,8 @@ public final class BookmarkComponent {
         this.dataChanges.invalidate("bookmark order indicators rebuilt");
     }
 
-    private List<BookmarkedItem> items() {
-        return this.config.get().items;
+    private List<IndexedProduct> products() {
+        return this.config.get().products;
     }
 
     public record Snapshot(
@@ -247,7 +247,7 @@ public final class BookmarkComponent {
                 return SlotClickResult.Pass;
             }
 
-            raw.set(BtrBz.BOOKMARKED, toggle(raw));
+            raw.set(BtrBz.BOOKMARKED, toggle());
 
             return SlotClickResult.Consume;
         }
