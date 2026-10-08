@@ -86,7 +86,7 @@ public class TrackedOrderCommand {
             .append(productNameComponent)
             .append(Component.literal(" at ").withStyle(UiStyles.label()))
             .append(Component
-                .literal(Utils.formatDecimal(order.pricePerUnit, 1, true) + "coins")
+                .literal(Utils.formatDecimal(order.pricePerUnit, 1, true) + " coins")
                 .withStyle(UiStyles.money()));
     }
 }
