@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
+
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
@@ -312,7 +314,7 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         try {
             graphics.translate(this.x, this.y);
             graphics.getMatrixStack().scale((float) this.scale, (float) this.scale);
-            WidgetSurfaces.drawRoundedPanel(
+            UiSurfaces.drawRoundedPanel(
                 graphics,
                 0,
                 0,

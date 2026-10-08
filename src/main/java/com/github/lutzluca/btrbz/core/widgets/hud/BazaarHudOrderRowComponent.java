@@ -1,12 +1,14 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.core.ui.UiText;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
-import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
-import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
+import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
 import io.wispforest.owo.ui.component.ItemComponent;
@@ -24,8 +26,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
-
 /** Two-line HUD row with categorical state above order identity and market position. */
 final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     static final int ICON_SIZE = 16;
@@ -36,7 +36,6 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     private final RetainedTextRow retainedText = new RetainedTextRow();
 
     private BazaarWidgetViewData.Order order;
-    private BazaarOrdersWidgetConfig options;
     private Component productName;
     private Component identity;
     private List<Component> marketCandidates;
@@ -67,7 +66,6 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         boolean layoutChanged = !layoutKey.equals(this.lastLayoutKey);
 
         this.order = order;
-        this.options = options;
         this.productName = productName;
         this.identity = identity;
         this.marketCandidates = marketCandidates;
@@ -159,19 +157,19 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         int statusX = sideX - WidgetLayoutTokens.ORDER_TEXT_GAP - font.width(status);
 
         Component identity = this.identity;
-        var marketText = BazaarUi.firstFittingText(
+        var marketText = UiText.firstFittingText(
             this.marketCandidates,
             Math.max(0, right - x - font.width(identity) - WidgetLayoutTokens.ORDER_TEXT_GAP));
         int marketX = marketText.getString().isBlank() ? right : right - font.width(marketText);
 
         return new DrawLayout(
-            ellipsize(this.productName, Math.max(
+            UiText.ellipsize(this.productName, Math.max(
                 0, statusX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
             x,
             status.getVisualOrderText(), statusX,
             side.getVisualOrderText(), sideX,
             identity.getString().isBlank()
-                ? null : ellipsize(identity, Math.max(
+                ? null : UiText.ellipsize(identity, Math.max(
                     0, marketX - WidgetLayoutTokens.ORDER_TEXT_GAP - x)),
             x,
             marketText.getString().isBlank() ? null : marketText.getVisualOrderText(), marketX);

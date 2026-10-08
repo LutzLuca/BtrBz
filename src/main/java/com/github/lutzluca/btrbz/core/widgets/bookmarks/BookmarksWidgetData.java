@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
-import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
 import java.util.Objects;
 import net.minecraft.ChatFormatting;

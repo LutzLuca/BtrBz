@@ -1,5 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.presets;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
+import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
@@ -17,15 +21,12 @@ import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
 
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.panel;
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.text;
-
 final class OrderPresetsWidgetView
     implements WidgetView<OrderPresetsWidgetData.Snapshot, OrderPresetsWidgetConfig, OrderPresetsAction> {
     private static final int ROW_HEIGHT = 15;
     private static final int HEADER_HEIGHT = 15;
 
-    private final FlowLayout root = panel(1);
+    private final FlowLayout root = BazaarUi.panel(1);
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(
         Sizing.fill(100), Sizing.fixed(HEADER_HEIGHT));
 
@@ -38,7 +39,7 @@ final class OrderPresetsWidgetView
         this.root.gap(WidgetLayoutTokens.SECTION_GAP);
 
         this.header.verticalAlignment(VerticalAlignment.CENTER);
-        this.header.child(text("Presets", UiStyles.palette().primary()));
+        this.header.child(UiComponents.label("Presets", UiStyles.palette().primary()));
 
         this.root.child(this.header);
         this.root.child(this.list);

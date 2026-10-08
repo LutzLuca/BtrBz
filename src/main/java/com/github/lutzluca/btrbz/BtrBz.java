@@ -48,7 +48,7 @@ import com.github.lutzluca.btrbz.core.widgets.cache.ClipboardTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
-import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;

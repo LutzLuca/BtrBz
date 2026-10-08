@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets.ui;
+package com.github.lutzluca.btrbz.core.ui;
 
 import org.junit.jupiter.api.Test;
 

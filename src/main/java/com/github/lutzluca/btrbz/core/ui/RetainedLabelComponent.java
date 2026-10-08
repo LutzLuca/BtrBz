@@ -1,20 +1,20 @@
-package com.github.lutzluca.btrbz.core.widgets.ui;
+package com.github.lutzluca.btrbz.core.ui;
 
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
-final class BazaarLabelComponent extends LabelComponent {
+final class RetainedLabelComponent extends LabelComponent {
     private final RetainedTextRow retainedText = new RetainedTextRow();
 
-    BazaarLabelComponent(Component text) {
+    RetainedLabelComponent(Component text) {
         super(text);
     }
 
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
-        // owo accounts for GUI scale, while widgets add another matrix scale.
+        // owo accounts for GUI scale, while retained components can add another matrix scale.
         // Derive the local offset which still maps to one framebuffer pixel.
         double verticalScale = Math.hypot(graphics.pose().m10(), graphics.pose().m11());
         double pixelOffset = 1.0 / (Minecraft.getInstance().getWindow().getGuiScale() * verticalScale);

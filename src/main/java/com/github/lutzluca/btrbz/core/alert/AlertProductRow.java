@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
-import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSurfaces;
+import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -42,17 +43,17 @@ final class AlertProductRow extends FlowLayout {
         this.tooltip(Component.literal(product.productId()));
 
         var stack = data.productStack(product);
-        stack.ifPresentOrElse(item -> this.child(BazaarUi.item(item, 18)),
-            () -> this.child(BazaarUi.text("?", UiStyles.palette().muted()).sizing(Sizing.fixed(18))));
+        stack.ifPresentOrElse(item -> this.child(UiComponents.item(item, 18)),
+            () -> this.child(UiComponents.label("?", UiStyles.palette().muted()).sizing(Sizing.fixed(18))));
         var text = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
         text.gap(3);
-        var label = BazaarUi.text("", UiStyles.palette().primary());
+        var label = UiComponents.label("", UiStyles.palette().primary());
         label.text(name);
         int nameWidth = Math.max(45, width - 23 - padding * 2);
         label.maxWidth(nameWidth);
         text.child(label);
         if (distinguishId) {
-            text.child(BazaarUi.text(product.productId(), UiStyles.palette().muted())
+            text.child(UiComponents.label(product.productId(), UiStyles.palette().muted())
                 .maxWidth(nameWidth));
         }
         this.child(text);
@@ -81,7 +82,7 @@ final class AlertProductRow extends FlowLayout {
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
         if (this.select != null) {
             boolean highlighted = this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this;
-            WidgetSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
+            UiSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
                 highlighted ? UiStyles.palette().rowHover() : 0x18000000, 3);
         }
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);

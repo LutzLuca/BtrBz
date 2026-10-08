@@ -1,5 +1,11 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
+
+import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
+
+import com.github.lutzluca.btrbz.core.ui.UiText;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.mojang.blaze3d.platform.InputConstants;
@@ -14,8 +20,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Consumer;
-
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
 public final class BazaarOrderRowComponent extends BaseUIComponent {
     private static final int MINIMUM_LEFT_WIDTH = 24;
@@ -170,8 +174,8 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
             return new DrawLayout(
                 prefix.getVisualOrderText(), prefixX,
-                ellipsize(Component.literal(this.row.text()), Math.max(0, textLimit - x)), x,
-                rightWidth > 0 ? ellipsize(rightText, rightWidth) : null,
+                UiText.ellipsize(Component.literal(this.row.text()), Math.max(0, textLimit - x)), x,
+                rightWidth > 0 ? UiText.ellipsize(rightText, rightWidth) : null,
                 rowEnd - rightWidth,
                 dotX);
         }
@@ -183,7 +187,7 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         int leftLimit = blankRight ? rowEnd : rightX - 3;
         int prefixWidth = Math.max(0, leftLimit - x);
         int prefixX = x;
-        var prefixSequence = ellipsize(prefix, prefixWidth);
+        var prefixSequence = UiText.ellipsize(prefix, prefixWidth);
 
         x += Math.min(font.width(prefix), prefixWidth);
 
@@ -191,8 +195,8 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
 
         return new DrawLayout(
             prefixSequence, prefixX,
-            ellipsize(Component.literal(this.row.text()), textWidth), x,
-            blankRight ? null : ellipsize(rightText, rightWidth), rightX,
+            UiText.ellipsize(Component.literal(this.row.text()), textWidth), x,
+            blankRight ? null : UiText.ellipsize(rightText, rightWidth), rightX,
             dotX);
     }
 

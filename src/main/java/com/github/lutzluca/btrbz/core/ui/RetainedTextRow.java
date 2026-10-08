@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets.ui;
+package com.github.lutzluca.btrbz.core.ui;
 
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import net.minecraft.client.gui.Font;

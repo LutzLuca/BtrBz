@@ -1,10 +1,13 @@
 package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+
+import com.github.lutzluca.btrbz.core.ui.UiText;
+
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
-import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
-import com.github.lutzluca.btrbz.core.widgets.ui.RetainedTextRow;
-import com.github.lutzluca.btrbz.core.widgets.ui.TextRenderRevision;
+import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseParentUIComponent;
@@ -21,8 +24,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
-
-import static com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi.ellipsize;
 
 final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     static final int HEIGHT = 20;
@@ -57,7 +58,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
     ) {
         super(Sizing.fill(100), Sizing.fixed(HEIGHT));
         this.list = list;
-        this.item = BazaarUi.item(bookmark.itemStack(), ICON_SIZE);
+        this.item = UiComponents.item(bookmark.itemStack(), ICON_SIZE);
 
         this.allowOverflow(true);
 
@@ -191,7 +192,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         long revision = TextRenderRevision.current();
 
         if (this.drawName == null || this.drawNameWidth != this.width || this.drawNameRevision != revision) {
-            this.drawName = ellipsize(this.productName, available);
+            this.drawName = UiText.ellipsize(this.productName, available);
             this.drawNameWidth = this.width;
             this.drawNameRevision = revision;
         }
