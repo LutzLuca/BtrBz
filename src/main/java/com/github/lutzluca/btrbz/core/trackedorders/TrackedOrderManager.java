@@ -41,7 +41,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
-public class TrackedOrderManager implements AutoCloseable {
+public class TrackedOrderManager {
 
     private final BazaarData bazaarData;
     private final Supplier<OrderManagerConfig> config;
@@ -330,11 +330,6 @@ public class TrackedOrderManager implements AutoCloseable {
 
     public void cancelOutstandingOrders() {
         this.outstandingOrderStore.clear();
-    }
-
-    @Override
-    public void close() {
-        this.outstandingOrderStore.close();
     }
 
     public void resetTrackedOrders() {

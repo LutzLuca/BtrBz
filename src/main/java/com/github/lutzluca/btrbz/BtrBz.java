@@ -364,8 +364,6 @@ public class BtrBz implements ClientModInitializer {
             this.profileTracker.onLocation(Optional.empty());
             this.runtime.deactivate();
             configStore.save();
-            this.flipSubmissionTracker.close();
-            this.orderManager.close();
             this.bazaarPoller.close();
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {

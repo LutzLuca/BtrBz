@@ -14,18 +14,18 @@ class FlipHelperTest {
         var data = new BazaarData();
         var context = new FlipProductContext();
         var selected = ProductIdentity.fromRuntime("Test Product", "TEST", null);
-        try (var submissions = new FlipSubmissionTracker(); var orders = new TrackedOrderManager(data)) {
-            var helper = new FlipHelper(data, context, submissions, orders);
-            helper.onOrderClick(new OrderInfo.FilledOrderInfo(selected, "Test Product", OrderType.Buy,
-                10, 100, 10, 10, 0));
+        var submissions = new FlipSubmissionTracker();
+        var orders = new TrackedOrderManager(data);
+        var helper = new FlipHelper(data, context, submissions, orders);
+        helper.onOrderClick(new OrderInfo.FilledOrderInfo(selected, "Test Product", OrderType.Buy,
+            10, 100, 10, 10, 0));
 
-            helper.cancelPendingFlip();
+        helper.cancelPendingFlip();
 
-            Assertions.assertEquals(selected, context.getSelectedProduct().orElseThrow());
+        Assertions.assertEquals(selected, context.getSelectedProduct().orElseThrow());
 
-            helper.resetWorkflow();
+        helper.resetWorkflow();
 
-            Assertions.assertTrue(context.getSelectedProduct().isEmpty());
-        }
+        Assertions.assertTrue(context.getSelectedProduct().isEmpty());
     }
 }
