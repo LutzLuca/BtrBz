@@ -3,8 +3,8 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
+import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig.BookmarkedProduct;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.screen.slot.SlotClickContext;
@@ -53,7 +53,7 @@ public final class BookmarkComponent {
         this.config = config;
         this.save = save;
 
-        if (this.products().removeIf(Objects::isNull)) {
+        if (this.bookmarks().removeIf(Objects::isNull)) {
             this.save.run();
         }
 
@@ -69,7 +69,7 @@ public final class BookmarkComponent {
     }
 
     public List<Snapshot> currentBookmarks() {
-        return this.products().stream().map(product -> new Snapshot(
+        return this.bookmarks().stream().map(BookmarkedProduct::product).map(product -> new Snapshot(
             product.productId(),
             product.strippedName(),
             product.formattedName(),
@@ -79,11 +79,12 @@ public final class BookmarkComponent {
     }
 
     public boolean contains(String productId) {
-        return this.products().stream().anyMatch(product -> product.productId().equals(productId));
+        return this.bookmarks().stream().anyMatch(bookmark -> bookmark.product().productId().equals(productId));
     }
 
     public boolean open(String productId) {
-        return this.products().stream()
+        return this.bookmarks().stream()
+            .map(BookmarkedProduct::product)
             .filter(product -> product.productId().equals(productId))
             .findFirst()
             .map(product -> {
@@ -94,7 +95,7 @@ public final class BookmarkComponent {
     }
 
     public boolean remove(String productId) {
-        boolean changed = this.products().removeIf(product -> product.productId().equals(productId));
+        boolean changed = this.bookmarks().removeIf(bookmark -> bookmark.product().productId().equals(productId));
 
         if (changed) {
             this.dataChanges.invalidate("bookmark removed");
@@ -106,16 +107,16 @@ public final class BookmarkComponent {
 
     /** Uses a drop-boundary insertion index in {@code 0..size}. */
     public boolean reorder(String productId, int insertionIndex) {
-        var products = this.products();
+        var bookmarks = this.bookmarks();
 
-        if (insertionIndex < 0 || insertionIndex > products.size()) {
+        if (insertionIndex < 0 || insertionIndex > bookmarks.size()) {
             return false;
         }
 
         int source = -1;
 
-        for (int i = 0; i < products.size(); i++) {
-            if (products.get(i).productId().equals(productId)) {
+        for (int i = 0; i < bookmarks.size(); i++) {
+            if (bookmarks.get(i).product().productId().equals(productId)) {
                 source = i;
                 break;
             }
@@ -125,10 +126,10 @@ public final class BookmarkComponent {
             return false;
         }
 
-        var product = products.remove(source);
+        var bookmark = bookmarks.remove(source);
         int target = insertionIndex > source ? insertionIndex - 1 : insertionIndex;
 
-        products.add(Math.min(target, products.size()), product);
+        bookmarks.add(Math.min(target, bookmarks.size()), bookmark);
 
         this.dataChanges.invalidate("bookmarks reordered");
         this.save.run();
@@ -148,7 +149,7 @@ public final class BookmarkComponent {
             return false;
         }
 
-        this.products().add(product);
+        this.bookmarks().add(new BookmarkedProduct(product));
 
         this.dataChanges.invalidate("bookmark added");
         this.save.run();
@@ -158,14 +159,14 @@ public final class BookmarkComponent {
 
     private void refreshProducts() {
         boolean changed = false;
-        var iterator = this.products().listIterator();
+        var iterator = this.bookmarks().listIterator();
 
         while (iterator.hasNext()) {
-            var product = iterator.next();
+            var product = iterator.next().product();
             var refreshed = this.bazaarData.refreshIndexedProduct(product);
 
             if (!refreshed.equals(product)) {
-                iterator.set(refreshed);
+                iterator.set(new BookmarkedProduct(refreshed));
                 changed = true;
             }
         }
@@ -190,7 +191,7 @@ public final class BookmarkComponent {
         this.dataChanges.invalidate("bookmark order indicators rebuilt");
     }
 
-    private List<IndexedProduct> products() {
+    private List<BookmarkedProduct> bookmarks() {
         return this.config.get().products;
     }
 
