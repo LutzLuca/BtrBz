@@ -256,7 +256,6 @@ public class BtrBz implements ClientModInitializer {
             this.bazaarData, this.bazaarProductContext, this.clipboardTracker, this.purseTracker,
             () -> configStore.config().widgets.orderPresets, configStore::save);
         var orderBookPrice = new OrderBookPriceComponent(
-            this.bazaarData,
             this.bazaarProductContext,
             flipProductContext,
             this.flipSubmissionTracker);
@@ -365,8 +364,6 @@ public class BtrBz implements ClientModInitializer {
             this.profileTracker.onLocation(Optional.empty());
             this.runtime.deactivate();
             configStore.save();
-            this.flipSubmissionTracker.close();
-            this.orderManager.close();
             this.bazaarPoller.close();
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {

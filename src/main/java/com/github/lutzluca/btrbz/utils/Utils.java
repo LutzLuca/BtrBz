@@ -72,7 +72,7 @@ public final class Utils {
     }
 
     public static <T> Optional<T> getFirst(List<T> list) {
-        return Try.of(list::getFirst).toJavaOptional();
+        return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.getFirst());
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

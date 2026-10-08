@@ -485,7 +485,7 @@ public final class WidgetHost {
 
         try {
             ((WidgetActionHandler) mountedWidget.definition.getActionHandler())
-                .handle(action, current, current);
+                .handle(action, current);
         } catch (Exception exception) {
             log.warn("Widget action failed for {}", mountedWidget.definition.getId(), exception);
         }

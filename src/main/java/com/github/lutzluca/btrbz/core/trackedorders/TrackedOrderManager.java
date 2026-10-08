@@ -41,7 +41,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 @Slf4j
-public class TrackedOrderManager implements AutoCloseable {
+public class TrackedOrderManager {
 
     private final BazaarData bazaarData;
     private final Supplier<OrderManagerConfig> config;
@@ -261,7 +261,7 @@ public class TrackedOrderManager implements AutoCloseable {
             if (orders.size() == 1) {
                 var statusUpdate = updates.getFirst();
                 if (this.shouldNotify(statusUpdate)) {
-                    Notifier.notifyOrderStatus(statusUpdate, bazaarData);
+                    TrackedOrderNotifications.notifyOrderStatus(statusUpdate, this.bazaarData, cfg);
                 }
                 continue;
             }
@@ -282,7 +282,7 @@ public class TrackedOrderManager implements AutoCloseable {
         if (!cfg.groupOrders) {
             updates.stream()
                 .filter(this::shouldNotify)
-                .forEach(update -> Notifier.notifyOrderStatus(update, bazaarData));
+                .forEach(update -> TrackedOrderNotifications.notifyOrderStatus(update, this.bazaarData, cfg));
             return;
         }
 
@@ -304,7 +304,7 @@ public class TrackedOrderManager implements AutoCloseable {
         }
 
         GroupStatus prev = this.statusEvaluator.getPreviousGroupStatus(key, orders, updates);
-        Notifier.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData);
+        TrackedOrderNotifications.notifyGroupOrderStatus(key, orders, curr, prev, this.bazaarData, cfg);
     }
 
     private boolean shouldNotify(StatusUpdate update) {
@@ -330,11 +330,6 @@ public class TrackedOrderManager implements AutoCloseable {
 
     public void cancelOutstandingOrders() {
         this.outstandingOrderStore.clear();
-    }
-
-    @Override
-    public void close() {
-        this.outstandingOrderStore.close();
     }
 
     public void resetTrackedOrders() {
@@ -474,7 +469,7 @@ public class TrackedOrderManager implements AutoCloseable {
         }
 
         for (var event : events) {
-            Notifier.notifySelfUndercut(
+            TrackedOrderNotifications.notifySelfUndercut(
                 event.key(),
                 event.bestPrice(),
                 event.secondBestPrice(),

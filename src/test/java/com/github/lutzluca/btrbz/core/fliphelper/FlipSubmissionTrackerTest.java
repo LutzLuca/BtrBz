@@ -8,27 +8,25 @@ class FlipSubmissionTrackerTest {
     @Test
     void nameOnlyChatMatchesTheSubmittedRuntimeIdentity() {
         var product = ProductIdentity.fromRuntime("Test Product", "TEST", null);
-        try (var tracker = new FlipSubmissionTracker()) {
-            tracker.recordSubmittedFlip(product, 109.9);
+        var tracker = new FlipSubmissionTracker();
+        tracker.recordSubmittedFlip(product, 109.9);
 
-            var submitted = tracker.consume(ProductIdentity.fromName("Test Product")).orElseThrow();
-            Assertions.assertEquals(product, submitted.product());
-            Assertions.assertEquals(109.9, submitted.pricePerUnit());
-            Assertions.assertTrue(tracker.consume(ProductIdentity.fromName("Test Product")).isEmpty());
-        }
+        var submitted = tracker.consume(ProductIdentity.fromName("Test Product")).orElseThrow();
+        Assertions.assertEquals(product, submitted.product());
+        Assertions.assertEquals(109.9, submitted.pricePerUnit());
+        Assertions.assertTrue(tracker.consume(ProductIdentity.fromName("Test Product")).isEmpty());
     }
 
     @Test
     void cancelledSubmissionsCannotSupplyAPriceToALaterFlip() {
         var product = ProductIdentity.fromName("Enchanted Carrot");
-        try (var tracker = new FlipSubmissionTracker()) {
-            tracker.recordSubmittedFlip(product, 100);
-            tracker.clear();
-            Assertions.assertTrue(tracker.consume(product).isEmpty());
+        var tracker = new FlipSubmissionTracker();
+        tracker.recordSubmittedFlip(product, 100);
+        tracker.clear();
+        Assertions.assertTrue(tracker.consume(product).isEmpty());
 
-            tracker.recordSubmittedFlip(product, 200);
-            Assertions.assertEquals(200, tracker.consume(product).orElseThrow().pricePerUnit());
-            Assertions.assertTrue(tracker.consume(product).isEmpty());
-        }
+        tracker.recordSubmittedFlip(product, 200);
+        Assertions.assertEquals(200, tracker.consume(product).orElseThrow().pricePerUnit());
+        Assertions.assertTrue(tracker.consume(product).isEmpty());
     }
 }

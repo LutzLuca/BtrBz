@@ -230,22 +230,28 @@ public final class ScreenTracker {
             err)));
     }
 
+    /** Category labels used in titles of the main Bazaar menu. */
     private enum BazaarCategory {
-        Farming,
-        Mining,
-        Combat,
-        WoodsAndFishes,
-        Oddities;
+        Farming("Farming"),
+        Mining("Mining"),
+        Combat("Combat"),
+        WoodsAndFishes("Woods & Fishes"),
+        Oddities("Oddities");
 
-        private static Try<BazaarCategory> tryFrom(String value) {
-            return switch (value) {
-                case "Farming" -> Try.success(BazaarCategory.Farming);
-                case "Mining" -> Try.success(BazaarCategory.Mining);
-                case "Combat" -> Try.success(BazaarCategory.Combat);
-                case "Woods & Fishes" -> Try.success(BazaarCategory.WoodsAndFishes);
-                case "Oddities" -> Try.success(BazaarCategory.Oddities);
-                default -> Try.failure(new IllegalArgumentException("Unknown category: " + value));
-            };
+        private static final BazaarCategory[] VALUES = BazaarCategory.values();
+        private final String title;
+
+        BazaarCategory(String title) {
+            this.title = title;
+        }
+
+        private static boolean matches(String title) {
+            for (var category : VALUES) {
+                if (category.title.equals(title)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -290,7 +296,7 @@ public final class ScreenTracker {
                         yield false;
                     }
                     var str = title.substring("Bazaar ➜ ".length()).trim();
-                    yield BazaarCategory.tryFrom(str.trim()).isSuccess() || str.startsWith("\"");
+                    yield BazaarCategory.matches(str) || str.startsWith("\"");
                 }
                 case Orders -> (title.equals("Your Bazaar Orders") || title.equals("Co-op Bazaar Orders"));
                 // Some item names are too long for the title to include the "Buy" suffix.
@@ -313,7 +319,7 @@ public final class ScreenTracker {
                         var handler = gcs.getMenu();
                         var inventory = handler.getContainer();
 
-                        if (inventory.getContainerSize() < GRAPH_PAPER_IDX) {
+                        if (!ScreenTracker.isValidContainerIndex(GRAPH_PAPER_IDX, inventory.getContainerSize())) {
                             return false;
                         }
 
@@ -335,12 +341,13 @@ public final class ScreenTracker {
                         var handler = gcs.getMenu();
                         var inventory = handler.getContainer();
                         var slot = inventory.getContainerSize() - 4;
+                        if (!ScreenTracker.isValidContainerIndex(slot, inventory.getContainerSize())) {
+                            return false;
+                        }
 
-                        return Try
-                            .of(() -> inventory.getItem(slot))
-                            .map(itemStack -> itemStack.getItem().equals(Items.BOOK)
-                                && itemStack.getHoverName().getString().equals("Manage Orders"))
-                            .getOrElse(false);
+                        var itemStack = inventory.getItem(slot);
+                        return itemStack.getItem().equals(Items.BOOK)
+                            && itemStack.getHoverName().getString().equals("Manage Orders");
                     }).orElse(false);
                 }
                 case InstaSellIgnoreList -> title.equals("Instasell Ignore List");

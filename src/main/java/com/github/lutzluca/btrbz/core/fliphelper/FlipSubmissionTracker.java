@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.data.TimedStore;
 import java.util.Optional;
 
-public final class FlipSubmissionTracker implements AutoCloseable {
+public final class FlipSubmissionTracker {
 
     private static final long PENDING_FLIP_TTL_MS = 15_000L;
 
@@ -31,11 +31,6 @@ public final class FlipSubmissionTracker implements AutoCloseable {
             return first.bazaarProductId().get().equals(second.bazaarProductId().get());
         }
         return first.strippedName().equalsIgnoreCase(second.strippedName());
-    }
-
-    @Override
-    public void close() {
-        this.pendingFlips.close();
     }
 
     public record SubmittedFlip(ProductIdentity product, double pricePerUnit) {}

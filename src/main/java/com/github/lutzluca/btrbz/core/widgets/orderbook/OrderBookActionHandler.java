@@ -14,8 +14,8 @@ public final class OrderBookActionHandler implements WidgetActionHandler<OrderBo
     }
 
     @Override
-    public void handle(OrderBookAction action, WidgetSession source, WidgetSession current) {
-        if (!source.sameWorkflow(current) || !(current.inSign() || current.inOrderBook())) {
+    public void handle(OrderBookAction action, WidgetSession current) {
+        if (!(current.inSign() || current.inOrderBook())) {
             return;
         }
 

@@ -12,8 +12,8 @@ public final class OrderPresetsActionHandler implements WidgetActionHandler<Orde
     }
 
     @Override
-    public void handle(OrderPresetsAction action, WidgetSession source, WidgetSession current) {
-        if (!canApply(source, current, this.presets.inTransaction())) {
+    public void handle(OrderPresetsAction action, WidgetSession current) {
+        if (!canApply(current, this.presets.inTransaction())) {
             return;
         }
 
@@ -22,11 +22,10 @@ public final class OrderPresetsActionHandler implements WidgetActionHandler<Orde
         }
     }
 
-    static boolean canApply(WidgetSession source, WidgetSession current, boolean inTransaction) {
-        boolean eligible = current.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
+    static boolean canApply(WidgetSession current, boolean inTransaction) {
+        return current.inBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
             || current.inSign()
                 && current.previousBazaarMenu(BazaarMenuType.BuyOrderSetupVolume)
                 && inTransaction;
-        return eligible && source.sameWorkflow(current);
     }
 }

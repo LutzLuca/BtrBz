@@ -109,12 +109,6 @@ public final class WidgetSession {
         return this.previousMenu.orElse(null) == menu;
     }
 
-    public boolean sameWorkflow(WidgetSession other) {
-        return other != null
-            && this.id == other.id
-            && this.sameSemanticContext(other);
-    }
-
     public boolean sameSemanticContext(WidgetSession other) {
         return other != null
             && this.hud == other.hud
