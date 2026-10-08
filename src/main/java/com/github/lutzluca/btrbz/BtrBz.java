@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz;
 
 import com.github.lutzluca.btrbz.utils.Utils;
-
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertScreen;
 import com.github.lutzluca.btrbz.core.alert.AlertNotifications;
@@ -10,11 +9,11 @@ import com.github.lutzluca.btrbz.core.runtime.Activation;
 import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.runtime.SkyBlockDetector;
 import com.github.lutzluca.btrbz.core.runtime.ProfileTracker;
-import com.github.lutzluca.btrbz.core.BazaarOrderActions;
-import com.github.lutzluca.btrbz.core.BazaarChatManager;
-import com.github.lutzluca.btrbz.core.OrderHighlightManager;
-import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager;
+import com.github.lutzluca.btrbz.core.orderactions.BazaarOrderActions;
+import com.github.lutzluca.btrbz.core.chat.BazaarChatManager;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderHighlightManager;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInformation;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.core.commands.Commands;

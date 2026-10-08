@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.orderprotection;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
@@ -60,7 +60,7 @@ class MarketAvailabilityTest {
 
     @Test
     void protectionBlocksWhileWaitingAndUsesTheNewSessionsPrices() {
-        var config = new OrderProtectionManager.OrderProtectionConfig();
+        var config = new OrderProtectionConfig();
         var order = new OutstandingOrderInfo(this.identity, "Test Product", OrderType.Buy, 1, 105, 105);
         this.publish(100);
         Assertions.assertFalse(OrderProtectionManager.OrderValidator.validate(order, this.market, config)

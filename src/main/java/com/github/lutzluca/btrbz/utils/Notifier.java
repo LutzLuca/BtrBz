@@ -1,19 +1,15 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-
 import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
-
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.network.chat.MutableComponent;
-
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.ValidationResult;
 
 @Slf4j
 public class Notifier {

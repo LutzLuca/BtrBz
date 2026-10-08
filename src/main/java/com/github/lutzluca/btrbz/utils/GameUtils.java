@@ -1,13 +1,11 @@
 package com.github.lutzluca.btrbz.utils;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -29,7 +27,7 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
 import org.jetbrains.annotations.Nullable;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.QueueDisplayMode;
+import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig.QueueDisplayMode;
 import com.github.lutzluca.btrbz.mixin.AbstractSignEditScreenAccessor;
 
 @Slf4j

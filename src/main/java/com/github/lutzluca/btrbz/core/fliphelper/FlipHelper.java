@@ -1,12 +1,10 @@
 package com.github.lutzluca.btrbz.core.fliphelper;
 
+import com.github.lutzluca.btrbz.core.config.ConfigUi;
 import com.github.lutzluca.btrbz.BtrBz;
-
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -290,10 +288,10 @@ public class FlipHelper {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Flip Helper"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(ConfigScreen.createDescription(
+                .description(ConfigUi.createDescription(
                     "Add a quick-flip action to filled buy orders and suggest a sell-offer price 0.1 coins below "
                         + "the current lowest offer."))
-                .controller(ConfigScreen::createBooleanController);
+                .controller(ConfigUi::createBooleanController);
         }
 
         public OptionGroup createGroup() {
@@ -302,9 +300,9 @@ public class FlipHelper {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Flip Helper"))
-                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                    ConfigScreen.text("Turn a filled buy order into a sell offer with fewer clicks."),
-                    ConfigScreen.example(
+                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                    ConfigUi.text("Turn a filled buy order into a sell offer with fewer clicks."),
+                    ConfigUi.example(
                         "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")),
                     ConfigImages.FlipHelper))
                 .options(rootGroup.build())

@@ -1,8 +1,8 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.orderdisplay;
 
+import com.github.lutzluca.btrbz.core.config.ConfigUi;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
@@ -85,9 +85,9 @@ public class OrderHighlightManager {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Enable Order Highlighting"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
-                .description(ConfigScreen.createDescription(
+                .description(ConfigUi.createDescription(
                     "Draw status-colored backgrounds behind your orders on the Bazaar Orders page."))
-                .controller(ConfigScreen::createBooleanController);
+                .controller(ConfigUi::createBooleanController);
         }
 
         public OptionGroup createGroup() {
@@ -96,8 +96,8 @@ public class OrderHighlightManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Order Highlighting"))
-                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                    ConfigScreen.text(
+                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                    ConfigUi.text(
                         "Color-code your orders on the Bazaar Orders page so their current status is easy to scan."),
                     highlightLegend()),
                     ConfigImages.OrderStatus))

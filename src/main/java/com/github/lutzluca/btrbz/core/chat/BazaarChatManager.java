@@ -1,13 +1,10 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.chat;
 
+import com.github.lutzluca.btrbz.core.config.ConfigUi;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-
 import com.github.lutzluca.btrbz.utils.Utils;
-
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
-import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
@@ -66,8 +63,8 @@ public class BazaarChatManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Bazaar Chat"))
-                .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                    ConfigScreen.text(
+                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                    ConfigUi.text(
                         "Hide temporary Bazaar progress messages while keeping confirmations, warnings, "
                             + "and errors visible."),
                     Component
@@ -77,28 +74,28 @@ public class BazaarChatManager {
                             .literal("• [Bazaar] Submitting buy order...\n"
                                 + "• [Bazaar] Claiming orders...")
                             .withStyle(UiStyles.label())),
-                    ConfigScreen.text(
+                    ConfigUi.text(
                         "Add a clickable shortcut to filled-order messages. "
                             + "The filter and shortcut settings work independently."))))
                 .options(List.of(
                     Option.<Boolean>createBuilder()
                         .name(Component.literal("Filter Transient Messages"))
-                        .description(ConfigScreen.createDescription(
+                        .description(ConfigUi.createDescription(
                             "Hide short-lived progress messages that do not report a result. "
                                 + "Completed-order messages, warnings, and errors remain visible."))
                         .binding(
                             true,
                             () -> this.enabled,
                             val -> this.enabled = val)
-                        .controller(ConfigScreen::createBooleanController)
+                        .controller(ConfigUi::createBooleanController)
                         .build(),
                     Option.<Boolean>createBuilder()
                         .name(Component.literal("Filled Order Chat Shortcut"))
-                        .description(ConfigScreen.createDescription(
+                        .description(ConfigUi.createDescription(
                             "Make filled Bazaar messages clickable and append [Go To Orders]. "
                                 + "Order tracking continues when this is off."))
                         .binding(true, () -> this.filledOrderShortcut, val -> this.filledOrderShortcut = val)
-                        .controller(ConfigScreen::createBooleanController)
+                        .controller(ConfigUi::createBooleanController)
                         .build()))
                 .collapsed(true)
                 .build();
