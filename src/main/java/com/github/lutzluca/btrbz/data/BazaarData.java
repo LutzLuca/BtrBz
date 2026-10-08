@@ -47,7 +47,7 @@ public class BazaarData {
             return Optional.empty();
         }
 
-        return Try.of(summaries::getFirst).map(Summary::getPricePerUnit).toJavaOptional();
+        return Optional.ofNullable(summaries.getFirst()).map(Summary::getPricePerUnit);
     }
 
     public void loadConversions() {
