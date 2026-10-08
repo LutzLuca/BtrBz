@@ -146,7 +146,7 @@ public final class WidgetDefinition<D, C, A> {
         private Supplier<WidgetPreview<D>> preview;
         private Supplier<WidgetView<D, C, A>> viewFactory;
         private Function<WidgetConfigBinding<C>, UIComponent> settingsPanel = _ -> null;
-        private WidgetActionHandler<A> actionHandler = (action, source, current) -> {};
+        private WidgetActionHandler<A> actionHandler = (action, current) -> {};
 
         private final Map<String, String> placementProfiles = new LinkedHashMap<>();
         private Function<WidgetSession, String> placementProfileResolver = WidgetSession::placementProfile;

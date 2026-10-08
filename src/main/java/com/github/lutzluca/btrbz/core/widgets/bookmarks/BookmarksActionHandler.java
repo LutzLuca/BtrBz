@@ -12,8 +12,8 @@ public final class BookmarksActionHandler implements WidgetActionHandler<Bookmar
     }
 
     @Override
-    public void handle(BookmarksAction action, WidgetSession source, WidgetSession current) {
-        if (!source.sameWorkflow(current) || !current.inBazaarContainer()) {
+    public void handle(BookmarksAction action, WidgetSession current) {
+        if (!current.inBazaarContainer()) {
             return;
         }
 
