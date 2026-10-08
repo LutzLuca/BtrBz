@@ -230,6 +230,31 @@ public final class ScreenTracker {
             err)));
     }
 
+    /** Category labels used in titles of the main Bazaar menu. */
+    private enum BazaarCategory {
+        Farming("Farming"),
+        Mining("Mining"),
+        Combat("Combat"),
+        WoodsAndFishes("Woods & Fishes"),
+        Oddities("Oddities");
+
+        private static final BazaarCategory[] VALUES = BazaarCategory.values();
+        private final String title;
+
+        BazaarCategory(String title) {
+            this.title = title;
+        }
+
+        private static boolean matches(String title) {
+            for (var category : VALUES) {
+                if (category.title.equals(title)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     public enum BazaarMenuType {
         Main, // Bazaar ➜ <category> / "<search>"
         Orders, // Your Bazaar Orders or Co-op Bazaar Orders
@@ -271,10 +296,7 @@ public final class ScreenTracker {
                         yield false;
                     }
                     var str = title.substring("Bazaar ➜ ".length()).trim();
-                    yield switch (str) {
-                        case "Farming", "Mining", "Combat", "Woods & Fishes", "Oddities" -> true;
-                        default -> str.startsWith("\"");
-                    };
+                    yield BazaarCategory.matches(str) || str.startsWith("\"");
                 }
                 case Orders -> (title.equals("Your Bazaar Orders") || title.equals("Co-op Bazaar Orders"));
                 // Some item names are too long for the title to include the "Buy" suffix.
