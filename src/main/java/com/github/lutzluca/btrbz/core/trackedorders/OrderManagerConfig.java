@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
 import com.github.lutzluca.btrbz.core.config.ConfigUi;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
@@ -138,54 +139,27 @@ public class OrderManagerConfig {
     }
 
     private static Component matchedNotificationExample() {
-        return Component
-            .literal("[BtrBz] ")
-            .withStyle(UiStyles.modLabel())
-            .append(Component.literal("Your ").withStyle(UiStyles.label()))
-            .append(Component.literal("Buy Order").withStyle(UiStyles.color(UiStyles.palette().buy())))
-            .append(Component.literal(" for ").withStyle(UiStyles.label()))
-            .append(Component.literal("4").withStyle(UiStyles.quantity()))
-            .append(Component.literal("x").withStyle(UiStyles.muted()))
-            .append(Component.literal(" ").withStyle(UiStyles.label()))
-            .append(Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE))
-            .append(Component.literal(" was ").withStyle(UiStyles.label()))
-            .append(Component.literal("MATCHED!").withStyle(UiStyles.color(UiStyles.palette().matched())))
-            .append(Component.literal(" • queue: ").withStyle(UiStyles.label()))
-            .append(Component.literal("1").withStyle(UiStyles.quantity()))
-            .append(Component.literal(" order / ").withStyle(UiStyles.label()))
-            .append(Component.literal("29").withStyle(UiStyles.quantity()))
-            .append(Component.literal(" items").withStyle(UiStyles.label()))
-            .append(Component.literal(" [Go To Orders]").withStyle(UiStyles.action()));
+        return notificationExample(TrackedOrderMessages.matchedStatus(false));
     }
 
     private static Component undercutNotificationExample() {
-        return Component
-            .literal("[BtrBz] ")
-            .withStyle(UiStyles.modLabel())
-            .append(Component.literal("Your ").withStyle(UiStyles.label()))
-            .append(Component.literal("Buy Order").withStyle(UiStyles.color(UiStyles.palette().buy())))
-            .append(Component.literal(" for ").withStyle(UiStyles.label()))
-            .append(Component.literal("4").withStyle(UiStyles.quantity()))
-            .append(Component.literal("x").withStyle(UiStyles.muted()))
-            .append(Component.literal(" ").withStyle(UiStyles.label()))
-            .append(Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE))
-            .append(Component.literal(" was ").withStyle(UiStyles.label()))
-            .append(Component.literal("UNDERCUT!").withStyle(UiStyles.color(UiStyles.palette().error())))
-            .append(Component.literal(" • queue: ").withStyle(UiStyles.label()))
-            .append(Component.literal("1").withStyle(UiStyles.quantity()))
-            .append(Component.literal(" order / ").withStyle(UiStyles.label()))
-            .append(Component.literal("29").withStyle(UiStyles.quantity()))
-            .append(Component.literal(" items").withStyle(UiStyles.label()))
-            .append(Component.literal(" [Go To Orders]").withStyle(UiStyles.action()));
+        return notificationExample(TrackedOrderMessages.undercutStatus(0.1, false));
+    }
+
+    private static Component notificationExample(Component statusPart) {
+        var msg = TrackedOrderMessages.single(OrderType.Buy, 4,
+            Component.literal("Quick Bite I").withStyle(ChatFormatting.WHITE), null, statusPart);
+        TrackedOrderMessages.appendQueueInfo(msg, 1, 29, QueueDisplayMode.Both);
+        return msg.append(TrackedOrderMessages.navigationAction(Action.Order));
     }
 
     private static Component notificationLinkNote() {
         return ConfigUi.note(Component
             .literal("The final link changes between ")
             .withStyle(UiStyles.label())
-            .append(Component.literal("[Go To Orders]").withStyle(UiStyles.action()))
+            .append(TrackedOrderMessages.navigationLabel(Action.Order))
             .append(Component.literal(" and ").withStyle(UiStyles.label()))
-            .append(Component.literal("[Go To Item]").withStyle(UiStyles.action()))
+            .append(TrackedOrderMessages.navigationLabel(Action.Item))
             .append(Component.literal(".").withStyle(UiStyles.label())));
     }
 
