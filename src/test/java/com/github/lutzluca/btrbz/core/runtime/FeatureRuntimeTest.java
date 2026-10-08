@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.runtime;
 
+import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition;
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertDefinition;
@@ -188,7 +189,7 @@ class FeatureRuntimeTest {
     }
 
     private static TrackedOrderManager orders(BazaarData data) {
-        var config = new TrackedOrderManager.OrderManagerConfig();
+        var config = new OrderManagerConfig();
         config.enabled = false;
         return new TrackedOrderManager(data, () -> config);
     }

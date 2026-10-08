@@ -1,15 +1,15 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
-import com.github.lutzluca.btrbz.core.BazaarOrderActions.OrderActionsConfig;
-import com.github.lutzluca.btrbz.core.BazaarChatManager.ChatConfig;
+import com.github.lutzluca.btrbz.core.orderactions.BazaarOrderActions.OrderActionsConfig;
+import com.github.lutzluca.btrbz.core.chat.BazaarChatManager.ChatConfig;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper.FlipHelperConfig;
-import com.github.lutzluca.btrbz.core.OrderHighlightManager.HighlightConfig;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
-import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderItemTooltipConfig;
-import com.github.lutzluca.btrbz.core.OrderTooltipProvider.OrderListTooltipConfig;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderHighlightManager.HighlightConfig;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionConfig;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderItemTooltipConfig;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderListTooltipConfig;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
+import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;

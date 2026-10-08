@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
+import com.github.lutzluca.btrbz.core.config.ConfigUi;
 import com.github.lutzluca.btrbz.core.config.ConfigImages;
-import com.github.lutzluca.btrbz.core.config.ConfigScreen;
 import com.github.lutzluca.btrbz.core.config.OptionGrouping;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
@@ -25,46 +25,46 @@ public final class AlertConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Enable Alerts"))
-            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                ConfigScreen.text(
+            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                ConfigUi.text(
                     "Watch saved price and liquidity targets and notify you when one is reached."),
-                ConfigScreen.note(
+                ConfigUi.note(
                     "Alerts that become valid while this is off may fire immediately when it is enabled again."))))
             .binding(true, () -> this.enabled, val -> this.enabled = val)
-            .controller(ConfigScreen::createBooleanController);
+            .controller(ConfigUi::createBooleanController);
     }
 
     public Option.Builder<Boolean> createToastOnAlertOption() {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Show Alert Toasts"))
-            .description(ConfigScreen.createDescription(
+            .description(ConfigUi.createDescription(
                 "Show a toast when an alert hits its target. Find it later in the Reached tab."))
             .binding(true, () -> this.toastOnAlert, val -> this.toastOnAlert = val)
-            .controller(ConfigScreen::createBooleanController);
+            .controller(ConfigUi::createBooleanController);
     }
 
     public Option.Builder<Boolean> createDetailedAlertToastsOption() {
         return Option.<Boolean>createBuilder()
             .name(Component.literal("Detailed Alert Toasts"))
-            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                ConfigScreen.text("Show the product and saved price target, or the saved item quantity "
+            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                ConfigUi.text("Show the product and saved price target, or the saved item quantity "
                     + "and price limit, plus the price or quantity that triggered the alert."),
-                ConfigScreen.example("Liquidity target reached\nDiamond\n"
+                ConfigUi.example("Liquidity target reached\nDiamond\n"
                     + "Instantly sell 1,200 items at ≥ 4.0 coins each\nObserved: 1,500 qualifying items"),
-                ConfigScreen.text("Long names and values may wrap. Turn this off to show only the product "
+                ConfigUi.text("Long names and values may wrap. Turn this off to show only the product "
                     + "and which target was reached."))))
             .binding(false, () -> this.detailedAlertToasts, value -> this.detailedAlertToasts = value)
-            .controller(ConfigScreen::createBooleanController);
+            .controller(ConfigUi::createBooleanController);
     }
 
     public Option.Builder<Boolean> createChatMessageOption() {
         return Option.<Boolean>createBuilder()
             .name(Component.literal("Also Send a Chat Message"))
-            .description(ConfigScreen.createDescription(
+            .description(ConfigUi.createDescription(
                 "Also send reached alerts to chat with a link to the item in the Bazaar."))
             .binding(false, () -> this.alsoSendChatMessage, value -> this.alsoSendChatMessage = value)
-            .controller(ConfigScreen::createBooleanController);
+            .controller(ConfigUi::createBooleanController);
     }
 
     public OptionGroup createGroup(Consumer<Screen> openAlerts) {
@@ -76,22 +76,22 @@ public final class AlertConfig {
 
         return OptionGroup.createBuilder()
             .name(Component.literal("Alerts"))
-            .description(ConfigScreen.createDescription(ConfigScreen.paragraphs(
-                ConfigScreen.text("Get an alert when a Bazaar price or available quantity hits your target."),
-                ConfigScreen.text("Price alerts compare the selected Buy Price or Sell Price with your threshold. "
+            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                ConfigUi.text("Get an alert when a Bazaar price or available quantity hits your target."),
+                ConfigUi.text("Price alerts compare the selected Buy Price or Sell Price with your threshold. "
                     + "Buy Price is the lowest sell offer. Sell Price is the highest buy order. "
                     + "Below and Above include equality."),
-                ConfigScreen.note("Price alerts need a reference price. An empty order list has no price to compare "
+                ConfigUi.note("Price alerts need a reference price. An empty order list has no price to compare "
                     + "and cannot trigger alerts watching that side. "
                     + "Missing or invalid prices also keep those alerts waiting."),
-                ConfigScreen.text("Use liquidity alerts to watch how many items you can buy or sell instantly."),
-                ConfigScreen.note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
+                ConfigUi.text("Use liquidity alerts to watch how many items you can buy or sell instantly."),
+                ConfigUi.note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
             .options(alerts.build())
             .option(ButtonOption.createBuilder()
                 .name(Component.literal("Open Alerts"))
                 .text(Component.literal("Open"))
                 .description(
-                    ConfigScreen.createDescription("Search Bazaar products and manage price and liquidity alerts."))
+                    ConfigUi.createDescription("Search Bazaar products and manage price and liquidity alerts."))
                 .action((screen, _) -> openAlerts.accept(screen))
                 .build())
             .collapsed(true)

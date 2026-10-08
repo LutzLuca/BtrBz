@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.runtime.Activation;
-import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
@@ -12,16 +12,13 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
 import dev.isxander.yacl3.api.Option;
-import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.OptionGroup;
 import dev.isxander.yacl3.api.YetAnotherConfigLib;
 import dev.isxander.yacl3.api.YetAnotherConfigLib.Builder;
-import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -122,7 +119,7 @@ public class ConfigScreen {
         var enabled = Option
             .<Boolean>createBuilder()
             .name(Component.literal("Enable BtrBz"))
-            .description(createDescription("Enable all BtrBz features."))
+            .description(ConfigUi.createDescription("Enable all BtrBz features."))
             .binding(
                 true,
                 () -> config.enabled,
@@ -130,11 +127,11 @@ public class ConfigScreen {
                     config.enabled = value;
                     this.activation.refresh();
                 })
-            .controller(ConfigScreen::createBooleanController);
+            .controller(ConfigUi::createBooleanController);
         var alwaysActive = Option
             .<Boolean>createBuilder()
             .name(Component.literal("Always Active"))
-            .description(createDescription(
+            .description(ConfigUi.createDescription(
                 "Keep BtrBz running everywhere, including outside SkyBlock, without waiting for "
                     + "a Hypixel Mod API location packet."))
             .binding(
@@ -144,12 +141,12 @@ public class ConfigScreen {
                     config.alwaysActive = value;
                     this.activation.refresh();
                 })
-            .controller(ConfigScreen::createBooleanController);
+            .controller(ConfigUi::createBooleanController);
 
         return OptionGroup
             .createBuilder()
             .name(Component.literal("Activation"))
-            .description(createDescription(
+            .description(ConfigUi.createDescription(
                 "Control whether BtrBz runs and whether a confirmed SkyBlock session is required."))
             .options(new OptionGrouping(enabled).addOptions(alwaysActive).build())
             .build();
@@ -168,7 +165,7 @@ public class ConfigScreen {
         var openManager = ButtonOption.createBuilder()
             .name(Component.literal("Open Widget Manager"))
             .text(Component.literal("Open"))
-            .description(createDescription(
+            .description(ConfigUi.createDescription(
                 "Open the widget manager without using the Bazaar quick-access button.",
                 ConfigImages.WidgetManagerButton))
             .action((screen, _) -> GameUtils.setScreen(
@@ -178,7 +175,7 @@ public class ConfigScreen {
         var resetPosition = ButtonOption.createBuilder()
             .name(Component.literal("Reset Widget Manager Button Position"))
             .text(Component.literal("Reset"))
-            .description(createDescription(
+            .description(ConfigUi.createDescription(
                 "Restore the Bazaar quick-access button to its default position."))
             .action((_, _) -> this.widgetRuntime.stateStore().resetManagerLauncherPosition(true))
             .build();
@@ -196,14 +193,14 @@ public class ConfigScreen {
         String responsibility = definition.getDescription().isBlank()
             ? "Open the Widget Manager focused on " + name + "."
             : definition.getDescription();
-        Component description = paragraphs(
+        Component description = ConfigUi.paragraphs(
             Component.literal(responsibility),
             Component.literal("Configure its placement and settings in the Widget Manager."));
         var image = ConfigImages.forWidget(id);
 
         var optionDescription = image == null
-            ? createDescription(description)
-            : createDescription(description, image);
+            ? ConfigUi.createDescription(description)
+            : ConfigUi.createDescription(description, image);
 
         return ButtonOption.createBuilder()
             .name(Component.literal(name))
@@ -211,79 +208,5 @@ public class ConfigScreen {
             .description(optionDescription)
             .action((screen, _) -> openWidgetManager.accept(screen, id))
             .build();
-    }
-
-    public static OptionDescription createDescription(String text) {
-        return OptionDescription.of(Component.literal(text));
-    }
-
-    public static OptionDescription createDescription(Component text) {
-        return OptionDescription.of(text);
-    }
-
-    public static OptionDescription createDescription(String text, ConfigImages image) {
-        return createDescription(Component.literal(text), image);
-    }
-
-    public static OptionDescription createDescription(Component text, ConfigImages image) {
-        return image.description(text);
-    }
-
-    public static Component paragraphs(Component... paragraphs) {
-        var result = Component.empty();
-        for (int i = 0; i < paragraphs.length; i++) {
-            if (i > 0) {
-                result.append(Component.literal("\n\n"));
-            }
-            result.append(paragraphs[i]);
-        }
-        return result;
-    }
-
-    public static Component text(String text) {
-        return Component.literal(text);
-    }
-
-    public static Component example(String text) {
-        return example(Component.literal(text).withStyle(ChatFormatting.GRAY));
-    }
-
-    public static Component example(Component text) {
-        return Component
-            .literal("Example: ")
-            .withStyle(ChatFormatting.GOLD)
-            .append(text);
-    }
-
-    public static Component note(String text) {
-        return note(Component.literal(text).withStyle(ChatFormatting.GRAY));
-    }
-
-    public static Component note(Component text) {
-        return Component
-            .literal("Note: ")
-            .withStyle(ChatFormatting.YELLOW)
-            .append(text);
-    }
-
-    public static Component requires(String text) {
-        return requires(Component.literal(text).withStyle(ChatFormatting.DARK_GRAY));
-    }
-
-    public static Component requires(Component text) {
-        return Component
-            .literal("Requires: ")
-            .withStyle(ChatFormatting.DARK_GRAY)
-            .append(text);
-    }
-
-    public static Component command(String command) {
-        return Component
-            .literal(command)
-            .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
-    }
-
-    public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
-        return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
     }
 }

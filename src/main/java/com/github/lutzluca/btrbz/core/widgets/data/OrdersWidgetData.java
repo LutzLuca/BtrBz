@@ -1,8 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
-
-import com.github.lutzluca.btrbz.core.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;

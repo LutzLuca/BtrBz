@@ -1,8 +1,7 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig;
-import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager.OrderManagerConfig.Action;
+import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus.Matched;

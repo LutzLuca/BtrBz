@@ -1,11 +1,10 @@
-package com.github.lutzluca.btrbz.core;
+package com.github.lutzluca.btrbz.core.orderprotection;
 
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderProtectionConfig;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.OrderValidator;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.PercentageExceeded;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.SpreadCrossing;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationResult;
-import com.github.lutzluca.btrbz.core.OrderProtectionManager.ValidationUnavailable;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.OrderValidator;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.PercentageExceeded;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.SpreadCrossing;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.ValidationResult;
+import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager.ValidationUnavailable;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
