@@ -1,11 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetDisplayOptions.NumberStyle;
@@ -69,17 +70,19 @@ class WidgetConfigBindingTest {
         @DisplayName("reset all routes content and frame changes through their owners")
         void resetsFrameAppearanceOverrides() {
             var widgets = new WidgetsConfig();
-            var config = widgets.orderLimit;
-            config.numberStyle = NumberStyle.Exact;
+            var config = widgets.orderBookScreen;
+            config.depthMode = OrderBookWidgetConfig.DepthMode.Hidden;
+            config.showOrderCount = false;
+            config.scrolling = OrderBookWidgetConfig.ScrollMode.Together;
             config.frame.overrideScale = true;
             config.frame.scale = 1.7;
             config.frame.overrideBackground = true;
             config.frame.background = 0xAA102030;
-            var id = WidgetId.parse("btrbz:daily");
+            var id = WidgetId.parse("btrbz:order_book");
             var handle = handle(
-                id, () -> config, DailyLimitWidgetConfig::new,
-                value -> value.frame, DailyLimitWidgetConfig::resetPreferences);
-            var definition = WidgetDefinition.<Object, DailyLimitWidgetConfig, Void>builder(id, "Daily")
+                id, () -> config, OrderBookWidgetConfig::new,
+                value -> value.frame, OrderBookWidgetConfig::resetPreferences);
+            var definition = WidgetDefinition.<Object, OrderBookWidgetConfig, Void>builder(id, "Order Book")
                 .config(handle)
                 .data(source())
                 .preview(() -> null)
@@ -96,6 +99,9 @@ class WidgetConfigBindingTest {
             assertFalse(config.frame.overrideBackground);
             assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
             assertEquals(UiStyles.palette().panelBackground(), store.backgroundColor(definition));
+            assertEquals(OrderBookWidgetConfig.DepthMode.Cumulative, config.depthMode);
+            assertTrue(config.showOrderCount);
+            assertEquals(OrderBookWidgetConfig.ScrollMode.Independent, config.scrolling);
             assertTrue(config.frame.enabled);
         }
     }

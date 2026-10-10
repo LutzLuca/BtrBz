@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -357,9 +358,11 @@ public final class WidgetHost {
 
             var component = mountedWidget.component();
 
-            component.inflate(Size.of(
+            var availableSpace = Size.of(
                 Math.max(1, (int) Math.floor(anchorCanvas.width() / scale)),
-                Math.max(1, (int) Math.floor(anchorCanvas.height() / scale))));
+                Math.max(1, (int) Math.floor(anchorCanvas.height() / scale)));
+            ((WidgetView) mountedWidget.view()).updateLayout(WidgetChrome.contentSpace(availableSpace));
+            component.inflate(availableSpace);
 
             int logicalWidth = Math.max(definition.getMinWidth(), component.width());
             int logicalHeight = Math.max(definition.getMinHeight(), component.height());
@@ -432,7 +435,7 @@ public final class WidgetHost {
                 new PreparedCacheStamp(
                     session.id(), session.contextRevision(),
                     canvas.x(), canvas.y(), canvas.width(), canvas.height(), options,
-                    placementProfile, revisions),
+                    placementProfile, revisions, TextRenderRevision.current()),
                 prepared)
             : null;
     }

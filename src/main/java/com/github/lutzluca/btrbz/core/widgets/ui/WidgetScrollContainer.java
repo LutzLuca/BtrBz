@@ -7,6 +7,7 @@ import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Size;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
+import java.util.function.BiConsumer;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import org.jetbrains.annotations.Nullable;
@@ -25,6 +26,7 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     private long retainedVisibleUntil;
 
     private double smoothScrollTimeRemaining;
+    private BiConsumer<Double, Boolean> scrollListener = (_, _) -> {};
 
     public WidgetScrollContainer(
         Sizing horizontalSizing,
@@ -132,7 +134,6 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
         }
 
         this.scrollBy(-amount * WHEEL_SCROLL_DISTANCE, false, true);
-        this.rememberState();
         return true;
     }
 
@@ -151,6 +152,11 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
 
         if (showScrollbar) {
             this.lastScrollbarInteractTime = System.currentTimeMillis() + 1250L;
+        }
+
+        this.rememberState();
+        if (changed) {
+            this.scrollListener.accept(this.scrollOffset, instant);
         }
     }
 
@@ -187,7 +193,6 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
             this.scrollbaring = true;
             super.onMouseDrag(click, deltaX, deltaY);
             this.updateChildPosition();
-            this.rememberState();
             return true;
         }
 
@@ -240,11 +245,24 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
     }
 
     public void scrollOffset(double offset) {
+        double previousOffset = this.scrollOffset;
         this.retainedScroll.remember(offset);
         double restoredOffset = this.retainedScroll.restore(this.maxScroll);
         this.scrollOffset = restoredOffset;
         this.currentScrollPosition = restoredOffset;
         this.smoothScrollTimeRemaining = 0.0;
+        this.updateChildPosition();
+        if (previousOffset != restoredOffset) {
+            this.scrollListener.accept(restoredOffset, true);
+        }
+    }
+
+    public void onScroll(BiConsumer<Double, Boolean> listener) {
+        this.scrollListener = listener;
+    }
+
+    public void scrollToOffset(double offset, boolean instant) {
+        this.scrollBy(offset - this.scrollOffset, instant, true);
         this.updateChildPosition();
     }
 
@@ -267,7 +285,6 @@ public final class WidgetScrollContainer<C extends UIComponent> extends ScrollCo
 
         this.scrollBy(distance, true, true);
         this.updateChildPosition();
-        this.rememberState();
     }
 
     public void flashScrollbar() {

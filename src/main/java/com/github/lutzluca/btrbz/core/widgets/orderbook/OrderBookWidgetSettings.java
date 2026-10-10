@@ -11,23 +11,23 @@ public final class OrderBookWidgetSettings {
         var panel = WidgetSettingsPanel.panel();
 
         WidgetSettingsPanel.integer(panel, "Widget width", binding, c -> c.contentWidth,
-            (c, v) -> c.contentWidth = v, 220, 440,
-            "Controls the total width shared by the visible order-book sides.");
+            (c, v) -> c.contentWidth = v, OrderBookWidgetConfig.MIN_CONTENT_WIDTH, 640,
+            "Preferred width shared by both sides. Exact prices and counts can require more space.");
 
         WidgetSettingsPanel.integer(panel, "Levels per side", binding, c -> c.visibleRows,
             (c, v) -> c.visibleRows = v, 1, 10,
-            "Number of price levels visible on each side of the order book.");
+            "Visible levels per side. Scroll for more. Bar scaling includes off-screen levels.");
 
-        WidgetSettingsPanel.enumeration(panel, "Layout", binding, c -> c.layout, (c, v) -> c.layout = v,
-            "Shows both sides together or gives one side the full widget width.");
+        WidgetSettingsPanel.enumeration(panel, "Depth mode", binding, c -> c.depthMode, (c, v) -> c.depthMode = v,
+            "Cumulative shows the total including better price levels. Relative shows a quantity bar at each "
+                + "exact price. Hidden removes bars and totals. Bars share one scale across all supplied levels.");
 
-        WidgetSettingsPanel.enumeration(panel, "Volume format", binding, c -> c.numberStyle,
-            (c, v) -> c.numberStyle = v,
-            "Exact keeps full item counts. Compact abbreviates large volumes.");
-
-        WidgetSettingsPanel.bool(panel, "Show order count", binding, c -> c.showOrderCount,
+        WidgetSettingsPanel.bool(panel, "Show orders column", binding, c -> c.showOrderCount,
             (c, v) -> c.showOrderCount = v,
-            "Adds the number of Bazaar orders contributing to each price level.");
+            "Shows the number of orders at each exact price beside Quantity. Also available in row tooltips.");
+
+        WidgetSettingsPanel.enumeration(panel, "Scrolling", binding, c -> c.scrolling, (c, v) -> c.scrolling = v,
+            "Independent scrolls the side under the pointer. Together scrolls both sides to the same row position.");
 
         return panel;
     }
