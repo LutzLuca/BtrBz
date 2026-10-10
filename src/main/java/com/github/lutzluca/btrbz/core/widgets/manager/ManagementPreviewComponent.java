@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
@@ -14,6 +15,7 @@ import io.wispforest.owo.ui.core.Sizing;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
 
 import java.util.List;
 
@@ -48,7 +50,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             this.y,
             this.x + this.width,
             this.y + this.height,
-            this.screen.hasBazaarBackground() ? 0x00000000 : 0x660B0D12);
+            this.screen.hasBazaarBackground() ? 0x00000000 : ARGB.color(0x66, UiStyles.palette().panelBackground()));
         this.lastResults = this.host.render(
             graphics,
             mouseX,

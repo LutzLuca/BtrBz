@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import net.minecraft.util.ARGB;
 import com.github.lutzluca.btrbz.core.ui.UiButton;
 import com.github.lutzluca.btrbz.Assets;
 
@@ -209,7 +211,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     protected void build(FlowLayout rootComponent) {
         this.root = rootComponent;
 
-        rootComponent.surface(Surface.flat(0x1A000000));
+        rootComponent.surface(Surface.flat(ARGB.color(0x1A, UiStyles.palette().screenBackdrop())));
         rootComponent.padding(Insets.none());
         rootComponent.gap(0);
         rootComponent.allowOverflow(false);
@@ -484,7 +486,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                 : Sizing.fill(this.sidebarHeightPercent()));
 
         this.sidebar.positioning(Positioning.absolute(this.sidebarPosition.x(), this.sidebarPosition.y()));
-        this.sidebar.surface(UiSurfaces.roundedPanel(0xF0181B22, 6));
+        this.sidebar.surface(UiSurfaces.roundedPanel(UiStyles.palette().panelBackground(), 6));
         this.sidebar.padding(Insets.of(SIDEBAR_PADDING));
         this.sidebar.gap(7);
 
