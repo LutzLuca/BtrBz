@@ -138,7 +138,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout root) {
         int width = Math.max(200, Math.min(600, this.width - 24));
-        int height = Math.max(140, Math.min(366, this.height - 24));
+        int height = Math.max(140, Math.min(350, this.height - 24));
         this.contentWidth = width - 24;
         boolean columns = width >= 450;
         this.productWidth = columns ? (this.contentWidth - 10) * 2 / 5 : this.contentWidth;
