@@ -35,6 +35,9 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
     static final int INSET = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING
         + SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
     private static final int COLUMN_GAP = 8;
+    private static final int HIDDEN_PRICE_WEIGHT = 43;
+    private static final int HIDDEN_QUANTITY_WEIGHT = 32;
+    private static final int HIDDEN_ORDERS_WEIGHT = 17;
 
     private final Side buy = new Side(OrderSide.Buy);
     private final Side sell = new Side(OrderSide.Sell);
@@ -85,9 +88,28 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             ? (OrderBookWidgetConfig.MIN_CONTENT_WIDTH - SIDE_GAP + 1) / 2
             : OrderBookWidgetConfig.MIN_CONTENT_WIDTH;
         int sideWidth = Math.max(Math.max(minimumSideWidth, minimumSideForFrame), preferredSideWidth);
-        int remainingWidth = sideWidth - priceWidth - ordersWidth - columnGaps - INSET * 2;
-        var columns = new Columns(sideWidth, priceWidth, cumulative ? quantityWidth : remainingWidth,
-            ordersWidth, cumulative ? remainingWidth - quantityWidth : 0, book.mode() == DepthMode.Relative);
+        int columnSpace = sideWidth - columnGaps - INSET * 2;
+        int depthWidth = 0;
+        switch (book.mode()) {
+            case Hidden -> {
+                // Keep 172:128:68 column proportions without clipping native text.
+                if (config.showOrderCount) {
+                    ordersWidth = Math.clamp(
+                        columnSpace * HIDDEN_ORDERS_WEIGHT
+                            / (HIDDEN_PRICE_WEIGHT + HIDDEN_QUANTITY_WEIGHT + HIDDEN_ORDERS_WEIGHT),
+                        ordersWidth, columnSpace - priceWidth - quantityWidth);
+                }
+                int priceAndQuantitySpace = columnSpace - ordersWidth;
+                priceWidth = Math.clamp(
+                    priceAndQuantitySpace * HIDDEN_PRICE_WEIGHT / (HIDDEN_PRICE_WEIGHT + HIDDEN_QUANTITY_WEIGHT),
+                    priceWidth, priceAndQuantitySpace - quantityWidth);
+                quantityWidth = priceAndQuantitySpace - priceWidth;
+            }
+            case Cumulative -> depthWidth = columnSpace - priceWidth - quantityWidth - ordersWidth;
+            case Relative -> quantityWidth = columnSpace - priceWidth - ordersWidth;
+        }
+        var columns = new Columns(sideWidth, priceWidth, quantityWidth,
+            ordersWidth, depthWidth, book.mode() == DepthMode.Relative);
         int contentWidth = !stacked ? sideWidth * 2 + SIDE_GAP : sideWidth;
         return new Layout(columns, stacked, contentWidth);
     }
