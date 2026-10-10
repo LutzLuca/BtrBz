@@ -1,9 +1,8 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
-import java.util.ArrayList;
 
-/** Compact order-book visibility, sizing and metadata presentation. */
+/** Compact order-book visibility and preferred sizing. */
 final class OrderBookWidget {
     private OrderBookWidget() {}
 
@@ -43,17 +42,4 @@ final class OrderBookWidget {
         return visibleSides;
     }
 
-    static String embeddedMetadata(
-        OrderBookWidgetData.Entry entry,
-        OrderBookPriceWidgetConfig options
-    ) {
-        var parts = new ArrayList<String>();
-        parts.add(entry.quantityText() + (entry.quantity() == 1 ? " item" : " items"));
-
-        if (options.showOrderCount) {
-            parts.add(BazaarWidgetViewData.formatInt(entry.orders()) + (entry.orders() == 1 ? " order" : " orders"));
-        }
-
-        return String.join(" · ", parts);
-    }
 }

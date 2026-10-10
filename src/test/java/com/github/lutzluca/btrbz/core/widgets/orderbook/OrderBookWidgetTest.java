@@ -49,21 +49,30 @@ class OrderBookWidgetTest {
     }
 
     @Test
-    void embeddedMetadataLabelsOrderCountsExplicitly() {
-        var entry = new OrderBookWidgetData.Entry(
-            BazaarWidgetViewData.OrderSide.Sell, 100, 424, 2);
-
-        assertEquals(
-            "424 items · 2 orders",
-            OrderBookWidget.embeddedMetadata(
-                entry, options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant)));
-        var options = options(OrderBookPriceWidgetConfig.EmbeddedSideDisplay.Relevant);
-        assertEquals("1 item · 1 order", OrderBookWidget.embeddedMetadata(
-            level(BazaarWidgetViewData.OrderSide.Sell, 100, 1, 1), options));
-        assertEquals("4,240 items · 1,234 orders", OrderBookWidget.embeddedMetadata(
-            level(BazaarWidgetViewData.OrderSide.Sell, 100, 4240, 1234), options));
-        options.showOrderCount = false;
-        assertEquals("424 items", OrderBookWidget.embeddedMetadata(entry, options));
+    void numericColumnsFitExactPricesAndWideCountsOnBothMirroredSides() {
+        var buy = BazaarWidgetViewData.OrderSide.Buy;
+        var sell = BazaarWidgetViewData.OrderSide.Sell;
+        var measured = OrderBookColumns.measure(
+            List.of(level(buy, 100, 1, 1)),
+            List.of(level(sell, 12_515_660.2, 3_000_000_000L, 1_234_567L)), String::length);
+        assertEquals("12,515,660.2".length(), measured.price());
+        assertEquals("3,000,000,000".length(), measured.quantity());
+        assertEquals("1,234,567".length(), measured.orders());
+        var columns = OrderBookColumns.numeric(20, measured, true, 5, 4);
+        assertTrue(columns.priceWidth() >= measured.price());
+        assertTrue(columns.quantityWidth() >= measured.quantity());
+        assertTrue(columns.ordersWidth() >= measured.orders());
+        assertEquals(5, columns.priceX(buy));
+        assertEquals(5, columns.ordersX(sell));
+        assertEquals(columns.width() - 5, columns.priceTextX(sell, 0));
+        assertEquals(columns.width() - 5, columns.ordersTextX(buy, 0));
+        assertEquals(columns.quantityX(buy) + columns.quantityWidth() + 4, columns.ordersX(buy));
+        assertEquals(columns.ordersX(sell) + columns.ordersWidth() + 4, columns.quantityX(sell));
+        assertFalse(columns.hasDepth());
+        var withoutOrders = OrderBookColumns.numeric(20, measured, false, 5, 4);
+        assertFalse(withoutOrders.hasOrders());
+        assertEquals(5, withoutOrders.quantityX(sell));
+        assertTrue(withoutOrders.width() < columns.width());
     }
 
     @Test
