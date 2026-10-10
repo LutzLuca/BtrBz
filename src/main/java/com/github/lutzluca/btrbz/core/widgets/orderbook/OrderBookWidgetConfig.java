@@ -15,9 +15,9 @@ public final class OrderBookWidgetConfig {
     }
 
     public WidgetFrameConfig frame = new WidgetFrameConfig(WidgetPlacement.topLeft(0.29, 0.31));
-    public int contentWidth = 440;
+    public int contentWidth = 400;
     public int visibleRows = 8;
-    public DepthMode depthMode = DepthMode.Cumulative;
+    public DepthMode depthMode = DepthMode.Hidden;
     public boolean showOrderCount = true;
     public ScrollMode scrolling = ScrollMode.Independent;
 

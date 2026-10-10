@@ -71,7 +71,9 @@ class WidgetConfigBindingTest {
         void resetsFrameAppearanceOverrides() {
             var widgets = new WidgetsConfig();
             var config = widgets.orderBookScreen;
-            config.depthMode = OrderBookWidgetConfig.DepthMode.Hidden;
+            config.contentWidth = 600;
+            config.visibleRows = 3;
+            config.depthMode = OrderBookWidgetConfig.DepthMode.Cumulative;
             config.showOrderCount = false;
             config.scrolling = OrderBookWidgetConfig.ScrollMode.Together;
             config.frame.overrideScale = true;
@@ -99,7 +101,9 @@ class WidgetConfigBindingTest {
             assertFalse(config.frame.overrideBackground);
             assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
             assertEquals(UiStyles.palette().panelBackground(), store.backgroundColor(definition));
-            assertEquals(OrderBookWidgetConfig.DepthMode.Cumulative, config.depthMode);
+            assertEquals(400, config.contentWidth);
+            assertEquals(8, config.visibleRows);
+            assertEquals(OrderBookWidgetConfig.DepthMode.Hidden, config.depthMode);
             assertTrue(config.showOrderCount);
             assertEquals(OrderBookWidgetConfig.ScrollMode.Independent, config.scrolling);
             assertTrue(config.frame.enabled);
