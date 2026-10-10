@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
+import com.github.lutzluca.btrbz.core.ui.UiButton;
 import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
@@ -11,14 +12,8 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetCanvasComponent;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSlotComponent;
-import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
-import io.wispforest.owo.ui.component.UIComponents;
-import io.wispforest.owo.ui.container.FlowLayout;
-import io.wispforest.owo.ui.container.UIContainers;
-import io.wispforest.owo.ui.core.CursorStyle;
-import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.OwoUIAdapter;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.List;
@@ -31,8 +26,7 @@ import net.minecraft.resources.Identifier;
 
 /** Always-draggable Bazaar affordance that opens the shared widget manager screen. */
 public final class WidgetManagerLauncher {
-    private static final int SIZE = 22;
-    private static final int ICON_SIZE = 16;
+    private static final int SIZE = 20;
     private static final double DRAG_THRESHOLD = 2.0;
     private static final WidgetId ID = WidgetId.of(
         Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "widget_manager_launcher"));
@@ -42,7 +36,6 @@ public final class WidgetManagerLauncher {
     private final FeatureRuntime features;
 
     private OwoUIAdapter<WidgetCanvasComponent> adapter;
-    private FlowLayout button;
     private WidgetSlotComponent slot;
 
     private WidgetBounds bounds = new WidgetBounds(0, 0, SIZE, SIZE);
@@ -179,7 +172,6 @@ public final class WidgetManagerLauncher {
         this.dragging = false;
         var current = this.adapter;
         this.adapter = null;
-        this.button = null;
         this.slot = null;
 
         if (current != null) {
@@ -194,20 +186,13 @@ public final class WidgetManagerLauncher {
 
         this.adapter = OwoUIAdapter.createWithoutScreen(0, 0, 1, 1, WidgetCanvasComponent::new);
 
-        this.button = UIContainers.verticalFlow(Sizing.fixed(SIZE), Sizing.fixed(SIZE));
-        this.button.padding(Insets.of((SIZE - ICON_SIZE) / 2));
-        this.button.surface(UiSurfaces.roundedPanel(0xE0222730, 5));
-        this.button.cursorStyle(CursorStyle.HAND);
-        this.button.tooltip(Component.literal("Open widget manager"));
-
-        var icon = UIComponents.texture(Assets.MOD_ICON, 0, 0, 1024, 1024, 1024, 1024);
-        icon.sizing(Sizing.fixed(ICON_SIZE), Sizing.fixed(ICON_SIZE));
-        icon.blend(true);
-        this.button.child(icon);
+        // The launcher handles release itself to distinguish a click from a drag.
+        var button = UiButton.icon(Assets.MOD_ICON, 1024, Component.literal("Open widget manager"), () -> {});
+        button.sizing(Sizing.fixed(SIZE), Sizing.fixed(SIZE));
 
         this.slot = new WidgetSlotComponent(
             ID,
-            this.button,
+            button,
             0x00000000,
             new WidgetBounds(0, 0, SIZE, SIZE),
             SIZE,

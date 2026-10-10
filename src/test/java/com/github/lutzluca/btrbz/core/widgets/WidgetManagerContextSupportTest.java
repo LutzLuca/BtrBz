@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
@@ -27,7 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WidgetManagerContextSupportTest {
     private final List<WidgetDefinition<?, ?, ?>> definitions = List.of(
         definition("btrbz:presets", OrderPresetsWidgetDefinition::supportsSession),
-        definition("btrbz:book", OrderBookPriceWidgetDefinition::supportsSession));
+        definition("btrbz:book", OrderBookPriceWidgetDefinition::supportsSession),
+        definition("btrbz:full_book", OrderBookWidgetDefinition::supportsSession));
 
     @Nested
     @DisplayName("sign workflows")
@@ -41,13 +43,16 @@ class WidgetManagerContextSupportTest {
         }
 
         @Test
-        @DisplayName("accepts the order-book price sign")
-        void acceptsOrderBookSign() {
+        @DisplayName("accepts the order-book price sign and full screen")
+        void acceptsOrderBookScreens() {
             var product = new WidgetProductContext(
                 ProductIdentity.fromName("Product"), Component.literal("Product"), Optional.empty());
             var session = session(Optional.of(product), Optional.of(BazaarMenuType.BuyOrderSetupPrice));
 
             assertTrue(WidgetRuntime.contextualManagerSupported(false, true, session, definitions));
+            var fullScreen = new WidgetSession(1, false, false, true,
+                Optional.empty(), Optional.empty(), Optional.of(product), Optional.empty(), 1);
+            assertTrue(WidgetRuntime.contextualManagerSupported(false, true, fullScreen, definitions));
         }
 
         @Test
@@ -56,6 +61,9 @@ class WidgetManagerContextSupportTest {
             var session = session(Optional.empty(), Optional.empty());
 
             assertFalse(WidgetRuntime.contextualManagerSupported(false, true, session, definitions));
+            var emptyBook = new WidgetSession(1, false, false, true,
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 1);
+            assertFalse(WidgetRuntime.contextualManagerSupported(false, true, emptyBook, definitions));
         }
     }
 

@@ -1,9 +1,10 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.BtrBz;
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
+import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -26,6 +27,7 @@ public final class OrderBookScreen extends Screen {
     @Accessors(fluent = true)
     private final String productName;
     private final WidgetHost host;
+    private final WidgetManagerLauncher managerLauncher;
     private final long sessionGeneration = BtrBz.sessionGeneration();
     private final Object parentLevel = Minecraft.getInstance().level;
     private final Object parentConnection = Minecraft.getInstance().getConnection();
@@ -40,13 +42,15 @@ public final class OrderBookScreen extends Screen {
         Screen parent,
         ProductIdentity product,
         String productName,
-        WidgetHost host
+        WidgetHost host,
+        WidgetManagerLauncher managerLauncher
     ) {
         super(Component.literal(productName + " Order Book"));
         this.parent = parent;
         this.product = product;
         this.productName = productName;
         this.host = host;
+        this.managerLauncher = managerLauncher;
     }
 
     @Override
@@ -58,11 +62,13 @@ public final class OrderBookScreen extends Screen {
     @Override
     public void removed() {
         this.host.dispose();
+        this.managerLauncher.dispose();
         super.removed();
     }
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        // Screen extracts this in a separate stratum before the opaque widget panel.
         graphics.fill(0, 0, this.width, this.height, UiStyles.palette().screenBackdrop());
     }
 
@@ -84,25 +90,35 @@ public final class OrderBookScreen extends Screen {
             mouseX,
             mouseY,
             delta,
-            new WidgetCanvas(0, 0, this.width, this.height),
+            this.canvas(),
             WidgetHostOptions.runtime(true),
             this);
+        this.managerLauncher.render(graphics, mouseX, mouseY, delta, this.canvas(), this);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        return this.host.mouseClicked(event, doubleClick) || super.mouseClicked(event, doubleClick);
+        return this.managerLauncher.mouseClicked(event)
+            || this.host.mouseClicked(event, doubleClick)
+            || super.mouseClicked(event, doubleClick);
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        return this.host.mouseReleased(event) || super.mouseReleased(event);
+        return this.managerLauncher.mouseReleased(event, this.canvas(), this)
+            || this.host.mouseReleased(event)
+            || super.mouseReleased(event);
     }
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
-        return this.host.mouseDragged(event, deltaX, deltaY)
+        return this.managerLauncher.mouseDragged(event, this.canvas())
+            || this.host.mouseDragged(event, deltaX, deltaY)
             || super.mouseDragged(event, deltaX, deltaY);
+    }
+
+    private WidgetCanvas canvas() {
+        return new WidgetCanvas(0, 0, this.width, this.height);
     }
 
     @Override
