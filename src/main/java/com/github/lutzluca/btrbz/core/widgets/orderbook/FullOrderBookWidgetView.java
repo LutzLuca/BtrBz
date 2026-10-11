@@ -58,7 +58,7 @@ final class FullOrderBookWidgetView
         this.header.surface((graphics, component) -> graphics.fill(
             component.x() + OrderBookDepthTable.INSET, component.y() + component.height() - 1,
             component.x() + component.width() - OrderBookDepthTable.INSET,
-            component.y() + component.height(), OrderBookDepthTable.dividerColor()));
+            component.y() + component.height(), OrderBookStyles.dividerColor()));
         this.itemName.horizontalSizing(Sizing.expand(100));
 
         this.spreadLine.horizontalAlignment(HorizontalAlignment.CENTER);
@@ -70,7 +70,7 @@ final class FullOrderBookWidgetView
         this.footer.surface((graphics, component) -> graphics.fill(
             component.x() + OrderBookDepthTable.INSET, component.y(),
             component.x() + component.width() - OrderBookDepthTable.INSET,
-            component.y() + 1, OrderBookDepthTable.dividerColor()));
+            component.y() + 1, OrderBookStyles.dividerColor()));
         this.footer.gap(WidgetLayoutTokens.HEADER_GAP);
         this.footer.verticalAlignment(VerticalAlignment.CENTER);
         this.instruction.horizontalSizing(Sizing.expand(100));

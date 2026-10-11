@@ -185,14 +185,6 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, this.children);
     }
 
-    static int dividerColor() {
-        return ARGB.multiplyAlpha(UiStyles.palette().border(), 0.65F);
-    }
-
-    static int barFillColor(OrderSide side) {
-        return ARGB.srgbLerp(0.3F, ARGB.opaque(UiStyles.palette().panelBackground()), side.accentColor());
-    }
-
     record Layout(OrderBookColumns columns, boolean stacked, int contentWidth) {}
 
     private record LevelKey(OrderSide side, long priceBits) {}
@@ -342,7 +334,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             int ordersX = this.columns.ordersTextX(this.side, font.width(this.orders));
             int totalX = this.columns.totalTextX(this.side, font.width(this.total));
             graphics.fill(this.x + INSET, this.y + this.height - 3,
-                this.x + this.width - INSET, this.y + this.height - 2, dividerColor());
+                this.x + this.width - INSET, this.y + this.height - 2, OrderBookStyles.dividerColor());
             this.text.begin();
             this.text.draw(graphics, font, this.title, this.x + titleX, this.y,
                 this.side.accentColor(), false);

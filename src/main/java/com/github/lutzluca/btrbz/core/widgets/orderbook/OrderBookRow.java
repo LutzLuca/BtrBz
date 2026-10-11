@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
 
 /** Retained price, quantity, optional order count and depth for one exact level. */
@@ -68,6 +69,10 @@ final class OrderBookRow extends BaseUIComponent {
         return x >= start && x < start + this.columns.priceWidth();
     }
 
+    private static int barFillColor(OrderSide side) {
+        return ARGB.srgbLerp(0.3F, ARGB.opaque(UiStyles.palette().panelBackground()), side.accentColor());
+    }
+
     @Override
     public boolean canFocus(FocusSource source) {
         return source == FocusSource.MOUSE_CLICK;
@@ -106,7 +111,7 @@ final class OrderBookRow extends BaseUIComponent {
             graphics.fill(laneX, barY, laneX + laneWidth, barBottom, UiStyles.palette().progressTrack());
             int fill = (int) Math.round(laneWidth * this.level.fillFraction(this.maximum));
             int fillX = side == OrderSide.Buy ? laneX + laneWidth - fill : laneX;
-            graphics.fill(fillX, barY, fillX + fill, barBottom, OrderBookDepthTable.barFillColor(side));
+            graphics.fill(fillX, barY, fillX + fill, barBottom, barFillColor(side));
         }
 
         var font = Minecraft.getInstance().font;

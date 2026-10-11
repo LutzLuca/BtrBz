@@ -293,7 +293,7 @@ final class EmbeddedOrderBookWidgetView
                     UiStyles.palette().label(), false);
             }
             graphics.fill(this.x + INSET, this.y + this.height - 2,
-                this.x + this.width - INSET, this.y + this.height - 1, OrderBookDepthTable.dividerColor());
+                this.x + this.width - INSET, this.y + this.height - 1, OrderBookStyles.dividerColor());
         }
     }
 }
