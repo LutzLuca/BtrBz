@@ -57,12 +57,12 @@ class BazaarPollerTest {
         this.scheduler.runPending();
         Assertions.assertTrue(this.delivered.isEmpty());
         this.drainClient();
-        this.assertNextDelay(20_000, 21_000);
+        this.assertNextDelay(20_500, 20_750);
 
         this.reply(this.nextFetch(), new Reply(source));
         this.drainClient();
 
-        this.assertNextDelay(20_000, 21_000);
+        this.assertNextDelay(250, 250);
         Assertions.assertEquals(2, this.delivered.size());
         Assertions.assertTrue(this.delivered.getFirst().advanced());
         // A hibernating runtime can recover even without a newer source publication.
@@ -103,11 +103,57 @@ class BazaarPollerTest {
 
     @Test
     void throttlingUsesCeilingAndServiceFailuresUseAtLeastFiveSeconds() {
-        this.fail(this.startFetch(), new CompletionException(new BadStatusCodeException(429, "throttled")));
+        long source = this.scheduler.now;
+        this.reply(this.startFetch(), new Reply(source));
+        this.reply(this.nextFetch(), new Reply(source));
+        this.fail(this.nextFetch(), new CompletionException(new BadStatusCodeException(429, "throttled")));
         this.assertNextDelay(60_000, 60_000);
+        int requests = this.api.requests.size();
+        this.scheduler.advanceBy(59_999);
+        Assertions.assertEquals(requests, this.api.requests.size());
         this.reply(this.nextFetch(), new Reply(this.scheduler.now));
         this.fail(this.nextFetch(), new BadStatusCodeException(503, "maintenance"));
         this.assertNextDelay(5_000, 5_000);
+    }
+
+    @Test
+    void consecutiveUnchangedRepliesBackOffWithoutExtendingExpiryOrFrozenWarning() {
+        long source = this.scheduler.now;
+        this.reply(this.startFetch(), new Reply(source));
+        this.drainClient();
+        for (long delay : new long[]{250, 500, 1_000, 2_000, 4_000, 4_000}) {
+            this.reply(this.nextFetch(), new Reply(source));
+            this.drainClient();
+            this.assertNextDelay(delay, delay);
+        }
+        while (this.scheduler.now < source + 120_000) {
+            this.reply(this.nextFetch(), new Reply(source));
+            this.drainClient();
+        }
+        Assertions.assertEquals(List.of("unavailable"), this.health);
+        this.assertNextDelay(20_500, 20_750);
+
+        while (this.scheduler.now < source + 250_000) {
+            this.reply(this.nextFetch(), new Reply(source));
+            this.drainClient();
+            this.assertNextDelay(20_500, 20_750);
+        }
+        var request = this.nextFetch();
+        this.scheduler.advanceTo(source + 299_999);
+        this.drainClient();
+        Assertions.assertTrue(this.warnings.isEmpty());
+        this.scheduler.advanceTo(source + 300_000);
+        this.drainClient();
+        Assertions.assertEquals(List.of("frozen"), this.warnings);
+        Assertions.assertEquals(List.of("unavailable"), this.health);
+
+        long advanced = this.scheduler.now;
+        this.reply(request, new Reply(advanced));
+        this.drainClient();
+        Assertions.assertTrue(this.delivered.getLast().advanced());
+        this.assertNextDelay(20_500, 20_750);
+        this.reply(this.nextFetch(), new Reply(advanced));
+        this.assertNextDelay(250, 250);
     }
 
     @Test

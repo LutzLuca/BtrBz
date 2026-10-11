@@ -58,6 +58,7 @@ public final class BazaarPoller implements AutoCloseable {
     private ScheduledFuture<?> frozenWarning;
     private CompletableFuture<SkyBlockBazaarReply> inFlight;
     private int failedRequests;
+    private int unchangedRetries;
     private long publicationStartedAt = -1;
     private boolean frozenWarningIssued;
     // These fields are only read/written while delivering on the client.
@@ -125,6 +126,7 @@ public final class BazaarPoller implements AutoCloseable {
             this.latestSourceTime = -1;
             this.publicationStartedAt = -1;
             this.failedRequests = 0;
+            this.unchangedRetries = 0;
             this.failureStartedAt = -1;
             this.unavailable = false;
             this.failureEpisode++;
@@ -225,6 +227,7 @@ public final class BazaarPoller implements AutoCloseable {
             this.succeeded();
             boolean sourceAdvanced = sourceTime > this.latestSourceTime;
             if (sourceAdvanced) {
+                this.unchangedRetries = 0;
                 this.latestSourceTime = sourceTime;
                 this.publicationStartedAt = this.clock.getAsLong();
                 this.frozenEpisode++;
@@ -246,10 +249,17 @@ public final class BazaarPoller implements AutoCloseable {
                 }
             }
             this.scheduleFrozenWarning(run);
-            long interval = NORMAL_INTERVAL_MS + ThreadLocalRandom.current().nextLong(200, 400);
+            long interval = NORMAL_INTERVAL_MS + ThreadLocalRandom.current().nextLong(500, 750);
             long delay = sourceTime + interval - this.clock.getAsLong();
-            // Unchanged or overdue sources keep the normal polling interval.
-            this.scheduleFetch(run, sourceAdvanced && delay > 0 ? delay : interval);
+            if (!sourceAdvanced && this.usable(this.latestSourceTime)) {
+                // Back off on a still-usable source, then keep checking at a bounded cadence.
+                long retryDelay = 250L << this.unchangedRetries;
+                this.unchangedRetries = Math.min(this.unchangedRetries + 1, 4);
+                this.scheduleFetch(run, retryDelay);
+            } else {
+                // Expired sources use the normal interval and existing outage timers.
+                this.scheduleFetch(run, sourceAdvanced && delay > 0 ? delay : interval);
+            }
         }).onFailure(error -> this.failed(run, error));
     }
 
