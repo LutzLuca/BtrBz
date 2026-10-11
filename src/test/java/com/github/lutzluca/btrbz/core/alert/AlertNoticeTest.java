@@ -43,7 +43,7 @@ class AlertNoticeTest {
     }
 
     @Test
-    void tradeColorsFollowThePlayerActionRatherThanTheConsumedMarketSide() {
+    void instantActionsUseTradeColorsAndPriceLabelsStaySecondary() {
         var sell = AlertNotice.conditionText(new AlertCondition.Liquidity(
             AlertCondition.LiquiditySide.BuyOrders, 12, 12.0));
         var buy = AlertNotice.conditionText(new AlertCondition.Liquidity(
@@ -63,8 +63,8 @@ class AlertNoticeTest {
         }
         Assertions.assertEquals(UiStyles.palette().sell() & 0xFFFFFF, colors.get("sell "));
         Assertions.assertEquals(UiStyles.palette().buy() & 0xFFFFFF, colors.get("buy "));
-        Assertions.assertEquals(UiStyles.palette().buy() & 0xFFFFFF, colors.get("Buy Price"));
-        Assertions.assertEquals(UiStyles.palette().sell() & 0xFFFFFF, colors.get("Sell Price"));
+        Assertions.assertEquals(UiStyles.palette().textSecondary() & 0xFFFFFF, colors.get("Buy Price"));
+        Assertions.assertEquals(UiStyles.palette().textSecondary() & 0xFFFFFF, colors.get("Sell Price"));
         Assertions.assertEquals(UiStyles.palette().money() & 0xFFFFFF, colors.get("12.0 coins"));
     }
 

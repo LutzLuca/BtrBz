@@ -30,8 +30,8 @@ Run `/btrbz` to configure the mod.
 
 Choose **General → Appearance → Edit** to select BtrBz Dark, Catppuccin Mocha, Nord, or Dracula, or customise
 the interface, feedback, and Bazaar colours. BtrBz Dark is the default, pairing charcoal surfaces
-at 85% opacity with bright status colours to match Minecraft's item formatting. Buying is green,
-selling is red, and coin values are gold. Product names retain their
+at 85% opacity with bright status colours to match Minecraft's item formatting. Buy orders are green,
+sell offers and coin values are gold, and price labels use secondary text. Product names retain their
 item formatting unless you turn off **Formatted product names**. **Order highlight opacity** adjusts
 slot backgrounds and is also available under **Orders & Notifications → Order Highlighting**.
 

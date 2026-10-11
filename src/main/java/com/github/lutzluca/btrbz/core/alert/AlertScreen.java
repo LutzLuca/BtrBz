@@ -324,8 +324,8 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 UiButton.text("Change", () -> this.defer(this::beginSearch))));
             this.productPane.child(new AlertProductRow(this.data, this.editor.product(), this.productWidth - 16,
                 false, null));
-            this.buyQuote = text("", UiStyles.palette().buy()).maxWidth(this.productWidth - 16);
-            this.sellQuote = text("", UiStyles.palette().sell()).maxWidth(this.productWidth - 16);
+            this.buyQuote = text("", UiStyles.palette().textSecondary()).maxWidth(this.productWidth - 16);
+            this.sellQuote = text("", UiStyles.palette().textSecondary()).maxWidth(this.productWidth - 16);
             this.productPane.child(this.buyQuote);
             this.productPane.child(this.sellQuote);
             this.orderBookButton = UiButton.text("Open order book", this::openOrderBook);
@@ -425,13 +425,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
         if (this.editor.mode() == Kind.Price) {
             this.buyButton
-                .selected(this.editor.source() == PriceSource.Buy).accent(() -> UiStyles.palette().buy());
+                .selected(this.editor.source() == PriceSource.Buy).accent(() -> UiStyles.palette().accent());
             this.sellButton
-                .selected(this.editor.source() == PriceSource.Sell).accent(() -> UiStyles.palette().sell());
+                .selected(this.editor.source() == PriceSource.Sell).accent(() -> UiStyles.palette().accent());
             this.buyButton.setMessage(
-                Component.literal(PriceSource.Buy.label()).withStyle(UiStyles.color(UiColor.Buy)));
+                Component.literal(PriceSource.Buy.label()).withStyle(UiStyles.label()));
             this.sellButton.setMessage(
-                Component.literal(PriceSource.Sell.label()).withStyle(UiStyles.color(UiColor.Sell)));
+                Component.literal(PriceSource.Sell.label()).withStyle(UiStyles.label()));
             this.belowButton.selected(this.editor.direction() == Direction.Below);
             this.aboveButton.selected(this.editor.direction() == Direction.Above);
         } else {
@@ -882,7 +882,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
     private static MutableComponent priceLabel(PriceSource source) {
         return Component.literal(source.label())
-            .withStyle(UiStyles.color(source == PriceSource.Buy ? UiColor.Buy : UiColor.Sell));
+            .withStyle(UiStyles.label());
     }
 
     private static String items(long value) {

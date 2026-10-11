@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.appearance.UiColor;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
-import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -30,8 +29,7 @@ public record AlertNotice(String formattedProductName, String title, Component c
     public static MutableComponent conditionText(AlertCondition condition) {
         return switch (condition) {
             case AlertCondition.Price price -> Component.empty()
-                .append(Component.literal(price.type().source().label()).withStyle(UiStyles.color(
-                    price.type().source() == PriceSource.Buy ? UiColor.Buy : UiColor.Sell)))
+                .append(Component.literal(price.type().source().label()).withStyle(UiStyles.label()))
                 .append(label(" " + price.type().direction().symbol() + " "))
                 .append(UiStyles.coins(price.price()));
             case AlertCondition.Liquidity liquidity -> Component.empty()
