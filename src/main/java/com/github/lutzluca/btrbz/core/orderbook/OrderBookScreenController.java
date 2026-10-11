@@ -55,7 +55,7 @@ public final class OrderBookScreenController {
             return false;
         }
         GameUtils.setScreen(new OrderBookScreen(parent, ProductIdentity.fromIndex(product),
-            product.formattedName(), this.runtime.createScreenHost()));
+            product.formattedName(), this.runtime.createScreenHost(), this.runtime.createManagerLauncher()));
         return true;
     }
 

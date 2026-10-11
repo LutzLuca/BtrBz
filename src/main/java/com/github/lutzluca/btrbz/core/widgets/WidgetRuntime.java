@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagementScreen;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
@@ -120,14 +121,14 @@ public final class WidgetRuntime {
         var session = this.sessionProvider.current(screen);
         return contextualManagerSupported(
             screen instanceof AbstractContainerScreen<?>,
-            screen instanceof SignEditScreen,
+            screen instanceof SignEditScreen || screen instanceof OrderBookScreen,
             session,
             this.registry.all());
     }
 
     static boolean contextualManagerSupported(
         boolean containerScreen,
-        boolean signScreen,
+        boolean widgetScreen,
         WidgetSession session,
         List<WidgetDefinition<?, ?, ?>> definitions
     ) {
@@ -135,7 +136,7 @@ public final class WidgetRuntime {
             return session.inBazaarContainer();
         }
 
-        return signScreen && definitions.stream().anyMatch(definition -> definition.supports(session));
+        return widgetScreen && definitions.stream().anyMatch(definition -> definition.supports(session));
     }
 
     private @Nullable WidgetManagementContext captureManagementContext(@Nullable Screen screen) {

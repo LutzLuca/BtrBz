@@ -389,6 +389,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             if (click.button() == InputConstants.MOUSE_BUTTON_LEFT
                 && this.isSidebarHeaderHit(click.x(), click.y())
                 && !this.isSidebarSizeButtonHit(click.x(), click.y())) {
+                this.clearControlFocus();
                 this.sidebarCapturedMouse = false;
                 this.sidebarPosition.beginDrag(click.x(), click.y());
                 return true;
@@ -400,6 +401,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         this.sidebarCapturedMouse = false;
+        this.clearControlFocus();
 
         if (this.preview != null && this.preview.beginDrag(click.x(), click.y(), click.button())) {
             return true;
@@ -431,7 +433,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             return this.preview.dragTo(click.x(), click.y());
         }
 
-        return super.mouseDragged(click, deltaX, deltaY);
+        return false;
     }
 
     @Override
@@ -450,7 +452,13 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             return true;
         }
 
-        return super.mouseReleased(click);
+        return false;
+    }
+
+    private void clearControlFocus() {
+        if (this.root != null && this.root.focusHandler() != null) {
+            this.root.focusHandler().focus(null, UIComponent.FocusSource.MOUSE_CLICK);
+        }
     }
 
     @Override
@@ -574,6 +582,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
 
+        this.clearControlFocus();
         this.saveSidebarScrollOffset();
         this.sidebar.clearChildren();
         this.sidebarScroller = null;
