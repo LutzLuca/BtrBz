@@ -1,5 +1,11 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
+import com.github.lutzluca.btrbz.core.ui.RestorableVerticalScrollContainer;
+import com.github.lutzluca.btrbz.core.ui.UiText;
+import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
+import com.github.lutzluca.btrbz.core.ui.UiComponents;
+import com.github.lutzluca.btrbz.core.ui.UiButton;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.ScrollSafeDiscreteSliderComponent;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -314,8 +320,8 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
                 this.text(graphics, Component.literal("● " + states[i]), x + i * width / 3, y, width / 3, colors[i]);
             }
             y += 16;
-            graphics.fill(x, y, x + width, y + 4, p.progressTrack());
-            graphics.fill(x, y, x + width * 3 / 5, y + 4, p.progressFill());
+            graphics.fill(x, y, x + width, y + 1, p.progressTrack());
+            graphics.fill(x, y, x + width * 3 / 5, y + 1, p.progressFill());
             y += 12;
             this.text(graphics, Component.literal("Buy order"), x, y, width / 2, p.buy());
             this.text(graphics, Component.literal("Sell offer"), x + width / 2, y, width / 2, p.sell());

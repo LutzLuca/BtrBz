@@ -1,5 +1,6 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;

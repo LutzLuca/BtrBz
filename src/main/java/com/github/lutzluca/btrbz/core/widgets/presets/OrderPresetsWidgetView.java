@@ -5,7 +5,7 @@ import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-import com.github.lutzluca.btrbz.core.ui.UiPalette;
+import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;

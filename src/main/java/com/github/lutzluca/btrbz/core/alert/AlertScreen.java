@@ -4,7 +4,7 @@ import com.github.lutzluca.btrbz.core.ui.UiComponents;
 
 import io.wispforest.owo.ui.core.Color;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-import com.github.lutzluca.btrbz.core.ui.UiColor;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;

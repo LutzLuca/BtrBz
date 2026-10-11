@@ -1,5 +1,8 @@
 package com.github.lutzluca.btrbz.core.ui;
 
+import com.github.lutzluca.btrbz.core.appearance.UiPalette;
+import com.github.lutzluca.btrbz.core.appearance.ThemePreset;
+import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.cache.CacheToken;

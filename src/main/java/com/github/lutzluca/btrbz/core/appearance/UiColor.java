@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
 import java.util.function.ToIntFunction;
 import lombok.Getter;

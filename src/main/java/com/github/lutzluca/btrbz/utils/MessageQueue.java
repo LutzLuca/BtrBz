@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import com.github.lutzluca.btrbz.core.ui.UiColor;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;

@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

@@ -13,7 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import com.github.lutzluca.btrbz.core.ui.UiColor;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
+import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import net.minecraft.network.chat.Component;
 
@@ -61,11 +62,10 @@ public class OrderHighlightManager {
         }
 
         var tracked = this.slotToTrackedOrder.get(idx);
-        if (marketActive && tracked != null) {
-            return Optional.of(colorForStatus(tracked.status));
-        }
-
-        return Optional.ofNullable(this.inactiveOrderSlots.get(idx)).map(role -> role.color(UiStyles.palette()));
+        var color = marketActive && tracked != null
+            ? Optional.of(colorForStatus(tracked.status))
+            : Optional.ofNullable(this.inactiveOrderSlots.get(idx)).map(role -> role.color(UiStyles.palette()));
+        return color.map(value -> UiPalette.alpha(value, 0.3));
     }
 
     public void clear() {

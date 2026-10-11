@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
 import java.util.Arrays;
 
@@ -53,15 +53,15 @@ public record UiPalette(
     }
 
     public int undercutRow() {
-        return alpha(this.undercut, 0.12);
+        return alpha(this.undercut, 0.04);
     }
 
     public int progressTrack() {
-        return alpha(this.outline, 0.65);
+        return alpha(this.outline, 0.25);
     }
 
     public int progressFill() {
-        return this.money;
+        return alpha(this.filled, 0.7);
     }
 
     public int scrollbar() {

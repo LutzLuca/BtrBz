@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;

@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;

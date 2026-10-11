@@ -1,7 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
-import com.github.lutzluca.btrbz.core.ui.UiPalette;
+import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;

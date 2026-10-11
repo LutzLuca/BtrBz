@@ -1,5 +1,6 @@
-package com.github.lutzluca.btrbz.core.ui;
+package com.github.lutzluca.btrbz.core.appearance;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import java.util.Objects;
 import java.util.function.Supplier;
 
