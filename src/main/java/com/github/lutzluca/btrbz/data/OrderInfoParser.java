@@ -231,8 +231,10 @@ public final class OrderInfoParser {
             }
 
             var details = additionalInfo.get();
-            if (details.expired) {
-                return new ExpiredOrderInfo(
+            // Fully filled orders can still be flipped after expiry. Filled status takes precedence
+            // so consumers retain flip eligibility and gold highlighting.
+            if (details.filled) {
+                return new FilledOrderInfo(
                     ProductIdentity.fromName(productName.trim()),
                     productName.trim(),
                     orderTypeResult.get(),
@@ -242,8 +244,8 @@ public final class OrderInfoParser {
                     details.unclaimed,
                     slotIdx);
             }
-            if (details.filled) {
-                return new FilledOrderInfo(
+            if (details.expired) {
+                return new ExpiredOrderInfo(
                     ProductIdentity.fromName(productName.trim()),
                     productName.trim(),
                     orderTypeResult.get(),

@@ -188,7 +188,7 @@ class OrderInfoParserTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("expiryLore")
-    void exactExpiryMarkerWinsOverFillStateAndPreservesClaims(
+    void filledStateTakesPrecedenceOverExpiryAndPreservesClaims(
         String description,
         String title,
         List<String> lore,
@@ -221,12 +221,12 @@ class OrderInfoParserTest {
                     "You have 11 coins to claim!", "Expired!"),
                 12,
                 new OrderInfo.ExpiredOrderInfo("Heat Core", OrderType.Sell, 8, 7.0, 3, 11, 12)),
-            Arguments.of("expired complete buy preserves item claim and beats filled variant",
+            Arguments.of("expired complete buy preserves item claim and is treated as filled",
                 "BUY Heat Core",
                 List.of("Expired!", "Order amount: 8x", "Filled: 8/8 100%!",
                     "Price per unit: 5 coins", "You have 2 items to claim!"),
                 13,
-                new OrderInfo.ExpiredOrderInfo("Heat Core", OrderType.Buy, 8, 5.0, 8, 2, 13)));
+                new OrderInfo.FilledOrderInfo("Heat Core", OrderType.Buy, 8, 5.0, 8, 2, 13)));
     }
 
     @Test
