@@ -35,9 +35,6 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
     static final int INSET = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING
         + SCROLLBAR_THICKNESS + WidgetLayoutTokens.SCROLLBAR_CONTENT_GAP;
     private static final int COLUMN_GAP = 8;
-    private static final int HIDDEN_PRICE_WEIGHT = 43;
-    private static final int HIDDEN_QUANTITY_WEIGHT = 32;
-    private static final int HIDDEN_ORDERS_WEIGHT = 17;
 
     private final Side buy = new Side(OrderSide.Buy);
     private final Side sell = new Side(OrderSide.Sell);
@@ -56,17 +53,16 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
 
     Layout measure(OrderBookDepth book, OrderBookWidgetConfig config, int availableWidth) {
         var font = Minecraft.getInstance().font;
-        int priceWidth = font.width("Price");
-        int quantityWidth = font.width("Quantity");
-        int ordersWidth = font.width("Orders");
+        var measured = OrderBookColumns.measure(book.buy().stream().map(Level::entry).toList(),
+            book.sell().stream().map(Level::entry).toList(), font::width);
+        int priceWidth = measured.price();
+        int quantityWidth = measured.quantity();
+        int ordersWidth = measured.orders();
         int totalWidth = font.width("Total");
 
         var levels = new ArrayList<>(book.buy());
         levels.addAll(book.sell());
         for (var level : levels) {
-            priceWidth = Math.max(priceWidth, font.width(level.entry().priceText()));
-            quantityWidth = Math.max(quantityWidth, font.width(level.entry().quantityText()));
-            ordersWidth = Math.max(ordersWidth, font.width(level.orderCountText()));
             totalWidth = Math.max(totalWidth, font.width(level.depthText()));
         }
 
@@ -92,24 +88,16 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         int depthWidth = 0;
         switch (book.mode()) {
             case Hidden -> {
-                // Keep 172:128:68 column proportions without clipping native text.
-                if (config.showOrderCount) {
-                    ordersWidth = Math.clamp(
-                        columnSpace * HIDDEN_ORDERS_WEIGHT
-                            / (HIDDEN_PRICE_WEIGHT + HIDDEN_QUANTITY_WEIGHT + HIDDEN_ORDERS_WEIGHT),
-                        ordersWidth, columnSpace - priceWidth - quantityWidth);
-                }
-                int priceAndQuantitySpace = columnSpace - ordersWidth;
-                priceWidth = Math.clamp(
-                    priceAndQuantitySpace * HIDDEN_PRICE_WEIGHT / (HIDDEN_PRICE_WEIGHT + HIDDEN_QUANTITY_WEIGHT),
-                    priceWidth, priceAndQuantitySpace - quantityWidth);
-                quantityWidth = priceAndQuantitySpace - priceWidth;
+                var numeric = OrderBookColumns.numeric(sideWidth, measured, config.showOrderCount, INSET, COLUMN_GAP);
+                priceWidth = numeric.priceWidth();
+                quantityWidth = numeric.quantityWidth();
+                ordersWidth = numeric.ordersWidth();
             }
             case Cumulative -> depthWidth = columnSpace - priceWidth - quantityWidth - ordersWidth;
             case Relative -> quantityWidth = columnSpace - priceWidth - ordersWidth;
         }
-        var columns = new Columns(sideWidth, priceWidth, quantityWidth,
-            ordersWidth, depthWidth, book.mode() == DepthMode.Relative);
+        var columns = new OrderBookColumns(sideWidth, priceWidth, quantityWidth,
+            ordersWidth, depthWidth, book.mode() == DepthMode.Relative, INSET, COLUMN_GAP);
         int contentWidth = !stacked ? sideWidth * 2 + SIDE_GAP : sideWidth;
         return new Layout(columns, stacked, contentWidth);
     }
@@ -197,97 +185,28 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         this.drawChildren(graphics, mouseX, mouseY, partialTicks, delta, this.children);
     }
 
-    static int dividerColor() {
-        return ARGB.multiplyAlpha(UiStyles.palette().border(), 0.65F);
-    }
-
-    static int barFillColor(OrderSide side) {
-        return ARGB.srgbLerp(0.3F, ARGB.opaque(UiStyles.palette().panelBackground()), side.accentColor());
-    }
-
-    record Layout(Columns columns, boolean stacked, int contentWidth) {}
-
-    record Columns(
-        int width, int priceWidth, int quantityWidth, int ordersWidth, int totalWidth, boolean quantityBar
-    ) {
-        boolean hasTotal() {
-            return this.totalWidth > 0;
-        }
-
-        boolean hasOrders() {
-            return this.ordersWidth > 0;
-        }
-
-        boolean hasDepth() {
-            return this.hasTotal() || this.quantityBar;
-        }
-
-        int priceX(OrderSide side) {
-            return side == OrderSide.Buy ? INSET : this.width - INSET - this.priceWidth;
-        }
-
-        int priceTextX(OrderSide side, int textWidth) {
-            return this.priceX(side) + this.priceWidth - textWidth;
-        }
-
-        int quantityX(OrderSide side) {
-            if (this.quantityBar) {
-                return side == OrderSide.Buy ? this.width - INSET - this.quantityWidth : INSET;
-            }
-            return side == OrderSide.Buy
-                ? INSET + this.priceWidth + COLUMN_GAP
-                : this.priceX(side) - COLUMN_GAP - this.quantityWidth;
-        }
-
-        int quantityTextX(OrderSide side, int textWidth) {
-            if (this.quantityBar) {
-                return this.quantityX(side) + 3
-                    + (side == OrderSide.Buy ? this.quantityWidth - 6 - textWidth : 0);
-            }
-            return this.quantityX(side) + this.quantityWidth - textWidth;
-        }
-
-        int ordersX(OrderSide side) {
-            if (this.quantityBar) {
-                return side == OrderSide.Buy
-                    ? this.priceX(side) + this.priceWidth + COLUMN_GAP
-                    : this.priceX(side) - COLUMN_GAP - this.ordersWidth;
-            }
-            return side == OrderSide.Buy
-                ? this.quantityX(side) + this.quantityWidth + COLUMN_GAP
-                : this.quantityX(side) - COLUMN_GAP - this.ordersWidth;
-        }
-
-        int totalX(OrderSide side) {
-            return side == OrderSide.Buy ? this.width - INSET - this.totalWidth : INSET;
-        }
-
-        int ordersTextX(OrderSide side, int textWidth) {
-            return this.ordersX(side) + this.ordersWidth - textWidth;
-        }
-
-        int totalTextX(OrderSide side, int textWidth) {
-            return this.totalX(side) + 3 + (side == OrderSide.Buy ? this.totalWidth - 6 - textWidth : 0);
-        }
-
-        int barX(OrderSide side) {
-            return this.hasTotal() ? this.totalX(side) : this.quantityX(side);
-        }
-
-        int barWidth() {
-            return this.hasTotal() ? this.totalWidth : this.quantityWidth;
-        }
-    }
+    record Layout(OrderBookColumns columns, boolean stacked, int contentWidth) {}
 
     private record LevelKey(OrderSide side, long priceBits) {}
+
+    private static List<Component> levelTooltip(Level level, OrderBookColumns columns) {
+        var tooltip = new ArrayList<Component>();
+        tooltip.add(Component.literal(level.boundText(DepthMode.Relative)).withStyle(UiStyles.quantity()));
+        tooltip.add(Component.literal(level.ordersText()).withStyle(UiStyles.muted()));
+        if (columns.hasTotal()) {
+            tooltip.add(
+                Component.literal("Total: " + level.boundText(DepthMode.Cumulative)).withStyle(UiStyles.quantity()));
+        }
+        return tooltip;
+    }
 
     private static final class Side extends BaseParentUIComponent {
         private final OrderSide side;
         private final Headers headers;
         private final WidgetScrollListComponent list = new WidgetScrollListComponent(
             1, WidgetLayoutTokens.LIST_GAP, true, ARGB.multiplyAlpha(UiStyles.palette().scrollbar(), 0.55F));
-        private final RetainedRows<LevelKey, OrderBookDepthRow> retainedRows = new RetainedRows<>();
-        private List<OrderBookDepthRow> rows = List.of();
+        private final RetainedRows<LevelKey, OrderBookRow> retainedRows = new RetainedRows<>();
+        private List<OrderBookRow> rows = List.of();
         private final UIComponent empty;
         private final UIComponent scrollPadding = UIContainers.verticalFlow(Sizing.fill(100), Sizing.fixed(1));
         private final List<UIComponent> children;
@@ -306,7 +225,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
 
         private void update(
             List<Level> levels,
-            Columns columns,
+            OrderBookColumns columns,
             long maximum,
             int rowHeight,
             int viewportHeight,
@@ -316,8 +235,9 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         ) {
             this.rows = this.retainedRows.reconcile(levels,
                 level -> new LevelKey(this.side, Double.doubleToLongBits(level.entry().price())),
-                (level, _) -> new OrderBookDepthRow(level, this.list),
-                (row, level, _) -> row.update(level, columns, maximum, rowHeight, actions));
+                (level, _) -> new OrderBookRow(level, this.list, false),
+                (row, level, _) -> row.update(level, columns, maximum, rowHeight, levelTooltip(level, columns),
+                    actions));
             var listRows = new ArrayList<UIComponent>(this.rows);
             if (levels.isEmpty()) {
                 this.empty.verticalSizing(Sizing.fixed(rowHeight));
@@ -376,7 +296,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         private final FormattedCharSequence quantity = Component.literal("Quantity").getVisualOrderText();
         private final FormattedCharSequence orders = Component.literal("Orders").getVisualOrderText();
         private final FormattedCharSequence total = Component.literal("Total").getVisualOrderText();
-        private Columns columns = new Columns(1, 1, 1, 0, 0, false);
+        private OrderBookColumns columns = new OrderBookColumns(1, 1, 1, 0, 0, false, INSET, COLUMN_GAP);
 
         private Headers(OrderSide side) {
             this.side = side;
@@ -384,7 +304,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
                 .getVisualOrderText();
         }
 
-        private void update(Columns columns, int height) {
+        private void update(OrderBookColumns columns, int height) {
             this.columns = columns;
             this.sizing(Sizing.fill(100), Sizing.fixed(height));
             this.tooltip(WidgetTooltips.wrapped(columns.quantityBar()
@@ -414,7 +334,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             int ordersX = this.columns.ordersTextX(this.side, font.width(this.orders));
             int totalX = this.columns.totalTextX(this.side, font.width(this.total));
             graphics.fill(this.x + INSET, this.y + this.height - 3,
-                this.x + this.width - INSET, this.y + this.height - 2, dividerColor());
+                this.x + this.width - INSET, this.y + this.height - 2, OrderBookStyles.dividerColor());
             this.text.begin();
             this.text.draw(graphics, font, this.title, this.x + titleX, this.y,
                 this.side.accentColor(), false);

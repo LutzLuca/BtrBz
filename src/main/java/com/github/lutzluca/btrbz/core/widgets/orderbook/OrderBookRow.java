@@ -3,28 +3,28 @@ package com.github.lutzluca.btrbz.core.widgets.orderbook;
 import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData.OrderSide;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookDepthTable.Columns;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookDepth.Level;
-import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig.DepthMode;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetScrollListComponent;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
 
 /** Retained price, quantity, optional order count and depth for one exact level. */
-final class OrderBookDepthRow extends BaseUIComponent {
+final class OrderBookRow extends BaseUIComponent {
     private final RetainedTextRow text = new RetainedTextRow();
     private final WidgetScrollListComponent viewport;
+    private final boolean wholeRowClickable;
     private Level level;
-    private Columns columns = new Columns(1, 1, 1, 0, 0, false);
+    private OrderBookColumns columns = new OrderBookColumns(1, 1, 1, 0, 0, false, 0, 0);
     private Consumer<OrderBookAction> actions = _ -> {};
     private FormattedCharSequence price = FormattedCharSequence.EMPTY;
     private FormattedCharSequence quantity = FormattedCharSequence.EMPTY;
@@ -33,16 +33,18 @@ final class OrderBookDepthRow extends BaseUIComponent {
     private long maximum;
     private boolean hoverSuppressed;
 
-    OrderBookDepthRow(Level level, WidgetScrollListComponent viewport) {
+    OrderBookRow(Level level, WidgetScrollListComponent viewport, boolean wholeRowClickable) {
         this.level = level;
         this.viewport = viewport;
+        this.wholeRowClickable = wholeRowClickable;
     }
 
     void update(
         Level level,
-        Columns columns,
+        OrderBookColumns columns,
         long maximum,
         int height,
+        List<Component> tooltip,
         Consumer<OrderBookAction> actions
     ) {
         this.level = level;
@@ -54,13 +56,6 @@ final class OrderBookDepthRow extends BaseUIComponent {
         this.quantity = Component.literal(level.entry().quantityText()).getVisualOrderText();
         this.orders = Component.literal(level.orderCountText()).getVisualOrderText();
         this.depth = Component.literal(level.depthText()).getVisualOrderText();
-        var tooltip = new ArrayList<Component>();
-        tooltip.add(Component.literal(level.boundText(DepthMode.Relative)).withStyle(UiStyles.quantity()));
-        tooltip.add(Component.literal(level.ordersText()).withStyle(UiStyles.muted()));
-        if (columns.hasTotal()) {
-            tooltip.add(Component.literal("Total: " + level.boundText(DepthMode.Cumulative))
-                .withStyle(UiStyles.quantity()));
-        }
         this.tooltip(WidgetTooltips.wrapped(tooltip));
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
     }
@@ -72,6 +67,10 @@ final class OrderBookDepthRow extends BaseUIComponent {
     private boolean overPrice(double x) {
         int start = this.columns.priceX(this.level.entry().side());
         return x >= start && x < start + this.columns.priceWidth();
+    }
+
+    private static int barFillColor(OrderSide side) {
+        return ARGB.srgbLerp(0.3F, ARGB.opaque(UiStyles.palette().panelBackground()), side.accentColor());
     }
 
     @Override
@@ -86,7 +85,7 @@ final class OrderBookDepthRow extends BaseUIComponent {
             && !this.viewport.scrollbarOwnsMouseCapture()
             && click.y() >= 0
             && click.y() < this.height
-            && this.overPrice(click.x())) {
+            && (this.wholeRowClickable || this.overPrice(click.x()))) {
             this.actions.accept(new OrderBookAction.SelectPrice(this.level.entry().price(), click.hasControlDown()));
             return true;
         }
@@ -100,6 +99,9 @@ final class OrderBookDepthRow extends BaseUIComponent {
 
     @Override
     public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+        if (this.wholeRowClickable && !this.hoverSuppressed && this.isInBoundingBox(mouseX, mouseY)) {
+            graphics.fill(this.x, this.y, this.x + this.width, this.y + this.height, UiStyles.palette().rowHover());
+        }
         var side = this.level.entry().side();
         int laneWidth = this.columns.barWidth();
         if (this.columns.hasDepth()) {
@@ -109,7 +111,7 @@ final class OrderBookDepthRow extends BaseUIComponent {
             graphics.fill(laneX, barY, laneX + laneWidth, barBottom, UiStyles.palette().progressTrack());
             int fill = (int) Math.round(laneWidth * this.level.fillFraction(this.maximum));
             int fillX = side == OrderSide.Buy ? laneX + laneWidth - fill : laneX;
-            graphics.fill(fillX, barY, fillX + fill, barBottom, OrderBookDepthTable.barFillColor(side));
+            graphics.fill(fillX, barY, fillX + fill, barBottom, barFillColor(side));
         }
 
         var font = Minecraft.getInstance().font;
