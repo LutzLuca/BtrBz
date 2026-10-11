@@ -27,7 +27,8 @@ public final class OrderBookWidgetDefinition {
 
         return WidgetDefinition.<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction>builder(ID,
             "Order Book")
-            .description("Shows buy and sell price levels beside Bazaar screens and lets you select a price.")
+            .description(
+                "Shows exact buy and sell levels with configurable item depth and lets you copy a price.")
             .config(config)
             .supports(OrderBookWidgetDefinition::supportsSession)
             .data(provider)
@@ -39,7 +40,7 @@ public final class OrderBookWidgetDefinition {
             .viewFactory(FullOrderBookWidgetView::new)
             .actionHandler(new OrderBookActionHandler(embeddedWorkflow))
             .settingsPanel(OrderBookWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(220), 48)
+            .minSize(WidgetLayoutTokens.panelWidth(OrderBookWidgetConfig.MIN_CONTENT_WIDTH), 48)
             .build();
     }
 

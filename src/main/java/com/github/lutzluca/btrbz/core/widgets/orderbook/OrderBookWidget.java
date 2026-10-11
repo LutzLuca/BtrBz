@@ -3,8 +3,8 @@ package com.github.lutzluca.btrbz.core.widgets.orderbook;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import java.util.ArrayList;
 
-/** Pure order-book presentation decisions shared by the retained full and embedded views. */
-public final class OrderBookWidget {
+/** Compact order-book visibility, sizing and metadata presentation. */
+final class OrderBookWidget {
     private OrderBookWidget() {}
 
     static boolean showsEmbeddedSide(
@@ -43,25 +43,15 @@ public final class OrderBookWidget {
         return visibleSides;
     }
 
-    public static int contentWidth(OrderBookWidgetConfig options) {
-        return options.contentWidth;
-    }
-
-    public static int sideWidth(OrderBookWidgetConfig options) {
-        return options.layout == OrderBookWidgetConfig.BookLayout.Split
-            ? Math.max(1, (contentWidth(options) - 2) / 2)
-            : contentWidth(options);
-    }
-
     static String embeddedMetadata(
         OrderBookWidgetData.Entry entry,
         OrderBookPriceWidgetConfig options
     ) {
         var parts = new ArrayList<String>();
-        parts.add(entry.quantityText() + " items");
+        parts.add(entry.quantityText() + (entry.quantity() == 1 ? " item" : " items"));
 
         if (options.showOrderCount) {
-            parts.add(entry.orders() + " orders");
+            parts.add(BazaarWidgetViewData.formatInt(entry.orders()) + (entry.orders() == 1 ? " order" : " orders"));
         }
 
         return String.join(" · ", parts);

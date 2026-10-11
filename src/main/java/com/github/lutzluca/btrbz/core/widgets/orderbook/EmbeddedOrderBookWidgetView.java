@@ -17,6 +17,7 @@ import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
+import io.wispforest.owo.ui.core.HorizontalAlignment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -34,8 +35,8 @@ final class EmbeddedOrderBookWidgetView
     private final LabelComponent prices = UiComponents.label("Prices", UiStyles.palette().muted());
 
     private final RetainedFlowLayout sides = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-    private final Side buy = new Side("Buy", UiStyles.palette().buy(), BazaarWidgetViewData.OrderSide.Buy);
-    private final Side sell = new Side("Sell", UiStyles.palette().sell(), BazaarWidgetViewData.OrderSide.Sell);
+    private final Side buy = new Side("Buy orders", UiStyles.palette().buy(), BazaarWidgetViewData.OrderSide.Buy);
+    private final Side sell = new Side("Sell offers", UiStyles.palette().sell(), BazaarWidgetViewData.OrderSide.Sell);
 
     EmbeddedOrderBookWidgetView() {
         this.root.allowOverflow(true);
@@ -61,7 +62,7 @@ final class EmbeddedOrderBookWidgetView
     ) {
         this.root.horizontalSizing(Sizing.fixed(OrderBookWidget.embeddedContentWidth(config, data)));
 
-        this.itemName.text(Component.literal(data.itemName()));
+        this.itemName.text(data.formattedItemName());
         this.header.clearChildren();
 
         var itemStack = data.itemStack();
@@ -108,6 +109,7 @@ final class EmbeddedOrderBookWidgetView
 
     private static final class Side {
         private final BazaarWidgetViewData.OrderSide side;
+        private final LabelComponent title;
 
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.expand(50), Sizing.content());
         private final BazaarOrderListComponent list = new BazaarOrderListComponent(true, 1, 1);
@@ -117,7 +119,9 @@ final class EmbeddedOrderBookWidgetView
 
             this.root.gap(0);
 
-            this.root.child(UiComponents.label(title, color));
+            this.title = UiComponents.label(title, color);
+            this.title.horizontalSizing(Sizing.fill(100));
+            this.root.child(this.title);
             this.root.child(this.list);
         }
 
@@ -129,6 +133,8 @@ final class EmbeddedOrderBookWidgetView
             Consumer<OrderBookAction> actions
         ) {
             this.root.horizontalSizing(single ? Sizing.fill(100) : Sizing.expand(50));
+            this.title.horizontalTextAlignment(!single && this.side == BazaarWidgetViewData.OrderSide.Sell
+                ? HorizontalAlignment.RIGHT : HorizontalAlignment.LEFT);
 
             var rows = new ArrayList<BazaarOrderRowComponent.BazaarRow>();
 

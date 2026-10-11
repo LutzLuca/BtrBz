@@ -11,6 +11,7 @@ import io.wispforest.owo.ui.core.UIComponent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
@@ -90,6 +91,10 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
         return this.scroller.thumbCaptured();
     }
 
+    public void scrollbarThickness(int thickness) {
+        this.scroller.scrollbarThiccness(Math.max(1, thickness));
+    }
+
     public boolean isPointerOverScrollbar(double mouseX, double mouseY) {
         return this.scroller.isPointerOverScrollbar(mouseX, mouseY);
     }
@@ -113,6 +118,14 @@ public final class WidgetScrollListComponent extends BaseParentUIComponent {
 
     public void scrollOffset(double offset) {
         this.scroller.scrollOffset(offset);
+    }
+
+    public void onScroll(BiConsumer<Double, Boolean> listener) {
+        this.scroller.onScroll(listener);
+    }
+
+    public void scrollToOffset(double offset, boolean instant) {
+        this.scroller.scrollToOffset(offset, instant);
     }
 
     private static boolean sameRows(List<UIComponent> current, List<? extends UIComponent> updated) {

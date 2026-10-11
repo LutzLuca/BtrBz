@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +18,8 @@ record PreparedCacheStamp(
     int canvasHeight,
     WidgetHostOptions options,
     String placementProfile,
-    CacheRevisions.Snapshot dependencyRevisions
+    CacheRevisions.Snapshot dependencyRevisions,
+    long textRevision
 ) {
     public static PreparedCacheStamp capture(
         WidgetSession session,
@@ -29,7 +31,7 @@ record PreparedCacheStamp(
         return new PreparedCacheStamp(
             session.id(), session.contextRevision(),
             canvas.x(), canvas.y(), canvas.width(), canvas.height(), options,
-            placementProfile, CacheRevisions.capture(dependencies));
+            placementProfile, CacheRevisions.capture(dependencies), TextRenderRevision.current());
     }
 
     public boolean matches(
@@ -47,7 +49,8 @@ record PreparedCacheStamp(
             && this.canvasHeight == canvas.height()
             && this.options.equals(currentOptions)
             && this.placementProfile.equals(profile)
-            && CacheRevisions.match(this.dependencyRevisions, dependencies);
+            && CacheRevisions.match(this.dependencyRevisions, dependencies)
+            && this.textRevision == TextRenderRevision.current();
     }
 
     public List<WidgetCacheMissCause> missCauses(
@@ -58,6 +61,10 @@ record PreparedCacheStamp(
         CacheDependencies dependencies
     ) {
         var causes = new ArrayList<WidgetCacheMissCause>();
+
+        if (this.textRevision != TextRenderRevision.current()) {
+            causes.add(WidgetCacheMissCause.direct("text resources reloaded"));
+        }
 
         if (this.sessionId != session.id()) {
             causes.add(WidgetCacheMissCause.direct("semantic session changed"));

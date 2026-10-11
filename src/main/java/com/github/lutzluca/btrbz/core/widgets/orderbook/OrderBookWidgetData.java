@@ -7,11 +7,13 @@ import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.utils.GameUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.network.chat.Component;
 
 /** Shared order-book snapshots for the custom-screen and sign widgets. */
 public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidgetData.Snapshot> {
@@ -31,12 +33,14 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
     @Override
     public Snapshot snapshot(WidgetSession session) {
         ProductIdentity product = session.product().map(context -> context.identity()).orElse(null);
-        String name = "Order Book";
+        Component name = Component.literal("Order Book");
         Optional<ItemStack> itemStack = Optional.empty();
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide = Optional.empty();
         if (session.product().isPresent()) {
             var context = session.product().orElseThrow();
-            name = context.displayName().getString();
+            name = product.formattedName() == null
+                ? context.displayName()
+                : GameUtils.legacyFormattedComponent(product.visualName());
             itemStack = context.itemStack();
         }
         if (session.inSign()) {
@@ -53,16 +57,16 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
             itemStack,
             lists.buyOrders().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Buy, summary.getPricePerUnit(),
-                (int) summary.getAmount(), (int) summary.getOrders())).toList(),
+                summary.getAmount(), summary.getOrders())).toList(),
             lists.sellOffers().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Sell, summary.getPricePerUnit(),
-                (int) summary.getAmount(), (int) summary.getOrders())).toList(),
+                summary.getAmount(), summary.getOrders())).toList(),
             appropriateSide);
     }
 
     public static Snapshot preview() {
         return new Snapshot(
-            "Booster Cookie", Optional.of(new ItemStack(Items.COOKIE)),
+            Component.literal("Booster Cookie"), Optional.of(new ItemStack(Items.COOKIE)),
             previewLevels(BazaarWidgetViewData.OrderSide.Buy, 9_811_000.1),
             previewLevels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0),
             Optional.of(BazaarWidgetViewData.OrderSide.Sell));
@@ -83,7 +87,7 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
         return values;
     }
 
-    public record Entry(BazaarWidgetViewData.OrderSide side, double price, int quantity, int orders) {
+    public record Entry(BazaarWidgetViewData.OrderSide side, double price, long quantity, long orders) {
         public String priceText() {
             return BazaarWidgetViewData.formatPrice(this.price);
         }
@@ -94,16 +98,26 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
     }
 
     public record Snapshot(
-        String itemName,
+        Component formattedItemName,
         Optional<ItemStack> itemStack,
         List<Entry> buyOffers,
         List<Entry> sellOffers,
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
         public Snapshot {
+            formattedItemName = formattedItemName.copy();
             itemStack = itemStack.map(ItemStack::copy);
             buyOffers = List.copyOf(buyOffers);
             sellOffers = List.copyOf(sellOffers);
+        }
+
+        public String itemName() {
+            return this.formattedItemName.getString();
+        }
+
+        @Override
+        public Component formattedItemName() {
+            return this.formattedItemName.copy();
         }
 
         @Override

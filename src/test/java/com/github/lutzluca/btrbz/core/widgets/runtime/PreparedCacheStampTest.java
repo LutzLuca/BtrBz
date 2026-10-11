@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
+import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +49,10 @@ class PreparedCacheStampTest {
             assertFalse(stamp.matches(session, new WidgetCanvas(10, 20, 301, 200), options, "default", dependencies));
             assertFalse(stamp.matches(session, canvas, WidgetHostOptions.runtime(false), "default", dependencies));
             assertFalse(stamp.matches(session, canvas, options, "sign", dependencies));
+            TextRenderRevision.invalidate();
+            assertFalse(stamp.matches(session, canvas, options, "default", dependencies));
+            assertEquals("text resources reloaded",
+                stamp.missCauses(session, canvas, options, "default", dependencies).getFirst().description());
         }
 
         @Test

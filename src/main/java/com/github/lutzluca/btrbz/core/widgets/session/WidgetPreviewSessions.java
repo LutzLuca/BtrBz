@@ -30,7 +30,7 @@ public final class WidgetPreviewSessions {
 
     private static Optional<WidgetProductContext> product(OrderBookWidgetData.Snapshot data) {
         return Optional.of(new WidgetProductContext(
-            ProductIdentity.fromName(data.itemName()), Component.literal(data.itemName()), data.itemStack()));
+            ProductIdentity.fromName(data.itemName()), data.formattedItemName(), data.itemStack()));
     }
 
     private static WidgetSession session(
