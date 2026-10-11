@@ -3,10 +3,14 @@ package com.github.lutzluca.btrbz.core.appearance;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 
-/** Adapted from the upstream palettes linked in the README. */
+/** BtrBz's own dark palette and adaptations of the upstream palettes linked in the README. */
 @Getter
 @Accessors(fluent = true)
 public enum ThemePreset {
+    BtrBzDark("BtrBz Dark", new int[]{
+        0x0C0C0C, 0x22252A, 0x45494E, 0xFFFFFF, 0xAAAAAA, 0x8A919C, 0xFFAA00, 0x0C0C0C,
+        0x55FF55, 0xFFFF55, 0xFF5555, 0xFFAA00, 0x55FF55, 0xFFAA00,
+        0x55FF55, 0x5599FF, 0xFF5555, 0xFFC857, 0xAAAAAA, 0x8A919C}),
     Mocha("Catppuccin Mocha", new int[]{
         0x1E1E2E, 0x313244, 0x585B70, 0xCDD6F4, 0xBAC2DE, 0xA6ADC8, 0xB4BEFE, 0x1E1E2E,
         0xA6E3A1, 0xF9E2AF, 0xF38BA8, 0xF9E2AF, 0x94E2D5, 0xFAB387,

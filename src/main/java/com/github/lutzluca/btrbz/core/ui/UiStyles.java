@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Style;
 
 /** Shared text roles and formatting, separate from the palette's colors. */
 public final class UiStyles {
-    private static UiPalette currentPalette = ThemePreset.Mocha.theme().palette();
+    private static UiPalette currentPalette = ThemePreset.BtrBzDark.theme().palette();
     private static UiPalette.ButtonColors currentButtons = currentPalette.buttons();
     private static boolean formattedProductNames = true;
     private static long appearanceRevision;
