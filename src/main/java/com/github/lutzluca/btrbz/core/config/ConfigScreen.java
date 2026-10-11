@@ -18,6 +18,7 @@ import dev.isxander.yacl3.api.YetAnotherConfigLib.Builder;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -29,13 +30,13 @@ public class ConfigScreen {
     private final Activation activation;
     private final OrderTooltipProvider tooltipProvider;
     private final Function<Screen, Screen> alertScreenFactory;
-    private final Function<Screen, Screen> appearanceScreenFactory;
+    private final BiFunction<Screen, Option<Integer>, Screen> appearanceScreenFactory;
 
     public ConfigScreen(
         WidgetRuntime widgetRuntime,
         Activation activation,
         OrderTooltipProvider tooltipProvider,
-        Function<Screen, Screen> appearanceScreenFactory,
+        BiFunction<Screen, Option<Integer>, Screen> appearanceScreenFactory,
         Function<Screen, Screen> alertScreenFactory
     ) {
         this.widgetRuntime = Objects.requireNonNull(widgetRuntime, "widgetRuntime cannot be null");
@@ -61,6 +62,7 @@ public class ConfigScreen {
     }
 
     private void buildCategories(Builder builder, Config config) {
+        var highlightOpacity = config.orderHighlight.createOpacityOption();
         var general = ConfigCategory
             .createBuilder()
             .name(Component.literal("General"))
@@ -69,7 +71,8 @@ public class ConfigScreen {
             .option(ButtonOption.createBuilder()
                 .name(Component.literal("Appearance"))
                 .text(Component.literal("Edit"))
-                .action((screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen)))
+                .action(
+                    (screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen, highlightOpacity)))
                 .build())
             .build();
 
@@ -89,7 +92,7 @@ public class ConfigScreen {
             .tooltip(Component.literal(
                 "Configure order-status notifications, highlighting, and alerts."))
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
-            .group(config.orderHighlight.createGroup())
+            .group(config.orderHighlight.createGroup(highlightOpacity))
             .group(config.alert.createGroup(screen -> GameUtils.setScreen(this.alertScreenFactory.apply(screen))))
             .build();
 

@@ -94,8 +94,8 @@ public class OrderHighlightManager {
                 .controller(ConfigUi::createBooleanController);
         }
 
-        public OptionGroup createGroup() {
-            var opacityOption = Option.<Integer>createBuilder()
+        public Option<Integer> createOpacityOption() {
+            return Option.<Integer>createBuilder()
                 .name(Component.literal("Highlight Opacity"))
                 .binding(55, () -> this.opacity, value -> this.opacity = value)
                 .description(ConfigUi.createDescription(
@@ -103,8 +103,12 @@ public class OrderHighlightManager {
                 .controller(option -> IntegerSliderControllerBuilder.create(option)
                     .range(0, 100)
                     .step(1)
-                    .formatValue(value -> Component.literal(value + "%")));
-            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(opacityOption);
+                    .formatValue(value -> Component.literal(value + "%")))
+                .build();
+        }
+
+        public OptionGroup createGroup(Option<Integer> opacityOption) {
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOption(opacityOption);
 
             return OptionGroup
                 .createBuilder()

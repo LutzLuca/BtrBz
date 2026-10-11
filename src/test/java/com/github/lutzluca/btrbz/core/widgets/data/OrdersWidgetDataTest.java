@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderInfo.FilledOrderInfo;
 import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
+import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.appearance.AppearanceManager;
 import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.appearance.UiTheme;
@@ -30,7 +31,7 @@ class OrdersWidgetDataTest {
 
     @Test
     void appearanceChangesRefreshSnapshotsWithTooltipsAndReuseUnthemedData() {
-        var config = new AppearanceConfig();
+        var config = new Config();
         var appearance = new AppearanceManager(() -> config, () -> {});
         try {
             var market = new BazaarData();
@@ -47,8 +48,9 @@ class OrdersWidgetDataTest {
             var originalThemed = themed.snapshot(session);
             var originalUnthemed = unthemed.snapshot(session);
 
-            appearance.apply(new UiTheme("Changed", config.theme.palette().withColor(UiColor.Matched, 0xFF123456)),
-                true);
+            appearance.apply(
+                new UiTheme("Changed", config.appearance.theme.palette().withColor(UiColor.Matched, 0xFF123456)),
+                true, config.orderHighlight.opacity);
 
             Assertions.assertNotSame(originalThemed, themed.snapshot(session));
             Assertions.assertSame(originalUnthemed, unthemed.snapshot(session));

@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.ui.ScrollSafeDiscreteSliderComponent;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.isxander.yacl3.api.Option;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.component.ColorPickerComponent;
@@ -46,6 +47,8 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
     private final AppearanceManager manager;
     private UiTheme draft;
     private boolean formattedNames;
+    private int orderHighlightOpacity;
+    private final @Nullable Option<Integer> highlightOpacityOption;
     private boolean colorsView;
     private UiColor.Group group = UiColor.Group.Interface;
     private FlowLayout controls;
@@ -55,12 +58,19 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable TextBoxComponent nameField;
     private UiButton applyButton;
 
-    public AppearanceScreen(@Nullable Screen parent, AppearanceManager manager) {
+    public AppearanceScreen(
+        @Nullable Screen parent,
+        AppearanceManager manager,
+        @Nullable Option<Integer> highlightOpacityOption
+    ) {
         super(Component.literal("BtrBz Appearance"));
         this.parent = parent;
         this.manager = manager;
         this.draft = manager.theme();
         this.formattedNames = manager.formattedProductNames();
+        this.highlightOpacityOption = highlightOpacityOption;
+        this.orderHighlightOpacity = highlightOpacityOption == null
+            ? manager.orderHighlightOpacity() : highlightOpacityOption.pendingValue();
     }
 
     @Override
@@ -112,7 +122,10 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         var importButton = UiButton.text("Import", () -> this.openSharing(true));
         var exportButton = UiButton.text("Export", () -> this.openSharing(false));
         this.applyButton = UiButton.text("Apply", () -> {
-            this.manager.apply(this.draft, this.formattedNames);
+            this.manager.apply(this.draft, this.formattedNames, this.orderHighlightOpacity);
+            if (this.highlightOpacityOption != null) {
+                this.highlightOpacityOption.forgetPendingValue();
+            }
             this.onClose();
         }).primary(true);
         panel.child(
@@ -196,6 +209,13 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         opacity.message(value -> Component.literal("Panel opacity " + value + "%"));
         opacity.onChanged().subscribe(value -> this.editPalette(this.draft.palette().withOpacity(value / 100)));
         this.controls.child(opacity);
+        var highlightOpacity = new ScrollSafeDiscreteSliderComponent(Sizing.fill(100), 0, 100, 1);
+        highlightOpacity.decimalPlaces(0);
+        highlightOpacity.setFromDiscreteValue(this.orderHighlightOpacity);
+        highlightOpacity.message(value -> Component.literal("Order highlight opacity " + value + "%"));
+        highlightOpacity.onChanged().subscribe(value -> this.orderHighlightOpacity = (int) Math.round(value));
+        highlightOpacity.tooltip(Component.literal("Opacity of order slot backgrounds on the Bazaar Orders page."));
+        this.controls.child(highlightOpacity);
         var formatted = UIComponents.smallCheckbox(Component.literal("Formatted product names"));
         formatted.checked(this.formattedNames);
         formatted.onChanged().subscribe(value -> this.formattedNames = value);
@@ -290,7 +310,7 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
 
     private final class ThemePreview extends BaseUIComponent {
         private ThemePreview() {
-            this.sizing(Sizing.fill(100), Sizing.fixed(260));
+            this.sizing(Sizing.fill(100), Sizing.fixed(298));
         }
 
         @Override
@@ -342,6 +362,19 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
             UiSurfaces.drawRoundedPanel(graphics, x, y, Math.min(70, width), 20, p.accent(), 3);
             this.text(graphics, Component.literal("Apply"), x + 8, y + 6, width - 16, p.onAccent());
             this.text(graphics, Component.literal("Just now"), x + 78, y + 6, width - 78, p.textMuted());
+            y += 28;
+            this.text(graphics, Component.literal("Order slots"), x, y, width, p.textSecondary());
+            y += 14;
+            String[] slotStates = {"Best", "Matched", "Undercut"};
+            int[] slotColors = {p.best(), p.matched(), p.undercut()};
+            for (int i = 0; i < slotStates.length; i++) {
+                int slotX = x + i * width / 3;
+                graphics.fill(slotX, y, slotX + 16, y + 16, p.surfaceRaised());
+                graphics.fill(slotX, y, slotX + 16, y + 16,
+                    UiPalette.alpha(slotColors[i], AppearanceScreen.this.orderHighlightOpacity / 100.0));
+                this.text(graphics, Component.literal(slotStates[i]), slotX + 20, y + 4,
+                    width / 3 - 20, p.textPrimary());
+            }
         }
 
         private void order(
