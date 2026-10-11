@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
+import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,8 @@ public class OrderHighlightManager {
     }
 
     public Optional<Integer> getHighlight(int idx, boolean marketActive) {
-        if (!ConfigStore.get().config().orderHighlight.enabled) {
+        var config = ConfigStore.get().config().orderHighlight;
+        if (!config.enabled) {
             return Optional.empty();
         }
 
@@ -65,7 +67,7 @@ public class OrderHighlightManager {
         var color = marketActive && tracked != null
             ? Optional.of(colorForStatus(tracked.status))
             : Optional.ofNullable(this.inactiveOrderSlots.get(idx)).map(role -> role.color(UiStyles.palette()));
-        return color.map(value -> UiPalette.alpha(value, 0.55));
+        return color.map(value -> UiPalette.alpha(value, config.opacity / 100.0));
     }
 
     public void clear() {
@@ -80,6 +82,7 @@ public class OrderHighlightManager {
     public static class HighlightConfig {
 
         public boolean enabled = true;
+        public int opacity = 55;
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
@@ -92,7 +95,16 @@ public class OrderHighlightManager {
         }
 
         public OptionGroup createGroup() {
-            var rootGroup = new OptionGrouping(this.createEnabledOption());
+            var opacityOption = Option.<Integer>createBuilder()
+                .name(Component.literal("Highlight Opacity"))
+                .binding(55, () -> this.opacity, value -> this.opacity = value)
+                .description(ConfigUi.createDescription(
+                    "Set the opacity of order slot backgrounds. 0% is invisible and 100% is fully opaque."))
+                .controller(option -> IntegerSliderControllerBuilder.create(option)
+                    .range(0, 100)
+                    .step(1)
+                    .formatValue(value -> Component.literal(value + "%")));
+            var rootGroup = new OptionGrouping(this.createEnabledOption()).addOptions(opacityOption);
 
             return OptionGroup
                 .createBuilder()
