@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.14.0-alpha] - 2026-10-11
+
+### Added
+
+- Added SkyBlock profile detection that clears session state when switching profiles
+
+### Changed
+
+- Reworked order books with mirrored layouts, optional depth bars, and independent or synchronized scrolling
+- The Widget Manager can now be opened from the order-book screen
+- Market features now pause when Bazaar API data stays unavailable or outdated, then resume automatically when usable data returns
+- Bookmarks now refresh their item icons from current product data instead of keeping saved item stacks
+- Restyled buttons and panels across widgets, the Widget Manager, and the alert screen
+- Reduced the default alert-screen height
+
+### Fixed
+
+- Filled orders marked expired now keep their filled highlight and can still be flipped
+
+### Removed
+
+- Removed the full order book's Buy Only, Sell Only, and compact volume-format settings
+
 ## [0.13.0-alpha] - 2026-10-03
 
 ### Breaking
