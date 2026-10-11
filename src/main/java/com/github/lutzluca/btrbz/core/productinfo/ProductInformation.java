@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.productinfo;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.BtrBz;
@@ -235,7 +236,7 @@ public final class ProductInformation {
                         .run(() -> Util.getPlatform().openUri(new URI(link)))
                         .onFailure(err -> Notifier.notifyPlayer(Component
                             .literal("Failed to open link: ")
-                            .withStyle(UiStyles.color(UiStyles.palette().error()))
+                            .withStyle(UiStyles.color(UiColor.Error))
                             .append(Component
                                 .literal(link)
                                 .withStyle(UiStyles.action()))));

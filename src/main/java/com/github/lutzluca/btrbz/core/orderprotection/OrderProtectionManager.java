@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.orderprotection;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -80,18 +81,18 @@ public class OrderProtectionManager {
             if (!blocked) {
                 lines.add(Component
                     .literal("✓ ")
-                    .withStyle(UiStyles.color(UiStyles.palette().success()))
+                    .withStyle(UiStyles.color(UiColor.Success))
                     .append(Component.literal("Order Protection: ").withStyle(UiStyles.label()))
-                    .append(Component.literal("Safe").withStyle(UiStyles.color(UiStyles.palette().success()))));
+                    .append(Component.literal("Safe").withStyle(UiStyles.color(UiColor.Success))));
                 return;
             }
 
             if (ctrlHeld) {
                 lines.add(Component
                     .literal("⚠ ")
-                    .withStyle(UiStyles.color(UiStyles.palette().warning()))
+                    .withStyle(UiStyles.color(UiColor.Warning))
                     .append(Component.literal("Order Protection: ").withStyle(UiStyles.label()))
-                    .append(Component.literal("Overridden").withStyle(UiStyles.color(UiStyles.palette().warning()))));
+                    .append(Component.literal("Overridden").withStyle(UiStyles.color(UiColor.Warning))));
 
                 appendReasonLines(lines, validation);
 
@@ -103,9 +104,9 @@ public class OrderProtectionManager {
 
             lines.add(Component
                 .literal("✗ ")
-                .withStyle(UiStyles.color(UiStyles.palette().error()))
+                .withStyle(UiStyles.color(UiColor.Error))
                 .append(Component.literal("Order Protection: ").withStyle(UiStyles.label()))
-                .append(Component.literal("Blocked").withStyle(UiStyles.color(UiStyles.palette().error()))));
+                .append(Component.literal("Blocked").withStyle(UiStyles.color(UiColor.Error))));
 
             appendReasonLines(lines, validation);
 
@@ -120,7 +121,7 @@ public class OrderProtectionManager {
     private static void appendReasonLines(List<Component> lines, ValidationResult validation) {
         lines.add(Component.literal("Reason:").withStyle(UiStyles.label()));
         for (var reason : validation.reasonLines()) {
-            lines.add(Component.literal("  ").append(reason).withStyle(UiStyles.color(UiStyles.palette().warning())));
+            lines.add(Component.literal("  ").append(reason).withStyle(UiStyles.color(UiColor.Warning)));
         }
     }
 

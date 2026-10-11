@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ public class Notifier {
 
         var msg = Component
             .literal(reason)
-            .withStyle(UiStyles.color(UiStyles.palette().error()))
+            .withStyle(UiStyles.color(UiColor.Error))
             .append(Component.literal(" Hold Ctrl to override.").withStyle(UiStyles.label()));
 
         notifyPlayer(msg);

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
@@ -213,7 +214,7 @@ public class BtrBz implements ClientModInitializer {
                 this.marketHibernationAnnounced = false;
                 Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
                     "Bazaar market data is usable again, and market features have resumed.")
-                    .withStyle(UiStyles.color(UiStyles.palette().success()))));
+                    .withStyle(UiStyles.color(UiColor.Success))));
             }
         },
             this::hibernateMarket,
@@ -478,7 +479,7 @@ public class BtrBz implements ClientModInitializer {
 
     private void warnBazaarUnavailable(String message) {
         Notifier.notifyPlayer(Notifier.prefix()
-            .append(Component.literal(message).withStyle(UiStyles.color(UiStyles.palette().warning()))));
+            .append(Component.literal(message).withStyle(UiStyles.color(UiColor.Warning))));
     }
 
     private void hibernateMarket() {
@@ -534,7 +535,7 @@ public class BtrBz implements ClientModInitializer {
     private void notifyProfileNotice(ProfileTracker.Notice notice) {
         var message = Notifier.prefix().append(Component.literal(notice.message())
             .withStyle(
-                UiStyles.color(notice.offerReset() ? UiStyles.palette().warning() : UiStyles.palette().success())));
+                UiStyles.color(notice.offerReset() ? UiColor.Warning : UiColor.Success)));
         if (notice.offerReset()) {
             message.append(Component.literal(" [Reset session]").withStyle(style -> style
                 .withColor(UiStyles.palette().warning() & 0xFFFFFF)

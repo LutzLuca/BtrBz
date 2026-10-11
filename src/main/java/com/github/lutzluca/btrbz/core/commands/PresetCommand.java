@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -86,7 +87,7 @@ public class PresetCommand {
                                 .append(Component.literal("Preset ").withStyle(UiStyles.label()))
                                 .append(Component
                                     .literal(String.valueOf(volume))
-                                    .withStyle(UiStyles.color(UiStyles.palette().error())))
+                                    .withStyle(UiStyles.color(UiColor.Error)))
                                 .append(Component.literal(" not found").withStyle(UiStyles.label())));
                         }
 
@@ -122,7 +123,7 @@ public class PresetCommand {
                     builder.append(Component.literal(" "));
                     builder.append(Component
                         .literal("[x]")
-                        .withStyle(UiStyles.color(UiStyles.palette().error()))
+                        .withStyle(UiStyles.color(UiColor.Error))
                         .withStyle(style -> style
                             .withClickEvent(new RunCommand("/btrbz preset remove " + volume))
                             .withHoverEvent(new ShowText(Component.literal("Remove preset for " + volume)))));

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.orderdisplay;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -143,7 +144,7 @@ public class OrderTooltipProvider {
 
         if (product.bazaarProductId().isEmpty()) {
             return List.of(Component.literal("Unknown Product: " + order.productName)
-                .withStyle(UiStyles.color(UiStyles.palette().error())));
+                .withStyle(UiStyles.color(UiColor.Error)));
         }
 
         List<Component> lines = new ArrayList<>();
@@ -186,7 +187,7 @@ public class OrderTooltipProvider {
 
         if (product.bazaarProductId().isEmpty()) {
             return List.of(Component.literal("Unknown Product: " + order.productName)
-                .withStyle(UiStyles.color(UiStyles.palette().error())));
+                .withStyle(UiStyles.color(UiColor.Error)));
         }
 
         List<Component> lines = new ArrayList<>();
@@ -264,13 +265,13 @@ public class OrderTooltipProvider {
     private static Component statusLine(TrackedOrder order) {
         return switch (order.status) {
             case OrderStatus.Top _ -> Component.literal("Best Price!")
-                .withStyle(UiStyles.color(UiStyles.palette().best()).withBold(true));
+                .withStyle(UiStyles.color(UiColor.Best).withBold(true));
             case OrderStatus.Matched _ -> Component.literal("Matched!")
-                .withStyle(UiStyles.color(UiStyles.palette().matched()).withBold(true));
+                .withStyle(UiStyles.color(UiColor.Matched).withBold(true));
             case OrderStatus.Undercut _ -> Component.literal("Undercut!")
-                .withStyle(UiStyles.color(UiStyles.palette().undercut()).withBold(true));
+                .withStyle(UiStyles.color(UiColor.Undercut).withBold(true));
             case OrderStatus.Unknown _ -> Component.literal("Status Unknown")
-                .withStyle(UiStyles.color(UiStyles.palette().unknown()));
+                .withStyle(UiStyles.color(UiColor.Unknown));
         };
     }
 

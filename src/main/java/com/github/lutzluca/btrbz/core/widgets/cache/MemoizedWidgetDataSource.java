@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.widgets.cache;
 import com.github.lutzluca.btrbz.cache.CacheRevisions;
 
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.util.Objects;
@@ -15,7 +14,6 @@ public final class MemoizedWidgetDataSource<D> implements WidgetDataSource<D> {
 
     private long sessionId = Long.MIN_VALUE;
     private long sessionContextRevision = Long.MIN_VALUE;
-    private long appearanceRevision = Long.MIN_VALUE;
     private CacheRevisions.Snapshot dependencyRevisions = CacheRevisions.capture(CacheDependencies.none());
 
     private @Nullable D cached;
@@ -45,7 +43,6 @@ public final class MemoizedWidgetDataSource<D> implements WidgetDataSource<D> {
         var current = this.cached;
 
         if (current != null && sessionMatches
-            && this.appearanceRevision == UiStyles.appearanceRevision()
             && CacheRevisions.match(this.dependencyRevisions, dependencies)) {
             return current;
         }
@@ -55,7 +52,6 @@ public final class MemoizedWidgetDataSource<D> implements WidgetDataSource<D> {
 
         this.sessionId = session.id();
         this.sessionContextRevision = session.contextRevision();
-        this.appearanceRevision = UiStyles.appearanceRevision();
         this.dependencyRevisions = revisions;
         this.cached = computed;
 

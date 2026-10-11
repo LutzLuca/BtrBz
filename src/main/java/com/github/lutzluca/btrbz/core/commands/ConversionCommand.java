@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
@@ -65,7 +66,7 @@ public final class ConversionCommand {
             .append(Component
                 .literal("\nMissing products: " + status.missingProductCount())
                 .withStyle(status.missingProductCount() == 0
-                    ? UiStyles.label() : UiStyles.color(UiStyles.palette().warning())))
+                    ? UiStyles.label() : UiStyles.color(UiColor.Warning)))
             .append(Component
                 .literal("\nSources: neu=" + counts.neu()
                     + ", derived=" + counts.derived())
@@ -83,7 +84,7 @@ public final class ConversionCommand {
 
         status.lastFailure().ifPresent(failure -> message.append(Component
             .literal("\nLast failure: " + failure.shortMessage())
-            .withStyle(UiStyles.color(UiStyles.palette().error()))));
+            .withStyle(UiStyles.color(UiColor.Error))));
 
         Notifier.notifyPlayer(message);
     }

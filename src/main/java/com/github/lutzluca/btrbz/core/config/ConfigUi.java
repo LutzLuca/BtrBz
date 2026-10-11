@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.config;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
@@ -60,7 +61,7 @@ public final class ConfigUi {
     public static Component note(Component text) {
         return Component
             .literal("Note: ")
-            .withStyle(UiStyles.color(UiStyles.palette().warning()))
+            .withStyle(UiStyles.color(UiColor.Warning))
             .append(text);
     }
 

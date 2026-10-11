@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -38,7 +39,7 @@ public class TaxCommand {
                             var msg = Notifier
                                 .prefix()
                                 .append(Component.literal("Invalid rate")
-                                    .withStyle(UiStyles.color(UiStyles.palette().error())))
+                                    .withStyle(UiStyles.color(UiColor.Error)))
                                 .append(Component
                                     .literal(" (" + rate + ")")
                                     .withStyle(UiStyles.muted()))

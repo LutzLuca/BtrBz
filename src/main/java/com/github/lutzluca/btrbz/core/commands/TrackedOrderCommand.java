@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -79,7 +80,7 @@ public class TrackedOrderCommand {
                 .literal("[" + order.status.toString() + "] ")
                 .withStyle(UiStyles.color(OrderHighlightManager.colorForStatus(order.status))))
             .append(Component.literal(typeStr).withStyle(
-                UiStyles.color(order.type == OrderType.Buy ? UiStyles.palette().buy() : UiStyles.palette().sell())))
+                UiStyles.color(order.type == OrderType.Buy ? UiColor.Buy : UiColor.Sell)))
             .append(Component.literal(" for ").withStyle(UiStyles.label()))
             .append(Component.literal(order.volume + "x ").withStyle(UiStyles.quantity()))
             .append(productNameComponent)

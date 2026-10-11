@@ -2,12 +2,7 @@ package com.github.lutzluca.btrbz.core.appearance;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
-import com.github.lutzluca.btrbz.cache.CacheDependencies;
-import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
-import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
-import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -52,28 +47,4 @@ class AppearanceManagerTest {
             UiStyles.productName("§aEnchanted Sugar").getStyle().getColor().getValue());
     }
 
-    @Test
-    void changingAppearanceRefreshesSharedSnapshotsWithoutADataChange() {
-        var config = new AppearanceConfig();
-        var manager = new AppearanceManager(() -> config, () -> {});
-        var memoized = new MemoizedWidgetDataSource<>(new WidgetDataSource<Integer>() {
-            @Override
-            public CacheDependencies cacheDependencies() {
-                return CacheDependencies.none();
-            }
-
-            @Override
-            public Integer snapshot(WidgetSession session) {
-                return UiStyles.palette().matched();
-            }
-        });
-        var session = new WidgetSession(1, true, false, false,
-            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 0);
-        int before = memoized.snapshot(session);
-
-        manager.apply(new UiTheme("Changed", config.theme.palette().withColor(UiColor.Matched, 0xFF123456)), true);
-
-        Assertions.assertNotEquals(before, memoized.snapshot(session));
-        Assertions.assertEquals(0xFF123456, memoized.snapshot(session));
-    }
 }

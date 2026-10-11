@@ -109,16 +109,16 @@ public class OrderHighlightManager {
 
         private static Component highlightLegend() {
             return Component.empty()
-                .append(Component.literal("Best: best price\n").withStyle(UiStyles.color(UiStyles.palette().best())))
+                .append(Component.literal("Best: best price\n").withStyle(UiStyles.color(UiColor.Best)))
                 .append(Component.literal("Matched: at the best price\n")
-                    .withStyle(UiStyles.color(UiStyles.palette().matched())))
+                    .withStyle(UiStyles.color(UiColor.Matched)))
                 .append(Component.literal("Undercut: a better price exists\n")
-                    .withStyle(UiStyles.color(UiStyles.palette().undercut())))
+                    .withStyle(UiStyles.color(UiColor.Undercut)))
                 .append(Component.literal("Unknown: market status unavailable\n")
-                    .withStyle(UiStyles.color(UiStyles.palette().unknown())))
+                    .withStyle(UiStyles.color(UiColor.Unknown)))
                 .append(Component.literal("Filled: ready to claim\n")
-                    .withStyle(UiStyles.color(UiStyles.palette().filled())))
-                .append(Component.literal("Expired").withStyle(UiStyles.color(UiStyles.palette().expired())));
+                    .withStyle(UiStyles.color(UiColor.Filled)))
+                .append(Component.literal("Expired").withStyle(UiStyles.color(UiColor.Expired)));
         }
     }
 }

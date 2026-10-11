@@ -23,7 +23,7 @@ public class MessageQueue {
     }
 
     public static void sendOrQueue(String message, Level level) {
-        var msg = Notifier.prefix().append(Component.literal(message).withStyle(UiStyles.color(level.color())));
+        var msg = Notifier.prefix().append(Component.literal(message).withStyle(UiStyles.color(level.role)));
 
         if (Notifier.notifyPlayer(msg)) {
             return;
@@ -50,7 +50,7 @@ public class MessageQueue {
             MESSAGES.forEach(entry -> {
                 var msg = Notifier
                     .prefix()
-                    .append(Component.literal(entry.msg).withStyle(UiStyles.color(entry.level.color())));
+                    .append(Component.literal(entry.msg).withStyle(UiStyles.color(entry.level.role)));
 
                 client.player.sendSystemMessage(msg);
             });
@@ -71,9 +71,6 @@ public class MessageQueue {
             this.role = role;
         }
 
-        public int color() {
-            return this.role.color(UiStyles.palette());
-        }
     }
 
     private record Entry(String msg, Level level) {}

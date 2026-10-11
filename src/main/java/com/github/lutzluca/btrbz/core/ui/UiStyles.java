@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.ui;
 import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 import com.github.lutzluca.btrbz.core.appearance.ThemePreset;
 import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.cache.CacheToken;
@@ -16,7 +17,6 @@ public final class UiStyles {
     private static UiPalette currentPalette = ThemePreset.BtrBzDark.theme().palette();
     private static UiPalette.ButtonColors currentButtons = currentPalette.buttons();
     private static boolean formattedProductNames = true;
-    private static long appearanceRevision;
     private static final CacheToken APPEARANCE_CHANGES = CacheToken.named("appearance");
 
     private UiStyles() {}
@@ -30,7 +30,7 @@ public final class UiStyles {
     }
 
     public static long appearanceRevision() {
-        return appearanceRevision;
+        return APPEARANCE_CHANGES.revision();
     }
 
     public static CacheToken appearanceChanges() {
@@ -44,7 +44,6 @@ public final class UiStyles {
         currentPalette = config.theme.palette();
         currentButtons = currentPalette.buttons();
         formattedProductNames = config.formattedProductNames;
-        appearanceRevision++;
         APPEARANCE_CHANGES.invalidate("appearance changed");
         TextRenderRevision.invalidate();
     }
@@ -87,6 +86,10 @@ public final class UiStyles {
 
     public static Style color(int argb) {
         return Style.EMPTY.withColor(argb & 0xFFFFFF).withBold(false).withUnderlined(false);
+    }
+
+    public static Style color(UiColor role) {
+        return color(role.color(palette()));
     }
 
     public static Style primary() {

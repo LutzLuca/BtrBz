@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
@@ -68,7 +69,8 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             screenTransitions, inventoryChanges);
         this.dependencies = tooltipProvider == null
             ? baseDependencies
-            : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges()));
+            : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges(),
+                UiStyles.appearanceChanges()));
     }
 
     @Override

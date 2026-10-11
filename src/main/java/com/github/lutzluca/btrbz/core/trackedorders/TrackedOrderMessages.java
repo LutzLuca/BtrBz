@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig.QueueDisplayMode;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -23,26 +24,26 @@ final class TrackedOrderMessages {
         return regained
             ? Component.literal("has ").withStyle(UiStyles.label())
                 .append(Component.literal("REGAINED BEST Order!")
-                    .withStyle(UiStyles.color(UiStyles.palette().best())))
+                    .withStyle(UiStyles.color(UiColor.Best)))
             : Component.literal("is the ").withStyle(UiStyles.label())
-                .append(Component.literal("BEST Order!").withStyle(UiStyles.color(UiStyles.palette().best())));
+                .append(Component.literal("BEST Order!").withStyle(UiStyles.color(UiColor.Best)));
     }
 
     static Component matchedStatus(boolean plural) {
         return Component.literal(plural ? "were " : "was ").withStyle(UiStyles.label())
-            .append(Component.literal("MATCHED!").withStyle(UiStyles.color(UiStyles.palette().matched())));
+            .append(Component.literal("MATCHED!").withStyle(UiStyles.color(UiColor.Matched)));
     }
 
     static Component undercutStatus(double amount, boolean plural) {
         return Component.literal(plural ? "were " : "was ").withStyle(UiStyles.label())
-            .append(Component.literal("UNDERCUT ").withStyle(UiStyles.color(UiStyles.palette().undercut())))
+            .append(Component.literal("UNDERCUT ").withStyle(UiStyles.color(UiColor.Undercut)))
             .append(Component.literal("by ").withStyle(UiStyles.label()))
             .append(Component.literal(Utils.formatDecimal(amount, 1, true) + " coins!").withStyle(UiStyles.money()));
     }
 
     static Component selfMatchedStatus() {
         return Component.literal("were ").withStyle(UiStyles.label())
-            .append(Component.literal("SELF-MATCHED!").withStyle(UiStyles.color(UiStyles.palette().matched())));
+            .append(Component.literal("SELF-MATCHED!").withStyle(UiStyles.color(UiColor.Matched)));
     }
 
     static MutableComponent single(
@@ -142,7 +143,7 @@ final class TrackedOrderMessages {
             .append(Component.literal(" for ").withStyle(UiStyles.label()))
             .append(productName)
             .append(Component.literal(" was ").withStyle(UiStyles.label()))
-            .append(Component.literal("SELF-UNDERCUT").withStyle(UiStyles.color(UiStyles.palette().undercut())))
+            .append(Component.literal("SELF-UNDERCUT").withStyle(UiStyles.color(UiColor.Undercut)))
             .append(Component.literal(" from ").withStyle(UiStyles.label()))
             .append(UiStyles.coins(bestPrice))
             .append(Component.literal(" to ").withStyle(UiStyles.label()))
@@ -166,8 +167,8 @@ final class TrackedOrderMessages {
 
     private static Style orderTypeStyle(OrderType type) {
         return switch (type) {
-            case Buy -> UiStyles.color(UiStyles.palette().buy());
-            case Sell -> UiStyles.color(UiStyles.palette().sell());
+            case Buy -> UiStyles.color(UiColor.Buy);
+            case Sell -> UiStyles.color(UiColor.Sell);
         };
     }
 }

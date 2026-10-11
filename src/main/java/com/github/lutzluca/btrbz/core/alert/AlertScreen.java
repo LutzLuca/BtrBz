@@ -429,9 +429,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.sellButton
                 .selected(this.editor.source() == PriceSource.Sell).accent(() -> UiStyles.palette().sell());
             this.buyButton.setMessage(
-                Component.literal(PriceSource.Buy.label()).withStyle(UiStyles.color(UiStyles.palette().buy())));
+                Component.literal(PriceSource.Buy.label()).withStyle(UiStyles.color(UiColor.Buy)));
             this.sellButton.setMessage(
-                Component.literal(PriceSource.Sell.label()).withStyle(UiStyles.color(UiStyles.palette().sell())));
+                Component.literal(PriceSource.Sell.label()).withStyle(UiStyles.color(UiColor.Sell)));
             this.belowButton.selected(this.editor.direction() == Direction.Below);
             this.aboveButton.selected(this.editor.direction() == Direction.Above);
         } else {
@@ -440,9 +440,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.sellButton.selected(this.editor.liquiditySide() == LiquiditySide.SellOffers)
                 .accent(() -> UiStyles.palette().sell());
             this.buyButton
-                .setMessage(Component.literal("Instant sell").withStyle(UiStyles.color(UiStyles.palette().buy())));
+                .setMessage(Component.literal("Instant sell").withStyle(UiStyles.color(UiColor.Buy)));
             this.sellButton
-                .setMessage(Component.literal("Instant buy").withStyle(UiStyles.color(UiStyles.palette().sell())));
+                .setMessage(Component.literal("Instant buy").withStyle(UiStyles.color(UiColor.Sell)));
         }
     }
 
