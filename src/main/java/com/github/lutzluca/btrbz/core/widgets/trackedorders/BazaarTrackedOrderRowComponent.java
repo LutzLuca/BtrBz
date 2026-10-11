@@ -280,7 +280,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
             this.x + layout.statusX(), this.y + 1, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
-            this.x + layout.sideX(), this.y + 1, UiStyles.palette().textSecondary(), false);
+            this.x + layout.sideX(), this.y + 1, this.order.side().accentColor(), false);
 
         int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
 
@@ -353,7 +353,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
             this.x + layout.statusX(), textY, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
-            this.x + layout.sideX(), textY, UiStyles.palette().textSecondary(), false);
+            this.x + layout.sideX(), textY, this.order.side().accentColor(), false);
     }
 
     private DrawLayout computeCompactLayout() {

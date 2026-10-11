@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.productinfo;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
@@ -20,8 +21,8 @@ final class ProductInfoTooltip {
         }
         var count = quantity.count().orElse(1);
         var showTotal = shiftHeld && count > 1;
-        lines.add(priceText("Buy Price: ", prices.buy(), count, showTotal));
-        lines.add(priceText("Sell Price: ", prices.sell(), count, showTotal));
+        lines.add(priceText("Buy Price: ", UiColor.Buy, prices.buy(), count, showTotal));
+        lines.add(priceText("Sell Price: ", UiColor.Sell, prices.sell(), count, showTotal));
     }
 
     private static @Nullable Component quantityHint(ProductInfoQuantity quantity, boolean shiftHeld) {
@@ -48,8 +49,14 @@ final class ProductInfoTooltip {
             .append(Component.literal(" " + source.unit() + ")").withStyle(UiStyles.muted()));
     }
 
-    private static Component priceText(String label, @Nullable Double price, int count, boolean showTotal) {
-        var text = Component.literal(label).withStyle(UiStyles.label());
+    private static Component priceText(
+        String label,
+        UiColor role,
+        @Nullable Double price,
+        int count,
+        boolean showTotal
+    ) {
+        var text = Component.literal(label).withStyle(UiStyles.color(role));
         if (price == null) {
             return text.append(Component.literal("Not Available").withStyle(UiStyles.label()));
         }

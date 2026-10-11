@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ordervalue;
 
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
@@ -21,13 +22,13 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final LabelComponent header = UiComponents.boldLabel("Bazaar Overview", UiStyles.palette().textPrimary());
 
-    private final ValueLine buyLocked = new ValueLine("Buy Orders (Locked)");
-    private final ValueLine buyItems = new ValueLine("Buy Orders (Items)");
+    private final ValueLine buyLocked = new ValueLine("Buy Orders (Locked)", UiColor.Buy);
+    private final ValueLine buyItems = new ValueLine("Buy Orders (Items)", UiColor.Buy);
 
-    private final ValueLine sellClaimable = new ValueLine("Sell Offers (Claimable)");
-    private final ValueLine sellPending = new ValueLine("Sell Offers (Pending)");
+    private final ValueLine sellClaimable = new ValueLine("Sell Offers (Claimable)", UiColor.Sell);
+    private final ValueLine sellPending = new ValueLine("Sell Offers (Pending)", UiColor.Sell);
 
-    private final ValueLine total = new ValueLine("Total Worth");
+    private final ValueLine total = new ValueLine("Total Worth", UiColor.TextSecondary);
 
     OrderValueWidgetView() {
         this.root.allowOverflow(true);
@@ -87,10 +88,10 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         private final FlowLayout root = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
         private final LabelComponent value;
 
-        private ValueLine(String name) {
+        private ValueLine(String name, UiColor role) {
             this.root.allowOverflow(true);
 
-            this.root.child(UiComponents.label(name, UiStyles.palette().textSecondary()));
+            this.root.child(UiComponents.label(name, role.color(UiStyles.palette())));
             this.root.child(UiComponents.spacer());
 
             this.value = UiComponents.label("", UiStyles.palette().textPrimary());

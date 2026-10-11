@@ -65,7 +65,7 @@ public class OrderHighlightManager {
         var color = marketActive && tracked != null
             ? Optional.of(colorForStatus(tracked.status))
             : Optional.ofNullable(this.inactiveOrderSlots.get(idx)).map(role -> role.color(UiStyles.palette()));
-        return color.map(value -> UiPalette.alpha(value, 0.3));
+        return color.map(value -> UiPalette.alpha(value, 0.55));
     }
 
     public void clear() {

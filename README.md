@@ -28,9 +28,10 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 
 Run `/btrbz` to configure the mod.
 
-Choose **Appearance → Theme → Edit** to select BtrBz Dark, Catppuccin Mocha, Nord, or Dracula, or customise
+Choose **General → Appearance → Edit** to select BtrBz Dark, Catppuccin Mocha, Nord, or Dracula, or customise
 the interface, feedback, and Bazaar colours. BtrBz Dark is the default, pairing charcoal surfaces
-with bright status colours to match Minecraft's item formatting. Product names retain their
+at 85% opacity with bright status colours to match Minecraft's item formatting. Buying is green,
+selling is red, and coin values are gold. Product names retain their
 item formatting unless you turn off **Formatted product names**.
 
 **Import** previews a complete theme before **Apply** saves it. **Export → Copy** shares its

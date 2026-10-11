@@ -8,9 +8,9 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 public enum ThemePreset {
     BtrBzDark("BtrBz Dark", new int[]{
-        0x0C0C0C, 0x22252A, 0x45494E, 0xFFFFFF, 0xAAAAAA, 0x8A919C, 0xFFAA00, 0x0C0C0C,
-        0x55FF55, 0xFFFF55, 0xFF5555, 0xFFAA00, 0x55FF55, 0xFFAA00,
-        0x55FF55, 0x5599FF, 0xFF5555, 0xFFC857, 0xAAAAAA, 0x8A919C}),
+        0x282828, 0x2A2A2A, 0x434343, 0xFFFFFF, 0xAAAAAA, 0x8A919C, 0xFFAA00, 0x1C1C1C,
+        0x55FF55, 0xFFFF55, 0xFF5555, 0xFFAA00, 0x55FF55, 0xFF5555,
+        0x55FF55, 0x5599FF, 0xFF5555, 0xFFC857, 0xAAAAAA, 0xBB77FF}, 0.85),
     Mocha("Catppuccin Mocha", new int[]{
         0x1E1E2E, 0x313244, 0x585B70, 0xCDD6F4, 0xBAC2DE, 0xA6ADC8, 0xB4BEFE, 0x1E1E2E,
         0xA6E3A1, 0xF9E2AF, 0xF38BA8, 0xF9E2AF, 0x94E2D5, 0xFAB387,
@@ -27,6 +27,10 @@ public enum ThemePreset {
     private final UiTheme theme;
 
     ThemePreset(String name, int[] colors) {
-        this.theme = new UiTheme(name, UiPalette.fromColors(colors, 0.96));
+        this(name, colors, 0.96);
+    }
+
+    ThemePreset(String name, int[] colors, double panelOpacity) {
+        this.theme = new UiTheme(name, UiPalette.fromColors(colors, panelOpacity));
     }
 }

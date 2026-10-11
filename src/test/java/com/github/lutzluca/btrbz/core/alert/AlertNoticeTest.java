@@ -3,7 +3,11 @@ package com.github.lutzluca.btrbz.core.alert;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Optional;
+import net.minecraft.network.chat.Style;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -36,6 +40,32 @@ class AlertNoticeTest {
             Assertions.assertEquals(example.conditionText(), notice.condition().getString(), example.description());
             Assertions.assertEquals(example.observationText(), notice.observation().getString(), example.description());
         }
+    }
+
+    @Test
+    void tradeColorsFollowThePlayerActionRatherThanTheConsumedMarketSide() {
+        var sell = AlertNotice.conditionText(new AlertCondition.Liquidity(
+            AlertCondition.LiquiditySide.BuyOrders, 12, 12.0));
+        var buy = AlertNotice.conditionText(new AlertCondition.Liquidity(
+            AlertCondition.LiquiditySide.SellOffers, 12, 12.0));
+        var colors = new HashMap<String, Integer>();
+        var buyPrice = AlertNotice.conditionText(new AlertCondition.Price(
+            new AlertType(PriceSource.Buy, Direction.Below), 12.0));
+        var sellPrice = AlertNotice.conditionText(new AlertCondition.Price(
+            new AlertType(PriceSource.Sell, Direction.Above), 12.0));
+        for (var text : List.of(sell, buy, buyPrice, sellPrice)) {
+            text.visit((style, value) -> {
+                if (style.getColor() != null) {
+                    colors.put(value, style.getColor().getValue());
+                }
+                return Optional.empty();
+            }, Style.EMPTY);
+        }
+        Assertions.assertEquals(UiStyles.palette().sell() & 0xFFFFFF, colors.get("sell "));
+        Assertions.assertEquals(UiStyles.palette().buy() & 0xFFFFFF, colors.get("buy "));
+        Assertions.assertEquals(UiStyles.palette().buy() & 0xFFFFFF, colors.get("Buy Price"));
+        Assertions.assertEquals(UiStyles.palette().sell() & 0xFFFFFF, colors.get("Sell Price"));
+        Assertions.assertEquals(UiStyles.palette().money() & 0xFFFFFF, colors.get("12.0 coins"));
     }
 
     private record NoticeCase(

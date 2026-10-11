@@ -64,8 +64,13 @@ public class ConfigScreen {
         var general = ConfigCategory
             .createBuilder()
             .name(Component.literal("General"))
-            .tooltip(Component.literal("Configure when BtrBz runs."))
+            .tooltip(Component.literal("Configure BtrBz activation and appearance."))
             .group(this.activationGroup(config))
+            .option(ButtonOption.createBuilder()
+                .name(Component.literal("Appearance"))
+                .text(Component.literal("Edit"))
+                .action((screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen)))
+                .build())
             .build();
 
         var widgetBuilder = ConfigCategory.createBuilder()
@@ -77,15 +82,6 @@ public class ConfigScreen {
                 (screen, id) -> GameUtils.setScreen(
                     this.widgetRuntime.createManagementScreenForWidget(screen, id))));
         var widgets = widgetBuilder.build();
-
-        var appearance = ConfigCategory.createBuilder()
-            .name(Component.literal("Appearance"))
-            .option(ButtonOption.createBuilder()
-                .name(Component.literal("Theme"))
-                .text(Component.literal("Edit"))
-                .action((screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen)))
-                .build())
-            .build();
 
         var ordersAndNotifications = ConfigCategory
             .createBuilder()
@@ -121,7 +117,6 @@ public class ConfigScreen {
 
         builder
             .category(general)
-            .category(appearance)
             .category(widgets)
             .category(ordersAndNotifications)
             .category(interfaceAndTooltips)

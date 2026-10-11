@@ -129,7 +129,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.draw(graphics, font, layout.status(),
             this.x + layout.statusX(), firstY, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side(),
-            this.x + layout.sideX(), firstY, UiStyles.palette().textSecondary(), false);
+            this.x + layout.sideX(), firstY, this.order.side().accentColor(), false);
 
         if (layout.identity() != null) {
             this.retainedText.draw(graphics, font, layout.identity(),

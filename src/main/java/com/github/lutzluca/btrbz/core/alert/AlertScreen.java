@@ -436,13 +436,13 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.aboveButton.selected(this.editor.direction() == Direction.Above);
         } else {
             this.buyButton.selected(this.editor.liquiditySide() == LiquiditySide.BuyOrders)
-                .accent(() -> UiStyles.palette().buy());
-            this.sellButton.selected(this.editor.liquiditySide() == LiquiditySide.SellOffers)
                 .accent(() -> UiStyles.palette().sell());
+            this.sellButton.selected(this.editor.liquiditySide() == LiquiditySide.SellOffers)
+                .accent(() -> UiStyles.palette().buy());
             this.buyButton
-                .setMessage(Component.literal("Instant sell").withStyle(UiStyles.color(UiColor.Buy)));
+                .setMessage(Component.literal("Instant sell").withStyle(UiStyles.color(UiColor.Sell)));
             this.sellButton
-                .setMessage(Component.literal("Instant buy").withStyle(UiStyles.color(UiColor.Sell)));
+                .setMessage(Component.literal("Instant buy").withStyle(UiStyles.color(UiColor.Buy)));
         }
     }
 
@@ -882,7 +882,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
     private static MutableComponent priceLabel(PriceSource source) {
         return Component.literal(source.label())
-            .withStyle(UiStyles.label());
+            .withStyle(UiStyles.color(source == PriceSource.Buy ? UiColor.Buy : UiColor.Sell));
     }
 
     private static String items(long value) {
