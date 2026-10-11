@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.utils.Utils;
 
@@ -75,9 +74,9 @@ public final class BazaarWidgetViewData {
 
         public int color() {
             return switch (this) {
-                case Top -> UiStyles.palette().success();
+                case Top -> UiStyles.palette().best();
                 case Matched -> UiStyles.palette().matched();
-                case Undercut -> UiStyles.palette().error();
+                case Undercut -> UiStyles.palette().undercut();
                 case Unknown -> UiStyles.palette().unknown();
             };
         }
@@ -226,12 +225,7 @@ public final class BazaarWidgetViewData {
         }
 
         public Component formattedItemName(boolean abbreviateEnchanted) {
-            if (!abbreviateEnchanted) {
-                return this.formattedItemName.copy();
-            }
-
-            return Component.literal(BazaarHudOptions.productName(this.itemName, abbreviateEnchanted))
-                .setStyle(this.formattedItemName.getStyle());
+            return UiStyles.productName(this.formattedItemName, abbreviateEnchanted);
         }
     }
 

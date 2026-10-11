@@ -23,7 +23,6 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,12 +41,17 @@ public class OrderTooltipProvider {
     private static class OrderTooltipCache {
         private final Map<@NotNull TrackedOrder, @Nullable List<Component>> cache = new HashMap<>();
         private final String name;
+        private long appearanceRevision = UiStyles.appearanceRevision();
 
         OrderTooltipCache(String name) {
             this.name = name;
         }
 
         public List<Component> getOrCompute(@NotNull TrackedOrder order, Supplier<List<Component>> supplier) {
+            if (this.appearanceRevision != UiStyles.appearanceRevision()) {
+                this.clear();
+                this.appearanceRevision = UiStyles.appearanceRevision();
+            }
             return this.cache.computeIfAbsent(order, key -> {
                 log.trace("Computing {} tooltip cache for {}", this.name, key);
                 return supplier.get();
@@ -138,7 +142,8 @@ public class OrderTooltipProvider {
         var product = order.product;
 
         if (product.bazaarProductId().isEmpty()) {
-            return List.of(Component.literal("Unknown Product: " + order.productName).withStyle(ChatFormatting.RED));
+            return List.of(Component.literal("Unknown Product: " + order.productName)
+                .withStyle(UiStyles.color(UiStyles.palette().error())));
         }
 
         List<Component> lines = new ArrayList<>();
@@ -180,7 +185,8 @@ public class OrderTooltipProvider {
         var product = order.product;
 
         if (product.bazaarProductId().isEmpty()) {
-            return List.of(Component.literal("Unknown Product: " + order.productName).withStyle(ChatFormatting.RED));
+            return List.of(Component.literal("Unknown Product: " + order.productName)
+                .withStyle(UiStyles.color(UiStyles.palette().error())));
         }
 
         List<Component> lines = new ArrayList<>();
@@ -258,13 +264,13 @@ public class OrderTooltipProvider {
     private static Component statusLine(TrackedOrder order) {
         return switch (order.status) {
             case OrderStatus.Top _ -> Component.literal("Best Price!")
-                .withStyle(UiStyles.color(UiStyles.palette().success()).withBold(true));
+                .withStyle(UiStyles.color(UiStyles.palette().best()).withBold(true));
             case OrderStatus.Matched _ -> Component.literal("Matched!")
                 .withStyle(UiStyles.color(UiStyles.palette().matched()).withBold(true));
             case OrderStatus.Undercut _ -> Component.literal("Undercut!")
-                .withStyle(UiStyles.color(UiStyles.palette().error()).withBold(true));
+                .withStyle(UiStyles.color(UiStyles.palette().undercut()).withBold(true));
             case OrderStatus.Unknown _ -> Component.literal("Status Unknown")
-                .withStyle(UiStyles.label());
+                .withStyle(UiStyles.color(UiStyles.palette().unknown()));
         };
     }
 

@@ -3,6 +3,8 @@ package com.github.lutzluca.btrbz.core.widgets.config;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.cache.CacheToken;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import java.util.function.IntSupplier;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetScaleResolver;
 import java.util.Objects;
@@ -16,14 +18,20 @@ import lombok.experimental.Accessors;
 public final class WidgetStateStore {
     private final Supplier<WidgetsConfig> configSupplier;
     private final Runnable saveAction;
+    private final IntSupplier themeBackground;
     private final Map<WidgetId, CacheToken> frameChanges = new HashMap<>();
     @Getter
     @Accessors(fluent = true)
     private final CacheToken globalFrameChanges = CacheToken.named("widget-frame.global");
 
     public WidgetStateStore(Supplier<WidgetsConfig> configSupplier, Runnable saveAction) {
+        this(configSupplier, saveAction, () -> UiStyles.palette().panelBackground());
+    }
+
+    public WidgetStateStore(Supplier<WidgetsConfig> configSupplier, Runnable saveAction, IntSupplier themeBackground) {
         this.configSupplier = Objects.requireNonNull(configSupplier, "configSupplier");
         this.saveAction = Objects.requireNonNull(saveAction, "saveAction");
+        this.themeBackground = Objects.requireNonNull(themeBackground, "themeBackground");
     }
 
     public CacheToken frameChanges(WidgetId id) {
@@ -50,7 +58,20 @@ public final class WidgetStateStore {
     }
 
     public int globalBackgroundColor() {
-        return this.config().globalBackground;
+        var override = this.config().globalBackgroundOverride;
+        return override == null ? this.themeBackground.getAsInt() : override;
+    }
+
+    public boolean hasGlobalBackgroundOverride() {
+        return this.config().globalBackgroundOverride != null;
+    }
+
+    public void setGlobalBackgroundOverride(boolean enabled, boolean persist) {
+        this.config().globalBackgroundOverride = enabled ? this.globalBackgroundColor() : null;
+        this.globalFrameChanges.invalidate("global background inheritance changed");
+        if (persist) {
+            this.saveAction.run();
+        }
     }
 
     public void setGlobalBackgroundColor(int color) {
@@ -58,7 +79,7 @@ public final class WidgetStateStore {
     }
 
     public void setGlobalBackgroundColor(int color, boolean persist) {
-        this.config().globalBackground = color;
+        this.config().globalBackgroundOverride = color;
         this.globalFrameChanges.invalidate("global widget background changed");
 
         if (persist) {
@@ -249,7 +270,7 @@ public final class WidgetStateStore {
     }
 
     public boolean hasBackgroundOverride(WidgetDefinition<?, ?, ?> definition) {
-        return definition.frame().overrideBackground;
+        return definition.frame().backgroundOverride != null;
     }
 
     public void setBackgroundOverride(WidgetDefinition<?, ?, ?> definition, boolean enabled) {
@@ -261,7 +282,7 @@ public final class WidgetStateStore {
         boolean enabled,
         boolean persist
     ) {
-        definition.frame().overrideBackground = enabled;
+        definition.frame().backgroundOverride = enabled ? this.backgroundColor(definition) : null;
         this.invalidate(definition, "widget background override changed");
 
         if (persist) {
@@ -270,9 +291,8 @@ public final class WidgetStateStore {
     }
 
     public int backgroundColor(WidgetDefinition<?, ?, ?> definition) {
-        return this.hasBackgroundOverride(definition)
-            ? definition.frame().background
-            : this.globalBackgroundColor();
+        var override = definition.frame().backgroundOverride;
+        return override == null ? this.globalBackgroundColor() : override;
     }
 
     public void setBackgroundColor(WidgetDefinition<?, ?, ?> definition, int color) {
@@ -280,7 +300,7 @@ public final class WidgetStateStore {
     }
 
     public void setBackgroundColor(WidgetDefinition<?, ?, ?> definition, int color, boolean persist) {
-        definition.frame().background = color;
+        definition.frame().backgroundOverride = color;
         this.invalidate(definition, "widget background changed");
 
         if (persist) {
@@ -296,8 +316,7 @@ public final class WidgetStateStore {
         var frame = definition.frame();
         var defaults = definition.defaultFrame();
 
-        frame.overrideBackground = defaults.overrideBackground;
-        frame.background = defaults.background;
+        frame.backgroundOverride = defaults.backgroundOverride;
         this.invalidate(definition, "widget background reset");
 
         if (persist) {
@@ -318,8 +337,7 @@ public final class WidgetStateStore {
         target.placements.putAll(source.placements);
         target.overrideScale = source.overrideScale;
         target.scale = source.scale;
-        target.overrideBackground = source.overrideBackground;
-        target.background = source.background;
+        target.backgroundOverride = source.backgroundOverride;
         this.invalidate(definition, "widget frame reset");
 
         if (persist) {

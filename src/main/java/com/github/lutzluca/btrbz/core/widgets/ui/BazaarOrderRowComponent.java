@@ -135,9 +135,9 @@ public final class BazaarOrderRowComponent extends BaseUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.prefix(),
-            this.x + layout.prefixX(), y, UiStyles.palette().primary(), false);
+            this.x + layout.prefixX(), y, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.text(),
-            this.x + layout.textX(), y, UiStyles.palette().label(), false);
+            this.x + layout.textX(), y, UiStyles.palette().textSecondary(), false);
 
         if (layout.rightText() != null) {
             this.retainedText.draw(graphics, font, layout.rightText(),

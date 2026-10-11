@@ -1,0 +1,28 @@
+package com.github.lutzluca.btrbz.core.ui;
+
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
+/** Adapted from the upstream palettes linked in the README. */
+@Getter
+@Accessors(fluent = true)
+public enum ThemePreset {
+    Mocha("Catppuccin Mocha", new int[]{
+        0x1E1E2E, 0x313244, 0x585B70, 0xCDD6F4, 0xBAC2DE, 0xA6ADC8, 0xB4BEFE, 0x1E1E2E,
+        0xA6E3A1, 0xF9E2AF, 0xF38BA8, 0xF9E2AF, 0x94E2D5, 0xFAB387,
+        0xA6E3A1, 0x89B4FA, 0xF38BA8, 0xF9E2AF, 0xA6ADC8, 0xCBA6F7}),
+    Nord("Nord", new int[]{
+        0x2E3440, 0x3B4252, 0x4C566A, 0xECEFF4, 0xD8DEE9, 0xA5AFBF, 0x88C0D0, 0x2E3440,
+        0xA3BE8C, 0xEBCB8B, 0xE3A0A7, 0xEBCB8B, 0x8FBCBB, 0xDBA18F,
+        0xA3BE8C, 0x93B3D3, 0xE3A0A7, 0xEBCB8B, 0xA5AFBF, 0xC5A5BE}),
+    Dracula("Dracula", new int[]{
+        0x282A36, 0x343746, 0x6272A4, 0xF8F8F2, 0xD4D5E4, 0x9DA9D0, 0xBD93F9, 0x282A36,
+        0x50FA7B, 0xF1FA8C, 0xFF7777, 0xFFB86C, 0x8BE9FD, 0xFF79C6,
+        0x50FA7B, 0x8DBBFF, 0xFF7777, 0xFFB86C, 0x9DA9D0, 0xBD93F9});
+
+    private final UiTheme theme;
+
+    ThemePreset(String name, int[] colors) {
+        this.theme = new UiTheme(name, UiPalette.fromColors(colors, 0.96));
+    }
+}

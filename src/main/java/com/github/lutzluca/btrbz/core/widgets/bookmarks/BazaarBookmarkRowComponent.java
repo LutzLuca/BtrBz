@@ -199,7 +199,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
         this.retainedText.begin();
         this.retainedText.draw(graphics, font, this.drawName, textX,
-            this.y + (this.height - font.lineHeight) / 2, UiStyles.palette().primary(), false);
+            this.y + (this.height - font.lineHeight) / 2, UiStyles.palette().textPrimary(), false);
 
         int dotX = this.x + this.width - trailingInset - indicatorWidth;
         int dotY = this.y + (this.height - DOT_SIZE) / 2;

@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -76,8 +77,10 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private final WidgetRegistry registry;
     private final WidgetStateStore stateStore;
+    private final Function<Screen, Screen> appearanceScreen;
+    private long appearanceRevision = UiStyles.appearanceRevision();
 
-    private final WidgetManagerEditSession editSession;
+    private WidgetManagerEditSession editSession;
     private final WidgetHost previewHost;
     private final WidgetManagerSelectionState selectionState;
 
@@ -105,9 +108,11 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         @Nullable Screen previousScreen,
         WidgetRegistry registry,
         WidgetStateStore stateStore,
-        FeatureRuntime runtime
+        FeatureRuntime runtime,
+        Function<Screen, Screen> appearanceScreen
     ) {
-        this(previousScreen, registry, stateStore, runtime, WidgetManagementLaunchState.empty(), null);
+        this(previousScreen, registry, stateStore, runtime, appearanceScreen, WidgetManagementLaunchState.empty(),
+            null);
     }
 
     public WidgetManagementScreen(
@@ -115,6 +120,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         WidgetRegistry registry,
         WidgetStateStore stateStore,
         FeatureRuntime runtime,
+        Function<Screen, Screen> appearanceScreen,
         WidgetId initiallySelectedWidget
     ) {
         this(
@@ -122,6 +128,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             registry,
             stateStore,
             runtime,
+            appearanceScreen,
             WidgetManagementLaunchState.configure(initiallySelectedWidget),
             null);
     }
@@ -131,6 +138,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         WidgetRegistry registry,
         WidgetStateStore stateStore,
         FeatureRuntime runtime,
+        Function<Screen, Screen> appearanceScreen,
         WidgetManagementContext context
     ) {
         this(
@@ -138,6 +146,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             registry,
             stateStore,
             runtime,
+            appearanceScreen,
             WidgetManagementLaunchState.contextual(context.initiallyRendered()),
             context);
     }
@@ -147,6 +156,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         WidgetRegistry registry,
         WidgetStateStore stateStore,
         FeatureRuntime runtime,
+        Function<Screen, Screen> appearanceScreen,
         WidgetId initiallySelectedWidget,
         WidgetManagementContext context
     ) {
@@ -155,6 +165,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             registry,
             stateStore,
             runtime,
+            appearanceScreen,
             WidgetManagementLaunchState.contextual(context.initiallyRendered(), initiallySelectedWidget),
             context);
     }
@@ -164,6 +175,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         WidgetRegistry registry,
         WidgetStateStore stateStore,
         FeatureRuntime runtime,
+        Function<Screen, Screen> appearanceScreen,
         WidgetManagementLaunchState launchState,
         @Nullable WidgetManagementContext context
     ) {
@@ -176,6 +188,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.registry = registry;
         this.stateStore = stateStore;
+        this.appearanceScreen = Objects.requireNonNull(appearanceScreen, "appearanceScreen");
 
         this.editSession = new WidgetManagerEditSession(stateStore::save);
         this.previewHost = context == null
@@ -200,6 +213,14 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
                     ? WidgetSession.DEFAULT_PLACEMENT_PROFILE
                     : frozenPreview.placementProfile());
         }
+    }
+
+    @Override
+    protected void init() {
+        if (this.editSession.closed()) {
+            this.editSession = new WidgetManagerEditSession(this.stateStore::save);
+        }
+        super.init();
     }
 
     @Override
@@ -310,6 +331,11 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             graphics.nextStratum();
         }
 
+        if (this.appearanceRevision != UiStyles.appearanceRevision()) {
+            this.appearanceRevision = UiStyles.appearanceRevision();
+            this.sidebar.surface(UiSurfaces.roundedPanel(UiStyles.palette().panelBackground(), 6));
+            this.rebuildSidebar();
+        }
         if (this.sidebar != null && this.sidebar.width() != this.sidebarWidth()) {
             this.sidebar.horizontalSizing(Sizing.fixed(this.sidebarWidth()));
         }
@@ -627,11 +653,11 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void addOverviewControls() {
         this.addGlobalAppearanceControls();
-        this.sidebarContent.child(label("Widgets", 0xFFB8C0CF));
+        this.sidebarContent.child(label("Widgets", UiStyles.palette().textSecondary()));
         if (this.hasBazaarBackground()) {
-            this.sidebarContent.child(label("Visible content frozen at open", 0xFF808997));
+            this.sidebarContent.child(label("Visible content frozen at open", UiStyles.palette().textMuted()));
         }
-        this.sidebarContent.child(label("Preview controls manager visibility", 0xFF808997));
+        this.sidebarContent.child(label("Preview controls manager visibility", UiStyles.palette().textMuted()));
         var list = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         list.gap(4);
         this.registry.all().forEach(definition -> list.child(this.widgetRow(definition)));
@@ -641,16 +667,16 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
     private void addDetailControls(WidgetDefinition<?, ?, ?> selected) {
         this.sidebarContent.child(button("← Back", _ -> this.clearSelectedWidget()));
-        this.sidebarContent.child(label(selected.getDisplayName(), 0xFFFFFFFF));
+        this.sidebarContent.child(label(selected.getDisplayName(), UiStyles.palette().textPrimary()));
 
-        this.sidebarContent.child(label("Availability", 0xFFB8C0CF));
+        this.sidebarContent.child(label("Availability", UiStyles.palette().textSecondary()));
         this.addGameplayEnabledControl(selected);
 
-        this.sidebarContent.child(label("Appearance", 0xFFB8C0CF));
+        this.sidebarContent.child(label("Appearance", UiStyles.palette().textSecondary()));
         this.addWidgetScaleControls(selected);
         this.addBackgroundControls(selected);
 
-        this.sidebarContent.child(label("Placement", 0xFFB8C0CF));
+        this.sidebarContent.child(label("Placement", UiStyles.palette().textSecondary()));
         this.addPlacementProfileControl(selected);
         var resetPosition = button("Reset this profile position", _ -> {
             this.stateStore.resetPlacement(selected, this.placementProfile(selected), false);
@@ -662,7 +688,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         var configurationPanel = selected.settingsPanel(this::markDirty);
         if (configurationPanel != null) {
-            this.sidebarContent.child(label("Content & behavior", 0xFFB8C0CF));
+            this.sidebarContent.child(label("Content & behavior", UiStyles.palette().textSecondary()));
             this.sidebarContent.child(configurationPanel);
             var resetContent = UiButton.iconText(Assets.REDO_ICON, 64, Component.literal("Reset content settings"),
                 () -> {
@@ -690,7 +716,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
 
-        this.sidebarContent.child(label("Reset every setting for this widget?", 0xFFE06C75));
+        this.sidebarContent.child(label("Reset every setting for this widget?", UiStyles.palette().error()));
         this.sidebarContent.child(button("Confirm entire reset", _ -> {
             this.stateStore.resetAll(selected, false);
             this.markDirty();
@@ -704,7 +730,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addManagerControls() {
-        this.sidebarContent.child(label("Widget Manager", 0xFFB8C0CF));
+        this.sidebarContent.child(label("Widget Manager", UiStyles.palette().textSecondary()));
 
         var launcherVisible = UIComponents.smallCheckbox(
             Component.literal("Show quick-access button"));
@@ -753,9 +779,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             this.markDirty();
         });
         this.sidebarContent.child(runtimeDragging);
-        this.sidebarContent.child(label("Convenience feature only.", 0xFF808997));
-        this.sidebarContent.child(label("Not advised for regular use;", 0xFF808997));
-        this.sidebarContent.child(label("interactions may be unexpected.", 0xFF808997));
+        this.sidebarContent.child(label("Convenience feature only.", UiStyles.palette().textMuted()));
+        this.sidebarContent.child(label("Not advised for regular use;", UiStyles.palette().textMuted()));
+        this.sidebarContent.child(label("interactions may be unexpected.", UiStyles.palette().textMuted()));
     }
 
     private void resizeSidebar(int panelWidth, int panelHeightPercent) {
@@ -791,7 +817,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         String titleText = selectedId == null
             ? "Widget Manager"
             : this.registry.find(selectedId).map(WidgetDefinition::getDisplayName).orElse("Widget");
-        var title = label(titleText, 0xFFFFFFFF).shadow(true);
+        var title = label(titleText, UiStyles.palette().textPrimary()).shadow(true);
         title.horizontalSizing(Sizing.expand(100));
         title.cursorStyle(CursorStyle.MOVE);
         this.sidebarHeader.child(title);
@@ -809,7 +835,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addGlobalAppearanceControls() {
-        this.sidebarContent.child(label("Global appearance", 0xFFB8C0CF));
+        this.sidebarContent.child(button("Edit theme", _ -> GameUtils.setScreen(this.appearanceScreen.apply(this))));
 
         var slider = new ScrollSafeDiscreteSliderComponent(
             Sizing.fill(100), WidgetScaleResolver.MIN_SCALE, WidgetScaleResolver.MAX_SCALE, SCALE_STEP);
@@ -828,14 +854,20 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.sidebarContent.child(slider);
 
-        this.sidebarContent.child(label("Global background", 0xFF808997));
-
-        this.addColorEditor(
-            this.stateStore::globalBackgroundColor,
-            color -> {
+        var override = UIComponents.smallCheckbox(Component.literal("Custom background for all widgets"));
+        override.checked(this.stateStore.hasGlobalBackgroundOverride());
+        override.onChanged().subscribe(value -> {
+            this.stateStore.setGlobalBackgroundOverride(value, false);
+            this.markDirty();
+            this.rebuildSidebar();
+        });
+        this.sidebarContent.child(override);
+        if (this.stateStore.hasGlobalBackgroundOverride()) {
+            this.addColorEditor(this.stateStore::globalBackgroundColor, color -> {
                 this.stateStore.setGlobalBackgroundColor(color, false);
                 this.markDirty();
             });
+        }
     }
 
     private void addPlacementProfileControl(WidgetDefinition<?, ?, ?> selected) {
@@ -898,7 +930,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void addBackgroundControls(WidgetDefinition<?, ?, ?> selected) {
-        var override = UIComponents.smallCheckbox(Component.literal("Override background"));
+        var override = UIComponents.smallCheckbox(Component.literal("Custom background"));
         override.checked(this.stateStore.hasBackgroundOverride(selected));
         override.tooltip(WidgetTooltips.wrapped(
             "Uses a background color for this widget instead of the global widget background."));
@@ -947,7 +979,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         hex.onChanged().subscribe(text -> {
             int current = currentColor.getAsInt();
             var parsed = WidgetColorFormat.parse(text, current);
-            hex.setTextColor(parsed.isPresent() ? 0xFFE8EDF5 : 0xFFE06C75);
+            hex.setTextColor(parsed.isPresent() ? UiStyles.palette().textPrimary() : UiStyles.palette().error());
 
             if (parsed.isEmpty() || synchronizing[0]) {
                 return;
@@ -971,7 +1003,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
             synchronizing[0] = false;
         });
 
-        this.sidebarContent.child(label("Hex (#AARRGGBB)", 0xFF808997));
+        this.sidebarContent.child(label("Hex (#AARRGGBB)", UiStyles.palette().textMuted()));
         this.sidebarContent.child(hex);
         this.sidebarContent.child(picker);
     }

@@ -1,12 +1,12 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigHandle;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 /** Persists the Bazaar HUD hint lifecycle and emits its one-time chat message. */
@@ -48,7 +48,7 @@ public final class BazaarHudHintController {
         this.notification.accept(Notifier.prefix()
             .append(Component.translatable(
                 "message.btrbz.bazaar_orders_hud_hint",
-                this.toggleKeyLabel.get()).withStyle(ChatFormatting.GRAY)));
+                this.toggleKeyLabel.get()).withStyle(UiStyles.label())));
     }
 
     public boolean dismiss() {

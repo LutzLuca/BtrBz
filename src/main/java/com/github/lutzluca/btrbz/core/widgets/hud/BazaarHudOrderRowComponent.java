@@ -125,7 +125,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productName(),
-            this.x + layout.productX(), firstY, UiStyles.palette().primary(), false);
+            this.x + layout.productX(), firstY, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status(),
             this.x + layout.statusX(), firstY, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side(),
@@ -133,12 +133,12 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
 
         if (layout.identity() != null) {
             this.retainedText.draw(graphics, font, layout.identity(),
-                this.x + layout.identityX(), secondY, UiStyles.palette().label(), false);
+                this.x + layout.identityX(), secondY, UiStyles.palette().textSecondary(), false);
         }
 
         if (layout.market() != null) {
             this.retainedText.draw(graphics, font, layout.market(),
-                this.x + layout.marketX(), secondY, UiStyles.palette().label(), false);
+                this.x + layout.marketX(), secondY, UiStyles.palette().textSecondary(), false);
         }
     }
 

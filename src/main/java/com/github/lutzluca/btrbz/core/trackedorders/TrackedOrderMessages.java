@@ -23,9 +23,9 @@ final class TrackedOrderMessages {
         return regained
             ? Component.literal("has ").withStyle(UiStyles.label())
                 .append(Component.literal("REGAINED BEST Order!")
-                    .withStyle(UiStyles.color(UiStyles.palette().success())))
+                    .withStyle(UiStyles.color(UiStyles.palette().best())))
             : Component.literal("is the ").withStyle(UiStyles.label())
-                .append(Component.literal("BEST Order!").withStyle(UiStyles.color(UiStyles.palette().success())));
+                .append(Component.literal("BEST Order!").withStyle(UiStyles.color(UiStyles.palette().best())));
     }
 
     static Component matchedStatus(boolean plural) {
@@ -35,7 +35,7 @@ final class TrackedOrderMessages {
 
     static Component undercutStatus(double amount, boolean plural) {
         return Component.literal(plural ? "were " : "was ").withStyle(UiStyles.label())
-            .append(Component.literal("UNDERCUT ").withStyle(UiStyles.color(UiStyles.palette().error())))
+            .append(Component.literal("UNDERCUT ").withStyle(UiStyles.color(UiStyles.palette().undercut())))
             .append(Component.literal("by ").withStyle(UiStyles.label()))
             .append(Component.literal(Utils.formatDecimal(amount, 1, true) + " coins!").withStyle(UiStyles.money()));
     }
@@ -142,7 +142,7 @@ final class TrackedOrderMessages {
             .append(Component.literal(" for ").withStyle(UiStyles.label()))
             .append(productName)
             .append(Component.literal(" was ").withStyle(UiStyles.label()))
-            .append(Component.literal("SELF-UNDERCUT").withStyle(UiStyles.color(UiStyles.palette().error())))
+            .append(Component.literal("SELF-UNDERCUT").withStyle(UiStyles.color(UiStyles.palette().undercut())))
             .append(Component.literal(" from ").withStyle(UiStyles.label()))
             .append(UiStyles.coins(bestPrice))
             .append(Component.literal(" to ").withStyle(UiStyles.label()))

@@ -1,11 +1,15 @@
 package com.github.lutzluca.btrbz.core.widgets.manager;
 
 import java.util.Objects;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 
 /** Owns the manager's single commit boundary independently from the screen lifecycle API. */
 final class WidgetManagerEditSession implements AutoCloseable {
     private final Runnable save;
     private boolean dirty;
+    @Getter
+    @Accessors(fluent = true)
     private boolean closed;
 
     WidgetManagerEditSession(Runnable save) {

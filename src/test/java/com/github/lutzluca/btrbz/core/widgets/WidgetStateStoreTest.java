@@ -69,7 +69,7 @@ class WidgetStateStoreTest {
 
         Assertions.assertFalse(config.bookmarks.frame.enabled);
         Assertions.assertEquals(WidgetScaleResolver.MAX_SCALE, config.bookmarks.frame.scale);
-        Assertions.assertEquals(0x7F102030, config.bookmarks.frame.background);
+        Assertions.assertEquals(0x7F102030, config.bookmarks.frame.backgroundOverride);
         Assertions.assertEquals(placement, config.bookmarks.frame.placements.get("default"));
         Assertions.assertEquals(4, saves.get());
     }
@@ -157,8 +157,8 @@ class WidgetStateStoreTest {
         }
 
         @Test
-        @DisplayName("disabled overrides preserve their custom values")
-        void preservesDisabledOverrideValues() {
+        @DisplayName("clearing background overrides returns to the inherited color")
+        void clearsBackgroundOverrideAndPreservesScalePreference() {
             var config = new WidgetsConfig();
             var store = new WidgetStateStore(() -> config, () -> {});
             var bookmarks = bookmarksDefinition(() -> config.bookmarks);
@@ -175,15 +175,36 @@ class WidgetStateStoreTest {
             Assertions.assertEquals(0.8, store.globalFineTuneScale());
             Assertions.assertEquals(0xDD405060, store.backgroundColor(bookmarks));
             Assertions.assertEquals(1.6, config.bookmarks.frame.scale);
-            Assertions.assertEquals(0xCC304050, config.bookmarks.frame.background);
+            Assertions.assertNull(config.bookmarks.frame.backgroundOverride);
 
             store.setWidgetScaleOverride(bookmarks, true, false);
             store.setBackgroundOverride(bookmarks, true, false);
 
             Assertions.assertEquals(1.6, store.widgetScale(bookmarks));
-            Assertions.assertEquals(0xCC304050, store.backgroundColor(bookmarks));
+            Assertions.assertEquals(0xDD405060, store.backgroundColor(bookmarks));
         }
 
+    }
+
+    @Test
+    void backgroundPrecedenceTracksThemeChangesAndPreservesExplicitAlpha() {
+        var config = new WidgetsConfig();
+        int[] theme = {0xEF202030};
+        var store = new WidgetStateStore(() -> config, () -> {}, () -> theme[0]);
+        var bookmarks = bookmarksDefinition(() -> config.bookmarks);
+        Assertions.assertEquals(0xEF202030, store.backgroundColor(bookmarks));
+        theme[0] = 0xDD304050;
+        Assertions.assertEquals(0xDD304050, store.backgroundColor(bookmarks));
+        store.setGlobalBackgroundColor(0xAA405060, false);
+        store.setBackgroundColor(bookmarks, 0x70506070, false);
+        theme[0] = 0xCC607080;
+        Assertions.assertEquals(0x70506070, store.backgroundColor(bookmarks));
+        store.setBackgroundOverride(bookmarks, false, false);
+        Assertions.assertEquals(0xAA405060, store.backgroundColor(bookmarks));
+        store.setGlobalBackgroundOverride(false, false);
+        Assertions.assertEquals(0xCC607080, store.backgroundColor(bookmarks));
+        Assertions.assertFalse(store.hasBackgroundOverride(bookmarks));
+        Assertions.assertFalse(store.hasGlobalBackgroundOverride());
     }
 
     private static WidgetDefinition<Object, BookmarksWidgetConfig, Void> bookmarksDefinition(

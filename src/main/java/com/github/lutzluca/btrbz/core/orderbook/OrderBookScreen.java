@@ -81,7 +81,7 @@ public final class OrderBookScreen extends Screen {
 
         if (!BtrBz.isActive()) {
             graphics.text(this.font, Component.literal("Bazaar market features are paused."),
-                12, 12, UiStyles.palette().label(), true);
+                12, 12, UiStyles.palette().textSecondary(), true);
             return;
         }
 

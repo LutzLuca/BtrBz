@@ -276,7 +276,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productText(),
-            x, this.y + 1, UiStyles.palette().primary(), false);
+            x, this.y + 1, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
             this.x + layout.statusX(), this.y + 1, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
@@ -286,12 +286,12 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         if (layout.identityText() != null) {
             this.retainedText.draw(graphics, font, layout.identityText(),
-                x, secondY, UiStyles.palette().label(), false);
+                x, secondY, UiStyles.palette().textSecondary(), false);
         }
 
         if (layout.marketText() != null) {
             this.retainedText.draw(graphics, font, layout.marketText().getVisualOrderText(),
-                this.x + layout.marketX(), secondY, UiStyles.palette().label(), false);
+                this.x + layout.marketX(), secondY, UiStyles.palette().textSecondary(), false);
         }
     }
 
@@ -349,7 +349,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productText(),
-            x, textY, UiStyles.palette().primary(), false);
+            x, textY, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
             this.x + layout.statusX(), textY, this.order.status().color(), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),

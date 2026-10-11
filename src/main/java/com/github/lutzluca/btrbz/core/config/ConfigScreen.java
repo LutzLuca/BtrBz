@@ -29,16 +29,19 @@ public class ConfigScreen {
     private final Activation activation;
     private final OrderTooltipProvider tooltipProvider;
     private final Function<Screen, Screen> alertScreenFactory;
+    private final Function<Screen, Screen> appearanceScreenFactory;
 
     public ConfigScreen(
         WidgetRuntime widgetRuntime,
         Activation activation,
         OrderTooltipProvider tooltipProvider,
+        Function<Screen, Screen> appearanceScreenFactory,
         Function<Screen, Screen> alertScreenFactory
     ) {
         this.widgetRuntime = Objects.requireNonNull(widgetRuntime, "widgetRuntime cannot be null");
         this.activation = Objects.requireNonNull(activation, "activation cannot be null");
         this.tooltipProvider = Objects.requireNonNull(tooltipProvider, "tooltipProvider cannot be null");
+        this.appearanceScreenFactory = Objects.requireNonNull(appearanceScreenFactory, "appearanceScreenFactory");
         this.alertScreenFactory = Objects.requireNonNull(alertScreenFactory, "alertScreenFactory cannot be null");
     }
 
@@ -75,6 +78,15 @@ public class ConfigScreen {
                     this.widgetRuntime.createManagementScreenForWidget(screen, id))));
         var widgets = widgetBuilder.build();
 
+        var appearance = ConfigCategory.createBuilder()
+            .name(Component.literal("Appearance"))
+            .option(ButtonOption.createBuilder()
+                .name(Component.literal("Theme"))
+                .text(Component.literal("Edit"))
+                .action((screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen)))
+                .build())
+            .build();
+
         var ordersAndNotifications = ConfigCategory
             .createBuilder()
             .name(Component.literal("Orders & Notifications"))
@@ -109,6 +121,7 @@ public class ConfigScreen {
 
         builder
             .category(general)
+            .category(appearance)
             .category(widgets)
             .category(ordersAndNotifications)
             .category(interfaceAndTooltips)

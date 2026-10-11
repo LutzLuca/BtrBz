@@ -28,7 +28,7 @@ public final class AlertNotifications {
         var config = ConfigStore.get().config().alert;
 
         if (config.toastOnAlert) {
-            Component productName = GameUtils.legacyFormattedComponent(notice.formattedProductName());
+            Component productName = UiStyles.productName(notice.formattedProductName());
             if (config.detailedAlertToasts) {
                 toasts.show(
                     Component.literal("BtrBz").withStyle(UiStyles.modLabel())
@@ -44,7 +44,7 @@ public final class AlertNotifications {
         if (config.alsoSendChatMessage) {
             Notifier.notifyPlayer(Notifier.prefix()
                 .append(Component.literal(notice.title() + " for ").withStyle(UiStyles.label()))
-                .append(Component.literal(product.formattedName()))
+                .append(UiStyles.productName(product.formattedName()))
                 .append(Component.literal(": ").withStyle(UiStyles.label()))
                 .append(notice.condition().copy())
                 .append(Component.literal(". ").withStyle(UiStyles.label()))
@@ -66,7 +66,7 @@ public final class AlertNotifications {
     ) {
         Component msg = Notifier.prefix()
             .append(Component.literal("Your alert for ").withStyle(UiStyles.label()))
-            .append(Component.literal(bazaarData.refreshIndexedProduct(alert.product).formattedName()))
+            .append(UiStyles.productName(bazaarData.refreshIndexedProduct(alert.product).formattedName()))
             .append(Component.literal(" at ")
                 .withStyle(UiStyles.label()))
             .append(UiStyles.coins(condition.price()))

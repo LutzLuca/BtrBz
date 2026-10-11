@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.core.component.DataComponents;
@@ -50,6 +49,7 @@ public final class ProductInformation {
 
     private @Nullable ItemStack cachedProductInfoItem = null;
     private @Nullable ProductInfoConfig.Site cachedProductInfoSite = null;
+    private long cachedAppearanceRevision = -1;
 
     public ProductInformation(
         BazaarData bazaarData,
@@ -74,7 +74,8 @@ public final class ProductInformation {
     private ItemStack createProductInfoItem() {
         var cfg = this.config.get();
 
-        if (this.cachedProductInfoItem != null && this.cachedProductInfoSite == cfg.site) {
+        if (this.cachedProductInfoItem != null && this.cachedProductInfoSite == cfg.site
+            && this.cachedAppearanceRevision == UiStyles.appearanceRevision()) {
             return this.cachedProductInfoItem.copy();
         }
 
@@ -103,6 +104,7 @@ public final class ProductInformation {
 
         this.cachedProductInfoItem = item;
         this.cachedProductInfoSite = cfg.site;
+        this.cachedAppearanceRevision = UiStyles.appearanceRevision();
         return this.cachedProductInfoItem.copy();
     }
 
@@ -233,7 +235,7 @@ public final class ProductInformation {
                         .run(() -> Util.getPlatform().openUri(new URI(link)))
                         .onFailure(err -> Notifier.notifyPlayer(Component
                             .literal("Failed to open link: ")
-                            .withStyle(ChatFormatting.RED)
+                            .withStyle(UiStyles.color(UiStyles.palette().error()))
                             .append(Component
                                 .literal(link)
                                 .withStyle(UiStyles.action()))));

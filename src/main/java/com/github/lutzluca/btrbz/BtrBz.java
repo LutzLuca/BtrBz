@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
 import com.github.lutzluca.btrbz.core.alert.AlertScreen;
@@ -49,6 +50,8 @@ import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.cache.PurseTracker;
 import com.github.lutzluca.btrbz.core.widgets.cache.UtcDayTracker;
 import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
+import com.github.lutzluca.btrbz.core.ui.AppearanceManager;
+import com.github.lutzluca.btrbz.core.ui.AppearanceScreen;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher;
 import com.github.lutzluca.btrbz.data.BazaarMessageDispatcher.BazaarMessage;
@@ -60,7 +63,6 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.ClientTickDispatcher;
 import com.github.lutzluca.btrbz.utils.MessageQueue;
 import com.github.lutzluca.btrbz.utils.Notifier;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.HoverEvent.ShowText;
@@ -194,6 +196,7 @@ public class BtrBz implements ClientModInitializer {
         instance = this;
         var configStore = ConfigStore.get();
         configStore.load();
+        var appearance = new AppearanceManager(() -> configStore.config().appearance, configStore::save);
         this.activation = new Activation(
             () -> configStore.config().enabled,
             () -> configStore.config().alwaysActive,
@@ -210,7 +213,7 @@ public class BtrBz implements ClientModInitializer {
                 this.marketHibernationAnnounced = false;
                 Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(
                     "Bazaar market data is usable again, and market features have resumed.")
-                    .withStyle(ChatFormatting.GREEN)));
+                    .withStyle(UiStyles.color(UiStyles.palette().success()))));
             }
         },
             this::hibernateMarket,
@@ -298,7 +301,8 @@ public class BtrBz implements ClientModInitializer {
             dailyLimitWidgetDefinition,
             priceDifferenceWidgetDefinition);
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
-        this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime);
+        this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime,
+            parent -> new AppearanceScreen(parent, appearance));
 
         var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
         new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
@@ -309,6 +313,7 @@ public class BtrBz implements ClientModInitializer {
         });
 
         this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
+            parent -> new AppearanceScreen(parent, appearance),
             parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController));
         var hudHint = new BazaarHudHintController(
@@ -472,7 +477,8 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void warnBazaarUnavailable(String message) {
-        Notifier.notifyPlayer(Notifier.prefix().append(Component.literal(message).withStyle(ChatFormatting.YELLOW)));
+        Notifier.notifyPlayer(Notifier.prefix()
+            .append(Component.literal(message).withStyle(UiStyles.color(UiStyles.palette().warning()))));
     }
 
     private void hibernateMarket() {
@@ -527,10 +533,11 @@ public class BtrBz implements ClientModInitializer {
 
     private void notifyProfileNotice(ProfileTracker.Notice notice) {
         var message = Notifier.prefix().append(Component.literal(notice.message())
-            .withStyle(notice.offerReset() ? ChatFormatting.YELLOW : ChatFormatting.GREEN));
+            .withStyle(
+                UiStyles.color(notice.offerReset() ? UiStyles.palette().warning() : UiStyles.palette().success())));
         if (notice.offerReset()) {
             message.append(Component.literal(" [Reset session]").withStyle(style -> style
-                .withColor(ChatFormatting.YELLOW)
+                .withColor(UiStyles.palette().warning() & 0xFFFFFF)
                 .withUnderlined(true)
                 .withClickEvent(new RunCommand("/btrbz profile reset"))
                 .withHoverEvent(new ShowText(Component.literal("Clear tracked orders and pending actions")))));

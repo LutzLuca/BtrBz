@@ -15,7 +15,7 @@ final class BazaarBookmarkListComponent extends ReorderableScrollListComponent<S
             WidgetLayoutTokens.LIST_GAP,
             true,
             UiStyles.palette().scrollbar(),
-            UiStyles.palette().action(),
+            UiStyles.palette().accent(),
             0,
             4,
             2);

@@ -64,7 +64,7 @@ final class ManagementPreviewComponent extends BaseUIComponent {
             this.screen);
         if (this.screen.configurationPreview()) {
             graphics.text(Minecraft.getInstance().font, Component.literal("Configuration preview"),
-                this.x + 8, this.y + 8, 0xFFAAAAAA, true);
+                this.x + 8, this.y + 8, UiStyles.palette().textSecondary(), true);
         }
     }
 

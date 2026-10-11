@@ -80,11 +80,11 @@ public class BazaarOrderActions {
             display.set(
                 DataComponents.CUSTOM_NAME,
                 Component.literal("Reopen: ")
-                    .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.YELLOW))
+                    .withStyle(UiStyles.action().withItalic(false))
                     .append(
                         Component.empty()
-                            .withStyle(style -> style.withItalic(false).withColor(ChatFormatting.GOLD))
-                            .append(GameUtils.legacyFormattedComponent(product.visualName()))));
+                            .withStyle(UiStyles.primary().withItalic(false))
+                            .append(UiStyles.productName(product.visualName()))));
 
             var loreLines = new ArrayList<Component>();
             loreLines.add(Component.empty());

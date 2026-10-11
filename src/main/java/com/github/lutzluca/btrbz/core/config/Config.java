@@ -11,6 +11,7 @@ import com.github.lutzluca.btrbz.core.orderdisplay.OrderListTooltipConfig;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig;
 import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetsConfig;
+import com.github.lutzluca.btrbz.core.ui.AppearanceConfig;
 import dev.isxander.yacl3.config.v2.api.SerialEntry;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,6 +23,9 @@ public class Config {
 
     @SerialEntry
     public boolean alwaysActive;
+
+    @SerialEntry
+    public AppearanceConfig appearance = new AppearanceConfig();
 
     @SerialEntry
     public WidgetsConfig widgets = new WidgetsConfig();

@@ -24,7 +24,7 @@ final class TrackedOrdersWidgetView implements
     WidgetView<BazaarWidgetViewData.OrdersData, TrackedOrdersWidgetConfig, TrackedOrdersAction>,
     ScrollOffsetView {
     private final FlowLayout root = UIContainers.verticalFlow(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent status = UiComponents.label("", UiStyles.palette().muted());
+    private final LabelComponent status = UiComponents.label("", UiStyles.palette().textMuted());
 
     private final BazaarTrackedOrderListComponent list = new BazaarTrackedOrderListComponent();
 
@@ -37,7 +37,7 @@ final class TrackedOrdersWidgetView implements
         header.allowOverflow(true);
         header.verticalAlignment(VerticalAlignment.CENTER);
 
-        header.child(UiComponents.label("Tracked Orders", UiStyles.palette().primary()));
+        header.child(UiComponents.label("Tracked Orders", UiStyles.palette().textPrimary()));
         header.child(UiComponents.spacer());
         header.child(this.status);
 

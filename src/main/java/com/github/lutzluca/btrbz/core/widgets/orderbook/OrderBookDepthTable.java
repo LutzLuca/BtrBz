@@ -216,7 +216,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             this.side = side;
             this.headers = new Headers(side);
             this.empty = UiComponents.label(side == OrderSide.Buy ? "No buy orders" : "No sell offers",
-                UiStyles.palette().muted());
+                UiStyles.palette().textMuted());
             this.empty.margins(Insets.left(INSET));
             this.children = List.of(this.headers, this.list);
             this.list.scrollbarThickness(SCROLLBAR_THICKNESS);
@@ -338,15 +338,19 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             this.text.begin();
             this.text.draw(graphics, font, this.title, this.x + titleX, this.y,
                 this.side.accentColor(), false);
-            this.text.draw(graphics, font, this.price, this.x + priceX, headerY, UiStyles.palette().label(), false);
-            this.text.draw(graphics, font, this.quantity, this.x + quantityX, headerY, UiStyles.palette().label(),
+            this.text.draw(graphics, font, this.price, this.x + priceX, headerY, UiStyles.palette().textSecondary(),
+                false);
+            this.text.draw(graphics, font, this.quantity, this.x + quantityX, headerY,
+                UiStyles.palette().textSecondary(),
                 false);
             if (this.columns.hasOrders()) {
-                this.text.draw(graphics, font, this.orders, this.x + ordersX, headerY, UiStyles.palette().label(),
+                this.text.draw(graphics, font, this.orders, this.x + ordersX, headerY,
+                    UiStyles.palette().textSecondary(),
                     false);
             }
             if (this.columns.hasTotal()) {
-                this.text.draw(graphics, font, this.total, this.x + totalX, headerY, UiStyles.palette().label(), false);
+                this.text.draw(graphics, font, this.total, this.x + totalX, headerY, UiStyles.palette().textSecondary(),
+                    false);
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import org.jetbrains.annotations.Nullable;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
@@ -13,11 +13,10 @@ import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetC
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
 public final class WidgetsConfig {
-    public static final int DEFAULT_BACKGROUND = UiStyles.palette().panelBackground();
     public static final WidgetPlacement DEFAULT_MANAGER_LAUNCHER_POSITION = WidgetPlacement.topLeft(0.0, 1.0);
 
     public double globalFineTuneScale = 1.0;
-    public int globalBackground = DEFAULT_BACKGROUND;
+    public @Nullable Integer globalBackgroundOverride;
 
     public WidgetPlacement managerLauncherPosition = DEFAULT_MANAGER_LAUNCHER_POSITION;
     public int managerPanelWidth = 210;

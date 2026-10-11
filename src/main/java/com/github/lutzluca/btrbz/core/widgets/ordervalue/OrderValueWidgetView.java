@@ -19,7 +19,7 @@ import net.minecraft.network.chat.Component;
 
 final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void> {
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
-    private final LabelComponent header = UiComponents.boldLabel("Bazaar Overview", UiStyles.palette().primary());
+    private final LabelComponent header = UiComponents.boldLabel("Bazaar Overview", UiStyles.palette().textPrimary());
 
     private final ValueLine buyLocked = new ValueLine("Buy Orders (Locked)");
     private final ValueLine buyItems = new ValueLine("Buy Orders (Items)");
@@ -90,10 +90,10 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
         private ValueLine(String name) {
             this.root.allowOverflow(true);
 
-            this.root.child(UiComponents.label(name, UiStyles.palette().label()));
+            this.root.child(UiComponents.label(name, UiStyles.palette().textSecondary()));
             this.root.child(UiComponents.spacer());
 
-            this.value = UiComponents.label("", UiStyles.palette().primary());
+            this.value = UiComponents.label("", UiStyles.palette().textPrimary());
 
             this.root.child(this.value);
         }

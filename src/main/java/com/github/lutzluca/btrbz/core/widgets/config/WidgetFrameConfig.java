@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.config;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 
 /** Persisted placement and chrome preferences shared by every BtrBz widget. */
 public final class WidgetFrameConfig {
@@ -10,8 +11,7 @@ public final class WidgetFrameConfig {
     public Map<String, WidgetPlacement> placements = new LinkedHashMap<>();
     public boolean overrideScale = false;
     public double scale = 1.0;
-    public boolean overrideBackground = false;
-    public int background = WidgetsConfig.DEFAULT_BACKGROUND;
+    public @Nullable Integer backgroundOverride;
 
     public WidgetFrameConfig(WidgetPlacement defaultPlacement) {
         this.placements.put("default", defaultPlacement);

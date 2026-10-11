@@ -8,6 +8,6 @@ final class OrderBookStyles {
     private OrderBookStyles() {}
 
     static int dividerColor() {
-        return ARGB.multiplyAlpha(UiStyles.palette().border(), 0.65F);
+        return ARGB.multiplyAlpha(UiStyles.palette().outline(), 0.65F);
     }
 }

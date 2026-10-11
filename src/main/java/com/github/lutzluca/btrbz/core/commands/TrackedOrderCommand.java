@@ -10,7 +10,6 @@ import com.github.lutzluca.btrbz.utils.Utils;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -25,7 +24,7 @@ public class TrackedOrderCommand {
 
                 var builder = Notifier.prefix();
                 if (orders.isEmpty()) {
-                    builder.append(Component.literal("No tracked orders").withStyle(ChatFormatting.GRAY));
+                    builder.append(Component.literal("No tracked orders").withStyle(UiStyles.label()));
                     Notifier.notifyPlayer(builder);
                     return 1;
                 }
@@ -35,7 +34,7 @@ public class TrackedOrderCommand {
                 builder = builder
                     .append(Component
                         .literal("Tracked Orders (" + orders.size() + "):")
-                        .withStyle(ChatFormatting.GOLD))
+                        .withStyle(UiStyles.heading()))
                     .append(newline);
 
                 var first = true;
@@ -59,7 +58,7 @@ public class TrackedOrderCommand {
                         .prefix()
                         .append(Component
                             .literal("Tracked Bazaar orders have been reset.")
-                            .withStyle(ChatFormatting.GRAY)));
+                            .withStyle(UiStyles.label())));
                 });
 
                 return 1;
@@ -72,13 +71,13 @@ public class TrackedOrderCommand {
             case Sell -> "Sell Offer";
         };
         var visualName = order.product.visualName();
-        var productNameComponent = Component.literal(visualName);
+        var productNameComponent = UiStyles.productName(visualName);
 
         return Component
             .empty()
             .append(Component
                 .literal("[" + order.status.toString() + "] ")
-                .withStyle(style -> Style.EMPTY.withColor(OrderHighlightManager.colorForStatus(order.status))))
+                .withStyle(UiStyles.color(OrderHighlightManager.colorForStatus(order.status))))
             .append(Component.literal(typeStr).withStyle(
                 UiStyles.color(order.type == OrderType.Buy ? UiStyles.palette().buy() : UiStyles.palette().sell())))
             .append(Component.literal(" for ").withStyle(UiStyles.label()))

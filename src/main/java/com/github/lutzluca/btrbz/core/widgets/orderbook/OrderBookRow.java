@@ -128,13 +128,14 @@ final class OrderBookRow extends BaseUIComponent {
                 UiStyles.palette().money());
         }
         this.text.draw(graphics, font, this.quantity, this.x + quantityX, middleY,
-            UiStyles.palette().quantity(), this.columns.quantityBar());
+            UiStyles.palette().textPrimary(), this.columns.quantityBar());
         if (this.columns.hasOrders()) {
             this.text.draw(graphics, font, this.orders, this.x + ordersX, middleY,
-                UiStyles.palette().muted(), false);
+                UiStyles.palette().textMuted(), false);
         }
         if (this.columns.hasTotal()) {
-            this.text.draw(graphics, font, this.depth, this.x + depthX, middleY, UiStyles.palette().quantity(), true);
+            this.text.draw(graphics, font, this.depth, this.x + depthX, middleY, UiStyles.palette().textPrimary(),
+                true);
         }
     }
 }

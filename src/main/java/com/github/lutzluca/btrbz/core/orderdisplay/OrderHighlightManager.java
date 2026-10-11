@@ -13,20 +13,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import net.minecraft.ChatFormatting;
+import com.github.lutzluca.btrbz.core.ui.UiColor;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import net.minecraft.network.chat.Component;
 
 public class OrderHighlightManager {
 
     private final Map<Integer, TrackedOrder> slotToTrackedOrder = new HashMap<>();
-    private final Map<Integer, Integer> inactiveOrderSlots = new HashMap<>();
+    private final Map<Integer, UiColor> inactiveOrderSlots = new HashMap<>();
 
     public static int colorForStatus(OrderStatus status) {
         return switch (status) {
-            case OrderStatus.Top _ -> 0xFF55FF55;
-            case OrderStatus.Matched _ -> 0xFF5555FF;
-            case OrderStatus.Undercut _ -> 0xFFFF5555;
-            case OrderStatus.Unknown _ -> 0xFFAA55FF;
+            case OrderStatus.Top _ -> UiStyles.palette().best();
+            case OrderStatus.Matched _ -> UiStyles.palette().matched();
+            case OrderStatus.Undercut _ -> UiStyles.palette().undercut();
+            case OrderStatus.Unknown _ -> UiStyles.palette().unknown();
         };
     }
 
@@ -45,9 +46,9 @@ public class OrderHighlightManager {
         snapshot.forEach(order -> {
             switch (order) {
                 case OrderInfo.FilledOrderInfo filled ->
-                    this.inactiveOrderSlots.put(filled.slotIdx(), 0xFFEFBF04);
+                    this.inactiveOrderSlots.put(filled.slotIdx(), UiColor.Filled);
                 case OrderInfo.ExpiredOrderInfo expired ->
-                    this.inactiveOrderSlots.put(expired.slotIdx(), 0xFF888888);
+                    this.inactiveOrderSlots.put(expired.slotIdx(), UiColor.Expired);
                 case OrderInfo.UnfilledOrderInfo _ -> {
                 }
             }
@@ -64,7 +65,7 @@ public class OrderHighlightManager {
             return Optional.of(colorForStatus(tracked.status));
         }
 
-        return Optional.ofNullable(this.inactiveOrderSlots.get(idx));
+        return Optional.ofNullable(this.inactiveOrderSlots.get(idx)).map(role -> role.color(UiStyles.palette()));
     }
 
     public void clear() {
@@ -108,18 +109,16 @@ public class OrderHighlightManager {
 
         private static Component highlightLegend() {
             return Component.empty()
-                .append(Component.literal("Green").withStyle(ChatFormatting.GREEN))
-                .append(Component.literal(": best price\n").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Blue").withStyle(ChatFormatting.BLUE))
-                .append(Component.literal(": matched at the best price\n").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Red").withStyle(ChatFormatting.RED))
-                .append(Component.literal(": undercut\n").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Purple").withStyle(ChatFormatting.LIGHT_PURPLE))
-                .append(Component.literal(": status unknown\n").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Gold").withStyle(ChatFormatting.GOLD))
-                .append(Component.literal(": filled and ready to claim\n").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Gray").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal(": expired").withStyle(ChatFormatting.GRAY));
+                .append(Component.literal("Best: best price\n").withStyle(UiStyles.color(UiStyles.palette().best())))
+                .append(Component.literal("Matched: at the best price\n")
+                    .withStyle(UiStyles.color(UiStyles.palette().matched())))
+                .append(Component.literal("Undercut: a better price exists\n")
+                    .withStyle(UiStyles.color(UiStyles.palette().undercut())))
+                .append(Component.literal("Unknown: market status unavailable\n")
+                    .withStyle(UiStyles.color(UiStyles.palette().unknown())))
+                .append(Component.literal("Filled: ready to claim\n")
+                    .withStyle(UiStyles.color(UiStyles.palette().filled())))
+                .append(Component.literal("Expired").withStyle(UiStyles.color(UiStyles.palette().expired())));
         }
     }
 }

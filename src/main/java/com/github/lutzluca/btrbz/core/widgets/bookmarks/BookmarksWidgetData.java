@@ -2,7 +2,7 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
 
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -115,12 +115,7 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
         }
 
         public Component formattedProductName(boolean abbreviateEnchanted) {
-            if (!abbreviateEnchanted) {
-                return this.formattedProductName.copy();
-            }
-
-            return Component.literal(BazaarHudOptions.productName(this.productName, abbreviateEnchanted))
-                .setStyle(this.formattedProductName.getStyle());
+            return UiStyles.productName(this.formattedProductName, abbreviateEnchanted);
         }
     }
 

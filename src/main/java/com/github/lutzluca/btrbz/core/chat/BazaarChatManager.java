@@ -8,7 +8,6 @@ import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionGroup;
 import java.util.List;
-import net.minecraft.ChatFormatting;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
@@ -69,7 +68,7 @@ public class BazaarChatManager {
                             + "and errors visible."),
                     Component
                         .literal("Examples hidden:\n")
-                        .withStyle(ChatFormatting.GOLD)
+                        .withStyle(UiStyles.action())
                         .append(Component
                             .literal("• [Bazaar] Submitting buy order...\n"
                                 + "• [Bazaar] Claiming orders...")
