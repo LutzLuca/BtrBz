@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.orderbook;
 
 import com.github.lutzluca.btrbz.BtrBz;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
@@ -62,7 +63,7 @@ public final class OrderBookScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        graphics.fill(0, 0, this.width, this.height, 0x80000000);
+        graphics.fill(0, 0, this.width, this.height, UiStyles.palette().screenBackdrop());
     }
 
     @Override
@@ -74,7 +75,7 @@ public final class OrderBookScreen extends Screen {
 
         if (!BtrBz.isActive()) {
             graphics.text(this.font, Component.literal("Bazaar market features are paused."),
-                12, 12, 0xFFAAAAAA, true);
+                12, 12, UiStyles.palette().label(), true);
             return;
         }
 

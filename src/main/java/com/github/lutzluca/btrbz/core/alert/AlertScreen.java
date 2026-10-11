@@ -55,7 +55,6 @@ import org.jetbrains.annotations.Nullable;
 
 /** Product picking and alert editing share a retained, live market view. */
 public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
-    private static final int PANEL = 0xEF0C0C0C;
     private static final int CARD = 0xB51A1A1A;
     private static final DateTimeFormatter CAPTURE_TIME = DateTimeFormatter
         .ofPattern("dd MMM, HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -145,10 +144,10 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.settingsWidth = columns ? this.contentWidth - this.productWidth - 10 : this.contentWidth;
         this.resultHeight = Math.max(48, Math.min(110, height - 184));
 
-        root.surface(Surface.flat(0x70000000));
+        root.surface(Surface.flat(UiStyles.palette().screenBackdrop()));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
         var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.fixed(height));
-        panel.surface(UiSurfaces.roundedPanel(PANEL, 6));
+        panel.surface(UiSurfaces.roundedPanel(UiStyles.palette().panelBackground(), 6));
         panel.padding(Insets.of(12));
         panel.gap(8);
 
@@ -285,7 +284,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         var preview = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         preview.padding(Insets.of(7));
         preview.gap(4);
-        preview.surface(UiSurfaces.roundedPanel(0x60000000, 3));
+        preview.surface(UiSurfaces.roundedPanel(CARD, 3));
         this.previewValue = text("", UiStyles.palette().primary()).maxWidth(this.settingsWidth - 30);
         preview.child(this.previewValue);
         footer.child(preview);

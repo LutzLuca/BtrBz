@@ -2,6 +2,9 @@ package com.github.lutzluca.btrbz.core.ui;
 
 /** Semantic UI colors in ARGB format */
 public record UiPalette(
+    int panelBackground,
+    int border,
+    int screenBackdrop,
     int primary,
     int label,
     int muted,
@@ -25,6 +28,9 @@ public record UiPalette(
     ButtonColors buttons
 ) {
     public static final UiPalette DEFAULT_PALETTE = new UiPalette(
+        0xEF0C0C0C,
+        0xFF45494E,
+        0x70000000,
         0xFFF3F5F8,
         0xFFAAAAAA,
         0xFF808997,
@@ -49,7 +55,7 @@ public record UiPalette(
             0xFF25282C, 0xFF484D54, 0xFF3B3F44,
             0xFF3F454C, 0xFF555C65,
             0xFF22252A, 0xFF2D3136,
-            0xFF45494E, 0xFF707780, 0xFF89929C,
+            0xFF707780, 0xFF89929C,
             0xFFFFFFFF, 0xFFA0A0A0));
 
     public record ButtonColors(
@@ -60,7 +66,6 @@ public record UiPalette(
         int primaryHovered,
         int disabled,
         int disabledHovered,
-        int border,
         int borderHovered,
         int accent,
         int text,

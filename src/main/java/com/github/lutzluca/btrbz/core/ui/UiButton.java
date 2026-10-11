@@ -112,7 +112,7 @@ public final class UiButton extends ButtonComponent {
         if (this.bottomAccent) {
             int border = (this.primary || this.selected) && this.active()
                 ? this.accent
-                : hover ? colors.borderHovered() : colors.border();
+                : hover ? colors.borderHovered() : UiStyles.palette().border();
             graphics.fill(this.getX() + 3, this.getBottom() - 1, this.getRight() - 3, this.getBottom(), border);
         }
     }

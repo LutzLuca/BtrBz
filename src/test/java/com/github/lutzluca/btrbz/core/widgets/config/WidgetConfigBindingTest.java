@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
@@ -94,6 +95,7 @@ class WidgetConfigBindingTest {
             assertEquals(1.0, config.frame.scale);
             assertFalse(config.frame.overrideBackground);
             assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
+            assertEquals(UiStyles.palette().panelBackground(), store.backgroundColor(definition));
             assertTrue(config.frame.enabled);
         }
     }
