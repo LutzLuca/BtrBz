@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -61,7 +62,8 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
 
     public static Snapshot preview() {
         return new Snapshot(
-            Component.literal("Enchanted Diamond"), Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640);
+            Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN),
+            Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640);
     }
 
     private Optional<Integer> listedCount(ItemStack stack) {

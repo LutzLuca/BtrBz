@@ -138,21 +138,29 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
 
     public static BazaarWidgetViewData.OrdersData preview() {
         return new BazaarWidgetViewData.OrdersData(List.of(
-            previewOrder("cookie", BazaarWidgetViewData.OrderSide.Buy, "Booster Cookie", Items.COOKIE, 9_825_000, 4, 1,
+            previewOrder("cookie", BazaarWidgetViewData.OrderSide.Buy, "Booster Cookie", Items.COOKIE,
+                ChatFormatting.GOLD, 9_825_000, 4, 1,
                 BazaarWidgetViewData.OrderStatus.Matched),
-            previewOrder("diamond", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Diamond", Items.DIAMOND, 1_234, 640,
+            previewOrder("diamond", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Diamond", Items.DIAMOND,
+                ChatFormatting.GREEN, 1_234, 640,
                 0, BazaarWidgetViewData.OrderStatus.Top),
-            previewOrder("gold", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Gold Block", Items.GOLD_BLOCK, 182_400,
+            previewOrder("gold", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Gold Block", Items.GOLD_BLOCK,
+                ChatFormatting.BLUE, 182_400,
                 32, 18, BazaarWidgetViewData.OrderStatus.Matched),
             previewOrder("pearl", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Ender Pearl", Items.ENDER_PEARL,
+                ChatFormatting.GREEN,
                 1_840, 2_048, 512, BazaarWidgetViewData.OrderStatus.Undercut),
-            previewOrder("blaze", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Blaze Rod", Items.BLAZE_ROD, 1_950_000,
+            previewOrder("blaze", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Blaze Rod", Items.BLAZE_ROD,
+                ChatFormatting.BLUE, 1_950_000,
                 8, 0, BazaarWidgetViewData.OrderStatus.Unknown),
-            previewOrder("quartz", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Quartz", Items.QUARTZ, 2_175, 1_280,
+            previewOrder("quartz", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Nether Quartz", Items.QUARTZ,
+                ChatFormatting.GREEN, 2_175, 1_280,
                 960, BazaarWidgetViewData.OrderStatus.Top),
-            previewOrder("emerald", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Emerald", Items.EMERALD, 1_118,
+            previewOrder("emerald", BazaarWidgetViewData.OrderSide.Buy, "Enchanted Emerald", Items.EMERALD,
+                ChatFormatting.GREEN, 1_118,
                 3_584, 1_792, BazaarWidgetViewData.OrderStatus.Matched),
-            previewOrder("cane", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Sugar Cane", Items.SUGAR_CANE, 85_500,
+            previewOrder("cane", BazaarWidgetViewData.OrderSide.Sell, "Enchanted Sugar Cane", Items.SUGAR_CANE,
+                ChatFormatting.BLUE, 85_500,
                 96, 24, BazaarWidgetViewData.OrderStatus.Undercut)),
             3);
     }
@@ -215,6 +223,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         BazaarWidgetViewData.OrderSide side,
         String name,
         Item item,
+        ChatFormatting rarity,
         long price,
         int total,
         int filled,
@@ -232,25 +241,8 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         };
 
         return new BazaarWidgetViewData.Order(
-            id, side, name, styled(name, item), Optional.of(new ItemStack(item)), price, total,
+            id, side, name, Component.literal(name).withStyle(rarity), Optional.of(new ItemStack(item)), price, total,
             Optional.of(new BazaarWidgetViewData.FillProgress(filled, total)), status, market, tooltip);
     }
 
-    private static Component styled(String name, Item item) {
-        var component = Component.literal(name);
-
-        if (item == Items.COOKIE) {
-            return component.withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-        }
-
-        if (item == Items.DIAMOND) {
-            return component.withStyle(ChatFormatting.AQUA);
-        }
-
-        if (item == Items.EMERALD) {
-            return component.withStyle(ChatFormatting.GREEN);
-        }
-
-        return component.withStyle(ChatFormatting.GRAY);
-    }
 }

@@ -14,6 +14,7 @@ import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 /** Shared order-book snapshots for the custom-screen and sign widgets. */
 public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidgetData.Snapshot> {
@@ -66,7 +67,8 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
 
     public static Snapshot preview() {
         return new Snapshot(
-            Component.literal("Booster Cookie"), Optional.of(new ItemStack(Items.COOKIE)),
+            Component.literal("Booster Cookie").withStyle(ChatFormatting.GOLD),
+            Optional.of(new ItemStack(Items.COOKIE)),
             previewLevels(BazaarWidgetViewData.OrderSide.Buy, 9_811_000.1),
             previewLevels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0),
             Optional.of(BazaarWidgetViewData.OrderSide.Sell));

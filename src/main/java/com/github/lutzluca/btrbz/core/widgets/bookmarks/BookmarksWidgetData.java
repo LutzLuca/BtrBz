@@ -42,40 +42,27 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
 
     public static Snapshot preview() {
         return new Snapshot(List.of(
-            previewBookmark("BOOSTER_COOKIE", "Booster Cookie", Items.COOKIE, true, false),
-            previewBookmark("ENCHANTED_DIAMOND", "Enchanted Diamond", Items.DIAMOND, true, true),
-            previewBookmark("ENCHANTED_GOLD", "Enchanted Gold Block", Items.GOLD_BLOCK, false, true),
-            previewBookmark("ENCHANTED_ENDER_PEARL", "Enchanted Ender Pearl", Items.ENDER_PEARL, false, false),
-            previewBookmark("ENCHANTED_BLAZE_ROD", "Enchanted Blaze Rod", Items.BLAZE_ROD, true, false),
-            previewBookmark("ENCHANTED_EMERALD", "Enchanted Emerald", Items.EMERALD, false, true)));
+            previewBookmark("BOOSTER_COOKIE", "Booster Cookie", Items.COOKIE, ChatFormatting.GOLD, true, false),
+            previewBookmark("ENCHANTED_DIAMOND", "Enchanted Diamond", Items.DIAMOND, ChatFormatting.GREEN, true, true),
+            previewBookmark("ENCHANTED_GOLD_BLOCK", "Enchanted Gold Block", Items.GOLD_BLOCK, ChatFormatting.BLUE,
+                false, true),
+            previewBookmark("ENCHANTED_ENDER_PEARL", "Enchanted Ender Pearl", Items.ENDER_PEARL, ChatFormatting.GREEN,
+                false, false),
+            previewBookmark("ENCHANTED_BLAZE_ROD", "Enchanted Blaze Rod", Items.BLAZE_ROD, ChatFormatting.BLUE, true,
+                false),
+            previewBookmark("ENCHANTED_EMERALD", "Enchanted Emerald", Items.EMERALD, ChatFormatting.GREEN, false,
+                true)));
     }
 
     private static Bookmark previewBookmark(
         String id,
         String name,
         Item item,
+        ChatFormatting rarity,
         boolean buy,
         boolean sell
     ) {
-        return new Bookmark(id, name, styled(name, item), new ItemStack(item), buy, sell);
-    }
-
-    private static Component styled(String name, Item item) {
-        var component = Component.literal(name);
-
-        if (item == Items.COOKIE) {
-            return component.withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-        }
-
-        if (item == Items.DIAMOND) {
-            return component.withStyle(ChatFormatting.AQUA);
-        }
-
-        if (item == Items.EMERALD) {
-            return component.withStyle(ChatFormatting.GREEN);
-        }
-
-        return component.withStyle(ChatFormatting.GRAY);
+        return new Bookmark(id, name, Component.literal(name).withStyle(rarity), new ItemStack(item), buy, sell);
     }
 
     public record Bookmark(
