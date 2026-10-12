@@ -32,6 +32,8 @@ import java.util.EnumMap;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Locale;
+import java.util.LinkedHashMap;
+import io.vavr.control.Try;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -46,9 +48,6 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
     private final @Nullable Screen parent;
     private final AppearanceManager manager;
     private UiTheme draft;
-    private boolean formattedNames;
-    private int orderHighlightOpacity;
-    private int productColorStrength;
     private final WidgetRegistry widgets;
     private AppearancePreview preview;
     private boolean previewDirty;
@@ -64,6 +63,9 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable UIComponent returnFocus;
     private @Nullable TextBoxComponent nameField;
     private UiButton applyButton;
+    private final Map<UiTheme, UiButton> themeButtons = new LinkedHashMap<>();
+    private LabelComponent currentTheme;
+    private @Nullable RestorableVerticalScrollContainer<FlowLayout> themeScroll;
 
     public AppearanceScreen(
         @Nullable Screen parent,
@@ -75,12 +77,11 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         this.parent = parent;
         this.manager = manager;
         this.draft = manager.theme();
-        this.formattedNames = manager.formattedProductNames();
-        this.productColorStrength = manager.productColorStrength();
         this.widgets = widgets;
         this.highlightOpacityOption = highlightOpacityOption;
-        this.orderHighlightOpacity = highlightOpacityOption == null
-            ? manager.orderHighlightOpacity() : highlightOpacityOption.pendingValue();
+        if (highlightOpacityOption != null) {
+            this.draft = this.draft.withOrderHighlightOpacity(highlightOpacityOption.pendingValue());
+        }
     }
 
     @Override
@@ -115,10 +116,10 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
                 this.previewView = true;
                 this.rebuild();
             }).selected(this.previewView);
-            previewTab.horizontalSizing(Sizing.expand(33));
             tabs.child(previewTab);
-            tabs.children().forEach(tab -> tab.horizontalSizing(Sizing.expand(33)));
         }
+        int tabWidth = (this.controlWidth - 5 * (tabs.children().size() - 1)) / tabs.children().size();
+        tabs.children().forEach(tab -> tab.horizontalSizing(Sizing.fixed(tabWidth)));
         left.child(tabs);
         this.controls = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         this.controls.gap(6);
@@ -126,17 +127,17 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         this.controlsScroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100),
             this.controls);
         this.controlsScroll.scrollbarThiccness(3);
-        this.controlsScroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(UiStyles.palette().scrollbar())));
+        this.controlsScroll.scrollbar(scrollbar());
 
         int previewWidth = compact ? this.controlWidth : width - 40 - this.controlWidth;
-        this.preview = new AppearancePreview(this::previewAppearance, () -> this.orderHighlightOpacity,
+        this.preview = new AppearancePreview(() -> this.draft,
             this.widgets, previewWidth - 16);
         this.previewDirty = false;
         this.previewScroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100),
             this.preview);
         this.previewScroll.id("appearance-preview");
         this.previewScroll.scrollbarThiccness(3);
-        this.previewScroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(UiStyles.palette().scrollbar())));
+        this.previewScroll.scrollbar(scrollbar());
         this.previewScroll.padding(Insets.of(8));
         this.previewScroll.surface(UiSurfaces.roundedPanel(0xFF25272C, 4));
         if (compact) {
@@ -156,14 +157,14 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         var importButton = UiButton.text("Import", () -> this.openSharing(true));
         var exportButton = UiButton.text("Export", () -> this.openSharing(false));
         this.applyButton = UiButton.text("Apply", () -> {
-            this.manager.apply(this.draft, this.formattedNames, this.productColorStrength, this.orderHighlightOpacity);
+            this.manager.apply(this.draft);
             if (this.highlightOpacityOption != null) {
                 this.highlightOpacityOption.forgetPendingValue();
             }
-            this.onClose();
+            this.rebuild();
         }).primary(true);
         panel.child(
-            row(importButton, exportButton, UiComponents.spacer(), UiButton.text("Cancel", this::onClose),
+            row(importButton, exportButton, UiComponents.spacer(), UiButton.text("Close", this::onClose),
                 this.applyButton));
         root.child(panel);
         this.buildControls();
@@ -175,16 +176,18 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
             this.previewView = false;
             this.rebuild();
         }).selected(!this.previewView && this.colorsView == colors);
-        button.horizontalSizing(Sizing.expand(50));
         return button;
     }
 
     private void buildControls() {
+        double themeOffset = this.themeScroll == null ? 0 : this.themeScroll.savedScrollOffset();
         if (this.uiAdapter.rootComponent.focusHandler() != null) {
             this.uiAdapter.rootComponent.focusHandler().focus(null, UIComponent.FocusSource.MOUSE_CLICK);
         }
         this.controls.clearChildren();
         this.colorFields.clear();
+        this.themeButtons.clear();
+        this.currentTheme = null;
         this.nameField = null;
         if (this.colorsView) {
             this.addNameField();
@@ -195,7 +198,7 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
                     this.controlsScroll.restoreScrollOffset(0);
                     this.buildControls();
                 }).selected(this.group == value);
-                button.horizontalSizing(Sizing.expand(33));
+                button.horizontalSizing(Sizing.fixed((this.controlWidth - 15) / 3));
                 groups.child(button);
             }
             this.controls.child(groups);
@@ -208,16 +211,40 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
             return;
         }
 
-        this.controls.child(UiComponents.label("Theme", UiStyles.palette().textSecondary()));
+        var saveTheme = UiButton.text("Save theme", () -> {
+            this.returnFocus = null;
+            GameUtils.setScreen(new SaveThemeDialog(this));
+        });
+        this.controls.child(row(UiComponents.label("Themes", UiStyles.palette().textSecondary()),
+            UiComponents.spacer(), saveTheme));
+        var themes = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
+        themes.gap(5);
+        themes.padding(Insets.right(5));
+        this.themeButtons.clear();
         for (var preset : ThemePreset.values()) {
-            var button = UiButton.text(preset.theme().name(), () -> {
-                this.draft = preset.theme();
-                this.previewDirty = true;
-                this.buildControls();
-            }).selected(preset.theme().equals(this.draft));
-            button.horizontalSizing(Sizing.fill(100));
-            this.controls.child(button);
+            themes.child(this.themeButton(preset.theme()));
         }
+        for (var theme : this.manager.savedThemes()) {
+            var remove = UiButton.text("×", () -> {
+                this.manager.removeTheme(theme.name());
+                this.buildControls();
+            });
+            remove.sizing(Sizing.fixed(22), Sizing.fixed(22));
+            remove.tooltip(Component.literal("Remove saved theme"));
+            var button = this.themeButton(theme);
+            button.horizontalSizing(Sizing.expand(100));
+            themes.child(row(button, remove));
+        }
+        var themeScroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.fixed(112), themes);
+        this.themeScroll = themeScroll;
+        themeScroll.restoreScrollOffset(themeOffset);
+        themeScroll.id("saved-theme-list");
+        themeScroll.scrollbarThiccness(3);
+        themeScroll.scrollbar(scrollbar());
+        this.controls.child(themeScroll);
+        this.currentTheme = UiComponents.label("Current: " + this.draft.name(), UiStyles.palette().textSecondary());
+        this.currentTheme.maxWidth(this.controlWidth - 5);
+        this.controls.child(this.currentTheme);
         this.controls.child(UiComponents.label("Panel opacity", UiStyles.palette().textSecondary()));
         var opacity = new ScrollSafeDiscreteSliderComponent(Sizing.fill(100), 0, 100, 1);
         opacity.decimalPlaces(0);
@@ -228,34 +255,45 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         this.controls.child(UiComponents.label("Order highlight opacity", UiStyles.palette().textSecondary()));
         var highlightOpacity = new ScrollSafeDiscreteSliderComponent(Sizing.fill(100), 0, 100, 1);
         highlightOpacity.decimalPlaces(0);
-        highlightOpacity.setFromDiscreteValue(this.orderHighlightOpacity);
+        highlightOpacity.setFromDiscreteValue(this.draft.orderHighlightOpacity());
         highlightOpacity.message(value -> Component.literal(value + "%"));
-        highlightOpacity.onChanged().subscribe(value -> this.orderHighlightOpacity = (int) Math.round(value));
+        highlightOpacity.onChanged()
+            .subscribe(value -> this.editTheme(this.draft.withOrderHighlightOpacity((int) Math.round(value))));
         highlightOpacity.tooltip(Component.literal("Opacity of order slot backgrounds on the Bazaar Orders page."));
         this.controls.child(highlightOpacity);
         this.controls.child(UiComponents.label("Product names", UiStyles.palette().textSecondary()));
         var formatted = UIComponents.smallCheckbox(Component.literal("Native Hypixel formatting"));
-        formatted.checked(this.formattedNames);
+        formatted.checked(this.draft.formattedProductNames());
         this.controls.child(formatted);
         this.controls.child(UiComponents.label("Product color strength", UiStyles.palette().textSecondary()));
         var strength = new ScrollSafeDiscreteSliderComponent(Sizing.fill(100), 0, 100, 1);
         strength.decimalPlaces(0);
-        strength.setFromDiscreteValue(this.productColorStrength);
+        strength.setFromDiscreteValue(this.draft.productColorStrength());
         strength.message(value -> Component.literal(value + "%"));
-        strength.active(this.formattedNames);
+        strength.active(this.draft.formattedProductNames());
         strength.tooltip(Component.literal("100% keeps native rarity colors. Lower values blend toward secondary text. "
             + "Applies to BtrBz product names, including chat."));
         strength.onChanged().subscribe(value -> {
-            this.productColorStrength = (int) Math.round(value);
-            this.previewDirty = true;
+            this.editTheme(this.draft.withProductNames(this.draft.formattedProductNames(), (int) Math.round(value)));
         });
         formatted.onChanged().subscribe(value -> {
-            this.formattedNames = value;
+            this.editTheme(this.draft.withProductNames(value, this.draft.productColorStrength()));
             strength.active(value);
             this.previewDirty = true;
         });
         this.controls.child(strength);
         this.updateApplyState();
+    }
+
+    private UiButton themeButton(UiTheme theme) {
+        var button = UiButton.text(theme.name(), () -> {
+            this.draft = theme;
+            this.previewDirty = true;
+            this.buildControls();
+        }).selected(theme.equals(this.draft));
+        button.horizontalSizing(Sizing.fill(100));
+        this.themeButtons.put(theme, button);
+        return button;
     }
 
     private void addNameField() {
@@ -268,7 +306,7 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
             boolean valid = !value.isBlank() && value.chars().noneMatch(Character::isISOControl);
             name.setTextColor(valid ? UiStyles.palette().textPrimary() : UiStyles.palette().error());
             if (valid) {
-                this.draft = new UiTheme(value, this.draft.palette());
+                this.draft = this.draft.withName(value);
                 this.previewDirty = true;
             }
             this.updateApplyState();
@@ -308,17 +346,28 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
             && this.nameField.getValue().chars().noneMatch(Character::isISOControl);
         boolean validColors = this.colorFields.values().stream()
             .allMatch(field -> ThemeJson.parseColor(field.getValue()).isSuccess());
-        this.applyButton.active(validName && validColors);
+        boolean changed = !this.draft.equals(this.manager.theme());
+        this.applyButton.setMessage(Component.literal(changed ? "Apply" : "Applied"));
+        this.applyButton.active(validName && validColors && changed);
+        this.themeButtons.forEach((theme, button) -> button.selected(theme.equals(this.draft)));
+        if (this.currentTheme != null) {
+            this.currentTheme.text(Component.literal("Current: " + this.draft.name()));
+        }
     }
 
     private void editPalette(UiPalette palette) {
-        if (!palette.equals(this.draft.palette())) {
+        this.editTheme(this.draft.withPalette(palette));
+    }
+
+    private void editTheme(UiTheme theme) {
+        if (!theme.equals(this.draft)) {
             boolean preset = Arrays.stream(ThemePreset.values()).anyMatch(value -> value.theme().equals(this.draft));
-            this.draft = new UiTheme(preset ? "Custom" : this.draft.name(), palette);
+            this.draft = preset ? theme.withName("Custom") : theme;
             this.previewDirty = true;
             if (this.nameField != null && !this.nameField.getValue().equals(this.draft.name())) {
                 this.nameField.setValue(this.draft.name());
             }
+            this.updateApplyState();
         }
     }
 
@@ -330,10 +379,12 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
     private void rebuild() {
         this.uiAdapter.rootComponent.focusHandler().focus(null, UIComponent.FocusSource.MOUSE_CLICK);
         double offset = this.previewScroll.savedScrollOffset();
+        double controlOffset = this.controlsScroll.savedScrollOffset();
         this.preview.closeViews();
         this.uiAdapter.rootComponent.clearChildren();
         this.build(this.uiAdapter.rootComponent);
         this.previewScroll.restoreScrollOffset(offset);
+        this.controlsScroll.restoreScrollOffset(controlOffset);
     }
 
     private void resumeDialog() {
@@ -365,12 +416,15 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
         return row;
     }
 
-    private AppearanceConfig previewAppearance() {
-        var settings = new AppearanceConfig();
-        settings.theme = this.draft;
-        settings.formattedProductNames = this.formattedNames;
-        settings.productColorStrength = this.productColorStrength;
-        return settings;
+    private static ScrollContainer.Scrollbar scrollbar() {
+        return (graphics, x, y, width, height, trackX, trackY, trackWidth, trackHeight, _, _, active) -> {
+            if (active) {
+                var palette = UiStyles.palette();
+                graphics.fill(trackX, trackY, trackX + trackWidth, trackY + trackHeight,
+                    UiPalette.alpha(palette.outline(), 0.25));
+                graphics.fill(x, y, x + width, y + height, palette.scrollbar());
+            }
+        };
     }
 
     @Override
@@ -472,9 +526,17 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
                 this.panel.child(this.input);
             } else {
                 var jsonText = UiComponents.label(this.json, UiStyles.palette().textPrimary());
-                jsonText.maxWidth(Math.min(336, this.width - 56));
+                jsonText.maxWidth(Math.min(324, this.width - 68));
                 var scroll = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100), jsonText);
                 scroll.scrollbarThiccness(3);
+                scroll.scrollbar(scrollbar());
+                scroll.padding(Insets.of(6));
+                scroll.surface((graphics, component) -> {
+                    graphics.fill(component.x(), component.y(), component.x() + component.width(),
+                        component.y() + component.height(), 0xFF000000);
+                    graphics.drawRectOutline(component.x(), component.y(), component.width(), component.height(),
+                        UiStyles.palette().textSecondary());
+                });
                 this.panel.child(scroll);
             }
             this.feedback = UiComponents.label("", UiStyles.palette().error());
@@ -492,6 +554,7 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
                 ThemeJson.importTheme(this.json).onSuccess(theme -> {
                     this.editor.draft = theme;
                     this.editor.previewDirty = true;
+                    this.editor.returnFocus = null;
                     this.editor.buildControls();
                     this.onClose();
                 }).onFailure(error -> this.feedback.text(Component.literal("Invalid theme JSON")));
@@ -506,6 +569,51 @@ public final class AppearanceScreen extends BaseOwoScreen<FlowLayout> {
             }
             buttons.child(action);
             this.panel.child(buttons);
+        }
+    }
+
+    private static final class SaveThemeDialog extends ThemeDialog {
+        private SaveThemeDialog(AppearanceScreen editor) {
+            super(editor, "Save theme");
+        }
+
+        @Override
+        protected void build(FlowLayout root) {
+            this.frame(root, 145);
+            this.panel.child(UiComponents.label("Name", UiStyles.palette().textSecondary()));
+            var name = UIComponents.textBox(Sizing.fill(100));
+            name.setMaxLength(64);
+            boolean builtIn = Arrays.stream(ThemePreset.values())
+                .anyMatch(preset -> preset.theme().name().equalsIgnoreCase(this.editor.draft.name()));
+            name.text(builtIn ? this.editor.draft.name() + " custom" : this.editor.draft.name());
+            this.panel.child(name);
+            var feedback = UiComponents.label("", UiStyles.palette().error());
+            feedback.horizontalSizing(Sizing.fill(100));
+            this.panel.child(feedback);
+            var save = UiButton.text("Save", () -> {
+                var candidate = this.editor.draft.withName(name.getValue());
+                this.editor.manager.saveTheme(candidate);
+                this.editor.draft = candidate;
+                this.editor.previewDirty = true;
+                this.editor.buildControls();
+                this.onClose();
+            }).primary(true);
+            save.horizontalSizing(Sizing.fixed(96));
+            Runnable validate = () -> {
+                var parsed = Try.of(() -> this.editor.draft.withName(name.getValue()));
+                boolean reserved = parsed.isSuccess() && Arrays.stream(ThemePreset.values())
+                    .anyMatch(preset -> preset.theme().name().equalsIgnoreCase(parsed.get().name()));
+                boolean exists = parsed.isSuccess() && this.editor.manager.savedThemes().stream()
+                    .anyMatch(theme -> theme.name().equalsIgnoreCase(parsed.get().name()));
+                save.active(parsed.isSuccess() && !reserved);
+                save.setMessage(Component.literal(exists ? "Update theme" : "Save"));
+                feedback.text(Component.literal(reserved
+                    ? "Built-in names are reserved"
+                    : parsed.isFailure() ? "Enter a valid name" : ""));
+            };
+            name.onChanged().subscribe(_ -> validate.run());
+            validate.run();
+            this.panel.child(row(UiButton.text("Cancel", this::onClose), UiComponents.spacer(), save));
         }
     }
 

@@ -37,7 +37,7 @@ class ProductNameStyleTest {
             return Optional.empty();
         }, Style.EMPTY);
         Assertions.assertEquals(List.of("Ench. :5635925:false", "Sugar:16777045:true"), segments);
-        config.formattedProductNames = false;
+        config.theme = config.theme.withProductNames(false, 100);
         UiStyles.configure(config);
         var plain = UiStyles.productName(original, true);
         Assertions.assertEquals("Ench. Sugar", plain.getString());

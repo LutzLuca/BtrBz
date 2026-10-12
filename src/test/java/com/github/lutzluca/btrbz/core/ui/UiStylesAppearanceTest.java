@@ -22,7 +22,7 @@ class UiStylesAppearanceTest {
     @Test
     void softerNamesPreservePerSpanFormattingAndNavigationWhileAbbreviating() {
         var config = new AppearanceConfig();
-        config.productColorStrength = 75;
+        config.theme = config.theme.withProductNames(true, 75);
         UiStyles.configure(config);
         var link = new ClickEvent.RunCommand("/bz Enchanted Diamond");
         var name = Component.literal("Enchanted ").withStyle(ChatFormatting.GREEN)
@@ -46,10 +46,10 @@ class UiStylesAppearanceTest {
         Assertions.assertTrue(styles.getLast().isBold());
         styles.forEach(style -> Assertions.assertEquals(link, style.getClickEvent()));
 
-        config.productColorStrength = 100;
+        config.theme = config.theme.withProductNames(true, 100);
         UiStyles.configure(config);
         Assertions.assertEquals(name, UiStyles.productName(name, false));
-        config.formattedProductNames = false;
+        config.theme = config.theme.withProductNames(false, 100);
         UiStyles.configure(config);
         Assertions.assertEquals(config.theme.palette().textPrimary() & 0xFFFFFF,
             UiStyles.productName(name, true).getStyle().getColor().getValue());
@@ -61,14 +61,14 @@ class UiStylesAppearanceTest {
         UiStyles.configure(applied);
         var draft = new AppearanceConfig();
         draft.theme = ThemePreset.Nord.theme();
-        draft.productColorStrength = 0;
+        draft.theme = draft.theme.withProductNames(true, 0);
         long appearanceRevision = UiStyles.appearanceRevision();
         long textRevision = TextRenderRevision.current();
-        Assertions.assertThrows(IllegalStateException.class, () -> UiStyles.preview(draft, () -> {
+        Assertions.assertThrows(IllegalStateException.class, () -> UiStyles.preview(draft.theme, () -> {
             Assertions.assertEquals(draft.theme.palette(), UiStyles.palette());
             Assertions.assertEquals(draft.theme.palette().textSecondary() & 0xFFFFFF,
                 UiStyles.productName("§aDiamond").getSiblings().getFirst().getStyle().getColor().getValue());
-            UiStyles.preview(applied, () -> Assertions.assertEquals(applied.theme.palette(), UiStyles.palette()));
+            UiStyles.preview(applied.theme, () -> Assertions.assertEquals(applied.theme.palette(), UiStyles.palette()));
             Assertions.assertEquals(draft.theme.palette(), UiStyles.palette());
             throw new IllegalStateException("draft render failed");
         }));
@@ -79,7 +79,7 @@ class UiStylesAppearanceTest {
         Assertions.assertEquals(0x55FF55,
             UiStyles.productName(Component.literal("Diamond").withStyle(ChatFormatting.GREEN), false)
                 .getStyle().getColor().getValue());
-        applied.productColorStrength = 75;
+        applied.theme = applied.theme.withProductNames(true, 75);
         UiStyles.configure(applied);
         Assertions.assertTrue(UiStyles.appearanceRevision() > appearanceRevision);
         Assertions.assertTrue(TextRenderRevision.current() > textRevision);

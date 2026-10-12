@@ -82,7 +82,7 @@ public class OrderHighlightManager {
     public static class HighlightConfig {
 
         public boolean enabled = true;
-        public int opacity = 55;
+        public int opacity = 75;
 
         public Option.Builder<Boolean> createEnabledOption() {
             return Option
@@ -97,7 +97,7 @@ public class OrderHighlightManager {
         public Option<Integer> createOpacityOption() {
             return Option.<Integer>createBuilder()
                 .name(Component.literal("Highlight Opacity"))
-                .binding(55, () -> this.opacity, value -> this.opacity = value)
+                .binding(75, () -> this.opacity, value -> this.opacity = value)
                 .description(ConfigUi.createDescription(
                     "Set the opacity of order slot backgrounds. 0% is invisible and 100% is fully opaque."))
                 .controller(option -> IntegerSliderControllerBuilder.create(option)

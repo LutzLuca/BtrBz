@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.ui;
 
 import com.github.lutzluca.btrbz.core.appearance.UiPalette;
+import com.github.lutzluca.btrbz.core.appearance.UiTheme;
 import com.github.lutzluca.btrbz.core.appearance.ThemePreset;
 import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
 import com.github.lutzluca.btrbz.core.appearance.UiColor;
@@ -39,28 +40,29 @@ public final class UiStyles {
     }
 
     public static void configure(AppearanceConfig config) {
-        if (currentPalette.equals(config.theme.palette()) && formattedProductNames == config.formattedProductNames
-            && productColorStrength == config.productColorStrength) {
+        if (currentPalette.equals(config.theme.palette())
+            && formattedProductNames == config.theme.formattedProductNames()
+            && productColorStrength == config.theme.productColorStrength()) {
             return;
         }
         currentPalette = config.theme.palette();
         currentButtons = currentPalette.buttons();
-        formattedProductNames = config.formattedProductNames;
-        productColorStrength = config.productColorStrength;
+        formattedProductNames = config.theme.formattedProductNames();
+        productColorStrength = config.theme.productColorStrength();
         APPEARANCE_CHANGES.invalidate("appearance changed");
         TextRenderRevision.invalidate();
     }
 
     /** Client-thread scope for the draft editor, without saving or invalidating applied appearance caches. */
-    public static void preview(AppearanceConfig draft, Runnable action) {
+    public static void preview(UiTheme draft, Runnable action) {
         var palette = currentPalette;
         var buttons = currentButtons;
         boolean formatted = formattedProductNames;
         int strength = productColorStrength;
-        currentPalette = draft.theme.palette();
+        currentPalette = draft.palette();
         currentButtons = currentPalette.buttons();
-        formattedProductNames = draft.formattedProductNames;
-        productColorStrength = draft.productColorStrength;
+        formattedProductNames = draft.formattedProductNames();
+        productColorStrength = draft.productColorStrength();
         try {
             action.run();
         } finally {

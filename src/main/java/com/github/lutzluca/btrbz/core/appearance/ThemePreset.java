@@ -10,7 +10,7 @@ public enum ThemePreset {
     BtrBzDark("BtrBz Dark", new int[]{
         0x1C1C1C, 0x282828, 0x434343, 0xF1F1F1, 0xAAAAAA, 0x8A919C, 0xFFAA00, 0x1C1C1C,
         0x55FF55, 0xFFFF55, 0xFF5555, 0xFFAA00, 0x55FF55, 0xFFAA00,
-        0x55FF55, 0x5599FF, 0xFF5555, 0xFFC857, 0xAAAAAA, 0xBB77FF}, 0.85),
+        0x55FF55, 0x5599FF, 0xFF5555, 0xFFC857, 0xAAAAAA, 0xBB77FF}, 0.85, 75),
     Mocha("Catppuccin Mocha", new int[]{
         0x1B1B29, 0x292A3D, 0x5E6179, 0xD8DEF2, 0xB4B9CE, 0xA2A9C0, 0xB4BEFE, 0x1B1B29,
         0xA6E3A1, 0xF9E2AF, 0xF38BA8, 0xF7D58B, 0xA6E3A1, 0xF7D58B,
@@ -26,11 +26,11 @@ public enum ThemePreset {
 
     private final UiTheme theme;
 
-    ThemePreset(String name, int[] colors) {
-        this(name, colors, 0.96);
+    ThemePreset(String name, int[] colors, double panelOpacity) {
+        this(name, colors, panelOpacity, 55);
     }
 
-    ThemePreset(String name, int[] colors, double panelOpacity) {
-        this.theme = new UiTheme(name, UiPalette.fromColors(colors, panelOpacity));
+    ThemePreset(String name, int[] colors, double panelOpacity, int highlightOpacity) {
+        this.theme = new UiTheme(name, UiPalette.fromColors(colors, panelOpacity), true, 100, highlightOpacity);
     }
 }

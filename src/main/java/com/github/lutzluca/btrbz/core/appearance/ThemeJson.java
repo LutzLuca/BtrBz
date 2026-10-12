@@ -13,9 +13,12 @@ public final class ThemeJson {
     public static String exportTheme(UiTheme theme) {
         var document = new JsonObject();
         document.addProperty("type", "btrbz-theme");
-        document.addProperty("schemaVersion", 1);
+        document.addProperty("schemaVersion", 2);
         document.addProperty("name", theme.name());
         document.addProperty("panelOpacity", theme.palette().panelOpacity());
+        document.addProperty("orderHighlightOpacity", theme.orderHighlightOpacity());
+        document.addProperty("formattedProductNames", theme.formattedProductNames());
+        document.addProperty("productColorStrength", theme.productColorStrength());
         var colors = new JsonObject();
         for (var role : UiColor.values()) {
             colors.addProperty(role.key(), formatColor(role.color(theme.palette())));
@@ -34,7 +37,7 @@ public final class ThemeJson {
                 throw new IllegalArgumentException("This is not a BtrBz theme");
             }
             if (!document.get("schemaVersion").getAsJsonPrimitive().isNumber()
-                || document.get("schemaVersion").getAsDouble() != 1) {
+                || document.get("schemaVersion").getAsDouble() != 2) {
                 throw new IllegalArgumentException("Unsupported theme version");
             }
             var colors = document.getAsJsonObject("colors");
@@ -53,9 +56,23 @@ public final class ThemeJson {
             if (name == null || !name.isJsonPrimitive() || !name.getAsJsonPrimitive().isString()) {
                 throw new IllegalArgumentException("Theme name must be text");
             }
+            var formatted = document.get("formattedProductNames");
+            if (formatted == null || !formatted.isJsonPrimitive() || !formatted.getAsJsonPrimitive().isBoolean()) {
+                throw new IllegalArgumentException("Product name formatting must be a boolean");
+            }
             return new UiTheme(name.getAsString(),
-                UiPalette.fromColors(values, document.get("panelOpacity").getAsDouble()));
+                UiPalette.fromColors(values, document.get("panelOpacity").getAsDouble()),
+                formatted.getAsBoolean(), percentage(document, "productColorStrength"),
+                percentage(document, "orderHighlightOpacity"));
         });
+    }
+
+    private static int percentage(JsonObject document, String key) {
+        var value = document.get(key);
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
+            throw new IllegalArgumentException(key + " must be a percentage");
+        }
+        return value.getAsBigDecimal().intValueExact();
     }
 
     public static String formatColor(int color) {

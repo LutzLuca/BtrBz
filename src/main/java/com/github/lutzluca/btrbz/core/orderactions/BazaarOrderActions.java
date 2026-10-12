@@ -59,7 +59,16 @@ public class BazaarOrderActions {
         this.registerTooltipCallback();
     }
 
-    public record CancelledOrderContext(ItemStack displayItem, String productName) {
+    public record CancelledOrderContext(ItemStack productItem, ProductIdentity product) {
+        public CancelledOrderContext {
+            productItem = productItem.copy();
+        }
+
+        @Override
+        public ItemStack productItem() {
+            return this.productItem.copy();
+        }
+
         public static CancelledOrderContext buildDisplayContext(
             ItemStack originalItem,
             ProductIdentity product,
@@ -77,6 +86,11 @@ public class BazaarOrderActions {
             });
 
             display.setCount(1);
+            return new CancelledOrderContext(display, product);
+        }
+
+        public ItemStack displayItem() {
+            var display = this.productItem.copy();
             display.set(
                 DataComponents.CUSTOM_NAME,
                 Component.literal("Reopen: ")
@@ -84,7 +98,7 @@ public class BazaarOrderActions {
                     .append(
                         Component.empty()
                             .withStyle(UiStyles.primary().withItalic(false))
-                            .append(UiStyles.productName(product.visualName()))));
+                            .append(UiStyles.productName(this.product.visualName()))));
 
             var loreLines = new ArrayList<Component>();
             loreLines.add(Component.empty());
@@ -94,7 +108,7 @@ public class BazaarOrderActions {
                     .withStyle(style -> style.withItalic(false)));
             display.set(DataComponents.LORE, new ItemLore(loreLines));
 
-            return new CancelledOrderContext(display, product.strippedName());
+            return display;
         }
     }
 
@@ -195,7 +209,7 @@ public class BazaarOrderActions {
             this.bazaarData);
         log.debug(
             "Set active order context for transition: productName='{}'",
-            this.activeBuyOrderContext.productName());
+            this.activeBuyOrderContext.product().strippedName());
 
         this.remainingOrderAmount = info.volume() - info.filledAmountSnapshot();
         log.debug(
@@ -262,7 +276,7 @@ public class BazaarOrderActions {
                 BazaarOrderActions.this.hideCancelledOrderButton = false;
                 log.debug(
                     "Cancelled buy order for productName='{}', setting as last cancelled buy order",
-                    BazaarOrderActions.this.lastCancelledBuyOrder.productName());
+                    BazaarOrderActions.this.lastCancelledBuyOrder.product().strippedName());
             }
             BazaarOrderActions.this.activeBuyOrderContext = null;
 
@@ -305,14 +319,14 @@ public class BazaarOrderActions {
 
         @Override
         public ItemStack createDisplayStack(SlotRenderContext ctx) {
-            return BazaarOrderActions.this.lastCancelledBuyOrder.displayItem().copy();
+            return BazaarOrderActions.this.lastCancelledBuyOrder.displayItem();
         }
 
         @Override
         public SlotClickResult onClick(SlotClickContext ctx) {
             log.debug("Reopening bazaar page for product '{}'",
-                BazaarOrderActions.this.lastCancelledBuyOrder.productName());
-            GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.productName());
+                BazaarOrderActions.this.lastCancelledBuyOrder.product().strippedName());
+            GameUtils.runCommand("bz " + BazaarOrderActions.this.lastCancelledBuyOrder.product().strippedName());
             return SlotClickResult.Consume;
         }
     }

@@ -232,7 +232,9 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
     protected void build(FlowLayout rootComponent) {
         this.root = rootComponent;
 
-        rootComponent.surface(Surface.flat(ARGB.color(0x1A, UiStyles.palette().screenBackdrop())));
+        rootComponent.surface((graphics, component) -> graphics.fill(
+            component.x(), component.y(), component.x() + component.width(), component.y() + component.height(),
+            ARGB.color(0x1A, UiStyles.palette().screenBackdrop())));
         rootComponent.padding(Insets.none());
         rootComponent.gap(0);
         rootComponent.allowOverflow(false);

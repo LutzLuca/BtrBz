@@ -53,7 +53,7 @@ final class PriceDifferenceWidgetView
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.productName.text(data.productName());
+        this.productName.text(UiStyles.productName(data.productName(), false));
         this.product.clearChildren();
 
         var itemStack = data.itemStack();

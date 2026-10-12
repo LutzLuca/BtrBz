@@ -49,8 +49,9 @@ class OrdersWidgetDataTest {
             var originalUnthemed = unthemed.snapshot(session);
 
             appearance.apply(
-                new UiTheme("Changed", config.appearance.theme.palette().withColor(UiColor.Matched, 0xFF123456)),
-                true, config.appearance.productColorStrength, config.orderHighlight.opacity);
+                config.appearance.theme.withName("Changed").withPalette(
+                    config.appearance.theme.palette().withColor(UiColor.Matched, 0xFF123456))
+                    .withOrderHighlightOpacity(config.orderHighlight.opacity));
 
             Assertions.assertNotSame(originalThemed, themed.snapshot(session));
             Assertions.assertSame(originalUnthemed, unthemed.snapshot(session));

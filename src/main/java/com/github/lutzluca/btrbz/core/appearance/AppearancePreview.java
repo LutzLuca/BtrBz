@@ -32,21 +32,18 @@ import net.minecraft.network.chat.Component;
 
 /** Real widget views and text formatters rendered in an isolated, read-only draft style scope. */
 final class AppearancePreview extends FlowLayout {
-    private final Supplier<AppearanceConfig> appearance;
-    private final Supplier<Integer> highlightOpacity;
+    private final Supplier<UiTheme> appearance;
     private final WidgetRegistry registry;
     private final int contentWidth;
     private final List<WidgetView<?, ?, ?>> views = new ArrayList<>();
 
     AppearancePreview(
-        Supplier<AppearanceConfig> appearance,
-        Supplier<Integer> highlightOpacity,
+        Supplier<UiTheme> appearance,
         WidgetRegistry registry,
         int width
     ) {
         super(Sizing.fill(100), Sizing.content(), Algorithm.VERTICAL);
         this.appearance = appearance;
-        this.highlightOpacity = highlightOpacity;
         this.registry = registry;
         this.contentWidth = width - 12;
         this.gap(10);
@@ -156,7 +153,8 @@ final class AppearancePreview extends FlowLayout {
                 graphics.fill(slotX, this.y, slotX + 18, this.y + 18, 0xFF060606);
                 graphics.fill(slotX + 1, this.y + 1, slotX + 17, this.y + 17, 0xFF282828);
                 graphics.fill(slotX + 1, this.y + 1, slotX + 17, this.y + 17,
-                    UiPalette.alpha(colors[index], AppearancePreview.this.highlightOpacity.get() / 100.0));
+                    UiPalette.alpha(colors[index],
+                        AppearancePreview.this.appearance.get().orderHighlightOpacity() / 100.0));
                 graphics.text(Minecraft.getInstance().font, Component.literal(names[index]),
                     slotX, this.y + 23, palette.textSecondary(), false);
             }
