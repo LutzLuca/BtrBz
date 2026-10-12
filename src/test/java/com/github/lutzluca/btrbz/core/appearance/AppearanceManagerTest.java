@@ -32,13 +32,14 @@ class AppearanceManagerTest {
         var theme = ThemeJson.importTheme(ThemeJson.exportTheme(new UiTheme("Custom Nord",
             ThemePreset.Nord.theme().palette().withColor(UiColor.Best, 0xFF55BB77).withOpacity(0.8)))).get();
 
-        manager.apply(theme, false, 73);
-        manager.apply(theme, false, 73);
+        manager.apply(theme, false, 80, 73);
+        manager.apply(theme, false, 80, 73);
 
         var reloaded = new ConfigStore(path);
         Assertions.assertTrue(reloaded.load());
         Assertions.assertEquals(theme, reloaded.config().appearance.theme);
         Assertions.assertFalse(reloaded.config().appearance.formattedProductNames);
+        Assertions.assertEquals(80, reloaded.config().appearance.productColorStrength);
         Assertions.assertEquals(73, reloaded.config().orderHighlight.opacity);
         Assertions.assertEquals(0xA0123456, reloaded.config().widgets.globalBackgroundOverride);
         Assertions.assertEquals(0x80234567, reloaded.config().widgets.trackedOrders.frame.backgroundOverride);
@@ -49,7 +50,7 @@ class AppearanceManagerTest {
 
         store.config().orderHighlight.opacity = 41;
         Assertions.assertEquals(41, manager.orderHighlightOpacity());
-        manager.apply(theme, false, 62);
+        manager.apply(theme, false, 80, 62);
         Assertions.assertEquals(2, saves.get());
         Assertions.assertTrue(reloaded.load());
         Assertions.assertEquals(62, reloaded.config().orderHighlight.opacity);

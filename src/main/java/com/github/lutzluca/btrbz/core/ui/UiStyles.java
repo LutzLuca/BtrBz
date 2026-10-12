@@ -17,6 +17,7 @@ public final class UiStyles {
     private static UiPalette currentPalette = ThemePreset.BtrBzDark.theme().palette();
     private static UiPalette.ButtonColors currentButtons = currentPalette.buttons();
     private static boolean formattedProductNames = true;
+    private static int productColorStrength = 100;
     private static final CacheToken APPEARANCE_CHANGES = CacheToken.named("appearance");
 
     private UiStyles() {}
@@ -38,14 +39,36 @@ public final class UiStyles {
     }
 
     public static void configure(AppearanceConfig config) {
-        if (currentPalette.equals(config.theme.palette()) && formattedProductNames == config.formattedProductNames) {
+        if (currentPalette.equals(config.theme.palette()) && formattedProductNames == config.formattedProductNames
+            && productColorStrength == config.productColorStrength) {
             return;
         }
         currentPalette = config.theme.palette();
         currentButtons = currentPalette.buttons();
         formattedProductNames = config.formattedProductNames;
+        productColorStrength = config.productColorStrength;
         APPEARANCE_CHANGES.invalidate("appearance changed");
         TextRenderRevision.invalidate();
+    }
+
+    /** Client-thread scope for the draft editor, without saving or invalidating applied appearance caches. */
+    public static void preview(AppearanceConfig draft, Runnable action) {
+        var palette = currentPalette;
+        var buttons = currentButtons;
+        boolean formatted = formattedProductNames;
+        int strength = productColorStrength;
+        currentPalette = draft.theme.palette();
+        currentButtons = currentPalette.buttons();
+        formattedProductNames = draft.formattedProductNames;
+        productColorStrength = draft.productColorStrength;
+        try {
+            action.run();
+        } finally {
+            currentPalette = palette;
+            currentButtons = buttons;
+            formattedProductNames = formatted;
+            productColorStrength = strength;
+        }
     }
 
     public static Component productName(String formattedName) {
@@ -53,10 +76,26 @@ public final class UiStyles {
     }
 
     public static Component productName(Component name, boolean abbreviateEnchanted) {
-        return productName(name, abbreviateEnchanted, formattedProductNames, palette().textPrimary());
+        var formatted = productName(name, abbreviateEnchanted, formattedProductNames, palette().textPrimary());
+        if (!formattedProductNames || productColorStrength >= 100) {
+            return formatted;
+        }
+        var result = Component.empty().withStyle(formatted.getStyle());
+        formatted.visit((style, text) -> {
+            if (text.isEmpty()) {
+                return Optional.empty();
+            }
+            var color = style.getColor();
+            var softened = color == null
+                ? style : style.withColor(UiPalette.blend(palette().textSecondary(),
+                    color.getValue(), productColorStrength / 100.0) & 0xFFFFFF);
+            result.append(Component.literal(text).withStyle(softened));
+            return Optional.empty();
+        }, Style.EMPTY);
+        return result;
     }
 
-    public static Component productName(Component name, boolean abbreviate, boolean formatted, int plainColor) {
+    private static Component productName(Component name, boolean abbreviate, boolean formatted, int plainColor) {
         boolean shorten = abbreviate && name.getString().startsWith("Enchanted ");
         int prefixLength = "Enchanted ".length();
         if (!formatted) {

@@ -28,15 +28,24 @@ public final class AppearanceManager {
         return this.config.get().orderHighlight.opacity;
     }
 
-    public void apply(UiTheme theme, boolean formattedNames, int highlightOpacity) {
+    public int productColorStrength() {
+        return this.config.get().appearance.productColorStrength;
+    }
+
+    public void apply(UiTheme theme, boolean formattedNames, int colorStrength, int highlightOpacity) {
+        if (colorStrength < 0 || colorStrength > 100 || highlightOpacity < 0 || highlightOpacity > 100) {
+            throw new IllegalArgumentException("Appearance percentages must be between 0 and 100");
+        }
         var config = this.config.get();
         var settings = config.appearance;
         if (settings.theme.equals(theme) && settings.formattedProductNames == formattedNames
+            && settings.productColorStrength == colorStrength
             && config.orderHighlight.opacity == highlightOpacity) {
             return;
         }
         settings.theme = Objects.requireNonNull(theme, "theme");
         settings.formattedProductNames = formattedNames;
+        settings.productColorStrength = colorStrength;
         config.orderHighlight.opacity = highlightOpacity;
         UiStyles.configure(settings);
         this.save.run();

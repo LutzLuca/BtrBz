@@ -303,7 +303,7 @@ public class BtrBz implements ClientModInitializer {
             priceDifferenceWidgetDefinition);
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime,
-            parent -> new AppearanceScreen(parent, appearance, null));
+            parent -> new AppearanceScreen(parent, appearance, null, widgetRegistry));
 
         var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
         new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
@@ -314,7 +314,7 @@ public class BtrBz implements ClientModInitializer {
         });
 
         this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
-            (parent, highlightOpacity) -> new AppearanceScreen(parent, appearance, highlightOpacity),
+            (parent, highlightOpacity) -> new AppearanceScreen(parent, appearance, highlightOpacity, widgetRegistry),
             parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController));
         var hudHint = new BazaarHudHintController(

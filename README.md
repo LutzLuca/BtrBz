@@ -32,13 +32,18 @@ Choose **General → Appearance → Edit** to select BtrBz Dark, Catppuccin Moch
 the interface, feedback, and Bazaar colours. BtrBz Dark is the default, pairing charcoal surfaces
 at 85% opacity with bright status colours to match Minecraft's item formatting. Buy orders are green,
 sell offers and coin values are gold, and price labels use secondary text. Product names retain their
-item formatting unless you turn off **Formatted product names**. **Order highlight opacity** adjusts
+item formatting unless you turn off **Native Hypixel formatting**. **Product color strength** blends
+rarity colors toward secondary text in BtrBz widgets and new messages. Its default of 100% keeps native colors.
+Existing chat and vanilla item headings keep their colors.
+**Order highlight opacity** adjusts
 slot backgrounds and is also available under **Orders & Notifications → Order Highlighting**.
 
 **Import** previews a complete theme before **Apply** saves it. **Export → Copy** shares its
 colours and panel opacity as JSON. Widget backgrounds follow the theme, with optional overrides
 in the Widget Manager for all widgets or a selected widget. Product-name preferences and widget
-overrides are separate from shared themes.
+overrides are separate from shared themes. The editor previews real widget views, notification messages,
+price-tooltip text and order highlights. Scroll the preview to inspect the text and slots. On narrow
+screens, the **Preview** tab gives these examples their own page.
 
 The alternative presets adapt [Catppuccin Mocha](https://catppuccin.com/palette/),
 [Nord](https://www.nordtheme.com/docs/colors-and-palettes/), and [Dracula](https://draculatheme.com/spec)

@@ -50,7 +50,7 @@ class OrdersWidgetDataTest {
 
             appearance.apply(
                 new UiTheme("Changed", config.appearance.theme.palette().withColor(UiColor.Matched, 0xFF123456)),
-                true, config.orderHighlight.opacity);
+                true, config.appearance.productColorStrength, config.orderHighlight.opacity);
 
             Assertions.assertNotSame(originalThemed, themed.snapshot(session));
             Assertions.assertSame(originalUnthemed, unthemed.snapshot(session));

@@ -109,8 +109,12 @@ public final class UiButton extends ButtonComponent {
                 : hover ? colors.hovered() : colors.background();
         }
 
-        UiSurfaces.drawRoundedPanel(
-            graphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(), color, 3);
+        int outline = this.isFocused() || this.selected && this.active()
+            ? this.accent.getAsInt() : UiStyles.palette().outline();
+        UiSurfaces.drawRoundedPanel(graphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(),
+            this.active() ? outline : colors.disabled(), 3);
+        UiSurfaces.drawRoundedPanel(graphics, this.getX() + 1, this.getY() + 1,
+            Math.max(0, this.getWidth() - 2), Math.max(0, this.getHeight() - 2), color, 2);
 
         if (this.bottomAccent) {
             int border = (this.primary || this.selected) && this.active()

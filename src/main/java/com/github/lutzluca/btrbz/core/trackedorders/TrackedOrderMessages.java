@@ -14,11 +14,22 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
+import net.minecraft.ChatFormatting;
 
 /** Message formatting shared by live notifications and passive settings examples. */
-final class TrackedOrderMessages {
+public final class TrackedOrderMessages {
 
     private TrackedOrderMessages() {}
+
+    /** Passive examples for the appearance editor, using the live notification formatter. */
+    public static List<Component> preview() {
+        var diamond = UiStyles.productName(Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN),
+            false);
+        var cookie = UiStyles.productName(Component.literal("Booster Cookie").withStyle(ChatFormatting.GOLD), false);
+        return List.of(single(OrderType.Buy, 640, diamond, 1_234.0, matchedStatus(false)),
+            single(OrderType.Sell, 4, cookie, 9_825_000.0, undercutStatus(11.0, false)));
+    }
 
     static Component topStatus(boolean regained) {
         return regained

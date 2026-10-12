@@ -7,10 +7,22 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
+import java.util.ArrayList;
+import java.util.OptionalInt;
+import net.minecraft.ChatFormatting;
 
-final class ProductInfoTooltip {
+public final class ProductInfoTooltip {
 
     private ProductInfoTooltip() {}
+
+    /** Keeps the native item heading beside the exact price lines shown in Minecraft tooltips. */
+    public static List<Component> preview() {
+        var lines = new ArrayList<Component>();
+        lines.add(Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN));
+        append(lines, new Prices(1_234.0, 1_200.0),
+            new ProductInfoQuantity(ProductInfoQuantity.Source.ORDER, OptionalInt.of(640)), false);
+        return List.copyOf(lines);
+    }
 
     static void append(List<Component> lines, Prices prices, ProductInfoQuantity quantity, boolean shiftHeld) {
         lines.add(Component.empty());

@@ -9,8 +9,8 @@ import io.wispforest.owo.ui.core.UIComponent;
  * Vertical scroll container whose absolute offset can survive replacing the
  * component tree it belongs to.
  *
- * <p>Restoration is deferred until layout because a newly constructed scroll
- * container does not know its maximum scroll distance yet.</p>
+ * <p>Unmounted containers defer restoration until layout, when their maximum
+ * scroll distance becomes known.</p>
  */
 public final class RestorableVerticalScrollContainer<C extends UIComponent> extends ScrollContainer<C> {
     private double pendingScrollOffset = Double.NaN;
@@ -31,6 +31,11 @@ public final class RestorableVerticalScrollContainer<C extends UIComponent> exte
 
     public RestorableVerticalScrollContainer<C> restoreScrollOffset(double offset) {
         this.pendingScrollOffset = Math.max(0.0, offset);
+        if (this.mounted) {
+            this.scrollOffset = Math.clamp(this.pendingScrollOffset, 0.0, this.maxScroll);
+            this.currentScrollPosition = this.scrollOffset;
+            this.pendingScrollOffset = Double.NaN;
+        }
         return this;
     }
 
