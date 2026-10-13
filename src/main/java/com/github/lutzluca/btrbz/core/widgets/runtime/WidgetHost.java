@@ -55,7 +55,7 @@ public final class WidgetHost {
     private final @Nullable Map<WidgetId, Double> scrollOffsets;
 
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
-    private long appearanceRevision = UiStyles.appearanceRevision();
+    private long textRevision = TextRenderRevision.current();
 
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
 
@@ -130,9 +130,10 @@ public final class WidgetHost {
         if (this.runtime && !this.features.isActive()) {
             return List.of();
         }
-        if (this.appearanceRevision != UiStyles.appearanceRevision()) {
+        // Retained labels and wrapped tooltips must also be recreated when font resources change.
+        if (this.textRevision != TextRenderRevision.current()) {
             this.dispose();
-            this.appearanceRevision = UiStyles.appearanceRevision();
+            this.textRevision = TextRenderRevision.current();
         }
         this.ensureAdapter();
 

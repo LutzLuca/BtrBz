@@ -176,6 +176,7 @@ public class TrackedOrderManager {
                         tracked.slot = slot;
                         tracked.fillAmountSnapshot = fill;
                         this.dataChanges.invalidate("tracked order slot or fill updated");
+                        this.notifyOrderUpdated(tracked);
                     }
                 }, () -> toRemove.add(tracked));
         }
