@@ -1,30 +1,25 @@
 package com.github.lutzluca.btrbz.core.appearance;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import io.vavr.control.Try;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /** The sharing format contains appearance only, with a complete set of RGB roles. */
 public final class ThemeJson {
+    private static final String TYPE = "btrbz-theme";
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
     private ThemeJson() {}
 
     public static String exportTheme(UiTheme theme) {
-        var document = new JsonObject();
-        document.addProperty("type", "btrbz-theme");
-        document.addProperty("schemaVersion", 2);
-        document.addProperty("name", theme.name());
-        document.addProperty("panelOpacity", theme.palette().panelOpacity());
-        document.addProperty("orderHighlightOpacity", theme.orderHighlightOpacity());
-        document.addProperty("formattedProductNames", theme.formattedProductNames());
-        document.addProperty("productColorStrength", theme.productColorStrength());
-        var colors = new JsonObject();
-        for (var role : UiColor.values()) {
-            colors.addProperty(role.key(), formatColor(role.color(theme.palette())));
-        }
-        document.add("colors", colors);
-        return new GsonBuilder().setPrettyPrinting().create().toJson(document);
+        return GSON.toJson(Version2.fromTheme(theme));
     }
 
     public static Try<UiTheme> importTheme(String json) {
@@ -33,46 +28,46 @@ public final class ThemeJson {
                 throw new IllegalArgumentException("Theme JSON is too large");
             }
             var document = JsonParser.parseString(json).getAsJsonObject();
-            if (!"btrbz-theme".equals(document.get("type").getAsString())) {
+            if (!TYPE.equals(string(document, "type"))) {
                 throw new IllegalArgumentException("This is not a BtrBz theme");
             }
-            if (!document.get("schemaVersion").getAsJsonPrimitive().isNumber()
-                || document.get("schemaVersion").getAsDouble() != 2) {
-                throw new IllegalArgumentException("Unsupported theme version");
-            }
-            var colors = document.getAsJsonObject("colors");
-            int[] values = new int[UiColor.values().length];
-            for (var role : UiColor.values()) {
-                var value = colors.get(role.key());
-                if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
-                    throw new IllegalArgumentException("Missing color: " + role.label());
-                }
-                values[role.ordinal()] = parseColor(value.getAsString()).get();
-            }
-            if (!document.get("panelOpacity").getAsJsonPrimitive().isNumber()) {
-                throw new IllegalArgumentException("Panel opacity must be a number");
-            }
-            var name = document.get("name");
-            if (name == null || !name.isJsonPrimitive() || !name.getAsJsonPrimitive().isString()) {
-                throw new IllegalArgumentException("Theme name must be text");
-            }
-            var formatted = document.get("formattedProductNames");
-            if (formatted == null || !formatted.isJsonPrimitive() || !formatted.getAsJsonPrimitive().isBoolean()) {
-                throw new IllegalArgumentException("Product name formatting must be a boolean");
-            }
-            return new UiTheme(name.getAsString(),
-                UiPalette.fromColors(values, document.get("panelOpacity").getAsDouble()),
-                formatted.getAsBoolean(), percentage(document, "productColorStrength"),
-                percentage(document, "orderHighlightOpacity"));
+            return switch (number(document, "schemaVersion").getAsBigDecimal().intValueExact()) {
+                case 2 -> Version2.read(document).toTheme();
+                default -> throw new IllegalArgumentException("Unsupported theme version");
+            };
         });
     }
 
-    private static int percentage(JsonObject document, String key) {
+    private static JsonPrimitive primitive(JsonObject document, String key) {
         var value = document.get(key);
-        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
-            throw new IllegalArgumentException(key + " must be a percentage");
+        if (value == null || !value.isJsonPrimitive()) {
+            throw new IllegalArgumentException("Missing or invalid field: " + key);
         }
-        return value.getAsBigDecimal().intValueExact();
+        return value.getAsJsonPrimitive();
+    }
+
+    private static String string(JsonObject document, String key) {
+        var value = primitive(document, key);
+        if (!value.isString()) {
+            throw new IllegalArgumentException(key + " must be text");
+        }
+        return value.getAsString();
+    }
+
+    private static JsonPrimitive number(JsonObject document, String key) {
+        var value = primitive(document, key);
+        if (!value.isNumber()) {
+            throw new IllegalArgumentException(key + " must be a number");
+        }
+        return value;
+    }
+
+    private static boolean bool(JsonObject document, String key) {
+        var value = primitive(document, key);
+        if (!value.isBoolean()) {
+            throw new IllegalArgumentException(key + " must be a boolean");
+        }
+        return value.getAsBoolean();
     }
 
     public static String formatColor(int color) {
@@ -86,5 +81,46 @@ public final class ThemeJson {
             }
             return Integer.parseInt(text.substring(1), 16) | 0xFF000000;
         });
+    }
+
+    /** Owns the v2 wire format and its conversion into a complete runtime profile. */
+    private record Version2(
+        String type, int schemaVersion, String name, double panelOpacity,
+        int orderHighlightOpacity, boolean formattedProductNames, int productColorStrength,
+        Map<String, String> colors
+    ) {
+        private Version2 {
+            colors = Collections.unmodifiableMap(new LinkedHashMap<>(colors));
+        }
+
+        private static Version2 fromTheme(UiTheme theme) {
+            var colors = new LinkedHashMap<String, String>();
+            for (var role : UiColor.values()) {
+                colors.put(role.key(), formatColor(role.color(theme.palette())));
+            }
+            return new Version2(TYPE, 2, theme.name(), theme.palette().panelOpacity(),
+                theme.orderHighlightOpacity(), theme.formattedProductNames(), theme.productColorStrength(), colors);
+        }
+
+        private static Version2 read(JsonObject document) {
+            var colorDocument = document.getAsJsonObject("colors");
+            var colors = new LinkedHashMap<String, String>();
+            for (var role : UiColor.values()) {
+                colors.put(role.key(), string(colorDocument, role.key()));
+            }
+            return new Version2(TYPE, 2, string(document, "name"), number(document, "panelOpacity").getAsDouble(),
+                number(document, "orderHighlightOpacity").getAsBigDecimal().intValueExact(),
+                bool(document, "formattedProductNames"),
+                number(document, "productColorStrength").getAsBigDecimal().intValueExact(), colors);
+        }
+
+        private UiTheme toTheme() {
+            int[] values = new int[UiColor.values().length];
+            for (var role : UiColor.values()) {
+                values[role.ordinal()] = parseColor(this.colors.get(role.key())).get();
+            }
+            return new UiTheme(this.name, UiPalette.fromColors(values, this.panelOpacity),
+                this.formattedProductNames, this.productColorStrength, this.orderHighlightOpacity);
+        }
     }
 }

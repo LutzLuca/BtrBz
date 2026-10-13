@@ -21,6 +21,8 @@ class ThemeJsonTest {
         Assertions.assertEquals(61, document.get("productColorStrength").getAsInt());
         Assertions.assertEquals(73, document.get("orderHighlightOpacity").getAsInt());
         Assertions.assertFalse(document.has("widgets"));
+        var zero = theme.withProductNames(false, 0).withOrderHighlightOpacity(0).withPalette(palette.withOpacity(0));
+        Assertions.assertEquals(zero, ThemeJson.importTheme(ThemeJson.exportTheme(zero)).get());
     }
 
     @Test
@@ -46,8 +48,19 @@ class ThemeJsonTest {
         invalidStrength.addProperty("productColorStrength", 101);
         var fractional = original.deepCopy();
         fractional.addProperty("orderHighlightOpacity", 75.5);
+        var fractionalVersion = original.deepCopy();
+        fractionalVersion.addProperty("schemaVersion", 2.5);
+        var textVersion = original.deepCopy();
+        textVersion.addProperty("schemaVersion", "2");
+        var textPreference = original.deepCopy();
+        textPreference.addProperty("formattedProductNames", "false");
+        var textPercentage = original.deepCopy();
+        textPercentage.addProperty("productColorStrength", "0");
+        var missingPercentage = original.deepCopy();
+        missingPercentage.remove("orderHighlightOpacity");
         for (JsonObject invalid : List.of(missing, alpha, numeric, future, opacity, foreign,
-            old, missingPreference, invalidStrength, fractional)) {
+            old, missingPreference, invalidStrength, fractional, fractionalVersion, textVersion,
+            textPreference, textPercentage, missingPercentage)) {
             Assertions.assertTrue(ThemeJson.importTheme(invalid.toString()).isFailure(), invalid.toString());
         }
         Assertions.assertTrue(ThemeJson.importTheme("not JSON").isFailure());
