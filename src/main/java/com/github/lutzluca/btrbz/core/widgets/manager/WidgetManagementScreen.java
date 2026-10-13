@@ -856,7 +856,8 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
 
         this.sidebarContent.child(slider);
 
-        var override = UIComponents.smallCheckbox(Component.literal("Custom background for all widgets"));
+        var override = UIComponents.smallCheckbox(Component.literal("Custom background"));
+        override.tooltip(WidgetTooltips.wrapped("Override the theme background for all widgets."));
         override.checked(this.stateStore.hasGlobalBackgroundOverride());
         override.onChanged().subscribe(value -> {
             this.stateStore.setGlobalBackgroundOverride(value, false);

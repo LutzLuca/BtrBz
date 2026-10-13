@@ -67,19 +67,19 @@ public class ConfigScreen {
         var general = ConfigCategory
             .createBuilder()
             .name(Component.literal("General"))
-            .tooltip(Component.literal("Configure BtrBz activation and appearance."))
+            .tooltip(Component.literal("Configure BtrBz activation."))
             .group(this.activationGroup(config))
+            .build();
+
+        var widgetBuilder = ConfigCategory.createBuilder()
+            .name(Component.literal("Widget & Appearance"))
+            .tooltip(Component.literal("Configure BtrBz widgets, appearance and the Widget Manager."))
             .option(ButtonOption.createBuilder()
                 .name(Component.literal("Appearance"))
                 .text(Component.literal("Edit"))
                 .action(
                     (screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen, highlightOpacity)))
                 .build())
-            .build();
-
-        var widgetBuilder = ConfigCategory.createBuilder()
-            .name(Component.literal("Widgets"))
-            .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
             .options(this.widgetManagerOptions())
             .options(widgetOptions(
                 this.widgetRuntime.registry(),

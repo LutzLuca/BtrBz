@@ -329,7 +329,10 @@ public class BtrBz implements ClientModInitializer {
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
                 new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
                     orderBookController))),
-            this.configScreen::open, this::setEnabled);
+            this.configScreen::open,
+            () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
+                new AppearanceScreen(GameUtils.screen(), appearance, null, widgetRegistry))),
+            this::setEnabled);
         BtrBzWidgetKeybinds.registerHandler(
             toggleHudKey, bazaarOrdersWidgetDefinition, widgetStateStore, hudHint::dismiss);
 

@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.List;
-import java.util.Arrays;
 
 /** Owns applying and persisting appearance changes, including retained UI refresh. */
 public final class AppearanceManager {
@@ -38,10 +37,6 @@ public final class AppearanceManager {
 
     public void saveTheme(UiTheme theme) {
         Objects.requireNonNull(theme, "theme");
-        if (Arrays.stream(ThemePreset.values())
-            .anyMatch(preset -> preset.theme().name().equalsIgnoreCase(theme.name()))) {
-            throw new IllegalArgumentException("Choose a name different from the built-in themes");
-        }
         var themes = this.config.get().savedThemes;
         for (int index = 0; index < themes.size(); index++) {
             if (themes.get(index).name().equalsIgnoreCase(theme.name())) {
@@ -54,6 +49,24 @@ public final class AppearanceManager {
         }
         themes.add(theme);
         this.save.run();
+    }
+
+    public UiTheme importTheme(UiTheme theme) {
+        Objects.requireNonNull(theme, "theme");
+        var themes = this.savedThemes();
+        String name = theme.name();
+        int copy = 2;
+        while (containsName(themes, name)) {
+            String suffix = " (" + copy++ + ")";
+            name = theme.name().substring(0, Math.min(theme.name().length(), 64 - suffix.length())) + suffix;
+        }
+        var imported = theme.withName(name);
+        this.saveTheme(imported);
+        return imported;
+    }
+
+    private static boolean containsName(List<UiTheme> themes, String name) {
+        return themes.stream().anyMatch(theme -> theme.name().equalsIgnoreCase(name));
     }
 
     public void removeTheme(String name) {

@@ -5,11 +5,13 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public final class AppearanceConfig {
     public UiTheme theme = ThemePreset.BtrBzDark.theme();
-    public List<UiTheme> savedThemes = new ArrayList<>();
+    public List<UiTheme> savedThemes = new ArrayList<>(Arrays.stream(ThemePreset.values())
+        .map(ThemePreset::theme).toList());
 
     public Option<Integer> createHighlightOpacityOption() {
         return Option.<Integer>createBuilder()

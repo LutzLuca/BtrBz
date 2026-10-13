@@ -83,20 +83,55 @@ class AppearanceManagerTest {
         manager.saveTheme(updated);
         var reloaded = new ConfigStore(this.directory.resolve("library.json"));
         Assertions.assertTrue(reloaded.load());
-        Assertions.assertEquals(List.of(updated), reloaded.config().appearance.savedThemes);
-        Assertions.assertThrows(IllegalArgumentException.class,
-            () -> manager.saveTheme(custom.withName("Nord")));
+        Assertions.assertEquals(updated, reloaded.config().appearance.savedThemes.getLast());
+        Assertions.assertEquals(5, reloaded.config().appearance.savedThemes.size());
 
         manager.apply(updated);
         store.config().appearance.theme = store.config().appearance.theme.withOrderHighlightOpacity(23);
         var exported = ThemeJson.importTheme(ThemeJson.exportTheme(manager.theme())).get();
         Assertions.assertEquals(23, exported.orderHighlightOpacity());
-        Assertions.assertEquals(81, manager.savedThemes().getFirst().orderHighlightOpacity());
+        Assertions.assertEquals(81, manager.savedThemes().getLast().orderHighlightOpacity());
         manager.removeTheme("weekend");
         Assertions.assertEquals(updated.withOrderHighlightOpacity(23), manager.theme());
         Assertions.assertTrue(reloaded.load());
-        Assertions.assertTrue(reloaded.config().appearance.savedThemes.isEmpty());
         Assertions.assertEquals(4, saves.get());
+
+        var changedDefault = custom.withName("nOrD");
+        manager.saveTheme(changedDefault);
+        Assertions.assertEquals(4, manager.savedThemes().size());
+        Assertions.assertTrue(manager.savedThemes().contains(changedDefault));
+        for (var theme : manager.savedThemes()) {
+            manager.removeTheme(theme.name());
+        }
+        Assertions.assertTrue(reloaded.load());
+        Assertions.assertTrue(reloaded.config().appearance.savedThemes.isEmpty());
+        Assertions.assertEquals(updated.withOrderHighlightOpacity(23), reloaded.config().appearance.theme);
+    }
+
+    @Test
+    void importingAddsDistinctEntriesWithoutOverwritingProfilesOrApplyingAppearance() {
+        var store = new ConfigStore(this.directory.resolve("import.json"));
+        var manager = new AppearanceManager(() -> store.config().appearance, store::save);
+        var active = manager.theme();
+        var original = ThemePreset.Nord.theme();
+        var imported = original.withName("nord").withProductNames(false, 42).withOrderHighlightOpacity(19);
+
+        var first = manager.importTheme(imported);
+        var second = manager.importTheme(imported);
+        Assertions.assertEquals(imported.withName("nord (2)"), first);
+        Assertions.assertEquals(imported.withName("nord (3)"), second);
+        Assertions.assertTrue(manager.savedThemes().contains(original));
+        Assertions.assertEquals(active, manager.theme());
+
+        var longName = "A".repeat(64);
+        manager.saveTheme(imported.withName(longName));
+        var shortened = manager.importTheme(imported.withName(longName));
+        Assertions.assertEquals("A".repeat(60) + " (2)", shortened.name());
+        var reloaded = new ConfigStore(this.directory.resolve("import.json"));
+        Assertions.assertTrue(reloaded.load());
+        Assertions.assertTrue(
+            reloaded.config().appearance.savedThemes.containsAll(List.of(original, first, second, shortened)));
+        Assertions.assertEquals(active, reloaded.config().appearance.theme);
     }
 
 }
