@@ -28,35 +28,10 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 
 Run `/btrbz` to configure the mod.
 
-Choose **Widget & Appearance → Appearance → Edit**, or run `/btrbz theme`, to select BtrBz Dark,
-Catppuccin Mocha, Nord, or Dracula, or customise
-the interface, feedback, and Bazaar colours. BtrBz Dark is the default, pairing charcoal surfaces
-at 85% opacity with bright status colours to match Minecraft's item formatting. Buy orders are green,
-sell offers and coin values are gold, and price labels use secondary text. Product names retain their
-item formatting unless you turn off **Hypixel product formatting**. **Product color strength** blends
-rarity colors toward secondary text in BtrBz widgets and new messages. Its default of 100% keeps native colors.
-Existing chat and vanilla item headings keep their colors.
-**Order highlight opacity** adjusts slot backgrounds and defaults to 75% in BtrBz Dark. It is also
-available under **Orders & Notifications → Order Highlighting**. Both controls edit the same appearance value.
-
-**Apply** saves the appearance and keeps the editor open. **Close** discards any later unapplied edits.
-**Save**, **Import**, and **Export** are grouped below the current theme in the editor header.
-Choose **Save**, enter a name, and save to add a theme to the scrollable list. Reusing a
-saved name offers **Update theme**. Every entry, including the four initial presets, can be updated
-or removed with × without changing the applied appearance. An empty library falls back to BtrBz Dark
-in the editor.
-
-**Import** saves a complete theme as a new library entry and selects it for live preview. If its name
-is already used, a numbered suffix keeps both profiles. **Apply** activates it. **Export → Copy** shares
-colours, panel opacity, order-highlight opacity, native product-name formatting and color strength
-as version 2 JSON. Widget backgrounds follow the theme, with optional overrides in the Widget Manager
-for all widgets or a selected widget. Widget overrides stay separate. The editor previews real widget views, notification messages,
-price-tooltip text and order highlights. Scroll the preview to inspect the text and slots. On narrow
-screens, the **Preview** tab gives these examples their own page.
-
-The alternative presets adapt [Catppuccin Mocha](https://catppuccin.com/palette/),
-[Nord](https://www.nordtheme.com/docs/colors-and-palettes/), and [Dracula](https://draculatheme.com/spec)
-to BtrBz's semantic roles and dark Minecraft surfaces.
+Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
+[Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),
+or make your own theme. Preview your changes live, then click Apply. Save themes and share them
+with Import and Export.
 
 ## Installation
 
