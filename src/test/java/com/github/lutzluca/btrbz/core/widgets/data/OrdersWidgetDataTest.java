@@ -14,9 +14,14 @@ import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
 import com.github.lutzluca.btrbz.core.config.Config;
 import com.github.lutzluca.btrbz.core.appearance.AppearanceManager;
 import com.github.lutzluca.btrbz.core.appearance.UiColor;
-import com.github.lutzluca.btrbz.core.appearance.UiTheme;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipFormatter;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderListTooltipConfig;
+import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrder;
+import com.github.lutzluca.btrbz.data.OrderModels.OutstandingOrderInfo;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderStatus;
+import net.minecraft.network.chat.Component;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.cache.MemoizedWidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -30,9 +35,9 @@ import org.junit.jupiter.api.Test;
 class OrdersWidgetDataTest {
 
     @Test
-    void appearanceChangesRefreshSnapshotsWithTooltipsAndReuseUnthemedData() {
+    void appearanceChangesReuseComputedSnapshotsAndResolveTooltipPresentation() {
         var config = new Config();
-        var appearance = new AppearanceManager(() -> config, () -> {});
+        var appearance = new AppearanceManager(() -> config.appearance, () -> {});
         try {
             var market = new BazaarData();
             var manager = new TrackedOrderManager(market);
@@ -47,17 +52,28 @@ class OrdersWidgetDataTest {
                 Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), 0);
             var originalThemed = themed.snapshot(session);
             var originalUnthemed = unthemed.snapshot(session);
+            var order = new TrackedOrder(new OutstandingOrderInfo(
+                ProductIdentity.fromRuntime("Diamond", "DIAMOND", null), "Diamond", OrderType.Buy, 64, 10, 640));
+            order.status = new OrderStatus.Matched();
+            var settings = new OrderListTooltipConfig();
+            var tooltip = provider.listTooltip(order, settings);
+            var originalLines = OrderTooltipFormatter.format(tooltip);
 
             appearance.apply(
                 config.appearance.theme.withName("Changed").withPalette(
-                    config.appearance.theme.palette().withColor(UiColor.Matched, 0xFF123456))
-                    .withOrderHighlightOpacity(config.orderHighlight.opacity));
+                    config.appearance.theme.palette().withColor(UiColor.Matched, 0xFF123456)));
 
-            Assertions.assertNotSame(originalThemed, themed.snapshot(session));
+            Assertions.assertSame(originalThemed, themed.snapshot(session));
             Assertions.assertSame(originalUnthemed, unthemed.snapshot(session));
-            Assertions.assertEquals(0x123456, UiStyles.color(UiColor.Matched).getColor().getValue());
+            Assertions.assertSame(tooltip, provider.listTooltip(order, settings));
+            var currentLines = OrderTooltipFormatter.format(tooltip);
+            Assertions.assertEquals(List.of("Matched!", "", "Your Order", "Price: 10.0", "Volume: 64", "",
+                "Current Prices", "Buy Orders: N/A", "Sell Offers: N/A"),
+                currentLines.stream().map(Component::getString).toList());
+            Assertions.assertEquals(0x123456, currentLines.getFirst().getStyle().getColor().getValue());
+            Assertions.assertNotEquals(0x123456, originalLines.getFirst().getStyle().getColor().getValue());
         } finally {
-            UiStyles.configure(new AppearanceConfig());
+            UiStyles.configure(new AppearanceConfig().theme);
         }
     }
 

@@ -79,15 +79,15 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
         return new Snapshot(Component.empty(), Optional.empty(), 0, 0);
     }
 
-    public record Snapshot(Component productName, Optional<ItemStack> itemStack, double perItem, int quantity) {
+    public record Snapshot(Component nativeName, Optional<ItemStack> itemStack, double perItem, int quantity) {
         public Snapshot {
-            productName = productName.copy();
+            nativeName = nativeName.copy();
             itemStack = itemStack.map(ItemStack::copy);
         }
 
         @Override
-        public Component productName() {
-            return this.productName.copy();
+        public Component nativeName() {
+            return this.nativeName.copy();
         }
 
         @Override

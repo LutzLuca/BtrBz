@@ -53,7 +53,7 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
     }
 
     void update(BazaarWidgetViewData.Order order, BazaarOrdersWidgetConfig options) {
-        var productName = order.formattedItemName(options.abbreviateEnchanted);
+        var productName = UiStyles.productName(order.nativeName(), options.abbreviateEnchanted);
         var itemStack = order.itemStack();
         var identity = BazaarOrderText.orderIdentity(order);
         var marketCandidates = BazaarOrderText.marketPositionCandidates(
@@ -127,9 +127,9 @@ final class BazaarHudOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.draw(graphics, font, layout.productName(),
             this.x + layout.productX(), firstY, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status(),
-            this.x + layout.statusX(), firstY, this.order.status().color(), false);
+            this.x + layout.statusX(), firstY, UiStyles.argb(this.order.status().role()), false);
         this.retainedText.draw(graphics, font, layout.side(),
-            this.x + layout.sideX(), firstY, this.order.side().accentColor(), false);
+            this.x + layout.sideX(), firstY, UiStyles.argb(this.order.side().role()), false);
 
         if (layout.identity() != null) {
             this.retainedText.draw(graphics, font, layout.identity(),

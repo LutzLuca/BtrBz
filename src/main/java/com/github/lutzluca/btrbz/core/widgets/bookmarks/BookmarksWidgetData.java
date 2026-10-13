@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.widgets.bookmarks;
 
 import com.github.lutzluca.btrbz.utils.GameUtils;
 
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -68,7 +67,7 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
     public record Bookmark(
         String productId,
         String productName,
-        Component formattedProductName,
+        Component nativeName,
         ItemStack itemStack,
         boolean buyOrder,
         boolean sellOrder
@@ -76,8 +75,8 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
         public Bookmark {
             Objects.requireNonNull(productId, "productId");
             Objects.requireNonNull(productName, "productName");
-            formattedProductName = Objects.requireNonNull(
-                formattedProductName, "formattedProductName").copy();
+            nativeName = Objects.requireNonNull(
+                nativeName, "nativeName").copy();
             itemStack = itemStack.copy();
         }
 
@@ -97,13 +96,10 @@ public final class BookmarksWidgetData implements WidgetDataSource<BookmarksWidg
         }
 
         @Override
-        public Component formattedProductName() {
-            return this.formattedProductName.copy();
+        public Component nativeName() {
+            return this.nativeName.copy();
         }
 
-        public Component formattedProductName(boolean abbreviateEnchanted) {
-            return UiStyles.productName(this.formattedProductName, abbreviateEnchanted);
-        }
     }
 
     public record Snapshot(List<Bookmark> bookmarks) {

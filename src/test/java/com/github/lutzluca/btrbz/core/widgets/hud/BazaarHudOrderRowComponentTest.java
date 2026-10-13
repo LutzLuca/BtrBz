@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipData;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarOrderText;
 import java.util.UUID;
@@ -60,6 +61,6 @@ class BazaarHudOrderRowComponentTest {
             BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
             Optional.empty(), 12_400_000, 64,
             Optional.of(new BazaarWidgetViewData.FillProgress(21, 64)),
-            status, marketInfo, List.of());
+            status, marketInfo, OrderTooltipData.EMPTY);
     }
 }

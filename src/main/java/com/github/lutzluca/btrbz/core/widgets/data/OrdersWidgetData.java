@@ -3,7 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.data;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipData;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.WidgetMath;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
@@ -69,8 +69,7 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             screenTransitions, inventoryChanges);
         this.dependencies = tooltipProvider == null
             ? baseDependencies
-            : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges(),
-                UiStyles.appearanceChanges()));
+            : baseDependencies.and(CacheDependencies.of(tooltipProvider.listSettingsChanges()));
     }
 
     @Override
@@ -110,10 +109,10 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
             var status = status(snapshot.status());
             var product = snapshot.product();
             var marketInfo = this.marketInfo(product, snapshot.type(), snapshot.pricePerUnit());
-            List<Component> tooltip = Optional.ofNullable(live.get(snapshot.id()))
+            OrderTooltipData tooltip = Optional.ofNullable(live.get(snapshot.id()))
                 .filter(_ -> this.tooltipProvider != null && ConfigStore.get().config().orderListTooltip.enabled)
-                .map(order -> this.tooltipProvider.getCachedTooltip(order, ConfigStore.get().config().orderListTooltip))
-                .orElseGet(List::of);
+                .map(order -> this.tooltipProvider.listTooltip(order, ConfigStore.get().config().orderListTooltip))
+                .orElse(OrderTooltipData.EMPTY);
 
             return new BazaarWidgetViewData.Order(
                 snapshot.id(),
@@ -230,10 +229,14 @@ public final class OrdersWidgetData implements WidgetDataSource<BazaarWidgetView
         BazaarWidgetViewData.OrderStatus status
     ) {
         var id = new TrackedOrderId(UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)));
-        List<Component> tooltip = List.of(
-            Component.literal(status.label()),
-            Component.literal("Volume: " + BazaarWidgetViewData.formatInt(total)),
-            Component.literal("Price each: " + BazaarWidgetViewData.formatPrice(price)));
+        var tooltipStatus = switch (status) {
+            case Top -> new OrderStatus.Top();
+            case Matched -> new OrderStatus.Matched();
+            case Undercut -> new OrderStatus.Undercut(0.1);
+            case Unknown -> new OrderStatus.Unknown();
+        };
+        var tooltip = new OrderTooltipData(null, tooltipStatus, null, null,
+            new OrderTooltipData.OwnOrder(price, total), null);
         Optional<BazaarWidgetViewData.MarketInfo> market = switch (status) {
             case Undercut -> Optional.of(BazaarWidgetViewData.MarketInfo.bestPriceAndQueue(price + 0.1, 0.1, 1, total));
             case Matched -> Optional.of(BazaarWidgetViewData.MarketInfo.queue(3, total * 18L));

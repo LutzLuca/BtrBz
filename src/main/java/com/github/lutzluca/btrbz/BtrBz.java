@@ -197,7 +197,7 @@ public class BtrBz implements ClientModInitializer {
         instance = this;
         var configStore = ConfigStore.get();
         configStore.load();
-        var appearance = new AppearanceManager(configStore::config, configStore::save);
+        var appearance = new AppearanceManager(() -> configStore.config().appearance, configStore::save);
         this.activation = new Activation(
             () -> configStore.config().enabled,
             () -> configStore.config().alwaysActive,

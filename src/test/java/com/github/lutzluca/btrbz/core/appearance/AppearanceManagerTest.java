@@ -16,7 +16,7 @@ class AppearanceManagerTest {
 
     @AfterEach
     void restoreAppearance() {
-        UiStyles.configure(new AppearanceConfig());
+        UiStyles.configure(ThemePreset.BtrBzDark.theme());
     }
 
     @Test
@@ -26,7 +26,7 @@ class AppearanceManagerTest {
         store.config().widgets.globalBackgroundOverride = 0xA0123456;
         store.config().widgets.trackedOrders.frame.backgroundOverride = 0x80234567;
         var saves = new AtomicInteger();
-        var manager = new AppearanceManager(store::config, () -> {
+        var manager = new AppearanceManager(() -> store.config().appearance, () -> {
             saves.incrementAndGet();
             store.save();
         });
@@ -42,7 +42,7 @@ class AppearanceManagerTest {
         Assertions.assertEquals(theme, reloaded.config().appearance.theme);
         Assertions.assertFalse(reloaded.config().appearance.theme.formattedProductNames());
         Assertions.assertEquals(80, reloaded.config().appearance.theme.productColorStrength());
-        Assertions.assertEquals(73, reloaded.config().orderHighlight.opacity);
+        Assertions.assertEquals(73, reloaded.config().appearance.theme.orderHighlightOpacity());
         Assertions.assertEquals(0xA0123456, reloaded.config().widgets.globalBackgroundOverride);
         Assertions.assertEquals(0x80234567, reloaded.config().widgets.trackedOrders.frame.backgroundOverride);
         Assertions.assertEquals(1, saves.get());
@@ -50,19 +50,25 @@ class AppearanceManagerTest {
         Assertions.assertEquals(theme.palette().textPrimary() & 0xFFFFFF,
             UiStyles.productName("§aEnchanted Sugar").getStyle().getColor().getValue());
 
-        store.config().orderHighlight.opacity = 41;
+        var highlightOpacity = store.config().appearance.createHighlightOpacityOption();
+        highlightOpacity.requestSet(41);
+        Assertions.assertEquals(73, manager.theme().orderHighlightOpacity());
+        Assertions.assertTrue(highlightOpacity.applyValue());
         Assertions.assertEquals(41, manager.theme().orderHighlightOpacity());
         manager.apply(theme.withOrderHighlightOpacity(62));
+        highlightOpacity.forgetPendingValue();
+        Assertions.assertEquals(62, highlightOpacity.pendingValue());
+        Assertions.assertFalse(highlightOpacity.applyValue());
         Assertions.assertEquals(2, saves.get());
         Assertions.assertTrue(reloaded.load());
-        Assertions.assertEquals(62, reloaded.config().orderHighlight.opacity);
+        Assertions.assertEquals(62, reloaded.config().appearance.theme.orderHighlightOpacity());
     }
 
     @Test
     void savedThemesPersistCompleteProfilesWithoutChangingTheActiveTheme() {
         var store = new ConfigStore(this.directory.resolve("library.json"));
         var saves = new AtomicInteger();
-        var manager = new AppearanceManager(store::config, () -> {
+        var manager = new AppearanceManager(() -> store.config().appearance, () -> {
             saves.incrementAndGet();
             store.save();
         });
@@ -82,7 +88,7 @@ class AppearanceManagerTest {
             () -> manager.saveTheme(custom.withName("Nord")));
 
         manager.apply(updated);
-        store.config().orderHighlight.opacity = 23;
+        store.config().appearance.theme = store.config().appearance.theme.withOrderHighlightOpacity(23);
         var exported = ThemeJson.importTheme(ThemeJson.exportTheme(manager.theme())).get();
         Assertions.assertEquals(23, exported.orderHighlightOpacity());
         Assertions.assertEquals(81, manager.savedThemes().getFirst().orderHighlightOpacity());

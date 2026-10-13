@@ -109,7 +109,7 @@ public class OrderManagerConfig {
             OptionGroup
                 .createBuilder()
                 .name(Component.literal("Notification Queue Information"))
-                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                     ConfigUi.text(
                         "Add estimated competing orders and items ahead of yours to matched and undercut "
                             + "notifications."),
@@ -125,7 +125,7 @@ public class OrderManagerConfig {
         return Option
             .<Action>createBuilder()
             .name(Component.literal("Matched Notification Opens"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Choose where the link at the end of a matched-order notification goes."),
                 ConfigUi.example(matchedNotificationExample()),
@@ -167,7 +167,7 @@ public class OrderManagerConfig {
         return Option
             .<Action>createBuilder()
             .name(Component.literal("Undercut Notification Opens"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Choose where the link at the end of an undercut-order notification goes."),
                 ConfigUi.example(undercutNotificationExample()),
@@ -185,7 +185,7 @@ public class OrderManagerConfig {
             .<Boolean>createBuilder()
             .name(Component.literal("Show Queue Info"))
             .binding(true, () -> this.showQueueInfo, val -> this.showQueueInfo = val)
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Add estimated competing orders and items ahead of yours to matched and undercut "
                         + "notifications."),
@@ -204,7 +204,7 @@ public class OrderManagerConfig {
                     this.queueDisplayMode = mode;
                     onQueueDisplayModeChanged.run();
                 })
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Show item counts only, or both order and item counts."),
                 ConfigUi.requires("Show Queue Info"))))
             .controller(QueueDisplayMode::controller);
@@ -228,7 +228,7 @@ public class OrderManagerConfig {
                 true,
                 () -> this.onlyOnPriorityRegain,
                 val -> this.onlyOnPriorityRegain = val)
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Skip the initial top-position message and notify only after an order loses and later "
                         + "regains the best price."),
@@ -261,7 +261,7 @@ public class OrderManagerConfig {
             .<Boolean>createBuilder()
             .name(Component.literal("Play Sound for Top Position"))
             .binding(false, () -> this.soundBest, val -> this.soundBest = val)
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Play a sound with the top-position notification."),
                 ConfigUi.requires("Notify When Order Becomes Top"))))
             .controller(ConfigUi::createBooleanController);
@@ -272,7 +272,7 @@ public class OrderManagerConfig {
             .<Boolean>createBuilder()
             .name(Component.literal("Play Sound for Matched Order"))
             .binding(true, () -> this.soundMatched, val -> this.soundMatched = val)
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Play a sound when an order begins sharing the best price."),
                 ConfigUi.requires("Notify When Order Is Matched"))))
             .controller(ConfigUi::createBooleanController);
@@ -283,7 +283,7 @@ public class OrderManagerConfig {
             .<Boolean>createBuilder()
             .name(Component.literal("Play Sound for Undercut Order"))
             .binding(true, () -> this.soundUndercut, val -> this.soundUndercut = val)
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Play a sound when another order takes priority over yours."),
                 ConfigUi.requires("Notify When Order Is Undercut"))))
             .controller(ConfigUi::createBooleanController);
@@ -294,7 +294,7 @@ public class OrderManagerConfig {
             .<Boolean>createBuilder()
             .name(Component.literal("Group Orders (Experimental)"))
             .binding(false, () -> this.groupOrders, val -> this.groupOrders = val)
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Combine your orders for the same product, side, and price into one notification."),
                 ConfigUi.note(

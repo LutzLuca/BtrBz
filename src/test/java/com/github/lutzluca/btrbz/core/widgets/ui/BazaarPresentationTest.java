@@ -1,6 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipData;
+import com.github.lutzluca.btrbz.core.appearance.ThemePreset;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudWidget;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidget;
@@ -31,11 +35,18 @@ class BazaarPresentationTest {
             order("best", BazaarWidgetViewData.OrderStatus.Top),
             order("undercut", BazaarWidgetViewData.OrderStatus.Undercut)));
 
-        Assertions.assertEquals(
-            List.of("Undercut", "Best"),
-            BazaarHudWidget.visibleStatusEntries(data).stream()
-                .map(BazaarHudWidget.StatusEntry::label)
-                .toList());
+        var applied = ThemePreset.BtrBzDark.theme();
+        UiStyles.configure(applied.withPalette(applied.palette()
+            .withColor(UiColor.Undercut, 0xFF123456).withColor(UiColor.Best, 0xFF654321)));
+        try {
+            var entries = BazaarHudWidget.visibleStatusEntries(data);
+            Assertions.assertEquals(List.of("Undercut", "Best"),
+                entries.stream().map(BazaarHudWidget.StatusEntry::label).toList());
+            Assertions.assertEquals(List.of(0xFF123456, 0xFF654321),
+                entries.stream().map(BazaarHudWidget.StatusEntry::color).toList());
+        } finally {
+            UiStyles.configure(applied);
+        }
     }
 
     @Test
@@ -80,7 +91,7 @@ class BazaarPresentationTest {
             BazaarWidgetViewData.OrderSide.Buy, "Product", Component.literal("Product"),
             Optional.empty(), 1, 1,
             Optional.of(new BazaarWidgetViewData.FillProgress(0, 1)),
-            status, Optional.empty(), List.of(), sequence);
+            status, Optional.empty(), OrderTooltipData.EMPTY, sequence);
     }
 
 }

@@ -337,7 +337,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
                 this.x + this.width - INSET, this.y + this.height - 2, OrderBookStyles.dividerColor());
             this.text.begin();
             this.text.draw(graphics, font, this.title, this.x + titleX, this.y,
-                this.side.accentColor(), false);
+                UiStyles.argb(this.side.role()), false);
             this.text.draw(graphics, font, this.price, this.x + priceX, headerY, UiStyles.palette().textSecondary(),
                 false);
             this.text.draw(graphics, font, this.quantity, this.x + quantityX, headerY,

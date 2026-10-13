@@ -83,7 +83,7 @@ final class EmbeddedOrderBookWidgetView
         this.config = config;
         this.workflowSide = session.side().orElseThrow();
         this.actions = actions;
-        this.itemName.text(UiStyles.productName(data.formattedItemName(), false));
+        this.itemName.text(UiStyles.productName(data.nativeName(), false));
         this.header.clearChildren();
         var itemStack = data.itemStack();
         this.hasItem = itemStack.isPresent();
@@ -99,7 +99,7 @@ final class EmbeddedOrderBookWidgetView
         this.header.child(this.itemName);
         if (OrderBookWidget.embeddedVisibleSideCount(config, data) == 1) {
             var side = data.appropriateSide().orElseThrow();
-            this.sideTitle.text(Component.literal(title(side)).withStyle(UiStyles.color(side.accentColor())));
+            this.sideTitle.text(Component.literal(title(side)).withStyle(UiStyles.color(side.role())));
             this.header.child(this.sideTitle);
         }
     }
@@ -279,7 +279,8 @@ final class EmbeddedOrderBookWidgetView
             this.text.begin();
             if (this.showTitle) {
                 int titleX = this.side == OrderSide.Buy ? INSET : this.width - INSET - font.width(this.title);
-                this.text.draw(graphics, font, this.title, this.x + titleX, this.y, this.side.accentColor(), false);
+                this.text.draw(graphics, font, this.title, this.x + titleX, this.y, UiStyles.argb(this.side.role()),
+                    false);
             }
             this.text.draw(graphics, font, this.price,
                 this.x + this.columns.priceTextX(this.side, font.width(this.price)), headerY,

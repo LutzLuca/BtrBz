@@ -36,7 +36,7 @@ item formatting unless you turn off **Native Hypixel formatting**. **Product col
 rarity colors toward secondary text in BtrBz widgets and new messages. Its default of 100% keeps native colors.
 Existing chat and vanilla item headings keep their colors.
 **Order highlight opacity** adjusts slot backgrounds and defaults to 75% in BtrBz Dark. It is also
-available under **Orders & Notifications → Order Highlighting**.
+available under **Orders & Notifications → Order Highlighting**. Both controls edit the same appearance value.
 
 **Apply** saves the appearance and keeps the editor open. **Close** discards any later unapplied edits.
 Choose **Save theme**, enter a name, and save to add a custom theme to the scrollable list. Reusing a

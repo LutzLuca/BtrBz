@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipData;
 
 class BazaarWidgetViewDataTest {
     @Test
@@ -37,7 +38,7 @@ class BazaarWidgetViewDataTest {
     void liveProgressNeverChangesTheStableOrderVolume() {
         var order = new BazaarWidgetViewData.Order(
             id("partially-filled"), BazaarWidgetViewData.OrderSide.Sell, "Product", Component.literal("Product"),
-            Optional.empty(), 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, List.of());
+            Optional.empty(), 10, 64, 21, BazaarWidgetViewData.OrderStatus.Matched, OrderTooltipData.EMPTY);
 
         Assertions.assertEquals(64, order.amount());
         Assertions.assertEquals(43, order.liveProgress().orElseThrow().remaining());
@@ -54,7 +55,7 @@ class BazaarWidgetViewDataTest {
             volume,
             0,
             status,
-            List.of());
+            OrderTooltipData.EMPTY);
     }
 
     private static TrackedOrderId id(String value) {

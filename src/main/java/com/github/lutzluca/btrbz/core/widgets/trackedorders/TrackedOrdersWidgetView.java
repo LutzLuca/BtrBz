@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.trackedorders;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipFormatter;
 
 import com.github.lutzluca.btrbz.core.widgets.ScrollOffsetView;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
@@ -74,6 +75,7 @@ final class TrackedOrdersWidgetView implements
         this.status.text(literal(
             TrackedOrdersWidget.headerStatus(data, sorted.size())));
 
-        this.list.update(sorted, config, true, BazaarWidgetViewData.Order::tooltipLines, actions);
+        // WidgetHost retains the prepared tree, including these styled tooltips, between dependency changes.
+        this.list.update(sorted, config, true, order -> OrderTooltipFormatter.format(order.tooltip()), actions);
     }
 }

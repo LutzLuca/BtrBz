@@ -101,7 +101,7 @@ final class FullOrderBookWidgetView
         this.spread.text(Component.literal("Spread: ").withStyle(UiStyles.label()).append(
             Component.literal(this.depth.spreadText()).withStyle(
                 this.depth.spread().isPresent() ? UiStyles.money() : UiStyles.muted())));
-        this.itemName.text(UiStyles.productName(data.formattedItemName(), false));
+        this.itemName.text(UiStyles.productName(data.nativeName(), false));
         this.header.clearChildren();
         var itemStack = data.itemStack();
         this.hasItem = itemStack.isPresent();

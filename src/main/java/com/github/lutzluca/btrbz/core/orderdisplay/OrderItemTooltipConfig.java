@@ -47,7 +47,7 @@ public class OrderItemTooltipConfig {
                 this.showQueue = val;
                 invalidateCache.run();
             })
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "When an order is undercut, show estimated competing orders and items ahead of it."),
                 ConfigUi.note("This is an order-book estimate, not an exact queue position."))))
@@ -73,7 +73,7 @@ public class OrderItemTooltipConfig {
                 this.showOnlyWhenUndercut = val;
                 invalidateCache.run();
             })
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Show current market prices only after this order is undercut."),
                 ConfigUi.requires("Show Current Prices"))))
             .controller(ConfigUi::createBooleanController);
@@ -86,7 +86,7 @@ public class OrderItemTooltipConfig {
                 this.showEstimatedTime = val;
                 invalidateCache.run();
             })
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Estimate how long a top-position order may take to fill using its remaining volume and "
                         + "the product's weekly moving volume."),

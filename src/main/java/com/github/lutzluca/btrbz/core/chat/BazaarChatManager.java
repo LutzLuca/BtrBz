@@ -62,7 +62,7 @@ public class BazaarChatManager {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Bazaar Chat"))
-                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                     ConfigUi.text(
                         "Hide temporary Bazaar progress messages while keeping confirmations, warnings, "
                             + "and errors visible."),

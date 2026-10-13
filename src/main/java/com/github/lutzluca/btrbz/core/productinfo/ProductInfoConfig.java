@@ -57,7 +57,7 @@ public final class ProductInfoConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Lookup Bazaar Menu Items"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Allow Product Lookup Click on items inside Bazaar menus. A normal click keeps its usual "
                         + "Bazaar or bookmark action."),
@@ -73,7 +73,7 @@ public final class ProductInfoConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Lookup Items Outside the Bazaar"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Allow Product Lookup Click in inventories and chests outside the Bazaar."),
                 ConfigUi.requires("Enable Product Lookup Click"))))
             .binding(false, () -> this.showOutsideBazaar, value -> this.showOutsideBazaar = value)
@@ -84,7 +84,7 @@ public final class ProductInfoConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Show Price Tooltips"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Add the best current buy-order and sell-offer prices to Bazaar product tooltips."),
                 ConfigUi

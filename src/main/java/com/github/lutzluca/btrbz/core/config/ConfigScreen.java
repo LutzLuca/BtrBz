@@ -54,7 +54,8 @@ public class ConfigScreen {
     public Screen create(Screen parent) {
         return YetAnotherConfigLib.create(
             ConfigStore.get().handler(), (_, config, builder) -> {
-                builder.title(Component.literal(BtrBz.MOD_ID).withStyle(UiStyles.modLabel()));
+                var title = Component.literal(BtrBz.MOD_ID).withStyle(UiStyles.modLabel());
+                builder.title(title).screenInit(_ -> title.setStyle(UiStyles.modLabel()));
                 this.buildCategories(builder, config);
 
                 return builder;
@@ -62,7 +63,7 @@ public class ConfigScreen {
     }
 
     private void buildCategories(Builder builder, Config config) {
-        var highlightOpacity = config.orderHighlight.createOpacityOption();
+        var highlightOpacity = config.appearance.createHighlightOpacityOption();
         var general = ConfigCategory
             .createBuilder()
             .name(Component.literal("General"))

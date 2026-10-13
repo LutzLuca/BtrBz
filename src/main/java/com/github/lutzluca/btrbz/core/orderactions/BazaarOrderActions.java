@@ -371,7 +371,7 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Return to Bazaar After Placing an Order"))
                 .binding(false, () -> this.reopenBazaar, val -> this.reopenBazaar = val)
-                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                     Component
                         .literal("Run ")
                         .append(ConfigUi.command("/bz"))
@@ -399,7 +399,7 @@ public class BazaarOrderActions {
                     Modifier.Ctrl,
                     () -> this.copyRemainingModifier != null ? this.copyRemainingModifier : Modifier.Ctrl,
                     val -> this.copyRemainingModifier = val)
-                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                     ConfigUi.text(
                         "Choose which modifier key must be held while cancelling to copy the unfilled amount."),
                     ConfigUi.requires("Copy Remaining Amount"))))
@@ -432,7 +432,7 @@ public class BazaarOrderActions {
                 .<Boolean>createBuilder()
                 .name(Component.literal("Hide Button After Closing Orders"))
                 .binding(true, () -> this.clearOnClose, val -> this.clearOnClose = val)
-                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                     ConfigUi.text(
                         "Hide the reopen button when you leave the Bazaar Orders page. It returns after another "
                             + "buy order is cancelled."),

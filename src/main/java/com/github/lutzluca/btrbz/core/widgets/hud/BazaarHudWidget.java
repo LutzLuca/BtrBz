@@ -17,9 +17,9 @@ public final class BazaarHudWidget {
     public static List<StatusEntry> visibleStatusEntries(BazaarWidgetViewData.OrdersData data) {
         var counts = data.counts();
         var entries = new ArrayList<StatusEntry>();
-        addStatusEntry(entries, "Undercut", counts.undercut(), UiStyles.palette().error());
+        addStatusEntry(entries, "Undercut", counts.undercut(), UiStyles.palette().undercut());
         addStatusEntry(entries, "Matched", counts.matched(), UiStyles.palette().matched());
-        addStatusEntry(entries, "Best", counts.top(), UiStyles.palette().success());
+        addStatusEntry(entries, "Best", counts.top(), UiStyles.palette().best());
         addStatusEntry(entries, "Filled", data.filledOrderCount(), UiStyles.palette().filled());
         addStatusEntry(entries, "Unknown", counts.unknown(), UiStyles.palette().unknown());
 

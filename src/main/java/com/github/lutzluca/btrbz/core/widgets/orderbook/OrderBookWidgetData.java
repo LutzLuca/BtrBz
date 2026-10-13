@@ -100,26 +100,26 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
     }
 
     public record Snapshot(
-        Component formattedItemName,
+        Component nativeName,
         Optional<ItemStack> itemStack,
         List<Entry> buyOffers,
         List<Entry> sellOffers,
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
         public Snapshot {
-            formattedItemName = formattedItemName.copy();
+            nativeName = nativeName.copy();
             itemStack = itemStack.map(ItemStack::copy);
             buyOffers = List.copyOf(buyOffers);
             sellOffers = List.copyOf(sellOffers);
         }
 
         public String itemName() {
-            return this.formattedItemName.getString();
+            return this.nativeName.getString();
         }
 
         @Override
-        public Component formattedItemName() {
-            return this.formattedItemName.copy();
+        public Component nativeName() {
+            return this.nativeName.copy();
         }
 
         @Override

@@ -300,7 +300,7 @@ public class FlipHelper {
             return OptionGroup
                 .createBuilder()
                 .name(Component.literal("Flip Helper"))
-                .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+                .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                     ConfigUi.text("Turn a filled buy order into a sell offer with fewer clicks."),
                     ConfigUi.example(
                         "If the best sell offer is 1,000 coins, the suggested price is 999.9 coins.")),

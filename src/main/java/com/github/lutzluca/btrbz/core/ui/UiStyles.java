@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.ui;
 import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 import com.github.lutzluca.btrbz.core.appearance.UiTheme;
 import com.github.lutzluca.btrbz.core.appearance.ThemePreset;
-import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
 import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.utils.GameUtils;
@@ -15,20 +14,17 @@ import net.minecraft.network.chat.Style;
 
 /** Shared text roles and formatting, separate from the palette's colors. */
 public final class UiStyles {
-    private static UiPalette currentPalette = ThemePreset.BtrBzDark.theme().palette();
-    private static UiPalette.ButtonColors currentButtons = currentPalette.buttons();
-    private static boolean formattedProductNames = true;
-    private static int productColorStrength = 100;
+    private static ResolvedAppearance current = ResolvedAppearance.from(ThemePreset.BtrBzDark.theme());
     private static final CacheToken APPEARANCE_CHANGES = CacheToken.named("appearance");
 
     private UiStyles() {}
 
     public static UiPalette palette() {
-        return currentPalette;
+        return current.palette();
     }
 
     public static UiPalette.ButtonColors buttons() {
-        return currentButtons;
+        return current.buttons();
     }
 
     public static long appearanceRevision() {
@@ -39,37 +35,24 @@ public final class UiStyles {
         return APPEARANCE_CHANGES;
     }
 
-    public static void configure(AppearanceConfig config) {
-        if (currentPalette.equals(config.theme.palette())
-            && formattedProductNames == config.theme.formattedProductNames()
-            && productColorStrength == config.theme.productColorStrength()) {
+    public static void configure(UiTheme theme) {
+        var resolved = ResolvedAppearance.from(theme);
+        if (current.equals(resolved)) {
             return;
         }
-        currentPalette = config.theme.palette();
-        currentButtons = currentPalette.buttons();
-        formattedProductNames = config.theme.formattedProductNames();
-        productColorStrength = config.theme.productColorStrength();
+        current = resolved;
         APPEARANCE_CHANGES.invalidate("appearance changed");
         TextRenderRevision.invalidate();
     }
 
     /** Client-thread scope for the draft editor, without saving or invalidating applied appearance caches. */
     public static void preview(UiTheme draft, Runnable action) {
-        var palette = currentPalette;
-        var buttons = currentButtons;
-        boolean formatted = formattedProductNames;
-        int strength = productColorStrength;
-        currentPalette = draft.palette();
-        currentButtons = currentPalette.buttons();
-        formattedProductNames = draft.formattedProductNames();
-        productColorStrength = draft.productColorStrength();
+        var applied = current;
+        current = ResolvedAppearance.from(draft);
         try {
             action.run();
         } finally {
-            currentPalette = palette;
-            currentButtons = buttons;
-            formattedProductNames = formatted;
-            productColorStrength = strength;
+            current = applied;
         }
     }
 
@@ -78,8 +61,10 @@ public final class UiStyles {
     }
 
     public static Component productName(Component name, boolean abbreviateEnchanted) {
-        var formatted = productName(name, abbreviateEnchanted, formattedProductNames, palette().textPrimary());
-        if (!formattedProductNames || productColorStrength >= 100) {
+        var appearance = current;
+        var formatted = productName(name, abbreviateEnchanted,
+            appearance.formattedProductNames(), appearance.palette().textPrimary());
+        if (!appearance.formattedProductNames() || appearance.productColorStrength() >= 100) {
             return formatted;
         }
         var result = Component.empty().withStyle(formatted.getStyle());
@@ -89,8 +74,8 @@ public final class UiStyles {
             }
             var color = style.getColor();
             var softened = color == null
-                ? style : style.withColor(UiPalette.blend(palette().textSecondary(),
-                    color.getValue(), productColorStrength / 100.0) & 0xFFFFFF);
+                ? style : style.withColor(UiPalette.blend(appearance.palette().textSecondary(),
+                    color.getValue(), appearance.productColorStrength() / 100.0) & 0xFFFFFF);
             result.append(Component.literal(text).withStyle(softened));
             return Optional.empty();
         }, Style.EMPTY);
@@ -129,8 +114,12 @@ public final class UiStyles {
         return Style.EMPTY.withColor(argb & 0xFFFFFF).withBold(false).withUnderlined(false);
     }
 
+    public static int argb(UiColor role) {
+        return role.color(palette());
+    }
+
     public static Style color(UiColor role) {
-        return color(role.color(palette()));
+        return color(argb(role));
     }
 
     public static Style primary() {
@@ -172,4 +161,17 @@ public final class UiStyles {
     public static MutableComponent coins(double value) {
         return Component.literal(Utils.formatDecimal(value, 1, true) + " coins").withStyle(money());
     }
+
+    private record ResolvedAppearance(
+        UiPalette palette,
+        UiPalette.ButtonColors buttons,
+        boolean formattedProductNames,
+        int productColorStrength
+    ) {
+        private static ResolvedAppearance from(UiTheme theme) {
+            return new ResolvedAppearance(theme.palette(), theme.palette().buttons(),
+                theme.formattedProductNames(), theme.productColorStrength());
+        }
+    }
+
 }

@@ -70,7 +70,7 @@ final class OrderBookRow extends BaseUIComponent {
     }
 
     private static int barFillColor(OrderSide side) {
-        return ARGB.srgbLerp(0.3F, ARGB.opaque(UiStyles.palette().panelBackground()), side.accentColor());
+        return ARGB.srgbLerp(0.3F, ARGB.opaque(UiStyles.palette().panelBackground()), UiStyles.argb(side.role()));
     }
 
     @Override

@@ -118,7 +118,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         boolean layoutChanged = this.lastOptions == null || this.lastOptions.layout() != optionsSnapshot.layout();
 
-        this.productName = order.formattedItemName(false);
+        this.productName = UiStyles.productName(order.nativeName(), false);
         this.index = index;
         this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
@@ -278,9 +278,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.draw(graphics, font, layout.productText(),
             x, this.y + 1, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
-            this.x + layout.statusX(), this.y + 1, this.order.status().color(), false);
+            this.x + layout.statusX(), this.y + 1, UiStyles.argb(this.order.status().role()), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
-            this.x + layout.sideX(), this.y + 1, this.order.side().accentColor(), false);
+            this.x + layout.sideX(), this.y + 1, UiStyles.argb(this.order.side().role()), false);
 
         int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
 
@@ -351,9 +351,9 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.draw(graphics, font, layout.productText(),
             x, textY, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
-            this.x + layout.statusX(), textY, this.order.status().color(), false);
+            this.x + layout.statusX(), textY, UiStyles.argb(this.order.status().role()), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
-            this.x + layout.sideX(), textY, this.order.side().accentColor(), false);
+            this.x + layout.sideX(), textY, UiStyles.argb(this.order.side().role()), false);
     }
 
     private DrawLayout computeCompactLayout() {

@@ -4,6 +4,10 @@ import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.gui.image.ImageRenderer;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import net.minecraft.network.chat.Component;
 
@@ -20,12 +24,21 @@ public final class ConfigUi {
         return OptionDescription.of(text);
     }
 
+    /** Resolves themed text when YACL recreates its presentation, preserving the existing option state. */
+    public static OptionDescription createDescription(Supplier<Component> text) {
+        return new SuppliedDescription(text, OptionDescription.EMPTY.image());
+    }
+
     public static OptionDescription createDescription(String text, ConfigImages image) {
         return createDescription(Component.literal(text), image);
     }
 
     public static OptionDescription createDescription(Component text, ConfigImages image) {
         return image.description(text);
+    }
+
+    public static OptionDescription createDescription(Supplier<Component> text, ConfigImages image) {
+        return new SuppliedDescription(text, image.description(Component.empty()).image());
     }
 
     public static Component paragraphs(Component... paragraphs) {
@@ -85,4 +98,15 @@ public final class ConfigUi {
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
         return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
     }
+
+    private record SuppliedDescription(
+        Supplier<Component> textSupplier,
+        CompletableFuture<Optional<ImageRenderer>> image
+    ) implements OptionDescription {
+        @Override
+        public Component text() {
+            return this.textSupplier.get();
+        }
+    }
+
 }

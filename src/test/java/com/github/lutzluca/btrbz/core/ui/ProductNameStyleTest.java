@@ -9,13 +9,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import com.github.lutzluca.btrbz.core.appearance.AppearanceConfig;
+import com.github.lutzluca.btrbz.core.appearance.ThemePreset;
 import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.appearance.UiTheme;
 
 class ProductNameStyleTest {
     @AfterEach
     void restoreAppearance() {
-        UiStyles.configure(new AppearanceConfig());
+        UiStyles.configure(ThemePreset.BtrBzDark.theme());
     }
 
     @Test
@@ -27,7 +28,7 @@ class ProductNameStyleTest {
         var config = new AppearanceConfig();
         config.theme = new UiTheme("Test",
             config.theme.palette().withColor(UiColor.TextPrimary, 0xFFE0E0E0));
-        UiStyles.configure(config);
+        UiStyles.configure(config.theme);
         var shortened = UiStyles.productName(original, true);
         var segments = new ArrayList<String>();
         shortened.visit((style, text) -> {
@@ -38,7 +39,7 @@ class ProductNameStyleTest {
         }, Style.EMPTY);
         Assertions.assertEquals(List.of("Ench. :5635925:false", "Sugar:16777045:true"), segments);
         config.theme = config.theme.withProductNames(false, 100);
-        UiStyles.configure(config);
+        UiStyles.configure(config.theme);
         var plain = UiStyles.productName(original, true);
         Assertions.assertEquals("Ench. Sugar", plain.getString());
         Assertions.assertEquals(0xE0E0E0, plain.getStyle().getColor().getValue());
