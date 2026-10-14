@@ -32,11 +32,15 @@ public final class AppearanceManager {
     }
 
     public List<UiTheme> savedThemes() {
-        return List.copyOf(this.config.get().savedThemes);
+        return this.config.get().savedThemes.stream()
+            .filter(theme -> !ThemePreset.hasName(theme.name())).toList();
     }
 
     public void saveTheme(UiTheme theme) {
         Objects.requireNonNull(theme, "theme");
+        if (ThemePreset.hasName(theme.name())) {
+            throw new IllegalArgumentException("Choose a name different from the presets");
+        }
         var themes = this.config.get().savedThemes;
         for (int index = 0; index < themes.size(); index++) {
             if (themes.get(index).name().equalsIgnoreCase(theme.name())) {
@@ -53,16 +57,24 @@ public final class AppearanceManager {
 
     public UiTheme importTheme(UiTheme theme) {
         Objects.requireNonNull(theme, "theme");
-        var themes = this.savedThemes();
-        String name = theme.name();
-        int copy = 2;
-        while (containsName(themes, name)) {
-            String suffix = " (" + copy++ + ")";
-            name = theme.name().substring(0, Math.min(theme.name().length(), 64 - suffix.length())) + suffix;
-        }
-        var imported = theme.withName(name);
+        var imported = theme.withName(this.uniqueName(theme.name()));
         this.saveTheme(imported);
         return imported;
+    }
+
+    UiTheme newTheme(UiTheme source) {
+        return source.withName(this.uniqueName("My theme"));
+    }
+
+    private String uniqueName(String original) {
+        var themes = this.savedThemes();
+        String name = original;
+        int copy = 2;
+        while (ThemePreset.hasName(name) || containsName(themes, name)) {
+            String suffix = " (" + copy++ + ")";
+            name = original.substring(0, Math.min(original.length(), 64 - suffix.length())) + suffix;
+        }
+        return name;
     }
 
     private static boolean containsName(List<UiTheme> themes, String name) {
@@ -70,6 +82,9 @@ public final class AppearanceManager {
     }
 
     public void removeTheme(String name) {
+        if (ThemePreset.hasName(name)) {
+            return;
+        }
         if (this.config.get().savedThemes.removeIf(theme -> theme.name().equalsIgnoreCase(name))) {
             this.save.run();
         }

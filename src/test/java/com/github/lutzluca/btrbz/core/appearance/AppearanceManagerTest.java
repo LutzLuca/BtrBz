@@ -84,7 +84,7 @@ class AppearanceManagerTest {
         var reloaded = new ConfigStore(this.directory.resolve("library.json"));
         Assertions.assertTrue(reloaded.load());
         Assertions.assertEquals(updated, reloaded.config().appearance.savedThemes.getLast());
-        Assertions.assertEquals(5, reloaded.config().appearance.savedThemes.size());
+        Assertions.assertEquals(1, reloaded.config().appearance.savedThemes.size());
 
         manager.apply(updated);
         store.config().appearance.theme = store.config().appearance.theme.withOrderHighlightOpacity(23);
@@ -97,12 +97,10 @@ class AppearanceManagerTest {
         Assertions.assertEquals(4, saves.get());
 
         var changedDefault = custom.withName("nOrD");
-        manager.saveTheme(changedDefault);
-        Assertions.assertEquals(4, manager.savedThemes().size());
-        Assertions.assertTrue(manager.savedThemes().contains(changedDefault));
-        for (var theme : manager.savedThemes()) {
-            manager.removeTheme(theme.name());
-        }
+        Assertions.assertThrows(IllegalArgumentException.class, () -> manager.saveTheme(changedDefault));
+        manager.removeTheme("nord");
+        Assertions.assertTrue(manager.savedThemes().isEmpty());
+        Assertions.assertEquals(4, saves.get());
         Assertions.assertTrue(reloaded.load());
         Assertions.assertTrue(reloaded.config().appearance.savedThemes.isEmpty());
         Assertions.assertEquals(updated.withOrderHighlightOpacity(23), reloaded.config().appearance.theme);
@@ -120,7 +118,7 @@ class AppearanceManagerTest {
         var second = manager.importTheme(imported);
         Assertions.assertEquals(imported.withName("nord (2)"), first);
         Assertions.assertEquals(imported.withName("nord (3)"), second);
-        Assertions.assertTrue(manager.savedThemes().contains(original));
+        Assertions.assertFalse(manager.savedThemes().contains(original));
         Assertions.assertEquals(active, manager.theme());
 
         var longName = "A".repeat(64);
@@ -130,7 +128,7 @@ class AppearanceManagerTest {
         var reloaded = new ConfigStore(this.directory.resolve("import.json"));
         Assertions.assertTrue(reloaded.load());
         Assertions.assertTrue(
-            reloaded.config().appearance.savedThemes.containsAll(List.of(original, first, second, shortened)));
+            reloaded.config().appearance.savedThemes.containsAll(List.of(first, second, shortened)));
         Assertions.assertEquals(active, reloaded.config().appearance.theme);
     }
 

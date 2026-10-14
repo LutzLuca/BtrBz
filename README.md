@@ -30,8 +30,9 @@ Run `/btrbz` to configure the mod.
 
 Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
 [Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),
-or make your own theme. Preview your changes live, then click Apply. Save themes and share them
-with Import and Export.
+or make your own theme. The four presets stay available. Choose New theme to start an editable copy,
+name it in the editor and click Save to keep it in your library. Preview your changes live, then click
+Apply to use them. Import and Export share complete themes.
 
 ## Installation
 

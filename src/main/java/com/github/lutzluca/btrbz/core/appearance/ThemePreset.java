@@ -2,6 +2,7 @@ package com.github.lutzluca.btrbz.core.appearance;
 
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import java.util.Arrays;
 
 /** BtrBz's own dark palette and adaptations of the upstream palettes linked in the README. */
 @Getter
@@ -25,6 +26,10 @@ public enum ThemePreset {
         0x50FA7B, 0x8DBBFF, 0xFF7777, 0xFFB86C, 0x9DA9D0, 0xBD93F9}, 0.92);
 
     private final UiTheme theme;
+
+    public static boolean hasName(String name) {
+        return Arrays.stream(values()).anyMatch(preset -> preset.theme().name().equalsIgnoreCase(name));
+    }
 
     ThemePreset(String name, int[] colors, double panelOpacity) {
         this(name, colors, panelOpacity, 55);
