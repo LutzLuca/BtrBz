@@ -14,6 +14,7 @@ import java.util.Optional;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 /** Shared order-book snapshots for the custom-screen and sign widgets. */
 public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidgetData.Snapshot> {
@@ -66,7 +67,8 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
 
     public static Snapshot preview() {
         return new Snapshot(
-            Component.literal("Booster Cookie"), Optional.of(new ItemStack(Items.COOKIE)),
+            Component.literal("Booster Cookie").withStyle(ChatFormatting.GOLD),
+            Optional.of(new ItemStack(Items.COOKIE)),
             previewLevels(BazaarWidgetViewData.OrderSide.Buy, 9_811_000.1),
             previewLevels(BazaarWidgetViewData.OrderSide.Sell, 9_835_000.0),
             Optional.of(BazaarWidgetViewData.OrderSide.Sell));
@@ -98,26 +100,26 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
     }
 
     public record Snapshot(
-        Component formattedItemName,
+        Component nativeName,
         Optional<ItemStack> itemStack,
         List<Entry> buyOffers,
         List<Entry> sellOffers,
         Optional<BazaarWidgetViewData.OrderSide> appropriateSide
     ) {
         public Snapshot {
-            formattedItemName = formattedItemName.copy();
+            nativeName = nativeName.copy();
             itemStack = itemStack.map(ItemStack::copy);
             buyOffers = List.copyOf(buyOffers);
             sellOffers = List.copyOf(sellOffers);
         }
 
         public String itemName() {
-            return this.formattedItemName.getString();
+            return this.nativeName.getString();
         }
 
         @Override
-        public Component formattedItemName() {
-            return this.formattedItemName.copy();
+        public Component nativeName() {
+            return this.nativeName.copy();
         }
 
         @Override

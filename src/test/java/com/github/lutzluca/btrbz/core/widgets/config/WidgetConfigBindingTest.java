@@ -78,8 +78,7 @@ class WidgetConfigBindingTest {
             config.scrolling = OrderBookWidgetConfig.ScrollMode.Together;
             config.frame.overrideScale = true;
             config.frame.scale = 1.7;
-            config.frame.overrideBackground = true;
-            config.frame.background = 0xAA102030;
+            config.frame.backgroundOverride = 0xAA102030;
             var id = WidgetId.parse("btrbz:order_book");
             var handle = handle(
                 id, () -> config, OrderBookWidgetConfig::new,
@@ -98,8 +97,7 @@ class WidgetConfigBindingTest {
             assertEquals(1, store.frameChanges(id).revision());
             assertFalse(config.frame.overrideScale);
             assertEquals(1.0, config.frame.scale);
-            assertFalse(config.frame.overrideBackground);
-            assertEquals(WidgetsConfig.DEFAULT_BACKGROUND, config.frame.background);
+            assertFalse(store.hasBackgroundOverride(definition));
             assertEquals(UiStyles.palette().panelBackground(), store.backgroundColor(definition));
             assertEquals(400, config.contentWidth);
             assertEquals(8, config.visibleRows);

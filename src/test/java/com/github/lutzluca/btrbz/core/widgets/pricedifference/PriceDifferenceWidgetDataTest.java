@@ -30,12 +30,12 @@ class PriceDifferenceWidgetDataTest {
             Component.literal("Enchanted Charcoal").withStyle(ChatFormatting.GREEN),
             Optional.empty(), 1, 1);
 
-        assertEquals("Enchanted Charcoal", snapshot.productName().getString());
+        assertEquals("Enchanted Charcoal", snapshot.nativeName().getString());
 
         //? if <26.2 {
-        assertEquals(ChatFormatting.GREEN.getColor(), snapshot.productName().getStyle().getColor().getValue());
+        assertEquals(ChatFormatting.GREEN.getColor(), snapshot.nativeName().getStyle().getColor().getValue());
         //?} else {
-        /*assertEquals(TextColor.GREEN.getValue(), snapshot.productName().getStyle().getColor().getValue());
+        /*assertEquals(TextColor.GREEN.getValue(), snapshot.nativeName().getStyle().getColor().getValue());
         *///?}
     }
 }

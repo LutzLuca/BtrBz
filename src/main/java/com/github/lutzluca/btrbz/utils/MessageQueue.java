@@ -2,10 +2,10 @@ package com.github.lutzluca.btrbz.utils;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.ChatFormatting;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -23,7 +23,7 @@ public class MessageQueue {
     }
 
     public static void sendOrQueue(String message, Level level) {
-        var msg = Notifier.prefix().append(Component.literal(message).withStyle(level.color));
+        var msg = Notifier.prefix().append(Component.literal(message).withStyle(UiStyles.color(level.role)));
 
         if (Notifier.notifyPlayer(msg)) {
             return;
@@ -50,7 +50,7 @@ public class MessageQueue {
             MESSAGES.forEach(entry -> {
                 var msg = Notifier
                     .prefix()
-                    .append(Component.literal(entry.msg).withStyle(entry.level.color));
+                    .append(Component.literal(entry.msg).withStyle(UiStyles.color(entry.level.role)));
 
                 client.player.sendSystemMessage(msg);
             });
@@ -60,13 +60,17 @@ public class MessageQueue {
         }
     }
 
-    @AllArgsConstructor
     public enum Level {
-        Info(ChatFormatting.WHITE),
-        Warn(ChatFormatting.YELLOW),
-        Error(ChatFormatting.RED);
+        Info(UiColor.TextPrimary),
+        Warn(UiColor.Warning),
+        Error(UiColor.Error);
 
-        public final ChatFormatting color;
+        private final UiColor role;
+
+        Level(UiColor role) {
+            this.role = role;
+        }
+
     }
 
     private record Entry(String msg, Level level) {}

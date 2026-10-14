@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.trackedorders;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig.Action;
 import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig.QueueDisplayMode;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -13,36 +14,47 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
+import net.minecraft.ChatFormatting;
 
 /** Message formatting shared by live notifications and passive settings examples. */
-final class TrackedOrderMessages {
+public final class TrackedOrderMessages {
 
     private TrackedOrderMessages() {}
+
+    /** Passive examples for the appearance editor, using the live notification formatter. */
+    public static List<Component> preview() {
+        var diamond = UiStyles.productName(Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN),
+            false);
+        var cookie = UiStyles.productName(Component.literal("Booster Cookie").withStyle(ChatFormatting.GOLD), false);
+        return List.of(single(OrderType.Buy, 640, diamond, 1_234.0, matchedStatus(false)),
+            single(OrderType.Sell, 4, cookie, 9_825_000.0, undercutStatus(11.0, false)));
+    }
 
     static Component topStatus(boolean regained) {
         return regained
             ? Component.literal("has ").withStyle(UiStyles.label())
                 .append(Component.literal("REGAINED BEST Order!")
-                    .withStyle(UiStyles.color(UiStyles.palette().success())))
+                    .withStyle(UiStyles.color(UiColor.Best)))
             : Component.literal("is the ").withStyle(UiStyles.label())
-                .append(Component.literal("BEST Order!").withStyle(UiStyles.color(UiStyles.palette().success())));
+                .append(Component.literal("BEST Order!").withStyle(UiStyles.color(UiColor.Best)));
     }
 
     static Component matchedStatus(boolean plural) {
         return Component.literal(plural ? "were " : "was ").withStyle(UiStyles.label())
-            .append(Component.literal("MATCHED!").withStyle(UiStyles.color(UiStyles.palette().matched())));
+            .append(Component.literal("MATCHED!").withStyle(UiStyles.color(UiColor.Matched)));
     }
 
     static Component undercutStatus(double amount, boolean plural) {
         return Component.literal(plural ? "were " : "was ").withStyle(UiStyles.label())
-            .append(Component.literal("UNDERCUT ").withStyle(UiStyles.color(UiStyles.palette().error())))
+            .append(Component.literal("UNDERCUT ").withStyle(UiStyles.color(UiColor.Undercut)))
             .append(Component.literal("by ").withStyle(UiStyles.label()))
             .append(Component.literal(Utils.formatDecimal(amount, 1, true) + " coins!").withStyle(UiStyles.money()));
     }
 
     static Component selfMatchedStatus() {
         return Component.literal("were ").withStyle(UiStyles.label())
-            .append(Component.literal("SELF-MATCHED!").withStyle(UiStyles.color(UiStyles.palette().matched())));
+            .append(Component.literal("SELF-MATCHED!").withStyle(UiStyles.color(UiColor.Matched)));
     }
 
     static MutableComponent single(
@@ -142,7 +154,7 @@ final class TrackedOrderMessages {
             .append(Component.literal(" for ").withStyle(UiStyles.label()))
             .append(productName)
             .append(Component.literal(" was ").withStyle(UiStyles.label()))
-            .append(Component.literal("SELF-UNDERCUT").withStyle(UiStyles.color(UiStyles.palette().error())))
+            .append(Component.literal("SELF-UNDERCUT").withStyle(UiStyles.color(UiColor.Undercut)))
             .append(Component.literal(" from ").withStyle(UiStyles.label()))
             .append(UiStyles.coins(bestPrice))
             .append(Component.literal(" to ").withStyle(UiStyles.label()))
@@ -166,8 +178,8 @@ final class TrackedOrderMessages {
 
     private static Style orderTypeStyle(OrderType type) {
         return switch (type) {
-            case Buy -> UiStyles.color(UiStyles.palette().buy());
-            case Sell -> UiStyles.color(UiStyles.palette().sell());
+            case Buy -> UiStyles.color(UiColor.Buy);
+            case Sell -> UiStyles.color(UiColor.Sell);
         };
     }
 }

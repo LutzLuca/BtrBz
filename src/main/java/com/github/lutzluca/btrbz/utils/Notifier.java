@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
@@ -30,7 +30,7 @@ public class Notifier {
             .withStyle(style -> style
                 .withClickEvent(new RunCommand("/" + cmd))
                 .withHoverEvent(new ShowText(Component.literal("Run /" + cmd))));
-        notifyPlayer(prefix().append(msg.withStyle(ChatFormatting.WHITE)));
+        notifyPlayer(prefix().append(msg.withStyle(UiStyles.primary())));
     }
 
     public static void sendBlockedOrderMessage(ValidationResult validation) {
@@ -39,7 +39,7 @@ public class Notifier {
 
         var msg = Component
             .literal(reason)
-            .withStyle(UiStyles.color(UiStyles.palette().error()))
+            .withStyle(UiStyles.color(UiColor.Error))
             .append(Component.literal(" Hold Ctrl to override.").withStyle(UiStyles.label()));
 
         notifyPlayer(msg);

@@ -18,6 +18,7 @@ import dev.isxander.yacl3.api.YetAnotherConfigLib.Builder;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -29,16 +30,19 @@ public class ConfigScreen {
     private final Activation activation;
     private final OrderTooltipProvider tooltipProvider;
     private final Function<Screen, Screen> alertScreenFactory;
+    private final BiFunction<Screen, Option<Integer>, Screen> appearanceScreenFactory;
 
     public ConfigScreen(
         WidgetRuntime widgetRuntime,
         Activation activation,
         OrderTooltipProvider tooltipProvider,
+        BiFunction<Screen, Option<Integer>, Screen> appearanceScreenFactory,
         Function<Screen, Screen> alertScreenFactory
     ) {
         this.widgetRuntime = Objects.requireNonNull(widgetRuntime, "widgetRuntime cannot be null");
         this.activation = Objects.requireNonNull(activation, "activation cannot be null");
         this.tooltipProvider = Objects.requireNonNull(tooltipProvider, "tooltipProvider cannot be null");
+        this.appearanceScreenFactory = Objects.requireNonNull(appearanceScreenFactory, "appearanceScreenFactory");
         this.alertScreenFactory = Objects.requireNonNull(alertScreenFactory, "alertScreenFactory cannot be null");
     }
 
@@ -50,7 +54,8 @@ public class ConfigScreen {
     public Screen create(Screen parent) {
         return YetAnotherConfigLib.create(
             ConfigStore.get().handler(), (_, config, builder) -> {
-                builder.title(Component.literal(BtrBz.MOD_ID).withStyle(UiStyles.modLabel()));
+                var title = Component.literal(BtrBz.MOD_ID).withStyle(UiStyles.modLabel());
+                builder.title(title).screenInit(_ -> title.setStyle(UiStyles.modLabel()));
                 this.buildCategories(builder, config);
 
                 return builder;
@@ -58,16 +63,23 @@ public class ConfigScreen {
     }
 
     private void buildCategories(Builder builder, Config config) {
+        var highlightOpacity = config.appearance.createHighlightOpacityOption();
         var general = ConfigCategory
             .createBuilder()
             .name(Component.literal("General"))
-            .tooltip(Component.literal("Configure when BtrBz runs."))
+            .tooltip(Component.literal("Configure BtrBz activation."))
             .group(this.activationGroup(config))
             .build();
 
         var widgetBuilder = ConfigCategory.createBuilder()
-            .name(Component.literal("Widgets"))
-            .tooltip(Component.literal("Configure BtrBz widgets and the Widget Manager."))
+            .name(Component.literal("Widget & Appearance"))
+            .tooltip(Component.literal("Configure BtrBz widgets, appearance and the Widget Manager."))
+            .option(ButtonOption.createBuilder()
+                .name(Component.literal("Appearance"))
+                .text(Component.literal("Edit"))
+                .action(
+                    (screen, _) -> GameUtils.setScreen(this.appearanceScreenFactory.apply(screen, highlightOpacity)))
+                .build())
             .options(this.widgetManagerOptions())
             .options(widgetOptions(
                 this.widgetRuntime.registry(),
@@ -81,7 +93,7 @@ public class ConfigScreen {
             .tooltip(Component.literal(
                 "Configure order-status notifications, highlighting, and alerts."))
             .groups(config.trackedOrders.createGroups(this.tooltipProvider::onQueueDisplayModeChanged))
-            .group(config.orderHighlight.createGroup())
+            .group(config.orderHighlight.createGroup(highlightOpacity))
             .group(config.alert.createGroup(screen -> GameUtils.setScreen(this.alertScreenFactory.apply(screen))))
             .build();
 

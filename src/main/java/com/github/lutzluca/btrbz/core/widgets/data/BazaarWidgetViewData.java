@@ -1,10 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
-import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipData;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-import com.github.lutzluca.btrbz.core.widgets.hud.BazaarHudOptions;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import com.github.lutzluca.btrbz.utils.Utils;
 
@@ -49,10 +49,10 @@ public final class BazaarWidgetViewData {
             return this.label;
         }
 
-        public int accentColor() {
+        public UiColor role() {
             return switch (this) {
-                case Buy -> UiStyles.palette().buy();
-                case Sell -> UiStyles.palette().sell();
+                case Buy -> UiColor.Buy;
+                case Sell -> UiColor.Sell;
             };
         }
     }
@@ -73,12 +73,12 @@ public final class BazaarWidgetViewData {
             return this.label;
         }
 
-        public int color() {
+        public UiColor role() {
             return switch (this) {
-                case Top -> UiStyles.palette().success();
-                case Matched -> UiStyles.palette().matched();
-                case Undercut -> UiStyles.palette().error();
-                case Unknown -> UiStyles.palette().unknown();
+                case Top -> UiColor.Best;
+                case Matched -> UiColor.Matched;
+                case Undercut -> UiColor.Undercut;
+                case Unknown -> UiColor.Unknown;
             };
         }
     }
@@ -130,21 +130,21 @@ public final class BazaarWidgetViewData {
         TrackedOrderId id,
         OrderSide side,
         String itemName,
-        Component formattedItemName,
+        Component nativeName,
         Optional<ItemStack> itemStack,
         double unitPrice,
         int totalAmount,
         Optional<FillProgress> liveProgress,
         OrderStatus status,
         Optional<MarketInfo> marketInfo,
-        List<Component> tooltipLines,
+        OrderTooltipData tooltip,
         long creationSequence
     ) {
         public Order {
             Objects.requireNonNull(id, "id");
             Objects.requireNonNull(side, "side");
             Objects.requireNonNull(itemName, "itemName");
-            formattedItemName = Objects.requireNonNull(formattedItemName, "formattedItemName").copy();
+            nativeName = Objects.requireNonNull(nativeName, "nativeName").copy();
             itemStack = itemStack.map(ItemStack::copy);
 
             if (totalAmount < 0) {
@@ -159,42 +159,42 @@ public final class BazaarWidgetViewData {
             });
             Objects.requireNonNull(status, "status");
             marketInfo = Objects.requireNonNull(marketInfo, "marketInfo");
-            tooltipLines = tooltipLines.stream().<Component>map(Component::copy).toList();
+            Objects.requireNonNull(tooltip, "tooltip");
         }
 
         public Order(
             TrackedOrderId id,
             OrderSide side,
             String itemName,
-            Component formattedItemName,
+            Component nativeName,
             Optional<ItemStack> itemStack,
             double unitPrice,
             int totalAmount,
             Optional<FillProgress> liveProgress,
             OrderStatus status,
             Optional<MarketInfo> marketInfo,
-            List<Component> tooltipLines
+            OrderTooltipData tooltip
         ) {
-            this(id, side, itemName, formattedItemName, itemStack, unitPrice, totalAmount,
-                liveProgress, status, marketInfo, tooltipLines, 0);
+            this(id, side, itemName, nativeName, itemStack, unitPrice, totalAmount,
+                liveProgress, status, marketInfo, tooltip, 0);
         }
 
         public Order(
             TrackedOrderId id,
             OrderSide side,
             String itemName,
-            Component formattedItemName,
+            Component nativeName,
             Optional<ItemStack> itemStack,
             double unitPrice,
             int totalAmount,
             int liveFilledAmount,
             OrderStatus status,
-            List<Component> tooltipLines
+            OrderTooltipData tooltip
         ) {
             this(
-                id, side, itemName, formattedItemName, itemStack, unitPrice, totalAmount,
+                id, side, itemName, nativeName, itemStack, unitPrice, totalAmount,
                 Optional.of(new FillProgress(liveFilledAmount, totalAmount)),
-                status, Optional.empty(), tooltipLines, 0);
+                status, Optional.empty(), tooltip, 0);
         }
 
         @Override
@@ -203,13 +203,8 @@ public final class BazaarWidgetViewData {
         }
 
         @Override
-        public Component formattedItemName() {
-            return this.formattedItemName.copy();
-        }
-
-        @Override
-        public List<Component> tooltipLines() {
-            return this.tooltipLines.stream().<Component>map(Component::copy).toList();
+        public Component nativeName() {
+            return this.nativeName.copy();
         }
 
         /** The stable volume originally placed. Live remaining volume belongs to {@link FillProgress}. */
@@ -225,14 +220,6 @@ public final class BazaarWidgetViewData {
             return formatInt(this.totalAmount);
         }
 
-        public Component formattedItemName(boolean abbreviateEnchanted) {
-            if (!abbreviateEnchanted) {
-                return this.formattedItemName.copy();
-            }
-
-            return Component.literal(BazaarHudOptions.productName(this.itemName, abbreviateEnchanted))
-                .setStyle(this.formattedItemName.getStyle());
-        }
     }
 
     public record FillProgress(int filled, int total) {

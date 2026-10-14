@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class OrderTooltipProviderTest {
+class OrderTooltipFormatterTest {
 
     @ParameterizedTest(name = "{0} minutes -> {1}")
     @CsvSource({
@@ -14,6 +14,6 @@ class OrderTooltipProviderTest {
         "0, < 1m"
     })
     void formatsDuration(double minutes, String expected) {
-        Assertions.assertEquals(expected, OrderTooltipProvider.formatDuration(minutes));
+        Assertions.assertEquals(expected, OrderTooltipFormatter.formatDuration(minutes));
     }
 }

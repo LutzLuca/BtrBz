@@ -43,7 +43,7 @@ final class EmbeddedOrderBookWidgetView
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent itemName = UiComponents.label("", UiStyles.palette().primary());
+    private final LabelComponent itemName = UiComponents.label("", UiStyles.palette().textPrimary());
     private final LabelComponent sideTitle = UiComponents.label("", UiStyles.palette().buy());
     private final RetainedFlowLayout sides = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final RetainedFlowLayout stackedSides = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
@@ -83,7 +83,7 @@ final class EmbeddedOrderBookWidgetView
         this.config = config;
         this.workflowSide = session.side().orElseThrow();
         this.actions = actions;
-        this.itemName.text(data.formattedItemName());
+        this.itemName.text(UiStyles.productName(data.nativeName(), false));
         this.header.clearChildren();
         var itemStack = data.itemStack();
         this.hasItem = itemStack.isPresent();
@@ -99,7 +99,7 @@ final class EmbeddedOrderBookWidgetView
         this.header.child(this.itemName);
         if (OrderBookWidget.embeddedVisibleSideCount(config, data) == 1) {
             var side = data.appropriateSide().orElseThrow();
-            this.sideTitle.text(Component.literal(title(side)).withStyle(UiStyles.color(side.accentColor())));
+            this.sideTitle.text(Component.literal(title(side)).withStyle(UiStyles.color(side.role())));
             this.header.child(this.sideTitle);
         }
     }
@@ -188,7 +188,7 @@ final class EmbeddedOrderBookWidgetView
             super(Sizing.fixed(1), Sizing.fixed(1));
             this.headers = new Headers(side);
             this.empty = UiComponents.label(side == OrderSide.Buy ? "No buy orders" : "No sell offers",
-                UiStyles.palette().muted());
+                UiStyles.palette().textMuted());
             this.empty.margins(Insets.left(INSET));
             this.children = List.of(this.headers, this.list);
             this.list.scrollbarThickness(SCROLLBAR_THICKNESS);
@@ -279,18 +279,19 @@ final class EmbeddedOrderBookWidgetView
             this.text.begin();
             if (this.showTitle) {
                 int titleX = this.side == OrderSide.Buy ? INSET : this.width - INSET - font.width(this.title);
-                this.text.draw(graphics, font, this.title, this.x + titleX, this.y, this.side.accentColor(), false);
+                this.text.draw(graphics, font, this.title, this.x + titleX, this.y, UiStyles.argb(this.side.role()),
+                    false);
             }
             this.text.draw(graphics, font, this.price,
                 this.x + this.columns.priceTextX(this.side, font.width(this.price)), headerY,
-                UiStyles.palette().label(), false);
+                UiStyles.palette().textSecondary(), false);
             this.text.draw(graphics, font, this.quantity,
                 this.x + this.columns.quantityTextX(this.side, font.width(this.quantity)), headerY,
-                UiStyles.palette().label(), false);
+                UiStyles.palette().textSecondary(), false);
             if (this.columns.hasOrders()) {
                 this.text.draw(graphics, font, this.orders,
                     this.x + this.columns.ordersTextX(this.side, font.width(this.orders)), headerY,
-                    UiStyles.palette().label(), false);
+                    UiStyles.palette().textSecondary(), false);
             }
             graphics.fill(this.x + INSET, this.y + this.height - 2,
                 this.x + this.width - INSET, this.y + this.height - 1, OrderBookStyles.dividerColor());

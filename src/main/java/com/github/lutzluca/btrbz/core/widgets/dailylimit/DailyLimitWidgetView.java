@@ -24,8 +24,8 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         Sizing.fixed(DailyLimitWidgetDefinition.MINIMUM_CONTENT_WIDTH),
         Sizing.content());
 
-    private final LabelComponent header = UiComponents.label("Daily Limit", UiStyles.palette().primary());
-    private final LabelComponent value = UiComponents.label("", UiStyles.palette().primary());
+    private final LabelComponent header = UiComponents.label("Daily Limit", UiStyles.palette().textPrimary());
+    private final LabelComponent value = UiComponents.label("", UiStyles.palette().textPrimary());
 
     private String displayedValue = "";
 
@@ -57,7 +57,7 @@ final class DailyLimitWidgetView implements WidgetView<DailyLimitWidgetData.Snap
         int percent = (int) Math.round(data.used() * 100.0 / data.limit());
         int color = percent >= 90
             ? UiStyles.palette().error()
-            : percent >= 75 ? UiStyles.palette().sell() : UiStyles.palette().buy();
+            : percent >= 75 ? UiStyles.palette().warning() : UiStyles.palette().success();
         String display = formattedValue(data, config.numberStyle);
 
         var value = Component.literal(display).withStyle(UiStyles.money());

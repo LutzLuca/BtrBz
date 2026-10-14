@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.data;
 
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
+import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipData;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,9 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DisplayName("Bazaar widget view data snapshots")
 class BazaarWidgetViewDataSnapshotTest {
     @Test
-    void copiesNestedMutableComponentsAtConstructionAndAccessBoundaries() {
+    void copiesNativeNameAtConstructionAndAccessBoundaries() {
         var name = Component.literal("Original");
-        var tooltip = Component.literal("Tooltip");
         var order = new BazaarWidgetViewData.Order(
             new TrackedOrderId(UUID.randomUUID()),
             BazaarWidgetViewData.OrderSide.Buy,
@@ -28,15 +28,12 @@ class BazaarWidgetViewDataSnapshotTest {
             Optional.of(new BazaarWidgetViewData.FillProgress(0, 2)),
             BazaarWidgetViewData.OrderStatus.Top,
             Optional.empty(),
-            List.of(tooltip));
+            OrderTooltipData.EMPTY);
         var snapshot = new BazaarWidgetViewData.OrdersData(List.of(order));
 
         name.append(" changed");
-        tooltip.append(" changed");
-        ((MutableComponent) snapshot.orders().getFirst().formattedItemName()).append(" accessor mutation");
-        ((MutableComponent) snapshot.orders().getFirst().tooltipLines().getFirst()).append(" accessor mutation");
+        ((MutableComponent) snapshot.orders().getFirst().nativeName()).append(" accessor mutation");
 
-        assertEquals("Original", snapshot.orders().getFirst().formattedItemName().getString());
-        assertEquals("Tooltip", snapshot.orders().getFirst().tooltipLines().getFirst().getString());
+        assertEquals("Original", snapshot.orders().getFirst().nativeName().getString());
     }
 }

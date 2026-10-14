@@ -25,7 +25,7 @@ public class OrderProtectionConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Enable Order Protection"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Check new order prices and stop submissions that match an enabled safety rule."),
                 ConfigUi.note("Hold Ctrl while confirming to override a block."))))
@@ -57,7 +57,7 @@ public class OrderProtectionConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Limit Price Undercutting"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Block buy-order price increases and sell-offer price reductions at the configured percentage "
                         + "or more relative to the best price on the same side."),
@@ -78,7 +78,7 @@ public class OrderProtectionConfig {
         return Option
             .<Double>createBuilder()
             .name(Component.literal("Maximum Buy-Order Increase (%)"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Block a buy order when it is this percentage or more above the best current buy-order price. "
                         + "A 0.1-coin increase passes this check."),
@@ -98,7 +98,7 @@ public class OrderProtectionConfig {
         return Option
             .<Double>createBuilder()
             .name(Component.literal("Maximum Sell-Offer Reduction (%)"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Block a sell offer when it is this percentage or more below the best current "
                         + "sell-offer price. A 0.1-coin reduction passes this check."),
@@ -118,7 +118,7 @@ public class OrderProtectionConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Block Orders at Instant-Trade Prices"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Block buy orders priced at or above the best sell offer, and sell offers priced at or below "
                         + "the best buy order. Use an instant trade instead."),

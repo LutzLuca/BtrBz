@@ -74,7 +74,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
         Consumer<BookmarksAction> actions
     ) {
         this.bookmark = bookmark;
-        this.productName = bookmark.formattedProductName(false);
+        this.productName = UiStyles.productName(bookmark.nativeName(), false);
         this.interactive = interactive;
         this.reorderable = interactive && options.sort == BookmarksWidgetConfig.BookmarkSort.Manual;
         this.reserveScrollbarSpace = reserveScrollbarSpace;
@@ -199,7 +199,7 @@ final class BazaarBookmarkRowComponent extends BaseParentUIComponent {
 
         this.retainedText.begin();
         this.retainedText.draw(graphics, font, this.drawName, textX,
-            this.y + (this.height - font.lineHeight) / 2, UiStyles.palette().primary(), false);
+            this.y + (this.height - font.lineHeight) / 2, UiStyles.palette().textPrimary(), false);
 
         int dotX = this.x + this.width - trailingInset - indicatorWidth;
         int dotY = this.y + (this.height - DOT_SIZE) / 2;

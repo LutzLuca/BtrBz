@@ -8,7 +8,7 @@ import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.Size;
 
 public final class WidgetChrome {
-    static final int CORNER_RADIUS = 5;
+    public static final int CORNER_RADIUS = 5;
 
     private WidgetChrome() {}
 
@@ -18,7 +18,7 @@ public final class WidgetChrome {
             Math.max(1, space.height() - WidgetLayoutTokens.PANEL_VERTICAL_PADDING * 2));
     }
 
-    public static UIComponent wrap(UIComponent content) {
+    public static FlowLayout wrap(UIComponent content) {
         FlowLayout layout = UIContainers.verticalFlow(Sizing.content(), Sizing.content());
         layout.padding(Insets.both(
             WidgetLayoutTokens.PANEL_HORIZONTAL_PADDING,

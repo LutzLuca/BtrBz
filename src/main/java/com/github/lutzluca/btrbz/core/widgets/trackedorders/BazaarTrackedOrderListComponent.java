@@ -24,7 +24,7 @@ final class BazaarTrackedOrderListComponent extends ReorderableScrollListCompone
             WidgetLayoutTokens.LIST_GAP,
             true,
             UiStyles.palette().scrollbar(),
-            UiStyles.palette().action(),
+            UiStyles.palette().accent(),
             0,
             4,
             2);

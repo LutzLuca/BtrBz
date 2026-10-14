@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.WeakHashMap;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -37,6 +38,7 @@ public final class WidgetRuntime {
     private final WidgetStateStore stateStore;
     private final WidgetSessionProvider sessionProvider;
     private final FeatureRuntime runtime;
+    private final Function<Screen, Screen> appearanceScreen;
     private final Map<WidgetId, Double> scrollOffsets = new HashMap<>();
     // Screens own their hosts; this set lets deactivation dispose even temporarily hidden hosts.
     private final Set<WidgetHost> hosts = Collections.newSetFromMap(new WeakHashMap<>());
@@ -47,13 +49,15 @@ public final class WidgetRuntime {
         WidgetRegistry registry,
         WidgetStateStore stateStore,
         WidgetSessionProvider sessionProvider,
-        FeatureRuntime runtime
+        FeatureRuntime runtime,
+        Function<Screen, Screen> appearanceScreen
     ) {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.registry.freeze();
         this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
         this.sessionProvider = Objects.requireNonNull(sessionProvider, "sessionProvider");
         this.runtime = Objects.requireNonNull(runtime, "runtime");
+        this.appearanceScreen = Objects.requireNonNull(appearanceScreen, "appearanceScreen");
     }
 
     public void invalidateWidgetContent(WidgetId id, String reason) {
@@ -95,8 +99,10 @@ public final class WidgetRuntime {
     public WidgetManagementScreen createManagementScreen(@Nullable Screen previousScreen) {
         var context = this.captureManagementContext(previousScreen);
         var screen = context == null
-            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.runtime)
-            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.runtime, context);
+            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.runtime,
+                this.appearanceScreen)
+            : new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.runtime,
+                this.appearanceScreen, context);
         this.managementScreens.add(screen);
         return screen;
     }
@@ -107,9 +113,10 @@ public final class WidgetRuntime {
     ) {
         var context = this.captureManagementContext(previousScreen);
         var screen = context == null
-            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.runtime, widgetId)
+            ? new WidgetManagementScreen(previousScreen, this.registry, this.stateStore, this.runtime,
+                this.appearanceScreen, widgetId)
             : new WidgetManagementScreen(
-                previousScreen, this.registry, this.stateStore, this.runtime, widgetId, context);
+                previousScreen, this.registry, this.stateStore, this.runtime, this.appearanceScreen, widgetId, context);
         this.managementScreens.add(screen);
         return screen;
     }

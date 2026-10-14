@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -10,7 +11,6 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.List;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 public class TaxCommand {
@@ -38,7 +38,8 @@ public class TaxCommand {
                         if (!List.of(1.25F, 1.125F, 1.0F).contains(rate)) {
                             var msg = Notifier
                                 .prefix()
-                                .append(Component.literal("Invalid rate").withStyle(ChatFormatting.RED))
+                                .append(Component.literal("Invalid rate")
+                                    .withStyle(UiStyles.color(UiColor.Error)))
                                 .append(Component
                                     .literal(" (" + rate + ")")
                                     .withStyle(UiStyles.muted()))

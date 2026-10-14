@@ -26,8 +26,12 @@ public final class OptionGrouping {
         Arrays
             .stream(optBuilders)
             .map(Option.Builder::build)
-            .map(GroupChild.SingleOption::new)
-            .forEach(this.children::add);
+            .forEach(this::addOption);
+        return this;
+    }
+
+    public OptionGrouping addOption(Option<?> option) {
+        this.children.add(new GroupChild.SingleOption(option));
         return this;
     }
 

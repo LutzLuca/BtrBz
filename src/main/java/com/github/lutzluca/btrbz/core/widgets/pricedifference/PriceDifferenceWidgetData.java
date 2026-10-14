@@ -9,6 +9,7 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
 import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -61,7 +62,8 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
 
     public static Snapshot preview() {
         return new Snapshot(
-            Component.literal("Enchanted Diamond"), Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640);
+            Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN),
+            Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640);
     }
 
     private Optional<Integer> listedCount(ItemStack stack) {
@@ -77,15 +79,15 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
         return new Snapshot(Component.empty(), Optional.empty(), 0, 0);
     }
 
-    public record Snapshot(Component productName, Optional<ItemStack> itemStack, double perItem, int quantity) {
+    public record Snapshot(Component nativeName, Optional<ItemStack> itemStack, double perItem, int quantity) {
         public Snapshot {
-            productName = productName.copy();
+            nativeName = nativeName.copy();
             itemStack = itemStack.map(ItemStack::copy);
         }
 
         @Override
-        public Component productName() {
-            return this.productName.copy();
+        public Component nativeName() {
+            return this.nativeName.copy();
         }
 
         @Override

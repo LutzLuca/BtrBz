@@ -32,7 +32,7 @@ final class BazaarOrdersWidgetView
 
     private final Detailed detailed = new Detailed();
     private final Counts counts = new Counts();
-    private final LabelComponent toggleHint = UiComponents.label("", UiStyles.palette().muted());
+    private final LabelComponent toggleHint = UiComponents.label("", UiStyles.palette().textMuted());
     private final Supplier<Component> toggleKeyLabel;
 
     BazaarOrdersWidgetView(Supplier<Component> toggleKeyLabel) {
@@ -76,8 +76,8 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
 
         private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        private final LabelComponent count = UiComponents.label("", UiStyles.palette().muted());
-        private final LabelComponent empty = UiComponents.label("", UiStyles.palette().muted());
+        private final LabelComponent count = UiComponents.label("", UiStyles.palette().textMuted());
+        private final LabelComponent empty = UiComponents.label("", UiStyles.palette().textMuted());
 
         private final RetainedFlowLayout rows = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         private final RetainedRows<TrackedOrderId, BazaarHudOrderRowComponent> retainedRows = new RetainedRows<>();
@@ -91,7 +91,7 @@ final class BazaarOrdersWidgetView
             this.header.allowOverflow(true);
             this.header.verticalAlignment(VerticalAlignment.CENTER);
 
-            this.header.child(UiComponents.label("Bazaar Orders", UiStyles.palette().primary()));
+            this.header.child(UiComponents.label("Bazaar Orders", UiStyles.palette().textPrimary()));
             this.header.child(UiComponents.spacer());
             this.header.child(this.count);
 
@@ -135,9 +135,9 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
 
         private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        private final LabelComponent active = UiComponents.label("", UiStyles.palette().muted());
+        private final LabelComponent active = UiComponents.label("", UiStyles.palette().textMuted());
         private final LabelComponent empty = UiComponents.label("No active or filled orders",
-            UiStyles.palette().muted());
+            UiStyles.palette().textMuted());
 
         private final RetainedFlowLayout grid = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         private final List<StatusSummary> summaries = new ArrayList<>();
@@ -154,7 +154,7 @@ final class BazaarOrdersWidgetView
 
             this.header.allowOverflow(true);
 
-            this.header.child(UiComponents.label("Bazaar Orders", UiStyles.palette().primary()));
+            this.header.child(UiComponents.label("Bazaar Orders", UiStyles.palette().textPrimary()));
             this.header.child(UiComponents.spacer());
             this.header.child(this.active);
 
@@ -203,8 +203,8 @@ final class BazaarOrdersWidgetView
 
     private static final class StatusSummary {
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.fixed(1), Sizing.fixed(9));
-        private final LabelComponent label = UiComponents.boldLabel("", UiStyles.palette().primary());
-        private final LabelComponent count = UiComponents.boldLabel("", UiStyles.palette().primary());
+        private final LabelComponent label = UiComponents.boldLabel("", UiStyles.palette().textPrimary());
+        private final LabelComponent count = UiComponents.boldLabel("", UiStyles.palette().textPrimary());
 
         private StatusSummary() {
             this.root.allowOverflow(true);
@@ -222,13 +222,13 @@ final class BazaarOrdersWidgetView
             this.count.text(Component.literal(entry.count() + "x").withStyle(UiStyles.quantity()));
 
             this.label.color(Color.ofArgb(entry.color()));
-            this.count.color(Color.ofArgb(UiStyles.palette().quantity()));
+            this.count.color(Color.ofArgb(UiStyles.palette().textPrimary()));
         }
     }
 
     private static final class Overflow {
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        private final LabelComponent more = UiComponents.label("", UiStyles.palette().muted());
+        private final LabelComponent more = UiComponents.label("", UiStyles.palette().textMuted());
         private final List<StatusCount> statuses = List.of(
             new StatusCount(Assets.STATUS_OUTDATED), new StatusCount(Assets.STATUS_MATCHED),
             new StatusCount(Assets.STATUS_BEST_ORDER), new StatusCount(Assets.STATUS_UNKNOWN));
@@ -270,7 +270,7 @@ final class BazaarOrdersWidgetView
 
     private static final class StatusCount {
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.content(), Sizing.fixed(9));
-        private final LabelComponent count = UiComponents.label("", UiStyles.palette().label());
+        private final LabelComponent count = UiComponents.label("", UiStyles.palette().textSecondary());
 
         private StatusCount(Identifier texture) {
             this.root.allowOverflow(true);

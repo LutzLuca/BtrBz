@@ -34,7 +34,7 @@ public final class MemoizedWidgetDataSource<D> implements WidgetDataSource<D> {
 
     @Override
     public D snapshot(WidgetSession session) {
-        var dependencies = this.source.cacheDependencies();
+        var dependencies = this.cacheDependencies();
 
         boolean sessionMatches = !this.source.sessionSensitive()
             || this.sessionId == session.id()

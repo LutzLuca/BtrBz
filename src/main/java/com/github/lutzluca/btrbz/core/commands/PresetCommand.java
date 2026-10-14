@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
@@ -11,7 +12,6 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent.RunCommand;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent.ShowText;
@@ -87,7 +87,7 @@ public class PresetCommand {
                                 .append(Component.literal("Preset ").withStyle(UiStyles.label()))
                                 .append(Component
                                     .literal(String.valueOf(volume))
-                                    .withStyle(ChatFormatting.RED))
+                                    .withStyle(UiStyles.color(UiColor.Error)))
                                 .append(Component.literal(" not found").withStyle(UiStyles.label())));
                         }
 
@@ -123,7 +123,7 @@ public class PresetCommand {
                     builder.append(Component.literal(" "));
                     builder.append(Component
                         .literal("[x]")
-                        .withStyle(ChatFormatting.RED)
+                        .withStyle(UiStyles.color(UiColor.Error))
                         .withStyle(style -> style
                             .withClickEvent(new RunCommand("/btrbz preset remove " + volume))
                             .withHoverEvent(new ShowText(Component.literal("Remove preset for " + volume)))));

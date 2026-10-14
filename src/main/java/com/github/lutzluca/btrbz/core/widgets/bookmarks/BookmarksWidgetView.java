@@ -19,7 +19,7 @@ final class BookmarksWidgetView implements
     WidgetView<BookmarksWidgetData.Snapshot, BookmarksWidgetConfig, BookmarksAction>,
     ScrollOffsetView {
     private final FlowLayout root = BazaarUi.panel(1);
-    private final LabelComponent title = UiComponents.label("Bookmarks", UiStyles.palette().primary());
+    private final LabelComponent title = UiComponents.label("Bookmarks", UiStyles.palette().textPrimary());
 
     private final BazaarBookmarkListComponent list = new BazaarBookmarkListComponent();
 

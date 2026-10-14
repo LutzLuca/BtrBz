@@ -32,14 +32,14 @@ final class FullOrderBookWidgetView
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent itemName = UiComponents.label("", UiStyles.palette().primary());
-    private final LabelComponent bookTitle = UiComponents.label("Order book", UiStyles.palette().muted());
+    private final LabelComponent itemName = UiComponents.label("", UiStyles.palette().textPrimary());
+    private final LabelComponent bookTitle = UiComponents.label("Order book", UiStyles.palette().textMuted());
     private final RetainedFlowLayout spreadLine = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-    private final LabelComponent spread = UiComponents.label("", UiStyles.palette().label());
+    private final LabelComponent spread = UiComponents.label("", UiStyles.palette().textSecondary());
     private final OrderBookDepthTable table = new OrderBookDepthTable();
     private final RetainedFlowLayout footer = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private final LabelComponent instruction = UiComponents.label(
-        "Click a price to copy it and return", UiStyles.palette().muted());
+        "Click a price to copy it and return", UiStyles.palette().textMuted());
     private final UiButton goBack = UiButton.text(
         Component.literal("Go back"), _ -> this.actions.accept(new OrderBookAction.GoBack()));
     private Consumer<OrderBookAction> actions = _ -> {};
@@ -101,7 +101,7 @@ final class FullOrderBookWidgetView
         this.spread.text(Component.literal("Spread: ").withStyle(UiStyles.label()).append(
             Component.literal(this.depth.spreadText()).withStyle(
                 this.depth.spread().isPresent() ? UiStyles.money() : UiStyles.muted())));
-        this.itemName.text(data.formattedItemName());
+        this.itemName.text(UiStyles.productName(data.nativeName(), false));
         this.header.clearChildren();
         var itemStack = data.itemStack();
         this.hasItem = itemStack.isPresent();

@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.widgets.ui.BazaarUi;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -39,7 +40,7 @@ final class OrderPresetsWidgetView
         this.root.gap(WidgetLayoutTokens.SECTION_GAP);
 
         this.header.verticalAlignment(VerticalAlignment.CENTER);
-        this.header.child(UiComponents.label("Presets", UiStyles.palette().primary()));
+        this.header.child(UiComponents.label("Presets", UiStyles.palette().textPrimary()));
 
         this.root.child(this.header);
         this.root.child(this.list);
@@ -79,8 +80,8 @@ final class OrderPresetsWidgetView
                 : null;
 
             int background = switch (preset.preset()) {
-                case OrderPreset.Maximum _ -> 0x80404020;
-                case OrderPreset.Clipboard _ -> 0x80204080;
+                case OrderPreset.Maximum _ -> UiPalette.alpha(UiStyles.palette().warning(), 0.12);
+                case OrderPreset.Clipboard _ -> UiPalette.alpha(UiStyles.palette().accent(), 0.12);
                 case OrderPreset.Fixed _ -> 0x00000000;
             };
 
@@ -90,7 +91,7 @@ final class OrderPresetsWidgetView
                     .withStyle(preset.available() ? UiStyles.quantity() : UiStyles.muted()),
                 "",
                 "",
-                UiStyles.palette().muted(),
+                UiStyles.palette().textMuted(),
                 0,
                 tooltip,
                 click,

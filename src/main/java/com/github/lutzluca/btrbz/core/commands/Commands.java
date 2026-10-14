@@ -19,6 +19,7 @@ public class Commands {
         ProfileTracker profileTracker,
         Runnable openAlertScreen,
         Runnable openConfigScreen,
+        Runnable openThemeScreen,
         Function<Boolean, String> setEnabled
     ) {
         var rootCommand = ClientCommands.literal("btrbz").executes(_ -> {
@@ -34,6 +35,10 @@ public class Commands {
             return 1;
         }));
         rootCommand.then(WidgetCommand.build(widgetRuntime));
+        rootCommand.then(ClientCommands.literal("theme").executes(_ -> {
+            openThemeScreen.run();
+            return 1;
+        }));
         rootCommand.then(AlertCommand.build(openAlertScreen));
         rootCommand.then(ConversionCommand.build(bazaarData));
         rootCommand.then(TrackedOrderCommand.build(orderManager));

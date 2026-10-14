@@ -4,6 +4,7 @@ import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -26,7 +27,7 @@ public final class UiButton extends ButtonComponent {
     private boolean primary;
     private boolean selected;
     private boolean bottomAccent = true;
-    private int accent = UiStyles.palette().buttons().accent();
+    private IntSupplier accent = () -> UiStyles.palette().accent();
 
     private @Nullable Component cachedMessage;
     private FormattedCharSequence cachedText = FormattedCharSequence.EMPTY;
@@ -83,7 +84,7 @@ public final class UiButton extends ButtonComponent {
         return this;
     }
 
-    public UiButton accent(int accent) {
+    public UiButton accent(IntSupplier accent) {
         this.accent = accent;
         return this;
     }
@@ -94,26 +95,36 @@ public final class UiButton extends ButtonComponent {
     }
 
     private void drawBackground(OwoUIGraphics graphics) {
-        var colors = UiStyles.palette().buttons();
-        boolean hover = this.isHoveredOrFocused();
+        var colors = UiStyles.buttons();
+        boolean hover = this.isHovered();
         int color;
 
         if (!this.active()) {
-            color = hover ? colors.disabledHovered() : colors.disabled();
+            color = colors.disabled();
         } else if (this.primary) {
             color = hover ? colors.primaryHovered() : colors.primary();
         } else {
-            color = hover ? colors.hovered() : this.selected ? colors.selected() : colors.background();
+            color = this.selected
+                ? hover ? colors.selectedHovered() : colors.selected()
+                : hover ? colors.hovered() : colors.background();
         }
 
-        UiSurfaces.drawRoundedPanel(
-            graphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(), color, 3);
+        int outline = this.isFocused() || this.selected && this.active()
+            ? this.accent.getAsInt() : UiStyles.palette().outline();
+        UiSurfaces.drawRoundedPanel(graphics, this.getX(), this.getY(), this.getWidth(), this.getHeight(),
+            this.active() ? outline : colors.disabled(), 3);
+        UiSurfaces.drawRoundedPanel(graphics, this.getX() + 1, this.getY() + 1,
+            Math.max(0, this.getWidth() - 2), Math.max(0, this.getHeight() - 2), color, 2);
 
         if (this.bottomAccent) {
             int border = (this.primary || this.selected) && this.active()
-                ? this.accent
-                : hover ? colors.borderHovered() : UiStyles.palette().border();
+                ? this.accent.getAsInt()
+                : hover ? colors.borderHovered() : UiStyles.palette().outline();
             graphics.fill(this.getX() + 3, this.getBottom() - 1, this.getRight() - 3, this.getBottom(), border);
+        }
+        if (this.isFocused()) {
+            graphics.drawRectOutline(this.getX(), this.getY(), this.getWidth(), this.getHeight(),
+                UiStyles.palette().accent());
         }
     }
 
@@ -138,8 +149,8 @@ public final class UiButton extends ButtonComponent {
 
         int contentWidth = iconWidth + gap + font.width(this.cachedText);
         int contentX = this.getX() + (this.getWidth() - contentWidth) / 2;
-        var colors = UiStyles.palette().buttons();
-        int color = this.active() ? colors.text() : colors.disabledText();
+        var colors = UiStyles.buttons();
+        int color = !this.active() ? colors.disabledText() : this.primary ? colors.primaryText() : colors.text();
 
         if (this.icon != null) {
             context.blit(RenderPipelines.GUI_TEXTURED, this.icon.texture(), contentX,

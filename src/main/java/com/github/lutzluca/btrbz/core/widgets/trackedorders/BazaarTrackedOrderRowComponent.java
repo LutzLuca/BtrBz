@@ -39,7 +39,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
     private static final int STANDARD_ICON_SIZE = 16;
     private static final int COMPACT_ICON_SIZE = 12;
     private static final int TEXT_GAP = WidgetLayoutTokens.ORDER_TEXT_GAP;
-    private static final int STANDARD_PROGRESS_HEIGHT = 2;
+    private static final int STANDARD_PROGRESS_HEIGHT = 1;
     private static final int COMPACT_PROGRESS_HEIGHT = 1;
 
     private final BazaarTrackedOrderListComponent list;
@@ -118,7 +118,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         boolean layoutChanged = this.lastOptions == null || this.lastOptions.layout() != optionsSnapshot.layout();
 
-        this.productName = order.formattedItemName(false);
+        this.productName = UiStyles.productName(order.nativeName(), false);
         this.index = index;
         this.reorderable = interactive && options.sort == TrackedOrdersWidgetConfig.TrackedSort.Manual;
         this.interactive = interactive;
@@ -276,22 +276,22 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productText(),
-            x, this.y + 1, UiStyles.palette().primary(), false);
+            x, this.y + 1, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
-            this.x + layout.statusX(), this.y + 1, this.order.status().color(), false);
+            this.x + layout.statusX(), this.y + 1, UiStyles.argb(this.order.status().role()), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
-            this.x + layout.sideX(), this.y + 1, this.order.side().accentColor(), false);
+            this.x + layout.sideX(), this.y + 1, UiStyles.argb(this.order.side().role()), false);
 
         int secondY = this.y + 1 + font.lineHeight + WidgetLayoutTokens.LINE_GAP;
 
         if (layout.identityText() != null) {
             this.retainedText.draw(graphics, font, layout.identityText(),
-                x, secondY, UiStyles.palette().label(), false);
+                x, secondY, UiStyles.palette().textSecondary(), false);
         }
 
         if (layout.marketText() != null) {
             this.retainedText.draw(graphics, font, layout.marketText().getVisualOrderText(),
-                this.x + layout.marketX(), secondY, UiStyles.palette().label(), false);
+                this.x + layout.marketX(), secondY, UiStyles.palette().textSecondary(), false);
         }
     }
 
@@ -305,7 +305,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         int right = this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
 
-        var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
+        var side = Component.literal(this.order.side().label());
         int sideX = right - font.width(side);
         var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
         int statusX = sideX - TEXT_GAP - font.width(status);
@@ -349,11 +349,11 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
         this.retainedText.begin();
 
         this.retainedText.draw(graphics, font, layout.productText(),
-            x, textY, UiStyles.palette().primary(), false);
+            x, textY, UiStyles.palette().textPrimary(), false);
         this.retainedText.draw(graphics, font, layout.status().getVisualOrderText(),
-            this.x + layout.statusX(), textY, this.order.status().color(), false);
+            this.x + layout.statusX(), textY, UiStyles.argb(this.order.status().role()), false);
         this.retainedText.draw(graphics, font, layout.side().getVisualOrderText(),
-            this.x + layout.sideX(), textY, this.order.side().accentColor(), false);
+            this.x + layout.sideX(), textY, UiStyles.argb(this.order.side().role()), false);
     }
 
     private DrawLayout computeCompactLayout() {
@@ -366,7 +366,7 @@ final class BazaarTrackedOrderRowComponent extends BaseParentUIComponent {
 
         int right = this.width - WidgetLayoutTokens.ROW_HORIZONTAL_PADDING;
 
-        var side = Component.literal(this.order.side().label()).withStyle(ChatFormatting.BOLD);
+        var side = Component.literal(this.order.side().label());
         int sideX = right - font.width(side);
         var status = Component.literal(this.order.status().label()).withStyle(ChatFormatting.BOLD);
         int statusX = sideX - TEXT_GAP - font.width(status);

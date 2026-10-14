@@ -157,7 +157,7 @@ final class TrackedOrderNotifications {
         return bazaarData
             .resolveIndexedProduct(product)
             .<MutableComponent>map(ref -> productNameComponent(ref, bazaarData))
-            .orElseGet(() -> Component.literal(product.visualName()).withStyle(UiStyles.primary()));
+            .orElseGet(() -> UiStyles.productName(product.visualName()).copy());
     }
 
     private static MutableComponent productNameComponent(
@@ -165,6 +165,6 @@ final class TrackedOrderNotifications {
         BazaarData bazaarData
     ) {
         var refreshed = bazaarData.refreshIndexedProduct(product);
-        return Component.literal(refreshed.formattedName());
+        return UiStyles.productName(refreshed.formattedName()).copy();
     }
 }

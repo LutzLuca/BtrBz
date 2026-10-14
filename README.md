@@ -22,10 +22,17 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 - See an overview of your order value and track estimated daily transaction value against a personal limit
 - Hide temporary Bazaar progress messages and open your orders from filled-order chat messages
 - Configurable widgets
+- Custom colour themes with a live preview and clipboard import/export
 
 ## Getting started
 
 Run `/btrbz` to configure the mod.
+
+Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
+[Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),
+or make your own theme. The four presets stay available. Choose New theme to start an editable copy,
+name it in the editor and click Save to keep it in your library. Preview your changes live, then click
+Apply to use them. Import and Export share complete themes.
 
 ## Installation
 

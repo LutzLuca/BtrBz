@@ -7,10 +7,22 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
+import java.util.ArrayList;
+import java.util.OptionalInt;
+import net.minecraft.ChatFormatting;
 
-final class ProductInfoTooltip {
+public final class ProductInfoTooltip {
 
     private ProductInfoTooltip() {}
+
+    /** Keeps the native item heading beside the exact price lines shown in Minecraft tooltips. */
+    public static List<Component> preview() {
+        var lines = new ArrayList<Component>();
+        lines.add(Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN));
+        append(lines, new Prices(1_234.0, 1_200.0),
+            new ProductInfoQuantity(ProductInfoQuantity.Source.ORDER, OptionalInt.of(640)), false);
+        return List.copyOf(lines);
+    }
 
     static void append(List<Component> lines, Prices prices, ProductInfoQuantity quantity, boolean shiftHeld) {
         lines.add(Component.empty());
@@ -48,7 +60,12 @@ final class ProductInfoTooltip {
             .append(Component.literal(" " + source.unit() + ")").withStyle(UiStyles.muted()));
     }
 
-    private static Component priceText(String label, @Nullable Double price, int count, boolean showTotal) {
+    private static Component priceText(
+        String label,
+        @Nullable Double price,
+        int count,
+        boolean showTotal
+    ) {
         var text = Component.literal(label).withStyle(UiStyles.label());
         if (price == null) {
             return text.append(Component.literal("Not Available").withStyle(UiStyles.label()));

@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
@@ -35,7 +36,7 @@ public record AlertNotice(String formattedProductName, String title, Component c
                 .append(label("Instantly "))
                 .append(Component.literal(liquidity.side() == LiquiditySide.BuyOrders ? "sell " : "buy ")
                     .withStyle(UiStyles.color(liquidity.side() == LiquiditySide.BuyOrders
-                        ? UiStyles.palette().buy() : UiStyles.palette().sell())))
+                        ? UiColor.Sell : UiColor.Buy)))
                 .append(Component.literal(items(liquidity.quantity())).withStyle(UiStyles.quantity()))
                 .append(label(" items at " + (liquidity.side() == LiquiditySide.BuyOrders ? "≥ " : "≤ ")))
                 .append(UiStyles.coins(liquidity.priceBound()))

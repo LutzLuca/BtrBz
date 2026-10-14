@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.orderprotection;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.data.BazaarData;
@@ -27,7 +29,6 @@ import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -80,36 +81,36 @@ public class OrderProtectionManager {
             if (!blocked) {
                 lines.add(Component
                     .literal("✓ ")
-                    .withStyle(ChatFormatting.GREEN)
-                    .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal("Safe").withStyle(ChatFormatting.GREEN)));
+                    .withStyle(UiStyles.color(UiColor.Success))
+                    .append(Component.literal("Order Protection: ").withStyle(UiStyles.label()))
+                    .append(Component.literal("Safe").withStyle(UiStyles.color(UiColor.Success))));
                 return;
             }
 
             if (ctrlHeld) {
                 lines.add(Component
                     .literal("⚠ ")
-                    .withStyle(ChatFormatting.GOLD)
-                    .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal("Overridden").withStyle(ChatFormatting.GOLD)));
+                    .withStyle(UiStyles.color(UiColor.Warning))
+                    .append(Component.literal("Order Protection: ").withStyle(UiStyles.label()))
+                    .append(Component.literal("Overridden").withStyle(UiStyles.color(UiColor.Warning))));
 
                 appendReasonLines(lines, validation);
 
                 lines.add(Component
                     .literal("Release Ctrl to cancel override")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+                    .withStyle(UiStyles.muted().withItalic(true)));
                 return;
             }
 
             lines.add(Component
                 .literal("✗ ")
-                .withStyle(ChatFormatting.RED)
-                .append(Component.literal("Order Protection: ").withStyle(ChatFormatting.GRAY))
-                .append(Component.literal("Blocked").withStyle(ChatFormatting.RED)));
+                .withStyle(UiStyles.color(UiColor.Error))
+                .append(Component.literal("Order Protection: ").withStyle(UiStyles.label()))
+                .append(Component.literal("Blocked").withStyle(UiStyles.color(UiColor.Error))));
 
             appendReasonLines(lines, validation);
 
-            lines.add(Component.literal("Hold Ctrl to override").withStyle(ChatFormatting.DARK_GRAY));
+            lines.add(Component.literal("Hold Ctrl to override").withStyle(UiStyles.muted()));
         });
     }
 
@@ -118,9 +119,9 @@ public class OrderProtectionManager {
     }
 
     private static void appendReasonLines(List<Component> lines, ValidationResult validation) {
-        lines.add(Component.literal("Reason:").withStyle(ChatFormatting.GRAY));
+        lines.add(Component.literal("Reason:").withStyle(UiStyles.label()));
         for (var reason : validation.reasonLines()) {
-            lines.add(Component.literal("  ").append(reason).withStyle(ChatFormatting.YELLOW));
+            lines.add(Component.literal("  ").append(reason).withStyle(UiStyles.color(UiColor.Warning)));
         }
     }
 

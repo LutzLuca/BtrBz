@@ -28,7 +28,7 @@ final class PriceDifferenceWidgetView
 
     private final RetainedFlowLayout product = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
-    private final LabelComponent productName = UiComponents.label("", UiStyles.palette().primary());
+    private final LabelComponent productName = UiComponents.label("", UiStyles.palette().textPrimary());
 
     private final ValueLine perItem = new ValueLine(0);
     private final ValueLine total = new ValueLine(1);
@@ -53,7 +53,7 @@ final class PriceDifferenceWidgetView
         WidgetSession session,
         Consumer<Void> actions
     ) {
-        this.productName.text(data.productName());
+        this.productName.text(UiStyles.productName(data.nativeName(), false));
         this.product.clearChildren();
 
         var itemStack = data.itemStack();
@@ -94,8 +94,8 @@ final class PriceDifferenceWidgetView
 
     private static final class ValueLine {
         private final FlowLayout root = UIContainers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        private final LabelComponent label = UiComponents.label("", UiStyles.palette().label());
-        private final LabelComponent value = UiComponents.label("", UiStyles.palette().primary());
+        private final LabelComponent label = UiComponents.label("", UiStyles.palette().textSecondary());
+        private final LabelComponent value = UiComponents.label("", UiStyles.palette().textPrimary());
 
         private ValueLine(int labelInset) {
             this.label.margins(Insets.left(labelInset));

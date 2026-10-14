@@ -72,7 +72,7 @@ final class AlertSearchControls extends FlowLayout {
             String hint = next.emptyHint(this.searchBox.getValue());
             if (!hint.isEmpty()) {
                 this.resultRows
-                    .child(UiComponents.label(hint, UiStyles.palette().muted()).maxWidth(this.productWidth - 24));
+                    .child(UiComponents.label(hint, UiStyles.palette().textMuted()).maxWidth(this.productWidth - 24));
             }
             return;
         }

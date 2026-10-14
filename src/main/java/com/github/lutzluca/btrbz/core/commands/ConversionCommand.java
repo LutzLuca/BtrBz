@@ -1,12 +1,13 @@
 package com.github.lutzluca.btrbz.core.commands;
 
+import com.github.lutzluca.btrbz.core.appearance.UiColor;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 public final class ConversionCommand {
@@ -44,13 +45,13 @@ public final class ConversionCommand {
                 : "Started Bazaar conversion refresh";
             Notifier.notifyPlayer(Notifier
                 .prefix()
-                .append(Component.literal(message).withStyle(ChatFormatting.GRAY)));
+                .append(Component.literal(message).withStyle(UiStyles.label())));
         } else {
             Notifier.notifyPlayer(Notifier
                 .prefix()
                 .append(Component
                     .literal("Bazaar conversion refresh is already running")
-                    .withStyle(ChatFormatting.GRAY)));
+                    .withStyle(UiStyles.label())));
         }
         return 1;
     }
@@ -59,30 +60,31 @@ public final class ConversionCommand {
         var counts = status.sourceCounts();
         var message = Notifier
             .prefix()
-            .append(Component.literal("Bazaar conversions").withStyle(ChatFormatting.GOLD))
-            .append(Component.literal("\nSource: " + status.activeLoadSource()).withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("\nProducts: " + counts.total()).withStyle(ChatFormatting.GRAY))
+            .append(Component.literal("Bazaar conversions").withStyle(UiStyles.action()))
+            .append(Component.literal("\nSource: " + status.activeLoadSource()).withStyle(UiStyles.label()))
+            .append(Component.literal("\nProducts: " + counts.total()).withStyle(UiStyles.label()))
             .append(Component
                 .literal("\nMissing products: " + status.missingProductCount())
-                .withStyle(status.missingProductCount() == 0 ? ChatFormatting.GRAY : ChatFormatting.YELLOW))
+                .withStyle(status.missingProductCount() == 0
+                    ? UiStyles.label() : UiStyles.color(UiColor.Warning)))
             .append(Component
                 .literal("\nSources: neu=" + counts.neu()
                     + ", derived=" + counts.derived())
-                .withStyle(ChatFormatting.GRAY))
-            .append(Component.literal("\nGenerated: " + status.generatedAt()).withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.label()))
+            .append(Component.literal("\nGenerated: " + status.generatedAt()).withStyle(UiStyles.label()))
             .append(Component
                 .literal("\nNEU commit: " + status.neuCommit().orElse("<none>"))
-                .withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.label()))
             .append(Component
                 .literal("\nLast refresh: " + status.lastSuccessfulRefreshAt().orElse("<never>"))
-                .withStyle(ChatFormatting.GRAY))
+                .withStyle(UiStyles.label()))
             .append(Component
                 .literal("\nRefresh running: " + status.refreshInFlight())
-                .withStyle(ChatFormatting.GRAY));
+                .withStyle(UiStyles.label()));
 
         status.lastFailure().ifPresent(failure -> message.append(Component
             .literal("\nLast failure: " + failure.shortMessage())
-            .withStyle(ChatFormatting.RED)));
+            .withStyle(UiStyles.color(UiColor.Error))));
 
         Notifier.notifyPlayer(message);
     }

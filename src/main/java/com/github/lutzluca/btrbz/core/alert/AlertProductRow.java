@@ -39,21 +39,21 @@ final class AlertProductRow extends FlowLayout {
         this.gap(5);
         this.verticalAlignment(VerticalAlignment.CENTER);
         this.cursorStyle(select == null ? CursorStyle.POINTER : CursorStyle.HAND);
-        var name = GameUtils.legacyFormattedComponent(product.formattedName());
+        var name = UiStyles.productName(product.formattedName());
         this.tooltip(Component.literal(product.productId()));
 
         var stack = data.productStack(product);
         stack.ifPresentOrElse(item -> this.child(UiComponents.item(item, 18)),
-            () -> this.child(UiComponents.label("?", UiStyles.palette().muted()).sizing(Sizing.fixed(18))));
+            () -> this.child(UiComponents.label("?", UiStyles.palette().textMuted()).sizing(Sizing.fixed(18))));
         var text = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
         text.gap(3);
-        var label = UiComponents.label("", UiStyles.palette().primary());
+        var label = UiComponents.label("", UiStyles.palette().textPrimary());
         label.text(name);
         int nameWidth = Math.max(45, width - 23 - padding * 2);
         label.maxWidth(nameWidth);
         text.child(label);
         if (distinguishId) {
-            text.child(UiComponents.label(product.productId(), UiStyles.palette().muted())
+            text.child(UiComponents.label(product.productId(), UiStyles.palette().textMuted())
                 .maxWidth(nameWidth));
         }
         this.child(text);
@@ -83,7 +83,7 @@ final class AlertProductRow extends FlowLayout {
         if (this.select != null) {
             boolean highlighted = this.isInBoundingBox(mouseX, mouseY) || this.focusHandler().focused() == this;
             UiSurfaces.drawRoundedPanel(graphics, this.x(), this.y(), this.width(), this.height(),
-                highlighted ? UiStyles.palette().rowHover() : 0x18000000, 3);
+                highlighted ? UiStyles.palette().rowHover() : 0, 3);
         }
         super.draw(graphics, mouseX, mouseY, partialTicks, delta);
     }

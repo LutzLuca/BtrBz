@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -108,7 +109,7 @@ final class BtrBzToast implements Toast {
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BACKGROUND, 0, 0, this.width(), this.height());
         this.icon.ifPresent(stack -> graphics.fakeItem(stack, CONTENT_X, DETAILS_Y));
         for (var line : this.textLines) {
-            graphics.text(font, line.text(), line.x(), line.y(), 0xFFAAAAAA, false);
+            graphics.text(font, line.text(), line.x(), line.y(), UiStyles.palette().textSecondary(), false);
         }
     }
 

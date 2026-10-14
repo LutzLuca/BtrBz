@@ -134,10 +134,12 @@ class TrackedOrderManagerTest {
             var product = ProductIdentity.fromName("Duplicate Product");
             var firstInfo = unfilledOrder(product, 2, 5);
             var secondInfo = unfilledOrder(product, 7, 6);
-            var first = new TrackedOrder(firstInfo);
-            var second = new TrackedOrder(secondInfo);
+            var first = new TrackedOrder(unfilledOrder(product, 1, 5));
+            var second = new TrackedOrder(unfilledOrder(product, 4, 6));
             manager.addTrackedOrder(first);
             manager.addTrackedOrder(second);
+            var updated = new java.util.ArrayList<TrackedOrderId>();
+            manager.addOnOrderUpdatedListener(order -> updated.add(order.id()));
 
             assertTrue(manager.reorder(first.id(), 2));
             manager.syncOrders(List.of(firstInfo, secondInfo));
@@ -154,6 +156,9 @@ class TrackedOrderManagerTest {
             assertEquals(2, snapshotsById.get(first.id()).fillAmountSnapshot());
             assertEquals(6, snapshotsById.get(second.id()).slot());
             assertEquals(7, snapshotsById.get(second.id()).fillAmountSnapshot());
+            assertEquals(List.of(first.id(), second.id()), updated);
+            manager.syncOrders(List.of(firstInfo, secondInfo));
+            assertEquals(2, updated.size(), "unchanged sync leaves cached consumers intact");
         }
     }
 

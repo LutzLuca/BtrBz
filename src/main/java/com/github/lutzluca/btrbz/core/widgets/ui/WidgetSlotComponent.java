@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.ui;
 
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
+import com.github.lutzluca.btrbz.core.appearance.UiPalette;
 import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
 
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetBounds;
@@ -226,12 +228,13 @@ public final class WidgetSlotComponent extends BaseParentUIComponent {
         this.tooltipDelay.ready(this.tooltipTargetAt(mouseX, mouseY), System.nanoTime());
 
         if (this.drawManagementOverlay) {
-            int color = this.selected ? 0xFFEBCB5B : 0x66FFFFFF;
+            int color = this.selected
+                ? UiStyles.palette().accent() : UiPalette.alpha(UiStyles.palette().outline(), 0.8);
             graphics.drawRectOutline(this.x - 1, this.y - 1, this.width + 2, this.height + 2, color);
 
             if (this.selected) {
-                graphics.fill(this.x - 3, this.y - 3, this.x + 5, this.y + 5, 0xFFEBCB5B);
-                graphics.drawRectOutline(this.x - 3, this.y - 3, 8, 8, 0xFF1A1C22);
+                graphics.fill(this.x - 3, this.y - 3, this.x + 5, this.y + 5, UiStyles.palette().accent());
+                graphics.drawRectOutline(this.x - 3, this.y - 3, 8, 8, UiStyles.palette().surface());
             }
         }
     }

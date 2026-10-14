@@ -46,7 +46,7 @@ public class OrderListTooltipConfig {
                 this.showQueue = val;
                 invalidateCache.run();
             })
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "When an order is undercut, show estimated competing orders and items ahead of it."),
                 ConfigUi.note("This is an order-book estimate, not an exact queue position."))))
@@ -72,7 +72,7 @@ public class OrderListTooltipConfig {
                 this.showOnlyWhenUndercut = val;
                 invalidateCache.run();
             })
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Show current market prices only after this order is undercut."),
                 ConfigUi.requires("Show Current Prices"))))
             .controller(ConfigUi::createBooleanController);

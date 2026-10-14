@@ -25,7 +25,7 @@ public final class AlertConfig {
         return Option
             .<Boolean>createBuilder()
             .name(Component.literal("Enable Alerts"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text(
                     "Watch saved price and liquidity targets and notify you when one is reached."),
                 ConfigUi.note(
@@ -47,7 +47,7 @@ public final class AlertConfig {
     public Option.Builder<Boolean> createDetailedAlertToastsOption() {
         return Option.<Boolean>createBuilder()
             .name(Component.literal("Detailed Alert Toasts"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Show the product and saved price target, or the saved item quantity "
                     + "and price limit, plus the price or quantity that triggered the alert."),
                 ConfigUi.example("Liquidity target reached\nDiamond\n"
@@ -76,7 +76,7 @@ public final class AlertConfig {
 
         return OptionGroup.createBuilder()
             .name(Component.literal("Alerts"))
-            .description(ConfigUi.createDescription(ConfigUi.paragraphs(
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
                 ConfigUi.text("Get an alert when a Bazaar price or available quantity hits your target."),
                 ConfigUi.text("Price alerts compare the selected Buy Price or Sell Price with your threshold. "
                     + "Buy Price is the lowest sell offer. Sell Price is the highest buy order. "

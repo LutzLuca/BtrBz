@@ -8,6 +8,7 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
 import com.github.lutzluca.btrbz.core.widgets.WidgetView;
 import com.github.lutzluca.btrbz.core.ui.TextRenderRevision;
+import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.cache.CacheRevisions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
@@ -54,6 +55,7 @@ public final class WidgetHost {
     private final @Nullable Map<WidgetId, Double> scrollOffsets;
 
     private final Map<WidgetId, MountedWidget> mounted = new LinkedHashMap<>();
+    private long textRevision = TextRenderRevision.current();
 
     private final Set<Integer> capturedMouseButtons = new HashSet<>();
 
@@ -127,6 +129,11 @@ public final class WidgetHost {
     ) {
         if (this.runtime && !this.features.isActive()) {
             return List.of();
+        }
+        // Retained labels and wrapped tooltips must also be recreated when font resources change.
+        if (this.textRevision != TextRenderRevision.current()) {
+            this.dispose();
+            this.textRevision = TextRenderRevision.current();
         }
         this.ensureAdapter();
 
@@ -460,6 +467,7 @@ public final class WidgetHost {
             new WidgetBounds(0, 0, 1, 1), 1, 1, 1, false, false);
 
         CacheDependencies frameDependencies = CacheDependencies.of(
+            UiStyles.appearanceChanges(),
             this.stateStore.frameChanges(definition.getId()),
             this.stateStore.globalFrameChanges(),
             definition.getConfigHandle().contentChanges());
