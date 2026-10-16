@@ -1,9 +1,9 @@
-package com.github.lutzluca.btrbz.core.widgets.pricedifference;
+package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetFrameConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
-public final class PriceDifferenceWidgetConfig {
+public final class ProductContextWidgetConfig {
     public enum Mode {
         Compact, Detailed
     }
@@ -20,7 +20,7 @@ public final class PriceDifferenceWidgetConfig {
     public boolean showBookTotals = true;
     public boolean showWeeklyActivity = true;
 
-    public static void resetPreferences(PriceDifferenceWidgetConfig current, PriceDifferenceWidgetConfig defaults) {
+    public static void resetPreferences(ProductContextWidgetConfig current, ProductContextWidgetConfig defaults) {
         current.contentWidth = defaults.contentWidth;
         current.mode = defaults.mode;
         current.numberFormat = defaults.numberFormat;

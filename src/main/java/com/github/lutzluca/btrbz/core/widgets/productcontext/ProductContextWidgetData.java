@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets.pricedifference;
+package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -16,13 +16,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDifferenceWidgetData.Snapshot> {
+public final class ProductContextWidgetData implements WidgetDataSource<ProductContextWidgetData.Snapshot> {
     private static final int PRODUCT_SLOT = 13;
     private static final int SELL_INSTANTLY_SLOT = 11;
     private final BazaarData market;
     private final CacheDependencies dependencies;
 
-    public PriceDifferenceWidgetData(BazaarData market) {
+    public ProductContextWidgetData(BazaarData market) {
         this.market = market;
         var screens = ScreenTracker.get();
         this.dependencies = CacheDependencies.of(

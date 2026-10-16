@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets.pricedifference;
+package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
@@ -13,33 +13,33 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.function.Supplier;
 import net.minecraft.resources.Identifier;
 
-public final class PriceDifferenceWidgetDefinition {
-    public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "price_diff"));
+public final class ProductContextWidgetDefinition {
+    public static final WidgetId ID = WidgetId.of(Identifier.fromNamespaceAndPath("btrbz", "product_context"));
 
-    private PriceDifferenceWidgetDefinition() {}
+    private ProductContextWidgetDefinition() {}
 
-    public static WidgetDefinition<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> create(
+    public static WidgetDefinition<ProductContextWidgetData.Snapshot, ProductContextWidgetConfig, Void> create(
         BazaarData market,
-        Supplier<PriceDifferenceWidgetConfig> configSupplier
+        Supplier<ProductContextWidgetConfig> configSupplier
     ) {
         var config = new WidgetConfigHandle<>(ID,
-            configSupplier, PriceDifferenceWidgetConfig::new,
-            value -> value.frame, PriceDifferenceWidgetConfig::resetPreferences);
-        var provider = new MemoizedWidgetDataSource<>(new PriceDifferenceWidgetData(market));
+            configSupplier, ProductContextWidgetConfig::new,
+            value -> value.frame, ProductContextWidgetConfig::resetPreferences);
+        var provider = new MemoizedWidgetDataSource<>(new ProductContextWidgetData(market));
 
-        return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID,
-            "Price Difference")
+        return WidgetDefinition.<ProductContextWidgetData.Snapshot, ProductContextWidgetConfig, Void>builder(ID,
+            "Product Context")
             .description("Current product quotes and their difference, with optional whole-market context. "
                 + "Inventory totals use the quote spread before fees.")
             .config(config)
-            .supports(PriceDifferenceWidgetDefinition::supportsSession)
-            .visibility((data, _, _) -> PriceDifferenceWidgetDefinition.isVisible(data))
+            .supports(ProductContextWidgetDefinition::supportsSession)
+            .visibility((data, _, _) -> ProductContextWidgetDefinition.isVisible(data))
             .data(provider)
             .cachePrepared()
-            .preview(() -> new WidgetPreview<>(PriceDifferenceWidgetData.preview(),
+            .preview(() -> new WidgetPreview<>(ProductContextWidgetData.preview(),
                 WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
-            .viewFactory(PriceDifferenceWidgetView::new)
-            .settingsPanel(PriceDifferenceWidgetSettings::create)
+            .viewFactory(ProductContextWidgetView::new)
+            .settingsPanel(ProductContextWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(180), 36)
             .build();
     }
@@ -48,7 +48,7 @@ public final class PriceDifferenceWidgetDefinition {
         return session.inBazaarMenu(BazaarMenuType.Item);
     }
 
-    public static boolean isVisible(PriceDifferenceWidgetData.Snapshot data) {
+    public static boolean isVisible(ProductContextWidgetData.Snapshot data) {
         return data.product().isPresent();
     }
 }

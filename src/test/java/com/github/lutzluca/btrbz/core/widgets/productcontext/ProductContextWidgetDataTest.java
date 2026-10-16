@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets.pricedifference;
+package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import org.junit.jupiter.api.Assertions;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
@@ -15,12 +15,12 @@ import org.junit.jupiter.api.Test;
 /*import net.minecraft.network.chat.TextColor;
 *///?}
 
-@DisplayName("Price difference widget data")
-class PriceDifferenceWidgetDataTest {
+@DisplayName("Product context widget data")
+class ProductContextWidgetDataTest {
     @Test
     @DisplayName("preserve fractional spreads until total calculation")
     void preservesFractionalSpreads() {
-        var snapshot = new PriceDifferenceWidgetData.Snapshot(
+        var snapshot = new ProductContextWidgetData.Snapshot(
             Optional.empty(), new BazaarData.MarketPrices(Optional.of(1.0), Optional.of(1.4)),
             Optional.empty(), OptionalInt.of(100_000));
 
@@ -31,11 +31,11 @@ class PriceDifferenceWidgetDataTest {
     @Test
     void distinguishZeroStockFromUnknownStockAndMissingQuotes() {
         var prices = new BazaarData.MarketPrices(Optional.of(10.0), Optional.of(12.0));
-        var zero = new PriceDifferenceWidgetData.Snapshot(Optional.empty(), prices, Optional.empty(),
+        var zero = new ProductContextWidgetData.Snapshot(Optional.empty(), prices, Optional.empty(),
             OptionalInt.of(0));
-        var unknown = new PriceDifferenceWidgetData.Snapshot(Optional.empty(), prices, Optional.empty(),
+        var unknown = new ProductContextWidgetData.Snapshot(Optional.empty(), prices, Optional.empty(),
             OptionalInt.empty());
-        var oneSide = new PriceDifferenceWidgetData.Snapshot(Optional.empty(),
+        var oneSide = new ProductContextWidgetData.Snapshot(Optional.empty(),
             new BazaarData.MarketPrices(Optional.of(10.0), Optional.empty()), Optional.empty(), OptionalInt.of(10));
         Assertions.assertEquals(0.0, zero.total().orElseThrow());
         Assertions.assertEquals(2.0, unknown.perItem().orElseThrow());
@@ -47,7 +47,7 @@ class PriceDifferenceWidgetDataTest {
     @Test
     @DisplayName("preserve product name formatting")
     void preservesProductNameFormatting() {
-        var snapshot = new PriceDifferenceWidgetData.Snapshot(
+        var snapshot = new ProductContextWidgetData.Snapshot(
             Optional.of(new WidgetProductContext(ProductIdentity.fromName("Enchanted Charcoal"),
                 Component.literal("Enchanted Charcoal").withStyle(ChatFormatting.GREEN), Optional.empty())),
             new BazaarData.MarketPrices(Optional.of(1.0), Optional.of(2.0)), Optional.empty(), OptionalInt.of(1));

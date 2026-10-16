@@ -1,13 +1,13 @@
-package com.github.lutzluca.btrbz.core.widgets.pricedifference;
+package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetConfigBinding;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetSettingsPanel;
 import io.wispforest.owo.ui.core.UIComponent;
 
-public final class PriceDifferenceWidgetSettings {
-    private PriceDifferenceWidgetSettings() {}
+public final class ProductContextWidgetSettings {
+    private ProductContextWidgetSettings() {}
 
-    public static UIComponent create(WidgetConfigBinding<PriceDifferenceWidgetConfig> binding) {
+    public static UIComponent create(WidgetConfigBinding<ProductContextWidgetConfig> binding) {
         var panel = WidgetSettingsPanel.panel();
 
         WidgetSettingsPanel.enumeration(panel, "Display", binding, c -> c.mode, (c, v) -> c.mode = v,

@@ -1,4 +1,4 @@
-package com.github.lutzluca.btrbz.core.widgets.pricedifference;
+package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -23,12 +23,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 
-final class PriceDifferenceWidgetView
-    implements WidgetView<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> {
+final class ProductContextWidgetView
+    implements WidgetView<ProductContextWidgetData.Snapshot, ProductContextWidgetConfig, Void> {
     private static final int COLUMN_GAP = 12;
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
-    PriceDifferenceWidgetView() {
+    ProductContextWidgetView() {
         this.root.gap(2);
     }
 
@@ -39,8 +39,8 @@ final class PriceDifferenceWidgetView
 
     @Override
     public void update(
-        PriceDifferenceWidgetData.Snapshot data,
-        PriceDifferenceWidgetConfig config,
+        ProductContextWidgetData.Snapshot data,
+        ProductContextWidgetConfig config,
         WidgetSession session,
         Consumer<Void> actions
     ) {
@@ -99,7 +99,7 @@ final class PriceDifferenceWidgetView
         this.root.child(results);
     }
 
-    private void addProduct(PriceDifferenceWidgetData.Snapshot data, int width) {
+    private void addProduct(ProductContextWidgetData.Snapshot data, int width) {
         var product = data.product().orElseThrow();
         var header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(16));
         header.verticalAlignment(VerticalAlignment.CENTER);
@@ -125,17 +125,17 @@ final class PriceDifferenceWidgetView
         this.root.child(header);
     }
 
-    private static List<Metric> metrics(PriceDifferenceWidgetData.Snapshot data, PriceDifferenceWidgetConfig config) {
+    private static List<Metric> metrics(ProductContextWidgetData.Snapshot data, ProductContextWidgetConfig config) {
         var metrics = new ArrayList<Metric>();
         metrics.add(new Metric("Price", price(data.prices().highestBuyOrderPrice()),
             price(data.prices().lowestSellOfferPrice()), true));
-        if (config.mode == PriceDifferenceWidgetConfig.Mode.Detailed && config.showBookTotals) {
+        if (config.mode == ProductContextWidgetConfig.Mode.Detailed && config.showBookTotals) {
             metrics.add(new Metric("Orders", activity(data, config, BazaarData.SideActivity::orders, true),
                 activity(data, config, BazaarData.SideActivity::orders, false), false));
             metrics.add(new Metric("Listed", activity(data, config, BazaarData.SideActivity::listedItems, true),
                 activity(data, config, BazaarData.SideActivity::listedItems, false), false));
         }
-        if (config.mode == PriceDifferenceWidgetConfig.Mode.Detailed && config.showWeeklyActivity) {
+        if (config.mode == ProductContextWidgetConfig.Mode.Detailed && config.showWeeklyActivity) {
             metrics.add(new Metric("7d avg/h",
                 activity(data, config, BazaarData.SideActivity::weeklyAverageHourlyMovement, true),
                 activity(data, config, BazaarData.SideActivity::weeklyAverageHourlyMovement, false), false));
@@ -172,31 +172,31 @@ final class PriceDifferenceWidgetView
     }
 
     private static Component activity(
-        PriceDifferenceWidgetData.Snapshot data,
-        PriceDifferenceWidgetConfig config,
+        ProductContextWidgetData.Snapshot data,
+        ProductContextWidgetConfig config,
         ToDoubleFunction<BazaarData.SideActivity> value,
         boolean buy
     ) {
         return data.activity().map(activity -> value.applyAsDouble(buy ? activity.buyOrders() : activity.sellOffers()))
             .<Component>map(number -> Component.literal(aggregate(number, config, 0)).withStyle(UiStyles.quantity()))
-            .orElseGet(PriceDifferenceWidgetView::unavailable);
+            .orElseGet(ProductContextWidgetView::unavailable);
     }
 
     private static Component price(Optional<Double> value) {
         return value
             .<Component>map(
                 number -> Component.literal(Utils.formatDecimal(number, 1, true)).withStyle(UiStyles.money()))
-            .orElseGet(PriceDifferenceWidgetView::unavailable);
+            .orElseGet(ProductContextWidgetView::unavailable);
     }
 
-    private static Component signed(Optional<Double> value, boolean aggregate, PriceDifferenceWidgetConfig config) {
+    private static Component signed(Optional<Double> value, boolean aggregate, ProductContextWidgetConfig config) {
         return value.<Component>map(number -> Component.literal((number > 0 ? "+" : "")
             + (aggregate ? aggregate(number, config, 1) : Utils.formatDecimal(number, 1, true)))
-            .withStyle(UiStyles.money())).orElseGet(PriceDifferenceWidgetView::unavailable);
+            .withStyle(UiStyles.money())).orElseGet(ProductContextWidgetView::unavailable);
     }
 
-    private static String aggregate(double value, PriceDifferenceWidgetConfig config, int decimals) {
-        return config.numberFormat == PriceDifferenceWidgetConfig.NumberFormat.Short
+    private static String aggregate(double value, ProductContextWidgetConfig config, int decimals) {
+        return config.numberFormat == ProductContextWidgetConfig.NumberFormat.Short
             ? Utils.formatCompact(value) : Utils.formatDecimal(value, decimals, true);
     }
 
