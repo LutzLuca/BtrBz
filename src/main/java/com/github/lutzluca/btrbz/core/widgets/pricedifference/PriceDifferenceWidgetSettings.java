@@ -11,22 +11,22 @@ public final class PriceDifferenceWidgetSettings {
         var panel = WidgetSettingsPanel.panel();
 
         WidgetSettingsPanel.enumeration(panel, "Display", binding, c -> c.mode, (c, v) -> c.mode = v,
-            "Compact focuses on best quotes and spread. Detailed compares both market sides, "
-                + "stacking them when the widget is narrow.");
+            "Compact shows both quotes and their difference. Detailed adds side-by-side market context. "
+                + "Difference is the lowest sell offer minus the highest buy order, in coins per item, before fees.");
 
         WidgetSettingsPanel.integer(panel, "Widget width", binding, c -> c.contentWidth,
             (c, v) -> c.contentWidth = v, 180, 420,
-            "Preferred content width. Detailed uses columns from 260, otherwise stacked sides. "
-                + "Full numbers can grow the widget to keep values readable.");
+            "Preferred content width. Narrow layouts share metric labels and keep both sides together. "
+                + "Full numbers can require a larger minimum width. Product names stay on one line.");
 
         WidgetSettingsPanel.enumeration(panel, "Large numbers", binding, c -> c.numberFormat,
             (c, v) -> c.numberFormat = v,
             "Short abbreviates totals and activity with k, M and B. Full shows grouped numbers. "
-                + "Best quotes and per-item spread always show one decimal. Calculations use full precision.");
+                + "Best quotes and per-item difference always show one decimal. Calculations use full precision.");
 
-        WidgetSettingsPanel.bool(panel, "Inventory quote difference", binding, c -> c.showInventoryTotal,
+        WidgetSettingsPanel.bool(panel, "Inventory difference", binding, c -> c.showInventoryTotal,
             (c, v) -> c.showInventoryTotal = v,
-            "Sellable inventory count times spread, before fees. Zero stock stays visible. "
+            "Sellable inventory count times the per-item difference, before fees. Zero stock stays visible. "
                 + "An unreadable count is unavailable. This is not a depth-aware batch quote.");
 
         WidgetSettingsPanel.bool(panel, "Detailed: whole-side totals", binding, c -> c.showBookTotals,

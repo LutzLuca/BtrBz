@@ -26,14 +26,11 @@ import net.minecraft.network.chat.Style;
 
 final class PriceDifferenceWidgetView
     implements WidgetView<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void> {
-    private static final String ACTIVITY_HELP = "API weekly movement divided by 168, for orders on this side. "
-        + "The source includes seven-day transacted volume plus live state. This is not recent-hour trading.";
-    private static final String TOTAL_HELP = "Sellable inventory times the best-quote spread, before fees. "
-        + "This does not account for book depth or guarantee execution at these prices.";
+    private static final int COLUMN_GAP = 12;
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
 
     PriceDifferenceWidgetView() {
-        this.root.gap(3);
+        this.root.gap(2);
     }
 
     @Override
@@ -52,118 +49,138 @@ final class PriceDifferenceWidgetView
         if (data.product().isEmpty()) {
             return;
         }
-        boolean detailed = config.mode == PriceDifferenceWidgetConfig.Mode.Detailed;
-        boolean columns = detailed && config.contentWidth >= 260;
-        var metrics = this.metrics(data, config);
-        var spread = signed(data.perItem(), false, config);
+        var metrics = metrics(data, config);
+        var difference = signed(data.perItem(), false, config);
         String inventoryLabel = data.quantity().isPresent()
-            ? Utils.formatDecimal(data.quantity().getAsInt(), 0, true) + " items x spread" : "Inventory count";
-        var total = data.quantity().isPresent() ? signed(data.total(), true, config) : unavailable();
-
-        int width = Math.max(180, config.contentWidth);
-        int sideWidth = Math.max(textWidth("Buy orders"), textWidth("Sell offers"));
-        int metricWidth = 0;
-        for (var metric : metrics) {
-            sideWidth = Math.max(sideWidth, Math.max(textWidth(metric.buy()), textWidth(metric.sell())));
-            metricWidth = Math.max(metricWidth, textWidth(metric.label()));
-        }
-        if (detailed) {
-            width = Math.max(width, metricWidth + sideWidth * (columns ? 2 : 1) + (columns ? 24 : 8));
-        } else {
-            width = Math.max(width, textWidth("Sell offer") + sideWidth + 8);
-        }
-        width = Math.max(width, textWidth("Spread / item") + textWidth(spread) + 8);
+            ? Utils.formatDecimal(data.quantity().getAsInt(), 0, true) + " items" : "Inventory ?";
+        var inventory = signed(data.total(), true, config);
+        var differenceLabel = Component.literal("Difference").withStyle(UiStyles.primary());
+        var inventoryTitle = Component.literal(inventoryLabel).withStyle(UiStyles.label());
+        int resultWidth = lineWidth(differenceLabel, difference);
         if (config.showInventoryTotal) {
-            width = Math.max(width, textWidth(inventoryLabel) + textWidth(total) + 8);
+            resultWidth = Math.max(resultWidth, lineWidth(inventoryTitle, inventory));
         }
+        int valueWidth = Math.max(textWidth("Buy order"), textWidth("Sell offer"));
+        int metricWidth = 0;
+        int parallelWidth = 0;
+        for (var metric : metrics) {
+            valueWidth = Math.max(valueWidth, Math.max(textWidth(metric.buy()), textWidth(metric.sell())));
+            metricWidth = Math.max(metricWidth, textWidth(metric.title()));
+            String buyTitle = metric.quote() ? "Buy order" : metric.title();
+            String sellTitle = metric.quote() ? "Sell offer" : metric.title();
+            parallelWidth = Math.max(parallelWidth,
+                Math.max(textWidth(buyTitle) + textWidth(metric.buy()), textWidth(sellTitle) + textWidth(metric.sell()))
+                    + 16);
+        }
+        int width = Math.max(Math.max(180, config.contentWidth), metricWidth + valueWidth * 2 + 16);
+        width = Math.max(width, resultWidth);
+        boolean parallel = width >= parallelWidth * 2 + COLUMN_GAP;
         this.root.horizontalSizing(Sizing.fixed(width));
-
-        var product = data.product().orElseThrow();
-        var header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        header.verticalAlignment(VerticalAlignment.CENTER);
-        header.gap(4);
-        product.itemStack().ifPresent(stack -> header.child(UiComponents.icon(stack)));
-        var name = label(UiStyles.productName(product.displayName(), false));
-        name.horizontalSizing(Sizing.expand(100));
-        header.child(name);
-        this.root.child(header);
+        this.addProduct(data, width);
 
         boolean noMarket = data.prices().highestBuyOrderPrice().isEmpty()
             && data.prices().lowestSellOfferPrice().isEmpty()
             && data.activity().isEmpty();
-        this.root.child(label(Component.literal(noMarket ? "Market data unavailable" : "Best quotes in coins / item")
-            .withStyle(UiStyles.muted())));
-
-        if (!detailed) {
-            this.root
-                .child(valueLine(Component.literal("Buy order").withStyle(UiStyles.color(UiStyles.palette().buy())),
-                    price(data.prices().highestBuyOrderPrice())));
-            this.root
-                .child(valueLine(Component.literal("Sell offer").withStyle(UiStyles.color(UiStyles.palette().sell())),
-                    price(data.prices().lowestSellOfferPrice())));
-        } else if (columns) {
-            this.root
-                .child(tableRow("", Component.literal("Buy orders").withStyle(UiStyles.color(UiStyles.palette().buy())),
-                    Component.literal("Sell offers").withStyle(UiStyles.color(UiStyles.palette().sell())), sideWidth));
+        if (noMarket) {
+            this.root.child(label(Component.literal("Market unavailable").withStyle(UiStyles.muted())));
+        } else if (parallel) {
             for (var metric : metrics) {
-                var row = tableRow(metric.label(), metric.buy(), metric.sell(), sideWidth);
-                row.tooltip(WidgetTooltips.wrapped(metric.help()));
-                this.root.child(row);
+                var buyTitle = Component.literal(metric.quote() ? "Buy order" : metric.title())
+                    .withStyle(metric.quote() ? UiStyles.color(UiStyles.palette().buy()) : UiStyles.label());
+                var sellTitle = Component.literal(metric.quote() ? "Sell offer" : metric.title())
+                    .withStyle(metric.quote() ? UiStyles.color(UiStyles.palette().sell()) : UiStyles.label());
+                this.root.child(pairedRow(buyTitle, metric.buy(), sellTitle, metric.sell(), width));
             }
         } else {
-            this.addSide("Buy orders", UiStyles.color(UiStyles.palette().buy()), metrics, true);
-            this.addSide("Sell offers", UiStyles.color(UiStyles.palette().sell()), metrics, false);
+            this.root
+                .child(tableRow("", Component.literal("Buy order").withStyle(UiStyles.color(UiStyles.palette().buy())),
+                    Component.literal("Sell offer").withStyle(UiStyles.color(UiStyles.palette().sell())), valueWidth));
+            for (var metric : metrics) {
+                this.root.child(tableRow(metric.title(), metric.buy(), metric.sell(), valueWidth));
+            }
         }
-
-        var differences = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
-        differences.gap(3);
-        differences.padding(Insets.top(5));
-        differences.surface((graphics, component) -> graphics.fill(component.x(), component.y(),
+        var results = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
+        results.gap(2);
+        results.padding(Insets.top(4));
+        results.surface((graphics, component) -> graphics.fill(component.x(), component.y(),
             component.x() + component.width(), component.y() + 1, UiStyles.palette().outline()));
-        differences.child(valueLine(Component.literal("Spread / item").withStyle(UiStyles.primary()), spread));
-        if (config.showInventoryTotal) {
-            differences.child(valueLine(Component.literal(inventoryLabel).withStyle(UiStyles.label()), total));
+        if (config.showInventoryTotal && width >= resultWidth * 2 + COLUMN_GAP) {
+            results.child(pairedRow(differenceLabel, difference, inventoryTitle, inventory, width));
+        } else {
+            results.child(valueLine(differenceLabel, difference));
+            if (config.showInventoryTotal) {
+                results.child(valueLine(inventoryTitle, inventory));
+            }
         }
-        differences.tooltip(WidgetTooltips.wrapped(TOTAL_HELP));
-        this.root.child(differences);
-        var footnote = label(Component.literal("Quote difference, before fees").withStyle(UiStyles.muted()));
-        footnote.horizontalSizing(Sizing.fill(100));
-        this.root.child(footnote);
+        this.root.child(results);
     }
 
-    private List<Metric> metrics(PriceDifferenceWidgetData.Snapshot data, PriceDifferenceWidgetConfig config) {
+    private void addProduct(PriceDifferenceWidgetData.Snapshot data, int width) {
+        var product = data.product().orElseThrow();
+        var header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(16));
+        header.verticalAlignment(VerticalAlignment.CENTER);
+        header.gap(4);
+        var stack = product.itemStack();
+        stack.ifPresent(item -> header.child(UiComponents.icon(item)));
+        var text = UiStyles.productName(product.displayName(), false);
+        var font = Minecraft.getInstance().font;
+        int nameWidth = width - (stack.isPresent() ? 20 : 0);
+        var fitted = text.copy();
+        if (font.width(text) > nameWidth) {
+            fitted = Component.empty();
+            var target = fitted;
+            font.substrByWidth(text, Math.max(0, nameWidth - font.width("Ã¢â‚¬Â¦"))).visit((style, part) -> {
+                target.append(Component.literal(part).withStyle(style));
+                return Optional.empty();
+            }, Style.EMPTY);
+            fitted.append(Component.literal("Ã¢â‚¬Â¦").withStyle(UiStyles.label()));
+        }
+        var name = label(fitted);
+        name.tooltip(WidgetTooltips.wrapped(List.of(text)));
+        header.child(name);
+        this.root.child(header);
+    }
+
+    private static List<Metric> metrics(PriceDifferenceWidgetData.Snapshot data, PriceDifferenceWidgetConfig config) {
         var metrics = new ArrayList<Metric>();
-        metrics.add(new Metric("Best price", price(data.prices().highestBuyOrderPrice()),
-            price(data.prices().lowestSellOfferPrice()), "Best returned quote on each side, in coins per item."));
+        metrics.add(new Metric("Price", price(data.prices().highestBuyOrderPrice()),
+            price(data.prices().lowestSellOfferPrice()), true));
         if (config.mode == PriceDifferenceWidgetConfig.Mode.Detailed && config.showBookTotals) {
-            metrics.add(new Metric("Active orders", activity(data, config, BazaarData.SideActivity::orders, true),
-                activity(data, config, BazaarData.SideActivity::orders, false),
-                "Active orders across the whole side."));
-            metrics.add(new Metric("Listed items", activity(data, config, BazaarData.SideActivity::listedItems, true),
-                activity(data, config, BazaarData.SideActivity::listedItems, false),
-                "Listed items across the whole side."));
+            metrics.add(new Metric("Orders", activity(data, config, BazaarData.SideActivity::orders, true),
+                activity(data, config, BazaarData.SideActivity::orders, false), false));
+            metrics.add(new Metric("Listed", activity(data, config, BazaarData.SideActivity::listedItems, true),
+                activity(data, config, BazaarData.SideActivity::listedItems, false), false));
         }
         if (config.mode == PriceDifferenceWidgetConfig.Mode.Detailed && config.showWeeklyActivity) {
-            metrics.add(new Metric("Items/h (7d avg)",
+            metrics.add(new Metric("7d avg/h",
                 activity(data, config, BazaarData.SideActivity::weeklyAverageHourlyMovement, true),
-                activity(data, config, BazaarData.SideActivity::weeklyAverageHourlyMovement, false), ACTIVITY_HELP));
+                activity(data, config, BazaarData.SideActivity::weeklyAverageHourlyMovement, false), false));
         }
         return metrics;
     }
 
-    private void addSide(String title, Style style, List<Metric> metrics, boolean buy) {
-        this.root.child(label(Component.literal(title).withStyle(style)));
-        for (var metric : metrics) {
-            var row = valueLine(Component.literal(metric.label()).withStyle(UiStyles.label()),
-                buy ? metric.buy() : metric.sell());
-            row.tooltip(WidgetTooltips.wrapped(metric.help()));
-            this.root.child(row);
-        }
+    private static FlowLayout pairedRow(
+        Component firstTitle,
+        Component first,
+        Component secondTitle,
+        Component second,
+        int width
+    ) {
+        var row = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
+        row.gap(COLUMN_GAP);
+        int half = (width - COLUMN_GAP) / 2;
+        var left = valueLine(firstTitle, first);
+        left.horizontalSizing(Sizing.fixed(half));
+        var right = valueLine(secondTitle, second);
+        right.horizontalSizing(Sizing.fixed(width - COLUMN_GAP - half));
+        row.child(left);
+        row.child(right);
+        return row;
     }
 
     private static FlowLayout tableRow(String title, Component buy, Component sell, int sideWidth) {
         var row = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        row.gap(12);
+        row.gap(8);
         var titleLabel = label(Component.literal(title).withStyle(UiStyles.label()));
         titleLabel.horizontalSizing(Sizing.expand(100));
         row.child(titleLabel);
@@ -204,7 +221,7 @@ final class PriceDifferenceWidgetView
     }
 
     private static Component signed(Optional<Double> value, boolean aggregate, PriceDifferenceWidgetConfig config) {
-        return value.<Component>map(number -> Component.literal((number >= 0 ? "+" : "")
+        return value.<Component>map(number -> Component.literal((number > 0 ? "+" : "")
             + (aggregate ? aggregate(number, config, 1) : Utils.formatDecimal(number, 1, true)))
             .withStyle(UiStyles.money())).orElseGet(PriceDifferenceWidgetView::unavailable);
     }
@@ -224,6 +241,10 @@ final class PriceDifferenceWidgetView
         return label;
     }
 
+    private static int lineWidth(Component title, Component value) {
+        return textWidth(title) + textWidth(value) + 16;
+    }
+
     private static int textWidth(Component text) {
         return Minecraft.getInstance().font.width(text);
     }
@@ -232,5 +253,5 @@ final class PriceDifferenceWidgetView
         return Minecraft.getInstance().font.width(text);
     }
 
-    private record Metric(String label, Component buy, Component sell, String help) {}
+    private record Metric(String title, Component buy, Component sell, boolean quote) {}
 }
