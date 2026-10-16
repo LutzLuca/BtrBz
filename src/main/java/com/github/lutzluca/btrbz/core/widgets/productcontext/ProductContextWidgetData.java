@@ -11,7 +11,6 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.regex.Pattern;
 import io.vavr.control.Try;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
@@ -19,8 +18,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 public final class ProductContextWidgetData implements WidgetDataSource<ProductContextWidgetData.Snapshot> {
-    private static final Pattern INVENTORY_LINE = Pattern.compile(
-        "Inventory: ([0-9]+|[0-9]{1,3}(?:,[0-9]{3})+) items?");
+    private static final String INVENTORY_PREFIX = "Inventory: ";
     private static final int PRODUCT_SLOT = 13;
     private static final int SELL_INSTANTLY_SLOT = 11;
     private final BazaarData market;
@@ -76,18 +74,23 @@ public final class ProductContextWidgetData implements WidgetDataSource<ProductC
 
     private OptionalInt listedCount(ItemStack stack) {
         return GameUtils.getLore(stack).stream()
-            .map(ProductContextWidgetData::parseInventoryCount)
-            .filter(OptionalInt::isPresent)
+            .filter(line -> line.startsWith(INVENTORY_PREFIX))
             .findFirst()
+            .map(ProductContextWidgetData::parseInventoryCount)
             .orElseGet(OptionalInt::empty);
     }
 
     static OptionalInt parseInventoryCount(String line) {
-        var matcher = INVENTORY_LINE.matcher(line);
-        if (!matcher.matches()) {
+        String suffix = line.endsWith(" items") ? " items" : " item";
+        if (!line.startsWith(INVENTORY_PREFIX) || !line.endsWith(suffix)
+            || line.length() < INVENTORY_PREFIX.length() + suffix.length()) {
             return OptionalInt.empty();
         }
-        return Try.of(() -> Integer.parseInt(matcher.group(1).replace(",", "")))
+        String number = line.substring(INVENTORY_PREFIX.length(), line.length() - suffix.length());
+        return Try.of(() -> Integer.parseInt(number.replace(",", "")))
+            .filter(count -> count >= 0)
+            .filter(
+                count -> number.equals(Integer.toString(count)) || number.equals(Utils.formatDecimal(count, 0, true)))
             .map(OptionalInt::of)
             .getOrElse(OptionalInt::empty);
     }

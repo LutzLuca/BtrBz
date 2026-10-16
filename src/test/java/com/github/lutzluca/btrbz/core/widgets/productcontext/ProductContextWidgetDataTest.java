@@ -47,7 +47,8 @@ class ProductContextWidgetDataTest {
         Assertions.assertEquals(1,
             ProductContextWidgetData.parseInventoryCount("Inventory: 1 item").orElseThrow());
         for (var line : List.of("Inventory: 640 items extra", "Inventory: 1.5 items",
-            "Inventory: 4,294,967,296 items", "Inventory limit: 12 items", "Inventory: 12,34 items")) {
+            "Inventory: 4,294,967,296 items", "Inventory limit: 12 items", "Inventory: 12,34 items",
+            "Inventory: -1 items", "Inventory: items")) {
             Assertions.assertTrue(ProductContextWidgetData.parseInventoryCount(line).isEmpty(), line);
         }
     }
