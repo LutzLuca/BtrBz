@@ -7,8 +7,8 @@ import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefi
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetData;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.productcontext.ProductContextWidgetData;
+import com.github.lutzluca.btrbz.core.widgets.productcontext.ProductContextWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
@@ -17,6 +17,8 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
@@ -45,13 +47,13 @@ class BtrBzWidgetDefinitionsTest {
             session(false, true, false, null, BazaarMenuType.BuyOrderSetupVolume, false)));
         assertTrue(DailyLimitWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.ItemGroup, null, false)));
-        assertTrue(PriceDifferenceWidgetDefinition.supportsSession(
+        assertTrue(ProductContextWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Item, null, false)));
 
         var invalid = session(false, false, false, BazaarMenuType.Settings, null, false);
         assertFalse(OrderValueWidgetDefinition.supportsSession(invalid));
         assertFalse(DailyLimitWidgetDefinition.supportsSession(invalid));
-        assertFalse(PriceDifferenceWidgetDefinition.supportsSession(invalid));
+        assertFalse(ProductContextWidgetDefinition.supportsSession(invalid));
 
         var staleMenuOnCustomScreen = session(false, false, true, BazaarMenuType.Orders, null, true);
         assertFalse(OrderValueWidgetDefinition.supportsSession(staleMenuOnCustomScreen));
@@ -59,12 +61,19 @@ class BtrBzWidgetDefinitionsTest {
     }
 
     @Test
-    void priceDifferenceVisibilityUsesItsOwnSnapshot() {
-        var unavailable = new PriceDifferenceWidgetData.Snapshot(Component.literal("Unavailable"), Optional.empty(), 0,
-            0);
-        var available = new PriceDifferenceWidgetData.Snapshot(Component.literal("Available"), Optional.empty(), 1, 1);
-        assertFalse(PriceDifferenceWidgetDefinition.isVisible(unavailable));
-        assertTrue(PriceDifferenceWidgetDefinition.isVisible(available));
+    void productContextVisibilityUsesItsOwnSnapshot() {
+        var prices = new BazaarData.MarketPrices(Optional.empty(), Optional.empty());
+        var unavailable = new ProductContextWidgetData.Snapshot(Optional.empty(), prices,
+            Optional.empty(), OptionalInt.empty());
+        var product = new WidgetProductContext(ProductIdentity.fromName("Available"),
+            Component.literal("Available"), Optional.empty());
+        var zero = new ProductContextWidgetData.Snapshot(Optional.of(product), prices,
+            Optional.empty(), OptionalInt.of(0));
+        var unknown = new ProductContextWidgetData.Snapshot(Optional.of(product), prices,
+            Optional.empty(), OptionalInt.empty());
+        assertFalse(ProductContextWidgetDefinition.isVisible(unavailable));
+        assertTrue(ProductContextWidgetDefinition.isVisible(zero));
+        assertTrue(ProductContextWidgetDefinition.isVisible(unknown));
     }
 
     private static WidgetSession session(

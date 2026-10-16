@@ -16,6 +16,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInfoConfig.Site;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig.ToggleHintState;
+import com.github.lutzluca.btrbz.core.widgets.productcontext.ProductContextWidgetConfig;
 import java.util.List;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +35,41 @@ class ConfigStoreTest {
     @Nested
     @DisplayName("persistence")
     class Persistence {
+
+        @Test
+        void renamedProductContextStartsFreshAndPersistsUnderItsNewKey() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("product-context.json");
+            Files.writeString(path, """
+                {"tax":2.5,"widgets":{
+                    "global_fine_tune_scale":1.35,
+                    "price_diff":{"content_width":400,"mode":"Detailed","frame":{"enabled":false}}
+                }}
+                """);
+
+            var store = new ConfigStore(path);
+            Assertions.assertTrue(store.load());
+            var productContext = store.config().widgets.productContext;
+            Assertions.assertEquals(260, productContext.contentWidth);
+            Assertions.assertEquals(ProductContextWidgetConfig.Mode.Compact, productContext.mode);
+            Assertions.assertTrue(productContext.frame.enabled);
+            Assertions.assertEquals(2.5, store.config().tax);
+            Assertions.assertEquals(1.35, store.config().widgets.globalFineTuneScale);
+
+            productContext.contentWidth = 312;
+            productContext.mode = ProductContextWidgetConfig.Mode.Detailed;
+            store.save();
+
+            var serialized = JsonParser.parseString(Files.readString(path)).getAsJsonObject()
+                .getAsJsonObject("widgets");
+            Assertions.assertFalse(serialized.has("price_diff"));
+            Assertions.assertEquals(312, serialized.getAsJsonObject("product_context").get("content_width").getAsInt());
+
+            var reloaded = new ConfigStore(path);
+            Assertions.assertTrue(reloaded.load());
+            Assertions.assertEquals(312, reloaded.config().widgets.productContext.contentWidth);
+            Assertions.assertEquals(ProductContextWidgetConfig.Mode.Detailed,
+                reloaded.config().widgets.productContext.mode);
+        }
 
         @Test
         void alertEditsAndDeletionPersistThroughTheManager() {

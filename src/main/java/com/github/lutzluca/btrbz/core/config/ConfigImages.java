@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 /** Config-screen images with their native dimensions and widget associations. */
 public enum ConfigImages {
     PriceAlert("alert-screen.png", 1426, 857),
-    PriceDiff("price-diff.png", 693, 390),
+    ProductContext("product-context.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
     FlipHelper("flip-helper.png", 994, 654),
     OrderBookScreen("order-book-screen.png", 1506, 847),
@@ -59,7 +59,7 @@ public enum ConfigImages {
             case "btrbz:bookmarks" -> ConfigImages.Bookmarks;
             case "btrbz:order_presets" -> ConfigImages.OrderPresets;
             case "btrbz:order_limit" -> ConfigImages.OrderLimit;
-            case "btrbz:price_diff" -> ConfigImages.PriceDiff;
+            case "btrbz:product_context" -> ConfigImages.ProductContext;
             default -> null;
         };
     }

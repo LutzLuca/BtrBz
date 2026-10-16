@@ -34,7 +34,7 @@ import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefi
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetDefinition;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.productcontext.ProductContextWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.data.OrdersWidgetData;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
@@ -288,8 +288,8 @@ public class BtrBz implements ClientModInitializer {
             this.orderPresets, () -> configStore.config().widgets.orderPresets);
         var dailyLimitWidgetDefinition = DailyLimitWidgetDefinition.create(
             dailyLimit, () -> configStore.config().widgets.orderLimit);
-        var priceDifferenceWidgetDefinition = PriceDifferenceWidgetDefinition.create(
-            this.bazaarData, () -> configStore.config().widgets.priceDiff);
+        var productContextWidgetDefinition = ProductContextWidgetDefinition.create(
+            this.bazaarData, () -> configStore.config().widgets.productContext);
         var widgetRegistry = new WidgetRegistry();
         widgetRegistry.register(
             bazaarOrdersWidgetDefinition,
@@ -300,7 +300,7 @@ public class BtrBz implements ClientModInitializer {
             bookmarksWidgetDefinition,
             orderPresetsWidgetDefinition,
             dailyLimitWidgetDefinition,
-            priceDifferenceWidgetDefinition);
+            productContextWidgetDefinition);
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime,
             parent -> new AppearanceScreen(parent, appearance, null, widgetRegistry));

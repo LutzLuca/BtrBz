@@ -8,7 +8,7 @@ import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetConf
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.ordervalue.OrderValueWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.presets.OrderPresetsWidgetConfig;
-import com.github.lutzluca.btrbz.core.widgets.pricedifference.PriceDifferenceWidgetConfig;
+import com.github.lutzluca.btrbz.core.widgets.productcontext.ProductContextWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.trackedorders.TrackedOrdersWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.layout.WidgetPlacement;
 
@@ -32,5 +32,5 @@ public final class WidgetsConfig {
     public BookmarksWidgetConfig bookmarks = new BookmarksWidgetConfig();
     public OrderPresetsWidgetConfig orderPresets = new OrderPresetsWidgetConfig();
     public DailyLimitWidgetConfig orderLimit = new DailyLimitWidgetConfig();
-    public PriceDifferenceWidgetConfig priceDiff = new PriceDifferenceWidgetConfig();
+    public ProductContextWidgetConfig productContext = new ProductContextWidgetConfig();
 }

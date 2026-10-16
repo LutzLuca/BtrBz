@@ -105,12 +105,15 @@ public final class ScreenTracker {
             this.awaitingContainerOpen = false;
             this.setScreen(GameUtils.screen());
         }
-        this.inventoryWatcher.onPacketReceived(packet);
+        this.inventoryWatcher.onOpenScreen(packet);
         this.fireScreenSwitchCallbacks();
     }
 
     public void onSlotUpdate(ClientboundContainerSetSlotPacket packet) {
-        this.inventoryWatcher.onPacketReceived(packet);
+        boolean updated = this.inventoryWatcher.onSlotUpdate(packet);
+        if (updated && this.isContainerActive(packet.getContainerId())) {
+            this.inventoryChanges.invalidate("screen inventory slot updated");
+        }
     }
 
     /** Forget ownership without invoking close handlers, which can send commands or submit input. */
