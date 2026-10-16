@@ -30,6 +30,9 @@ final class ProductContextWidgetView
 
     ProductContextWidgetView() {
         this.root.gap(2);
+        // The widget frame clips with outward-rounded bounds. Nested layout scissors
+        // truncate fractional widget transforms and can remove the last glyph pixels.
+        this.root.allowOverflow(true);
     }
 
     @Override
@@ -89,6 +92,7 @@ final class ProductContextWidgetView
         }
         var results = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         results.gap(2);
+        results.allowOverflow(true);
         results.padding(Insets.top(4));
         results.surface((graphics, component) -> graphics.fill(component.x(), component.y(),
             component.x() + component.width(), component.y() + 1, UiStyles.palette().outline()));
@@ -105,6 +109,7 @@ final class ProductContextWidgetView
         var header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.fixed(16));
         header.verticalAlignment(VerticalAlignment.CENTER);
         header.gap(4);
+        header.allowOverflow(true);
         var stack = product.itemStack();
         stack.ifPresent(item -> header.child(UiComponents.icon(item)));
         var text = UiStyles.productName(product.displayName(), false);
@@ -153,6 +158,7 @@ final class ProductContextWidgetView
     ) {
         var row = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
         row.gap(COLUMN_GAP);
+        row.allowOverflow(true);
         int half = (width - COLUMN_GAP) / 2;
         var left = valueLine(firstTitle, first);
         left.horizontalSizing(Sizing.fixed(half));
@@ -166,6 +172,7 @@ final class ProductContextWidgetView
     private static FlowLayout valueLine(Component title, Component text) {
         var row = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
         row.gap(8);
+        row.allowOverflow(true);
         row.child(label(title));
         row.child(UiComponents.spacer());
         row.child(label(text));
