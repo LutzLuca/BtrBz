@@ -10,7 +10,6 @@ import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.wispforest.owo.ui.component.LabelComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
-import io.wispforest.owo.ui.core.HorizontalAlignment;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
@@ -60,21 +59,16 @@ final class PriceDifferenceWidgetView
         if (config.showInventoryTotal) {
             resultWidth = Math.max(resultWidth, lineWidth(inventoryTitle, inventory));
         }
-        int valueWidth = Math.max(textWidth("Buy order"), textWidth("Sell offer"));
-        int metricWidth = 0;
         int parallelWidth = 0;
         for (var metric : metrics) {
-            valueWidth = Math.max(valueWidth, Math.max(textWidth(metric.buy()), textWidth(metric.sell())));
-            metricWidth = Math.max(metricWidth, textWidth(metric.title()));
             String buyTitle = metric.quote() ? "Buy order" : metric.title();
             String sellTitle = metric.quote() ? "Sell offer" : metric.title();
             parallelWidth = Math.max(parallelWidth,
                 Math.max(textWidth(buyTitle) + textWidth(metric.buy()), textWidth(sellTitle) + textWidth(metric.sell()))
                     + 16);
         }
-        int width = Math.max(Math.max(180, config.contentWidth), metricWidth + valueWidth * 2 + 16);
-        width = Math.max(width, resultWidth);
-        boolean parallel = width >= parallelWidth * 2 + COLUMN_GAP;
+        int width = Math.max(Math.max(180, config.contentWidth), parallelWidth * 2 + COLUMN_GAP);
+        width = Math.max(width, config.showInventoryTotal ? resultWidth * 2 + COLUMN_GAP : resultWidth);
         this.root.horizontalSizing(Sizing.fixed(width));
         this.addProduct(data, width);
 
@@ -83,7 +77,7 @@ final class PriceDifferenceWidgetView
             && data.activity().isEmpty();
         if (noMarket) {
             this.root.child(label(Component.literal("Market unavailable").withStyle(UiStyles.muted())));
-        } else if (parallel) {
+        } else {
             for (var metric : metrics) {
                 var buyTitle = Component.literal(metric.quote() ? "Buy order" : metric.title())
                     .withStyle(metric.quote() ? UiStyles.color(UiStyles.palette().buy()) : UiStyles.label());
@@ -91,26 +85,16 @@ final class PriceDifferenceWidgetView
                     .withStyle(metric.quote() ? UiStyles.color(UiStyles.palette().sell()) : UiStyles.label());
                 this.root.child(pairedRow(buyTitle, metric.buy(), sellTitle, metric.sell(), width));
             }
-        } else {
-            this.root
-                .child(tableRow("", Component.literal("Buy order").withStyle(UiStyles.color(UiStyles.palette().buy())),
-                    Component.literal("Sell offer").withStyle(UiStyles.color(UiStyles.palette().sell())), valueWidth));
-            for (var metric : metrics) {
-                this.root.child(tableRow(metric.title(), metric.buy(), metric.sell(), valueWidth));
-            }
         }
         var results = RetainedFlowLayout.vertical(Sizing.fill(100), Sizing.content());
         results.gap(2);
         results.padding(Insets.top(4));
         results.surface((graphics, component) -> graphics.fill(component.x(), component.y(),
             component.x() + component.width(), component.y() + 1, UiStyles.palette().outline()));
-        if (config.showInventoryTotal && width >= resultWidth * 2 + COLUMN_GAP) {
+        if (config.showInventoryTotal) {
             results.child(pairedRow(differenceLabel, difference, inventoryTitle, inventory, width));
         } else {
             results.child(valueLine(differenceLabel, difference));
-            if (config.showInventoryTotal) {
-                results.child(valueLine(inventoryTitle, inventory));
-            }
         }
         this.root.child(results);
     }
@@ -129,11 +113,11 @@ final class PriceDifferenceWidgetView
         if (font.width(text) > nameWidth) {
             fitted = Component.empty();
             var target = fitted;
-            font.substrByWidth(text, Math.max(0, nameWidth - font.width("Ã¢â‚¬Â¦"))).visit((style, part) -> {
+            font.substrByWidth(text, Math.max(0, nameWidth - font.width("\u2026"))).visit((style, part) -> {
                 target.append(Component.literal(part).withStyle(style));
                 return Optional.empty();
             }, Style.EMPTY);
-            fitted.append(Component.literal("Ã¢â‚¬Â¦").withStyle(UiStyles.label()));
+            fitted.append(Component.literal("\u2026").withStyle(UiStyles.label()));
         }
         var name = label(fitted);
         name.tooltip(WidgetTooltips.wrapped(List.of(text)));
@@ -175,21 +159,6 @@ final class PriceDifferenceWidgetView
         right.horizontalSizing(Sizing.fixed(width - COLUMN_GAP - half));
         row.child(left);
         row.child(right);
-        return row;
-    }
-
-    private static FlowLayout tableRow(String title, Component buy, Component sell, int sideWidth) {
-        var row = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
-        row.gap(8);
-        var titleLabel = label(Component.literal(title).withStyle(UiStyles.label()));
-        titleLabel.horizontalSizing(Sizing.expand(100));
-        row.child(titleLabel);
-        for (var text : List.of(buy, sell)) {
-            var value = label(text);
-            value.horizontalSizing(Sizing.fixed(sideWidth));
-            value.horizontalTextAlignment(HorizontalAlignment.RIGHT);
-            row.child(value);
-        }
         return row;
     }
 

@@ -16,8 +16,8 @@ public final class PriceDifferenceWidgetSettings {
 
         WidgetSettingsPanel.integer(panel, "Widget width", binding, c -> c.contentWidth,
             (c, v) -> c.contentWidth = v, 180, 420,
-            "Preferred content width. Narrow layouts share metric labels and keep both sides together. "
-                + "Full numbers can require a larger minimum width. Product names stay on one line.");
+            "Preferred content width. Two columns keep the widget short. Quotes, labels and numbers set "
+                + "the minimum width, so narrow settings can grow. Product names stay on one line.");
 
         WidgetSettingsPanel.enumeration(panel, "Large numbers", binding, c -> c.numberFormat,
             (c, v) -> c.numberFormat = v,
