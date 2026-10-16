@@ -50,13 +50,14 @@ final class ProductContextWidgetView
         }
         var metrics = metrics(data, config);
         var difference = signed(data.perItem(), false, config);
-        String inventoryLabel = data.quantity().isPresent()
-            ? Utils.formatDecimal(data.quantity().getAsInt(), 0, true) + " items" : "Inventory ?";
+        int quantity = data.quantity().orElse(0);
+        boolean showInventory = config.showInventoryTotal && quantity > 0;
+        String inventoryLabel = Utils.formatDecimal(quantity, 0, true) + " items";
         var inventory = signed(data.total(), true, config);
         var differenceLabel = Component.literal("Difference").withStyle(UiStyles.primary());
         var inventoryTitle = Component.literal(inventoryLabel).withStyle(UiStyles.label());
         int resultWidth = lineWidth(differenceLabel, difference);
-        if (config.showInventoryTotal) {
+        if (showInventory) {
             resultWidth = Math.max(resultWidth, lineWidth(inventoryTitle, inventory));
         }
         int parallelWidth = 0;
@@ -68,7 +69,7 @@ final class ProductContextWidgetView
                     + 16);
         }
         int width = Math.max(Math.max(180, config.contentWidth), parallelWidth * 2 + COLUMN_GAP);
-        width = Math.max(width, config.showInventoryTotal ? resultWidth * 2 + COLUMN_GAP : resultWidth);
+        width = Math.max(width, showInventory ? resultWidth * 2 + COLUMN_GAP : resultWidth);
         this.root.horizontalSizing(Sizing.fixed(width));
         this.addProduct(data, width);
 
@@ -91,7 +92,7 @@ final class ProductContextWidgetView
         results.padding(Insets.top(4));
         results.surface((graphics, component) -> graphics.fill(component.x(), component.y(),
             component.x() + component.width(), component.y() + 1, UiStyles.palette().outline()));
-        if (config.showInventoryTotal) {
+        if (showInventory) {
             results.child(pairedRow(differenceLabel, difference, inventoryTitle, inventory, width));
         } else {
             results.child(valueLine(differenceLabel, difference));

@@ -26,8 +26,8 @@ public final class ProductContextWidgetSettings {
 
         WidgetSettingsPanel.bool(panel, "Inventory difference", binding, c -> c.showInventoryTotal,
             (c, v) -> c.showInventoryTotal = v,
-            "Sellable inventory count times the per-item difference, before fees. Zero stock stays visible. "
-                + "An unreadable count is unavailable. This is not a depth-aware batch quote.");
+            "Sellable inventory count times the per-item difference, before fees. Shown only when a positive "
+                + "count can be read. This is not a depth-aware batch quote.");
 
         WidgetSettingsPanel.bool(panel, "Detailed: whole-side totals", binding, c -> c.showBookTotals,
             (c, v) -> c.showBookTotals = v,
