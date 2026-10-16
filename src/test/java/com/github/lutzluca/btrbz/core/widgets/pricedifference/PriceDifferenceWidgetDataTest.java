@@ -1,6 +1,10 @@
 package com.github.lutzluca.btrbz.core.widgets.pricedifference;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Assertions;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
+import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
+import java.util.OptionalInt;
 
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
@@ -17,25 +21,45 @@ class PriceDifferenceWidgetDataTest {
     @DisplayName("preserve fractional spreads until total calculation")
     void preservesFractionalSpreads() {
         var snapshot = new PriceDifferenceWidgetData.Snapshot(
-            Component.literal("Product"), Optional.empty(), 0.4, 100_000);
+            Optional.empty(), new BazaarData.MarketPrices(Optional.of(1.0), Optional.of(1.4)),
+            Optional.empty(), OptionalInt.of(100_000));
 
-        assertEquals(0.4, snapshot.perItem());
-        assertEquals(40_000.0, snapshot.total());
+        Assertions.assertEquals(0.4, snapshot.perItem().orElseThrow(), 0.00001);
+        Assertions.assertEquals(40_000.0, snapshot.total().orElseThrow(), 0.00001);
+    }
+
+    @Test
+    void distinguishZeroStockFromUnknownStockAndMissingQuotes() {
+        var prices = new BazaarData.MarketPrices(Optional.of(10.0), Optional.of(12.0));
+        var zero = new PriceDifferenceWidgetData.Snapshot(Optional.empty(), prices, Optional.empty(),
+            OptionalInt.of(0));
+        var unknown = new PriceDifferenceWidgetData.Snapshot(Optional.empty(), prices, Optional.empty(),
+            OptionalInt.empty());
+        var oneSide = new PriceDifferenceWidgetData.Snapshot(Optional.empty(),
+            new BazaarData.MarketPrices(Optional.of(10.0), Optional.empty()), Optional.empty(), OptionalInt.of(10));
+        Assertions.assertEquals(0.0, zero.total().orElseThrow());
+        Assertions.assertEquals(2.0, unknown.perItem().orElseThrow());
+        Assertions.assertTrue(unknown.total().isEmpty());
+        Assertions.assertTrue(oneSide.perItem().isEmpty());
+        Assertions.assertTrue(oneSide.total().isEmpty());
     }
 
     @Test
     @DisplayName("preserve product name formatting")
     void preservesProductNameFormatting() {
         var snapshot = new PriceDifferenceWidgetData.Snapshot(
-            Component.literal("Enchanted Charcoal").withStyle(ChatFormatting.GREEN),
-            Optional.empty(), 1, 1);
+            Optional.of(new WidgetProductContext(ProductIdentity.fromName("Enchanted Charcoal"),
+                Component.literal("Enchanted Charcoal").withStyle(ChatFormatting.GREEN), Optional.empty())),
+            new BazaarData.MarketPrices(Optional.of(1.0), Optional.of(2.0)), Optional.empty(), OptionalInt.of(1));
 
-        assertEquals("Enchanted Charcoal", snapshot.nativeName().getString());
+        Assertions.assertEquals("Enchanted Charcoal", snapshot.product().orElseThrow().displayName().getString());
 
         //? if <26.2 {
-        assertEquals(ChatFormatting.GREEN.getColor(), snapshot.nativeName().getStyle().getColor().getValue());
+        Assertions.assertEquals(ChatFormatting.GREEN.getColor(),
+            snapshot.product().orElseThrow().displayName().getStyle().getColor().getValue());
         //?} else {
-        /*assertEquals(TextColor.GREEN.getValue(), snapshot.nativeName().getStyle().getColor().getValue());
+        /*Assertions.assertEquals(TextColor.GREEN.getValue(),
+            snapshot.product().orElseThrow().displayName().getStyle().getColor().getValue());
         *///?}
     }
 }

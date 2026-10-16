@@ -29,8 +29,8 @@ public final class PriceDifferenceWidgetDefinition {
 
         return WidgetDefinition.<PriceDifferenceWidgetData.Snapshot, PriceDifferenceWidgetConfig, Void>builder(ID,
             "Price Difference")
-            .description("Shows the gap between the lowest sell offer and highest buy order, "
-                + "per item and across your sellable inventory.")
+            .description("Current product quotes and their difference, with optional whole-market context. "
+                + "Inventory totals use the quote spread before fees.")
             .config(config)
             .supports(PriceDifferenceWidgetDefinition::supportsSession)
             .visibility((data, _, _) -> PriceDifferenceWidgetDefinition.isVisible(data))
@@ -40,7 +40,7 @@ public final class PriceDifferenceWidgetDefinition {
                 WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
             .viewFactory(PriceDifferenceWidgetView::new)
             .settingsPanel(PriceDifferenceWidgetSettings::create)
-            .minSize(WidgetLayoutTokens.panelWidth(80), 36)
+            .minSize(WidgetLayoutTokens.panelWidth(180), 36)
             .build();
     }
 
@@ -49,6 +49,6 @@ public final class PriceDifferenceWidgetDefinition {
     }
 
     public static boolean isVisible(PriceDifferenceWidgetData.Snapshot data) {
-        return data.quantity() > 0;
+        return data.product().isPresent();
     }
 }

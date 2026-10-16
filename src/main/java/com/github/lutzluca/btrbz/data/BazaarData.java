@@ -221,6 +221,10 @@ public class BazaarData {
         return this.currentSnapshot().getOrderLists(product);
     }
 
+    public Optional<ProductActivity> productActivity(ProductIdentity product) {
+        return this.currentSnapshot().productActivity(product);
+    }
+
     public Optional<OrderQueueInfo> calculateQueuePosition(
         ProductIdentity product,
         OrderType orderType,
@@ -308,6 +312,14 @@ public class BazaarData {
         }
     }
 
+    public record SideActivity(long orders, long listedItems, long movingWeek) {
+        public double weeklyAverageHourlyMovement() {
+            return this.movingWeek / 168.0;
+        }
+    }
+
+    public record ProductActivity(SideActivity buyOrders, SideActivity sellOffers) {}
+
     public static final class MarketSnapshot {
 
         private final Map<String, Product> products;
@@ -366,6 +378,14 @@ public class BazaarData {
                     Optional.ofNullable(prod.getSellSummary()).orElse(List.of()),
                     Optional.ofNullable(prod.getBuySummary()).orElse(List.of())))
                 .orElse(OrderLists.empty());
+        }
+
+        public Optional<ProductActivity> productActivity(ProductIdentity product) {
+            // Match the action-based quick_status fields to the actual order sides,
+            // just like the summary mapping above. Totals cover the whole side.
+            return this.rawProduct(product).map(Product::getQuickStatus).map(status -> new ProductActivity(
+                new SideActivity(status.getSellOrders(), status.getSellVolume(), status.getSellMovingWeek()),
+                new SideActivity(status.getBuyOrders(), status.getBuyVolume(), status.getBuyMovingWeek())));
         }
 
         public List<Summary> summariesForOrderType(ProductIdentity product, OrderType orderType) {

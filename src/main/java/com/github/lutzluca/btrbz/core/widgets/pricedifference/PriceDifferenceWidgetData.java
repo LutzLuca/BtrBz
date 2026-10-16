@@ -1,13 +1,16 @@
 package com.github.lutzluca.btrbz.core.widgets.pricedifference;
 
 import com.github.lutzluca.btrbz.data.BazaarData;
+import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
+import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
 import com.github.lutzluca.btrbz.core.widgets.session.WidgetSession;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
+import java.util.OptionalInt;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.ItemStack;
@@ -22,7 +25,6 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
     public PriceDifferenceWidgetData(BazaarData market) {
         this.market = market;
         var screens = ScreenTracker.get();
-
         this.dependencies = CacheDependencies.of(
             screens.inventoryChanges(), market.marketChanges(), market.indexChanges());
     }
@@ -40,30 +42,32 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
     @Override
     public Snapshot snapshot(WidgetSession session) {
         var info = ScreenTracker.get().getCurrInfo();
-        int quantity = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount).orElse(0);
-
-        if (quantity <= 0) {
-            return empty();
-        }
-
         var productStack = info.getItemStack(PRODUCT_SLOT);
         if (productStack.isEmpty()) {
-            return empty();
+            return new Snapshot(Optional.empty(), emptyPrices(), Optional.empty(), OptionalInt.empty());
         }
 
         var stack = productStack.orElseThrow();
-        var spread = this.market.productSpread(this.market.resolveProduct(stack));
-        if (spread.isEmpty()) {
-            return empty();
-        }
+        var identity = this.market.resolveProduct(stack);
+        var product = new WidgetProductContext(identity, stack.getHoverName(), Optional.of(stack));
+        var count = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount);
+        var prices = this.market.getMarketPrices(identity);
 
-        return new Snapshot(stack.getHoverName(), Optional.of(stack), spread.get(), quantity);
+        return new Snapshot(Optional.of(product), new BazaarData.MarketPrices(
+            usablePrice(prices.highestBuyOrderPrice()), usablePrice(prices.lowestSellOfferPrice())),
+            this.market.productActivity(identity), count.map(OptionalInt::of).orElseGet(OptionalInt::empty));
     }
 
     public static Snapshot preview() {
         return new Snapshot(
-            Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN),
-            Optional.of(new ItemStack(Items.DIAMOND)), 12_450, 640);
+            Optional.of(new WidgetProductContext(ProductIdentity.fromName("Enchanted Diamond"),
+                Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN),
+                Optional.of(new ItemStack(Items.DIAMOND)))),
+            new BazaarData.MarketPrices(Optional.of(1_250.4), Optional.of(1_262.8)),
+            Optional.of(new BazaarData.ProductActivity(
+                new BazaarData.SideActivity(1_234, 1_842_560, 82_656_000),
+                new BazaarData.SideActivity(876, 964_320, 62_193_600))),
+            OptionalInt.of(640));
     }
 
     private Optional<Integer> listedCount(ItemStack stack) {
@@ -72,31 +76,32 @@ public final class PriceDifferenceWidgetData implements WidgetDataSource<PriceDi
             .findFirst()
             .flatMap(line -> Utils.parseUsFormattedNumber(
                 line.replace("Inventory:", "").replace("items", "").trim()).toJavaOptional())
-            .map(Number::intValue);
+            .map(Number::intValue)
+            .filter(count -> count >= 0);
     }
 
-    private static Snapshot empty() {
-        return new Snapshot(Component.empty(), Optional.empty(), 0, 0);
+    private static Optional<Double> usablePrice(Optional<Double> price) {
+        return price.filter(value -> Double.isFinite(value) && value > 0);
     }
 
-    public record Snapshot(Component nativeName, Optional<ItemStack> itemStack, double perItem, int quantity) {
-        public Snapshot {
-            nativeName = nativeName.copy();
-            itemStack = itemStack.map(ItemStack::copy);
+    private static BazaarData.MarketPrices emptyPrices() {
+        return new BazaarData.MarketPrices(Optional.empty(), Optional.empty());
+    }
+
+    public record Snapshot(
+        Optional<WidgetProductContext> product,
+        BazaarData.MarketPrices prices,
+        Optional<BazaarData.ProductActivity> activity,
+        OptionalInt quantity
+    ) {
+        public Optional<Double> perItem() {
+            return Utils.zipOptionals(this.prices.lowestSellOfferPrice(), this.prices.highestBuyOrderPrice())
+                .map(pair -> pair.getLeft() - pair.getRight());
         }
 
-        @Override
-        public Component nativeName() {
-            return this.nativeName.copy();
-        }
-
-        @Override
-        public Optional<ItemStack> itemStack() {
-            return this.itemStack.map(ItemStack::copy);
-        }
-
-        public double total() {
-            return this.perItem * this.quantity;
+        public Optional<Double> total() {
+            return this.quantity.isPresent()
+                ? this.perItem().map(spread -> spread * this.quantity.getAsInt()) : Optional.empty();
         }
     }
 }

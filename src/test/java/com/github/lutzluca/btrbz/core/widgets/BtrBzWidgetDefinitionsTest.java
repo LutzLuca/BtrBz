@@ -17,6 +17,8 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
 
@@ -60,11 +62,18 @@ class BtrBzWidgetDefinitionsTest {
 
     @Test
     void priceDifferenceVisibilityUsesItsOwnSnapshot() {
-        var unavailable = new PriceDifferenceWidgetData.Snapshot(Component.literal("Unavailable"), Optional.empty(), 0,
-            0);
-        var available = new PriceDifferenceWidgetData.Snapshot(Component.literal("Available"), Optional.empty(), 1, 1);
+        var prices = new BazaarData.MarketPrices(Optional.empty(), Optional.empty());
+        var unavailable = new PriceDifferenceWidgetData.Snapshot(Optional.empty(), prices,
+            Optional.empty(), OptionalInt.empty());
+        var product = new WidgetProductContext(ProductIdentity.fromName("Available"),
+            Component.literal("Available"), Optional.empty());
+        var zero = new PriceDifferenceWidgetData.Snapshot(Optional.of(product), prices,
+            Optional.empty(), OptionalInt.of(0));
+        var unknown = new PriceDifferenceWidgetData.Snapshot(Optional.of(product), prices,
+            Optional.empty(), OptionalInt.empty());
         assertFalse(PriceDifferenceWidgetDefinition.isVisible(unavailable));
-        assertTrue(PriceDifferenceWidgetDefinition.isVisible(available));
+        assertTrue(PriceDifferenceWidgetDefinition.isVisible(zero));
+        assertTrue(PriceDifferenceWidgetDefinition.isVisible(unknown));
     }
 
     private static WidgetSession session(
