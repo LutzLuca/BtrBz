@@ -233,23 +233,6 @@ class TrackedOrderManagerTest {
     class TrackedStatus {
 
         @Test
-        void productSpreadUsesSellOfferMinusBuyOrder() {
-            var marketProduct = product("TROUBLED_BUBBLE");
-            setSummaries(
-                marketProduct,
-                List.of(summary(marketProduct, 10.0, 64, 1)),
-                List.of(summary(marketProduct, 12.5, 64, 1)));
-            var data = data(Map.of("TROUBLED_BUBBLE", marketProduct));
-
-            var spread = data.productSpread(ProductIdentity.fromRuntime(
-                "Troubled Bubble",
-                "TROUBLED_BUBBLE",
-                null));
-
-            assertEquals(2.5, spread.orElseThrow());
-        }
-
-        @Test
         void usesRuntimeBazaarProductIdForMarketLookup() {
             var marketProduct = product("TROUBLED_BUBBLE");
             setSummaries(

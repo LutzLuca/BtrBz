@@ -48,7 +48,6 @@ class MarketAvailabilityTest {
         Assertions.assertTrue(this.market.getMarketPrices(this.identity).highestBuyOrderPrice().isEmpty());
         Assertions.assertTrue(this.market.getMarketPrices(this.identity).lowestSellOfferPrice().isEmpty());
         Assertions.assertTrue(this.market.getOrderLists(this.identity).buyOrders().isEmpty());
-        Assertions.assertTrue(this.market.productSpread(this.identity).isEmpty());
         Assertions.assertTrue(this.market.calculateQueuePosition(this.identity, OrderType.Buy, 90).isEmpty());
         Assertions.assertTrue(this.market.marketChanges().revision() > revision);
         Assertions.assertEquals(Optional.of(this.product), this.market.resolveProductId("TEST"));

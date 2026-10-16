@@ -11,12 +11,16 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.regex.Pattern;
+import io.vavr.control.Try;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 public final class ProductContextWidgetData implements WidgetDataSource<ProductContextWidgetData.Snapshot> {
+    private static final Pattern INVENTORY_LINE = Pattern.compile(
+        "Inventory: ([0-9]+|[0-9]{1,3}(?:,[0-9]{3})+) items?");
     private static final int PRODUCT_SLOT = 13;
     private static final int SELL_INSTANTLY_SLOT = 11;
     private final BazaarData market;
@@ -50,12 +54,12 @@ public final class ProductContextWidgetData implements WidgetDataSource<ProductC
         var stack = productStack.orElseThrow();
         var identity = this.market.resolveProduct(stack);
         var product = new WidgetProductContext(identity, stack.getHoverName(), Optional.of(stack));
-        var count = info.getItemStack(SELL_INSTANTLY_SLOT).flatMap(this::listedCount);
+        var count = info.getItemStack(SELL_INSTANTLY_SLOT).map(this::listedCount).orElseGet(OptionalInt::empty);
         var prices = this.market.getMarketPrices(identity);
 
         return new Snapshot(Optional.of(product), new BazaarData.MarketPrices(
             usablePrice(prices.highestBuyOrderPrice()), usablePrice(prices.lowestSellOfferPrice())),
-            this.market.productActivity(identity), count.map(OptionalInt::of).orElseGet(OptionalInt::empty));
+            this.market.productActivity(identity), count);
     }
 
     public static Snapshot preview() {
@@ -70,14 +74,22 @@ public final class ProductContextWidgetData implements WidgetDataSource<ProductC
             OptionalInt.of(640));
     }
 
-    private Optional<Integer> listedCount(ItemStack stack) {
+    private OptionalInt listedCount(ItemStack stack) {
         return GameUtils.getLore(stack).stream()
-            .filter(line -> line.startsWith("Inventory"))
+            .map(ProductContextWidgetData::parseInventoryCount)
+            .filter(OptionalInt::isPresent)
             .findFirst()
-            .flatMap(line -> Utils.parseUsFormattedNumber(
-                line.replace("Inventory:", "").replace("items", "").trim()).toJavaOptional())
-            .map(Number::intValue)
-            .filter(count -> count >= 0);
+            .orElseGet(OptionalInt::empty);
+    }
+
+    static OptionalInt parseInventoryCount(String line) {
+        var matcher = INVENTORY_LINE.matcher(line);
+        if (!matcher.matches()) {
+            return OptionalInt.empty();
+        }
+        return Try.of(() -> Integer.parseInt(matcher.group(1).replace(",", "")))
+            .map(OptionalInt::of)
+            .getOrElse(OptionalInt::empty);
     }
 
     private static Optional<Double> usablePrice(Optional<Double> price) {

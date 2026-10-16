@@ -1,19 +1,13 @@
 package com.github.lutzluca.btrbz.core.widgets.productcontext;
 
 import org.junit.jupiter.api.Assertions;
-import com.github.lutzluca.btrbz.core.widgets.session.WidgetProductContext;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.data.ProductIdentity;
 import java.util.OptionalInt;
+import java.util.List;
 
 import java.util.Optional;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-//? if >=26.2 {
-/*import net.minecraft.network.chat.TextColor;
-*///?}
 
 @DisplayName("Product context widget data")
 class ProductContextWidgetDataTest {
@@ -45,21 +39,17 @@ class ProductContextWidgetDataTest {
     }
 
     @Test
-    @DisplayName("preserve product name formatting")
-    void preservesProductNameFormatting() {
-        var snapshot = new ProductContextWidgetData.Snapshot(
-            Optional.of(new WidgetProductContext(ProductIdentity.fromName("Enchanted Charcoal"),
-                Component.literal("Enchanted Charcoal").withStyle(ChatFormatting.GREEN), Optional.empty())),
-            new BazaarData.MarketPrices(Optional.of(1.0), Optional.of(2.0)), Optional.empty(), OptionalInt.of(1));
-
-        Assertions.assertEquals("Enchanted Charcoal", snapshot.product().orElseThrow().displayName().getString());
-
-        //? if <26.2 {
-        Assertions.assertEquals(ChatFormatting.GREEN.getColor(),
-            snapshot.product().orElseThrow().displayName().getStyle().getColor().getValue());
-        //?} else {
-        /*Assertions.assertEquals(TextColor.GREEN.getValue(),
-            snapshot.product().orElseThrow().displayName().getStyle().getColor().getValue());
-        *///?}
+    void parsesOnlyCompleteInventoryQuantitiesWithinIntegerRange() {
+        Assertions.assertEquals(12_345,
+            ProductContextWidgetData.parseInventoryCount("Inventory: 12,345 items").orElseThrow());
+        Assertions.assertEquals(0,
+            ProductContextWidgetData.parseInventoryCount("Inventory: 0 items").orElseThrow());
+        Assertions.assertEquals(1,
+            ProductContextWidgetData.parseInventoryCount("Inventory: 1 item").orElseThrow());
+        for (var line : List.of("Inventory: 640 items extra", "Inventory: 1.5 items",
+            "Inventory: 4,294,967,296 items", "Inventory limit: 12 items", "Inventory: 12,34 items")) {
+            Assertions.assertTrue(ProductContextWidgetData.parseInventoryCount(line).isEmpty(), line);
+        }
     }
+
 }

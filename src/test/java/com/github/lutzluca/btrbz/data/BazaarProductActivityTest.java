@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.data;
 
 import com.google.gson.Gson;
+import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import java.util.Map;
 import net.hypixel.api.reply.skyblock.SkyBlockBazaarReply;
 import org.junit.jupiter.api.Assertions;
@@ -31,6 +32,11 @@ class BazaarProductActivityTest {
         Assertions.assertEquals(876, activity.sellOffers().orders());
         Assertions.assertEquals(964320, activity.sellOffers().listedItems());
         Assertions.assertEquals(370200.0, activity.sellOffers().weeklyAverageHourlyMovement());
+
+        var market = new BazaarData();
+        market.publishSnapshot(snapshot);
+        Assertions.assertEquals(2.0, market.getEstimatedFillTimeMinutes(product, OrderType.Buy, 16_400).orElseThrow());
+        Assertions.assertEquals(2.0, market.getEstimatedFillTimeMinutes(product, OrderType.Sell, 12_340).orElseThrow());
     }
 
     @Test

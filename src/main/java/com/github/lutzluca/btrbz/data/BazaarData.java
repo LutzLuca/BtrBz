@@ -4,7 +4,6 @@ import com.github.lutzluca.btrbz.data.OrderModels.OrderType;
 import com.github.lutzluca.btrbz.cache.CacheToken;
 import com.github.lutzluca.btrbz.data.conversions.ConversionIndexService;
 import com.github.lutzluca.btrbz.data.conversions.ConversionStatus;
-import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +41,7 @@ public class BazaarData {
         this.conversionIndexService = conversionIndexService;
     }
 
-    public static Optional<Double> firstSummaryPrice(List<Summary> summaries) {
+    private static Optional<Double> firstSummaryPrice(List<Summary> summaries) {
         if (summaries == null || summaries.isEmpty()) {
             return Optional.empty();
         }
@@ -213,10 +212,6 @@ public class BazaarData {
         return Double.isFinite(price) && price > 0;
     }
 
-    public Optional<Double> productSpread(ProductIdentity product) {
-        return this.currentSnapshot().productSpread(product);
-    }
-
     public OrderLists getOrderLists(ProductIdentity product) {
         return this.currentSnapshot().getOrderLists(product);
     }
@@ -271,27 +266,14 @@ public class BazaarData {
             return Optional.of(0.0);
         }
 
-        var qs = this.currentSnapshot()
-            .rawProduct(product)
-            .map(Product::getQuickStatus)
-            .orElse(null);
-        if (qs == null) {
-            return Optional.empty();
-        }
-
-        long movingWeek = switch (orderType) {
-            case Sell -> qs.getBuyMovingWeek();
-            case Buy -> qs.getSellMovingWeek();
-        };
-
-        if (movingWeek <= 0) {
-            return Optional.empty();
-        }
-
-        double hourlyRate = movingWeek / 168.0;
-        double minutesRate = hourlyRate / 60.0;
-
-        return Optional.of(remainingVolume / minutesRate);
+        return this.productActivity(product)
+            .map(activity -> switch (orderType) {
+                case Buy -> activity.buyOrders();
+                case Sell -> activity.sellOffers();
+            })
+            .map(SideActivity::weeklyAverageHourlyMovement)
+            .filter(hourlyRate -> hourlyRate > 0)
+            .map(hourlyRate -> remainingVolume / (hourlyRate / 60.0));
     }
 
     @ToString
@@ -362,12 +344,6 @@ public class BazaarData {
             return new MarketPrices(
                 this.highestBuyOrderPrice(product),
                 this.lowestSellOfferPrice(product));
-        }
-
-        public Optional<Double> productSpread(ProductIdentity product) {
-            return Utils.zipOptionals(
-                this.lowestSellOfferPrice(product),
-                this.highestBuyOrderPrice(product)).map(pair -> pair.getLeft() - pair.getRight());
         }
 
         public OrderLists getOrderLists(ProductIdentity product) {

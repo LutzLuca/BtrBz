@@ -89,16 +89,7 @@ public class ScreenInventoryTracker {
         return this.currInv != null && this.currInv.syncId == containerId;
     }
 
-    public void onPacketReceived(Object packet) {
-        switch (packet) {
-            case ClientboundOpenScreenPacket openPacket -> this.handleOpenScreen(openPacket);
-            case ClientboundContainerSetSlotPacket slotPacket -> this.handleSlotUpdate(slotPacket);
-            default -> {
-            }
-        }
-    }
-
-    private void handleOpenScreen(ClientboundOpenScreenPacket packet) {
+    public void onOpenScreen(ClientboundOpenScreenPacket packet) {
         var title = packet.getTitle().getString();
         int syncId = packet.getContainerId();
         var handlerType = packet.getType();
@@ -120,30 +111,32 @@ public class ScreenInventoryTracker {
         }
     }
 
-    private void handleSlotUpdate(ClientboundContainerSetSlotPacket packet) {
+    /** Returns whether the packet updated a slot owned by the tracked container. */
+    public boolean onSlotUpdate(ClientboundContainerSetSlotPacket packet) {
         if (this.currInv == null) {
-            return;
+            return false;
         }
 
         if (this.currInv.syncId != packet.getContainerId()) {
-            return;
+            return false;
         }
 
         int slot = packet.getSlot();
         if (slot < 0) {
-            return;
+            return false;
         }
         if (slot >= this.currInv.slotCount) {
             if (!this.currInv.fullyLoaded) {
                 this.loaded();
             }
-            return;
+            return false;
         }
 
         boolean allSlotsReceived = this.currInv.updateSlot(slot, packet.getItem());
         if (!this.currInv.fullyLoaded && allSlotsReceived) {
             this.loaded();
         }
+        return true;
     }
 
     private void loaded() {
