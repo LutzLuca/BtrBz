@@ -26,6 +26,7 @@ import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
+import com.github.lutzluca.btrbz.core.orderbook.NativeOrderBookLore;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
@@ -245,6 +246,8 @@ public class BtrBz implements ClientModInitializer {
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);
         new ProductInformation(this.bazaarData, this.bazaarProductContext,
             () -> configStore.config().productInfo);
+        new NativeOrderBookLore(this.bazaarData, this.orderManager,
+            () -> configStore.config().ownOrderBook);
         this.orderActions = new BazaarOrderActions(this.bazaarData);
         var bookmarks = new BookmarkComponent(
             this.bazaarData,
@@ -269,7 +272,8 @@ public class BtrBz implements ClientModInitializer {
             orderBookPrice);
         var ordersWidgetData = new MemoizedWidgetDataSource<>(new OrdersWidgetData(
             this.bazaarData, this.orderManager, this.tooltipProvider));
-        var orderBookWidgetData = new MemoizedWidgetDataSource<>(new OrderBookWidgetData(this.bazaarData));
+        var orderBookWidgetData = new MemoizedWidgetDataSource<>(
+            new OrderBookWidgetData(this.bazaarData, this.orderManager));
         var toggleHudKey = BtrBzWidgetKeybinds.registerMapping();
         var bazaarOrdersWidgetDefinition = BazaarOrdersWidgetDefinition.create(
             ordersWidgetData, toggleHudKey::getTranslatedKeyMessage,
@@ -279,9 +283,11 @@ public class BtrBz implements ClientModInitializer {
         var orderValueWidgetDefinition = OrderValueWidgetDefinition.create(
             this.orderValue, () -> configStore.config().widgets.orderValue);
         var orderBookWidgetDefinition = OrderBookWidgetDefinition.create(
-            orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookScreen);
+            orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookScreen,
+            () -> configStore.config().ownOrderBook.mode);
         var orderBookPriceWidgetDefinition = OrderBookPriceWidgetDefinition.create(
-            orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookPrice);
+            orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookPrice,
+            () -> configStore.config().ownOrderBook.mode);
         var bookmarksWidgetDefinition = BookmarksWidgetDefinition.create(
             bookmarks, () -> configStore.config().widgets.bookmarks);
         var orderPresetsWidgetDefinition = OrderPresetsWidgetDefinition.create(

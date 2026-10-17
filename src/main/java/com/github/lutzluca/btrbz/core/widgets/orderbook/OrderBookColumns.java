@@ -17,7 +17,8 @@ record OrderBookColumns(
     static Widths measure(
         List<OrderBookWidgetData.Entry> buy,
         List<OrderBookWidgetData.Entry> sell,
-        ToIntFunction<String> textWidth
+        ToIntFunction<String> textWidth,
+        boolean detailed
     ) {
         int price = textWidth.applyAsInt("Price");
         int quantity = textWidth.applyAsInt("Quantity");
@@ -26,7 +27,7 @@ record OrderBookColumns(
             for (var entry : entries) {
                 price = Math.max(price, textWidth.applyAsInt(entry.priceText()));
                 quantity = Math.max(quantity, textWidth.applyAsInt(entry.quantityText()));
-                orders = Math.max(orders, textWidth.applyAsInt(BazaarWidgetViewData.formatInt(entry.orders())));
+                orders = Math.max(orders, textWidth.applyAsInt(entry.ordersText(detailed)));
             }
         }
         return new Widths(price, quantity, orders);

@@ -8,6 +8,8 @@ import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import dev.isxander.yacl3.api.ConfigCategory;
 import dev.isxander.yacl3.api.ButtonOption;
@@ -105,6 +107,14 @@ public class ConfigScreen {
             .group(config.orderListTooltip.createGroup(
                 () -> this.tooltipProvider.onListSettingsChanged("order-list tooltip setting changed")))
             .group(config.orderItemTooltip.createGroup(this.tooltipProvider::onItemSettingsChanged))
+            .group(config.ownOrderBook.createGroup(() -> {
+                for (var id : List.of(
+                    OrderBookWidgetDefinition.ID,
+                    OrderBookPriceWidgetDefinition.ID)) {
+                    this.widgetRuntime.registry().find(id)
+                        .ifPresent(definition -> definition.getConfigHandle().invalidate("own order display changed"));
+                }
+            }))
             .group(config.productInfo.createGroup())
             .group(config.chatFilter.createGroup())
             .build();

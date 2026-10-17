@@ -9,12 +9,16 @@ import org.jetbrains.annotations.Nullable;
 
 /** Config-screen images with their native dimensions and widget associations. */
 public enum ConfigImages {
+    OwnOrdersNativeCompact("own-orders-native-compact.png", 536, 276),
+    OwnOrdersNativeRemaining("own-orders-native-remaining.png", 500, 316),
+    OwnOrdersEmbeddedOff("own-orders-embedded-off.png", 452, 256),
+    OwnOrdersEmbeddedHighlight("own-orders-embedded-highlight.png", 452, 256),
+    OwnOrdersEmbeddedDetailed("own-orders-embedded-detailed.png", 452, 256),
+    OwnOrdersFullBook("own-orders-full-book.png", 936, 534),
     PriceAlert("alert-screen.png", 1426, 857),
     ProductContext("product-context.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
     FlipHelper("flip-helper.png", 994, 654),
-    OrderBookScreen("order-book-screen.png", 1506, 847),
-    OrderBookSign("order-book-sign.png", 1027, 577),
     OrderLimit("order-limit.png", 597, 448),
     OrderNotification("order-notifications.png", 661, 235),
     OrderPresets("order-presets.png", 661, 372),
@@ -54,8 +58,8 @@ public enum ConfigImages {
             case "btrbz:bazaar_orders" -> ConfigImages.TrackedOrdersHud;
             case "btrbz:tracked_orders_list" -> ConfigImages.TrackedOrdersBazaar;
             case "btrbz:order_value" -> ConfigImages.OrderValueOverView;
-            case "btrbz:order_book" -> ConfigImages.OrderBookScreen;
-            case "btrbz:order_book_price" -> ConfigImages.OrderBookSign;
+            case "btrbz:order_book" -> ConfigImages.OwnOrdersFullBook;
+            case "btrbz:order_book_price" -> ConfigImages.OwnOrdersEmbeddedDetailed;
             case "btrbz:bookmarks" -> ConfigImages.Bookmarks;
             case "btrbz:order_presets" -> ConfigImages.OrderPresets;
             case "btrbz:order_limit" -> ConfigImages.OrderLimit;

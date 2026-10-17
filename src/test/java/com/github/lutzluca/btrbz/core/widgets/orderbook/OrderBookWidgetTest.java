@@ -54,10 +54,11 @@ class OrderBookWidgetTest {
         var sell = BazaarWidgetViewData.OrderSide.Sell;
         var measured = OrderBookColumns.measure(
             List.of(level(buy, 100, 1, 1)),
-            List.of(level(sell, 12_515_660.2, 3_000_000_000L, 1_234_567L)), String::length);
+            List.of(new OrderBookWidgetData.Entry(sell, 12_515_660.2, 3_000_000_000L, 1_234_567L, 2)), String::length,
+            true);
         assertEquals("12,515,660.2".length(), measured.price());
         assertEquals("3,000,000,000".length(), measured.quantity());
-        assertEquals("1,234,567".length(), measured.orders());
+        assertEquals("1,234,567 (2)".length(), measured.orders());
         var columns = OrderBookColumns.numeric(20, measured, true, 5, 4);
         assertTrue(columns.priceWidth() >= measured.price());
         assertTrue(columns.quantityWidth() >= measured.quantity());
@@ -154,7 +155,7 @@ class OrderBookWidgetTest {
         long quantity,
         long orders
     ) {
-        return new OrderBookWidgetData.Entry(side, price, quantity, orders);
+        return new OrderBookWidgetData.Entry(side, price, quantity, orders, 0);
     }
 
     private static OrderBookPriceWidgetConfig options(

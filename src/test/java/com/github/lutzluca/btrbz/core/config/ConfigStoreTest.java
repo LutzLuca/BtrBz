@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.config;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition;
+import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 
 import com.github.lutzluca.btrbz.core.alert.Alert;
 import com.github.lutzluca.btrbz.core.alert.ReachedAlert;
@@ -31,6 +32,22 @@ class ConfigStoreTest {
 
     @TempDir
     Path tempDir;
+
+    @Test
+    void ownOrderBookPreferencesPersistWithoutChangingPublicWidgetPreferences() {
+        var path = this.tempDir.resolve("own-order-book.json");
+        var store = new ConfigStore(path);
+        store.config().ownOrderBook.mode = Mode.Off;
+        store.config().ownOrderBook.showRemainingInNativeLore = true;
+        store.config().widgets.orderBookPrice.showOrderCount = false;
+        store.save();
+        var reloaded = new ConfigStore(path);
+        Assertions.assertTrue(reloaded.load());
+        Assertions.assertEquals(Mode.Off,
+            reloaded.config().ownOrderBook.mode);
+        Assertions.assertTrue(reloaded.config().ownOrderBook.showRemainingInNativeLore);
+        Assertions.assertFalse(reloaded.config().widgets.orderBookPrice.showOrderCount);
+    }
 
     @Nested
     @DisplayName("persistence")

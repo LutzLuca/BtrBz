@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -32,6 +33,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 /** Dense numeric order book whose price actions belong to the sign workflow. */
 final class EmbeddedOrderBookWidgetView
@@ -56,7 +58,12 @@ final class EmbeddedOrderBookWidgetView
     private Consumer<OrderBookAction> actions = _ -> {};
     private boolean hasItem;
 
-    EmbeddedOrderBookWidgetView() {
+    private final Supplier<Mode> ownMode;
+
+    EmbeddedOrderBookWidgetView(
+        Supplier<Mode> ownMode
+    ) {
+        this.ownMode = ownMode;
         this.root.allowOverflow(true);
         this.header.verticalAlignment(VerticalAlignment.CENTER);
         this.header.gap(3);
@@ -111,7 +118,8 @@ final class EmbeddedOrderBookWidgetView
         boolean single = !showBuy || !showSell;
         var font = Minecraft.getInstance().font;
         var measured = OrderBookColumns.measure(showBuy ? this.data.buyOffers() : List.of(),
-            showSell ? this.data.sellOffers() : List.of(), font::width);
+            showSell ? this.data.sellOffers() : List.of(), font::width,
+            this.ownMode.get() == Mode.Detailed);
         int preferredContentWidth = OrderBookWidget.embeddedContentWidth(this.config, this.data);
         int preferredWidth = single ? preferredContentWidth : Math.max(1, (preferredContentWidth - SIDE_GAP) / 2);
         int minimumWidth = OrderBookColumns.numeric(1, measured, this.config.showOrderCount, INSET, COLUMN_GAP).width();
@@ -139,9 +147,9 @@ final class EmbeddedOrderBookWidgetView
             Math.min(Math.max(1, this.config.visibleRows), fittingRows));
         int viewportHeight = WidgetLayoutTokens.listViewportHeight(rowHeight, visibleRows);
         this.buy.update(this.book.buy(), columns, rowHeight, viewportHeight, columnHeaderHeight, single,
-            this.workflowSide, this.actions);
+            this.workflowSide, this.ownMode.get(), this.actions);
         this.sell.update(this.book.sell(), columns, rowHeight, viewportHeight, columnHeaderHeight, single,
-            this.workflowSide, this.actions);
+            this.workflowSide, this.ownMode.get(), this.actions);
         this.sides.clearChildren();
         this.stackedSides.clearChildren();
         var tables = stacked ? this.stackedSides : this.sides;
@@ -203,12 +211,13 @@ final class EmbeddedOrderBookWidgetView
             int headerHeight,
             boolean single,
             OrderType workflowSide,
+            Mode ownMode,
             Consumer<OrderBookAction> actions
         ) {
             this.rows = this.retainedRows.reconcile(levels,
                 level -> Double.doubleToLongBits(level.entry().price()),
                 (level, _) -> new OrderBookRow(level, this.list, true),
-                (row, level, _) -> row.update(level, columns, 0, rowHeight, priceTooltip(level, workflowSide),
+                (row, level, _) -> row.update(level, columns, 0, rowHeight, ownMode, priceTooltip(level, workflowSide),
                     actions));
             var listRows = new ArrayList<UIComponent>(this.rows);
             if (levels.isEmpty()) {

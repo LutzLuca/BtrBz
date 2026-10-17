@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 import com.github.lutzluca.btrbz.core.ui.UiButton;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiText;
@@ -21,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.Minecraft;
 import io.wispforest.owo.ui.core.Size;
 import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 final class FullOrderBookWidgetView
     implements WidgetView<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction> {
@@ -47,7 +49,12 @@ final class FullOrderBookWidgetView
     private OrderBookWidgetConfig config;
     private boolean hasItem;
 
-    FullOrderBookWidgetView() {
+    private final Supplier<Mode> ownMode;
+
+    FullOrderBookWidgetView(
+        Supplier<Mode> ownMode
+    ) {
+        this.ownMode = ownMode;
         this.root.allowOverflow(true);
         this.root.gap(0);
         this.root.padding(Insets.vertical(2));
@@ -120,7 +127,7 @@ final class FullOrderBookWidgetView
 
     @Override
     public void updateLayout(Size availableSpace) {
-        var layout = this.table.measure(this.depth, this.config,
+        var layout = this.table.measure(this.depth, this.config, this.ownMode.get(),
             Math.max(1, availableSpace.width() - SCREEN_MARGIN * 2));
         int width = layout.contentWidth();
         this.root.horizontalSizing(Sizing.fixed(width));
@@ -136,7 +143,7 @@ final class FullOrderBookWidgetView
         int availableHeight = availableSpace.height() - SCREEN_MARGIN * 2
             - headerHeight - (font.lineHeight + this.spreadLine.padding().get().vertical())
             - BACK_BUTTON_HEIGHT - FOOTER_TOP_PADDING - this.root.padding().get().vertical();
-        this.table.update(this.depth, this.config, this.actions, layout, availableHeight);
+        this.table.update(this.depth, this.config, this.ownMode.get(), this.actions, layout, availableHeight);
         this.instruction.text(UiText.firstFittingText(List.of(
             Component.literal("Click a price to copy it and return"),
             Component.literal("Click a price to copy")),

@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -19,7 +20,8 @@ public final class OrderBookWidgetDefinition {
     public static WidgetDefinition<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction> create(
         WidgetDataSource<OrderBookWidgetData.Snapshot> provider,
         OrderBookPriceComponent embeddedWorkflow,
-        Supplier<OrderBookWidgetConfig> configSupplier
+        Supplier<OrderBookWidgetConfig> configSupplier,
+        Supplier<Mode> ownMode
     ) {
         var config = new WidgetConfigHandle<>(ID,
             configSupplier, OrderBookWidgetConfig::new,
@@ -37,7 +39,7 @@ public final class OrderBookWidgetDefinition {
                 var data = OrderBookWidgetData.preview();
                 return new WidgetPreview<>(data, WidgetPreviewSessions.orderBook(data), "default");
             })
-            .viewFactory(FullOrderBookWidgetView::new)
+            .viewFactory(() -> new FullOrderBookWidgetView(ownMode))
             .actionHandler(new OrderBookActionHandler(embeddedWorkflow))
             .settingsPanel(OrderBookWidgetSettings::create)
             .minSize(WidgetLayoutTokens.panelWidth(OrderBookWidgetConfig.MIN_CONTENT_WIDTH), 48)

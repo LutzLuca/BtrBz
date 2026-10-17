@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -51,10 +52,16 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         this.sell.list.onScroll((offset, instant) -> this.synchronizeScroll(this.sell, this.buy, offset, instant));
     }
 
-    Layout measure(OrderBookDepth book, OrderBookWidgetConfig config, int availableWidth) {
+    Layout measure(
+        OrderBookDepth book,
+        OrderBookWidgetConfig config,
+        Mode ownMode,
+        int availableWidth
+    ) {
         var font = Minecraft.getInstance().font;
         var measured = OrderBookColumns.measure(book.buy().stream().map(Level::entry).toList(),
-            book.sell().stream().map(Level::entry).toList(), font::width);
+            book.sell().stream().map(Level::entry).toList(), font::width,
+            ownMode == Mode.Detailed);
         int priceWidth = measured.price();
         int quantityWidth = measured.quantity();
         int ordersWidth = measured.orders();
@@ -105,6 +112,7 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
     void update(
         OrderBookDepth book,
         OrderBookWidgetConfig config,
+        Mode ownMode,
         Consumer<OrderBookAction> actions,
         Layout layout,
         int availableHeight
@@ -125,9 +133,9 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         int height = headerHeight + viewportHeight;
 
         this.buy.update(book.buy(), columns, book.maximum(), rowHeight, viewportHeight, headerHeight,
-            this.synchronizedScrolling ? levelCount : book.buy().size(), actions);
+            this.synchronizedScrolling ? levelCount : book.buy().size(), ownMode, actions);
         this.sell.update(book.sell(), columns, book.maximum(), rowHeight, viewportHeight, headerHeight,
-            this.synchronizedScrolling ? levelCount : book.sell().size(), actions);
+            this.synchronizedScrolling ? levelCount : book.sell().size(), ownMode, actions);
         int tableHeight = this.stacked ? height * 2 + SIDE_GAP : height;
         this.sizing(Sizing.fixed(layout.contentWidth()), Sizing.fixed(tableHeight));
         this.dirty = true;
@@ -231,12 +239,13 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             int viewportHeight,
             int headerHeight,
             int scrollLevelCount,
+            Mode ownMode,
             Consumer<OrderBookAction> actions
         ) {
             this.rows = this.retainedRows.reconcile(levels,
                 level -> new LevelKey(this.side, Double.doubleToLongBits(level.entry().price())),
                 (level, _) -> new OrderBookRow(level, this.list, false),
-                (row, level, _) -> row.update(level, columns, maximum, rowHeight, levelTooltip(level, columns),
+                (row, level, _) -> row.update(level, columns, maximum, rowHeight, ownMode, levelTooltip(level, columns),
                     actions));
             var listRows = new ArrayList<UIComponent>(this.rows);
             if (levels.isEmpty()) {

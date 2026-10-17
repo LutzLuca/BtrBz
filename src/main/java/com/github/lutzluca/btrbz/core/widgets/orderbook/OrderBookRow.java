@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData.OrderSide;
@@ -17,6 +18,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
+import java.util.ArrayList;
 
 /** Retained price, quantity, optional order count and depth for one exact level. */
 final class OrderBookRow extends BaseUIComponent {
@@ -32,6 +34,7 @@ final class OrderBookRow extends BaseUIComponent {
     private FormattedCharSequence depth = FormattedCharSequence.EMPTY;
     private long maximum;
     private boolean hoverSuppressed;
+    private Mode ownMode;
 
     OrderBookRow(Level level, WidgetScrollListComponent viewport, boolean wholeRowClickable) {
         this.level = level;
@@ -44,17 +47,26 @@ final class OrderBookRow extends BaseUIComponent {
         OrderBookColumns columns,
         long maximum,
         int height,
+        Mode ownMode,
         List<Component> tooltip,
         Consumer<OrderBookAction> actions
     ) {
         this.level = level;
+        this.ownMode = ownMode;
         this.columns = columns;
         this.maximum = maximum;
         this.actions = actions;
         this.price = Component.literal(level.entry().priceText())
             .withStyle(UiStyles.money()).getVisualOrderText();
         this.quantity = Component.literal(level.entry().quantityText()).getVisualOrderText();
-        this.orders = Component.literal(level.orderCountText()).getVisualOrderText();
+        var orderText = Component.literal(level.orderCountText()).withStyle(UiStyles.muted());
+        if (ownMode == Mode.Detailed
+            && level.entry().ownOrders() > 0) {
+            orderText.append(Component.literal(" (" + level.entry().ownOrders() + ")").withStyle(UiStyles.primary()));
+            tooltip = new ArrayList<>(tooltip);
+            tooltip.add(Component.literal("Your orders: " + level.entry().ownOrders()).withStyle(UiStyles.primary()));
+        }
+        this.orders = orderText.getVisualOrderText();
         this.depth = Component.literal(level.depthText()).getVisualOrderText();
         this.tooltip(WidgetTooltips.wrapped(tooltip));
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
@@ -120,6 +132,12 @@ final class OrderBookRow extends BaseUIComponent {
         int ordersX = this.columns.ordersTextX(side, font.width(this.orders));
         int depthX = this.columns.totalTextX(side, font.width(this.depth));
         int middleY = this.y + (this.height - font.lineHeight) / 2;
+        if (this.ownMode != Mode.Off
+            && this.level.entry().ownOrders() > 0) {
+            int tickX = side == OrderSide.Buy ? this.x + priceX - 4 : this.x + priceX + font.width(this.price) + 2;
+            int tickY = middleY + font.lineHeight / 2 - 1;
+            graphics.fill(tickX, tickY, tickX + 2, tickY + 2, UiStyles.palette().textPrimary());
+        }
         this.text.begin();
         this.text.draw(graphics, font, this.price, this.x + priceX, middleY, UiStyles.palette().money(), false);
         if (!this.hoverSuppressed && this.isInBoundingBox(mouseX, mouseY) && this.overPrice(mouseX - this.x)) {
