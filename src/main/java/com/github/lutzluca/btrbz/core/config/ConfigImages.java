@@ -20,6 +20,7 @@ public enum ConfigImages {
     PriceAlert("alert-screen.png", 1426, 857),
     ProductContext("product-context.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
+    ClaimableOrders("claimable.png", 510, 309),
     FlipHelper("flip-helper.png", 994, 654),
     OrderLimit("order-limit.png", 597, 448),
     OrderNotification("order-notifications.png", 661, 235),

@@ -4,6 +4,7 @@ import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
 import com.github.lutzluca.btrbz.core.orderactions.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.chat.BazaarChatManager.ChatConfig;
+import com.github.lutzluca.btrbz.core.orderdisplay.ClaimableOrderIndicator.ClaimableOrderIndicatorConfig;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipHelper.FlipHelperConfig;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderHighlightManager.HighlightConfig;
 import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionConfig;
@@ -36,6 +37,9 @@ public class Config {
 
     @SerialEntry
     public ProductInfoConfig productInfo = new ProductInfoConfig();
+
+    @SerialEntry
+    public ClaimableOrderIndicatorConfig claimableOrderIndicator = new ClaimableOrderIndicatorConfig();
 
     @SerialEntry
     public OrderActionsConfig orderActions = new OrderActionsConfig();
