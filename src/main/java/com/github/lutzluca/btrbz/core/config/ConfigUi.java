@@ -8,6 +8,7 @@ import dev.isxander.yacl3.gui.image.ImageRenderer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import java.util.function.Function;
 import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import net.minecraft.network.chat.Component;
 
@@ -39,6 +40,17 @@ public final class ConfigUi {
 
     public static OptionDescription createDescription(Supplier<Component> text, ConfigImages image) {
         return new SuppliedDescription(text, image.description(Component.empty()).image());
+    }
+
+    /** Updates the preview of a focused YACL description as its option changes, including keyboard edits. */
+    public static <T> Function<T, OptionDescription> createPreviewDescription(
+        Function<T, OptionDescription> descriptions
+    ) {
+        var preview = new PreviewDescription();
+        return value -> {
+            preview.selected = descriptions.apply(value);
+            return preview;
+        };
     }
 
     public static Component paragraphs(Component... paragraphs) {
@@ -97,6 +109,20 @@ public final class ConfigUi {
 
     public static BooleanControllerBuilder createBooleanController(Option<Boolean> option) {
         return BooleanControllerBuilder.create(option).onOffFormatter().coloured(true);
+    }
+
+    private static final class PreviewDescription implements OptionDescription {
+        private OptionDescription selected = OptionDescription.EMPTY;
+
+        @Override
+        public Component text() {
+            return this.selected.text();
+        }
+
+        @Override
+        public CompletableFuture<Optional<ImageRenderer>> image() {
+            return this.selected.image();
+        }
     }
 
     private record SuppliedDescription(

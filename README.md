@@ -10,6 +10,7 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 - Keep orders visible outside the Bazaar with the Orders HUD
 - See order details in tooltips, including estimated queue positions, items ahead, and fill times
 - View order books while entering a price and select a price from the book
+- Add order book hints for your tracked orders in widgets and the native order book, with optional remaining item estimates
 - Check instant buy and sell prices in item tooltips, with totals for stacks and supported menu quantities
 - Compare the buy and sell price gap per item and across your sellable inventory
 - Get price alerts when instant buy or sell prices reach your targets

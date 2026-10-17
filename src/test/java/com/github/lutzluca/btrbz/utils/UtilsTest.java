@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.utils;
 
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -91,8 +92,14 @@ class UtilsTest {
         Assertions.assertEquals(expected, parsed.get().doubleValue(), 0.000001d);
     }
 
+    @Test
+    void retainsDecimalPrecisionForExactPriceMatching() {
+        Assertions.assertEquals(new BigDecimal("9007199254740992.1"),
+            Utils.parseUsFormattedNumber("9,007,199,254,740,992.1").get());
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"abc", ""})
+    @ValueSource(strings = {"abc", "", "12.3 coins", "12.3k", "1,23.4", "1,234,", "NaN", "1E3", "12."})
     void rejectsInvalidNumbers(String input) {
         Assertions.assertTrue(Utils.parseUsFormattedNumber(input).isFailure());
     }

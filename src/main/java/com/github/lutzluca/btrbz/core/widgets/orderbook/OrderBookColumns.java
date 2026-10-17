@@ -1,6 +1,5 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
-import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData.OrderSide;
 import java.util.List;
 import java.util.function.ToIntFunction;
@@ -15,18 +14,21 @@ record OrderBookColumns(
     private static final int ORDERS_WEIGHT = 17;
 
     static Widths measure(
-        List<OrderBookWidgetData.Entry> buy,
-        List<OrderBookWidgetData.Entry> sell,
+        List<OrderBookDepth.Level> buy,
+        List<OrderBookDepth.Level> sell,
         ToIntFunction<String> textWidth
     ) {
         int price = textWidth.applyAsInt("Price");
         int quantity = textWidth.applyAsInt("Quantity");
         int orders = textWidth.applyAsInt("Orders");
         for (var entries : List.of(buy, sell)) {
-            for (var entry : entries) {
-                price = Math.max(price, textWidth.applyAsInt(entry.priceText()));
+            for (var level : entries) {
+                var entry = level.entry();
+                int marker = level.hint().isPresent()
+                    ? textWidth.applyAsInt(OrderBookRow.MARKER) + OrderBookRow.MARKER_GAP : 0;
+                price = Math.max(price, textWidth.applyAsInt(entry.priceText()) + marker);
                 quantity = Math.max(quantity, textWidth.applyAsInt(entry.quantityText()));
-                orders = Math.max(orders, textWidth.applyAsInt(BazaarWidgetViewData.formatInt(entry.orders())));
+                orders = Math.max(orders, textWidth.applyAsInt(level.ordersColumnText()));
             }
         }
         return new Widths(price, quantity, orders);

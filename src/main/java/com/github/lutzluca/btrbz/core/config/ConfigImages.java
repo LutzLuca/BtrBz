@@ -9,12 +9,18 @@ import org.jetbrains.annotations.Nullable;
 
 /** Config-screen images with their native dimensions and widget associations. */
 public enum ConfigImages {
+    OrderBookHintNativeCompact("order-book-hint-native-compact.png", 536, 276),
+    OrderBookHintNativeRemaining("order-book-hint-native-remaining.png", 500, 316),
+    OrderBookHintEmbeddedOff("order-book-hint-embedded-off.png", 452, 256),
+    OrderBookHintEmbeddedHighlight("order-book-hint-embedded-highlight.png", 452, 256),
+    OrderBookHintEmbeddedDetailed("order-book-hint-embedded-detailed.png", 452, 256),
+    OrderBookHintFullBook("order-book-hint-full-book.png", 936, 534),
+    OrderBookHintTooltipCompact("order-book-hint-tooltip-compact.png", 312, 160),
+    OrderBookHintTooltipRemaining("order-book-hint-tooltip-remaining.png", 312, 180),
     PriceAlert("alert-screen.png", 1426, 857),
     ProductContext("product-context.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
     FlipHelper("flip-helper.png", 994, 654),
-    OrderBookScreen("order-book-screen.png", 1506, 847),
-    OrderBookSign("order-book-sign.png", 1027, 577),
     OrderLimit("order-limit.png", 597, 448),
     OrderNotification("order-notifications.png", 661, 235),
     OrderPresets("order-presets.png", 661, 372),
@@ -54,8 +60,8 @@ public enum ConfigImages {
             case "btrbz:bazaar_orders" -> ConfigImages.TrackedOrdersHud;
             case "btrbz:tracked_orders_list" -> ConfigImages.TrackedOrdersBazaar;
             case "btrbz:order_value" -> ConfigImages.OrderValueOverView;
-            case "btrbz:order_book" -> ConfigImages.OrderBookScreen;
-            case "btrbz:order_book_price" -> ConfigImages.OrderBookSign;
+            case "btrbz:order_book" -> ConfigImages.OrderBookHintFullBook;
+            case "btrbz:order_book_price" -> ConfigImages.OrderBookHintEmbeddedDetailed;
             case "btrbz:bookmarks" -> ConfigImages.Bookmarks;
             case "btrbz:order_presets" -> ConfigImages.OrderPresets;
             case "btrbz:order_limit" -> ConfigImages.OrderLimit;

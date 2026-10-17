@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.utils;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
+import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -149,6 +150,14 @@ public final class GameUtils {
     public static <T> void copyToClipboard(T value) {
         Minecraft client = Minecraft.getInstance();
         client.keyboardHandler.setClipboard(String.valueOf(value));
+    }
+
+    /** Resolves the displayed tooltip stack back to its hovered slot, including copies supplied by other mods. */
+    public static Optional<Slot> hoveredSlot(ItemStack stack) {
+        return ScreenTracker.get().getCurrInfo().getGenericContainerScreen()
+            .map(
+                screen -> screen instanceof AbstractContainerScreenAccessor accessor ? accessor.getHoveredSlot() : null)
+            .filter(slot -> ItemStack.matches(slot.getItem(), stack));
     }
 
     public static boolean isPlayerInventorySlot(@Nullable Slot slot) {

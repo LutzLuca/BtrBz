@@ -11,19 +11,28 @@ import com.github.lutzluca.btrbz.utils.GameUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookMatches.Match;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookMatches;
+import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 
 /** Shared order-book snapshots for the custom-screen and sign widgets. */
 public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidgetData.Snapshot> {
     private final BazaarData market;
+    private final TrackedOrderManager orders;
     private final CacheDependencies dependencies;
 
-    public OrderBookWidgetData(BazaarData market) {
+    public OrderBookWidgetData(
+        BazaarData market,
+        TrackedOrderManager orders
+    ) {
         this.market = market;
-        this.dependencies = CacheDependencies.of(market.marketChanges(), market.indexChanges());
+        this.orders = orders;
+        this.dependencies = CacheDependencies.of(market.marketChanges(), market.indexChanges(), orders.dataChanges());
     }
 
     @Override
@@ -53,15 +62,18 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
             return new Snapshot(name, itemStack, List.of(), List.of(), appropriateSide);
         }
         var lists = this.market.getOrderLists(product);
+        var matches = OrderBookMatches.from(product, this.orders.currentOrders());
         return new Snapshot(
             name,
             itemStack,
             lists.buyOrders().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Buy, summary.getPricePerUnit(),
-                summary.getAmount(), summary.getOrders())).toList(),
+                summary.getAmount(), summary.getOrders(), matches.at(OrderType.Buy, summary.getPricePerUnit())))
+                .toList(),
             lists.sellOffers().stream().map(summary -> new Entry(
                 BazaarWidgetViewData.OrderSide.Sell, summary.getPricePerUnit(),
-                summary.getAmount(), summary.getOrders())).toList(),
+                summary.getAmount(), summary.getOrders(), matches.at(OrderType.Sell, summary.getPricePerUnit())))
+                .toList(),
             appropriateSide);
     }
 
@@ -84,12 +96,15 @@ public final class OrderBookWidgetData implements WidgetDataSource<OrderBookWidg
                 side,
                 start + (side == BazaarWidgetViewData.OrderSide.Buy ? -index : index) * 12_500,
                 18 + index * 23,
-                5 + index * 4));
+                5 + index * 4, new Match(index == 1 ? 2 : index == 4 ? 1 : 0,
+                    index == 1 ? OptionalLong.of(28) : index == 4 ? OptionalLong.of(3) : OptionalLong.empty())));
         }
         return values;
     }
 
-    public record Entry(BazaarWidgetViewData.OrderSide side, double price, long quantity, long orders) {
+    public record Entry(
+        BazaarWidgetViewData.OrderSide side, double price, long quantity, long orders, Match personalOrders
+    ) {
         public String priceText() {
             return BazaarWidgetViewData.formatPrice(this.price);
         }

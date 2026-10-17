@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
 import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -32,6 +33,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 /** Dense numeric order book whose price actions belong to the sign workflow. */
 final class EmbeddedOrderBookWidgetView
@@ -40,6 +42,7 @@ final class EmbeddedOrderBookWidgetView
     private static final int COLUMN_GAP = 4;
     private static final int SCROLLBAR_THICKNESS = 2;
     private static final int INSET = WidgetLayoutTokens.ROW_HORIZONTAL_PADDING + SCROLLBAR_THICKNESS;
+    private final Supplier<OrderBookHintConfig> hintConfig;
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
@@ -56,7 +59,10 @@ final class EmbeddedOrderBookWidgetView
     private Consumer<OrderBookAction> actions = _ -> {};
     private boolean hasItem;
 
-    EmbeddedOrderBookWidgetView() {
+    EmbeddedOrderBookWidgetView(
+        Supplier<OrderBookHintConfig> hintConfig
+    ) {
+        this.hintConfig = hintConfig;
         this.root.allowOverflow(true);
         this.header.verticalAlignment(VerticalAlignment.CENTER);
         this.header.gap(3);
@@ -79,7 +85,7 @@ final class EmbeddedOrderBookWidgetView
         Consumer<OrderBookAction> actions
     ) {
         this.data = data;
-        this.book = OrderBookDepth.from(data, DepthMode.Hidden);
+        this.book = OrderBookDepth.from(data, DepthMode.Hidden, this.hintConfig.get());
         this.config = config;
         this.workflowSide = session.side().orElseThrow();
         this.actions = actions;
@@ -110,8 +116,8 @@ final class EmbeddedOrderBookWidgetView
         boolean showSell = OrderBookWidget.showsEmbeddedSide(this.config, this.data, OrderSide.Sell);
         boolean single = !showBuy || !showSell;
         var font = Minecraft.getInstance().font;
-        var measured = OrderBookColumns.measure(showBuy ? this.data.buyOffers() : List.of(),
-            showSell ? this.data.sellOffers() : List.of(), font::width);
+        var measured = OrderBookColumns.measure(showBuy ? this.book.buy() : List.of(),
+            showSell ? this.book.sell() : List.of(), font::width);
         int preferredContentWidth = OrderBookWidget.embeddedContentWidth(this.config, this.data);
         int preferredWidth = single ? preferredContentWidth : Math.max(1, (preferredContentWidth - SIDE_GAP) / 2);
         int minimumWidth = OrderBookColumns.numeric(1, measured, this.config.showOrderCount, INSET, COLUMN_GAP).width();
@@ -165,14 +171,15 @@ final class EmbeddedOrderBookWidgetView
         double submittedPrice = OrderBookPriceComponent.adjustPrice(entry.price(), workflowSide);
         String adjustment = Double.compare(submittedPrice, entry.price()) == 0
             ? "" : workflowSide == OrderType.Buy ? " (+0.1)" : " (-0.1)";
-        return List.of(
-            Component.literal(level.boundText(DepthMode.Hidden)).withStyle(UiStyles.quantity()),
-            Component.literal(level.ordersText()).withStyle(UiStyles.muted()),
+        var tooltip = OrderBookRow.priceTooltip(level, false);
+        tooltip.add(Component.empty());
+        tooltip.add(
             Component.literal("Click: submit ").withStyle(UiStyles.label())
                 .append(Component.literal(BazaarWidgetViewData.formatPrice(submittedPrice)).withStyle(UiStyles.money()))
-                .append(Component.literal(adjustment).withStyle(UiStyles.money())),
-            Component.literal("Ctrl-click: copy ").withStyle(UiStyles.label())
-                .append(Component.literal(entry.priceText()).withStyle(UiStyles.money())));
+                .append(Component.literal(adjustment).withStyle(UiStyles.money())));
+        tooltip.add(Component.literal("Ctrl-click: copy ").withStyle(UiStyles.label())
+            .append(Component.literal(entry.priceText()).withStyle(UiStyles.money())));
+        return tooltip;
     }
 
     private static final class Side extends BaseParentUIComponent {

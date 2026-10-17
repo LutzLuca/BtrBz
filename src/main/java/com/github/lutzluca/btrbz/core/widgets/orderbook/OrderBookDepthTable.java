@@ -51,10 +51,13 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
         this.sell.list.onScroll((offset, instant) -> this.synchronizeScroll(this.sell, this.buy, offset, instant));
     }
 
-    Layout measure(OrderBookDepth book, OrderBookWidgetConfig config, int availableWidth) {
+    Layout measure(
+        OrderBookDepth book,
+        OrderBookWidgetConfig config,
+        int availableWidth
+    ) {
         var font = Minecraft.getInstance().font;
-        var measured = OrderBookColumns.measure(book.buy().stream().map(Level::entry).toList(),
-            book.sell().stream().map(Level::entry).toList(), font::width);
+        var measured = OrderBookColumns.measure(book.buy(), book.sell(), font::width);
         int priceWidth = measured.price();
         int quantityWidth = measured.quantity();
         int ordersWidth = measured.orders();
@@ -189,17 +192,6 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
 
     private record LevelKey(OrderSide side, long priceBits) {}
 
-    private static List<Component> levelTooltip(Level level, OrderBookColumns columns) {
-        var tooltip = new ArrayList<Component>();
-        tooltip.add(Component.literal(level.boundText(DepthMode.Relative)).withStyle(UiStyles.quantity()));
-        tooltip.add(Component.literal(level.ordersText()).withStyle(UiStyles.muted()));
-        if (columns.hasTotal()) {
-            tooltip.add(
-                Component.literal("Total: " + level.boundText(DepthMode.Cumulative)).withStyle(UiStyles.quantity()));
-        }
-        return tooltip;
-    }
-
     private static final class Side extends BaseParentUIComponent {
         private final OrderSide side;
         private final Headers headers;
@@ -236,7 +228,8 @@ final class OrderBookDepthTable extends BaseParentUIComponent {
             this.rows = this.retainedRows.reconcile(levels,
                 level -> new LevelKey(this.side, Double.doubleToLongBits(level.entry().price())),
                 (level, _) -> new OrderBookRow(level, this.list, false),
-                (row, level, _) -> row.update(level, columns, maximum, rowHeight, levelTooltip(level, columns),
+                (row, level, _) -> row.update(level, columns, maximum, rowHeight,
+                    OrderBookRow.priceTooltip(level, columns.hasTotal()),
                     actions));
             var listRows = new ArrayList<UIComponent>(this.rows);
             if (levels.isEmpty()) {

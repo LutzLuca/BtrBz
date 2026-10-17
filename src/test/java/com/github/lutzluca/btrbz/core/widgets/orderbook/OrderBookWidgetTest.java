@@ -6,6 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig.DepthMode;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig.Mode;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookMatches.Match;
+import java.util.OptionalLong;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -53,11 +57,15 @@ class OrderBookWidgetTest {
         var buy = BazaarWidgetViewData.OrderSide.Buy;
         var sell = BazaarWidgetViewData.OrderSide.Sell;
         var measured = OrderBookColumns.measure(
-            List.of(level(buy, 100, 1, 1)),
-            List.of(level(sell, 12_515_660.2, 3_000_000_000L, 1_234_567L)), String::length);
-        assertEquals("12,515,660.2".length(), measured.price());
+            List.of(new OrderBookDepth.Level(level(buy, 100, 1, 1), 1, Optional.empty())),
+            List.of(new OrderBookDepth.Level(
+                new OrderBookWidgetData.Entry(sell, 12_515_660.2, 3_000_000_000L, 1_234_567L,
+                    new Match(2, OptionalLong.of(28))),
+                3_000_000_000L, Optional.of(new OrderBookDepth.Hint(new Match(2, OptionalLong.of(28)), true, false)))),
+            String::length);
+        assertEquals("12,515,660.2".length() + 3, measured.price());
         assertEquals("3,000,000,000".length(), measured.quantity());
-        assertEquals("1,234,567".length(), measured.orders());
+        assertEquals("1,234,567 (2)".length(), measured.orders());
         var columns = OrderBookColumns.numeric(20, measured, true, 5, 4);
         assertTrue(columns.priceWidth() >= measured.price());
         assertTrue(columns.quantityWidth() >= measured.quantity());
@@ -73,6 +81,53 @@ class OrderBookWidgetTest {
         assertFalse(withoutOrders.hasOrders());
         assertEquals(5, withoutOrders.quantityX(sell));
         assertTrue(withoutOrders.width() < columns.width());
+    }
+
+    @Test
+    void hintModesPreservePublicRowsAndVolumes() {
+        var entry = new OrderBookWidgetData.Entry(BazaarWidgetViewData.OrderSide.Buy, 12.3, 41, 9,
+            new Match(2, OptionalLong.of(28)));
+        var snapshot = new OrderBookWidgetData.Snapshot(Component.literal("Product"), Optional.empty(),
+            List.of(entry), List.of(), Optional.empty());
+
+        for (var mode : Mode.values()) {
+            var book = OrderBookDepth.from(snapshot, DepthMode.Relative, hints(mode));
+            assertEquals(List.of(entry), book.buy().stream().map(OrderBookDepth.Level::entry).toList());
+            assertEquals(41, book.maximum());
+            assertEquals("9 orders", book.buy().getFirst().ordersText());
+            assertEquals(mode != Mode.Off, book.buy().getFirst().hint().isPresent());
+            assertEquals(mode == Mode.Detailed ? "9 (2)" : "9", book.buy().getFirst().ordersColumnText());
+        }
+    }
+
+    @Test
+    void widgetRemainingPreferenceControlsOnlyPersonalTooltipDetails() {
+        var match = new Match(2, OptionalLong.of(28));
+        var entry = new OrderBookWidgetData.Entry(BazaarWidgetViewData.OrderSide.Buy, 12.3, 41, 9, match);
+        var snapshot = new OrderBookWidgetData.Snapshot(Component.literal("Product"), Optional.empty(),
+            List.of(entry), List.of(), Optional.empty());
+        var settings = hints(Mode.Detailed);
+
+        for (boolean showRemaining : List.of(false, true)) {
+            settings.showRemainingInWidgetTooltips = showRemaining;
+            var level = OrderBookDepth.from(snapshot, DepthMode.Relative, settings).buy().getFirst();
+            var tooltip = OrderBookRow.priceTooltip(level, false);
+            assertEquals(showRemaining
+                ? List.of("41 items at 12.3 coins", "9 orders", "", "Your orders: 2", "Unfilled: ~28 items")
+                : List.of("41 items at 12.3 coins", "9 orders", "", "Your orders: 2"),
+                tooltip.stream().map(Component::getString).toList());
+            assertEquals("41", level.entry().quantityText());
+        }
+
+        var unknown = new OrderBookDepth.Level(entry, 41,
+            Optional.of(new OrderBookDepth.Hint(new Match(2, OptionalLong.empty()), true, true)));
+        var tooltip = OrderBookRow.priceTooltip(unknown, false);
+        assertEquals("Unfilled: Unknown", tooltip.getLast().getString());
+        settings.mode = Mode.Highlight;
+        tooltip = OrderBookRow.priceTooltip(
+            OrderBookDepth.from(snapshot, DepthMode.Relative, settings).buy().getFirst(), false);
+        assertEquals(List.of("41 items at 12.3 coins", "9 orders"),
+            tooltip.stream().map(Component::getString).toList());
     }
 
     @Test
@@ -93,7 +148,7 @@ class OrderBookWidgetTest {
             level(BazaarWidgetViewData.OrderSide.Sell, 93_999_987.3, 1, 1));
         var snapshot = new OrderBookWidgetData.Snapshot(
             Component.literal("Flash V"), Optional.empty(), buys, sells, Optional.empty());
-        var depth = OrderBookDepth.from(snapshot, DepthMode.Cumulative);
+        var depth = OrderBookDepth.from(snapshot, DepthMode.Cumulative, hints(Mode.Off));
 
         assertEquals(List.of(1L, 5L, 6L, 7L), depth.buy().stream().map(OrderBookDepth.Level::depth).toList());
         assertEquals(List.of(1L, 3L, 4L, 5L, 10L, 12L, 13L, 19L),
@@ -112,7 +167,7 @@ class OrderBookWidgetTest {
         assertEquals("10 items at 75,425,921.9 coins or cheaper", depth.sell().get(4).boundText(depth.mode()));
         assertEquals("5 items at 60,000,000.2 coins or higher", depth.buy().get(1).boundText(depth.mode()));
 
-        var relative = OrderBookDepth.from(snapshot, DepthMode.Relative);
+        var relative = OrderBookDepth.from(snapshot, DepthMode.Relative, hints(Mode.Off));
         assertEquals(List.of(1L, 4L, 1L, 1L),
             relative.buy().stream().map(OrderBookDepth.Level::depth).toList());
         assertEquals(List.of(1L, 2L, 1L, 1L, 5L, 2L, 1L, 6L),
@@ -128,7 +183,7 @@ class OrderBookWidgetTest {
 
     @Test
     void missingSidesAndZeroDepthHaveNoSpreadAndWideCountsRemainExact() {
-        var empty = OrderBookDepth.from(book(Optional.empty()), DepthMode.Cumulative);
+        var empty = OrderBookDepth.from(book(Optional.empty()), DepthMode.Cumulative, hints(Mode.Off));
         assertEquals(0, empty.maximum());
         assertTrue(empty.spread().isEmpty());
         var sell = BazaarWidgetViewData.OrderSide.Sell;
@@ -137,7 +192,7 @@ class OrderBookWidgetTest {
                 level(sell, 101.2, 3_000_000_000L, 9),
                 level(sell, 101.1, 0, 0),
                 level(sell, 101.3, 3_000_000_000L, 2)),
-            Optional.empty()), DepthMode.Cumulative);
+            Optional.empty()), DepthMode.Cumulative, hints(Mode.Off));
         assertTrue(depth.spread().isEmpty());
         assertEquals("Unavailable", depth.spreadText());
         assertEquals(0, depth.sell().getFirst().fillFraction(depth.maximum()));
@@ -148,13 +203,19 @@ class OrderBookWidgetTest {
         assertEquals("3,000,000,000", depth.sell().get(1).entry().quantityText());
     }
 
+    private static OrderBookHintConfig hints(Mode mode) {
+        var hints = new OrderBookHintConfig();
+        hints.mode = mode;
+        return hints;
+    }
+
     private static OrderBookWidgetData.Entry level(
         BazaarWidgetViewData.OrderSide side,
         double price,
         long quantity,
         long orders
     ) {
-        return new OrderBookWidgetData.Entry(side, price, quantity, orders);
+        return new OrderBookWidgetData.Entry(side, price, quantity, orders, new Match(0, OptionalLong.empty()));
     }
 
     private static OrderBookPriceWidgetConfig options(

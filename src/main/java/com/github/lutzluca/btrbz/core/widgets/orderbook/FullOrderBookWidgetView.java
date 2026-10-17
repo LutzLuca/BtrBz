@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
 import com.github.lutzluca.btrbz.core.ui.UiButton;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiText;
@@ -21,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.Minecraft;
 import io.wispforest.owo.ui.core.Size;
 import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 final class FullOrderBookWidgetView
     implements WidgetView<OrderBookWidgetData.Snapshot, OrderBookWidgetConfig, OrderBookAction> {
@@ -29,6 +31,7 @@ final class FullOrderBookWidgetView
     private static final int FOOTER_TOP_PADDING = 6;
     private static final int BACK_BUTTON_WIDTH = 60;
     private static final int BACK_BUTTON_HEIGHT = 20;
+    private final Supplier<OrderBookHintConfig> hintConfig;
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
@@ -47,7 +50,10 @@ final class FullOrderBookWidgetView
     private OrderBookWidgetConfig config;
     private boolean hasItem;
 
-    FullOrderBookWidgetView() {
+    FullOrderBookWidgetView(
+        Supplier<OrderBookHintConfig> hintConfig
+    ) {
+        this.hintConfig = hintConfig;
         this.root.allowOverflow(true);
         this.root.gap(0);
         this.root.padding(Insets.vertical(2));
@@ -96,7 +102,7 @@ final class FullOrderBookWidgetView
         Consumer<OrderBookAction> actions
     ) {
         this.actions = actions;
-        this.depth = OrderBookDepth.from(data, config.depthMode);
+        this.depth = OrderBookDepth.from(data, config.depthMode, this.hintConfig.get());
         this.config = config;
         this.spread.text(Component.literal("Spread: ").withStyle(UiStyles.label()).append(
             Component.literal(this.depth.spreadText()).withStyle(

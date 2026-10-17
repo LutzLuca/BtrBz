@@ -1,5 +1,6 @@
 package com.github.lutzluca.btrbz.core.config;
 
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
 import com.github.lutzluca.btrbz.core.orderactions.BazaarOrderActions.OrderActionsConfig;
 import com.github.lutzluca.btrbz.core.chat.BazaarChatManager.ChatConfig;
@@ -17,6 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Config {
+
+    @SerialEntry
+    public OrderBookHintConfig orderBookHints = new OrderBookHintConfig();
 
     @SerialEntry
     public boolean enabled = true;
