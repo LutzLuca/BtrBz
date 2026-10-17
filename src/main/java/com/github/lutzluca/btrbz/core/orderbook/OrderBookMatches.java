@@ -10,26 +10,29 @@ import java.util.Map;
 import java.util.OptionalLong;
 
 /** Exact price-level matches from the active personal menu snapshots, independent of public depth. */
-public final class OwnOrderLevels {
+public final class OrderBookMatches {
     private static final Match NONE = new Match(0, OptionalLong.empty());
     private final Map<Key, Match> levels;
 
-    private OwnOrderLevels(Map<Key, Match> levels) {
+    private OrderBookMatches(Map<Key, Match> levels) {
         this.levels = Map.copyOf(levels);
     }
 
-    public static OwnOrderLevels from(ProductIdentity product, List<TrackedOrderSnapshot> orders) {
+    public static OrderBookMatches from(ProductIdentity product, List<TrackedOrderSnapshot> orders) {
         var levels = new HashMap<Key, Match>();
         var productId = product.bazaarProductId();
         if (productId.isEmpty()) {
-            return new OwnOrderLevels(levels);
+            return new OrderBookMatches(levels);
         }
+
         for (var order : orders) {
             if (!productId.equals(order.product().bazaarProductId()) || !supportedPrice(order.pricePerUnit())) {
                 continue;
             }
+
             var key = new Key(order.type(), order.pricePerUnit());
             var previous = levels.get(key);
+
             boolean known = order.slot() >= 0 && order.volume() > 0
                 && order.fillAmountSnapshot() >= 0
                 && order.fillAmountSnapshot() <= order.volume();
@@ -39,9 +42,11 @@ public final class OwnOrderLevels {
                 remaining = previous.remaining().isPresent() && remaining.isPresent()
                     ? OptionalLong.of(previous.remaining().getAsLong() + remaining.getAsLong()) : OptionalLong.empty();
             }
+
             levels.put(key, new Match(previous == null ? 1 : previous.count() + 1, remaining));
         }
-        return new OwnOrderLevels(levels);
+
+        return new OrderBookMatches(levels);
     }
 
     public Match at(OrderType side, double price) {

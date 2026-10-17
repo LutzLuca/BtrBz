@@ -6,7 +6,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
-import com.github.lutzluca.btrbz.mixin.AbstractContainerScreenAccessor;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.screen.ScreenTracker;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
@@ -175,7 +174,7 @@ public final class ProductInformation {
     }
 
     private @Nullable ProductLookup lookup(ItemStack stack) {
-        return this.lookup(stack, this.hoveredSlot(stack)
+        return this.lookup(stack, GameUtils.hoveredSlot(stack)
             .filter(slot -> !GameUtils.isPlayerInventorySlot(slot)).orElse(null));
     }
 
@@ -194,22 +193,8 @@ public final class ProductInformation {
             : null;
     }
 
-    private Optional<Slot> hoveredSlot(ItemStack stack) {
-        // Some mods give the tooltip code a copy of the item.
-        // Check that it matches the item in the hovered slot.
-        // Use that slot for menu lookup and player inventory checks.
-        return ScreenTracker
-            .get()
-            .getCurrInfo()
-            .getGenericContainerScreen()
-            .map(screen -> screen instanceof AbstractContainerScreenAccessor accessor
-                ? accessor.getHoveredSlot()
-                : null)
-            .filter(slot -> slot != null && ItemStack.matches(slot.getItem(), stack));
-    }
-
     private boolean isStackInPlayerInventory(ItemStack stack) {
-        var hoveredSlot = this.hoveredSlot(stack);
+        var hoveredSlot = GameUtils.hoveredSlot(stack);
         if (hoveredSlot.isPresent()) {
             return GameUtils.isPlayerInventorySlot(hoveredSlot.get());
         }

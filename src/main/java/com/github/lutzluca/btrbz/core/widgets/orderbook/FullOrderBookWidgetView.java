@@ -1,6 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
-import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
 import com.github.lutzluca.btrbz.core.ui.UiButton;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiText;
@@ -31,6 +31,7 @@ final class FullOrderBookWidgetView
     private static final int FOOTER_TOP_PADDING = 6;
     private static final int BACK_BUTTON_WIDTH = 60;
     private static final int BACK_BUTTON_HEIGHT = 20;
+    private final Supplier<OrderBookHintConfig> hintConfig;
     private final RetainedFlowLayout root = RetainedFlowLayout.vertical(Sizing.fixed(1), Sizing.content());
     private final RetainedFlowLayout header = RetainedFlowLayout.horizontal(Sizing.fill(100), Sizing.content());
     private @Nullable ItemComponent item;
@@ -49,12 +50,10 @@ final class FullOrderBookWidgetView
     private OrderBookWidgetConfig config;
     private boolean hasItem;
 
-    private final Supplier<Mode> ownMode;
-
     FullOrderBookWidgetView(
-        Supplier<Mode> ownMode
+        Supplier<OrderBookHintConfig> hintConfig
     ) {
-        this.ownMode = ownMode;
+        this.hintConfig = hintConfig;
         this.root.allowOverflow(true);
         this.root.gap(0);
         this.root.padding(Insets.vertical(2));
@@ -103,7 +102,7 @@ final class FullOrderBookWidgetView
         Consumer<OrderBookAction> actions
     ) {
         this.actions = actions;
-        this.depth = OrderBookDepth.from(data, config.depthMode);
+        this.depth = OrderBookDepth.from(data, config.depthMode, this.hintConfig.get());
         this.config = config;
         this.spread.text(Component.literal("Spread: ").withStyle(UiStyles.label()).append(
             Component.literal(this.depth.spreadText()).withStyle(
@@ -127,7 +126,7 @@ final class FullOrderBookWidgetView
 
     @Override
     public void updateLayout(Size availableSpace) {
-        var layout = this.table.measure(this.depth, this.config, this.ownMode.get(),
+        var layout = this.table.measure(this.depth, this.config,
             Math.max(1, availableSpace.width() - SCREEN_MARGIN * 2));
         int width = layout.contentWidth();
         this.root.horizontalSizing(Sizing.fixed(width));
@@ -143,7 +142,7 @@ final class FullOrderBookWidgetView
         int availableHeight = availableSpace.height() - SCREEN_MARGIN * 2
             - headerHeight - (font.lineHeight + this.spreadLine.padding().get().vertical())
             - BACK_BUTTON_HEIGHT - FOOTER_TOP_PADDING - this.root.padding().get().vertical();
-        this.table.update(this.depth, this.config, this.ownMode.get(), this.actions, layout, availableHeight);
+        this.table.update(this.depth, this.config, this.actions, layout, availableHeight);
         this.instruction.text(UiText.firstFittingText(List.of(
             Component.literal("Click a price to copy it and return"),
             Component.literal("Click a price to copy")),

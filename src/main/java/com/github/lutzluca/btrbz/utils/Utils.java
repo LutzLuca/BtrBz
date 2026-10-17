@@ -2,6 +2,10 @@ package com.github.lutzluca.btrbz.utils;
 
 import io.vavr.control.Try;
 import java.text.NumberFormat;
+import java.text.DecimalFormat;
+import java.text.ParsePosition;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,10 +56,33 @@ public final class Utils {
         return formatter.format(value);
     }
 
-    public static Try<Number> parseUsFormattedNumber(String str) {
-        var nf = NumberFormat.getNumberInstance(Locale.US);
-        nf.setParseIntegerOnly(false);
-        return Try.of(() -> nf.parse(str.trim()));
+    /** Parses a complete US decimal, retaining precision and rejecting malformed thousands groups. */
+    public static Try<BigDecimal> parseUsFormattedNumber(String text) {
+        return Try.of(() -> {
+            String token = text.trim();
+            var format = (DecimalFormat) NumberFormat.getNumberInstance(Locale.US);
+            format.setParseBigDecimal(true);
+            var position = new ParsePosition(0);
+            var number = format.parse(token, position);
+
+            if (!(number instanceof BigDecimal value) || position.getIndex() != token.length()
+                || token.indexOf('E') >= 0
+                || !Character.isDigit(token.charAt(token.length() - 1))) {
+                throw new IllegalArgumentException("Invalid US decimal: " + text);
+            }
+
+            int decimal = token.indexOf('.');
+            String whole = decimal < 0 ? token : token.substring(0, decimal);
+            if (whole.indexOf(',') >= 0) {
+                format.setMaximumFractionDigits(0);
+                format.setRoundingMode(RoundingMode.DOWN);
+                if (!format.format(value).equals(whole)) {
+                    throw new IllegalArgumentException("Invalid thousands grouping: " + text);
+                }
+            }
+
+            return value;
+        });
     }
 
     public static <T> List<T> removeIfAndReturn(Collection<T> coll, Predicate<? super T> pred) {

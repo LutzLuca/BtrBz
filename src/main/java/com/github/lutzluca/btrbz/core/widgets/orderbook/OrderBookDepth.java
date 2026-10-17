@@ -1,6 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig.Mode;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookHintConfig;
+import com.github.lutzluca.btrbz.core.orderbook.OrderBookMatches.Match;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetConfig.DepthMode;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
@@ -24,10 +27,11 @@ record OrderBookDepth(
         sell = List.copyOf(sell);
     }
 
-    static OrderBookDepth from(OrderBookWidgetData.Snapshot snapshot, DepthMode mode) {
+    static OrderBookDepth from(OrderBookWidgetData.Snapshot snapshot, DepthMode mode, OrderBookHintConfig hints) {
         var buy = levels(snapshot.buyOffers(), Comparator.comparingDouble(OrderBookWidgetData.Entry::price)
-            .reversed(), mode);
-        var sell = levels(snapshot.sellOffers(), Comparator.comparingDouble(OrderBookWidgetData.Entry::price), mode);
+            .reversed(), mode, hints);
+        var sell = levels(snapshot.sellOffers(), Comparator.comparingDouble(OrderBookWidgetData.Entry::price), mode,
+            hints);
         long maximum = Math.max(maximum(buy), maximum(sell));
         Optional<BigDecimal> spread = buy.isEmpty() || sell.isEmpty()
             ? Optional.empty()
@@ -39,13 +43,18 @@ record OrderBookDepth(
     private static List<Level> levels(
         List<OrderBookWidgetData.Entry> entries,
         Comparator<OrderBookWidgetData.Entry> order,
-        DepthMode mode
+        DepthMode mode,
+        OrderBookHintConfig hints
     ) {
         var levels = new ArrayList<Level>(entries.size());
         long depth = 0;
         for (var entry : entries.stream().sorted(order).toList()) {
             depth = mode == DepthMode.Cumulative ? depth + entry.quantity() : entry.quantity();
-            levels.add(new Level(entry, depth));
+            var hint = hints.mode == Mode.Off || entry.personalOrders().count() == 0
+                ? Optional.<Hint>empty()
+                : Optional.of(
+                    new Hint(entry.personalOrders(), hints.mode == Mode.Detailed, hints.showRemainingInWidgetTooltips));
+            levels.add(new Level(entry, depth, hint));
         }
         return List.copyOf(levels);
     }
@@ -59,7 +68,14 @@ record OrderBookDepth(
         return this.spread.map(value -> format.format(value) + " coins").orElse("Unavailable");
     }
 
-    record Level(OrderBookWidgetData.Entry entry, long depth) {
+    record Hint(Match orders, boolean detailed, boolean showRemaining) {}
+
+    record Level(OrderBookWidgetData.Entry entry, long depth, Optional<Hint> hint) {
+        String ordersColumnText() {
+            return this.orderCountText() + this.hint.filter(Hint::detailed)
+                .map(value -> " (" + value.orders().count() + ")").orElse("");
+        }
+
         String depthText() {
             return BazaarWidgetViewData.formatInt(this.depth);
         }

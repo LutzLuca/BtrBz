@@ -1,9 +1,9 @@
 package com.github.lutzluca.btrbz.core.widgets.orderbook;
 
-import com.github.lutzluca.btrbz.core.orderbook.OwnOrderBookConfig.Mode;
 import com.github.lutzluca.btrbz.core.ui.RetainedTextRow;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData.OrderSide;
+import com.github.lutzluca.btrbz.core.widgets.data.BazaarWidgetViewData;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookDepth.Level;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetTooltips;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetScrollListComponent;
@@ -12,29 +12,32 @@ import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.FormattedCharSequence;
-import java.util.ArrayList;
 
 /** Retained price, quantity, optional order count and depth for one exact level. */
 final class OrderBookRow extends BaseUIComponent {
+    static final String MARKER = "►";
+    static final int MARKER_GAP = 2;
+
     private final RetainedTextRow text = new RetainedTextRow();
     private final WidgetScrollListComponent viewport;
     private final boolean wholeRowClickable;
     private Level level;
     private OrderBookColumns columns = new OrderBookColumns(1, 1, 1, 0, 0, false, 0, 0);
     private Consumer<OrderBookAction> actions = _ -> {};
+    private FormattedCharSequence marker = FormattedCharSequence.EMPTY;
     private FormattedCharSequence price = FormattedCharSequence.EMPTY;
     private FormattedCharSequence quantity = FormattedCharSequence.EMPTY;
     private FormattedCharSequence orders = FormattedCharSequence.EMPTY;
     private FormattedCharSequence depth = FormattedCharSequence.EMPTY;
     private long maximum;
     private boolean hoverSuppressed;
-    private Mode ownMode;
 
     OrderBookRow(Level level, WidgetScrollListComponent viewport, boolean wholeRowClickable) {
         this.level = level;
@@ -47,29 +50,65 @@ final class OrderBookRow extends BaseUIComponent {
         OrderBookColumns columns,
         long maximum,
         int height,
-        Mode ownMode,
         List<Component> tooltip,
         Consumer<OrderBookAction> actions
     ) {
         this.level = level;
-        this.ownMode = ownMode;
         this.columns = columns;
         this.maximum = maximum;
         this.actions = actions;
+
+        this.marker = Component.literal(MARKER).withStyle(UiStyles.primary()).getVisualOrderText();
         this.price = Component.literal(level.entry().priceText())
             .withStyle(UiStyles.money()).getVisualOrderText();
         this.quantity = Component.literal(level.entry().quantityText()).getVisualOrderText();
+
         var orderText = Component.literal(level.orderCountText()).withStyle(UiStyles.muted());
-        if (ownMode == Mode.Detailed
-            && level.entry().ownOrders() > 0) {
-            orderText.append(Component.literal(" (" + level.entry().ownOrders() + ")").withStyle(UiStyles.primary()));
-            tooltip = new ArrayList<>(tooltip);
-            tooltip.add(Component.literal("Your orders: " + level.entry().ownOrders()).withStyle(UiStyles.primary()));
+        var hint = level.hint().filter(OrderBookDepth.Hint::detailed);
+        if (hint.isPresent()) {
+            int count = hint.orElseThrow().orders().count();
+            orderText.append(Component.literal(" (" + count + ")").withStyle(UiStyles.primary()));
         }
         this.orders = orderText.getVisualOrderText();
+
         this.depth = Component.literal(level.depthText()).getVisualOrderText();
         this.tooltip(WidgetTooltips.wrapped(tooltip));
         this.sizing(Sizing.fill(100), Sizing.fixed(height));
+    }
+
+    static List<Component> priceTooltip(Level level, boolean showTotal) {
+        var entry = level.entry();
+        var tooltip = new ArrayList<Component>();
+        tooltip.add(Component.literal(entry.quantityText()).withStyle(UiStyles.quantity())
+            .append(Component.literal(entry.quantity() == 1 ? " item at " : " items at ").withStyle(UiStyles.label()))
+            .append(Component.literal(entry.priceText()).withStyle(UiStyles.money()))
+            .append(Component.literal(" coins").withStyle(UiStyles.label())));
+        tooltip.add(Component.literal(level.ordersText()).withStyle(UiStyles.muted()));
+        if (showTotal) {
+            tooltip.add(Component.literal("Total: ").withStyle(UiStyles.label())
+                .append(Component.literal(level.boundText(OrderBookWidgetConfig.DepthMode.Cumulative))
+                    .withStyle(UiStyles.quantity())));
+        }
+
+        var hint = level.hint().filter(OrderBookDepth.Hint::detailed);
+        if (hint.isEmpty()) {
+            return tooltip;
+        }
+
+        var details = hint.orElseThrow();
+        tooltip.add(Component.empty());
+        tooltip.add(Component.literal("Your orders: ").withStyle(UiStyles.heading())
+            .append(Component.literal(String.valueOf(details.orders().count())).withStyle(UiStyles.primary())));
+        if (details.showRemaining()) {
+            var remaining = details.orders().remaining();
+            String amount = remaining.isPresent()
+                ? "~" + BazaarWidgetViewData.formatInt(remaining.getAsLong())
+                    + (remaining.getAsLong() == 1 ? " item" : " items")
+                : "Unknown";
+            tooltip.add(Component.literal("Unfilled: ").withStyle(UiStyles.label())
+                .append(Component.literal(amount).withStyle(UiStyles.primary())));
+        }
+        return tooltip;
     }
 
     void suppressHover(boolean suppressed) {
@@ -132,13 +171,11 @@ final class OrderBookRow extends BaseUIComponent {
         int ordersX = this.columns.ordersTextX(side, font.width(this.orders));
         int depthX = this.columns.totalTextX(side, font.width(this.depth));
         int middleY = this.y + (this.height - font.lineHeight) / 2;
-        if (this.ownMode != Mode.Off
-            && this.level.entry().ownOrders() > 0) {
-            int tickX = side == OrderSide.Buy ? this.x + priceX - 4 : this.x + priceX + font.width(this.price) + 2;
-            int tickY = middleY + font.lineHeight / 2 - 1;
-            graphics.fill(tickX, tickY, tickX + 2, tickY + 2, UiStyles.palette().textPrimary());
-        }
         this.text.begin();
+        if (this.level.hint().isPresent()) {
+            this.text.draw(graphics, font, this.marker, this.x + priceX - font.width(this.marker) - MARKER_GAP,
+                middleY, UiStyles.palette().textPrimary(), false);
+        }
         this.text.draw(graphics, font, this.price, this.x + priceX, middleY, UiStyles.palette().money(), false);
         if (!this.hoverSuppressed && this.isInBoundingBox(mouseX, mouseY) && this.overPrice(mouseX - this.x)) {
             graphics.fill(this.x + priceX, middleY + font.lineHeight,

@@ -26,7 +26,7 @@ import com.github.lutzluca.btrbz.core.fliphelper.FlipProductContext;
 import com.github.lutzluca.btrbz.core.fliphelper.FlipSubmissionTracker;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreenController;
 import com.github.lutzluca.btrbz.core.orderbook.OrderBookScreen;
-import com.github.lutzluca.btrbz.core.orderbook.NativeOrderBookLore;
+import com.github.lutzluca.btrbz.core.orderbook.NativeOrderBookHint;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
@@ -246,8 +246,8 @@ public class BtrBz implements ClientModInitializer {
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);
         new ProductInformation(this.bazaarData, this.bazaarProductContext,
             () -> configStore.config().productInfo);
-        new NativeOrderBookLore(this.bazaarData, this.orderManager,
-            () -> configStore.config().ownOrderBook);
+        new NativeOrderBookHint(this.bazaarProductContext, this.orderManager,
+            () -> configStore.config().orderBookHints);
         this.orderActions = new BazaarOrderActions(this.bazaarData);
         var bookmarks = new BookmarkComponent(
             this.bazaarData,
@@ -284,10 +284,10 @@ public class BtrBz implements ClientModInitializer {
             this.orderValue, () -> configStore.config().widgets.orderValue);
         var orderBookWidgetDefinition = OrderBookWidgetDefinition.create(
             orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookScreen,
-            () -> configStore.config().ownOrderBook.mode);
+            () -> configStore.config().orderBookHints);
         var orderBookPriceWidgetDefinition = OrderBookPriceWidgetDefinition.create(
             orderBookWidgetData, orderBookPrice, () -> configStore.config().widgets.orderBookPrice,
-            () -> configStore.config().ownOrderBook.mode);
+            () -> configStore.config().orderBookHints);
         var bookmarksWidgetDefinition = BookmarksWidgetDefinition.create(
             bookmarks, () -> configStore.config().widgets.bookmarks);
         var orderPresetsWidgetDefinition = OrderPresetsWidgetDefinition.create(
@@ -320,6 +320,10 @@ public class BtrBz implements ClientModInitializer {
         });
 
         this.configScreen = new ConfigScreen(this.widgetRuntime, this.activation, this.tooltipProvider,
+            () -> {
+                orderBookWidgetDefinition.getConfigHandle().invalidate("order-book hints changed");
+                orderBookPriceWidgetDefinition.getConfigHandle().invalidate("order-book hints changed");
+            },
             (parent, highlightOpacity) -> new AppearanceScreen(parent, appearance, highlightOpacity, widgetRegistry),
             parent -> new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController));

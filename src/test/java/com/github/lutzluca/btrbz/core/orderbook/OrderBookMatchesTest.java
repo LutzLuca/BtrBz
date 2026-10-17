@@ -11,13 +11,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class OwnOrderLevelsTest {
+class OrderBookMatchesTest {
     private static final ProductIdentity PRODUCT = new ProductIdentity("Product", Optional.of("PRODUCT"), null);
 
     @Test
     void matchesExactResolvedProductSideAndSupportedPriceWithoutPublicDepth() {
         var differentId = new ProductIdentity("Product", Optional.of("OTHER"), null);
-        var levels = OwnOrderLevels.from(PRODUCT, List.of(
+        var levels = OrderBookMatches.from(PRODUCT, List.of(
             order(PRODUCT, OrderType.Buy, 12.3, 20, 8, 10),
             order(PRODUCT, OrderType.Buy, 12.3, 30, 14, 11),
             order(PRODUCT, OrderType.Sell, 12.3, 40, 1, 12),
@@ -29,7 +29,7 @@ class OwnOrderLevelsTest {
         Assertions.assertEquals(1, levels.at(OrderType.Sell, 12.3).count());
         Assertions.assertEquals(0, levels.at(OrderType.Buy, 12.31).count());
         Assertions.assertEquals(0, levels.at(OrderType.Buy, Math.nextUp(12.3)).count());
-        Assertions.assertEquals(0, OwnOrderLevels.from(ProductIdentity.fromName("Product"), List.of(
+        Assertions.assertEquals(0, OrderBookMatches.from(ProductIdentity.fromName("Product"), List.of(
             order(PRODUCT, OrderType.Buy, 12.3, 20, 0, 10))).at(OrderType.Buy, 12.3).count());
     }
 
@@ -40,12 +40,12 @@ class OwnOrderLevelsTest {
             order(PRODUCT, OrderType.Buy, 12.3, 30, 31, 12),
             order(PRODUCT, OrderType.Buy, 12.3, 30, -1, 12),
             order(PRODUCT, OrderType.Buy, 12.3, 0, 0, 12))) {
-            var levels = OwnOrderLevels.from(PRODUCT, List.of(
+            var levels = OrderBookMatches.from(PRODUCT, List.of(
                 order(PRODUCT, OrderType.Buy, 12.3, 20, 8, 10), unknown));
             Assertions.assertEquals(2, levels.at(OrderType.Buy, 12.3).count());
             Assertions.assertTrue(levels.at(OrderType.Buy, 12.3).remaining().isEmpty());
         }
-        Assertions.assertEquals(0, OwnOrderLevels.from(PRODUCT, List.of()).at(OrderType.Buy, 12.3).count());
+        Assertions.assertEquals(0, OrderBookMatches.from(PRODUCT, List.of()).at(OrderType.Buy, 12.3).count());
     }
 
     static TrackedOrderSnapshot order(
