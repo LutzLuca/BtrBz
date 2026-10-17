@@ -18,14 +18,24 @@ public class DrawContextMixin {
 
     @Inject(method = "item(Lnet/minecraft/world/item/ItemStack;III)V", at = @At("TAIL"))
     private void drawIndicator(ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
-        if (!BtrBz.isActive()) {
+        if (!BtrBz.isRunning()) {
             return;
         }
-        @Nullable
-        var isBookmarked = stack.get(BtrBz.BOOKMARKED);
 
         GuiGraphicsExtractor context = (GuiGraphicsExtractor) (Object) this;
         int iconSize = 8;
+        var claimable = ConfigStore.get().config().claimableOrderIndicator;
+        if (claimable.enabled && Boolean.TRUE.equals(stack.get(BtrBz.CLAIMABLE))) {
+            context.blit(RenderPipelines.GUI_TEXTURED, Assets.CLAIMABLE, x, y, 0, 0,
+                iconSize, iconSize, iconSize, iconSize);
+        }
+
+        if (!BtrBz.isActive()) {
+            return;
+        }
+
+        @Nullable
+        var isBookmarked = stack.get(BtrBz.BOOKMARKED);
 
         if (isBookmarked != null && ConfigStore.get().config().widgets.bookmarks.frame.enabled) {
             var texture = isBookmarked ? Assets.BOOKMARK_STAR : Assets.BOOKMARK_ICON;

@@ -10,6 +10,8 @@ public final class Assets {
         BtrBz.MOD_ID, "textures/bookmark.png");
     public static final Identifier BOOKMARK_STAR = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/bookmark-star.png");
+    public static final Identifier CLAIMABLE = Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/claimable.png");
     public static final Identifier GREEN_CHECK = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/green-check.png");
     public static final Identifier RED_CROSS = Identifier.fromNamespaceAndPath(

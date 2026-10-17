@@ -12,6 +12,7 @@ public enum ConfigImages {
     PriceAlert("alert-screen.png", 1426, 857),
     ProductContext("product-context.png", 693, 390),
     Bookmarks("bookmarks.png", 575, 323),
+    ClaimableOrders("claimable.png", 510, 309),
     FlipHelper("flip-helper.png", 994, 654),
     OrderBookScreen("order-book-screen.png", 1506, 847),
     OrderBookSign("order-book-sign.png", 1027, 577),

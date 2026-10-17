@@ -16,6 +16,7 @@ import com.github.lutzluca.btrbz.core.chat.BazaarChatManager;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderHighlightManager;
 import com.github.lutzluca.btrbz.core.orderdisplay.OrderTooltipProvider;
 import com.github.lutzluca.btrbz.core.orderprotection.OrderProtectionManager;
+import com.github.lutzluca.btrbz.core.orderdisplay.ClaimableOrderIndicator;
 import com.github.lutzluca.btrbz.core.productinfo.ProductInformation;
 import com.github.lutzluca.btrbz.screen.BazaarProductContext;
 import com.github.lutzluca.btrbz.core.commands.Commands;
@@ -90,6 +91,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.network.codec.ByteBufCodecs;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRegistry;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.core.widgets.config.WidgetStateStore;
@@ -102,6 +104,7 @@ public class BtrBz implements ClientModInitializer {
 
     public static final String MOD_ID = "btrbz";
     public static DataComponentType<Boolean> BOOKMARKED;
+    public static DataComponentType<Boolean> CLAIMABLE;
 
     private static BtrBz instance;
 
@@ -189,10 +192,7 @@ public class BtrBz implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        BOOKMARKED = Registry.register(
-            BuiltInRegistries.DATA_COMPONENT_TYPE,
-            Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
-            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
+        this.initializeDataComponents();
 
         instance = this;
         var configStore = ConfigStore.get();
@@ -241,6 +241,7 @@ public class BtrBz implements ClientModInitializer {
         this.alertManager = new AlertManager(this.bazaarData,
             reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications));
         new BazaarChatManager();
+        new ClaimableOrderIndicator(this.orderManager);
         this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
         this.bazaarProductContext = new BazaarProductContext(this.bazaarData);
         new ProductInformation(this.bazaarData, this.bazaarProductContext,
@@ -452,6 +453,17 @@ public class BtrBz implements ClientModInitializer {
             }
         }).register();
         this.activation.refresh();
+    }
+
+    private void initializeDataComponents() {
+        BOOKMARKED = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "bookmarked"),
+            DataComponentType.<Boolean>builder().persistent(Codec.BOOL).build());
+        CLAIMABLE = Registry.register(
+            BuiltInRegistries.DATA_COMPONENT_TYPE,
+            Identifier.fromNamespaceAndPath(BtrBz.MOD_ID, "claimable"),
+            DataComponentType.<Boolean>builder().networkSynchronized(ByteBufCodecs.BOOL).build());
     }
 
     private void onActivationChanged(boolean active) {

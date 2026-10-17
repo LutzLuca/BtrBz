@@ -102,6 +102,7 @@ public class ConfigScreen {
             .name(Component.literal("Interface & Tooltips"))
             .tooltip(Component.literal(
                 "Configure hover tooltips, product information, price helpers, and Bazaar chat cleanup."))
+            .group(config.claimableOrderIndicator.createGroup())
             .group(config.orderListTooltip.createGroup(
                 () -> this.tooltipProvider.onListSettingsChanged("order-list tooltip setting changed")))
             .group(config.orderItemTooltip.createGroup(this.tooltipProvider::onItemSettingsChanged))
