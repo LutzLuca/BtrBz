@@ -132,25 +132,14 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout root) {
         int width = Math.max(200, Math.min(460, this.width - 24));
-        int maxHeight = Math.max(140, Math.min(this.tab == Tab.Editor ? 460 : 410, this.height - 24));
+        int height = Math.max(140, Math.min(460, this.height - 24));
         this.contentWidth = width - 24;
         boolean columns = width >= 400;
-        this.resultHeight = Math.max(48, Math.min(200, maxHeight - 150));
+        this.resultHeight = Math.max(48, Math.min(200, height - 150));
 
         root.surface(Surface.flat(UiStyles.palette().screenBackdrop()));
         root.alignment(HorizontalAlignment.CENTER, VerticalAlignment.CENTER);
-        var panel = new FlowLayout(Sizing.fixed(width), Sizing.content(), FlowLayout.Algorithm.VERTICAL) {
-            @Override
-            public void layout(Size space) {
-                super.layout(space);
-                int chromeHeight = this.height() - AlertScreen.this.scroller.height();
-                int viewportLimit = Math.max(1, maxHeight - chromeHeight);
-                if (AlertScreen.this.scroller.maxContentHeight() != viewportLimit) {
-                    AlertScreen.this.scroller.maxContentHeight(viewportLimit);
-                    super.layout(space);
-                }
-            }
-        };
+        var panel = UIContainers.verticalFlow(Sizing.fixed(width), Sizing.fixed(height));
         panel.surface(UiSurfaces.roundedPanel(UiStyles.palette().panelBackground(), 6));
         panel.padding(Insets.of(12));
         panel.gap(8);
@@ -189,7 +178,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
 
         this.content = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         this.content.gap(8);
-        this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), maxHeight, this.content);
+        this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.expand(100), this.content);
         this.scroller.scrollbarThiccness(3);
         panel.child(this.scroller);
         if (this.tab != Tab.Editor) {

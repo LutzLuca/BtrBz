@@ -48,11 +48,16 @@ Closing a screen, opening an item, or making a trade leaves the event pending. M
 outside SkyBlock, so crossings that happen and recover entirely while you are away cannot be detected.
 
 The compact Alerts widget appears on Bazaar screens and during order input when events are pending.
-It starts in the top-right. The bell and count share one Inbox button, and the chevron collapses the list.
+It starts in the top-right. The bell, Alerts label and count share one Inbox button, and the chevron
+collapses the list.
 Up to three single-line item rows offer a Bazaar shortcut and an archive icon to dismiss the event.
 Hover an item for the saved condition, latest value and trigger time. Larger batches open in the Inbox.
 The widget remembers its collapse state and hides when empty. Configure its position, scale and
-maximum width through the widget manager. During sign input, navigation waits until you finish typing.
+maximum width through the widget manager. Its position is shared between Bazaar screens and order input.
+During sign input, navigation waits until you finish typing.
+
+Inbox, Watching, History, item search and both editors share a fixed dialog size that fits the window.
+Long content scrolls inside it without moving the dialog when you change views.
 
 The editor's Order book button opens the selected item's book even when its widget is disabled,
 without changing that setting. Closing it returns to the same alert draft. Comparisons use

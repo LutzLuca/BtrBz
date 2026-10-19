@@ -44,8 +44,8 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
     ) {
         this.root.clearChildren();
         var font = Minecraft.getInstance().font;
-        var count = Component.literal(Integer.toString(data.entries().size())).withStyle(UiStyles.primary());
-        int headerWidth = 12 + 3 + 7 + 4 + font.width(count) + 6;
+        var label = Component.literal("Alerts " + data.entries().size()).withStyle(UiStyles.primary());
+        int headerWidth = 12 + 3 + 7 + 4 + font.width(label) + 6;
         int width = headerWidth;
         if (!config.collapsed) {
             for (var entry : data.entries().stream().limit(MAX_ROWS).toList()) {
@@ -57,7 +57,7 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         header.child(UiButton.compactIcon(config.collapsed ? Assets.ALERT_EXPAND : Assets.ALERT_COLLAPSE,
             Component.literal(config.collapsed ? "Expand alerts" : "Collapse alerts"),
             () -> actions.accept(new Action.Toggle())));
-        var inbox = UiButton.compactIcon(Assets.ALERT_BELL, count, Component.literal("Open Inbox"),
+        var inbox = UiButton.compactIcon(Assets.ALERT_BELL, label, Component.literal("Open Inbox"),
             () -> actions.accept(new Action.Inbox()));
         inbox.active(!session.inSign());
         if (session.inSign()) {

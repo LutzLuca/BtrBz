@@ -68,10 +68,9 @@ public final class AlertsWidgetDefinition {
                     (value, width) -> value.contentWidth = width, 80, 160,
                     "Fits short names and truncates long ones. Hover an item for its full condition.");
                 WidgetSettingsPanel.bool(panel, "Collapsed", binding, value -> value.collapsed,
-                    (value, collapsed) -> value.collapsed = collapsed, "Show only the bell and count.");
+                    (value, collapsed) -> value.collapsed = collapsed, "Show only the Alerts header and count.");
                 return panel;
             })
-            .placementProfile("sign", "Order setup")
             .minSize(40, 22)
             .build();
     }
