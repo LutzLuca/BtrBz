@@ -18,10 +18,10 @@ class AlertDeliveryTest {
     @Test
     void groupsEventsOnReturnAndKeepsThemPendingUntilExplicitReview() {
         var delivery = this.delivery();
-        delivery.tick(true, false);
         var first = this.event(100);
         delivery.reached(first);
         delivery.reached(this.event(101));
+        delivery.tick(true, false);
         this.now[0] = 3_999;
         delivery.tick(true, false);
         Assertions.assertTrue(this.summaries.isEmpty());
@@ -49,7 +49,7 @@ class AlertDeliveryTest {
     }
 
     @Test
-    void retriesFailedSummaryDelivery() {
+    void retriesFailedReturnSummaryWithoutMutingNewTriggers() {
         this.event(100);
         int[] attempts = {0};
         var delivery = new AlertDelivery(this.manager, () -> this.config.remindPending, this.individual::add, count -> {
@@ -63,13 +63,16 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         this.now[0] += 3_000;
         delivery.tick(true, false);
+        var fresh = this.event(101);
+        delivery.reached(fresh);
+        Assertions.assertEquals(List.of(fresh), this.individual);
         this.now[0] += 4_999;
         delivery.tick(true, false);
         Assertions.assertEquals(1, attempts[0]);
         this.now[0]++;
         delivery.tick(true, false);
-        Assertions.assertEquals(List.of(1), this.summaries);
-
+        Assertions.assertEquals(List.of(2), this.summaries);
+        Assertions.assertEquals(2, this.manager.pendingCount());
     }
 
     @Test

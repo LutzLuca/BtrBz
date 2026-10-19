@@ -20,7 +20,6 @@ public final class AlertDelivery {
     private final IntPredicate notifySummary;
     private final LongSupplier clock;
     private boolean ready;
-    private boolean returnPending;
     private boolean remindersEnabled;
     private long nextSummaryAt = Long.MAX_VALUE;
 
@@ -49,14 +48,13 @@ public final class AlertDelivery {
 
     public void disconnect() {
         this.ready = false;
-        this.returnPending = false;
         this.nextSummaryAt = Long.MAX_VALUE;
     }
 
     public void reached(ReachedAlert reached) {
         long now = this.clock.getAsLong();
         boolean reminders = this.reminders.getAsBoolean();
-        if (reminders && (!this.ready || this.returnPending)) {
+        if (reminders && !this.ready) {
             return;
         }
         if (reminders) {
@@ -74,16 +72,13 @@ public final class AlertDelivery {
         if (!this.ready) {
             this.ready = true;
             this.remindersEnabled = this.reminders.getAsBoolean();
-            this.returnPending = this.remindersEnabled;
             this.nextSummaryAt = now + RETURN_DELAY_MS;
         }
         if (this.remindersEnabled != this.reminders.getAsBoolean()) {
             this.remindersEnabled = this.reminders.getAsBoolean();
-            this.returnPending = false;
             this.nextSummaryAt = now + REMINDER_INTERVAL_MS;
         }
         if (!this.remindersEnabled) {
-            this.returnPending = false;
             this.nextSummaryAt = Long.MAX_VALUE;
             return;
         }
@@ -92,15 +87,11 @@ public final class AlertDelivery {
         }
         int count = this.manager.pendingCount();
         if (viewingInbox || count == 0) {
-            this.returnPending = false;
             this.nextSummaryAt = count == 0 ? Long.MAX_VALUE : now + REMINDER_INTERVAL_MS;
             return;
         }
         boolean delivered = Try.of(() -> this.notifySummary.test(count))
             .onFailure(error -> log.warn("Failed to deliver alert inbox reminder", error)).getOrElse(false);
         this.nextSummaryAt = now + (delivered ? REMINDER_INTERVAL_MS : RETRY_DELAY_MS);
-        if (delivered) {
-            this.returnPending = false;
-        }
     }
 }
