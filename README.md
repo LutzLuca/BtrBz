@@ -68,9 +68,6 @@ BtrBz currently supports Minecraft 26.1 and 26.2. It requires Java 25 or newer a
 
 ## Icon attribution
 
-The alerts widget's bell, archive and chevrons are original project pixel artwork,
-bundled as texture assets. The expression-help icon uses the attributed question icon below.
-
 This project uses icons from [Flaticon](https://www.flaticon.com/):
 
 - <a href="https://www.flaticon.com/free-icons/bookmark" title="bookmark icons">Bookmark icons
