@@ -27,8 +27,7 @@ public final class AlertNotifications {
         String summary = pending + (pending == 1 ? " alert needs" : " alerts need") + " your attention";
         boolean delivered = config.alsoSendChatMessage && Notifier.notifyPlayer(Notifier.prefix()
             .append(Component.literal(summary + ". ").withStyle(UiStyles.label()))
-            .append(link("Inbox", "/btrbz alert", "Open your pending alerts"))
-            .append(" ").append(link("10 min", "/btrbz alert snooze", "Postpone reminder summaries")));
+            .append(link("Inbox", "/btrbz alert", "Open your pending alerts")));
         if (config.toastOnAlert) {
             toasts.show(Component.literal("BtrBz Alerts").withStyle(UiStyles.modLabel()),
                 List.of(Component.literal(summary).withStyle(UiStyles.label())),

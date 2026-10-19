@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.commands;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
-import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
 import io.vavr.control.Try;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
@@ -15,8 +14,7 @@ public final class AlertCommand {
 
     public static LiteralArgumentBuilder<FabricClientCommandSource> build(
         Runnable openScreen,
-        AlertManager manager,
-        AlertDelivery delivery
+        AlertManager manager
     ) {
         return ClientCommands.literal("alert").executes(_ -> {
             openScreen.run();
@@ -29,13 +27,6 @@ public final class AlertCommand {
                     ? "Could not dismiss this alert."
                     : result.get() ? "Alert dismissed." : "This alert has already been dismissed."));
                 return result.isSuccess() ? 1 : 0;
-            })))
-            .then(ClientCommands.literal("snooze").executes(context -> {
-                boolean postponed = delivery.snooze();
-                context.getSource().sendFeedback(Component.literal(postponed
-                    ? "Alert reminders postponed for 10 minutes. New alerts still notify you."
-                    : "Could not postpone alert reminders."));
-                return postponed ? 1 : 0;
-            }));
+            })));
     }
 }

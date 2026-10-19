@@ -2,7 +2,6 @@ package com.github.lutzluca.btrbz.core.widgets.alerts;
 
 import com.github.lutzluca.btrbz.cache.CacheDependencies;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
-import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
 import com.github.lutzluca.btrbz.core.alert.AlertNotice;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.widgets.cache.WidgetDataSource;
@@ -23,14 +22,12 @@ public final class AlertsWidgetData implements WidgetDataSource<AlertsWidgetData
         .withZone(ZoneId.systemDefault());
     private final AlertManager manager;
     private final BazaarData data;
-    private final AlertDelivery delivery;
     private final CacheDependencies dependencies;
 
-    public AlertsWidgetData(AlertManager manager, AlertDelivery delivery, BazaarData data) {
+    public AlertsWidgetData(AlertManager manager, BazaarData data) {
         this.manager = manager;
-        this.delivery = delivery;
         this.data = data;
-        this.dependencies = CacheDependencies.of(manager.changes(), delivery.changes(), data.marketChanges(),
+        this.dependencies = CacheDependencies.of(manager.changes(), data.marketChanges(),
             data.indexChanges(),
             UiStyles.appearanceChanges());
     }
@@ -64,7 +61,7 @@ public final class AlertsWidgetData implements WidgetDataSource<AlertsWidgetData
                 this.data.productStack(product).orElse(ItemStack.EMPTY),
                 AlertNotice.conditionText(event.alert().condition), tooltip);
         }).toList();
-        return new Snapshot(entries, this.delivery.snoozedUntil());
+        return new Snapshot(entries);
     }
 
     public static Snapshot preview() {
@@ -77,11 +74,10 @@ public final class AlertsWidgetData implements WidgetDataSource<AlertsWidgetData
                 Component.literal("Booster Cookie").withStyle(ChatFormatting.GOLD), new ItemStack(Items.COOKIE),
                 Component.literal("Instant buy 16 items at ≤ 9m coins"),
                 List.of(Component.literal("Buy 16 items instantly for up to 9m each"),
-                    Component.literal("Still met: 24 qualifying items")))),
-            0);
+                    Component.literal("Still met: 24 qualifying items")))));
     }
 
-    public record Snapshot(List<Entry> entries, long snoozedUntil) {
+    public record Snapshot(List<Entry> entries) {
         public Snapshot {
             entries = List.copyOf(entries);
         }

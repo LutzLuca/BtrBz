@@ -183,7 +183,9 @@ class ReachedAlertsTest {
             notifications.getFirst().observation());
 
         publishBook(data, null, null);
-        manager.watchAgain(manager.inbox().getFirst().id()).get();
+        var eventId = manager.inbox().getFirst().id();
+        manager.dismiss(eventId);
+        manager.watchAgain(eventId).get();
         Assertions.assertTrue(manager.inbox().isEmpty());
         Assertions.assertEquals(1, manager.history().size());
         Assertions.assertEquals(condition, manager.alerts().getFirst().condition);

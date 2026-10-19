@@ -25,7 +25,6 @@ final class AlertSearchControls extends FlowLayout {
 
     private final BazaarData data;
     private final int productWidth;
-    private final int resultHeight;
     private final TextBoxComponent searchBox;
     private final FlowLayout resultRows;
     private final RestorableVerticalScrollContainer<FlowLayout> scroller;
@@ -43,7 +42,6 @@ final class AlertSearchControls extends FlowLayout {
         super(Sizing.fill(100), Sizing.content(), Algorithm.VERTICAL);
         this.data = data;
         this.productWidth = productWidth;
-        this.resultHeight = resultHeight;
         this.select = select;
         this.gap(7);
         this.searchBox = AlertFields.textBox("Search items by name");
@@ -56,7 +54,7 @@ final class AlertSearchControls extends FlowLayout {
         this.child(AlertFields.frame(this.searchBox));
         this.resultRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         this.resultRows.gap(3);
-        this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), resultHeight,
+        this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.fixed(resultHeight),
             this.resultRows);
         this.scroller.scrollbarThiccness(3);
         this.child(this.scroller);
@@ -68,10 +66,12 @@ final class AlertSearchControls extends FlowLayout {
         if (!force && next.equals(this.results)) {
             return;
         }
+        if (force) {
+            this.scroller.restoreScrollOffset(0);
+        }
         this.results = next;
         this.resultRows.clearChildren();
         if (next.matches().isEmpty()) {
-            this.scroller.maxContentHeight(24);
             String hint = next.emptyHint(this.searchBox.getValue());
             if (!hint.isEmpty()) {
                 this.resultRows
@@ -79,7 +79,6 @@ final class AlertSearchControls extends FlowLayout {
             }
             return;
         }
-        this.scroller.maxContentHeight(this.resultHeight);
         for (var product : next.matches()) {
             boolean duplicate = next.matches().stream().filter(other -> other.strippedName()
                 .equalsIgnoreCase(product.strippedName())).count() > 1;
@@ -130,8 +129,8 @@ final class AlertSearchControls extends FlowLayout {
 
         String emptyHint(String query) {
             return !this.marketAvailable
-                ? "Waiting for market data…"
-                : query.isBlank() ? "Type an item name to get started." : "No matches. Try a shorter name.";
+                ? "Market data unavailable"
+                : query.isBlank() ? "" : "No matches";
         }
     }
 }

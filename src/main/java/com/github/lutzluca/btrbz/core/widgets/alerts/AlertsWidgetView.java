@@ -19,11 +19,7 @@ import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
-import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -32,14 +28,7 @@ import net.minecraft.util.FormattedCharSequence;
 
 final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, AlertsWidgetConfig, Action> {
     private static final int MAX_ROWS = 3;
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm")
-        .withZone(ZoneId.systemDefault());
     private final FlowLayout root = BazaarUi.panel(1);
-    private final BooleanSupplier remindersEnabled;
-
-    AlertsWidgetView(BooleanSupplier remindersEnabled) {
-        this.remindersEnabled = remindersEnabled;
-    }
 
     @Override
     public UIComponent root() {
@@ -56,8 +45,7 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         this.root.clearChildren();
         var font = Minecraft.getInstance().font;
         var count = Component.literal(Integer.toString(data.entries().size())).withStyle(UiStyles.primary());
-        int countWidth = font.width(count) + 2;
-        int headerWidth = 12 * 3 + countWidth + 12;
+        int headerWidth = 12 + 3 + 7 + 4 + font.width(count) + 6;
         int width = headerWidth;
         if (!config.collapsed) {
             for (var entry : data.entries().stream().limit(MAX_ROWS).toList()) {
@@ -69,29 +57,13 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         header.child(UiButton.compactIcon(config.collapsed ? Assets.ALERT_EXPAND : Assets.ALERT_COLLAPSE,
             Component.literal(config.collapsed ? "Expand alerts" : "Collapse alerts"),
             () -> actions.accept(new Action.Toggle())));
-        var inbox = UiButton.compactIcon(Assets.ALERT_BELL, Component.literal("Open alert inbox"),
+        var inbox = UiButton.compactIcon(Assets.ALERT_BELL, count, Component.literal("Open Inbox"),
             () -> actions.accept(new Action.Inbox()));
         inbox.active(!session.inSign());
         if (session.inSign()) {
             inbox.tooltip(Component.literal("Finish order input before opening another screen"));
         }
         header.child(inbox);
-        var counter = new Link(countWidth, () -> actions.accept(new Action.Inbox()));
-        counter.enabled(!session.inSign());
-        counter.child(new Text(count, countWidth));
-        counter.tooltip(Component.literal(session.inSign()
-            ? "Finish order input before opening another screen"
-            : data.entries().size() + " pending alerts. Open Inbox"));
-        header.child(counter).child(UiComponents.spacer());
-        String snooze = "Remind me in 10 minutes";
-        if (data.snoozedUntil() > System.currentTimeMillis()) {
-            snooze += "\nReminders postponed until " + TIME.format(Instant.ofEpochMilli(data.snoozedUntil()));
-        }
-        var clock = UiButton.compactIcon(Assets.ALERT_CLOCK, Component.literal(snooze),
-            () -> actions.accept(new Action.Snooze()));
-        clock.enabledWhen(this.remindersEnabled,
-            Component.literal("Pending alert reminders are off. Enable them in Alerts settings."));
-        header.child(clock);
         this.root.child(header);
         if (config.collapsed) {
             return;

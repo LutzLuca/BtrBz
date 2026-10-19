@@ -49,10 +49,10 @@ class AlertDeliveryTest {
     }
 
     @Test
-    void retriesFailedSummaryDeliveryAndHonorsSnoozeAcrossAReconnect() {
+    void retriesFailedSummaryDelivery() {
         this.event(100);
         int[] attempts = {0};
-        var delivery = new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
+        var delivery = new AlertDelivery(this.manager, () -> this.config.remindPending, this.individual::add, count -> {
             attempts[0]++;
             if (attempts[0] == 1) {
                 return false;
@@ -70,24 +70,10 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(1), this.summaries);
 
-        delivery.snooze();
-        long due = delivery.snoozedUntil();
-        delivery.disconnect();
-        delivery.tick(true, false);
-        var newEvent = this.event(101);
-        delivery.reached(newEvent);
-        Assertions.assertEquals(List.of(newEvent), this.individual, "snooze does not mute new alerts on return");
-        this.now[0] = due - 1;
-        delivery.tick(true, false);
-        Assertions.assertEquals(2, attempts[0]);
-        this.now[0] = due;
-        delivery.tick(true, false);
-        Assertions.assertEquals(List.of(1, 2), this.summaries);
-        Assertions.assertEquals(2, this.manager.pendingCount());
     }
 
     @Test
-    void allPendingEventsRespectReviewingAndStillNotifyDuringSnooze() {
+    void viewingInboxSuppressesSummariesWhileNewTriggersStillNotify() {
         var delivery = this.delivery();
         delivery.tick(true, false);
         this.now[0] += 3_000;
@@ -101,7 +87,6 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(1), this.summaries);
 
-        delivery.snooze();
         delivery.tick(true, false);
         delivery.reached(this.event(101));
         Assertions.assertEquals(2, this.individual.size());
@@ -123,7 +108,7 @@ class AlertDeliveryTest {
         this.event(100);
         this.event(101, AlertLifecycle.Once);
         var attempts = new ArrayList<Integer>();
-        var delivery = new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
+        var delivery = new AlertDelivery(this.manager, () -> this.config.remindPending, this.individual::add, count -> {
             attempts.add(count);
             return attempts.size() != 2;
         }, () -> this.now[0]);
@@ -139,7 +124,7 @@ class AlertDeliveryTest {
     }
 
     private AlertDelivery delivery() {
-        return new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
+        return new AlertDelivery(this.manager, () -> this.config.remindPending, this.individual::add, count -> {
             this.summaries.add(count);
             return true;
         }, () -> this.now[0]);
@@ -149,7 +134,7 @@ class AlertDeliveryTest {
     void disablingRemindersCancelsRetriesWithoutConsumingEventsOrMutingTriggers() {
         this.event(100);
         int[] attempts = {0};
-        var delivery = new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
+        var delivery = new AlertDelivery(this.manager, () -> this.config.remindPending, this.individual::add, count -> {
             if (++attempts[0] == 1) {
                 return false;
             }
@@ -167,8 +152,6 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(1, attempts[0]);
         Assertions.assertEquals(1, this.manager.pendingCount());
-        Assertions.assertFalse(delivery.snooze());
-        Assertions.assertEquals(0, delivery.snoozedUntil());
 
         delivery.disconnect();
         var newEvent = this.event(101);

@@ -32,9 +32,6 @@ public class AlertManager {
     private final Consumer<ReachedAlert> notifyReached;
     private final LongSupplier clock;
     private final CacheToken changes = CacheToken.named("alerts");
-    @lombok.Getter
-    @lombok.experimental.Accessors(fluent = true)
-    private long lastCheckedAt = -1;
 
     public AlertManager(
         BazaarData bazaarData,
@@ -145,7 +142,6 @@ public class AlertManager {
         if (!cfg.enabled) {
             return;
         }
-        this.lastCheckedAt = this.clock.getAsLong();
 
         boolean changed = false;
         var newlyReached = new ArrayList<ReachedAlert>();
@@ -263,25 +259,13 @@ public class AlertManager {
 
     /** Reactivates a captured condition without resolving its original price expression again. */
     public Try<Alert> watchAgain(UUID id) {
-        var cfg = this.config();
-        var original = cfg.reachedAlerts.stream()
+        var original = this.history().stream()
             .filter(entry -> entry.id().equals(id))
             .findFirst();
         if (original.isEmpty()) {
             return Try.failure(new IllegalArgumentException("Reached alert " + id + " no longer exists"));
         }
-        var reactivated = original.get().alert().reactivated(this.clock.getAsLong());
-        if (cfg.alerts.stream().anyMatch(active -> active.matches(reactivated))) {
-            return Try.failure(new IllegalArgumentException("An identical alert is already active"));
-        }
-        reactivated.armed = this.currentObservation(reactivated)
-            .map(observation -> !reactivated.condition.isReached(observation)).orElse(true);
-        cfg.reachedAlerts.set(cfg.reachedAlerts.indexOf(original.get()),
-            original.get().dismissed(this.clock.getAsLong()));
-        pruneHistory(cfg.reachedAlerts);
-        cfg.alerts.add(reactivated);
-        this.changed("alert reactivated");
-        return Try.success(reactivated);
+        return this.saveCondition(null, original.get().alert().reactivated(this.clock.getAsLong()));
     }
 
     private void changed(String reason) {

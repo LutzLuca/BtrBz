@@ -1,7 +1,6 @@
 package com.github.lutzluca.btrbz.core.widgets.alerts;
 
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
-import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
 import com.github.lutzluca.btrbz.core.widgets.WidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.WidgetId;
 import com.github.lutzluca.btrbz.core.widgets.WidgetPreview;
@@ -24,7 +23,6 @@ public final class AlertsWidgetDefinition {
 
     public static WidgetDefinition<AlertsWidgetData.Snapshot, AlertsWidgetConfig, Action> create(
         AlertManager manager,
-        AlertDelivery delivery,
         BazaarData data,
         Supplier<AlertsWidgetConfig> configSupplier,
         Runnable save,
@@ -33,15 +31,15 @@ public final class AlertsWidgetDefinition {
         var config = new WidgetConfigHandle<>(ID, configSupplier, AlertsWidgetConfig::new,
             value -> value.frame, AlertsWidgetConfig::resetPreferences);
         return WidgetDefinition.<AlertsWidgetData.Snapshot, AlertsWidgetConfig, Action>builder(ID, "Alerts")
-            .description("A small inbox for fired alerts. Open an item, dismiss an event, or postpone reminders.")
+            .description("A small inbox for fired alerts. Open an item or dismiss an event.")
             .config(config)
             .supports(AlertsWidgetDefinition::supportsSession)
             .visibility((snapshot, _, _) -> manager.enabled() && !snapshot.entries().isEmpty())
-            .data(new MemoizedWidgetDataSource<>(new AlertsWidgetData(manager, delivery, data)))
+            .data(new MemoizedWidgetDataSource<>(new AlertsWidgetData(manager, data)))
             .cachePrepared()
             .preview(() -> new WidgetPreview<>(AlertsWidgetData.preview(),
                 WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
-            .viewFactory(() -> new AlertsWidgetView(delivery::remindersEnabled))
+            .viewFactory(AlertsWidgetView::new)
             .actionHandler((action, current) -> {
                 if (!supportsSession(current) || !manager.enabled()) {
                     return;
@@ -55,7 +53,6 @@ public final class AlertsWidgetDefinition {
                         save.run();
                     }
                     case Action.Inbox _ -> openInbox.run();
-                    case Action.Snooze _ -> delivery.snooze();
                     case Action.Dismiss dismiss -> manager.dismiss(dismiss.id());
                     case Action.Open open -> manager.inbox().stream()
                         .filter(event -> event.id().equals(open.id())).findFirst().ifPresent(event -> {
@@ -71,11 +68,11 @@ public final class AlertsWidgetDefinition {
                     (value, width) -> value.contentWidth = width, 80, 160,
                     "Fits short names and truncates long ones. Hover an item for its full condition.");
                 WidgetSettingsPanel.bool(panel, "Collapsed", binding, value -> value.collapsed,
-                    (value, collapsed) -> value.collapsed = collapsed, "Show only the bell, count and reminder clock.");
+                    (value, collapsed) -> value.collapsed = collapsed, "Show only the bell and count.");
                 return panel;
             })
             .placementProfile("sign", "Order setup")
-            .minSize(60, 22)
+            .minSize(40, 22)
             .build();
     }
 
@@ -87,8 +84,6 @@ public final class AlertsWidgetDefinition {
         record Toggle() implements Action {}
 
         record Inbox() implements Action {}
-
-        record Snooze() implements Action {}
 
         record Dismiss(UUID id) implements Action {}
 

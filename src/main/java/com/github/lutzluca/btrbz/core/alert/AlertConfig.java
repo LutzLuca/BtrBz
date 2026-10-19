@@ -19,7 +19,6 @@ public final class AlertConfig {
     public boolean detailedAlertToasts;
     public boolean alsoSendChatMessage;
     public boolean remindPending = true;
-    public long snoozedUntil;
     public List<Alert> alerts = new ArrayList<>();
     public List<ReachedAlert> reachedAlerts = new ArrayList<>();
 
@@ -75,7 +74,7 @@ public final class AlertConfig {
             .name(Component.literal("Remind About Pending Alerts"))
             .description(ConfigUi.createDescription(
                 "Summarize pending alerts when you return and every 10 minutes until dismissed. "
-                    + "Uses your enabled chat and toast channels. The panel clock postpones the next summary. "
+                    + "Uses your enabled chat and toast channels. "
                     + "New trigger notifications are independent of this setting."))
             .binding(true, () -> this.remindPending, value -> this.remindPending = value)
             .controller(ConfigUi::createBooleanController);

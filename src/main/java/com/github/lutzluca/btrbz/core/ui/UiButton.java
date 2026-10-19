@@ -5,7 +5,6 @@ import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
-import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -23,8 +22,6 @@ public final class UiButton extends ButtonComponent {
     private final @Nullable UiIcon icon;
     private final @Nullable Component description;
     private final boolean compact;
-    private @Nullable BooleanSupplier availability;
-    private Component unavailable = Component.empty();
     private final RetainedText retainedText = new RetainedText();
 
     private boolean primary;
@@ -53,7 +50,10 @@ public final class UiButton extends ButtonComponent {
 
         if (description != null) {
             this.bottomAccent = false;
-            this.sizing(Sizing.fixed(compact ? 12 : 22));
+            int width = compact && !message.getString().isEmpty()
+                ? 7 + ICON_GAP + Minecraft.getInstance().font.width(message) + CONTENT_INSET * 2
+                : compact ? 12 : 22;
+            this.sizing(Sizing.fixed(width), Sizing.fixed(compact ? 12 : 22));
             this.tooltip(description);
         } else {
             // owo's content width already includes text and eight pixels of padding.
@@ -80,25 +80,11 @@ public final class UiButton extends ButtonComponent {
     }
 
     public static UiButton compactIcon(UiIcon icon, Component description, Runnable action) {
-        return new UiButton(Component.empty(), _ -> action.run(), icon, description, true);
+        return compactIcon(icon, Component.empty(), description, action);
     }
 
-    public UiButton enabledWhen(BooleanSupplier availability, Component unavailable) {
-        this.availability = availability;
-        this.unavailable = unavailable;
-        return this;
-    }
-
-    @Override
-    public void update(float delta, int mouseX, int mouseY) {
-        if (this.availability != null) {
-            boolean enabled = this.availability.getAsBoolean();
-            if (this.active() != enabled) {
-                this.active(enabled);
-                this.tooltip(enabled ? this.description : this.unavailable);
-            }
-        }
-        super.update(delta, mouseX, mouseY);
+    public static UiButton compactIcon(UiIcon icon, Component text, Component description, Runnable action) {
+        return new UiButton(text, _ -> action.run(), icon, description, true);
     }
 
     @Override

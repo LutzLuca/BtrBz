@@ -4,7 +4,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
-import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -19,12 +18,11 @@ class AlertCommandTest {
         var dispatcher = new CommandDispatcher<FabricClientCommandSource>();
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
-        dispatcher.register(ClientCommands.literal("btrbz").then(AlertCommand.build(opened::incrementAndGet, manager,
-            new AlertDelivery(manager, () -> config, () -> {}, _ -> {}, _ -> true))));
+        dispatcher.register(ClientCommands.literal("btrbz").then(AlertCommand.build(opened::incrementAndGet, manager)));
 
         Assertions.assertEquals(1, dispatcher.execute("btrbz alert", null));
         Assertions.assertEquals(1, opened.get());
-        for (var obsolete : new String[]{"add ITEM buy-order 100", "list", "remove example-id"}) {
+        for (var obsolete : new String[]{"add ITEM buy-order 100", "list", "remove example-id", "snooze"}) {
             Assertions.assertThrows(CommandSyntaxException.class,
                 () -> dispatcher.execute("btrbz alert " + obsolete, null));
         }

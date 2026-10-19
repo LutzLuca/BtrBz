@@ -35,8 +35,6 @@ public final class Assets {
 
     public static final UiIcon ALERT_BELL = new UiIcon(Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/gui/alerts/bell.png"), 7);
-    public static final UiIcon ALERT_CLOCK = new UiIcon(Identifier.fromNamespaceAndPath(
-        BtrBz.MOD_ID, "textures/gui/alerts/clock.png"), 7);
     public static final UiIcon ALERT_ARCHIVE = new UiIcon(Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/gui/alerts/archive.png"), 7);
     public static final UiIcon ALERT_EXPAND = new UiIcon(Identifier.fromNamespaceAndPath(

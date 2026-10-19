@@ -78,6 +78,44 @@ class AlertLifecycleTest {
         Assertions.assertEquals(121_000, restoredStore.config().alert.alerts.getFirst().lastTriggeredAt);
     }
 
+    @ParameterizedTest
+    @EnumSource(Kind.class)
+    void watchAgainCreatesANewAlertWithTheSavedTargetAndPreservesHistory(Kind kind) {
+        var config = new AlertConfig();
+        var data = new BazaarData();
+        var notifications = new ArrayList<ReachedAlert>();
+        var manager = new AlertManager(data, () -> config, () -> {}, notifications::add);
+        data.addListener(manager::onBazaarUpdate);
+        data.publishSnapshot(snapshot(true));
+        AlertCondition condition = kind == Kind.Price
+            ? new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Below), 100)
+            : new AlertCondition.Liquidity(AlertCondition.LiquiditySide.SellOffers, 100, 100);
+        manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT, condition), AlertLifecycle.Once).get();
+        var original = manager.inbox().getFirst();
+        manager.dismiss(original.id());
+        var history = manager.history().getFirst();
+
+        var immediate = manager.watchAgain(original.id()).get();
+
+        Assertions.assertNotEquals(original.alert().id, immediate.id);
+        Assertions.assertEquals(condition, immediate.condition);
+        Assertions.assertEquals(immediate.id, manager.inbox().getFirst().alert().id);
+        Assertions.assertTrue(manager.alerts().isEmpty());
+        Assertions.assertEquals(2, notifications.size());
+        Assertions.assertEquals(history, manager.history().getFirst());
+
+        manager.dismissAll();
+        data.publishSnapshot(snapshot(false));
+        var watching = manager.watchAgain(original.id()).get();
+        Assertions.assertFalse(watching.waitingForReset());
+        Assertions.assertEquals(watching.id, manager.alerts().getFirst().id);
+        Assertions.assertTrue(manager.watchAgain(original.id()).isFailure(), "an identical watch is already active");
+        data.publishSnapshot(snapshot(true));
+        Assertions.assertEquals(3, notifications.size());
+        Assertions.assertEquals(watching.id, manager.inbox().getFirst().alert().id);
+        Assertions.assertTrue(manager.history().contains(history));
+    }
+
     @Test
     void dismissingWhileTheConditionIsUnmetResumesWatchingWithoutLosingTheFirstEvent() {
         var data = new BazaarData();

@@ -3,7 +3,6 @@ package com.github.lutzluca.btrbz.core.commands;
 import com.github.lutzluca.btrbz.core.trackedorders.TrackedOrderManager;
 import com.github.lutzluca.btrbz.core.runtime.ProfileTracker;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
-import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
 import com.github.lutzluca.btrbz.core.widgets.WidgetRuntime;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.utils.Notifier;
@@ -20,7 +19,6 @@ public class Commands {
         TrackedOrderManager orderManager,
         ProfileTracker profileTracker,
         AlertManager alertManager,
-        AlertDelivery alertDelivery,
         Runnable openAlertScreen,
         Runnable openConfigScreen,
         Runnable openThemeScreen,
@@ -43,7 +41,7 @@ public class Commands {
             openThemeScreen.run();
             return 1;
         }));
-        rootCommand.then(AlertCommand.build(openAlertScreen, alertManager, alertDelivery));
+        rootCommand.then(AlertCommand.build(openAlertScreen, alertManager));
         rootCommand.then(ConversionCommand.build(bazaarData));
         rootCommand.then(TrackedOrderCommand.build(orderManager));
         rootCommand.then(ProfileCommand.build(profileTracker));

@@ -74,36 +74,6 @@ class LiquidityAlertTest {
     }
 
     @Test
-    void watchAgainReviewsTheEventAndWaitsForAResetWithoutDuplicatingTheCondition() {
-        var config = new AlertConfig();
-        var data = new BazaarData();
-        var notified = new ArrayList<ReachedAlert>();
-        var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
-        data.addListener(manager::onBazaarUpdate);
-        String offers = "[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]";
-        publish(data, product(offers));
-        manager.saveAlert(null, definition(100, 1_000), AlertLifecycle.Once).get();
-        var event = manager.inbox().getFirst();
-
-        var watching = manager.watchAgain(event.id()).get();
-
-        Assertions.assertTrue(watching.waitingForReset());
-        Assertions.assertTrue(manager.inbox().isEmpty());
-        Assertions.assertEquals(1, manager.history().size());
-        Assertions.assertTrue(
-            manager.saveAlert(null, definition(100, 1_000), AlertLifecycle.Once)
-                .isFailure());
-        Assertions.assertTrue(manager.watchAgain(event.id()).isFailure());
-        publish(data, product(offers));
-        Assertions.assertEquals(1, notified.size());
-        publish(data, product("[]"));
-        publish(data, product(offers));
-        Assertions.assertEquals(2, notified.size());
-        Assertions.assertEquals(1, manager.inbox().size());
-        Assertions.assertTrue(manager.alerts().isEmpty());
-    }
-
-    @Test
     void disabledMonitoringAllowsBothKindsToBeSavedWithoutImmediateDelivery() {
         var config = new AlertConfig();
         config.enabled = false;
