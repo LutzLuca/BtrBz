@@ -25,6 +25,7 @@ final class AlertSearchControls extends FlowLayout {
 
     private final BazaarData data;
     private final int productWidth;
+    private final int resultHeight;
     private final TextBoxComponent searchBox;
     private final FlowLayout resultRows;
     private final RestorableVerticalScrollContainer<FlowLayout> scroller;
@@ -42,19 +43,20 @@ final class AlertSearchControls extends FlowLayout {
         super(Sizing.fill(100), Sizing.content(), Algorithm.VERTICAL);
         this.data = data;
         this.productWidth = productWidth;
+        this.resultHeight = resultHeight;
         this.select = select;
         this.gap(7);
-        this.searchBox = UIComponents.textBox(Sizing.fill(100));
+        this.searchBox = AlertFields.textBox("Search items by name");
         this.searchBox.setMaxLength(120);
         this.searchBox.text(query);
         this.searchBox.onChanged().subscribe(value -> {
             queryChanged.accept(value);
             this.refresh(true);
         });
-        this.child(this.searchBox);
+        this.child(AlertFields.frame(this.searchBox));
         this.resultRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         this.resultRows.gap(3);
-        this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.fixed(resultHeight),
+        this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), resultHeight,
             this.resultRows);
         this.scroller.scrollbarThiccness(3);
         this.child(this.scroller);
@@ -69,13 +71,15 @@ final class AlertSearchControls extends FlowLayout {
         this.results = next;
         this.resultRows.clearChildren();
         if (next.matches().isEmpty()) {
+            this.scroller.maxContentHeight(24);
             String hint = next.emptyHint(this.searchBox.getValue());
             if (!hint.isEmpty()) {
                 this.resultRows
-                    .child(UiComponents.label(hint, UiStyles.palette().textMuted()).maxWidth(this.productWidth - 24));
+                    .child(UiComponents.label(hint, UiStyles.palette().textPrimary()).maxWidth(this.productWidth - 24));
             }
             return;
         }
+        this.scroller.maxContentHeight(this.resultHeight);
         for (var product : next.matches()) {
             boolean duplicate = next.matches().stream().filter(other -> other.strippedName()
                 .equalsIgnoreCase(product.strippedName())).count() > 1;
@@ -127,7 +131,7 @@ final class AlertSearchControls extends FlowLayout {
         String emptyHint(String query) {
             return !this.marketAvailable
                 ? "Waiting for market data…"
-                : query.isBlank() ? "" : "No matches. Try a shorter name.";
+                : query.isBlank() ? "Type an item name to get started." : "No matches. Try a shorter name.";
         }
     }
 }

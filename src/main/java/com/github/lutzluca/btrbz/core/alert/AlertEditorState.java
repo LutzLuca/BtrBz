@@ -10,6 +10,8 @@ import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.Objects;
 import java.util.UUID;
+import java.text.NumberFormat;
+import java.util.Locale;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -35,14 +37,19 @@ final class AlertEditorState {
     private LiquiditySide liquiditySide = LiquiditySide.BuyOrders;
     @Setter
     private String quantity = "";
+    @Setter
+    private AlertLifecycle lifecycle = AlertLifecycle.Once;
 
     void mode(Kind mode) {
         if (this.mode == mode) {
             return;
         }
+        if (mode == Kind.Liquidity) {
+            this.liquiditySide = this.source == PriceSource.Buy ? LiquiditySide.SellOffers : LiquiditySide.BuyOrders;
+        } else {
+            this.source = this.liquiditySide == LiquiditySide.SellOffers ? PriceSource.Buy : PriceSource.Sell;
+        }
         this.mode = Objects.requireNonNull(mode, "mode");
-        // Editing belongs to the original kind. A mode switch starts a new draft.
-        this.editingId = null;
     }
 
     void beginSearch() {
@@ -79,12 +86,12 @@ final class AlertEditorState {
             case AlertCondition.Price price -> {
                 this.source = price.type().source();
                 this.direction = price.type().direction();
-                this.expression = Utils.formatDecimal(price.price(), 1, true);
+                this.expression = AlertNotice.formatPrice(price.price());
             }
             case AlertCondition.Liquidity liquidity -> {
                 this.liquiditySide = liquidity.side();
-                this.quantity = Long.toString(liquidity.quantity());
-                this.expression = Utils.formatDecimal(liquidity.priceBound(), 1, true);
+                this.quantity = NumberFormat.getIntegerInstance(Locale.US).format(liquidity.quantity());
+                this.expression = AlertNotice.formatPrice(liquidity.priceBound());
             }
         }
         this.searching = false;
@@ -105,6 +112,8 @@ final class AlertEditorState {
     }
 
     void reset() {
+        this.mode = Kind.Price;
+        this.lifecycle = AlertLifecycle.Once;
         this.product = null;
         this.editingId = null;
         this.searching = true;

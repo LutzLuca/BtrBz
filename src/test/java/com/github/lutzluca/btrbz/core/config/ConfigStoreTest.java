@@ -305,7 +305,10 @@ class ConfigStoreTest {
               },
               "kind": "Price",
               "condition": {"type": {"source": "Sell", "direction": "Above"}, "price": 123.4},
-              "remindedAfter": 1000
+              "remindedAfter": 1000,
+              "lifecycle": "Once",
+              "armed": true,
+              "lastTriggeredAt": -1
             }
             """, Alert.class);
     }

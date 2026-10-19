@@ -32,11 +32,12 @@ public sealed interface AlertDraft {
     }
 
     private static long parseQuantity(String input) {
-        if (input == null || !input.trim().matches("[0-9]+")) {
+        String normalized = input == null ? "" : input.trim().replace(",", "");
+        if (normalized.isEmpty() || normalized.chars().anyMatch(value -> value < '0' || value > '9')) {
             throw new IllegalArgumentException("Enter a positive whole-number quantity");
         }
         try {
-            long value = Long.parseLong(input.trim());
+            long value = Long.parseLong(normalized);
             if (value <= 0) {
                 throw new IllegalArgumentException("Enter a positive whole-number quantity");
             }

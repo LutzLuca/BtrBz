@@ -43,13 +43,12 @@ final class AlertProductRow extends FlowLayout {
         this.tooltip(Component.literal(product.productId()));
 
         var stack = data.productStack(product);
-        stack.ifPresentOrElse(item -> this.child(UiComponents.item(item, 18)),
-            () -> this.child(UiComponents.label("?", UiStyles.palette().textMuted()).sizing(Sizing.fixed(18))));
+        stack.ifPresent(item -> this.child(UiComponents.item(item, 18)));
         var text = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
         text.gap(3);
         var label = UiComponents.label("", UiStyles.palette().textPrimary());
         label.text(name);
-        int nameWidth = Math.max(45, width - 23 - padding * 2);
+        int nameWidth = Math.max(45, width - (stack.isPresent() ? 23 : 0) - padding * 2);
         label.maxWidth(nameWidth);
         text.child(label);
         if (distinguishId) {

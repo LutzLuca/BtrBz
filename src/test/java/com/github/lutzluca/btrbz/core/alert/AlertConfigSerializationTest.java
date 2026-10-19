@@ -45,6 +45,8 @@ class AlertConfigSerializationTest {
         var json = new JsonObject();
         json.add("alert", validAlertJson());
         json.addProperty("reachedAt", 2_000L);
+        json.addProperty("id", java.util.UUID.randomUUID().toString());
+        json.addProperty("dismissedAt", -1);
         json.addProperty("observed", 130);
         json.addProperty(field, value);
         Assertions.assertNull(this.gson.fromJson(json, ReachedAlert.class));
@@ -78,7 +80,10 @@ class AlertConfigSerializationTest {
               },
               "kind": "Price",
               "condition": {"type": {"source": "Sell", "direction": "Above"}, "price": 123.4},
-              "remindedAfter": 1000
+              "remindedAfter": 1000,
+              "lifecycle": "Repeat",
+              "armed": false,
+              "lastTriggeredAt": 1700000000000
             }
             """).getAsJsonObject();
     }
@@ -114,6 +119,9 @@ class AlertConfigSerializationTest {
             Assertions.assertEquals(alert.productName(), reparsed.productName());
             Assertions.assertEquals(alert.condition, reparsed.condition);
             Assertions.assertEquals(alert.remindedAfter, reparsed.remindedAfter);
+            Assertions.assertEquals(AlertLifecycle.Repeat, reparsed.lifecycle);
+            Assertions.assertTrue(reparsed.waitingForReset());
+            Assertions.assertEquals(1700000000000L, reparsed.lastTriggeredAt);
         }
     }
 }

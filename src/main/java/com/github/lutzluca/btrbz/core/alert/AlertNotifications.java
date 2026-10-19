@@ -17,6 +17,24 @@ import net.minecraft.network.chat.HoverEvent.ShowText;
 public final class AlertNotifications {
     private AlertNotifications() {}
 
+    public static boolean notifyInbox(int pending, ToastNotifications toasts) {
+        if (!BtrBz.isActive() || Minecraft.getInstance().player == null) {
+            return false;
+        }
+        var config = ConfigStore.get().config().alert;
+        String summary = pending + (pending == 1 ? " alert needs" : " alerts need") + " your attention";
+        boolean delivered = !config.alsoSendChatMessage || Notifier.notifyPlayer(Notifier.prefix()
+            .append(Component.literal(summary + ". ").withStyle(UiStyles.label()))
+            .append(link("Inbox", "/btrbz alert", "Open your pending alerts"))
+            .append(" ").append(link("10 min", "/btrbz alert snooze", "Postpone reminder summaries")));
+        if (config.toastOnAlert) {
+            toasts.show(Component.literal("BtrBz Alerts").withStyle(UiStyles.modLabel()),
+                List.of(Component.literal(summary).withStyle(UiStyles.label())),
+                java.util.Optional.empty());
+        }
+        return delivered || config.toastOnAlert;
+    }
+
     public static void notifyReached(ReachedAlert reached, BazaarData bazaarData, ToastNotifications toasts) {
         if (!BtrBz.isActive() || Minecraft.getInstance().player == null) {
             return;
@@ -36,8 +54,9 @@ public final class AlertNotifications {
                     List.of(productName, notice.condition().copy(), notice.observation().copy()),
                     bazaarData.productStack(product));
             } else {
-                toasts.show(Component.empty().append(productName)
-                    .append(Component.literal(": " + notice.title()).withStyle(UiStyles.label())));
+                toasts.show(Component.literal("BtrBz: " + notice.title()).withStyle(UiStyles.label()),
+                    List.of(productName),
+                    bazaarData.productStack(product));
             }
         }
 
@@ -50,11 +69,10 @@ public final class AlertNotifications {
                 .append(Component.literal(". ").withStyle(UiStyles.label()))
                 .append(notice.observation().copy())
                 .append(Component.literal(". ").withStyle(UiStyles.label()))
-                .append(Component.literal("[Click to view]")
-                    .withStyle(style -> style
-                        .withClickEvent(new RunCommand("/bz " + product.strippedName()))
-                        .withHoverEvent(new ShowText(Component.literal("Open in the Bazaar"))))
-                    .withStyle(UiStyles.action())));
+                .append(link("Bazaar", "/bz " + product.strippedName(), "Open the item in the Bazaar"))
+                .append(" ").append(link("Dismiss", "/btrbz alert dismiss " + reached.id(),
+                    "Move this event to History and stop its reminders"))
+                .append(" ").append(link("Inbox", "/btrbz alert", "Open your pending alerts")));
         }
     }
 
@@ -80,5 +98,12 @@ public final class AlertNotifications {
                 .withStyle(UiStyles.action()));
 
         Notifier.notifyPlayer(msg);
+    }
+
+    private static Component link(String label, String command, String description) {
+        return Component.literal("[" + label + "]").withStyle(style -> style
+            .withClickEvent(new RunCommand(command))
+            .withHoverEvent(new ShowText(Component.literal(description))))
+            .withStyle(UiStyles.action());
     }
 }

@@ -72,27 +72,31 @@ class LiquidityAlertTest {
     }
 
     @Test
-    void saveAndWatchAgainImmediatelyReachAgainstLatestSnapshotButRespectDuplicates() {
+    void watchAgainReviewsTheEventAndWaitsForAResetWithoutDuplicatingTheCondition() {
         var config = new AlertConfig();
         var data = new BazaarData();
         var notified = new ArrayList<ReachedAlert>();
         var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
-        publish(data, product("[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]"));
+        data.addListener(manager::onBazaarUpdate);
+        String offers = "[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]";
+        publish(data, product(offers));
+        manager.saveAlert(null, definition(100, 1_000)).get();
+        var event = manager.inbox().getFirst();
 
-        var first = manager.saveAlert(null, definition(100, 1_000)).get();
-        Assertions.assertTrue(manager.alerts().isEmpty());
+        var watching = manager.watchAgain(event.id()).get();
+
+        Assertions.assertTrue(watching.waitingForReset());
+        Assertions.assertTrue(manager.inbox().isEmpty());
+        Assertions.assertEquals(1, manager.history().size());
+        Assertions.assertTrue(manager.saveAlert(null, definition(100, 1_000)).isFailure());
+        Assertions.assertTrue(manager.watchAgain(event.id()).isFailure());
+        publish(data, product(offers));
         Assertions.assertEquals(1, notified.size());
-        manager.watchAgain(first.id).get();
-        Assertions.assertEquals(2, notified.size());
-        Assertions.assertEquals(1, manager.reachedAlerts().size());
-
         publish(data, product("[]"));
-        var duplicate = manager.saveAlert(null, definition(100, 1_000)).get();
-        Assertions.assertEquals(0, manager.liquidityProgress(duplicate).orElseThrow());
-        Assertions.assertTrue(manager.watchAgain(first.id).isFailure());
-        Assertions.assertEquals(1, manager.reachedAlerts().size());
-        Assertions.assertEquals(1, manager.alerts().size());
+        publish(data, product(offers));
         Assertions.assertEquals(2, notified.size());
+        Assertions.assertEquals(1, manager.inbox().size());
+        Assertions.assertTrue(manager.alerts().isEmpty());
     }
 
     @Test

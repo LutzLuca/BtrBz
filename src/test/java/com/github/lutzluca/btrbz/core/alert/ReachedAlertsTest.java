@@ -27,7 +27,7 @@ class ReachedAlertsTest {
     Path tempDir;
 
     @Test
-    void keepsIndependentHistoryLimitsAndPersistsIndividualRemoval() {
+    void keepsBothKindsUnreadAcrossReloadAndPersistsIndividualRemoval() {
         var path = this.tempDir.resolve("reached-alerts.json");
         var store = new ConfigStore(path);
         var data = new BazaarData();
@@ -46,12 +46,13 @@ class ReachedAlertsTest {
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(24, notifications.size());
         var history = manager.reachedAlerts();
-        Assertions.assertEquals(20, history.size());
+        Assertions.assertEquals(24, history.size());
         var prices = history.stream().filter(entry -> entry.alert().kind() == Kind.Price).toList();
         var liquidity = history.stream().filter(entry -> entry.alert().kind() == Kind.Liquidity).toList();
-        Assertions.assertEquals(List.of(112.0, 111.0, 110.0, 109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0),
+        Assertions.assertEquals(
+            List.of(112.0, 111.0, 110.0, 109.0, 108.0, 107.0, 106.0, 105.0, 104.0, 103.0, 102.0, 101.0),
             prices.stream().map(entry -> ((AlertCondition.Price) entry.alert().condition).price()).toList());
-        Assertions.assertEquals(List.of(12L, 11L, 10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L),
+        Assertions.assertEquals(List.of(12L, 11L, 10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L, 2L, 1L),
             liquidity.stream().map(entry -> ((AlertCondition.Liquidity) entry.alert().condition).quantity()).toList());
         long after = System.currentTimeMillis();
         for (var entry : history) {
@@ -71,7 +72,7 @@ class ReachedAlertsTest {
         Assertions.assertTrue(reloaded.load());
         var restored = new AlertManager(data, () -> reloaded.config().alert, reloaded::save, notifications::add);
         var savedHistory = restored.reachedAlerts();
-        Assertions.assertEquals(20, savedHistory.size());
+        Assertions.assertEquals(24, savedHistory.size());
         for (int index = 0; index < history.size(); index++) {
             var entry = history.get(index);
             var saved = savedHistory.get(index);
@@ -83,17 +84,17 @@ class ReachedAlertsTest {
         }
         restored.onBazaarUpdate(data.currentSnapshot());
         Assertions.assertEquals(24, notifications.size(), "reloading history must not redeliver it");
-        var removedId = savedHistory.getFirst().alert().id;
+        var removedId = savedHistory.getFirst().id();
         Assertions.assertTrue(restored.removeReachedAlert(removedId));
         Assertions.assertFalse(restored.removeReachedAlert(removedId));
         Assertions.assertTrue(reloaded.load());
-        Assertions.assertEquals(19, reloaded.config().alert.reachedAlerts.size());
-        Assertions.assertEquals(10, reloaded.config().alert.reachedAlerts.stream()
+        Assertions.assertEquals(23, reloaded.config().alert.reachedAlerts.size());
+        Assertions.assertEquals(12, reloaded.config().alert.reachedAlerts.stream()
             .filter(entry -> entry.alert().kind() == Kind.Price).count());
-        Assertions.assertEquals(9, reloaded.config().alert.reachedAlerts.stream()
+        Assertions.assertEquals(11, reloaded.config().alert.reachedAlerts.stream()
             .filter(entry -> entry.alert().kind() == Kind.Liquidity).count());
         Assertions.assertTrue(reloaded.config().alert.reachedAlerts.stream()
-            .noneMatch(entry -> entry.alert().id.equals(removedId)));
+            .noneMatch(entry -> entry.id().equals(removedId)));
         Assertions.assertTrue(reloaded.config().alert.alerts.isEmpty());
     }
 
@@ -177,14 +178,15 @@ class ReachedAlertsTest {
             notifications.getFirst().observation());
 
         publishBook(data, null, null);
-        manager.watchAgain(alert.id).get();
-        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        manager.watchAgain(manager.inbox().getFirst().id()).get();
+        Assertions.assertTrue(manager.inbox().isEmpty());
+        Assertions.assertEquals(1, manager.history().size());
         Assertions.assertEquals(condition, manager.alerts().getFirst().condition);
         Assertions.assertEquals(1, notifications.size());
     }
 
     @Test
-    void throwingSaveCallbackKeepsReachedHistoryAndRollsBackRemoval() {
+    void failedTriggerSaveKeepsTheWatchAndRetriesBeforeNotifying() {
         var config = new AlertConfig();
         var data = new BazaarData();
         var failSave = new boolean[1];
@@ -200,16 +202,22 @@ class ReachedAlertsTest {
         failSave[0] = true;
 
         Assertions.assertDoesNotThrow(() -> publish(data, "99"));
+        Assertions.assertEquals(1, manager.alerts().size());
+        Assertions.assertTrue(notifications.isEmpty());
+        Assertions.assertTrue(manager.inbox().isEmpty());
+        Assertions.assertEquals(revision, manager.changes().revision());
+        failSave[0] = false;
+        publish(data, "99");
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(1, notifications.size());
-        Assertions.assertTrue(manager.changes().revision() > revision);
         var entry = manager.reachedAlerts().getFirst();
-        Assertions.assertThrows(IllegalStateException.class, () -> manager.removeReachedAlert(entry.alert().id));
+        failSave[0] = true;
+        Assertions.assertThrows(IllegalStateException.class, () -> manager.removeReachedAlert(entry.id()));
         Assertions.assertEquals(entry, manager.reachedAlerts().getFirst());
     }
 
     @Test
-    void cleansMalformedHistoryAndEnforcesLimitOnLoad() {
+    void cleansMalformedEventsWithoutPruningUnreadEntries() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         for (int index = 0; index < 12; index++) {
@@ -222,10 +230,10 @@ class ReachedAlertsTest {
         var restored = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
 
         Assertions.assertEquals(1, saves[0]);
-        Assertions.assertEquals(10, restored.reachedAlerts().size());
+        Assertions.assertEquals(12, restored.inbox().size());
         Assertions.assertEquals(100,
             ((AlertCondition.Price) restored.reachedAlerts().getFirst().alert().condition).price());
-        Assertions.assertEquals(109,
+        Assertions.assertEquals(111,
             ((AlertCondition.Price) restored.reachedAlerts().getLast().alert().condition).price());
     }
 

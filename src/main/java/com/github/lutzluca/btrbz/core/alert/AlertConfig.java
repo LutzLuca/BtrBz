@@ -18,6 +18,7 @@ public final class AlertConfig {
     public boolean toastOnAlert = true;
     public boolean detailedAlertToasts;
     public boolean alsoSendChatMessage;
+    public long snoozedUntil;
     public List<Alert> alerts = new ArrayList<>();
     public List<ReachedAlert> reachedAlerts = new ArrayList<>();
 
@@ -39,7 +40,7 @@ public final class AlertConfig {
             .<Boolean>createBuilder()
             .name(Component.literal("Show Alert Toasts"))
             .description(ConfigUi.createDescription(
-                "Show a toast when an alert hits its target. Find it later in the Reached tab."))
+                "Show trigger notifications and reminders for pending alerts. Dismiss events in the panel or Inbox."))
             .binding(true, () -> this.toastOnAlert, val -> this.toastOnAlert = val)
             .controller(ConfigUi::createBooleanController);
     }
@@ -51,7 +52,7 @@ public final class AlertConfig {
                 ConfigUi.text("Show the product and saved price target, or the saved item quantity "
                     + "and price limit, plus the price or quantity that triggered the alert."),
                 ConfigUi.example("Liquidity target reached\nDiamond\n"
-                    + "Instantly sell 1,200 items at ≥ 4.0 coins each\nObserved: 1,500 qualifying items"),
+                    + "Sell 1,200 items instantly for at least 4.0 coins each\nTriggered with 1,500 items available"),
                 ConfigUi.text("Long names and values may wrap. Turn this off to show only the product "
                     + "and which target was reached."))))
             .binding(false, () -> this.detailedAlertToasts, value -> this.detailedAlertToasts = value)
@@ -60,9 +61,10 @@ public final class AlertConfig {
 
     public Option.Builder<Boolean> createChatMessageOption() {
         return Option.<Boolean>createBuilder()
-            .name(Component.literal("Also Send a Chat Message"))
+            .name(Component.literal("Chat Notifications"))
             .description(ConfigUi.createDescription(
-                "Also send reached alerts to chat with a link to the item in the Bazaar."))
+                "Show triggers and reminder summaries in chat with clickable actions. "
+                    + "Turn off chat and toasts to use only the panel and Inbox."))
             .binding(false, () -> this.alsoSendChatMessage, value -> this.alsoSendChatMessage = value)
             .controller(ConfigUi::createBooleanController);
     }
@@ -85,6 +87,10 @@ public final class AlertConfig {
                     + "and cannot trigger alerts watching that side. "
                     + "Missing or invalid prices also keep those alerts waiting."),
                 ConfigUi.text("Use liquidity alerts to watch how many items you can buy or sell instantly."),
+                ConfigUi.text("Price and liquidity share one editor, Inbox and compact Bazaar widget. "
+                    + "Choose Once or Repeat after dismissal. Pending events survive reconnects "
+                    + "and remind you every 10 minutes through your enabled notification channels. "
+                    + "Dismiss an event to move it to History and stop its reminders."),
                 ConfigUi.note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
             .options(alerts.build())
             .option(ButtonOption.createBuilder()

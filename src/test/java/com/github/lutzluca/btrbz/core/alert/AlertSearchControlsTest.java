@@ -25,7 +25,8 @@ class AlertSearchControlsTest {
         Assertions.assertNotEquals(waiting, ready);
         Assertions.assertTrue(ready.marketAvailable());
         Assertions.assertNotEquals(waiting.emptyHint("unmatched"), ready.emptyHint("unmatched"));
-        Assertions.assertTrue(ready.emptyHint("").isEmpty());
+        Assertions.assertFalse(ready.emptyHint("").isEmpty());
+        Assertions.assertNotEquals(ready.emptyHint(""), ready.emptyHint("unmatched"));
         Assertions.assertEquals(ready, Results.lookup(data, "unmatched"));
 
         data.clearMarketData();

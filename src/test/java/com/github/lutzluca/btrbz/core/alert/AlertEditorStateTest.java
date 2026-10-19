@@ -64,7 +64,7 @@ class AlertEditorStateTest {
         var editor = new AlertEditorState();
         editor.edit(UUID.randomUUID(), DIAMOND,
             new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), 8323.0000001));
-        Assertions.assertEquals("8,323.0", editor.expression());
+        Assertions.assertEquals("8,323", editor.expression());
         Assertions.assertEquals(8323.0,
             ((AlertCondition.Price) editor.draft().resolve(null, 1_000L).get().condition()).price());
         Assertions.assertEquals(PriceSource.Buy, editor.source());
@@ -77,16 +77,27 @@ class AlertEditorStateTest {
     }
 
     @Test
-    void modeSwitchRetainsProductButCannotConvertAnEditedAlert() {
+    void modeSwitchRetainsTheEditedAlertAndItsProduct() {
         var editor = new AlertEditorState();
-        editor.edit(UUID.randomUUID(), DIAMOND,
+        var id = UUID.randomUUID();
+        editor.edit(id, DIAMOND,
             new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), 1_000));
 
         editor.mode(Kind.Liquidity);
 
         Assertions.assertEquals(DIAMOND, editor.product());
-        Assertions.assertNull(editor.editingId());
+        Assertions.assertEquals(id, editor.editingId());
         Assertions.assertEquals(Kind.Liquidity, editor.mode());
+        Assertions.assertEquals(AlertCondition.LiquiditySide.SellOffers, editor.liquiditySide());
+        editor.quantity("1200");
+        editor.lifecycle(AlertLifecycle.Repeat);
+        editor.liquiditySide(AlertCondition.LiquiditySide.BuyOrders);
+        editor.mode(Kind.Price);
+        Assertions.assertEquals(PriceSource.Sell, editor.source());
+        Assertions.assertEquals("1200", editor.quantity());
+        Assertions.assertEquals("1,000", editor.expression());
+        Assertions.assertEquals(AlertLifecycle.Repeat, editor.lifecycle());
+        Assertions.assertEquals(id, editor.editingId());
     }
 
     @Test
@@ -103,5 +114,8 @@ class AlertEditorStateTest {
 
         editor.quantity("9223372036854775808");
         Assertions.assertTrue(editor.draft().resolve(null, 1_000L).isFailure());
+        editor.quantity("1,200");
+        Assertions.assertEquals(1_200,
+            ((AlertCondition.Liquidity) editor.draft().resolve(null, 1_000L).get().condition()).quantity());
     }
 }

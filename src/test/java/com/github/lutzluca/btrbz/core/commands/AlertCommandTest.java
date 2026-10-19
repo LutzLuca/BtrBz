@@ -2,6 +2,9 @@ package com.github.lutzluca.btrbz.core.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.github.lutzluca.btrbz.core.alert.AlertConfig;
+import com.github.lutzluca.btrbz.core.alert.AlertManager;
+import com.github.lutzluca.btrbz.data.BazaarData;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -13,7 +16,9 @@ class AlertCommandTest {
     void bareCommandOpensScreenAndOldSubcommandsAreRejected() throws CommandSyntaxException {
         var opened = new AtomicInteger();
         var dispatcher = new CommandDispatcher<FabricClientCommandSource>();
-        dispatcher.register(ClientCommands.literal("btrbz").then(AlertCommand.build(opened::incrementAndGet)));
+        var config = new AlertConfig();
+        var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
+        dispatcher.register(ClientCommands.literal("btrbz").then(AlertCommand.build(opened::incrementAndGet, manager)));
 
         Assertions.assertEquals(1, dispatcher.execute("btrbz alert", null));
         Assertions.assertEquals(1, opened.get());
