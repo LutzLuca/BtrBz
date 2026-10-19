@@ -58,7 +58,9 @@ maximum width through the widget manager. During sign input, navigation waits un
 The editor's Order book button opens the selected item's book even when its widget is disabled,
 without changing that setting. Closing it returns to the same alert draft. Comparisons use
 At or below and At or above in the editor, and ≤ or ≥ in saved conditions. Hover the help icon beside
-the target price for expression syntax.
+the target price for expression syntax, or focus it with the keyboard.
+
+Alert changes use the normal config save path. There is no separate alert save queue or disk-write retry.
 
 Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
 [Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),
@@ -86,6 +88,9 @@ BtrBz currently supports Minecraft 26.1 and 26.2. It requires Java 25 or newer a
 - Opening a bookmarked product uses `/bz` and requires an active Cookie Buff
 
 ## Icon attribution
+
+The compact alert panel's bell, clock, archive and chevrons are original project pixel artwork,
+bundled as texture assets. The expression-help icon uses the attributed question icon below.
 
 This project uses icons from [Flaticon](https://www.flaticon.com/):
 

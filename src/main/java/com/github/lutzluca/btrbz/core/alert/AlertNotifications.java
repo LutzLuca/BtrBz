@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.data.BazaarData;
-import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Notifier;
 import com.github.lutzluca.btrbz.utils.ToastNotifications;
 import java.util.List;
@@ -22,8 +21,11 @@ public final class AlertNotifications {
             return false;
         }
         var config = ConfigStore.get().config().alert;
+        if (!config.alsoSendChatMessage && !config.toastOnAlert) {
+            return true;
+        }
         String summary = pending + (pending == 1 ? " alert needs" : " alerts need") + " your attention";
-        boolean delivered = !config.alsoSendChatMessage || Notifier.notifyPlayer(Notifier.prefix()
+        boolean delivered = config.alsoSendChatMessage && Notifier.notifyPlayer(Notifier.prefix()
             .append(Component.literal(summary + ". ").withStyle(UiStyles.label()))
             .append(link("Inbox", "/btrbz alert", "Open your pending alerts"))
             .append(" ").append(link("10 min", "/btrbz alert snooze", "Postpone reminder summaries")));

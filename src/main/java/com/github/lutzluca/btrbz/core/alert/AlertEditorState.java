@@ -7,7 +7,8 @@ import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
-import com.github.lutzluca.btrbz.utils.Utils;
+import com.github.lutzluca.btrbz.data.BazaarData.MarketPrices;
+import io.vavr.control.Try;
 import java.util.Objects;
 import java.util.UUID;
 import java.text.NumberFormat;
@@ -102,13 +103,30 @@ final class AlertEditorState {
         return this.product != null && !this.searching;
     }
 
-    AlertDraft draft() {
-        return switch (this.mode) {
-            case Price ->
-                new AlertDraft.Price(this.product, new AlertType(this.source, this.direction), this.expression);
-            case Liquidity ->
-                new AlertDraft.Liquidity(this.product, this.liquiditySide, this.quantity, this.expression);
-        };
+    Try<AlertDefinition> resolve(MarketPrices prices, long timestamp) {
+        return Try.of(() -> this.mode == Kind.Liquidity ? parseQuantity(this.quantity) : 0)
+            .flatMap(required -> PriceExpressionParser.parse(this.expression)
+                .flatMap(expression -> expression.resolve(prices))
+                .map(price -> new AlertDefinition(timestamp, this.product, this.mode == Kind.Price
+                    ? new AlertCondition.Price(new AlertType(this.source, this.direction), price)
+                    : new AlertCondition.Liquidity(this.liquiditySide, required, price))))
+            .flatMap(AlertDefinition::validate);
+    }
+
+    private static long parseQuantity(String input) {
+        String normalized = input == null ? "" : input.trim().replace(",", "");
+        if (normalized.isEmpty() || normalized.chars().anyMatch(value -> value < '0' || value > '9')) {
+            throw new IllegalArgumentException("Enter a positive whole-number quantity");
+        }
+        try {
+            long value = Long.parseLong(normalized);
+            if (value <= 0) {
+                throw new IllegalArgumentException("Enter a positive whole-number quantity");
+            }
+            return value;
+        } catch (NumberFormatException err) {
+            throw new IllegalArgumentException("Quantity is too large", err);
+        }
     }
 
     void reset() {

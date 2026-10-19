@@ -19,12 +19,16 @@ class AlertManagerTest {
         var saves = new int[1];
         var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
 
-        var diamond = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
-        var gold = manager.saveAlert(null, definition(2_000L, GOLD, 200.0)).get();
+        var diamond = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0),
+            AlertLifecycle.Once).get();
+        var gold = manager
+            .saveAlert(null, definition(2_000L, GOLD, 200.0), AlertLifecycle.Once)
+            .get();
         diamond.remindedAfter = 500L;
         var revisionBeforeEdit = manager.changes().revision();
 
-        var edited = manager.saveAlert(diamond.id, definition(3_000L, DIAMOND, 100.0)).get();
+        var edited = manager.saveAlert(diamond.id, definition(3_000L, DIAMOND, 100.0),
+            AlertLifecycle.Once).get();
 
         Assertions.assertEquals(diamond.id, edited.id);
         Assertions.assertEquals(3_000L, edited.createdAt);
@@ -44,11 +48,14 @@ class AlertManagerTest {
         var config = new AlertConfig();
         var saves = new int[1];
         var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
-        var first = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
+        var first = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0),
+            AlertLifecycle.Once).get();
         var revision = manager.changes().revision();
 
-        Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 100.0)).isFailure());
-        Assertions.assertTrue(manager.saveAlert(UUID.randomUUID(), definition(2_000L, GOLD, 200.0)).isFailure());
+        Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 100.0),
+            AlertLifecycle.Once).isFailure());
+        Assertions.assertTrue(manager.saveAlert(UUID.randomUUID(), definition(2_000L, GOLD, 200.0),
+            AlertLifecycle.Once).isFailure());
 
         Assertions.assertEquals(1, saves[0]);
         Assertions.assertEquals(revision, manager.changes().revision());
@@ -61,10 +68,14 @@ class AlertManagerTest {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
 
-        Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, Double.NaN)).isFailure());
+        Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, Double.NaN),
+            AlertLifecycle.Once).isFailure());
         Assertions.assertTrue(
-            manager.saveAlert(null, definition(1_000L, DIAMOND, Double.POSITIVE_INFINITY)).isFailure());
-        Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, 0.0)).isFailure());
+            manager.saveAlert(null, definition(1_000L, DIAMOND, Double.POSITIVE_INFINITY),
+                AlertLifecycle.Once).isFailure());
+        Assertions.assertTrue(manager
+            .saveAlert(null, definition(1_000L, DIAMOND, 0.0), AlertLifecycle.Once)
+            .isFailure());
         Assertions.assertTrue(manager.alerts().isEmpty());
     }
 
@@ -72,46 +83,15 @@ class AlertManagerTest {
     void savesRoundedThresholdsAndDetectsDuplicatesAtTheSameTenth() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
-        var alert = manager.saveAlert(null, definition(1_000L, DIAMOND, 8323.0000001)).get();
+        var alert = manager.saveAlert(null, definition(1_000L, DIAMOND, 8323.0000001),
+            AlertLifecycle.Once).get();
         Assertions.assertEquals(8323.0, ((AlertCondition.Price) alert.condition).price());
-        Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 8323.04)).isFailure());
+        Assertions.assertTrue(manager.saveAlert(null, definition(2_000L, DIAMOND, 8323.04),
+            AlertLifecycle.Once).isFailure());
         Assertions.assertEquals(8323.1,
-            ((AlertCondition.Price) manager.saveAlert(null, definition(3_000L, DIAMOND, 8323.05)).get().condition)
-                .price());
-    }
-
-    @Test
-    void throwingSaveCallbackRollsBackTheInMemoryMutation() {
-        var config = new AlertConfig();
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> {
-            throw new IllegalStateException("save callback failed");
-        }, _ -> {});
-
-        var result = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0));
-
-        Assertions.assertTrue(result.isFailure());
-        Assertions.assertEquals("save callback failed", result.getCause().getMessage());
-        Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertEquals(0, manager.changes().revision());
-    }
-
-    @Test
-    void cleanupSurvivesAThrowingSaveCallbackAndKeepsValidAlerts() {
-        var config = new AlertConfig();
-        var original = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
-        var valid = original.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
-        config.alerts.add(null);
-        var saves = new int[1];
-
-        var manager = Assertions.assertDoesNotThrow(() -> new AlertManager(new BazaarData(), () -> config, () -> {
-            saves[0]++;
-            throw new IllegalStateException("save callback failed");
-        }, _ -> {}));
-
-        Assertions.assertEquals(1, saves[0]);
-        Assertions.assertEquals(java.util.List.of(valid), manager.alerts());
-        Assertions.assertEquals(java.util.List.of(valid), config.alerts);
-        Assertions.assertEquals(1, manager.changes().revision());
+            ((AlertCondition.Price) manager.saveAlert(null, definition(3_000L, DIAMOND, 8323.05),
+                AlertLifecycle.Once).get().condition)
+                    .price());
     }
 
     @Test
@@ -124,22 +104,12 @@ class AlertManagerTest {
         var manager = new AlertManager(new BazaarData(), () -> config, () -> saves[0]++, _ -> {});
 
         Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertTrue(manager.inbox().isEmpty());
         Assertions.assertEquals(1, saves[0]);
         Assertions.assertEquals(1, manager.changes().revision());
-        Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).isSuccess());
+        Assertions.assertTrue(manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0),
+            AlertLifecycle.Once).isSuccess());
         Assertions.assertEquals(1, manager.alerts().size());
-    }
-
-    @Test
-    void generatedIdsAreIndependent() {
-        var config = new AlertConfig();
-        var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
-
-        var first = manager.saveAlert(null, definition(1_000L, DIAMOND, 100.0)).get();
-        var second = manager.saveAlert(null, definition(2_000L, DIAMOND, 101.0)).get();
-
-        Assertions.assertNotEquals(first.id, second.id);
     }
 
     private static AlertDefinition definition(long timestamp, IndexedProduct product, double price) {

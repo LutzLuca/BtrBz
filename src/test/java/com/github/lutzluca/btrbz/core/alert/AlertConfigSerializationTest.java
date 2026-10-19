@@ -58,7 +58,8 @@ class AlertConfigSerializationTest {
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var condition = new AlertCondition.Liquidity(AlertCondition.LiquiditySide.BuyOrders, Long.MAX_VALUE, 1_000);
         var alert = manager.saveAlert(null, new AlertDefinition(1_000,
-            new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond"), condition)).get();
+            new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond"), condition),
+            AlertLifecycle.Once).get();
         var reached = new ReachedAlert(alert, 2_000, new AlertCondition.Observation.Liquidity(Long.MAX_VALUE));
 
         var restored = this.gson.fromJson(this.gson.toJson(reached), ReachedAlert.class);

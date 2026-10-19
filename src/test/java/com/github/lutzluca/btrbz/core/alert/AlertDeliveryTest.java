@@ -38,8 +38,8 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(2, 2), this.summaries);
 
-        this.manager.dismiss(first.id()).get();
-        this.manager.dismissAll().get();
+        this.manager.dismiss(first.id());
+        this.manager.dismissAll();
         delivery.disconnect();
         delivery.tick(true, false);
         this.now[0] += 3_000;
@@ -52,7 +52,7 @@ class AlertDeliveryTest {
     void retriesFailedSummaryDeliveryAndHonorsSnoozeAcrossAReconnect() {
         this.event(100);
         int[] attempts = {0};
-        var delivery = new AlertDelivery(this.manager, this.individual::add, count -> {
+        var delivery = new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
             attempts[0]++;
             if (attempts[0] == 1) {
                 return false;
@@ -70,8 +70,8 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(1), this.summaries);
 
-        this.manager.snooze().get();
-        long due = this.manager.snoozedUntil();
+        delivery.snooze();
+        long due = delivery.snoozedUntil();
         delivery.disconnect();
         delivery.tick(true, false);
         var newEvent = this.event(101);
@@ -101,7 +101,7 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(1), this.summaries);
 
-        this.manager.snooze().get();
+        delivery.snooze();
         delivery.tick(true, false);
         delivery.reached(this.event(101));
         Assertions.assertEquals(2, this.individual.size());
@@ -112,7 +112,7 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(1, 2, 2), this.summaries,
             "recurring summaries include every pending event");
-        this.manager.dismissAll().get();
+        this.manager.dismissAll();
         this.now[0] += AlertDelivery.REMINDER_INTERVAL_MS;
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(1, 2, 2), this.summaries);
@@ -123,7 +123,7 @@ class AlertDeliveryTest {
         this.event(100);
         this.event(101, AlertLifecycle.Once);
         var attempts = new ArrayList<Integer>();
-        var delivery = new AlertDelivery(this.manager, this.individual::add, count -> {
+        var delivery = new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
             attempts.add(count);
             return attempts.size() != 2;
         }, () -> this.now[0]);
@@ -139,7 +139,7 @@ class AlertDeliveryTest {
     }
 
     private AlertDelivery delivery() {
-        return new AlertDelivery(this.manager, this.individual::add, count -> {
+        return new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
             this.summaries.add(count);
             return true;
         }, () -> this.now[0]);
@@ -149,7 +149,7 @@ class AlertDeliveryTest {
     void disablingRemindersCancelsRetriesWithoutConsumingEventsOrMutingTriggers() {
         this.event(100);
         int[] attempts = {0};
-        var delivery = new AlertDelivery(this.manager, this.individual::add, count -> {
+        var delivery = new AlertDelivery(this.manager, () -> this.config, () -> {}, this.individual::add, count -> {
             if (++attempts[0] == 1) {
                 return false;
             }
@@ -167,8 +167,8 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         Assertions.assertEquals(1, attempts[0]);
         Assertions.assertEquals(1, this.manager.pendingCount());
-        Assertions.assertTrue(this.manager.snooze().isFailure());
-        Assertions.assertEquals(0, this.manager.snoozedUntil());
+        Assertions.assertFalse(delivery.snooze());
+        Assertions.assertEquals(0, delivery.snoozedUntil());
 
         delivery.disconnect();
         var newEvent = this.event(101);
@@ -216,7 +216,7 @@ class AlertDeliveryTest {
         delivery.tick(true, false);
         this.now[0] += 3_000;
         delivery.tick(true, false);
-        this.manager.dismiss(reminded.id()).get();
+        this.manager.dismiss(reminded.id());
         this.now[0] += AlertDelivery.REMINDER_INTERVAL_MS;
         delivery.tick(true, false);
         Assertions.assertEquals(List.of(2, 1), this.summaries);

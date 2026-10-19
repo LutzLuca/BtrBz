@@ -66,7 +66,7 @@ class AlertEditorStateTest {
             new AlertCondition.Price(new AlertType(PriceSource.Buy, Direction.Below), 8323.0000001));
         Assertions.assertEquals("8,323", editor.expression());
         Assertions.assertEquals(8323.0,
-            ((AlertCondition.Price) editor.draft().resolve(null, 1_000L).get().condition()).price());
+            ((AlertCondition.Price) editor.resolve(null, 1_000L).get().condition()).price());
         Assertions.assertEquals(PriceSource.Buy, editor.source());
         Assertions.assertFalse(editor.searching());
         editor.reset();
@@ -108,14 +108,14 @@ class AlertEditorStateTest {
         editor.quantity(Long.toString(Long.MAX_VALUE));
         editor.expression("1,000");
 
-        var resolved = editor.draft().resolve(null, 1_000L);
+        var resolved = editor.resolve(null, 1_000L);
         Assertions.assertTrue(resolved.isSuccess());
         Assertions.assertEquals(Long.MAX_VALUE, ((AlertCondition.Liquidity) resolved.get().condition()).quantity());
 
         editor.quantity("9223372036854775808");
-        Assertions.assertTrue(editor.draft().resolve(null, 1_000L).isFailure());
+        Assertions.assertTrue(editor.resolve(null, 1_000L).isFailure());
         editor.quantity("1,200");
         Assertions.assertEquals(1_200,
-            ((AlertCondition.Liquidity) editor.draft().resolve(null, 1_000L).get().condition()).quantity());
+            ((AlertCondition.Liquidity) editor.resolve(null, 1_000L).get().condition()).quantity());
     }
 }

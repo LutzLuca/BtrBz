@@ -46,7 +46,7 @@ class PriceExpressionParserTest {
 
     @Test
     void draftResolutionTracksNewMarketPricesWithoutChangingTheDraft() {
-        var draft = new AlertDraft.Price(PRODUCT, BUY_BELOW, "buy * 1.01");
+        var draft = draft(BUY_BELOW, "buy * 1.01");
 
         var first = draft.resolve(prices(90.0, 100.0), 1_000L).get();
         var second = draft.resolve(prices(100.0, 120.0), 2_000L).get();
@@ -59,19 +59,19 @@ class PriceExpressionParserTest {
 
     @Test
     void singleInputAcceptsLiteralsAndExpressions() {
-        var draft = new AlertDraft.Price(PRODUCT, SELL_ABOVE, "1.234567m");
+        var draft = draft(SELL_ABOVE, "1.234567m");
 
         Assertions.assertEquals(1_234_567.0,
             ((AlertCondition.Price) draft.resolve(prices(1.0, 2.0), 3_000L).get().condition()).price());
-        Assertions.assertEquals(0.5, ((AlertCondition.Price) new AlertDraft.Price(PRODUCT, SELL_ABOVE, ".5")
+        Assertions.assertEquals(0.5, ((AlertCondition.Price) draft(SELL_ABOVE, ".5")
             .resolve(prices(1.0, 2.0), 3_000L)
             .get()
             .condition()).price());
-        Assertions.assertEquals(1.0, ((AlertCondition.Price) new AlertDraft.Price(PRODUCT, SELL_ABOVE, "1.")
+        Assertions.assertEquals(1.0, ((AlertCondition.Price) draft(SELL_ABOVE, "1.")
             .resolve(prices(1.0, 2.0), 3_000L)
             .get()
             .condition()).price());
-        Assertions.assertEquals(2.2, ((AlertCondition.Price) new AlertDraft.Price(PRODUCT, SELL_ABOVE, "buy * 1.1")
+        Assertions.assertEquals(2.2, ((AlertCondition.Price) draft(SELL_ABOVE, "buy * 1.1")
             .resolve(prices(1.0, 2.0), 3_000L)
             .get()
             .condition()).price());
@@ -95,12 +95,12 @@ class PriceExpressionParserTest {
 
     @Test
     void roundsOnlyTheFinalThresholdToOneDecimal() {
-        var draft = new AlertDraft.Price(PRODUCT, BUY_BELOW, "buy * 1.1");
+        var draft = draft(BUY_BELOW, "buy * 1.1");
         var resolved = draft.resolve(prices(10.0, 13.05), 1_000L).get();
         Assertions.assertEquals(14.4, ((AlertCondition.Price) resolved.condition()).price());
-        Assertions.assertEquals(0.5, ((AlertCondition.Price) new AlertDraft.Price(PRODUCT, BUY_BELOW, "0.04 * 12")
+        Assertions.assertEquals(0.5, ((AlertCondition.Price) draft(BUY_BELOW, "0.04 * 12")
             .resolve(prices(1.0, 2.0), 1_000L).get().condition()).price());
-        Assertions.assertTrue(new AlertDraft.Price(PRODUCT, BUY_BELOW, "0.04")
+        Assertions.assertTrue(draft(BUY_BELOW, "0.04")
             .resolve(prices(1.0, 2.0), 1_000L).isFailure());
     }
 
@@ -114,6 +114,15 @@ class PriceExpressionParserTest {
     void guardsUnboundedInputAndNesting() {
         Assertions.assertTrue(PriceExpressionParser.parse("1".repeat(257)).isFailure());
         Assertions.assertTrue(PriceExpressionParser.parse("(".repeat(34) + "1" + ")".repeat(34)).isFailure());
+    }
+
+    private static AlertEditorState draft(AlertType type, String input) {
+        var editor = new AlertEditorState();
+        editor.select(PRODUCT);
+        editor.source(type.source());
+        editor.direction(type.direction());
+        editor.expression(input);
+        return editor;
     }
 
     private static MarketPrices prices(Double buyOrder, Double sellOffer) {

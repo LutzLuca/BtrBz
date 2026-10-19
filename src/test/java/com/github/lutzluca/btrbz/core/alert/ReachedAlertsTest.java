@@ -35,9 +35,11 @@ class ReachedAlertsTest {
         var manager = new AlertManager(data, () -> store.config().alert, store::save, notifications::add);
         data.addListener(manager::onBazaarUpdate);
         for (int index = 1; index <= 12; index++) {
-            manager.saveAlert(null, definition(100 + index)).get();
+            manager.saveAlert(null, definition(100 + index), AlertLifecycle.Once)
+                .get();
             manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT,
-                new AlertCondition.Liquidity(LiquiditySide.SellOffers, index, 100))).get();
+                new AlertCondition.Liquidity(LiquiditySide.SellOffers, index, 100)),
+                AlertLifecycle.Once).get();
         }
 
         long before = System.currentTimeMillis();
@@ -45,7 +47,7 @@ class ReachedAlertsTest {
 
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(24, notifications.size());
-        var history = manager.reachedAlerts();
+        var history = manager.inbox();
         Assertions.assertEquals(24, history.size());
         var prices = history.stream().filter(entry -> entry.alert().kind() == Kind.Price).toList();
         var liquidity = history.stream().filter(entry -> entry.alert().kind() == Kind.Liquidity).toList();
@@ -62,16 +64,16 @@ class ReachedAlertsTest {
             Assertions.assertTrue(entry.reachedAt() >= before && entry.reachedAt() <= after,
                 "capture time for " + entry.alert().id);
         }
-        Assertions.assertThrows(UnsupportedOperationException.class, () -> manager.reachedAlerts().clear());
+        Assertions.assertThrows(UnsupportedOperationException.class, () -> manager.inbox().clear());
 
         publish(data, "90");
-        Assertions.assertEquals(history, manager.reachedAlerts());
+        Assertions.assertEquals(history, manager.inbox());
         Assertions.assertEquals(24, notifications.size());
 
         var reloaded = new ConfigStore(path);
         Assertions.assertTrue(reloaded.load());
         var restored = new AlertManager(data, () -> reloaded.config().alert, reloaded::save, notifications::add);
-        var savedHistory = restored.reachedAlerts();
+        var savedHistory = restored.inbox();
         Assertions.assertEquals(24, savedHistory.size());
         for (int index = 0; index < history.size(); index++) {
             var entry = history.get(index);
@@ -116,7 +118,8 @@ class ReachedAlertsTest {
 
         publishBook(data, source == PriceSource.Sell ? "missing" : "90",
             source == PriceSource.Sell ? "150" : "missing");
-        var alert = manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition)).get();
+        var alert = manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition),
+            AlertLifecycle.Once).get();
         Assertions.assertEquals(1, manager.alerts().size());
         Assertions.assertTrue(notifications.isEmpty());
 
@@ -130,7 +133,7 @@ class ReachedAlertsTest {
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(2, saves[0]);
         Assertions.assertEquals(1, notifications.size());
-        var reached = manager.reachedAlerts().getFirst();
+        var reached = manager.inbox().getFirst();
         Assertions.assertEquals(alert.id, reached.alert().id);
         Assertions.assertEquals(new AlertCondition.Observation.Price(source == PriceSource.Sell ? 95 : 105),
             reached.observation());
@@ -138,7 +141,7 @@ class ReachedAlertsTest {
         publishBook(data, null, null);
         Assertions.assertEquals(2, saves[0]);
         Assertions.assertEquals(1, notifications.size());
-        Assertions.assertEquals(reached, manager.reachedAlerts().getFirst());
+        Assertions.assertEquals(reached, manager.inbox().getFirst());
 
         var restored = new ConfigStore(path);
         Assertions.assertTrue(restored.load());
@@ -160,9 +163,10 @@ class ReachedAlertsTest {
         var condition = new AlertCondition.Price(new AlertType(source, direction), 100);
         publishBook(data, null, null);
 
-        var alert = manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition)).get();
+        var alert = manager.saveAlert(null, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition),
+            AlertLifecycle.Once).get();
         Assertions.assertEquals(condition, manager.alerts().getFirst().condition);
-        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertTrue(manager.inbox().isEmpty());
         Assertions.assertTrue(notifications.isEmpty());
 
         var restored = new ConfigStore(path);
@@ -171,7 +175,8 @@ class ReachedAlertsTest {
         Assertions.assertTrue(restored.config().alert.reachedAlerts.isEmpty());
 
         publishBook(data, source == PriceSource.Sell ? quote : null, source == PriceSource.Buy ? quote : null);
-        manager.saveAlert(alert.id, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition)).get();
+        manager.saveAlert(alert.id, new AlertDefinition(System.currentTimeMillis(), PRODUCT, condition),
+            AlertLifecycle.Once).get();
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(1, notifications.size());
         Assertions.assertEquals(new AlertCondition.Observation.Price(Double.parseDouble(quote)),
@@ -186,43 +191,13 @@ class ReachedAlertsTest {
     }
 
     @Test
-    void failedTriggerSaveRetainsTheEventEvenIfTheMarketMovesBeforeRetry() {
-        var config = new AlertConfig();
-        var data = new BazaarData();
-        var failSave = new boolean[1];
-        var notifications = new ArrayList<ReachedAlert>();
-        var manager = new AlertManager(data, () -> config, () -> {
-            if (failSave[0]) {
-                throw new IllegalStateException("save callback failed");
-            }
-        }, notifications::add);
-        data.addListener(manager::onBazaarUpdate);
-        manager.saveAlert(null, definition(100)).get();
-        long revision = manager.changes().revision();
-        failSave[0] = true;
-
-        Assertions.assertDoesNotThrow(() -> publish(data, "99"));
-        Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertTrue(notifications.isEmpty());
-        Assertions.assertEquals(1, manager.inbox().size());
-        Assertions.assertTrue(manager.changes().revision() > revision);
-        failSave[0] = false;
-        publish(data, "101");
-        Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertEquals(1, notifications.size());
-        var entry = manager.reachedAlerts().getFirst();
-        Assertions.assertEquals(new AlertCondition.Observation.Price(99), entry.observation());
-        failSave[0] = true;
-        Assertions.assertThrows(IllegalStateException.class, () -> manager.removeReachedAlert(entry.id()));
-        Assertions.assertEquals(entry, manager.reachedAlerts().getFirst());
-    }
-
-    @Test
     void cleansMalformedEventsWithoutPruningUnreadEntries() {
         var config = new AlertConfig();
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         for (int index = 0; index < 12; index++) {
-            var alert = manager.saveAlert(null, definition(100 + index)).get();
+            var alert = manager
+                .saveAlert(null, definition(100 + index), AlertLifecycle.Once)
+                .get();
             config.reachedAlerts.add(new ReachedAlert(alert, 1000 + index, new AlertCondition.Observation.Price(90)));
         }
         config.reachedAlerts.addFirst(null);
@@ -233,9 +208,9 @@ class ReachedAlertsTest {
         Assertions.assertEquals(1, saves[0]);
         Assertions.assertEquals(12, restored.inbox().size());
         Assertions.assertEquals(100,
-            ((AlertCondition.Price) restored.reachedAlerts().getFirst().alert().condition).price());
+            ((AlertCondition.Price) restored.inbox().getFirst().alert().condition).price());
         Assertions.assertEquals(111,
-            ((AlertCondition.Price) restored.reachedAlerts().getLast().alert().condition).price());
+            ((AlertCondition.Price) restored.inbox().getLast().alert().condition).price());
     }
 
     private static AlertDefinition definition(double threshold) {

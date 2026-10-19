@@ -1,6 +1,8 @@
 package com.github.lutzluca.btrbz.core.alert;
 
 import io.vavr.control.Try;
+import com.github.lutzluca.btrbz.cache.CacheToken;
+import java.util.function.Supplier;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import java.util.function.LongSupplier;
@@ -14,30 +16,64 @@ public final class AlertDelivery {
     private static final long RETRY_DELAY_MS = 5_000;
 
     private final AlertManager manager;
+    private final Supplier<AlertConfig> config;
+    private final Runnable onChanged;
+    private final CacheToken changes = CacheToken.named("alert-reminders");
     private final Consumer<ReachedAlert> notifyReached;
     private final IntPredicate notifySummary;
     private final LongSupplier clock;
     private boolean ready;
     private boolean returnPending;
     private boolean remindersEnabled;
-    private long readyAt;
     private long nextSummaryAt = Long.MAX_VALUE;
-    private long lastSnooze;
 
-    public AlertDelivery(AlertManager manager, Consumer<ReachedAlert> notifyReached, IntPredicate notifySummary) {
-        this(manager, notifyReached, notifySummary, System::currentTimeMillis);
+    public AlertDelivery(
+        AlertManager manager,
+        Supplier<AlertConfig> config,
+        Runnable onChanged,
+        Consumer<ReachedAlert> notifyReached,
+        IntPredicate notifySummary
+    ) {
+        this(manager, config, onChanged, notifyReached, notifySummary, System::currentTimeMillis);
     }
 
     AlertDelivery(
         AlertManager manager,
+        Supplier<AlertConfig> config,
+        Runnable onChanged,
         Consumer<ReachedAlert> notifyReached,
         IntPredicate notifySummary,
         LongSupplier clock
     ) {
         this.manager = manager;
+        this.config = config;
+        this.onChanged = onChanged;
         this.notifyReached = notifyReached;
         this.notifySummary = notifySummary;
         this.clock = clock;
+    }
+
+    public CacheToken changes() {
+        return this.changes;
+    }
+
+    public boolean remindersEnabled() {
+        return this.config.get().remindPending;
+    }
+
+    public long snoozedUntil() {
+        return this.config.get().snoozedUntil;
+    }
+
+    public boolean snooze() {
+        if (!this.remindersEnabled()) {
+            return false;
+        }
+        this.nextSummaryAt = this.clock.getAsLong() + REMINDER_INTERVAL_MS;
+        this.config.get().snoozedUntil = this.nextSummaryAt;
+        this.changes.invalidate("alert reminders snoozed");
+        this.onChanged.run();
+        return true;
     }
 
     public void disconnect() {
@@ -48,15 +84,15 @@ public final class AlertDelivery {
 
     public void reached(ReachedAlert reached) {
         long now = this.clock.getAsLong();
-        if (!this.ready && !this.manager.remindersEnabled()) {
+        boolean reminders = this.remindersEnabled();
+        if (!this.ready && !reminders) {
             this.notifyReached.accept(reached);
             return;
         }
-        if (!this.ready || (this.returnPending && this.manager.remindersEnabled()
-            && now >= this.manager.snoozedUntil())) {
+        if (!this.ready || (this.returnPending && reminders && now >= this.snoozedUntil())) {
             return;
         }
-        if (this.manager.remindersEnabled()) {
+        if (reminders) {
             this.nextSummaryAt = Math.min(this.nextSummaryAt, now + REMINDER_INTERVAL_MS);
         }
         this.notifyReached.accept(reached);
@@ -70,28 +106,21 @@ public final class AlertDelivery {
         long now = this.clock.getAsLong();
         if (!this.ready) {
             this.ready = true;
-            this.remindersEnabled = this.manager.remindersEnabled();
+            this.remindersEnabled = this.remindersEnabled();
             this.returnPending = this.remindersEnabled;
-            this.readyAt = now + RETURN_DELAY_MS;
-            this.lastSnooze = this.manager.snoozedUntil();
-            this.nextSummaryAt = Math.max(this.readyAt, this.lastSnooze);
+            this.nextSummaryAt = Math.max(now + RETURN_DELAY_MS, this.snoozedUntil());
         }
-        if (this.remindersEnabled != this.manager.remindersEnabled()) {
-            this.remindersEnabled = this.manager.remindersEnabled();
+        if (this.remindersEnabled != this.remindersEnabled()) {
+            this.remindersEnabled = this.remindersEnabled();
             this.returnPending = false;
-            this.nextSummaryAt = Math.max(now + REMINDER_INTERVAL_MS, this.manager.snoozedUntil());
+            this.nextSummaryAt = Math.max(now + REMINDER_INTERVAL_MS, this.snoozedUntil());
         }
         if (!this.remindersEnabled) {
             this.returnPending = false;
             this.nextSummaryAt = Long.MAX_VALUE;
-            this.lastSnooze = this.manager.snoozedUntil();
             return;
         }
-        if (this.lastSnooze != this.manager.snoozedUntil()) {
-            this.lastSnooze = this.manager.snoozedUntil();
-            this.nextSummaryAt = Math.max(this.readyAt, this.lastSnooze);
-        }
-        if (now < Math.max(this.nextSummaryAt, this.lastSnooze)) {
+        if (now < Math.max(this.nextSummaryAt, this.snoozedUntil())) {
             return;
         }
         int count = this.manager.pendingCount();

@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.commands;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
 import io.vavr.control.Try;
 import java.util.UUID;
 import net.minecraft.network.chat.Component;
@@ -12,25 +13,29 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 public final class AlertCommand {
     private AlertCommand() {}
 
-    public static LiteralArgumentBuilder<FabricClientCommandSource> build(Runnable openScreen, AlertManager manager) {
+    public static LiteralArgumentBuilder<FabricClientCommandSource> build(
+        Runnable openScreen,
+        AlertManager manager,
+        AlertDelivery delivery
+    ) {
         return ClientCommands.literal("alert").executes(_ -> {
             openScreen.run();
             return 1;
         }).then(ClientCommands.literal("dismiss").then(ClientCommands.argument("event", StringArgumentType.word())
             .executes(context -> {
                 var result = Try.of(() -> UUID.fromString(StringArgumentType.getString(context, "event")))
-                    .flatMap(manager::dismiss);
+                    .map(manager::dismiss);
                 context.getSource().sendFeedback(Component.literal(result.isFailure()
                     ? "Could not dismiss this alert."
                     : result.get() ? "Alert dismissed." : "This alert has already been dismissed."));
                 return result.isSuccess() ? 1 : 0;
             })))
             .then(ClientCommands.literal("snooze").executes(context -> {
-                var result = manager.snooze();
-                context.getSource().sendFeedback(Component.literal(result.isSuccess()
+                boolean postponed = delivery.snooze();
+                context.getSource().sendFeedback(Component.literal(postponed
                     ? "Alert reminders postponed for 10 minutes. New alerts still notify you."
                     : "Could not postpone alert reminders."));
-                return result.isSuccess() ? 1 : 0;
+                return postponed ? 1 : 0;
             }));
     }
 }

@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.config;
 
+import com.github.lutzluca.btrbz.core.alert.AlertLifecycle;
+
 import com.github.lutzluca.btrbz.core.alert.AlertCondition;
 
 import com.github.lutzluca.btrbz.core.alert.Alert;
@@ -79,11 +81,13 @@ class ConfigStoreTest {
             var product = new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond");
             var created = manager.saveAlert(null,
                 new AlertDefinition(1_000L, product,
-                    new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Below), 100)))
+                    new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Below), 100)),
+                AlertLifecycle.Once)
                 .get();
             manager.saveAlert(created.id,
                 new AlertDefinition(2_000L, product,
-                    new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 14.44)))
+                    new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 14.44)),
+                AlertLifecycle.Once)
                 .get();
 
             var reloaded = new ConfigStore(path);
@@ -259,7 +263,8 @@ class ConfigStoreTest {
 
             var result = manager.saveAlert(null, new AlertDefinition(1_000L,
                 new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond"),
-                new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 100)));
+                new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 100)),
+                AlertLifecycle.Once);
 
             // YACL logs the real IOException and returns normally; the manager sees a successful callback.
             Assertions.assertTrue(result.isSuccess());

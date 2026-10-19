@@ -5,9 +5,9 @@ import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import java.util.function.Consumer;
 import java.util.function.IntSupplier;
+import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
@@ -20,8 +20,11 @@ public final class UiButton extends ButtonComponent {
     private static final int ICON_GAP = 4;
     private static final int CONTENT_INSET = 3;
 
-    private final @Nullable Icon icon;
+    private final @Nullable UiIcon icon;
     private final @Nullable Component description;
+    private final boolean compact;
+    private @Nullable BooleanSupplier availability;
+    private Component unavailable = Component.empty();
     private final RetainedText retainedText = new RetainedText();
 
     private boolean primary;
@@ -37,18 +40,20 @@ public final class UiButton extends ButtonComponent {
     private UiButton(
         Component message,
         Consumer<ButtonComponent> action,
-        @Nullable Icon icon,
-        @Nullable Component description
+        @Nullable UiIcon icon,
+        @Nullable Component description,
+        boolean compact
     ) {
         super(message, action);
         this.icon = icon;
         this.description = description;
+        this.compact = compact;
         this.textShadow(false);
         this.renderer((graphics, _, _) -> this.drawBackground(graphics));
 
         if (description != null) {
             this.bottomAccent = false;
-            this.sizing(Sizing.fixed(22));
+            this.sizing(Sizing.fixed(compact ? 12 : 22));
             this.tooltip(description);
         } else {
             // owo's content width already includes text and eight pixels of padding.
@@ -63,15 +68,46 @@ public final class UiButton extends ButtonComponent {
     }
 
     public static UiButton text(Component text, Consumer<ButtonComponent> action) {
-        return new UiButton(text, action, null, null);
+        return new UiButton(text, action, null, null, false);
     }
 
     public static UiButton icon(Identifier texture, int sourceSize, Component description, Runnable action) {
-        return new UiButton(Component.empty(), _ -> action.run(), new Icon(texture, sourceSize), description);
+        return new UiButton(Component.empty(), _ -> action.run(), new UiIcon(texture, sourceSize), description, false);
     }
 
     public static UiButton iconText(Identifier texture, int sourceSize, Component text, Runnable action) {
-        return new UiButton(text, _ -> action.run(), new Icon(texture, sourceSize), null);
+        return new UiButton(text, _ -> action.run(), new UiIcon(texture, sourceSize), null, false);
+    }
+
+    public static UiButton compactIcon(UiIcon icon, Component description, Runnable action) {
+        return new UiButton(Component.empty(), _ -> action.run(), icon, description, true);
+    }
+
+    public UiButton enabledWhen(BooleanSupplier availability, Component unavailable) {
+        this.availability = availability;
+        this.unavailable = unavailable;
+        return this;
+    }
+
+    @Override
+    public void update(float delta, int mouseX, int mouseY) {
+        if (this.availability != null) {
+            boolean enabled = this.availability.getAsBoolean();
+            if (this.active() != enabled) {
+                this.active(enabled);
+                this.tooltip(enabled ? this.description : this.unavailable);
+            }
+        }
+        super.update(delta, mouseX, mouseY);
+    }
+
+    @Override
+    public void drawFocusHighlight(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+        super.drawFocusHighlight(graphics, mouseX, mouseY, partialTicks, delta);
+        if (this.description != null && !this.isInBoundingBox(mouseX, mouseY)) {
+            graphics.drawTooltip(Minecraft.getInstance().font,
+                this.getRight(), this.getBottom(), this.tooltip());
+        }
     }
 
     public UiButton primary(boolean primary) {
@@ -95,6 +131,17 @@ public final class UiButton extends ButtonComponent {
     }
 
     private void drawBackground(OwoUIGraphics graphics) {
+        if (this.compact) {
+            if (this.active() && (this.isHovered() || this.isFocused())) {
+                graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(),
+                    UiStyles.palette().rowHover());
+            }
+            if (this.isFocused()) {
+                graphics.drawRectOutline(this.getX(), this.getY(), this.getWidth(), this.getHeight(),
+                    UiStyles.palette().accent());
+            }
+            return;
+        }
         var colors = UiStyles.buttons();
         boolean hover = this.isHovered();
         int color;
@@ -135,7 +182,7 @@ public final class UiButton extends ButtonComponent {
 
         var font = Minecraft.getInstance().font;
         var message = this.getMessage();
-        int iconWidth = this.icon == null ? 0 : ICON_SIZE;
+        int iconWidth = this.icon == null ? 0 : this.compact ? 7 : ICON_SIZE;
         int gap = this.icon == null || message.getString().isEmpty() ? 0 : ICON_GAP;
         int textWidth = Math.max(0, this.getWidth() - CONTENT_INSET * 2 - iconWidth - gap);
         long revision = TextRenderRevision.current();
@@ -150,13 +197,14 @@ public final class UiButton extends ButtonComponent {
         int contentWidth = iconWidth + gap + font.width(this.cachedText);
         int contentX = this.getX() + (this.getWidth() - contentWidth) / 2;
         var colors = UiStyles.buttons();
-        int color = !this.active() ? colors.disabledText() : this.primary ? colors.primaryText() : colors.text();
+        int color = this.compact
+            ? !this.active()
+                ? UiStyles.palette().textMuted()
+                : this.isHovered() ? UiStyles.palette().textPrimary() : UiStyles.palette().textSecondary()
+            : !this.active() ? colors.disabledText() : this.primary ? colors.primaryText() : colors.text();
 
         if (this.icon != null) {
-            context.blit(RenderPipelines.GUI_TEXTURED, this.icon.texture(), contentX,
-                this.getY() + (this.getHeight() - ICON_SIZE) / 2,
-                0, 0, ICON_SIZE, ICON_SIZE,
-                this.icon.sourceSize(), this.icon.sourceSize(), this.icon.sourceSize(), this.icon.sourceSize(), color);
+            this.icon.draw(context, contentX, this.getY() + (this.getHeight() - iconWidth) / 2, iconWidth, color);
         }
 
         this.retainedText.draw(context, font, this.cachedText,
@@ -170,5 +218,4 @@ public final class UiButton extends ButtonComponent {
             : Component.translatable("gui.narrate.button", this.description);
     }
 
-    private record Icon(Identifier texture, int sourceSize) {}
 }

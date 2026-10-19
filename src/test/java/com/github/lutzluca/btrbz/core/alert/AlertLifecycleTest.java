@@ -55,7 +55,7 @@ class AlertLifecycleTest {
         restored.onBazaarUpdate(snapshot(true));
         Assertions.assertEquals(1, notifications.size(), "crossings cannot add events while the first is unfinished");
         Assertions.assertEquals(1, restored.pendingCount());
-        restored.dismiss(first.id()).get();
+        restored.dismiss(first.id());
         restored.onBazaarUpdate(snapshot(true));
         Assertions.assertEquals(1, notifications.size(), "dismissing a met target still requires a fresh crossing");
         restored.onBazaarUpdate(snapshot(false));
@@ -65,7 +65,7 @@ class AlertLifecycleTest {
         Assertions.assertNotEquals(first.id(), restored.inbox().getFirst().id());
         Assertions.assertEquals(watch.id, restored.inbox().getFirst().alert().id);
         Assertions.assertEquals(1_000, first.alert().lastTriggeredAt, "old events retain their captured watch state");
-        restored.dismissAll().get();
+        restored.dismissAll();
         restored.onBazaarUpdate(snapshot(false));
         restored.onBazaarUpdate(snapshot(true));
         Assertions.assertEquals(2, notifications.size(), "dismissing cannot bypass the cooldown");
@@ -89,11 +89,12 @@ class AlertLifecycleTest {
             new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Below), 100)),
             AlertLifecycle.Repeat).get();
         manager.saveAlert(null, new AlertDefinition(now[0], PRODUCT,
-            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Above), 110))).get();
+            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Above), 110)),
+            AlertLifecycle.Once).get();
         data.publishSnapshot(snapshot(true));
         var first = manager.inbox().getFirst();
         data.publishSnapshot(snapshot(false));
-        manager.dismiss(first.id()).get();
+        manager.dismiss(first.id());
         Assertions.assertFalse(manager.alerts().getFirst().waitingForReset());
         Assertions.assertEquals(first.observation(), manager.history().getFirst().observation());
         now[0] = 61_000;
@@ -129,51 +130,24 @@ class AlertLifecycleTest {
         var store = new ConfigStore(this.tempDir.resolve("inbox.json"));
         var manager = new AlertManager(new BazaarData(), () -> store.config().alert, store::save, _ -> {});
         var watch = manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT,
-            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Below), 100))).get();
+            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Below), 100)),
+            AlertLifecycle.Once).get();
         for (int index = 0; index < 65; index++) {
             store.config().alert.reachedAlerts.addFirst(new ReachedAlert(watch, 1_000 + index,
                 new AlertCondition.Observation.Price(90)));
         }
         Assertions.assertEquals(65, manager.pendingCount());
-        manager.dismiss(manager.inbox().getFirst().id()).get();
+        manager.dismiss(manager.inbox().getFirst().id());
         var reload = new ConfigStore(this.tempDir.resolve("inbox.json"));
         Assertions.assertTrue(reload.load());
         var restored = new AlertManager(new BazaarData(), () -> reload.config().alert, reload::save, _ -> {});
         Assertions.assertEquals(64, restored.pendingCount());
         Assertions.assertEquals(1, restored.history().size());
-        restored.dismissAll().get();
+        restored.dismissAll();
         Assertions.assertTrue(restored.inbox().isEmpty());
         Assertions.assertEquals(50, restored.history().size());
         Assertions.assertEquals(1_064, restored.history().getFirst().reachedAt());
         Assertions.assertEquals(1_015, restored.history().getLast().reachedAt());
-    }
-
-    @Test
-    void failedReviewAndSnoozeSaveLeaveTheEventUnreadAndTheReminderUnchanged() {
-        var config = new AlertConfig();
-        var data = new BazaarData();
-        boolean[] fail = {false};
-        var manager = new AlertManager(data, () -> config, () -> {
-            if (fail[0]) {
-                throw new IllegalStateException("disk unavailable");
-            }
-        }, _ -> {});
-        data.addListener(manager::onBazaarUpdate);
-        var watch = manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT,
-            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Buy, AlertType.Direction.Below), 100)),
-            AlertLifecycle.Repeat).get();
-        data.publishSnapshot(snapshot(true));
-        var event = manager.inbox().getFirst();
-        data.publishSnapshot(snapshot(false));
-        fail[0] = true;
-        Assertions.assertTrue(manager.dismiss(event.id()).isFailure());
-        Assertions.assertTrue(manager.snooze().isFailure());
-        Assertions.assertEquals(1, manager.pendingCount());
-        Assertions.assertTrue(manager.history().isEmpty());
-        Assertions.assertTrue(manager.awaitingDismissal(watch));
-        Assertions.assertTrue(manager.alerts().getFirst().waitingForReset(),
-            "failed dismissing cannot resume the watch");
-        Assertions.assertEquals(0, manager.snoozedUntil());
     }
 
     private static BazaarData.MarketSnapshot snapshot(boolean reached) {

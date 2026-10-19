@@ -45,6 +45,19 @@ public record AlertNotice(String formattedProductName, String title, Component c
         };
     }
 
+    public static MutableComponent currentText(AlertCondition condition, AlertCondition.Observation observation) {
+        return label(condition.isReached(observation) ? "Still met: " : "No longer met: ")
+            .append(valueText(observation));
+    }
+
+    public static MutableComponent valueText(AlertCondition.Observation observation) {
+        return switch (observation) {
+            case AlertCondition.Observation.Price price -> coins(price.value());
+            case AlertCondition.Observation.Liquidity liquidity ->
+                label(items(liquidity.quantity()) + " items available");
+        };
+    }
+
     private static MutableComponent label(String text) {
         return Component.literal(text).withStyle(UiStyles.primary());
     }
@@ -59,7 +72,7 @@ public record AlertNotice(String formattedProductName, String title, Component c
         return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
     }
 
-    private static String items(long quantity) {
+    static String items(long quantity) {
         return NumberFormat.getIntegerInstance(Locale.US).format(quantity);
     }
 }

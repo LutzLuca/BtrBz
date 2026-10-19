@@ -243,9 +243,9 @@ public class BtrBz implements ClientModInitializer {
         this.orderManager.addOnOrdersResetListener(() -> this.tooltipProvider.clearCache());
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
         this.toastNotifications = new ToastNotifications(this.runtime::isActive);
-        this.alertManager = new AlertManager(this.bazaarData,
+        this.alertManager = new AlertManager(this.bazaarData, () -> configStore.config().alert, configStore::save,
             reached -> this.alertDelivery.reached(reached));
-        this.alertDelivery = new AlertDelivery(this.alertManager,
+        this.alertDelivery = new AlertDelivery(this.alertManager, () -> configStore.config().alert, configStore::save,
             reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications),
             pending -> AlertNotifications.notifyInbox(pending, this.toastNotifications));
         ClientTickDispatcher.scheduleEvery(20, client -> this.alertDelivery.tick(
@@ -313,7 +313,8 @@ public class BtrBz implements ClientModInitializer {
             screen.openInbox();
             GameUtils.setScreen(screen);
         });
-        var alertsWidgetDefinition = AlertsWidgetDefinition.create(this.alertManager, this.bazaarData,
+        var alertsWidgetDefinition = AlertsWidgetDefinition.create(this.alertManager, this.alertDelivery,
+            this.bazaarData,
             () -> configStore.config().widgets.alerts, configStore::save, openAlertInbox);
         var widgetRegistry = new WidgetRegistry();
         widgetRegistry.register(
@@ -357,7 +358,7 @@ public class BtrBz implements ClientModInitializer {
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
         Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager, this.profileTracker,
-            this.alertManager,
+            this.alertManager, this.alertDelivery,
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
                 new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
                     orderBookController))),
