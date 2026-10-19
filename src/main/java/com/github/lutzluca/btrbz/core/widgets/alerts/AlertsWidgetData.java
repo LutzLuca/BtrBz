@@ -78,7 +78,7 @@ public final class AlertsWidgetData implements WidgetDataSource<AlertsWidgetData
         return new Snapshot(List.of(
             new Entry(UUID.fromString("00000000-0000-0000-0000-000000000001"), "ENCHANTED_DIAMOND",
                 Component.literal("Enchanted Diamond").withStyle(ChatFormatting.GREEN), new ItemStack(Items.DIAMOND),
-                List.of(Component.literal("Buy price <= 1,200 coins"), Component.literal("Still met: 1,180 coins"))),
+                List.of(Component.literal("Buy price ≤ 1,200 coins"), Component.literal("Still met: 1,180 coins"))),
             new Entry(UUID.fromString("00000000-0000-0000-0000-000000000002"), "BOOSTER_COOKIE",
                 Component.literal("Booster Cookie").withStyle(ChatFormatting.GOLD), new ItemStack(Items.COOKIE),
                 List.of(Component.literal("Buy 16 items instantly for up to 9m each"),

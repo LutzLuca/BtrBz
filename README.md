@@ -35,14 +35,16 @@ and Inbox keeps triggered alerts until you dismiss them. Dismissed alerts move t
 Choose an item, then Price or Liquidity in the same creation form. Switching types keeps the item,
 price expression and buy or sell side. Choose Once for one event, or Repeat after dismissal to
 resume watching after you handle each event. A repeating watch pauses while its event is in the
-Inbox, then needs the condition to stop
-being met and be met again. Triggers remain at least one minute apart. Watch again in History
-reuses the saved target and also waits for the condition to stop being met if it is still met.
+Inbox, then needs the condition to stop being met and be met again. Triggers remain at least one
+minute apart. Watch again in History reuses the saved target and also waits for the condition to
+stop being met if it is still met.
 
-Pending events are summarized when you return and every 10 minutes until dismissed, including
-targets that are no longer met. Chat and toast notifications can be enabled independently. Turning
-both off leaves the panel and Inbox as the interaction points. Summaries are suppressed while the
-Inbox is open. Remind me in 10 min postpones summaries while new triggers still notify immediately.
+Remind About Pending Alerts is enabled by default. It summarizes pending events when you return
+and every 10 minutes until dismissed, including targets that are no longer met. Turning it off stops
+summaries while new triggers still notify you and pending events stay saved. Chat and toast
+notifications can be enabled independently. Turning both off leaves the panel and Inbox as the
+interaction points. Summaries are suppressed while the
+Inbox is open. The panel clock postpones summaries for 10 minutes while reminders are enabled.
 Closing a screen, opening an item, or making a trade leaves the event pending. Monitoring stops
 outside SkyBlock, so crossings that happen and recover entirely while you are away cannot be detected.
 
@@ -52,6 +54,11 @@ Up to three single-line item rows offer a Bazaar shortcut and an archive icon to
 Hover an item for the saved condition, latest value and trigger time. Larger batches open in the Inbox.
 The widget remembers its collapse state and hides when empty. Configure its position, scale and
 maximum width through the widget manager. During sign input, navigation waits until you finish typing.
+
+The editor's Order book button opens the selected item's book even when its widget is disabled,
+without changing that setting. Closing it returns to the same alert draft. Comparisons use
+At or below and At or above in the editor, and ≤ or ≥ in saved conditions. Hover the help icon beside
+the target price for expression syntax.
 
 Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
 [Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),

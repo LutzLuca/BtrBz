@@ -43,15 +43,8 @@ public final class OrderBookScreenController {
         SlotHookRegistry.register(new ControllerHook());
     }
 
-    public @Nullable String unavailableReason() {
-        if (!ConfigStore.get().config().widgets.orderBookScreen.frame.enabled) {
-            return "Order book is off. Enable its widget in settings.";
-        }
-        return BtrBz.isActive() ? null : "Order book unavailable while BtrBz is inactive.";
-    }
-
     public boolean open(@Nullable Screen parent, IndexedProduct product) {
-        if (this.unavailableReason() != null) {
+        if (!BtrBz.isActive()) {
             return false;
         }
         GameUtils.setScreen(new OrderBookScreen(parent, ProductIdentity.fromIndex(product),

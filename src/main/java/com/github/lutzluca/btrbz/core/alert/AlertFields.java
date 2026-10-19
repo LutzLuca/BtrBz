@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.ui.UiSurfaces;
+import com.github.lutzluca.btrbz.Assets;
+import io.wispforest.owo.ui.base.BaseUIComponent;
 import io.vavr.control.Try;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.component.UIComponents;
@@ -9,6 +11,10 @@ import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.UIContainers;
 import io.wispforest.owo.ui.core.Insets;
 import io.wispforest.owo.ui.core.Sizing;
+import io.wispforest.owo.ui.core.OwoUIGraphics;
+import io.wispforest.owo.ui.core.UIComponent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.Minecraft;
 import java.text.NumberFormat;
 import java.util.Locale;
 import net.minecraft.network.chat.Component;
@@ -16,6 +22,40 @@ import net.minecraft.network.chat.Component;
 /** Alert fields keep Minecraft editing behavior inside the screen's themed surfaces. */
 final class AlertFields {
     private AlertFields() {}
+
+    static UIComponent help(Component description) {
+        var help = new BaseUIComponent() {
+            @Override
+            public boolean canFocus(FocusSource source) {
+                return true;
+            }
+
+            @Override
+            public void drawFocusHighlight(
+                OwoUIGraphics graphics,
+                int mouseX,
+                int mouseY,
+                float partialTicks,
+                float delta
+            ) {
+                graphics.drawRectOutline(this.x(), this.y(), this.width(), this.height(),
+                    UiStyles.palette().accent());
+                if (!this.isInBoundingBox(mouseX, mouseY)) {
+                    graphics.drawTooltip(Minecraft.getInstance().font,
+                        this.x() + this.width(), this.y() + this.height(), this.tooltip());
+                }
+            }
+
+            @Override
+            public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+                graphics.blit(RenderPipelines.GUI_TEXTURED, Assets.INFO_ICON, this.x(), this.y(),
+                    0, 0, 10, 10, 64, 64, 64, 64, UiStyles.palette().textSecondary());
+            }
+        };
+        help.sizing(Sizing.fixed(10));
+        help.tooltip(description);
+        return help;
+    }
 
     static TextBoxComponent textBox(String hint) {
         var field = UIComponents.textBox(Sizing.fill(100));

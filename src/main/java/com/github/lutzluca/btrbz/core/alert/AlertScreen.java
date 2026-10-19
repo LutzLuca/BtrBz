@@ -9,7 +9,6 @@ import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 
-import com.github.lutzluca.btrbz.Assets;
 import com.github.lutzluca.btrbz.core.runtime.FeatureRuntime;
 import com.github.lutzluca.btrbz.core.alert.AlertType.Direction;
 import com.github.lutzluca.btrbz.core.alert.AlertType.PriceSource;
@@ -61,8 +60,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         .ofPattern("dd MMM, HH:mm", Locale.ENGLISH).withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter CHECK_TIME = DateTimeFormatter
         .ofPattern("HH:mm:ss", Locale.ENGLISH).withZone(ZoneId.systemDefault());
-    private static final DateTimeFormatter REMINDER_TIME = DateTimeFormatter
-        .ofPattern("HH:mm").withZone(ZoneId.systemDefault());
 
     private final @Nullable Screen parent;
     private final BazaarData data;
@@ -87,7 +84,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private long indexRevision;
     private long alertRevision;
     private boolean alertsEnabled;
-    private boolean snoozed;
 
     private FlowLayout content;
     private RestorableVerticalScrollContainer<FlowLayout> scroller;
@@ -111,14 +107,12 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private @Nullable UiButton onceButton;
     private @Nullable UiButton crossingButton;
     private @Nullable UiButton dismissAllButton;
-    private @Nullable UiButton snoozeButton;
     private @Nullable UiButton buyButton;
     private @Nullable UiButton sellButton;
     private @Nullable UiButton belowButton;
     private @Nullable UiButton aboveButton;
     private @Nullable UiButton saveButton;
     private @Nullable TextBoxComponent quantityBox;
-    private @Nullable UiButton orderBookButton;
 
     public AlertScreen(
         @Nullable Screen parent,
@@ -208,7 +202,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         panel.child(heading.child(close));
         this.historyButton = null;
         this.dismissAllButton = null;
-        this.snoozeButton = null;
         if (this.tab != Tab.Editor) {
             this.inboxTabButton = UiButton.text("Inbox", () -> this.defer(() -> this.switchTab(Tab.Inbox)));
             this.activeTabButton = UiButton.text("Watching", () -> this.defer(() -> this.switchTab(Tab.Active)));
@@ -235,16 +228,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 this.dismissAllButton
                     .tooltip(Component.literal("Move these alerts to History and stop their reminders. "
                         + "Repeating watches resume after dismissal."));
-                this.snoozeButton = UiButton.text("Remind me in 10 min", () -> this.defer(this::snooze));
                 footer.child(this.dismissAllButton);
-                if (this.contentWidth < 300) {
-                    panel.child(footer);
-                    footer = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
-                    footer.gap(4);
-                    footer.child(this.snoozeButton.horizontalSizing(Sizing.fill(100)));
-                } else {
-                    footer.child(UiComponents.spacer()).child(this.snoozeButton);
-                }
             }
             panel.child(footer);
         }
@@ -272,7 +256,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.priceLimitLabel = null;
         this.saveButton = null;
         this.quantityBox = null;
-        this.orderBookButton = null;
         this.buyButton = null;
         this.sellButton = null;
         this.belowButton = null;
@@ -317,9 +300,9 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.sellButton = UiButton.text("Sell price", () -> this.setSource(PriceSource.Sell));
             trade.child(segments(this.buyButton, this.sellButton));
             target.child(text("Alert when", UiStyles.palette().textPrimary()));
-            this.belowButton = UiButton.text(Direction.Below.symbol(), () -> this.setDirection(Direction.Below));
+            this.belowButton = UiButton.text(Direction.Below.label(), () -> this.setDirection(Direction.Below));
             this.belowButton.tooltip(Component.literal("At or below your target, including equality"));
-            this.aboveButton = UiButton.text(Direction.Above.symbol(), () -> this.setDirection(Direction.Above));
+            this.aboveButton = UiButton.text(Direction.Above.label(), () -> this.setDirection(Direction.Above));
             this.aboveButton.tooltip(Component.literal("At or above your target, including equality"));
             target.child(segments(this.belowButton, this.aboveButton));
         } else {
@@ -344,9 +327,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             ? splitRow(trade, target).gap(12)
             : UIContainers.verticalFlow(Sizing.fill(100), Sizing.content()).child(trade).child(target).gap(7);
         settings.child(fields);
-        var help = text("?", UiStyles.palette().textSecondary());
-        help.sizing(Sizing.fixed(12));
-        help.tooltip(Component.literal("""
+        var help = AlertFields.help(Component.literal("""
             Expressions
             Use +, -, *, / and parentheses ().
             Reference current prices with buy and sell.
@@ -401,7 +382,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.searchControls = null;
         this.buyQuote = null;
         this.sellQuote = null;
-        this.orderBookButton = null;
         if (this.editor.searching()) {
             var heading = row(text("Search items", UiStyles.palette().textPrimary()), UiComponents.spacer());
             if (this.editor.product() != null) {
@@ -412,37 +392,30 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 this.editor.query(), this.editor::query, product -> this.defer(() -> this.selectProduct(product)));
             this.productPane.child(this.searchControls);
         } else {
-            var product = new AlertProductRow(this.data, this.editor.product(), this.productWidth - 100, false, null);
+            var changeItem = UiButton.text("Change item", () -> this.defer(this::beginSearch));
+            var orderBook = UiButton.text("Order book", this::openOrderBook);
+            var actions = row(orderBook, changeItem).horizontalSizing(Sizing.content());
+            boolean inline = this.productWidth >= 360;
+            int nameWidth = this.productWidth - (inline ? 180 : 16);
+            var product = new AlertProductRow(this.data, this.editor.product(), nameWidth, false, null);
             product.horizontalSizing(Sizing.expand(100));
-            this.productPane.child(row(product, UiButton.text("Change item", () -> this.defer(this::beginSearch))));
+            if (inline) {
+                this.productPane.child(row(product, actions));
+            } else {
+                this.productPane.child(product).child(actions);
+            }
             int quoteWidth = this.productWidth - 16;
             this.buyQuote = text("", UiStyles.palette().textPrimary()).maxWidth(quoteWidth);
             this.sellQuote = text("", UiStyles.palette().textPrimary()).maxWidth(quoteWidth);
             var quotes = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
             quotes.gap(4);
             quotes.child(this.buyQuote).child(this.sellQuote);
-            if (this.orderBook.unavailableReason() == null) {
-                this.orderBookButton = UiButton.text("Order book", this::openOrderBook);
-                this.orderBookButton.horizontalSizing(Sizing.fixed(80));
-                if (this.productWidth < 300) {
-                    this.productPane.child(quotes).child(this.orderBookButton);
-                } else {
-                    quotes.horizontalSizing(Sizing.expand(100));
-                    this.buyQuote.maxWidth(quoteWidth - 86);
-                    this.sellQuote.maxWidth(quoteWidth - 86);
-                    this.productPane.child(row(quotes, this.orderBookButton));
-                }
-            } else {
-                this.productPane.child(quotes);
-            }
+            this.productPane.child(quotes);
             this.refreshQuotes();
         }
     }
 
     private void openOrderBook() {
-        if (this.orderBook.unavailableReason() != null) {
-            return;
-        }
         var product = this.editor.product();
         if (product == null || !this.sameSession()) {
             return;
@@ -651,7 +624,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.alertRows.child(text(switch (this.tab) {
                 case Inbox -> "You're all caught up. New alerts will appear here.";
                 case Active -> "What would you like to watch? Choose New alert to get started.";
-                default -> "Dismissd alerts will appear here. Their reminders have stopped.";
+                default -> "Dismissed alerts will appear here. Their reminders have stopped.";
             }, UiStyles.palette().textPrimary()).maxWidth(this.contentWidth - 12));
         }
         this.refreshActiveQuotes();
@@ -692,7 +665,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         }
         String timestamp = entry.pending()
             ? captureTime(entry.reachedAt())
-            : "Dismissd " + captureTime(entry.dismissedAt());
+            : "Dismissed " + captureTime(entry.dismissedAt());
         var details = Component.literal("Triggered " + captureTime(entry.reachedAt()) + "\n")
             .append(observed);
         return this.alertRow(alert, product, timestamp, details, current,
@@ -720,16 +693,19 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         card.gap(3);
         int detailsWidth = this.contentWidth - 18;
         int captionWidth = Minecraft.getInstance().font.width(caption);
-        boolean inlineActions = this.contentWidth >= 500;
         int actionWidth = 0;
         for (var button : buttons) {
             if (button instanceof UiButton action) {
-                actionWidth += Minecraft.getInstance().font.width(action.getMessage()) + 30;
+                actionWidth += Minecraft.getInstance().font.width(action.getMessage()) + 16;
             }
         }
+        actionWidth += Math.max(0, buttons.length - 1) * 6;
+        var conditionText = AlertNotice.conditionText(alert.condition);
+        boolean inlineActions = detailsWidth >= Minecraft.getInstance().font.width(conditionText) + actionWidth + 6;
+        int textWidth = inlineActions ? detailsWidth - actionWidth - 6 : detailsWidth;
         boolean stackCaption = detailsWidth < 320;
         var name = new AlertProductRow(this.data, product,
-            stackCaption ? detailsWidth : detailsWidth - captionWidth - 6 - (inlineActions ? actionWidth : 0),
+            stackCaption ? detailsWidth : detailsWidth - captionWidth - 6,
             false, null);
         var captionLabel = text(caption, UiStyles.palette().textSecondary());
         var header = row();
@@ -739,23 +715,24 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         } else {
             card.child(header.child(name).child(captionLabel));
         }
-        if (inlineActions) {
-            for (var button : buttons) {
-                header.child(button);
-            }
-        }
-        var condition = text("", UiStyles.palette().textPrimary()).maxWidth(detailsWidth);
-        condition.text(AlertNotice.conditionText(alert.condition));
-        card.child(condition);
+        var lines = UIContainers.verticalFlow(Sizing.expand(100), Sizing.content());
+        lines.gap(3);
+        var condition = text("", UiStyles.palette().textPrimary()).maxWidth(textWidth);
+        condition.text(conditionText);
+        lines.child(condition);
         if (details != null) {
             condition.tooltip(details);
             captionLabel.tooltip(details);
         }
         if (current != null) {
-            card.child(current.maxWidth(detailsWidth));
+            lines.child(current.maxWidth(textWidth));
         }
-        if (!inlineActions) {
-            card.child(row(buttons));
+        var actions = row(buttons).horizontalSizing(Sizing.content());
+        if (inlineActions) {
+            card.child(row(lines, actions));
+        } else {
+            lines.horizontalSizing(Sizing.fill(100));
+            card.child(lines).child(actions);
         }
         return card;
     }
@@ -776,12 +753,14 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 state = "Waiting for a new crossing";
             }
             var value = Component.literal(state + ": ").withStyle(UiStyles.heading());
+            MutableComponent tooltip;
             switch (observation.get()) {
                 case AlertCondition.Observation.Price price -> {
                     double difference = price.value() - ((AlertCondition.Price) alert.condition).price();
                     value.append(AlertNotice.coins(price.value()));
+                    tooltip = value.copy();
                     if (difference != 0) {
-                        value.append(Component.literal(" (").withStyle(UiStyles.primary()))
+                        tooltip.append(Component.literal(" (").withStyle(UiStyles.primary()))
                             .append(AlertNotice.coins(Math.abs(difference)))
                             .append(Component.literal(difference > 0 ? " above)" : " below)")
                                 .withStyle(UiStyles.primary()));
@@ -789,12 +768,15 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
                 }
                 case AlertCondition.Observation.Liquidity liquidity -> {
                     long difference = liquidity.quantity() - ((AlertCondition.Liquidity) alert.condition).quantity();
-                    value.append(Component.literal(items(liquidity.quantity()) + " available ("
-                        + items(Math.abs(difference)) + (difference < 0 ? " short)" : " extra)"))
+                    value.append(Component.literal(items(liquidity.quantity()) + " items available")
+                        .withStyle(UiStyles.primary()));
+                    tooltip = value.copy().append(Component.literal(" (" + items(Math.abs(difference))
+                        + (difference < 0 ? " short)" : " extra)"))
                         .withStyle(UiStyles.primary()));
                 }
             }
             quote.label().text(value);
+            quote.label().tooltip(tooltip);
         }
     }
 
@@ -806,14 +788,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private void dismissAll() {
         this.manager.dismissAll().onFailure(error -> this.setMessage(errorMessage(error), UiColor.Error));
         this.rebuild();
-    }
-
-    private void snooze() {
-        var result = this.manager.snooze();
-        this.setMessage(result.isSuccess()
-            ? "I'll remind you about these alerts in 10 minutes. New alerts will still notify you."
-            : errorMessage(result.getCause()), result.isSuccess() ? UiColor.TextSecondary : UiColor.Error);
-        this.refreshStatus();
     }
 
     private void edit(UUID id) {
@@ -885,12 +859,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
             this.historyButton.selected(this.tab == Tab.History);
             if (this.dismissAllButton != null) {
                 this.dismissAllButton.active(this.manager.pendingCount() > 0);
-                this.snoozeButton.active(this.manager.pendingCount() > 0);
-                this.snoozeButton.setMessage(Component.literal(this.manager.snoozedUntil() > System.currentTimeMillis()
-                    ? "Snoozed until " + REMINDER_TIME.format(Instant.ofEpochMilli(this.manager.snoozedUntil()))
-                    : "Remind me in 10 min"));
-                this.snoozeButton.tooltip(Component.literal("Remind me about these unfinished alerts in 10 minutes. "
-                    + "New alerts will still notify you."));
+
             }
         }
     }
@@ -900,7 +869,6 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         this.indexRevision = this.data.indexChanges().revision();
         this.alertRevision = this.manager.changes().revision();
         this.alertsEnabled = this.manager.enabled();
-        this.snoozed = this.manager.snoozedUntil() > System.currentTimeMillis();
     }
 
     @Override
@@ -920,8 +888,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
         boolean indexChanged = this.indexRevision != this.data.indexChanges().revision();
         boolean alertsChanged = this.alertRevision != this.manager.changes().revision();
         boolean enabledChanged = this.alertsEnabled != this.manager.enabled();
-        boolean snoozeChanged = this.snoozed != (this.manager.snoozedUntil() > System.currentTimeMillis());
-        if (!marketChanged && !indexChanged && !alertsChanged && !enabledChanged && !snoozeChanged) {
+        if (!marketChanged && !indexChanged && !alertsChanged && !enabledChanged) {
             return;
         }
         this.captureRevisions();

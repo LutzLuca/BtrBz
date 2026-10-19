@@ -18,6 +18,7 @@ public final class AlertConfig {
     public boolean toastOnAlert = true;
     public boolean detailedAlertToasts;
     public boolean alsoSendChatMessage;
+    public boolean remindPending = true;
     public long snoozedUntil;
     public List<Alert> alerts = new ArrayList<>();
     public List<ReachedAlert> reachedAlerts = new ArrayList<>();
@@ -52,7 +53,7 @@ public final class AlertConfig {
                 ConfigUi.text("Show the product and saved price target, or the saved item quantity "
                     + "and price limit, plus the price or quantity that triggered the alert."),
                 ConfigUi.example("Liquidity target reached\nDiamond\n"
-                    + "Sell 1,200 items instantly for at least 4.0 coins each\nTriggered with 1,500 items available"),
+                    + "Instant sell 1,200 items at ≥ 4 coins\nTriggered with 1,500 items available"),
                 ConfigUi.text("Long names and values may wrap. Turn this off to show only the product "
                     + "and which target was reached."))))
             .binding(false, () -> this.detailedAlertToasts, value -> this.detailedAlertToasts = value)
@@ -69,12 +70,23 @@ public final class AlertConfig {
             .controller(ConfigUi::createBooleanController);
     }
 
+    public Option.Builder<Boolean> createReminderOption() {
+        return Option.<Boolean>createBuilder()
+            .name(Component.literal("Remind About Pending Alerts"))
+            .description(ConfigUi.createDescription(
+                "Summarize pending alerts when you return and every 10 minutes until dismissed. "
+                    + "Uses your enabled chat and toast channels. The panel clock postpones the next summary. "
+                    + "New trigger notifications are independent of this setting."))
+            .binding(true, () -> this.remindPending, value -> this.remindPending = value)
+            .controller(ConfigUi::createBooleanController);
+    }
+
     public OptionGroup createGroup(Consumer<Screen> openAlerts) {
         var toasts = new OptionGrouping(this.createToastOnAlertOption())
             .addOptions(this.createDetailedAlertToastsOption());
         var alerts = new OptionGrouping(this.createEnabledOption())
             .addSubgroups(toasts)
-            .addOptions(this.createChatMessageOption());
+            .addOptions(this.createChatMessageOption(), this.createReminderOption());
 
         return OptionGroup.createBuilder()
             .name(Component.literal("Alerts"))
@@ -82,14 +94,14 @@ public final class AlertConfig {
                 ConfigUi.text("Get an alert when a Bazaar price or available quantity hits your target."),
                 ConfigUi.text("Price alerts compare the selected Buy Price or Sell Price with your threshold. "
                     + "Buy Price is the lowest sell offer. Sell Price is the highest buy order. "
-                    + "Below and Above include equality."),
+                    + "At or below and At or above include equality."),
                 ConfigUi.note("Price alerts need a reference price. An empty order list has no price to compare "
                     + "and cannot trigger alerts watching that side. "
                     + "Missing or invalid prices also keep those alerts waiting."),
                 ConfigUi.text("Use liquidity alerts to watch how many items you can buy or sell instantly."),
                 ConfigUi.text("Price and liquidity share one editor, Inbox and compact Bazaar widget. "
                     + "Choose Once or Repeat after dismissal. Pending events survive reconnects "
-                    + "and remind you every 10 minutes through your enabled notification channels. "
+                    + "and can remind you every 10 minutes through your enabled notification channels. "
                     + "Dismiss an event to move it to History and stop its reminders."),
                 ConfigUi.note("Open /btrbz alert to create, edit, or remove alerts.")), ConfigImages.PriceAlert))
             .options(alerts.build())

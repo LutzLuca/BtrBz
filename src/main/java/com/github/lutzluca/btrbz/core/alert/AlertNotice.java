@@ -34,14 +34,14 @@ public record AlertNotice(String formattedProductName, String title, Component c
                 .append(label(" " + price.type().direction().symbol() + " "))
                 .append(coins(price.price()));
             case AlertCondition.Liquidity liquidity -> Component.empty()
-                .append(Component.literal(liquidity.side() == LiquiditySide.BuyOrders ? "Sell " : "Buy ")
-                    .withStyle(UiStyles.color(liquidity.side() == LiquiditySide.BuyOrders
-                        ? UiColor.Sell : UiColor.Buy)))
+                .append(
+                    Component.literal(liquidity.side() == LiquiditySide.BuyOrders ? "Instant sell " : "Instant buy ")
+                        .withStyle(UiStyles.color(liquidity.side() == LiquiditySide.BuyOrders
+                            ? UiColor.Sell : UiColor.Buy)))
                 .append(Component.literal(items(liquidity.quantity())).withStyle(UiStyles.quantity()))
-                .append(label(" items instantly for "
-                    + (liquidity.side() == LiquiditySide.BuyOrders ? "at least " : "up to ")))
-                .append(coins(liquidity.priceBound()))
-                .append(label(" each"));
+                .append(label(" items at "
+                    + (liquidity.side() == LiquiditySide.BuyOrders ? "≥ " : "≤ ")))
+                .append(coins(liquidity.priceBound()));
         };
     }
 

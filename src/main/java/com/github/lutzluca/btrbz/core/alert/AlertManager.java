@@ -114,7 +114,14 @@ public class AlertManager {
         return this.config().snoozedUntil;
     }
 
+    public boolean remindersEnabled() {
+        return this.config().remindPending;
+    }
+
     public Try<Void> snooze() {
+        if (!this.remindersEnabled()) {
+            return Try.failure(new IllegalStateException("Pending alert reminders are disabled"));
+        }
         var cfg = this.config();
         long previous = cfg.snoozedUntil;
         cfg.snoozedUntil = this.clock.getAsLong() + AlertDelivery.REMINDER_INTERVAL_MS;

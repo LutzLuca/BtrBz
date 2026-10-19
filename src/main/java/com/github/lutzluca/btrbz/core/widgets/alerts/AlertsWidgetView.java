@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
+import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -33,6 +34,11 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm")
         .withZone(ZoneId.systemDefault());
     private final FlowLayout root = BazaarUi.panel(1);
+    private final BooleanSupplier remindersEnabled;
+
+    AlertsWidgetView(BooleanSupplier remindersEnabled) {
+        this.remindersEnabled = remindersEnabled;
+    }
 
     @Override
     public UIComponent root() {
@@ -73,7 +79,9 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         if (data.snoozedUntil() > System.currentTimeMillis()) {
             snooze += "\nReminders postponed until " + TIME.format(Instant.ofEpochMilli(data.snoozedUntil()));
         }
-        header.child(new Control(Glyph.Clock, snooze, () -> actions.accept(new Action.Snooze())));
+        var clock = new Control(Glyph.Clock, snooze, () -> actions.accept(new Action.Snooze()));
+        clock.availability(this.remindersEnabled, "Pending alert reminders are off. Enable them in Alerts settings.");
+        header.child(clock);
         this.root.child(header);
         if (config.collapsed) {
             return;
@@ -196,18 +204,36 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
 
     private static final class Control extends Link {
         private final Glyph glyph;
+        private final Component description;
+        private BooleanSupplier availability = () -> true;
+        private Component unavailable = Component.empty();
+        private boolean available = true;
 
         Control(Glyph glyph, String description, Runnable action) {
             super(12, action);
             this.glyph = glyph;
-            this.tooltip(Component.literal(description));
+            this.description = Component.literal(description);
+            this.tooltip(this.description);
+        }
+
+        void availability(BooleanSupplier availability, String unavailable) {
+            this.availability = availability;
+            this.unavailable = Component.literal(unavailable);
         }
 
         @Override
         public void draw(OwoUIGraphics graphics, int mouseX, int mouseY, float partialTicks, float delta) {
+            boolean available = this.availability.getAsBoolean();
+            if (this.available != available) {
+                this.available = available;
+                this.enabled(available);
+                this.tooltip(available ? this.description : this.unavailable);
+            }
             super.draw(graphics, mouseX, mouseY, partialTicks, delta);
-            int color = this.isInBoundingBox(mouseX, mouseY)
-                ? UiStyles.palette().textPrimary() : UiStyles.palette().textSecondary();
+            int color = !this.available
+                ? UiStyles.palette().textMuted()
+                : this.isInBoundingBox(mouseX, mouseY)
+                    ? UiStyles.palette().textPrimary() : UiStyles.palette().textSecondary();
             for (int row = 0; row < this.glyph.pixels.length; row++) {
                 for (int column = 0; column < 7; column++) {
                     if ((this.glyph.pixels[row] & (1 << (6 - column))) != 0) {

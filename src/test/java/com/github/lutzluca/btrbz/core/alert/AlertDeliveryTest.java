@@ -146,6 +146,52 @@ class AlertDeliveryTest {
     }
 
     @Test
+    void disablingRemindersCancelsRetriesWithoutConsumingEventsOrMutingTriggers() {
+        this.event(100);
+        int[] attempts = {0};
+        var delivery = new AlertDelivery(this.manager, this.individual::add, count -> {
+            if (++attempts[0] == 1) {
+                return false;
+            }
+            this.summaries.add(count);
+            return true;
+        }, () -> this.now[0]);
+        delivery.tick(true, false);
+        this.now[0] += 3_000;
+        delivery.tick(true, false);
+        Assertions.assertEquals(1, attempts[0]);
+
+        this.config.remindPending = false;
+        delivery.tick(true, false);
+        this.now[0] += AlertDelivery.REMINDER_INTERVAL_MS;
+        delivery.tick(true, false);
+        Assertions.assertEquals(1, attempts[0]);
+        Assertions.assertEquals(1, this.manager.pendingCount());
+        Assertions.assertTrue(this.manager.snooze().isFailure());
+        Assertions.assertEquals(0, this.manager.snoozedUntil());
+
+        delivery.disconnect();
+        var newEvent = this.event(101);
+        delivery.reached(newEvent);
+        delivery.tick(true, false);
+        this.now[0] += 3_000;
+        delivery.tick(true, false);
+        Assertions.assertEquals(List.of(newEvent), this.individual);
+        Assertions.assertEquals(1, attempts[0]);
+        Assertions.assertEquals(2, this.manager.pendingCount());
+
+        this.config.remindPending = true;
+        delivery.tick(true, false);
+        this.now[0] += AlertDelivery.REMINDER_INTERVAL_MS - 1;
+        delivery.tick(true, false);
+        Assertions.assertEquals(1, attempts[0]);
+        this.now[0]++;
+        delivery.tick(true, false);
+        Assertions.assertEquals(List.of(2), this.summaries);
+        Assertions.assertEquals(2, this.manager.pendingCount());
+    }
+
+    @Test
     void newTriggersDoNotPostponeThePendingReminder() {
         var delivery = this.delivery();
         delivery.tick(true, false);

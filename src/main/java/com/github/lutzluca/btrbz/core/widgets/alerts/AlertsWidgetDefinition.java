@@ -42,7 +42,7 @@ public final class AlertsWidgetDefinition {
             .cachePrepared()
             .preview(() -> new WidgetPreview<>(AlertsWidgetData.preview(),
                 WidgetPreviewSessions.container(BazaarMenuType.Item), "default"))
-            .viewFactory(AlertsWidgetView::new)
+            .viewFactory(() -> new AlertsWidgetView(manager::remindersEnabled))
             .actionHandler((action, current) -> {
                 if (!supportsSession(current) || !manager.enabled()) {
                     return;

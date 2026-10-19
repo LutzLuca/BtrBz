@@ -13,7 +13,7 @@ public enum AlertLifecycle {
 
     public String description() {
         return switch (this) {
-            case Once -> "Triggers once. Reminders continue until dismissed.";
+            case Once -> "Triggers once. Stays in your Inbox until dismissed.";
             case Repeat -> "After dismissal, waits for the condition to reset and match again.";
         };
     }

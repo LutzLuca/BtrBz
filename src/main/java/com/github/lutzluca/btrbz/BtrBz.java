@@ -119,6 +119,7 @@ public class BtrBz implements ClientModInitializer {
     private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
     private AlertDelivery alertDelivery;
+    private OrderBookScreenController orderBookController;
     private ToastNotifications toastNotifications;
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
@@ -307,9 +308,8 @@ public class BtrBz implements ClientModInitializer {
         var productContextWidgetDefinition = ProductContextWidgetDefinition.create(
             this.bazaarData, () -> configStore.config().widgets.productContext);
         var openAlertInbox = (Runnable) () -> Minecraft.getInstance().schedule(() -> {
-            var controller = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
             var screen = new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
-                controller);
+                this.orderBookController);
             screen.openInbox();
             GameUtils.setScreen(screen);
         });
@@ -332,6 +332,7 @@ public class BtrBz implements ClientModInitializer {
             parent -> new AppearanceScreen(parent, appearance, null, widgetRegistry));
 
         var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
+        this.orderBookController = orderBookController;
         new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
             var screen = new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController);
