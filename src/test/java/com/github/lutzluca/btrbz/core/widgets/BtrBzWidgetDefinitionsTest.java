@@ -32,7 +32,7 @@ class BtrBzWidgetDefinitionsTest {
     void definitionsAcceptOnlyTheirSemanticSessions() {
         assertTrue(AlertsWidgetDefinition.supportsSession(
             session(false, false, false, BazaarMenuType.Item, null, false)));
-        assertTrue(AlertsWidgetDefinition.supportsSession(
+        assertFalse(AlertsWidgetDefinition.supportsSession(
             session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)));
         assertFalse(AlertsWidgetDefinition.supportsSession(session(true, false, false, null, null, false)));
         assertFalse(AlertsWidgetDefinition.supportsSession(session(false, true, false, null, null, false)));

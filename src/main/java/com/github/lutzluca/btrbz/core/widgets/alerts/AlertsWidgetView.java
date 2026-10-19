@@ -59,10 +59,6 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
             () -> actions.accept(new Action.Toggle())));
         var inbox = UiButton.compactIcon(Assets.ALERT_BELL, label, Component.literal("Open Inbox"),
             () -> actions.accept(new Action.Inbox()));
-        inbox.active(!session.inSign());
-        if (session.inSign()) {
-            inbox.tooltip(Component.literal("Finish order input before opening another screen"));
-        }
         header.child(inbox);
         this.root.child(header);
         if (config.collapsed) {
@@ -72,13 +68,10 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         for (var entry : data.entries().stream().limit(MAX_ROWS).toList()) {
             var line = BazaarUi.line();
             var item = new Link(width - 15, () -> actions.accept(new Action.Open(entry.id())));
-            item.enabled(!session.inSign());
             item.gap(3);
             item.child(UiComponents.item(entry.stack(), 12));
             item.child(new Text(UiStyles.productName(entry.name(), false), width - 30));
-            item.tooltip(session.inSign()
-                ? WidgetTooltips.wrapped("Finish order input before opening another screen")
-                : WidgetTooltips.wrapped(entry.tooltip()));
+            item.tooltip(WidgetTooltips.wrapped(entry.tooltip()));
             boolean current = session.product().map(product -> product.productId().equals(entry.productId()))
                 .orElse(false);
             if (current) {
@@ -98,7 +91,6 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         }
         if (data.entries().size() > MAX_ROWS) {
             var more = new Link(width, () -> actions.accept(new Action.Inbox()));
-            more.enabled(!session.inSign());
             more.child(new Text(Component.literal("+" + (data.entries().size() - MAX_ROWS) + " more")
                 .withStyle(UiStyles.muted()), width));
             more.tooltip(Component.literal("Open all pending alerts in Inbox"));
@@ -108,7 +100,6 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
 
     private static class Link extends FlowLayout {
         private final Runnable action;
-        private boolean enabled = true;
 
         Link(int width, Runnable action) {
             super(Sizing.fixed(width), Sizing.fixed(12), Algorithm.HORIZONTAL);
@@ -118,22 +109,14 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
             this.allowOverflow(true);
         }
 
-        void enabled(boolean enabled) {
-            this.enabled = enabled;
-            this.cursorStyle(enabled ? CursorStyle.HAND : CursorStyle.POINTER);
-            if (!enabled) {
-                this.tooltip(Component.literal("Finish order input before opening another screen"));
-            }
-        }
-
         @Override
         public boolean canFocus(FocusSource source) {
-            return this.enabled;
+            return true;
         }
 
         @Override
         public boolean onMouseDown(MouseButtonEvent event, boolean doubled) {
-            if (this.enabled && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
+            if (event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
                 this.action.run();
                 return true;
             }
@@ -142,8 +125,8 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
 
         @Override
         public boolean onKeyPress(KeyEvent event) {
-            if (this.enabled && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_SPACE
-                || event.key() == InputConstants.KEY_NUMPADENTER)) {
+            if (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_SPACE
+                || event.key() == InputConstants.KEY_NUMPADENTER) {
                 this.action.run();
                 return true;
             }

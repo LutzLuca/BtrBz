@@ -44,9 +44,6 @@ public final class AlertsWidgetDefinition {
                 if (!supportsSession(current) || !manager.enabled()) {
                     return;
                 }
-                if (current.inSign() && (action instanceof Action.Open || action instanceof Action.Inbox)) {
-                    return;
-                }
                 switch (action) {
                     case Action.Toggle _ -> {
                         config.mutate("alert panel toggled", value -> value.collapsed = !value.collapsed);
@@ -76,7 +73,7 @@ public final class AlertsWidgetDefinition {
     }
 
     public static boolean supportsSession(WidgetSession session) {
-        return session.inBazaarContainer() || session.inSign() && session.product().isPresent();
+        return session.inBazaarContainer();
     }
 
     public sealed interface Action {

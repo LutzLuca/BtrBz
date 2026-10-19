@@ -44,7 +44,7 @@ Alerts watch the market for you and collect triggered alerts in an inbox.
 
 - `/btrbz alert` opens one editor for price and liquidity targets. Pick an item, then Price or Liquidity, and choose a single trigger or repeat after dismissal
 - Triggered alerts stay in the Inbox until you dismiss them. Dismissed alerts move to History, where Watch again restarts the same target
-- The bell-shaped Alerts widget appears on Bazaar screens and during order input while alerts are pending, with a shortcut to the Bazaar and one-click dismissal
+- The bell-shaped Alerts widget appears in Bazaar containers while alerts are pending, with a shortcut to the Bazaar and one-click dismissal
 - Summaries of pending alerts are shown when you return to SkyBlock and repeated until you dismiss them. Toast and chat notifications are optional and can both be turned off, leaving the widget and Inbox as your interaction points
 
 ## Installation
