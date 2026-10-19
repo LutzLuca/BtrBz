@@ -186,7 +186,7 @@ class ReachedAlertsTest {
     }
 
     @Test
-    void failedTriggerSaveKeepsTheWatchAndRetriesBeforeNotifying() {
+    void failedTriggerSaveRetainsTheEventEvenIfTheMarketMovesBeforeRetry() {
         var config = new AlertConfig();
         var data = new BazaarData();
         var failSave = new boolean[1];
@@ -202,15 +202,16 @@ class ReachedAlertsTest {
         failSave[0] = true;
 
         Assertions.assertDoesNotThrow(() -> publish(data, "99"));
-        Assertions.assertEquals(1, manager.alerts().size());
+        Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertTrue(notifications.isEmpty());
-        Assertions.assertTrue(manager.inbox().isEmpty());
-        Assertions.assertEquals(revision, manager.changes().revision());
+        Assertions.assertEquals(1, manager.inbox().size());
+        Assertions.assertTrue(manager.changes().revision() > revision);
         failSave[0] = false;
-        publish(data, "99");
+        publish(data, "101");
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(1, notifications.size());
         var entry = manager.reachedAlerts().getFirst();
+        Assertions.assertEquals(new AlertCondition.Observation.Price(99), entry.observation());
         failSave[0] = true;
         Assertions.assertThrows(IllegalStateException.class, () -> manager.removeReachedAlert(entry.id()));
         Assertions.assertEquals(entry, manager.reachedAlerts().getFirst());

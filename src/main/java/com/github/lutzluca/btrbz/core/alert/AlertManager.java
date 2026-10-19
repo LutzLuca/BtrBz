@@ -34,6 +34,8 @@ public class AlertManager {
     private final Consumer<ReachedAlert> notifyReached;
     private final LongSupplier clock;
     private final CacheToken changes = CacheToken.named("alerts");
+    private final List<ReachedAlert> pendingNotices = new ArrayList<>();
+    private boolean pendingSave;
     @lombok.Getter
     @lombok.experimental.Accessors(fluent = true)
     private long lastCheckedAt = -1;
@@ -232,11 +234,14 @@ public class AlertManager {
         }
 
         if (changed) {
-            this.replaceAndSave(active, reached)
-                .onSuccess(_ -> {
-                    this.changes.invalidate("alerts updated from market data");
-                    newlyReached.forEach(this::dispatchReached);
-                })
+            cfg.alerts = active;
+            cfg.reachedAlerts = reached;
+            this.pendingNotices.addAll(newlyReached);
+            this.pendingSave = true;
+            this.changes.invalidate("alerts updated from market data");
+        }
+        if (this.pendingSave) {
+            this.replaceAndSave(cfg.alerts, cfg.reachedAlerts)
                 .onFailure(err -> log.warn("Failed to persist updated alerts", err));
         }
     }
@@ -344,6 +349,13 @@ public class AlertManager {
         return Try.run(this.save::run).onFailure(_ -> {
             config.alerts = previousActive;
             config.reachedAlerts = previousReached;
+        }).onSuccess(_ -> {
+            this.pendingSave = false;
+            var notices = List.copyOf(this.pendingNotices);
+            this.pendingNotices.clear();
+            notices.stream().filter(notice -> config.reachedAlerts.stream()
+                .anyMatch(event -> event.id().equals(notice.id()) && event.pending()))
+                .forEach(this::dispatchReached);
         });
     }
 
