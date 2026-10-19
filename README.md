@@ -30,47 +30,22 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 
 Run `/btrbz` to configure the mod.
 
-Run `/btrbz alert` to manage price and liquidity targets together. Watching contains saved conditions,
-and Inbox keeps triggered alerts until you dismiss them. Dismissed alerts move to History.
-Choose an item, then Price or Liquidity in the same creation form. Switching types keeps the item,
-price expression and buy or sell side. Choose Once for one event, or Repeat after dismissal to
-resume watching after you handle each event. A repeating watch pauses while its event is in the
-Inbox, then needs the condition to stop being met and be met again. Triggers remain at least one
-minute apart. Watch again in History creates a new alert with the saved target, just like creating
-one in the editor. It fires immediately when fresh data already meets the condition.
-
-Remind About Pending Alerts is enabled by default. It summarizes pending events when you return
-and every 10 minutes until dismissed, including targets that are no longer met. Turning it off stops
-summaries while new triggers still notify you and pending events stay saved. Chat and toast
-notifications can be enabled independently. Turning both off leaves the panel and Inbox as the
-interaction points. Summaries are suppressed while the Inbox is open.
-Closing a screen, opening an item, or making a trade leaves the event pending. Monitoring stops
-outside SkyBlock, so crossings that happen and recover entirely while you are away cannot be detected.
-
-The compact Alerts widget appears on Bazaar screens and during order input when events are pending.
-It starts in the top-right. The bell, Alerts label and count share one Inbox button, and the chevron
-collapses the list.
-Up to three single-line item rows offer a Bazaar shortcut and an archive icon to dismiss the event.
-Hover an item for the saved condition, latest value and trigger time. Larger batches open in the Inbox.
-The widget remembers its collapse state and hides when empty. Configure its position, scale and
-maximum width through the widget manager. Its position is shared between Bazaar screens and order input.
-During sign input, navigation waits until you finish typing.
-
-Inbox, Watching, History, item search and both editors share a fixed dialog size that fits the window.
-Long content scrolls inside it without moving the dialog when you change views.
-
-The editor's Order book button opens the selected item's book even when its widget is disabled,
-without changing that setting. Closing it returns to the same alert draft. Comparisons use
-At or below and At or above in the editor, and ≤ or ≥ in saved conditions. Hover the help icon beside
-the target price for expression syntax, or focus it with the keyboard.
-
-Alert changes use the normal config save path. There is no separate alert save queue or disk-write retry.
+Run `/btrbz alert` to set price and liquidity alerts. See [Custom alerts](#custom-alerts) for how they behave.
 
 Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
 [Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),
 or make your own theme. The four presets stay available. Choose New theme to start an editable copy,
 name it in the editor and click Save to keep it in your library. Preview your changes live, then click
 Apply to use them. Import and Export share complete themes.
+
+## Custom alerts
+
+Alerts watch the market for you and collect triggered alerts in an inbox.
+
+- `/btrbz alert` opens one editor for price and liquidity targets. Pick an item, then Price or Liquidity, and choose a single trigger or repeat after dismissal
+- Triggered alerts stay in the Inbox until you dismiss them. Dismissed alerts move to History, where Watch again restarts the same target
+- The bell-shaped Alerts widget appears on Bazaar screens and during order input while alerts are pending, with a shortcut to the Bazaar and one-click dismissal
+- Summaries of pending alerts are shown when you return to SkyBlock and repeated until you dismiss them. Toast and chat notifications are optional and can both be turned off, leaving the widget and Inbox as your interaction points
 
 ## Installation
 
@@ -93,7 +68,7 @@ BtrBz currently supports Minecraft 26.1 and 26.2. It requires Java 25 or newer a
 
 ## Icon attribution
 
-The compact alert panel's bell, archive and chevrons are original project pixel artwork,
+The alerts widget's bell, archive and chevrons are original project pixel artwork,
 bundled as texture assets. The expression-help icon uses the attributed question icon below.
 
 This project uses icons from [Flaticon](https://www.flaticon.com/):
