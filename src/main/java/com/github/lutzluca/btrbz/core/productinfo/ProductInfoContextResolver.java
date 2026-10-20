@@ -55,6 +55,7 @@ final class ProductInfoContextResolver {
                 && "Collect Compost".equals(Utils.cleanDisplayName(stack.getHoverName().getString()))) {
                 return this.resolveComposter(item);
             }
+            // NOTE: Consider container name validation once all essence shop entry titles have been verified.
             var essenceType = ProductInfoMatching.essenceShopType(stack.getHoverName().getString());
             if (essenceType.isPresent()) {
                 var type = essenceType.get();
@@ -71,12 +72,14 @@ final class ProductInfoContextResolver {
 
     @Nullable
     EssenceCost resolveEssenceCost(ItemStack stack, @Nullable MenuContext menu) {
-        return menu == null
-            ? null : ProductInfoMatching.essenceShopType(menu.title())
-                .flatMap(type -> ProductInfoContextParser.essenceCost(
-                    stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines(), type)
-                    .stream().mapToObj(count -> new EssenceCost(this.resolveEssence(type), count)).findFirst())
-                .orElse(null);
+        if (menu == null) {
+            return null;
+        }
+        return ProductInfoMatching.essenceShopType(menu.title()).map(type -> {
+            var count = ProductInfoContextParser.essenceCost(
+                stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines(), type);
+            return count.isPresent() ? new EssenceCost(this.resolveEssence(type), count.getAsInt()) : null;
+        }).orElse(null);
     }
 
     private ProductIdentity resolveEssence(String type) {
