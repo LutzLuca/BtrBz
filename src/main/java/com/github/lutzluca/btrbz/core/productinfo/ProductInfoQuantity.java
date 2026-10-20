@@ -21,7 +21,8 @@ record ProductInfoQuantity(Source source, OptionalInt count) {
         SACK("Sack total", "Sack total unavailable", "items"),
         STASH("Stash total", "Stash total unavailable", "items"),
         HUNTING_BOX("Owned shard total", "Shard total unavailable", "shards"),
-        COMPOSTER("Available compost total", "Compost total unavailable", "compost");
+        COMPOSTER("Available compost total", "Compost total unavailable", "compost"),
+        ESSENCE_BALANCE("Owned essence total", "Essence total unavailable", "essence");
 
         private final String totalLabel;
         private final String unavailableLabel;

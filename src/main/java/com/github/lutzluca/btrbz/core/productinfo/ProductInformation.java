@@ -131,15 +131,24 @@ public final class ProductInformation {
                 return;
             }
             var cfg = this.config.get();
-            if (!cfg.enabled || !cfg.priceTooltipEnabled) {
+            if (!cfg.enabled || !cfg.priceTooltipEnabled && !cfg.essenceCostEnabled) {
                 return;
             }
-            var lookup = this.lookup(stack);
-            if (lookup == null || lookup.prices() == null) {
-                return;
+            var menu = this.menuContext(stack);
+            if (cfg.priceTooltipEnabled) {
+                var lookup = this.lookup(stack, menu);
+                if (lookup != null && lookup.prices() != null) {
+                    ProductInfoTooltip.append(lines, lookup.prices(), lookup.quantity(),
+                        Minecraft.getInstance().hasShiftDown());
+                }
             }
-            ProductInfoTooltip.append(lines, lookup.prices(), lookup.quantity(),
-                Minecraft.getInstance().hasShiftDown());
+            if (cfg.essenceCostEnabled) {
+                var cost = this.contextResolver.resolveEssenceCost(stack, menu);
+                var prices = cost != null ? this.priceCache.get(cost.product()) : null;
+                if (prices != null) {
+                    ProductInfoTooltip.appendEssenceCost(lines, prices, cost.count());
+                }
+            }
         });
     }
 
@@ -170,22 +179,30 @@ public final class ProductInformation {
 
     private @Nullable ProductLookup lookup(SlotView view) {
         // Clicks and tooltips resolve the displayed stack, which may be projected.
-        return this.lookup(view.getSlot().getItem(), view.playerInventorySlot() ? null : view.getSlot());
+        return this.lookup(view.getSlot().getItem(),
+            this.menuContext(view.playerInventorySlot() ? null : view.getSlot()));
     }
 
     private @Nullable ProductLookup lookup(ItemStack stack) {
-        return this.lookup(stack, GameUtils.hoveredSlot(stack)
+        return this.lookup(stack, this.menuContext(stack));
+    }
+
+    private @Nullable ProductInfoContextResolver.MenuContext menuContext(ItemStack stack) {
+        return this.menuContext(GameUtils.hoveredSlot(stack)
             .filter(slot -> !GameUtils.isPlayerInventorySlot(slot)).orElse(null));
     }
 
-    private @Nullable ProductLookup lookup(ItemStack stack, @Nullable Slot menuSlot) {
+    private @Nullable ProductInfoContextResolver.MenuContext menuContext(@Nullable Slot menuSlot) {
         var info = ScreenTracker.get().getCurrInfo();
         var screen = info.getGenericContainerScreen().orElse(null);
-        ProductInfoContextResolver.MenuContext menu = null;
         if (menuSlot != null && screen != null && menuSlot.container == screen.getMenu().getContainer()) {
-            menu = new ProductInfoContextResolver.MenuContext(screen.getTitle().getString(),
+            return new ProductInfoContextResolver.MenuContext(screen.getTitle().getString(),
                 info.getMenuType().orElse(null), menuSlot.getContainerSlot());
         }
+        return null;
+    }
+
+    private @Nullable ProductLookup lookup(ItemStack stack, @Nullable ProductInfoContextResolver.MenuContext menu) {
         var resolved = this.contextResolver.resolve(stack, menu, this.config.get().requireMatchingName);
         return resolved != null
             ? new ProductLookup(resolved.product(), this.priceCache.get(resolved.product()),

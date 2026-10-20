@@ -18,6 +18,7 @@ public final class ProductInfoConfig {
     public boolean ctrlShiftOnBazaarItems = true;
     public boolean showOutsideBazaar = false;
     public boolean priceTooltipEnabled = true;
+    public boolean essenceCostEnabled = true;
     public boolean requireMatchingName = true;
     public Site site = Site.SkyblockBz;
 
@@ -109,6 +110,17 @@ public final class ProductInfoConfig {
             .controller(Site::controller);
     }
 
+    public Builder<Boolean> createEssenceCostOption() {
+        return Option
+            .<Boolean>createBuilder()
+            .name(Component.literal("Show Essence Costs"))
+            .description(ConfigUi.createDescription(() -> ConfigUi.paragraphs(
+                ConfigUi.text("Show total instant-buy and buy-order estimates for essence spent in essence shops."),
+                ConfigUi.note("Uses best current Bazaar prices. Totals are shown without holding Shift."))))
+            .binding(true, () -> this.essenceCostEnabled, value -> this.essenceCostEnabled = value)
+            .controller(ConfigUi::createBooleanController);
+    }
+
     public Builder<Boolean> createRequireMatchingNameOption() {
         return Option
             .<Boolean>createBuilder()
@@ -128,7 +140,8 @@ public final class ProductInfoConfig {
         var rootGroup = new OptionGrouping(enabledBuilder)
             .addOptions(this.createItemClickOption())
             .addSubgroups(ctrlShiftGroup)
-            .addOptions(this.createPriceTooltipOption(), this.createRequireMatchingNameOption(),
+            .addOptions(this.createPriceTooltipOption(), this.createEssenceCostOption(),
+                this.createRequireMatchingNameOption(),
                 this.createSiteOption());
 
         return OptionGroup

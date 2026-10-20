@@ -82,6 +82,26 @@ final class ProductInfoContextParser {
             .orElseGet(OptionalInt::empty);
     }
 
+    static OptionalInt essenceBalance(List<Component> lore, String type) {
+        return loreValue(lore, "Your " + type + " Essence:")
+            .map(ProductInfoContextParser::parseQuantity)
+            .orElseGet(OptionalInt::empty);
+    }
+
+    static OptionalInt essenceCost(List<Component> lore, String type) {
+        var suffix = " " + type + " Essence";
+        var costSection = false;
+        for (var component : lore) {
+            var line = Utils.cleanDisplayName(component.getString());
+            if (line.equals("Cost") || line.equals("Cost:")) {
+                costSection = true;
+            } else if (costSection && line.endsWith(suffix)) {
+                return parseQuantity(line.substring(0, line.length() - suffix.length()));
+            }
+        }
+        return OptionalInt.empty();
+    }
+
     private static Optional<String> loreValue(List<Component> lore, String prefix) {
         for (var component : lore) {
             var line = Utils.cleanDisplayName(component.getString());
