@@ -1,0 +1,112 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Project review rules are embedded below, with no external guideline files.
+language: en-US
+early_access: false
+tone_instructions: >-
+  Use concise, plain English. Explain the concrete failure or maintenance cost and
+  suggest a proportional fix. Avoid praise and repeated summaries.
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: false
+  review_status: false
+  review_info: true
+  review_details: false
+  review_progress: true
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: true
+  related_prs: true
+  suggested_labels: false
+  suggested_reviewers: false
+  enable_prompt_for_ai_agents: true
+  in_progress_fortune: false
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: false
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: >-
+        Use a Conventional Commit title with a concise, imperative subject that
+        describes the outcome. Avoid vague titles and file inventories.
+    description:
+      mode: warning
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  path_instructions:
+    - path: "src/main/java/**/*.java"
+      instructions: >-
+        BtrBz is an alpha Fabric client mod for Hypixel Skyblock's Bazaar.
+        Source and build configuration are authoritative.
+        Review changed behavior and its callers. Report concrete failures or
+        maintenance costs and suggest fixes that fit the problem.
+        Keep helpers beside their consumers and package-private where possible.
+        Prefer direct data flow and avoid abstractions without a current need.
+        Data migrations are not required during alpha. Config fields can be replaced.
+        Keep I/O and heavy work off render and tick paths. Apply Minecraft-facing
+        results on the client thread. Keep lifecycle and stale-work checks with
+        the component that owns the work.
+        Use supported platform APIs and Minecraft input abstractions.
+        Prefer simple string operations and parsing when a regex adds no benefit.
+        Follow the CacheToken dependency model. Check that cached results track
+        every input that affects them and that state owners invalidate the relevant
+        tokens when those inputs change.
+
+    - path: "src/main/java/com/github/lutzluca/btrbz/{data,screen,cache}/**/*.java"
+      instructions: >-
+        Keep data loading and product resolution in data/, screen and inventory
+        tracking in screen/, and shared invalidation in cache/.
+        Reuse these owners instead of adding separate data paths for each feature.
+        Preserve product identity, data freshness, active-container checks, and
+        inventory refresh guarantees when changing how data reaches consumers.
+
+    - path: "src/main/java/com/github/lutzluca/btrbz/core/**/*.java"
+      instructions: >-
+        Keep feature behavior, configuration, and presentation together.
+        Build new UI from existing components where possible. Put new components
+        useful across features in the shared UI package rather than a feature package.
+        Use colors and text styles exposed through UiStyles, which resolves the
+        active theme.
+        Read production config through ConfigStore and persist YACL fields with
+        @SerialEntry. Use the same config handler for editing and saving.
+        Where isolation is needed, use a config section supplier and save callback.
+        Review layout calculations for text measurement, available width, clipping,
+        and consistent coordinates. Check how the code handles missing data.
+
+    - path: "src/test/java/**/*.java"
+      instructions: >-
+        Tests should catch plausible regressions and survive refactors that preserve
+        behavior. Flag redundant tests, assertions that repeat the implementation,
+        and mocks that supply the behavior being tested.
+        Use representative inputs and independent expected results. Additional
+        test layers should catch a different failure.
+        Do not request tests for trivial code or add production APIs only for tests.
+        Visual details require in-game testing and are outside unit-test scope.
+
+    - path: "**/*.{java,gradle.kts,properties}"
+      instructions: >-
+        Respect Stonecutter version guards. Inactive branches are supported code.
+        Derive supported versions from settings.gradle.kts. Check version-specific
+        imports and mixin targets together.
+        Builds compile all targets, but formatting and lint inspect the active
+        source view. For guarded changes, check each affected view and return to
+        the VCS version. Required project checks are ./gradlew check and ./gradlew build.
+
+knowledge_base:
+  code_guidelines:
+    enabled: false
