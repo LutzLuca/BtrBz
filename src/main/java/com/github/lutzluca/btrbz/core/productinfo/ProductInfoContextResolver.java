@@ -6,6 +6,7 @@ import com.github.lutzluca.btrbz.data.ProductIdentity;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import net.minecraft.core.component.DataComponents;
@@ -54,11 +55,33 @@ final class ProductInfoContextResolver {
                 && "Collect Compost".equals(Utils.cleanDisplayName(stack.getHoverName().getString()))) {
                 return this.resolveComposter(item);
             }
+            var essenceType = ProductInfoMatching.essenceShopType(stack.getHoverName().getString());
+            if (essenceType.isPresent()) {
+                var type = essenceType.get();
+                return new ResolvedProduct(this.resolveEssence(type),
+                    new ProductInfoQuantity(ProductInfoQuantity.Source.ESSENCE_BALANCE,
+                        ProductInfoContextParser.essenceBalance(item.lore(), type)));
+            }
             if (ProductInfoMatching.isSackStack(stack)) {
                 return this.resolveSack(item);
             }
         }
         return this.resolveStack(stack, requireMatchingName);
+    }
+
+    @Nullable
+    EssenceCost resolveEssenceCost(ItemStack stack, @Nullable MenuContext menu) {
+        return menu == null
+            ? null : ProductInfoMatching.essenceShopType(menu.title())
+                .flatMap(type -> ProductInfoContextParser.essenceCost(
+                    stack.getOrDefault(DataComponents.LORE, ItemLore.EMPTY).lines(), type)
+                    .stream().mapToObj(count -> new EssenceCost(this.resolveEssence(type), count)).findFirst())
+                .orElse(null);
+    }
+
+    private ProductIdentity resolveEssence(String type) {
+        return this.bazaarData.resolveProduct("ESSENCE_" + type.toUpperCase(Locale.ROOT).replace(' ', '_'),
+            type + " Essence");
     }
 
     private @Nullable ResolvedProduct resolveStack(ItemStack stack, boolean requireMatchingName) {
@@ -173,6 +196,8 @@ final class ProductInfoContextResolver {
     record MenuContext(String title, @Nullable BazaarMenuType bazaarMenu, int slotIndex) {}
 
     record ResolvedProduct(ProductIdentity product, ProductInfoQuantity quantity) {}
+
+    record EssenceCost(ProductIdentity product, int count) {}
 
     private record MenuItem(ItemStack stack, MenuContext menu, boolean requireMatchingName) {
         List<Component> lore() {

@@ -32,8 +32,16 @@ public final class ProductInfoTooltip {
         }
         var count = quantity.count().orElse(1);
         var showTotal = shiftHeld && count > 1;
-        lines.add(priceText("Buy Price: ", prices.buy(), count, showTotal));
-        lines.add(priceText("Sell Price: ", prices.sell(), count, showTotal));
+        var multiplier = showTotal ? count : 1;
+        lines.add(priceText("Buy Price: ", prices.lowestSellOffer(), multiplier, showTotal));
+        lines.add(priceText("Sell Price: ", prices.highestBuyOrder(), multiplier, showTotal));
+    }
+
+    static void appendEssenceCost(List<Component> lines, Prices prices, int count) {
+        lines.add(Component.empty());
+        lines.add(Component.literal("Essence cost estimate").withStyle(UiStyles.label()));
+        lines.add(priceText("Instant buy: ", prices.lowestSellOffer(), count, false));
+        lines.add(priceText("Buy order: ", prices.highestBuyOrder(), count, false));
     }
 
     private static @Nullable Component quantityHint(ProductInfoQuantity quantity, boolean shiftHeld) {
@@ -64,15 +72,14 @@ public final class ProductInfoTooltip {
         String label,
         @Nullable Double price,
         int count,
-        boolean showTotal
+        boolean showQuantity
     ) {
         var text = Component.literal(label).withStyle(UiStyles.label());
         if (price == null) {
             return text.append(Component.literal("Not Available").withStyle(UiStyles.label()));
         }
-        var displayPrice = showTotal ? price * count : price;
-        text.append(UiStyles.coins(displayPrice));
-        if (showTotal) {
+        text.append(UiStyles.coins(price * count));
+        if (showQuantity) {
             text.append(Component.literal(" (").withStyle(UiStyles.muted()))
                 .append(Component.literal(Utils.formatDecimal(count, 0, true)).withStyle(UiStyles.quantity()))
                 .append(Component.literal("x)").withStyle(UiStyles.muted()));
@@ -80,5 +87,5 @@ public final class ProductInfoTooltip {
         return text;
     }
 
-    record Prices(@Nullable Double buy, @Nullable Double sell) {}
+    record Prices(@Nullable Double lowestSellOffer, @Nullable Double highestBuyOrder) {}
 }

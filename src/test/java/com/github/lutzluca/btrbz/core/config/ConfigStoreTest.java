@@ -37,6 +37,26 @@ class ConfigStoreTest {
     class Persistence {
 
         @Test
+        void essenceCostsDefaultOnAndPersistIndependentlyOfProductPrices() throws IOException {
+            var path = ConfigStoreTest.this.tempDir.resolve("essence-costs.json");
+            Files.writeString(path, """
+                {"productInfo":{"price_tooltip_enabled":false}}
+                """);
+
+            var store = new ConfigStore(path);
+            Assertions.assertTrue(store.load());
+            Assertions.assertTrue(store.config().productInfo.essenceCostEnabled);
+            Assertions.assertFalse(store.config().productInfo.priceTooltipEnabled);
+            store.config().productInfo.essenceCostEnabled = false;
+            store.save();
+
+            var reloaded = new ConfigStore(path);
+            Assertions.assertTrue(reloaded.load());
+            Assertions.assertFalse(reloaded.config().productInfo.essenceCostEnabled);
+            Assertions.assertFalse(reloaded.config().productInfo.priceTooltipEnabled);
+        }
+
+        @Test
         void renamedProductContextStartsFreshAndPersistsUnderItsNewKey() throws IOException {
             var path = ConfigStoreTest.this.tempDir.resolve("product-context.json");
             Files.writeString(path, """

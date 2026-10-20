@@ -87,6 +87,50 @@ class ProductInfoContextParserTest {
     }
 
     @Test
+    void readsExactBalancesFromEssenceShopIcons() {
+        var examples = List.of(
+            new EssenceBalanceCase("§aUndead Essence Shop", "§7Your Undead Essence: §d3,115", OptionalInt.of(3_115)),
+            new EssenceBalanceCase("Wither Essence Shop", "Your Wither Essence: 914", OptionalInt.of(914)),
+            new EssenceBalanceCase("Safari Essence Shop", "Your Safari Essence: 0", OptionalInt.of(0)),
+            new EssenceBalanceCase("Wither Essence Shop", "Your Undead Essence: 3,115", OptionalInt.empty()),
+            new EssenceBalanceCase("Undead Essence Shop", "Your Undead Essence: ???", OptionalInt.empty()));
+
+        for (var example : examples) {
+            var type = ProductInfoMatching.essenceShopType(example.name()).orElseThrow();
+            List<Component> lore = List.of(Component.literal("Exchange essence for perks and items!"),
+                Component.literal(example.balance()));
+            Assertions.assertEquals(example.expected(), ProductInfoContextParser.essenceBalance(lore, type),
+                example.name());
+        }
+        Assertions.assertTrue(ProductInfoMatching.essenceShopType("Essence Shop").isEmpty());
+        Assertions.assertTrue(ProductInfoMatching.essenceShopType("Wither Essence").isEmpty());
+    }
+
+    @Test
+    void readsOnlyTheCurrentShopsEssencePaymentAfterTheCostHeading() {
+        var examples = List.of(
+            new EssenceCostCase("Wither Essence Shop", List.of("Increases Intelligence by 2.", "", "§7Cost",
+                "§d100 Wither Essence", "", "Click to unlock!"), OptionalInt.of(100)),
+            new EssenceCostCase("Undead Essence Shop", List.of("Your Undead Essence: 3,115", "Cost",
+                "10,000 Undead Essence", "Click to unlock!"), OptionalInt.of(10_000)),
+            new EssenceCostCase("Safari Essence Shop", List.of("Cost:", "1 Special Item", "2,500 Safari Essence"),
+                OptionalInt.of(2_500)),
+            new EssenceCostCase("Wither Essence Shop", List.of("Cost", "0 Wither Essence"), OptionalInt.of(0)),
+            new EssenceCostCase("Wither Essence Shop", List.of("Cost", "100 Undead Essence"), OptionalInt.empty()),
+            new EssenceCostCase("Wither Essence Shop", List.of("100 Wither Essence", "UNLOCKED"),
+                OptionalInt.empty()),
+            new EssenceCostCase("Wither Essence Shop", List.of("Cost", "??? Wither Essence"), OptionalInt.empty()),
+            new EssenceCostCase("Wither Essence Shop", List.of("Cost", "-100 Wither Essence"), OptionalInt.empty()));
+
+        for (var example : examples) {
+            var type = ProductInfoMatching.essenceShopType(example.title()).orElseThrow();
+            var lore = example.lore().stream().<Component>map(Component::literal).toList();
+            Assertions.assertEquals(example.expected(), ProductInfoContextParser.essenceCost(lore, type),
+                example.lore().toString());
+        }
+    }
+
+    @Test
     void selectsTheTierAmountForGemstonesAndTheExactStoredCountForOrdinarySacks() {
         var cases = List.of(
             new SackCase("formatted gemstone tier before shared total",
@@ -113,4 +157,8 @@ class ProductInfoContextParserTest {
     }
 
     private record SackCase(String description, List<String> lore, OptionalInt expected) {}
+
+    private record EssenceBalanceCase(String name, String balance, OptionalInt expected) {}
+
+    private record EssenceCostCase(String title, List<String> lore, OptionalInt expected) {}
 }

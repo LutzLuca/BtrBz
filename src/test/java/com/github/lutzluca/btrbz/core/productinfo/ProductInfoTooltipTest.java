@@ -46,6 +46,53 @@ class ProductInfoTooltipTest {
         }
     }
 
+    @Test
+    void showsEssenceAcquisitionTotalsWithoutTruncatingUnitPrices() {
+        List<Component> lines = new ArrayList<>();
+        ProductInfoTooltip.appendEssenceCost(lines, new ProductInfoTooltip.Prices(3_415.75, 3_105.125), 100);
+
+        Assertions.assertEquals(List.of("", "Essence cost estimate",
+            "Instant buy: 341,575.0 coins", "Buy order: 310,512.5 coins"),
+            lines.stream().map(Component::getString).toList());
+    }
+
+    @Test
+    void keepsMissingEssenceQuotesSeparateAndSupportsAZeroCost() {
+        var examples = List.of(
+            new CostCase(new ProductInfoTooltip.Prices(null, 617.0), 10_000,
+                "Instant buy: Not Available", "Buy order: 6,170,000.0 coins"),
+            new CostCase(new ProductInfoTooltip.Prices(684.9, null), 10_000,
+                "Instant buy: 6,849,000.0 coins", "Buy order: Not Available"),
+            new CostCase(new ProductInfoTooltip.Prices(684.9, 617.0), 0,
+                "Instant buy: 0.0 coins", "Buy order: 0.0 coins"));
+
+        for (var example : examples) {
+            List<Component> lines = new ArrayList<>();
+            ProductInfoTooltip.appendEssenceCost(lines, example.prices(), example.count());
+            Assertions.assertEquals(List.of("", "Essence cost estimate", example.instantBuy(), example.buyOrder()),
+                lines.stream().map(Component::getString).toList());
+        }
+    }
+
+    @Test
+    void showsUnitPricesAndShiftTotalsForOwnedEssence() {
+        var quantity = new ProductInfoQuantity(ProductInfoQuantity.Source.ESSENCE_BALANCE, OptionalInt.of(3_115));
+        var prices = new ProductInfoTooltip.Prices(684.9, 617.0);
+        List<Component> unit = new ArrayList<>();
+        List<Component> total = new ArrayList<>();
+        ProductInfoTooltip.append(unit, prices, quantity, false);
+        ProductInfoTooltip.append(total, prices, quantity, true);
+
+        Assertions.assertEquals(List.of("", "Hold SHIFT for owned essence total (3,115 essence)",
+            "Buy Price: 684.9 coins", "Sell Price: 617.0 coins"),
+            unit.stream().map(Component::getString).toList());
+        Assertions.assertEquals(List.of("", "Owned essence total (3,115 essence)",
+            "Buy Price: 2,133,463.5 coins (3,115x)", "Sell Price: 1,921,955.0 coins (3,115x)"),
+            total.stream().map(Component::getString).toList());
+    }
+
+    private record CostCase(ProductInfoTooltip.Prices prices, int count, String instantBuy, String buyOrder) {}
+
     private record QuantityCase(
         String description, OptionalInt count, String unitHint, String shiftHint,
         String shiftBuy, String shiftSell

@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.productinfo;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -49,6 +50,13 @@ final class ProductInfoMatching {
 
     static boolean isHuntingBoxMenu(String title) {
         return title.equals("Hunting Box") || title.startsWith("(") && title.endsWith(") Hunting Box");
+    }
+
+    static Optional<String> essenceShopType(String displayedName) {
+        var name = Utils.cleanDisplayName(displayedName);
+        var suffix = " Essence Shop";
+        return name.endsWith(suffix)
+            ? Optional.of(name.substring(0, name.length() - suffix.length())) : Optional.empty();
     }
 
     static boolean isBazaarProductEntry(List<Component> lore) {
