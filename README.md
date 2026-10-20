@@ -15,6 +15,7 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 - Compare the buy and sell price gap per item and across your sellable inventory
 - Get price alerts when instant buy or sell prices reach your targets
 - Set liquidity alerts for when enough items are available to trade instantly within your price limit
+- Keep reached targets in a persistent alert inbox, with optional return summaries and reminders
 - Bookmark products with active-order indicators and save reusable amount presets
 - Flip filled buy orders into sell offers with a suggested price from the Flip Helper
 - Reopen a cancelled buy order's product page, copy its remaining amount, or return to the Bazaar after placing an order
@@ -29,11 +30,22 @@ BtrBz is a Fabric client mod for Hypixel SkyBlock's Bazaar. Track your orders in
 
 Run `/btrbz` to configure the mod.
 
+Run `/btrbz alert` to set price and liquidity alerts. See [Custom alerts](#custom-alerts) for how they behave.
+
 Run `/btrbz theme` to choose BtrBz Dark, [Catppuccin Mocha](https://catppuccin.com/palette/),
 [Nord](https://www.nordtheme.com/docs/colors-and-palettes/), or [Dracula](https://draculatheme.com/spec),
 or make your own theme. The four presets stay available. Choose New theme to start an editable copy,
 name it in the editor and click Save to keep it in your library. Preview your changes live, then click
 Apply to use them. Import and Export share complete themes.
+
+## Custom alerts
+
+Alerts watch the market for you and collect triggered alerts in an inbox.
+
+- `/btrbz alert` opens one editor for price and liquidity targets. Pick an item, then Price or Liquidity, and choose a single trigger or repeat after dismissal
+- Triggered alerts stay in the Inbox until you dismiss them. Dismissed alerts move to History, where Watch again restarts the same target
+- The bell-shaped Alerts widget appears in Bazaar containers while alerts are pending, with a shortcut to the Bazaar and one-click dismissal
+- Summaries of pending alerts are shown when you return to SkyBlock and repeated until you dismiss them. Toast and chat notifications are optional and can both be turned off, leaving the widget and Inbox as your interaction points
 
 ## Installation
 
@@ -50,6 +62,7 @@ BtrBz currently supports Minecraft 26.1 and 26.2. It requires Java 25 or newer a
 ## Notes
 
 - Bazaar prices may be delayed. Liquidity alerts can only check the top 30 orders per side returned by Hypixel
+- Alerts evaluate observed market data while monitoring is active. They cannot reconstruct crossings while the client is closed or monitoring is stopped
 - The Daily Limit widget estimates usage from transactions observed by the mod and uses the tax rate set with `/btrbz tax set <rate>`
 - Opening a bookmarked product uses `/bz` and requires an active Cookie Buff
 

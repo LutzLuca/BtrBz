@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz;
 
 import net.minecraft.resources.Identifier;
+import com.github.lutzluca.btrbz.core.ui.UiIcon;
 
 /** Bundled icons used by in-game UI; config previews and their dimensions live in ConfigImages. */
 public final class Assets {
@@ -31,6 +32,16 @@ public final class Assets {
         BtrBz.MOD_ID, "textures/gui/status/best_order.png");
     public static final Identifier STATUS_UNKNOWN = Identifier.fromNamespaceAndPath(
         BtrBz.MOD_ID, "textures/gui/status/unknown.png");
+
+    public static final UiIcon ALERT_BELL = new UiIcon(Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/gui/alerts/bell.png"), 7);
+    public static final UiIcon ALERT_ARCHIVE = new UiIcon(Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/gui/alerts/archive.png"), 7);
+    public static final UiIcon ALERT_EXPAND = new UiIcon(Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/gui/alerts/expand.png"), 7);
+    public static final UiIcon ALERT_COLLAPSE = new UiIcon(Identifier.fromNamespaceAndPath(
+        BtrBz.MOD_ID, "textures/gui/alerts/collapse.png"), 7);
+    public static final UiIcon HELP = new UiIcon(INFO_ICON, 64);
 
     private Assets() {}
 }

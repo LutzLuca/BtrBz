@@ -4,6 +4,8 @@ import com.github.lutzluca.btrbz.core.appearance.UiColor;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.utils.Utils;
 import com.github.lutzluca.btrbz.core.alert.AlertManager;
+import com.github.lutzluca.btrbz.core.alert.AlertDelivery;
+import com.github.lutzluca.btrbz.core.widgets.alerts.AlertsWidgetDefinition;
 import com.github.lutzluca.btrbz.core.alert.AlertScreen;
 import com.github.lutzluca.btrbz.core.alert.AlertNotifications;
 import com.github.lutzluca.btrbz.core.alert.AlertShortcut;
@@ -116,6 +118,8 @@ public class BtrBz implements ClientModInitializer {
     private TrackedOrderManager orderManager;
     private OrderHighlightManager highlightManager;
     private AlertManager alertManager;
+    private AlertDelivery alertDelivery;
+    private OrderBookScreenController orderBookController;
     private ToastNotifications toastNotifications;
     private OrderTooltipProvider tooltipProvider;
     private OrderProtectionManager orderProtectionManager;
@@ -239,8 +243,14 @@ public class BtrBz implements ClientModInitializer {
         this.orderManager.addOnOrdersResetListener(() -> this.tooltipProvider.clearCache());
         this.orderManager.addOnOrderUpdatedListener(order -> this.tooltipProvider.clearCache());
         this.toastNotifications = new ToastNotifications(this.runtime::isActive);
-        this.alertManager = new AlertManager(this.bazaarData,
-            reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications));
+        this.alertManager = new AlertManager(this.bazaarData, () -> configStore.config().alert, configStore::save,
+            reached -> this.alertDelivery.reached(reached));
+        this.alertDelivery = new AlertDelivery(this.alertManager, () -> configStore.config().alert.remindPending,
+            reached -> AlertNotifications.notifyReached(reached, this.bazaarData, this.toastNotifications),
+            pending -> AlertNotifications.notifyInbox(pending, this.toastNotifications));
+        ClientTickDispatcher.scheduleEvery(20, client -> this.alertDelivery.tick(
+            this.activation.isActive() && client.player != null,
+            GameUtils.screen() instanceof AlertScreen alerts && alerts.showingInbox()));
         new BazaarChatManager();
         new ClaimableOrderIndicator(this.orderManager);
         this.orderProtectionManager = new OrderProtectionManager(this.bazaarData);
@@ -297,6 +307,15 @@ public class BtrBz implements ClientModInitializer {
             dailyLimit, () -> configStore.config().widgets.orderLimit);
         var productContextWidgetDefinition = ProductContextWidgetDefinition.create(
             this.bazaarData, () -> configStore.config().widgets.productContext);
+        var openAlertInbox = (Runnable) () -> Minecraft.getInstance().schedule(() -> {
+            var screen = new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
+                this.orderBookController);
+            screen.openInbox();
+            GameUtils.setScreen(screen);
+        });
+        var alertsWidgetDefinition = AlertsWidgetDefinition.create(this.alertManager,
+            this.bazaarData,
+            () -> configStore.config().widgets.alerts, configStore::save, openAlertInbox);
         var widgetRegistry = new WidgetRegistry();
         widgetRegistry.register(
             bazaarOrdersWidgetDefinition,
@@ -307,12 +326,14 @@ public class BtrBz implements ClientModInitializer {
             bookmarksWidgetDefinition,
             orderPresetsWidgetDefinition,
             dailyLimitWidgetDefinition,
-            productContextWidgetDefinition);
+            productContextWidgetDefinition,
+            alertsWidgetDefinition);
         var widgetStateStore = new WidgetStateStore(() -> configStore.config().widgets, configStore::save);
         this.widgetRuntime = new WidgetRuntime(widgetRegistry, widgetStateStore, sessionProvider, this.runtime,
             parent -> new AppearanceScreen(parent, appearance, null, widgetRegistry));
 
         var orderBookController = new OrderBookScreenController(this.bazaarProductContext, this.widgetRuntime);
+        this.orderBookController = orderBookController;
         new AlertShortcut(this.bazaarProductContext, (parent, product) -> {
             var screen = new AlertScreen(parent, this.bazaarData, this.alertManager, this.runtime,
                 orderBookController);
@@ -337,6 +358,7 @@ public class BtrBz implements ClientModInitializer {
             this.widgetRuntime.createHudHost(),
             hudHint::onWidgetRendered);
         Commands.registerAll(this.bazaarData, this.widgetRuntime, this.orderManager, this.profileTracker,
+            this.alertManager,
             () -> Minecraft.getInstance().schedule(() -> GameUtils.setScreen(
                 new AlertScreen(GameUtils.screen(), this.bazaarData, this.alertManager, this.runtime,
                     orderBookController))),
@@ -386,6 +408,7 @@ public class BtrBz implements ClientModInitializer {
             this.bazaarPoller.close();
         });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            this.alertDelivery.disconnect();
             this.toastNotifications.invalidate();
             SoundUtil.invalidatePending();
         });
@@ -536,6 +559,7 @@ public class BtrBz implements ClientModInitializer {
     }
 
     private void resetSessionState() {
+        this.alertDelivery.disconnect();
         this.suspendMarketFeatures();
         this.purseTracker.close();
         this.orderActions.resetSession();

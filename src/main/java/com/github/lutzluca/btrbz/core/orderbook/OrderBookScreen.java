@@ -7,6 +7,7 @@ import com.github.lutzluca.btrbz.core.widgets.layout.WidgetCanvas;
 import com.github.lutzluca.btrbz.core.widgets.manager.WidgetManagerLauncher;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHost;
 import com.github.lutzluca.btrbz.core.widgets.runtime.WidgetHostOptions;
+import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookWidgetDefinition;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -16,9 +17,13 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import java.util.Map;
+import java.util.Set;
 
 /** BtrBz-owned host screen for only the full Order Book widget. */
 public final class OrderBookScreen extends Screen {
+    private static final WidgetHostOptions HOST_OPTIONS = new WidgetHostOptions(null, false, true,
+        Set.of(OrderBookWidgetDefinition.ID), Map.of());
     private final Screen parent;
     @Getter
     @Accessors(fluent = true)
@@ -91,7 +96,7 @@ public final class OrderBookScreen extends Screen {
             mouseY,
             delta,
             this.canvas(),
-            WidgetHostOptions.runtime(true),
+            HOST_OPTIONS,
             this);
         this.managerLauncher.render(graphics, mouseX, mouseY, delta, this.canvas(), this);
     }

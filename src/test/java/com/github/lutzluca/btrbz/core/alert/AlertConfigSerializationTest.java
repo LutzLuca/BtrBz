@@ -45,6 +45,8 @@ class AlertConfigSerializationTest {
         var json = new JsonObject();
         json.add("alert", validAlertJson());
         json.addProperty("reachedAt", 2_000L);
+        json.addProperty("id", java.util.UUID.randomUUID().toString());
+        json.addProperty("dismissedAt", -1);
         json.addProperty("observed", 130);
         json.addProperty(field, value);
         Assertions.assertNull(this.gson.fromJson(json, ReachedAlert.class));
@@ -56,7 +58,8 @@ class AlertConfigSerializationTest {
         var manager = new AlertManager(new BazaarData(), () -> config, () -> {}, _ -> {});
         var condition = new AlertCondition.Liquidity(AlertCondition.LiquiditySide.BuyOrders, Long.MAX_VALUE, 1_000);
         var alert = manager.saveAlert(null, new AlertDefinition(1_000,
-            new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond"), condition)).get();
+            new IndexedProduct("ENCHANTED_DIAMOND", "Enchanted Diamond"), condition),
+            AlertLifecycle.Once).get();
         var reached = new ReachedAlert(alert, 2_000, new AlertCondition.Observation.Liquidity(Long.MAX_VALUE));
 
         var restored = this.gson.fromJson(this.gson.toJson(reached), ReachedAlert.class);
@@ -78,7 +81,9 @@ class AlertConfigSerializationTest {
               },
               "kind": "Price",
               "condition": {"type": {"source": "Sell", "direction": "Above"}, "price": 123.4},
-              "remindedAfter": 1000
+              "lifecycle": "Repeat",
+              "armed": false,
+              "lastTriggeredAt": 1700000000000
             }
             """).getAsJsonObject();
     }
@@ -113,7 +118,9 @@ class AlertConfigSerializationTest {
             Assertions.assertEquals(alert.productId(), reparsed.productId());
             Assertions.assertEquals(alert.productName(), reparsed.productName());
             Assertions.assertEquals(alert.condition, reparsed.condition);
-            Assertions.assertEquals(alert.remindedAfter, reparsed.remindedAfter);
+            Assertions.assertEquals(AlertLifecycle.Repeat, reparsed.lifecycle);
+            Assertions.assertTrue(reparsed.waitingForReset());
+            Assertions.assertEquals(1700000000000L, reparsed.lastTriggeredAt);
         }
     }
 }

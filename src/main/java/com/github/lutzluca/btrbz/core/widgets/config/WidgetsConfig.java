@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.config;
 
 import org.jetbrains.annotations.Nullable;
+import com.github.lutzluca.btrbz.core.widgets.alerts.AlertsWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetConfig;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetConfig;
@@ -33,4 +34,5 @@ public final class WidgetsConfig {
     public OrderPresetsWidgetConfig orderPresets = new OrderPresetsWidgetConfig();
     public DailyLimitWidgetConfig orderLimit = new DailyLimitWidgetConfig();
     public ProductContextWidgetConfig productContext = new ProductContextWidgetConfig();
+    public AlertsWidgetConfig alerts = new AlertsWidgetConfig();
 }

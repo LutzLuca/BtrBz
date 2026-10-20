@@ -38,14 +38,16 @@ class LiquidityAlertTest {
         var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
         data.addListener(manager::onBazaarUpdate);
         manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT,
-            new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 1_000))).get();
+            new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 1_000)),
+            AlertLifecycle.Once).get();
         manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT,
-            new AlertCondition.Liquidity(side, 100, 1_000))).get();
+            new AlertCondition.Liquidity(side, 100, 1_000)), AlertLifecycle.Once)
+            .get();
 
         publish(data, "{\"OTHER\":{\"sell_summary\":[],\"buy_summary\":[]}}");
         Assertions.assertEquals(2, manager.alerts().size());
-        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
-        Assertions.assertTrue(manager.liquidityProgress(manager.alerts().getLast()).isEmpty());
+        Assertions.assertTrue(manager.inbox().isEmpty());
+        Assertions.assertTrue(manager.currentObservation(manager.alerts().getLast()).isEmpty());
 
         publish(data, """
             {"ENCHANTED_DIAMOND":{
@@ -60,39 +62,15 @@ class LiquidityAlertTest {
         Assertions.assertTrue(manager.alerts().isEmpty());
         Assertions.assertEquals(2, notified.size());
         Assertions.assertEquals(new AlertCondition.Observation.Liquidity(side == LiquiditySide.BuyOrders ? 100 : 150),
-            manager.reachedAlerts().getFirst().observation());
+            manager.inbox().getFirst().observation());
         Assertions.assertEquals(new AlertCondition.Observation.Price(1_100),
-            manager.reachedAlerts().getLast().observation());
+            manager.inbox().getLast().observation());
 
         publish(data, product("[]"));
         Assertions.assertEquals(new AlertCondition.Observation.Liquidity(side == LiquiditySide.BuyOrders ? 100 : 150),
-            manager.reachedAlerts().getFirst().observation());
+            manager.inbox().getFirst().observation());
         Assertions.assertEquals(new AlertCondition.Observation.Price(1_100),
-            manager.reachedAlerts().getLast().observation());
-    }
-
-    @Test
-    void saveAndWatchAgainImmediatelyReachAgainstLatestSnapshotButRespectDuplicates() {
-        var config = new AlertConfig();
-        var data = new BazaarData();
-        var notified = new ArrayList<ReachedAlert>();
-        var manager = new AlertManager(data, () -> config, () -> {}, notified::add);
-        publish(data, product("[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]"));
-
-        var first = manager.saveAlert(null, definition(100, 1_000)).get();
-        Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertEquals(1, notified.size());
-        manager.watchAgain(first.id).get();
-        Assertions.assertEquals(2, notified.size());
-        Assertions.assertEquals(1, manager.reachedAlerts().size());
-
-        publish(data, product("[]"));
-        var duplicate = manager.saveAlert(null, definition(100, 1_000)).get();
-        Assertions.assertEquals(0, manager.liquidityProgress(duplicate).orElseThrow());
-        Assertions.assertTrue(manager.watchAgain(first.id).isFailure());
-        Assertions.assertEquals(1, manager.reachedAlerts().size());
-        Assertions.assertEquals(1, manager.alerts().size());
-        Assertions.assertEquals(2, notified.size());
+            manager.inbox().getLast().observation());
     }
 
     @Test
@@ -106,17 +84,18 @@ class LiquidityAlertTest {
         publish(data, product("[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]"));
 
         manager.saveAlert(null, new AlertDefinition(1_000, PRODUCT,
-            new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 1_000))).get();
-        manager.saveAlert(null, definition(100, 1_000)).get();
+            new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 1_000)),
+            AlertLifecycle.Once).get();
+        manager.saveAlert(null, definition(100, 1_000), AlertLifecycle.Once).get();
 
         Assertions.assertEquals(2, manager.alerts().size());
-        Assertions.assertTrue(manager.reachedAlerts().isEmpty());
+        Assertions.assertTrue(manager.inbox().isEmpty());
         Assertions.assertTrue(notified.isEmpty());
 
         config.enabled = true;
         publish(data, product("[{\"pricePerUnit\":1000,\"amount\":100,\"orders\":1}]"));
         Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertEquals(2, manager.reachedAlerts().size());
+        Assertions.assertEquals(2, manager.inbox().size());
         Assertions.assertEquals(2, notified.size());
     }
 
@@ -129,9 +108,11 @@ class LiquidityAlertTest {
             throw new IllegalStateException("delivery unavailable");
         });
 
-        Assertions.assertTrue(manager.saveAlert(null, definition(100, 1_000)).isSuccess());
+        Assertions.assertTrue(
+            manager.saveAlert(null, definition(100, 1_000), AlertLifecycle.Once)
+                .isSuccess());
         Assertions.assertTrue(manager.alerts().isEmpty());
-        Assertions.assertEquals(1, manager.reachedAlerts().size());
+        Assertions.assertEquals(1, manager.inbox().size());
     }
 
     private static AlertDefinition definition(long quantity, double bound) {

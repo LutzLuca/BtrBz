@@ -1,10 +1,8 @@
 package com.github.lutzluca.btrbz.core.alert;
 
 import com.github.lutzluca.btrbz.cache.CacheToken;
-import com.github.lutzluca.btrbz.core.alert.AlertCondition.Kind;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.Observation;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
-import com.github.lutzluca.btrbz.core.config.ConfigStore;
 import com.github.lutzluca.btrbz.data.BazaarData;
 import com.github.lutzluca.btrbz.data.BazaarData.MarketSnapshot;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
@@ -13,40 +11,47 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 
 @Slf4j
 public class AlertManager {
 
-    private static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
-    private static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
-    private static final int REACHED_LIMIT = 10;
+    private static final int HISTORY_LIMIT = 50;
+    private static final long CROSSING_COOLDOWN_MS = 60_000;
 
     private final BazaarData bazaarData;
     private final Supplier<AlertConfig> config;
-    private final Runnable save;
+    private final Runnable onChanged;
     private final Consumer<ReachedAlert> notifyReached;
+    private final LongSupplier clock;
     private final CacheToken changes = CacheToken.named("alerts");
-
-    public AlertManager(BazaarData bazaarData, Consumer<ReachedAlert> notifyReached) {
-        this(bazaarData, () -> ConfigStore.get().config().alert, ConfigStore.get()::save, notifyReached);
-    }
 
     public AlertManager(
         BazaarData bazaarData,
         Supplier<AlertConfig> config,
-        Runnable save,
+        Runnable onChanged,
         Consumer<ReachedAlert> notifyReached
+    ) {
+        this(bazaarData, config, onChanged, notifyReached, System::currentTimeMillis);
+    }
+
+    AlertManager(
+        BazaarData bazaarData,
+        Supplier<AlertConfig> config,
+        Runnable onChanged,
+        Consumer<ReachedAlert> notifyReached,
+        LongSupplier clock
     ) {
         this.bazaarData = Objects.requireNonNull(bazaarData, "bazaarData cannot be null");
         this.config = Objects.requireNonNull(config, "config supplier cannot be null");
-        this.save = Objects.requireNonNull(save, "save callback cannot be null");
+        this.onChanged = Objects.requireNonNull(onChanged, "change callback cannot be null");
         this.notifyReached = Objects.requireNonNull(notifyReached, "reached notifier cannot be null");
+        this.clock = Objects.requireNonNull(clock, "clock");
 
         var cfg = this.config();
         boolean cleaned = false;
@@ -60,19 +65,9 @@ public class AlertManager {
             cleaned = true;
         }
         cleaned |= cfg.reachedAlerts.removeIf(Objects::isNull);
-        for (var kind : Kind.values()) {
-            int retained = 0;
-            var iterator = cfg.reachedAlerts.iterator();
-            while (iterator.hasNext()) {
-                if (iterator.next().alert().kind() == kind && ++retained > REACHED_LIMIT) {
-                    iterator.remove();
-                    cleaned = true;
-                }
-            }
-        }
+        cleaned |= pruneHistory(cfg.reachedAlerts);
         if (cleaned) {
-            this.changes.invalidate("invalid alerts removed");
-            Try.run(this.save::run).onFailure(err -> log.warn("Failed to persist cleaned alert configuration", err));
+            this.changed("invalid alerts removed");
         }
     }
 
@@ -80,8 +75,53 @@ public class AlertManager {
         return List.copyOf(this.config().alerts);
     }
 
-    public List<ReachedAlert> reachedAlerts() {
-        return List.copyOf(this.config().reachedAlerts);
+    public List<ReachedAlert> inbox() {
+        return this.config().reachedAlerts.stream().filter(ReachedAlert::pending).toList();
+    }
+
+    public List<ReachedAlert> history() {
+        return this.config().reachedAlerts.stream().filter(entry -> !entry.pending()).toList();
+    }
+
+    public int pendingCount() {
+        return (int) this.config().reachedAlerts.stream().filter(ReachedAlert::pending).count();
+    }
+
+    public boolean awaitingDismissal(Alert alert) {
+        return this.config().reachedAlerts.stream()
+            .anyMatch(entry -> entry.pending() && entry.alert().id.equals(alert.id));
+    }
+
+    public boolean dismiss(UUID id) {
+        var reached = this.config().reachedAlerts;
+        for (int index = 0; index < reached.size(); index++) {
+            var entry = reached.get(index);
+            if (entry.id().equals(id) && entry.pending()) {
+                reached.set(index, this.dismissed(entry, this.clock.getAsLong()));
+                pruneHistory(reached);
+                this.changed("alert dismissed");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void dismissAll() {
+        long now = this.clock.getAsLong();
+        var reached = this.config().reachedAlerts;
+        reached.replaceAll(entry -> entry.pending() ? this.dismissed(entry, now) : entry);
+        pruneHistory(reached);
+        this.changed("inbox dismissed");
+    }
+
+    private ReachedAlert dismissed(ReachedAlert entry, long now) {
+        for (var watch : this.config().alerts) {
+            if (watch.id.equals(entry.alert().id)) {
+                watch.armed = this.currentObservation(watch)
+                    .map(observed -> !watch.condition.isReached(observed)).orElse(false);
+            }
+        }
+        return entry.dismissed(now);
     }
 
     public CacheToken changes() {
@@ -107,51 +147,41 @@ public class AlertManager {
 
         while (it.hasNext()) {
             var curr = it.next();
+            if (this.awaitingDismissal(curr)) {
+                continue;
+            }
             var observed = this.observe(curr, snapshot);
-            if (observed.isPresent() && curr.condition.isReached(observed.get())) {
-                it.remove();
+            if (observed.isPresent() && !curr.condition.isReached(observed.get()) && !curr.armed) {
+                curr.armed = true;
+                changed = true;
+            }
+            if (observed.isPresent() && curr.condition.isReached(observed.get())
+                && curr.armed
+                && (curr.lastTriggeredAt < 0
+                    || this.clock.getAsLong() - curr.lastTriggeredAt >= CROSSING_COOLDOWN_MS)) {
+                if (curr.lifecycle != AlertLifecycle.Repeat) {
+                    it.remove();
+                }
                 var entry = this.capture(curr, observed.get());
-                addReached(cfg.reachedAlerts, entry);
+                cfg.reachedAlerts.addFirst(entry);
                 changed = true;
                 newlyReached.add(entry);
-                continue;
-            }
-
-            if (!(curr.condition instanceof AlertCondition.Price price)) {
-                continue;
-            }
-
-            var now = System.currentTimeMillis();
-            var duration = now - curr.createdAt;
-
-            if (duration > MONTH_DURATION_MS && curr.remindedAfter < MONTH_DURATION_MS) {
-                AlertNotifications.notifyOutdated(curr, price, "over a month", this.bazaarData);
-                curr.remindedAfter = duration;
-                changed = true;
-            }
-
-            if (duration > WEEK_DURATION_MS && curr.remindedAfter < WEEK_DURATION_MS) {
-                AlertNotifications.notifyOutdated(curr, price, "over a week", this.bazaarData);
-                curr.remindedAfter = duration;
-                changed = true;
-                continue;
             }
         }
 
         if (changed) {
-            this.changes.invalidate("alerts updated from market data");
-            Try.run(this.save::run).onFailure(err -> log.warn("Failed to persist updated alerts", err));
+            this.changed("alerts updated from market data");
+            newlyReached.forEach(this::dispatchReached);
         }
-        newlyReached.forEach(this::dispatchReached);
     }
 
-    public Try<Alert> saveAlert(@Nullable UUID id, AlertDefinition definition) {
+    public Try<Alert> saveAlert(@Nullable UUID id, AlertDefinition definition, AlertLifecycle lifecycle) {
         if (definition == null) {
             return Try.failure(new IllegalArgumentException("Alert definition is required"));
         }
 
         return definition.validate().flatMap(valid -> this.saveCondition(id, new Alert(
-            id == null ? UUID.randomUUID() : id, valid, -1L)));
+            id == null ? UUID.randomUUID() : id, valid, Objects.requireNonNull(lifecycle, "lifecycle"))));
     }
 
     private Try<Alert> saveCondition(@Nullable UUID id, Alert saved) {
@@ -168,9 +198,6 @@ public class AlertManager {
             if (editIndex < 0) {
                 return Try.failure(new IllegalArgumentException("Alert " + id + " no longer exists"));
             }
-            if (current.get(editIndex).kind() != saved.kind()) {
-                return Try.failure(new IllegalArgumentException("An alert cannot change kind while editing"));
-            }
         }
 
         for (var alert : current) {
@@ -179,67 +206,44 @@ public class AlertManager {
             }
         }
 
-        var reached = this.immediateObservation(saved);
-        var updated = new ArrayList<>(current);
-        var newReached = new ArrayList<>(config.reachedAlerts);
-        if (editIndex >= 0) {
-            updated.remove(editIndex);
-        }
-        if (reached.isPresent()) {
-            addReached(newReached, reached.get());
-        } else if (editIndex < 0) {
-            updated.add(saved);
-        } else {
-            updated.add(editIndex, saved);
+        if (editIndex >= 0 && current.get(editIndex).matches(saved)) {
+            saved.armed = current.get(editIndex).armed;
+            saved.lastTriggeredAt = current.get(editIndex).lastTriggeredAt;
         }
 
-        return this.replaceAndSave(updated, newReached).map(_ -> {
-            this.changes.invalidate(id == null ? "alert created" : "alert edited");
-            reached.ifPresent(this::dispatchReached);
-            return saved;
-        });
+        if (this.awaitingDismissal(saved)) {
+            saved.armed = false;
+        }
+        var reached = this.immediateObservation(saved);
+        if (editIndex >= 0) {
+            current.remove(editIndex);
+        }
+        if (reached.isPresent()) {
+            config.reachedAlerts.addFirst(reached.get());
+        }
+        if (reached.isEmpty() || saved.lifecycle == AlertLifecycle.Repeat) {
+            current.add(editIndex < 0 ? current.size() : editIndex, saved);
+        }
+
+        this.changed(id == null ? "alert created" : "alert edited");
+        reached.ifPresent(this::dispatchReached);
+        return Try.success(saved);
     }
 
     /** Reactivates a captured condition without resolving its original price expression again. */
     public Try<Alert> watchAgain(UUID id) {
-        var cfg = this.config();
-        var original = cfg.reachedAlerts.stream()
-            .filter(entry -> entry.alert().id.equals(id))
+        var original = this.history().stream()
+            .filter(entry -> entry.id().equals(id))
             .findFirst();
         if (original.isEmpty()) {
             return Try.failure(new IllegalArgumentException("Reached alert " + id + " no longer exists"));
         }
-        var reactivated = original.get().alert().reactivated(System.currentTimeMillis());
-        if (cfg.alerts.stream().anyMatch(active -> active.matches(reactivated))) {
-            return Try.failure(new IllegalArgumentException("An identical alert is already active"));
-        }
-        var reached = this.immediateObservation(reactivated);
-        var newActive = new ArrayList<>(cfg.alerts);
-        var newReached = new ArrayList<>(cfg.reachedAlerts);
-        newReached.remove(original.get());
-        if (reached.isPresent()) {
-            addReached(newReached, reached.get());
-        } else {
-            newActive.add(reactivated);
-        }
-
-        return this.replaceAndSave(newActive, newReached).map(_ -> {
-            this.changes.invalidate("alert reactivated");
-            reached.ifPresent(this::dispatchReached);
-            return reactivated;
-        });
+        return this.saveCondition(null, original.get().alert().reactivated(this.clock.getAsLong()));
     }
 
-    private Try<Void> replaceAndSave(List<Alert> active, List<ReachedAlert> reached) {
-        var config = this.config();
-        var previousActive = config.alerts;
-        var previousReached = config.reachedAlerts;
-        config.alerts = active;
-        config.reachedAlerts = reached;
-        return Try.run(this.save::run).onFailure(_ -> {
-            config.alerts = previousActive;
-            config.reachedAlerts = previousReached;
-        });
+    private void changed(String reason) {
+        this.changes.invalidate(reason);
+        this.onChanged.run();
     }
 
     private void dispatchReached(ReachedAlert reached) {
@@ -247,17 +251,13 @@ public class AlertManager {
             .onFailure(err -> log.warn("Failed to deliver reached alert {}", reached.alert().id, err));
     }
 
-    public OptionalLong liquidityProgress(Alert alert) {
-        if (alert == null || alert.kind() != Kind.Liquidity) {
-            return OptionalLong.empty();
-        }
-        return this.observe(alert, this.bazaarData.currentSnapshot())
-            .map(value -> OptionalLong.of(((Observation.Liquidity) value).quantity()))
-            .orElseGet(OptionalLong::empty);
+    public Optional<Observation> currentObservation(Alert alert) {
+        return this.observe(alert, this.bazaarData.currentSnapshot());
     }
 
     private Optional<ReachedAlert> immediateObservation(Alert alert) {
-        if (!this.enabled()) {
+        if (!this.enabled() || !alert.armed
+            || (alert.lastTriggeredAt >= 0 && this.clock.getAsLong() - alert.lastTriggeredAt < CROSSING_COOLDOWN_MS)) {
             return Optional.empty();
         }
         return this.observe(alert, this.bazaarData.currentSnapshot())
@@ -287,18 +287,22 @@ public class AlertManager {
     }
 
     private ReachedAlert capture(Alert alert, Observation observation) {
-        return new ReachedAlert(alert, System.currentTimeMillis(), observation);
+        alert.armed = false;
+        alert.lastTriggeredAt = this.clock.getAsLong();
+        return new ReachedAlert(alert, alert.lastTriggeredAt, observation);
     }
 
-    private static void addReached(List<ReachedAlert> history, ReachedAlert reached) {
-        history.addFirst(reached);
+    private static boolean pruneHistory(List<ReachedAlert> history) {
         int retained = 0;
+        boolean changed = false;
         var iterator = history.iterator();
         while (iterator.hasNext()) {
-            if (iterator.next().alert().kind() == reached.alert().kind() && ++retained > REACHED_LIMIT) {
+            if (!iterator.next().pending() && ++retained > HISTORY_LIMIT) {
                 iterator.remove();
+                changed = true;
             }
         }
+        return changed;
     }
 
     public boolean removeAlert(UUID id) {
@@ -306,27 +310,18 @@ public class AlertManager {
             return false;
         }
 
-        var config = this.config();
-        var current = config.alerts;
-        var updated = new ArrayList<>(current);
-        if (!updated.removeIf(alert -> alert.id.equals(id))) {
+        if (!this.config().alerts.removeIf(alert -> alert.id.equals(id))) {
             return false;
         }
-
-        this.replaceAndSave(updated, config.reachedAlerts).get();
-        this.changes.invalidate("alert removed");
+        this.changed("alert removed");
         return true;
     }
 
-    public boolean removeReachedAlert(UUID id) {
-        var config = this.config();
-        var current = config.reachedAlerts;
-        var updated = new ArrayList<>(current);
-        if (!updated.removeIf(entry -> entry.alert().id.equals(id))) {
+    public boolean removeHistoryEntry(UUID id) {
+        if (!this.config().reachedAlerts.removeIf(entry -> !entry.pending() && entry.id().equals(id))) {
             return false;
         }
-        this.replaceAndSave(config.alerts, updated).get();
-        this.changes.invalidate("reached alert removed");
+        this.changed("alert history entry removed");
         return true;
     }
 

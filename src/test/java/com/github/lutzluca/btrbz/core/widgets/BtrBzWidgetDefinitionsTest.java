@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets;
 
 import com.github.lutzluca.btrbz.core.widgets.bookmarks.BookmarksWidgetDefinition;
+import com.github.lutzluca.btrbz.core.widgets.alerts.AlertsWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.dailylimit.DailyLimitWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.hud.BazaarOrdersWidgetDefinition;
 import com.github.lutzluca.btrbz.core.widgets.orderbook.OrderBookPriceWidgetDefinition;
@@ -29,6 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BtrBzWidgetDefinitionsTest {
     @Test
     void definitionsAcceptOnlyTheirSemanticSessions() {
+        assertTrue(AlertsWidgetDefinition.supportsSession(
+            session(false, false, false, BazaarMenuType.Item, null, false)));
+        assertFalse(AlertsWidgetDefinition.supportsSession(
+            session(false, true, false, null, BazaarMenuType.BuyOrderSetupPrice, true)));
+        assertFalse(AlertsWidgetDefinition.supportsSession(session(true, false, false, null, null, false)));
+        assertFalse(AlertsWidgetDefinition.supportsSession(session(false, true, false, null, null, false)));
         assertTrue(BazaarOrdersWidgetDefinition.supportsSession(
             session(true, false, false, null, null, false)));
         assertTrue(TrackedOrdersWidgetDefinition.supportsSession(

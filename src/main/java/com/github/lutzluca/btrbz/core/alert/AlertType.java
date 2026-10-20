@@ -33,6 +33,10 @@ public record AlertType(PriceSource source, Direction direction) {
         public String symbol() {
             return this == Below ? "≤" : "≥";
         }
+
+        public String label() {
+            return this == Below ? "At or below" : "At or above";
+        }
     }
 
     public enum PriceSource {

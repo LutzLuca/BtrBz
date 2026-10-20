@@ -19,14 +19,16 @@ public final class Alert {
     public final long createdAt;
     public final IndexedProduct product;
     public final AlertCondition condition;
-    long remindedAfter;
+    public final AlertLifecycle lifecycle;
+    boolean armed = true;
+    long lastTriggeredAt = -1;
 
-    Alert(UUID id, AlertDefinition definition, long remindedAfter) {
+    Alert(UUID id, AlertDefinition definition, AlertLifecycle lifecycle) {
         this.id = id;
         this.createdAt = definition.timestamp();
         this.product = definition.product();
         this.condition = definition.condition();
-        this.remindedAfter = remindedAfter;
+        this.lifecycle = lifecycle;
     }
 
     public Kind kind() {
@@ -34,7 +36,19 @@ public final class Alert {
     }
 
     Alert reactivated(long now) {
-        return new Alert(this.id, new AlertDefinition(now, this.product, this.condition), -1);
+        return new Alert(UUID.randomUUID(), new AlertDefinition(now, this.product, this.condition), this.lifecycle);
+    }
+
+    Alert snapshot() {
+        var copy = new Alert(this.id, new AlertDefinition(this.createdAt, this.product, this.condition),
+            this.lifecycle);
+        copy.armed = this.armed;
+        copy.lastTriggeredAt = this.lastTriggeredAt;
+        return copy;
+    }
+
+    public boolean waitingForReset() {
+        return !this.armed;
     }
 
     public String productName() {
@@ -58,7 +72,9 @@ public final class Alert {
             obj.add("product", ctx.serialize(src.product, IndexedProduct.class));
             obj.addProperty("kind", src.kind().name());
             obj.add("condition", ctx.serialize(src.condition));
-            obj.addProperty("remindedAfter", src.remindedAfter);
+            obj.addProperty("lifecycle", src.lifecycle.name());
+            obj.addProperty("armed", src.armed);
+            obj.addProperty("lastTriggeredAt", src.lastTriggeredAt);
             return obj;
         }
 
@@ -76,10 +92,16 @@ public final class Alert {
                     GsonUtils.required(obj, "createdAt", "Alert").getAsLong(),
                     ctx.deserialize(GsonUtils.required(obj, "product", "Alert"), IndexedProduct.class),
                     condition).validate().get();
-                return new Alert(
+                var alert = new Alert(
                     UUID.fromString(GsonUtils.required(obj, "id", "Alert").getAsString()),
                     definition,
-                    GsonUtils.optionalLong(obj, "remindedAfter").orElse(-1L));
+                    AlertLifecycle.valueOf(GsonUtils.required(obj, "lifecycle", "Alert").getAsString()));
+                alert.armed = GsonUtils.required(obj, "armed", "Alert").getAsBoolean();
+                alert.lastTriggeredAt = GsonUtils.required(obj, "lastTriggeredAt", "Alert").getAsLong();
+                if (alert.lastTriggeredAt < -1) {
+                    throw new IllegalArgumentException("Invalid last trigger time");
+                }
+                return alert;
             } catch (RuntimeException err) {
                 log.warn("Skipping invalid alert entry", err);
                 return null;

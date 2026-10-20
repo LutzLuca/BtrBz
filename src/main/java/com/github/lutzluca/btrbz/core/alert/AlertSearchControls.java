@@ -44,14 +44,14 @@ final class AlertSearchControls extends FlowLayout {
         this.productWidth = productWidth;
         this.select = select;
         this.gap(7);
-        this.searchBox = UIComponents.textBox(Sizing.fill(100));
+        this.searchBox = AlertFields.textBox("Search items by name");
         this.searchBox.setMaxLength(120);
         this.searchBox.text(query);
         this.searchBox.onChanged().subscribe(value -> {
             queryChanged.accept(value);
             this.refresh(true);
         });
-        this.child(this.searchBox);
+        this.child(AlertFields.frame(this.searchBox));
         this.resultRows = UIContainers.verticalFlow(Sizing.fill(100), Sizing.content());
         this.resultRows.gap(3);
         this.scroller = new RestorableVerticalScrollContainer<>(Sizing.fill(100), Sizing.fixed(resultHeight),
@@ -66,13 +66,16 @@ final class AlertSearchControls extends FlowLayout {
         if (!force && next.equals(this.results)) {
             return;
         }
+        if (force) {
+            this.scroller.restoreScrollOffset(0);
+        }
         this.results = next;
         this.resultRows.clearChildren();
         if (next.matches().isEmpty()) {
             String hint = next.emptyHint(this.searchBox.getValue());
             if (!hint.isEmpty()) {
                 this.resultRows
-                    .child(UiComponents.label(hint, UiStyles.palette().textMuted()).maxWidth(this.productWidth - 24));
+                    .child(UiComponents.label(hint, UiStyles.palette().textPrimary()).maxWidth(this.productWidth - 24));
             }
             return;
         }
@@ -126,8 +129,8 @@ final class AlertSearchControls extends FlowLayout {
 
         String emptyHint(String query) {
             return !this.marketAvailable
-                ? "Waiting for market data…"
-                : query.isBlank() ? "" : "No matches. Try a shorter name.";
+                ? "Market data unavailable"
+                : query.isBlank() ? "" : "No matches";
         }
     }
 }

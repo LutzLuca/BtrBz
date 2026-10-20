@@ -20,19 +20,20 @@ class AlertNoticeTest {
         var cases = List.of(
             new NoticeCase("sell-price target",
                 new AlertCondition.Price(new AlertType(PriceSource.Sell, Direction.Above), 1_000),
-                new AlertCondition.Observation.Price(1_012), "Price target reached",
-                "Sell Price ≥ 1,000.0 coins", "Reached at 1,012.0 coins"),
+                new AlertCondition.Observation.Price(1_012.5), "Price target reached",
+                "Sell price ≥ 1,000 coins", "Triggered at 1,012.5 coins"),
             new NoticeCase("buy-order liquidity",
                 new AlertCondition.Liquidity(AlertCondition.LiquiditySide.BuyOrders, 12, 12.0),
                 new AlertCondition.Observation.Liquidity(180), "Liquidity target reached",
-                "Instantly sell 12 items at ≥ 12.0 coins each", "Observed: 180 qualifying items"),
+                "Instant sell 12 items at ≥ 12 coins", "Triggered with 180 items available"),
             new NoticeCase("sell-offer liquidity",
                 new AlertCondition.Liquidity(AlertCondition.LiquiditySide.SellOffers, 12, 12.0),
                 new AlertCondition.Observation.Liquidity(180), "Liquidity target reached",
-                "Instantly buy 12 items at ≤ 12.0 coins each", "Observed: 180 qualifying items"));
+                "Instant buy 12 items at ≤ 12 coins", "Triggered with 180 items available"));
 
         for (var example : cases) {
-            var alert = new Alert(UUID.randomUUID(), new AlertDefinition(1_000L, product, example.condition()), -1L);
+            var alert = new Alert(UUID.randomUUID(), new AlertDefinition(1_000L, product, example.condition()),
+                AlertLifecycle.Once);
             var notice = AlertNotice.from(new ReachedAlert(alert, 2_000L, example.observation()), product);
 
             Assertions.assertEquals("§aEnchanted Diamond", notice.formattedProductName(), example.description());
@@ -43,7 +44,7 @@ class AlertNoticeTest {
     }
 
     @Test
-    void instantActionsUseTradeColorsAndPriceLabelsStaySecondary() {
+    void instantActionsUseTradeColorsAndConditionsUsePrimaryText() {
         var sell = AlertNotice.conditionText(new AlertCondition.Liquidity(
             AlertCondition.LiquiditySide.BuyOrders, 12, 12.0));
         var buy = AlertNotice.conditionText(new AlertCondition.Liquidity(
@@ -61,11 +62,11 @@ class AlertNoticeTest {
                 return Optional.empty();
             }, Style.EMPTY);
         }
-        Assertions.assertEquals(UiStyles.palette().sell() & 0xFFFFFF, colors.get("sell "));
-        Assertions.assertEquals(UiStyles.palette().buy() & 0xFFFFFF, colors.get("buy "));
-        Assertions.assertEquals(UiStyles.palette().textSecondary() & 0xFFFFFF, colors.get("Buy Price"));
-        Assertions.assertEquals(UiStyles.palette().textSecondary() & 0xFFFFFF, colors.get("Sell Price"));
-        Assertions.assertEquals(UiStyles.palette().money() & 0xFFFFFF, colors.get("12.0 coins"));
+        Assertions.assertEquals(UiStyles.palette().sell() & 0xFFFFFF, colors.get("Instant sell "));
+        Assertions.assertEquals(UiStyles.palette().buy() & 0xFFFFFF, colors.get("Instant buy "));
+        Assertions.assertEquals(UiStyles.palette().textPrimary() & 0xFFFFFF, colors.get("Buy price"));
+        Assertions.assertEquals(UiStyles.palette().textPrimary() & 0xFFFFFF, colors.get("Sell price"));
+        Assertions.assertEquals(UiStyles.palette().money() & 0xFFFFFF, colors.get("12 coins"));
     }
 
     private record NoticeCase(

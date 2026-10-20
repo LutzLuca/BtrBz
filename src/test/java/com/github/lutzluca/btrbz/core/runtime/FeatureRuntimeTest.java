@@ -1,5 +1,7 @@
 package com.github.lutzluca.btrbz.core.runtime;
 
+import com.github.lutzluca.btrbz.core.alert.AlertLifecycle;
+
 import com.github.lutzluca.btrbz.core.trackedorders.OrderManagerConfig;
 import com.github.lutzluca.btrbz.core.alert.AlertCondition;
 import com.github.lutzluca.btrbz.core.alert.AlertConfig;
@@ -196,7 +198,8 @@ class FeatureRuntimeTest {
 
     private static void saveAlert(AlertManager alerts) {
         alerts.saveAlert(null, new AlertDefinition(1, new IndexedProduct("TEST", "Test Product"),
-            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Sell, AlertType.Direction.Above), 105)))
+            new AlertCondition.Price(new AlertType(AlertType.PriceSource.Sell, AlertType.Direction.Above), 105)),
+            AlertLifecycle.Once)
             .get();
     }
 

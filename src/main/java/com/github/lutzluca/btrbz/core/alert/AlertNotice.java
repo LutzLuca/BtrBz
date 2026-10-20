@@ -5,6 +5,7 @@ import com.github.lutzluca.btrbz.core.appearance.UiColor;
 
 import com.github.lutzluca.btrbz.core.alert.AlertCondition.LiquiditySide;
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.utils.Utils;
 import java.text.NumberFormat;
 import java.util.Locale;
 import net.minecraft.network.chat.Component;
@@ -16,11 +17,11 @@ public record AlertNotice(String formattedProductName, String title, Component c
         var condition = reached.alert().condition;
         var observation = switch (reached.observation()) {
             case AlertCondition.Observation.Price price -> Component.empty()
-                .append(label("Reached at "))
-                .append(UiStyles.coins(price.value()));
-            case AlertCondition.Observation.Liquidity liquidity -> label("Observed: ")
+                .append(label("Triggered at "))
+                .append(coins(price.value()));
+            case AlertCondition.Observation.Liquidity liquidity -> label("Triggered with ")
                 .append(Component.literal(items(liquidity.quantity())).withStyle(UiStyles.quantity()))
-                .append(label(" qualifying items"));
+                .append(label(" items available"));
         };
         return new AlertNotice(product.formattedName(), reached.alert().kind().name() + " target reached",
             conditionText(condition), observation);
@@ -29,26 +30,49 @@ public record AlertNotice(String formattedProductName, String title, Component c
     public static MutableComponent conditionText(AlertCondition condition) {
         return switch (condition) {
             case AlertCondition.Price price -> Component.empty()
-                .append(Component.literal(price.type().source().label()).withStyle(UiStyles.label()))
+                .append(label(price.type().source() == AlertType.PriceSource.Buy ? "Buy price" : "Sell price"))
                 .append(label(" " + price.type().direction().symbol() + " "))
-                .append(UiStyles.coins(price.price()));
+                .append(coins(price.price()));
             case AlertCondition.Liquidity liquidity -> Component.empty()
-                .append(label("Instantly "))
-                .append(Component.literal(liquidity.side() == LiquiditySide.BuyOrders ? "sell " : "buy ")
-                    .withStyle(UiStyles.color(liquidity.side() == LiquiditySide.BuyOrders
-                        ? UiColor.Sell : UiColor.Buy)))
+                .append(
+                    Component.literal(liquidity.side() == LiquiditySide.BuyOrders ? "Instant sell " : "Instant buy ")
+                        .withStyle(UiStyles.color(liquidity.side() == LiquiditySide.BuyOrders
+                            ? UiColor.Sell : UiColor.Buy)))
                 .append(Component.literal(items(liquidity.quantity())).withStyle(UiStyles.quantity()))
-                .append(label(" items at " + (liquidity.side() == LiquiditySide.BuyOrders ? "≥ " : "≤ ")))
-                .append(UiStyles.coins(liquidity.priceBound()))
-                .append(label(" each"));
+                .append(label(" items at "
+                    + (liquidity.side() == LiquiditySide.BuyOrders ? "≥ " : "≤ ")))
+                .append(coins(liquidity.priceBound()));
+        };
+    }
+
+    public static MutableComponent currentText(AlertCondition condition, AlertCondition.Observation observation) {
+        return label(condition.isReached(observation) ? "Still met: " : "No longer met: ")
+            .append(valueText(observation));
+    }
+
+    public static MutableComponent valueText(AlertCondition.Observation observation) {
+        return switch (observation) {
+            case AlertCondition.Observation.Price price -> coins(price.value());
+            case AlertCondition.Observation.Liquidity liquidity ->
+                label(items(liquidity.quantity()) + " items available");
         };
     }
 
     private static MutableComponent label(String text) {
-        return Component.literal(text).withStyle(UiStyles.label());
+        return Component.literal(text).withStyle(UiStyles.primary());
     }
 
-    private static String items(long quantity) {
+    static MutableComponent coins(double value) {
+        return Component.literal(formatPrice(value) + " coins")
+            .withStyle(UiStyles.money());
+    }
+
+    static String formatPrice(double value) {
+        String formatted = Utils.formatDecimal(value, 1, true);
+        return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
+    }
+
+    static String items(long quantity) {
         return NumberFormat.getIntegerInstance(Locale.US).format(quantity);
     }
 }
