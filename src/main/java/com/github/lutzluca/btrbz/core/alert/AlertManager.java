@@ -21,8 +21,6 @@ import org.jetbrains.annotations.Nullable;
 @Slf4j
 public class AlertManager {
 
-    private static final long WEEK_DURATION_MS = 7L * 24 * 60 * 60 * 1000;
-    private static final long MONTH_DURATION_MS = 30L * 24 * 60 * 60 * 1000;
     private static final int HISTORY_LIMIT = 50;
     private static final long CROSSING_COOLDOWN_MS = 60_000;
 
@@ -168,31 +166,6 @@ public class AlertManager {
                 cfg.reachedAlerts.addFirst(entry);
                 changed = true;
                 newlyReached.add(entry);
-                continue;
-            }
-
-            if (!(curr.condition instanceof AlertCondition.Price price)) {
-                continue;
-            }
-
-            var now = this.clock.getAsLong();
-            var duration = now - (curr.lastTriggeredAt >= 0 ? curr.lastTriggeredAt : curr.createdAt);
-
-            if (duration > MONTH_DURATION_MS && curr.remindedAfter < MONTH_DURATION_MS) {
-                if (cfg.alsoSendChatMessage) {
-                    AlertNotifications.notifyOutdated(curr, price, "over a month", this.bazaarData);
-                }
-                curr.remindedAfter = duration;
-                changed = true;
-            }
-
-            if (duration > WEEK_DURATION_MS && curr.remindedAfter < WEEK_DURATION_MS) {
-                if (cfg.alsoSendChatMessage) {
-                    AlertNotifications.notifyOutdated(curr, price, "over a week", this.bazaarData);
-                }
-                curr.remindedAfter = duration;
-                changed = true;
-                continue;
             }
         }
 
@@ -208,7 +181,7 @@ public class AlertManager {
         }
 
         return definition.validate().flatMap(valid -> this.saveCondition(id, new Alert(
-            id == null ? UUID.randomUUID() : id, valid, Objects.requireNonNull(lifecycle, "lifecycle"), -1L)));
+            id == null ? UUID.randomUUID() : id, valid, Objects.requireNonNull(lifecycle, "lifecycle"))));
     }
 
     private Try<Alert> saveCondition(@Nullable UUID id, Alert saved) {
@@ -316,7 +289,6 @@ public class AlertManager {
     private ReachedAlert capture(Alert alert, Observation observation) {
         alert.armed = false;
         alert.lastTriggeredAt = this.clock.getAsLong();
-        alert.remindedAfter = -1;
         return new ReachedAlert(alert, alert.lastTriggeredAt, observation);
     }
 

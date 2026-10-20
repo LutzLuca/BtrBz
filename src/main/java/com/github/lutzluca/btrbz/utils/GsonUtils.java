@@ -30,11 +30,4 @@ public final class GsonUtils {
         return value == null || value.isBlank() ? Optional.empty() : Optional.of(value);
     }
 
-    public static Optional<Long> optionalLong(JsonObject obj, String name) {
-        if (obj == null || !obj.has(name) || obj.get(name).isJsonNull()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(obj.get(name).getAsLong());
-    }
 }

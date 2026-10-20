@@ -81,7 +81,6 @@ class AlertConfigSerializationTest {
               },
               "kind": "Price",
               "condition": {"type": {"source": "Sell", "direction": "Above"}, "price": 123.4},
-              "remindedAfter": 1000,
               "lifecycle": "Repeat",
               "armed": false,
               "lastTriggeredAt": 1700000000000
@@ -119,7 +118,6 @@ class AlertConfigSerializationTest {
             Assertions.assertEquals(alert.productId(), reparsed.productId());
             Assertions.assertEquals(alert.productName(), reparsed.productName());
             Assertions.assertEquals(alert.condition, reparsed.condition);
-            Assertions.assertEquals(alert.remindedAfter, reparsed.remindedAfter);
             Assertions.assertEquals(AlertLifecycle.Repeat, reparsed.lifecycle);
             Assertions.assertTrue(reparsed.waitingForReset());
             Assertions.assertEquals(1700000000000L, reparsed.lastTriggeredAt);

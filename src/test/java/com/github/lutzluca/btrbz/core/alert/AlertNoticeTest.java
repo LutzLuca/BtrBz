@@ -32,7 +32,8 @@ class AlertNoticeTest {
                 "Instant buy 12 items at ≤ 12 coins", "Triggered with 180 items available"));
 
         for (var example : cases) {
-            var alert = new Alert(UUID.randomUUID(), new AlertDefinition(1_000L, product, example.condition()), -1L);
+            var alert = new Alert(UUID.randomUUID(), new AlertDefinition(1_000L, product, example.condition()),
+                AlertLifecycle.Once);
             var notice = AlertNotice.from(new ReachedAlert(alert, 2_000L, example.observation()), product);
 
             Assertions.assertEquals("§aEnchanted Diamond", notice.formattedProductName(), example.description());

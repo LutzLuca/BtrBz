@@ -24,7 +24,6 @@ class AlertManagerTest {
         var gold = manager
             .saveAlert(null, definition(2_000L, GOLD, 200.0), AlertLifecycle.Once)
             .get();
-        diamond.remindedAfter = 500L;
         var revisionBeforeEdit = manager.changes().revision();
 
         var edited = manager.saveAlert(diamond.id, definition(3_000L, DIAMOND, 100.0),
@@ -32,7 +31,6 @@ class AlertManagerTest {
 
         Assertions.assertEquals(diamond.id, edited.id);
         Assertions.assertEquals(3_000L, edited.createdAt);
-        Assertions.assertEquals(-1L, edited.remindedAfter);
         Assertions.assertEquals(diamond.id, manager.alerts().get(0).id);
         Assertions.assertEquals(gold.id, manager.alerts().get(1).id);
         Assertions.assertTrue(manager.changes().revision() > revisionBeforeEdit);

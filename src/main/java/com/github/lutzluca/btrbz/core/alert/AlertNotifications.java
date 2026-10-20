@@ -77,30 +77,6 @@ public final class AlertNotifications {
         }
     }
 
-    public static void notifyOutdated(
-        Alert alert,
-        AlertCondition.Price condition,
-        String durationText,
-        BazaarData bazaarData
-    ) {
-        Component msg = Notifier.prefix()
-            .append(Component.literal("Your alert for ").withStyle(UiStyles.label()))
-            .append(UiStyles.productName(bazaarData.refreshIndexedProduct(alert.product).formattedName()))
-            .append(Component.literal(" at ")
-                .withStyle(UiStyles.label()))
-            .append(UiStyles.coins(condition.price()))
-            .append(Component
-                .literal(" has not been reached for " + durationText + ". ")
-                .withStyle(UiStyles.label()))
-            .append(Component.literal("[Manage alerts]")
-                .withStyle(style -> style
-                    .withClickEvent(new RunCommand("/btrbz alert"))
-                    .withHoverEvent(new ShowText(Component.literal("Open Alerts to edit or delete alerts"))))
-                .withStyle(UiStyles.action()));
-
-        Notifier.notifyPlayer(msg);
-    }
-
     private static Component link(String label, String command, String description) {
         return Component.literal("[" + label + "]").withStyle(style -> style
             .withClickEvent(new RunCommand(command))
