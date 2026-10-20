@@ -692,7 +692,7 @@ public class WidgetManagementScreen extends BaseOwoScreen<FlowLayout> {
         if (configurationPanel != null) {
             this.sidebarContent.child(label("Content & behavior", UiStyles.palette().textSecondary()));
             this.sidebarContent.child(configurationPanel);
-            var resetContent = UiButton.iconText(Assets.REDO_ICON, 64, Component.literal("Reset content settings"),
+            var resetContent = UiButton.iconText(Assets.REDO_ICON, Component.literal("Reset content settings"),
                 () -> {
                     selected.binding(this::markDirty).resetPreferences();
                     this.rebuildSidebar();

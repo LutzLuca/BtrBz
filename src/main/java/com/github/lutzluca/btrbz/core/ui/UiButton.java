@@ -9,7 +9,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,12 +70,12 @@ public final class UiButton extends ButtonComponent {
         return new UiButton(text, action, null, null, false);
     }
 
-    public static UiButton icon(Identifier texture, int sourceSize, Component description, Runnable action) {
-        return new UiButton(Component.empty(), _ -> action.run(), new UiIcon(texture, sourceSize), description, false);
+    public static UiButton icon(UiIcon icon, Component description, Runnable action) {
+        return new UiButton(Component.empty(), _ -> action.run(), icon, description, false);
     }
 
-    public static UiButton iconText(Identifier texture, int sourceSize, Component text, Runnable action) {
-        return new UiButton(text, _ -> action.run(), new UiIcon(texture, sourceSize), null, false);
+    public static UiButton iconText(UiIcon icon, Component text, Runnable action) {
+        return new UiButton(text, _ -> action.run(), icon, null, false);
     }
 
     public static UiButton compactIcon(UiIcon icon, Component description, Runnable action) {

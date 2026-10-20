@@ -5,7 +5,6 @@ import com.github.lutzluca.btrbz.BtrBz;
 import com.github.lutzluca.btrbz.core.config.ConfigStore;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,8 +25,7 @@ public class DrawContextMixin {
         int iconSize = 8;
         var claimable = ConfigStore.get().config().claimableOrderIndicator;
         if (claimable.enabled && Boolean.TRUE.equals(stack.get(BtrBz.CLAIMABLE))) {
-            context.blit(RenderPipelines.GUI_TEXTURED, Assets.CLAIMABLE, x, y, 0, 0,
-                iconSize, iconSize, iconSize, iconSize);
+            Assets.CLAIMABLE.draw(context, x, y, iconSize);
         }
 
         if (!BtrBz.isActive()) {
@@ -38,18 +36,8 @@ public class DrawContextMixin {
         var isBookmarked = stack.get(BtrBz.BOOKMARKED);
 
         if (isBookmarked != null && ConfigStore.get().config().widgets.bookmarks.frame.enabled) {
-            var texture = isBookmarked ? Assets.BOOKMARK_STAR : Assets.BOOKMARK_ICON;
-            context.blit(
-                RenderPipelines.GUI_TEXTURED,
-                texture,
-                x,
-                y,
-                0,
-                0,
-                iconSize,
-                iconSize,
-                iconSize,
-                iconSize);
+            var icon = isBookmarked ? Assets.BOOKMARK_STAR : Assets.BOOKMARK_ICON;
+            icon.draw(context, x, y, iconSize);
         }
 
         var info = BtrBz.orderProtectionManager().getVisualOrderInfo(stack);
@@ -58,21 +46,11 @@ public class DrawContextMixin {
             var overridden = pending.getRight();
             var blocked = pending.getLeft().protect();
 
-            var texture = !blocked || overridden ? Assets.GREEN_CHECK : Assets.RED_CROSS;
+            var icon = !blocked || overridden ? Assets.GREEN_CHECK : Assets.RED_CROSS;
             int iconX = x + 16 - iconSize;
             int iconY = y;
 
-            context.blit(
-                RenderPipelines.GUI_TEXTURED,
-                texture,
-                iconX,
-                iconY,
-                0,
-                0,
-                iconSize,
-                iconSize,
-                iconSize,
-                iconSize);
+            icon.draw(context, iconX, iconY, iconSize);
         }
     }
 }
