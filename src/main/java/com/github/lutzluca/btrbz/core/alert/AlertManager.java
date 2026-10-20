@@ -345,11 +345,11 @@ public class AlertManager {
         return true;
     }
 
-    public boolean removeReachedAlert(UUID id) {
-        if (!this.config().reachedAlerts.removeIf(entry -> entry.id().equals(id))) {
+    public boolean removeHistoryEntry(UUID id) {
+        if (!this.config().reachedAlerts.removeIf(entry -> !entry.pending() && entry.id().equals(id))) {
             return false;
         }
-        this.changed("reached alert removed");
+        this.changed("alert history entry removed");
         return true;
     }
 

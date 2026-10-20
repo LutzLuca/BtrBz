@@ -27,7 +27,7 @@ class ReachedAlertsTest {
     Path tempDir;
 
     @Test
-    void keepsBothKindsUnreadAcrossReloadAndPersistsIndividualRemoval() {
+    void keepsBothKindsPendingAcrossReloadAndDeletesOnlyDismissedEvents() {
         var path = this.tempDir.resolve("reached-alerts.json");
         var store = new ConfigStore(path);
         var data = new BazaarData();
@@ -87,8 +87,15 @@ class ReachedAlertsTest {
         restored.onBazaarUpdate(data.currentSnapshot());
         Assertions.assertEquals(24, notifications.size(), "reloading history must not redeliver it");
         var removedId = savedHistory.getFirst().id();
-        Assertions.assertTrue(restored.removeReachedAlert(removedId));
-        Assertions.assertFalse(restored.removeReachedAlert(removedId));
+        var revision = restored.changes().revision();
+        Assertions.assertFalse(restored.removeHistoryEntry(removedId));
+        Assertions.assertEquals(savedHistory, restored.inbox());
+        Assertions.assertTrue(restored.history().isEmpty());
+        Assertions.assertEquals(revision, restored.changes().revision());
+
+        Assertions.assertTrue(restored.dismiss(removedId));
+        Assertions.assertTrue(restored.removeHistoryEntry(removedId));
+        Assertions.assertFalse(restored.removeHistoryEntry(removedId));
         Assertions.assertTrue(reloaded.load());
         Assertions.assertEquals(23, reloaded.config().alert.reachedAlerts.size());
         Assertions.assertEquals(12, reloaded.config().alert.reachedAlerts.stream()

@@ -677,7 +677,7 @@ public final class AlertScreen extends BaseOwoScreen<FlowLayout> {
     private void delete(UUID id, boolean history) {
         Try.run(() -> {
             if (history) {
-                this.manager.removeReachedAlert(id);
+                this.manager.removeHistoryEntry(id);
             } else {
                 this.manager.removeAlert(id);
             }
