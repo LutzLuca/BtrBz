@@ -187,7 +187,7 @@ public final class WidgetManagerLauncher {
         this.adapter = OwoUIAdapter.createWithoutScreen(0, 0, 1, 1, WidgetCanvasComponent::new);
 
         // The launcher handles release itself to distinguish a click from a drag.
-        var button = UiButton.icon(Assets.MOD_ICON, 1024, Component.literal("Open widget manager"), () -> {});
+        var button = UiButton.icon(Assets.MOD_ICON, Component.literal("Open widget manager"), () -> {});
         button.sizing(Sizing.fixed(SIZE), Sizing.fixed(SIZE));
 
         this.slot = new WidgetSlotComponent(

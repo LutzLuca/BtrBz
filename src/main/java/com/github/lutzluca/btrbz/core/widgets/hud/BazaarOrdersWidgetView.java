@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.widgets.hud;
 
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
+import com.github.lutzluca.btrbz.core.ui.UiIcon;
 
 import io.wispforest.owo.ui.core.Color;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
@@ -14,7 +15,6 @@ import com.github.lutzluca.btrbz.core.widgets.ui.RetainedRows;
 import com.github.lutzluca.btrbz.core.widgets.ui.WidgetLayoutTokens;
 import com.github.lutzluca.btrbz.data.OrderModels.TrackedOrderId;
 import io.wispforest.owo.ui.component.LabelComponent;
-import io.wispforest.owo.ui.component.UIComponents;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
@@ -24,7 +24,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 
 final class BazaarOrdersWidgetView
     implements WidgetView<BazaarWidgetViewData.OrdersData, BazaarOrdersWidgetConfig, Void> {
@@ -272,18 +271,14 @@ final class BazaarOrdersWidgetView
         private final RetainedFlowLayout root = RetainedFlowLayout.horizontal(Sizing.content(), Sizing.fixed(9));
         private final LabelComponent count = UiComponents.label("", UiStyles.palette().textSecondary());
 
-        private StatusCount(Identifier texture) {
+        private StatusCount(UiIcon icon) {
             this.root.allowOverflow(true);
             this.root.verticalAlignment(VerticalAlignment.CENTER);
             this.root.gap(2);
 
             this.root.child(this.count);
 
-            var icon = UIComponents.texture(texture, 0, 0, 9, 9, 9, 9);
-
-            icon.sizing(Sizing.fixed(9), Sizing.fixed(9));
-
-            this.root.child(icon);
+            this.root.child(icon.component(9));
         }
 
         private void update(long value) {
