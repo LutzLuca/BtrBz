@@ -52,7 +52,7 @@ class ProductInfoTooltipTest {
         ProductInfoTooltip.appendEssenceCost(lines, new ProductInfoTooltip.Prices(3_415.75, 3_105.125), 100);
 
         Assertions.assertEquals(List.of("", "Essence cost estimate",
-            "Instant buy: 341,575.0 coins", "Buy order: 310,512.5 coins"),
+            "Instant buy: 341,575.0 coins (3,415.8 each)", "Buy order: 310,512.5 coins (3,105.1 each)"),
             lines.stream().map(Component::getString).toList());
     }
 
@@ -60,11 +60,11 @@ class ProductInfoTooltipTest {
     void keepsMissingEssenceQuotesSeparateAndSupportsAZeroCost() {
         var examples = List.of(
             new CostCase(new ProductInfoTooltip.Prices(null, 617.0), 10_000,
-                "Instant buy: Not Available", "Buy order: 6,170,000.0 coins"),
+                "Instant buy: Not Available", "Buy order: 6,170,000.0 coins (617.0 each)"),
             new CostCase(new ProductInfoTooltip.Prices(684.9, null), 10_000,
-                "Instant buy: 6,849,000.0 coins", "Buy order: Not Available"),
+                "Instant buy: 6,849,000.0 coins (684.9 each)", "Buy order: Not Available"),
             new CostCase(new ProductInfoTooltip.Prices(684.9, 617.0), 0,
-                "Instant buy: 0.0 coins", "Buy order: 0.0 coins"));
+                "Instant buy: 0.0 coins (684.9 each)", "Buy order: 0.0 coins (617.0 each)"));
 
         for (var example : examples) {
             List<Component> lines = new ArrayList<>();
@@ -87,7 +87,7 @@ class ProductInfoTooltipTest {
             "Buy Price: 684.9 coins", "Sell Price: 617.0 coins"),
             unit.stream().map(Component::getString).toList());
         Assertions.assertEquals(List.of("", "Owned essence total (3,115 essence)",
-            "Buy Price: 2,133,463.5 coins (3,115x)", "Sell Price: 1,921,955.0 coins (3,115x)"),
+            "Buy Price: 2,133,463.5 coins (684.9 each)", "Sell Price: 1,921,955.0 coins (617.0 each)"),
             total.stream().map(Component::getString).toList());
     }
 

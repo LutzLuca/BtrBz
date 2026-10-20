@@ -33,15 +33,20 @@ public final class ProductInfoTooltip {
         var count = quantity.count().orElse(1);
         var showTotal = shiftHeld && count > 1;
         var multiplier = showTotal ? count : 1;
-        lines.add(priceText("Buy Price: ", prices.lowestSellOffer(), multiplier, showTotal));
-        lines.add(priceText("Sell Price: ", prices.highestBuyOrder(), multiplier, showTotal));
+        var detail = !showTotal
+            ? PriceDetail.NONE
+            : quantity.source() == ProductInfoQuantity.Source.ESSENCE_BALANCE
+                ? PriceDetail.UNIT_PRICE
+                : PriceDetail.QUANTITY;
+        lines.add(priceText("Buy Price: ", prices.lowestSellOffer(), multiplier, detail));
+        lines.add(priceText("Sell Price: ", prices.highestBuyOrder(), multiplier, detail));
     }
 
     static void appendEssenceCost(List<Component> lines, Prices prices, int count) {
         lines.add(Component.empty());
         lines.add(Component.literal("Essence cost estimate").withStyle(UiStyles.label()));
-        lines.add(priceText("Instant buy: ", prices.lowestSellOffer(), count, false));
-        lines.add(priceText("Buy order: ", prices.highestBuyOrder(), count, false));
+        lines.add(priceText("Instant buy: ", prices.lowestSellOffer(), count, PriceDetail.UNIT_PRICE));
+        lines.add(priceText("Buy order: ", prices.highestBuyOrder(), count, PriceDetail.UNIT_PRICE));
     }
 
     private static @Nullable Component quantityHint(ProductInfoQuantity quantity, boolean shiftHeld) {
@@ -72,20 +77,29 @@ public final class ProductInfoTooltip {
         String label,
         @Nullable Double price,
         int count,
-        boolean showQuantity
+        PriceDetail detail
     ) {
         var text = Component.literal(label).withStyle(UiStyles.label());
         if (price == null) {
             return text.append(Component.literal("Not Available").withStyle(UiStyles.label()));
         }
         text.append(UiStyles.coins(price * count));
-        if (showQuantity) {
+        if (detail == PriceDetail.QUANTITY) {
             text.append(Component.literal(" (").withStyle(UiStyles.muted()))
                 .append(Component.literal(Utils.formatDecimal(count, 0, true)).withStyle(UiStyles.quantity()))
                 .append(Component.literal("x)").withStyle(UiStyles.muted()));
+        } else if (detail == PriceDetail.UNIT_PRICE) {
+            text.append(Component.literal(" (" + Utils.formatDecimal(price, 1, true) + " each)")
+                .withStyle(UiStyles.muted()));
         }
         return text;
     }
 
     record Prices(@Nullable Double lowestSellOffer, @Nullable Double highestBuyOrder) {}
+
+    private enum PriceDetail {
+        NONE,
+        QUANTITY,
+        UNIT_PRICE
+    }
 }
