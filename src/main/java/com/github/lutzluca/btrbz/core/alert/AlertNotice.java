@@ -14,8 +14,12 @@ import net.minecraft.network.chat.MutableComponent;
 /** Presentation of the saved condition and the observation that triggered it. */
 public record AlertNotice(String formattedProductName, String title, Component condition, Component observation) {
     public static AlertNotice from(ReachedAlert reached, IndexedProduct product) {
-        var condition = reached.alert().condition;
-        var observation = switch (reached.observation()) {
+        return new AlertNotice(product.formattedName(), reached.alert().kind().name() + " target reached",
+            conditionText(reached.alert().condition), triggeredText(reached.observation()));
+    }
+
+    public static MutableComponent triggeredText(AlertCondition.Observation observation) {
+        return switch (observation) {
             case AlertCondition.Observation.Price price -> Component.empty()
                 .append(label("Triggered at "))
                 .append(coins(price.value()));
@@ -23,8 +27,6 @@ public record AlertNotice(String formattedProductName, String title, Component c
                 .append(Component.literal(items(liquidity.quantity())).withStyle(UiStyles.quantity()))
                 .append(label(" items available"));
         };
-        return new AlertNotice(product.formattedName(), reached.alert().kind().name() + " target reached",
-            conditionText(condition), observation);
     }
 
     public static MutableComponent conditionText(AlertCondition condition) {
