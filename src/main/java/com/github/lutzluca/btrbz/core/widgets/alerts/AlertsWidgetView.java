@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
@@ -34,7 +35,7 @@ import net.minecraft.util.FormattedCharSequence;
 
 final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, AlertsWidgetConfig, Action> {
     private static final int MAX_ROWS = 3;
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm")
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale.ENGLISH)
         .withZone(ZoneId.systemDefault());
     private final FlowLayout root = BazaarUi.panel(1);
 
