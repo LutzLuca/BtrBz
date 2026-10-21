@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.15.0-alpha] - 2026-10-21
+
+### Breaking
+
+- Saved alerts and alert history are cleared
+- Custom widget backgrounds reset to the theme default
+
+### Added
+
+- Added custom themes with presets, a live editor, and import and export
+- Added order book hints in the Bazaar's native order books
+- Added a claimable-order indicator on the Main Bazaar Screen
+- Added an Alerts widget in Bazaar containers for opening and dismissing triggered alerts
+- Added essence shop cost estimates and essence balance tooltips
+
+### Changed
+
+- Triggered alerts now stay in an Inbox until dismissed, with History, repeat alerts, and optional reminders
+- The new Product Context widget shows product quotes, inventory price differences, and optional market activity
+
+### Removed
+
+- Removed the Price Difference widget
+
 ## [0.14.0-alpha] - 2026-10-11
 
 ### Added
