@@ -3,6 +3,7 @@ package com.github.lutzluca.btrbz.core.widgets.alerts;
 import com.github.lutzluca.btrbz.core.ui.RetainedText;
 import com.github.lutzluca.btrbz.core.ui.UiButton;
 import com.github.lutzluca.btrbz.Assets;
+import com.github.lutzluca.btrbz.core.alert.AlertNotice;
 import com.github.lutzluca.btrbz.core.ui.UiComponents;
 import com.github.lutzluca.btrbz.core.ui.UiStyles;
 import com.github.lutzluca.btrbz.core.ui.UiText;
@@ -19,6 +20,11 @@ import io.wispforest.owo.ui.core.OwoUIGraphics;
 import io.wispforest.owo.ui.core.Sizing;
 import io.wispforest.owo.ui.core.UIComponent;
 import io.wispforest.owo.ui.core.VerticalAlignment;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
@@ -28,6 +34,8 @@ import net.minecraft.util.FormattedCharSequence;
 
 final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, AlertsWidgetConfig, Action> {
     private static final int MAX_ROWS = 3;
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm")
+        .withZone(ZoneId.systemDefault());
     private final FlowLayout root = BazaarUi.panel(1);
 
     @Override
@@ -49,7 +57,8 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         int width = headerWidth;
         if (!config.collapsed) {
             for (var entry : data.entries().stream().limit(MAX_ROWS).toList()) {
-                width = Math.max(width, Math.min(Math.max(80, config.contentWidth), font.width(entry.name()) + 32));
+                width = Math.max(width, Math.min(Math.max(80, config.contentWidth),
+                    font.width(UiStyles.productName(entry.nativeName(), false)) + 32));
             }
         }
         this.root.horizontalSizing(Sizing.fixed(width));
@@ -66,12 +75,14 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
         }
 
         for (var entry : data.entries().stream().limit(MAX_ROWS).toList()) {
+            var name = UiStyles.productName(entry.nativeName(), false);
+            var condition = AlertNotice.conditionText(entry.condition());
             var line = BazaarUi.line();
             var item = new Link(width - 15, () -> actions.accept(new Action.Open(entry.id())));
             item.gap(3);
             item.child(UiComponents.item(entry.stack(), 12));
-            item.child(new Text(UiStyles.productName(entry.name(), false), width - 30));
-            item.tooltip(WidgetTooltips.wrapped(entry.tooltip()));
+            item.child(new Text(name, width - 30));
+            item.tooltip(WidgetTooltips.wrapped(tooltip(entry, name, condition)));
             boolean current = session.product().map(product -> product.productId().equals(entry.productId()))
                 .orElse(false);
             if (current) {
@@ -83,8 +94,8 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
             var dismiss = UiButton.compactIcon(Assets.ALERT_ARCHIVE,
                 Component.literal("Dismiss alert. Move to History and stop reminders."),
                 () -> actions.accept(new Action.Dismiss(entry.id())));
-            dismiss.tooltip(WidgetTooltips.wrapped(java.util.List.of(Component.literal("Dismiss alert for ")
-                .append(entry.name()), entry.condition(),
+            dismiss.tooltip(WidgetTooltips.wrapped(List.of(Component.literal("Dismiss alert for ")
+                .append(name), condition,
                 Component.literal("Move to History and stop reminders"))));
             line.child(dismiss);
             this.root.child(line);
@@ -96,6 +107,19 @@ final class AlertsWidgetView implements WidgetView<AlertsWidgetData.Snapshot, Al
             more.tooltip(Component.literal("Open all pending alerts in Inbox"));
             this.root.child(more);
         }
+    }
+
+    private static List<Component> tooltip(AlertsWidgetData.Entry entry, Component name, Component condition) {
+        var lines = new ArrayList<Component>();
+        lines.add(name);
+        lines.add(condition);
+        lines.add(entry.currentObservation().map(value -> AlertNotice.currentText(entry.condition(), value))
+            .orElseGet(() -> Component.literal("Data unavailable").withStyle(UiStyles.muted())));
+        lines.add(Component.literal("Triggered " + TIME.format(Instant.ofEpochMilli(entry.reachedAt())))
+            .withStyle(UiStyles.muted()));
+        lines.add(AlertNotice.triggeredText(entry.observation()));
+        lines.add(Component.literal("Click to open in the Bazaar").withStyle(UiStyles.action()));
+        return lines;
     }
 
     private static class Link extends FlowLayout {
