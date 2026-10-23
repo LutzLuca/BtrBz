@@ -21,6 +21,7 @@ public final class BazaarProductContext {
         BazaarMenuType.BuyOrderSetupVolume,
         BazaarMenuType.BuyOrderSetupPrice,
         BazaarMenuType.BuyOrderConfirmation,
+        BazaarMenuType.SellOfferSetupVolume,
         BazaarMenuType.SellOfferSetup,
         BazaarMenuType.SellOfferConfirmation
     };

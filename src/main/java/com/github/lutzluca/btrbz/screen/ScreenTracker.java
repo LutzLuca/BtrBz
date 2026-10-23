@@ -267,6 +267,7 @@ public final class ScreenTracker {
         BuyOrderSetupPrice,  // How much do you want to pay?
         BuyOrderSetupVolume, // How many do you want?
         BuyOrderConfirmation, // Confirm Buy Order
+        SellOfferSetupVolume, // How many are you selling?
         SellOfferSetup, // At what price are you selling?
         SellOfferConfirmation, // Confirm Sell Offer
         Item, // <group> ➜ <product name> | product name from title & fallback to inventory idx 34
@@ -309,6 +310,7 @@ public final class ScreenTracker {
                 case BuyOrderSetupVolume -> title.equals("How many do you want?");
                 case BuyOrderSetupPrice -> title.equals("How much do you want to pay?");
                 case BuyOrderConfirmation -> title.equals("Confirm Buy Order");
+                case SellOfferSetupVolume -> title.equals("How many are you selling?");
                 case SellOfferSetup -> title.equals("At what price are you selling?");
                 case SellOfferConfirmation -> title.equals("Confirm Sell Offer");
                 case Item -> {
