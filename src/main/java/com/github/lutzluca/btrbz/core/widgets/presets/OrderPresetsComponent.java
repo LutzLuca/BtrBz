@@ -15,6 +15,7 @@ import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.screen.ScreenTracker.ScreenInfo;
 import com.github.lutzluca.btrbz.utils.GameUtils;
 import com.github.lutzluca.btrbz.utils.Utils;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -128,7 +129,7 @@ public final class OrderPresetsComponent {
 
         if (!state.clipboard().isBlank()) {
             clipboard = Utils.parseUsFormattedNumber(state.clipboard())
-                .map(Number::intValue)
+                .map(BigDecimal::intValueExact)
                 .filter(value -> value > 0 && value <= state.maximumVolume())
                 .map(OptionalInt::of)
                 .getOrElse(OptionalInt.empty());

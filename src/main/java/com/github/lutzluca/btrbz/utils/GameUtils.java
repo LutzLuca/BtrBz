@@ -279,10 +279,12 @@ public final class GameUtils {
             return Component.empty().setStyle(style);
         }
 
-        var result = segments.getFirst();
-        for (int index = 1; index < segments.size(); index++) {
-            result.append(segments.get(index));
+        if (segments.size() == 1) {
+            return segments.getFirst();
         }
+
+        var result = Component.empty();
+        segments.forEach(result::append);
         return result;
     }
 
