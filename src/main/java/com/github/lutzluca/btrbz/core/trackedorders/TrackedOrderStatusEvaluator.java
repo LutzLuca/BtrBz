@@ -23,7 +23,6 @@ final class TrackedOrderStatusEvaluator {
         return trackedOrders
             .stream()
             .map(order -> this.getTrackedStatus(order, snapshot))
-            .flatMap(Optional::stream)
             .filter(trackedStatus -> this.hasStatusChanged(
                 trackedStatus.order().status,
                 trackedStatus.status()))
@@ -106,24 +105,23 @@ final class TrackedOrderStatusEvaluator {
         return null;
     }
 
-    private Optional<TrackedStatus> getTrackedStatus(TrackedOrder order, MarketSnapshot snapshot) {
+    private TrackedStatus getTrackedStatus(TrackedOrder order, MarketSnapshot snapshot) {
         if (order.product.bazaarProductId().isEmpty()) {
             log.warn("Tracked order product has no market id: '{}'", order.productName);
-            return Optional.empty();
+            return new TrackedStatus(order, new OrderStatus.Unknown());
         }
 
         if (!snapshot.contains(order.product)) {
             log.warn("No product found for tracked order product {}", order.product);
-            return Optional.empty();
+            return new TrackedStatus(order, new OrderStatus.Unknown());
         }
 
         var status = this.getStatus(order, snapshot.summariesForOrderType(order.product, order.type));
         if (status.isEmpty()) {
             log.debug("Unable to determine curr for product {}", order.product);
-            return Optional.empty();
         }
 
-        return Optional.of(new TrackedStatus(order, status.get()));
+        return new TrackedStatus(order, status.orElseGet(OrderStatus.Unknown::new));
     }
 
     private int countOrdersAtBestPrice(GroupKey key, MarketSnapshot snapshot) {
