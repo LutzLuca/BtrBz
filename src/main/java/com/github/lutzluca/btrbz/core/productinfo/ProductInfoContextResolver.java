@@ -31,10 +31,13 @@ final class ProductInfoContextResolver {
         }
         if (menu != null) {
             var item = new MenuItem(stack, menu, requireMatchingName);
+            if (!ProductInfoMatching.allowsMenuProductResolution(item.lore(), menu.bazaarMenu())) {
+                return null;
+            }
+
             var title = menu.title();
             if (menu.bazaarMenu() == BazaarMenuType.Main) {
-                return ProductInfoMatching.isBazaarProductEntry(item.lore())
-                    ? this.resolveStack(stack, requireMatchingName) : null;
+                return this.resolveStack(stack, requireMatchingName);
             }
             if (menu.bazaarMenu() == BazaarMenuType.Orders && ProductInfoMatching.isOrderStack(stack)) {
                 return this.resolveOrder(item);

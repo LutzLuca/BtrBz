@@ -2,6 +2,8 @@ package com.github.lutzluca.btrbz.core.productinfo;
 
 import com.github.lutzluca.btrbz.data.IndexedProduct;
 import com.github.lutzluca.btrbz.data.ProductIdentity;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
+import java.util.Arrays;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -33,13 +35,23 @@ class ProductInformationMatchingTest {
 
     @Test
     void distinguishesDirectBazaarEntriesFromCategoryNavigation() {
-        Assertions.assertTrue(ProductInfoMatching.isBazaarProductEntry(List.of(
-            Component.literal("1 product"), Component.literal("§eClick to view product!"))));
-        Assertions.assertTrue(ProductInfoMatching.isBazaarProductEntry(List.of(
-            Component.literal("Rare commodity"), Component.literal("§eClick to view details!"))));
-        Assertions.assertFalse(ProductInfoMatching.isBazaarProductEntry(List.of(
-            Component.literal("2 products"), Component.literal("§eClick to view products!"))));
-        Assertions.assertFalse(ProductInfoMatching.isBazaarProductEntry(List.of(Component.literal("1 product"))));
+        var pufferfish = new IndexedProduct("RAW_FISH:3", "Pufferfish");
+        Assertions.assertTrue(ProductInfoMatching.matchesDisplayedName("§ePufferfish", pufferfish, false));
+
+        for (var menuType : Arrays.asList(BazaarMenuType.Main, BazaarMenuType.ItemGroup, null)) {
+            Assertions.assertFalse(ProductInfoMatching.allowsMenuProductResolution(List.of(
+                Component.literal("§72 products"), Component.literal(" §eClick to view products! ")), menuType),
+                "Same-name Pufferfish group in " + menuType);
+            Assertions.assertTrue(ProductInfoMatching.allowsMenuProductResolution(List.of(
+                Component.literal("1 product"), Component.literal("§eClick to view product!")), menuType));
+            Assertions.assertTrue(ProductInfoMatching.allowsMenuProductResolution(List.of(
+                Component.literal("Rare commodity"), Component.literal("§eClick to view details!")), menuType));
+        }
+
+        Assertions.assertFalse(ProductInfoMatching.allowsMenuProductResolution(
+            List.of(Component.literal("1 product")), BazaarMenuType.Main));
+        Assertions.assertTrue(ProductInfoMatching.allowsMenuProductResolution(List.of(), BazaarMenuType.ItemGroup));
+        Assertions.assertTrue(ProductInfoMatching.allowsMenuProductResolution(List.of(), null));
     }
 
     @Test

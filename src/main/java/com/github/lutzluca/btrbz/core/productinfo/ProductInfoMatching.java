@@ -1,6 +1,7 @@
 package com.github.lutzluca.btrbz.core.productinfo;
 
 import com.github.lutzluca.btrbz.data.IndexedProduct;
+import com.github.lutzluca.btrbz.screen.ScreenTracker.BazaarMenuType;
 import com.github.lutzluca.btrbz.utils.Utils;
 import java.util.List;
 import java.util.Optional;
@@ -8,6 +9,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
+import org.jetbrains.annotations.Nullable;
 
 final class ProductInfoMatching {
 
@@ -59,14 +61,18 @@ final class ProductInfoMatching {
             ? Optional.of(name.substring(0, name.length() - suffix.length())) : Optional.empty();
     }
 
-    static boolean isBazaarProductEntry(List<Component> lore) {
+    static boolean allowsMenuProductResolution(List<Component> lore, @Nullable BazaarMenuType menuType) {
+        var productEntry = false;
         for (var line : lore) {
             var text = Utils.cleanDisplayName(line.getString());
+            if ("Click to view products!".equals(text)) {
+                return false;
+            }
             if ("Click to view product!".equals(text) || "Click to view details!".equals(text)) {
-                return true;
+                productEntry = true;
             }
         }
-        return false;
+        return menuType != BazaarMenuType.Main || productEntry;
     }
 
 }
