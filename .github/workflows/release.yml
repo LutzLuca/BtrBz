@@ -43,9 +43,12 @@ jobs:
           fi
       - name: format, lint, test, and build all targets
         run: ./gradlew build
+      - name: validate release versions and packaged metadata
+        run: ./gradlew validateRelease -PreleaseTag="$GITHUB_REF_NAME"
       - name: publish to GitHub and Modrinth
         run: ./gradlew releaseMod
         env:
+          ORG_GRADLE_PROJECT_releaseTag: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ github.token }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
       - name: announce release
