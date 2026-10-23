@@ -61,6 +61,13 @@ afterEvaluate {
     }
 }
 
+tasks.register("validateRelease") {
+    group = "verification"
+    description = "Validates release versions and packaged metadata for every configured target."
+
+    dependsOn(stonecutter.versions.map { ":${it.project}:validateRelease" })
+}
+
 tasks.register("releaseMod") {
     group = "publishing"
     description = "Publishes the mod to GitHub and Modrinth"

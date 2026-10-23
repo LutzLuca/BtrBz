@@ -1,3 +1,7 @@
+import groovy.json.JsonSlurper
+import java.util.jar.JarFile
+import me.modmuss50.mpp.PublishModTask
+
 plugins {
     id("net.fabricmc.fabric-loom") version "1.17-SNAPSHOT"
     id("me.modmuss50.mod-publish-plugin") version "2.2.0"
@@ -163,4 +167,49 @@ publishMods {
         requires("fabric-api", "yacl", "owo-lib", "hypixel-mod-api")
         optional("modmenu")
     }
+}
+
+tasks.register("validateRelease") {
+    group = "verification"
+    description = "Validates this target's release tag, publication version, and packaged metadata."
+
+    val releaseTag = providers.gradleProperty("releaseTag")
+    val artifactVersion = project.version.toString()
+    val publicationVersion = publishMods.version
+    val artifact = publishMods.file
+    val target = project.path
+
+    dependsOn(tasks.jar)
+    inputs.property("releaseTag", releaseTag.orElse(""))
+    inputs.property("artifactVersion", artifactVersion)
+    inputs.property("publicationVersion", publicationVersion)
+    inputs.file(artifact)
+
+    doLast {
+        val tag = releaseTag.orNull
+        for (version in listOf(artifactVersion, publicationVersion.get())) {
+            val expectedTag = "v${version.substringBefore('+')}"
+            check(tag == expectedTag) {
+                "$target: release tag '${tag ?: "<missing>"}' does not match version '$version'. " +
+                    "Pass -PreleaseTag=$expectedTag."
+            }
+        }
+
+        JarFile(artifact.get().asFile).use { jar ->
+            val entry = jar.getJarEntry("fabric.mod.json")
+                ?: error("$target: published JAR has no fabric.mod.json")
+            val metadata = jar.getInputStream(entry).bufferedReader().use {
+                JsonSlurper().parse(it) as Map<*, *>
+            }
+            check(metadata["version"] == artifactVersion) {
+                "$target: packaged version '${metadata["version"]}' does not match '$artifactVersion'."
+            }
+        }
+
+        logger.lifecycle("$target: validated $tag, artifact $artifactVersion, publication ${publicationVersion.get()}")
+    }
+}
+
+tasks.withType<PublishModTask>().configureEach {
+    dependsOn(rootProject.tasks.named("validateRelease"))
 }

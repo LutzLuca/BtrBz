@@ -1,7 +1,7 @@
 {
     "schemaVersion": 1,
     "id": "btrbz",
-    "version": "${mod_version}",
+    "version": "${version}",
     "name": "BtrBz",
     "authors": [
         "LutzLuca"
