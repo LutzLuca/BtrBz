@@ -102,6 +102,10 @@ dependencies {
 }
 
 tasks {
+    withType<JavaCompile>().configureEach {
+        options.release.set(25)
+    }
+
     processResources {
         inputs.property("version", project.version)
         inputs.property("mc_version", stonecutter.current.version)
@@ -128,6 +132,7 @@ tasks {
 }
 
 java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
     withSourcesJar()
 }
 
