@@ -39,6 +39,7 @@ import net.minecraft.world.item.component.ItemLore;
 @Slf4j
 public class BazaarOrderActions {
     public static final int CANCEL_ORDER_SLOT = 11;
+    public static final int CANCEL_OFFER_SLOT = 13;
 
     private final BazaarData bazaarData;
 
@@ -191,26 +192,26 @@ public class BazaarOrderActions {
             return;
         }
 
-        if (info.type() != OrderType.Buy) {
-            log.debug("Order is not a buy order, clearing `activeBuyOrderContext` and `remainingOrderAmount`");
-            this.activeBuyOrderContext = null;
-            this.remainingOrderAmount = null;
-            return;
-        }
+        this.activeBuyOrderContext = null;
+        this.remainingOrderAmount = null;
 
         if (info.hasUnclaimed()) {
-            log.warn("Order has unclaimed items, resetting state");
-            this.activeBuyOrderContext = null;
-            this.remainingOrderAmount = null;
+            log.warn("Order has unclaimed items or proceeds, resetting state");
             return;
         }
 
-        this.activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.product(),
-            this.bazaarData);
-        log.debug(
-            "Set active order context for transition: productName='{}'",
-            this.activeBuyOrderContext.product().strippedName());
+        this.captureRemainingAmount(info);
 
+        if (info.type() == OrderType.Buy) {
+            this.activeBuyOrderContext = CancelledOrderContext.buildDisplayContext(slotItem, info.product(),
+                this.bazaarData);
+            log.debug(
+                "Set active order context for transition: productName='{}'",
+                this.activeBuyOrderContext.product().strippedName());
+        }
+    }
+
+    private void captureRemainingAmount(OrderInfo info) {
         this.remainingOrderAmount = info.volume() - info.filledAmountSnapshot();
         log.debug(
             "Setting remainingOrderAmount to {} from order info {}",
@@ -242,7 +243,8 @@ public class BazaarOrderActions {
     }
 
     private boolean isCancelOrderSlot(@Nullable Slot slot) {
-        return slot != null && slot.getContainerSlot() == CANCEL_ORDER_SLOT
+        return slot != null
+            && (slot.getContainerSlot() == CANCEL_ORDER_SLOT || slot.getContainerSlot() == CANCEL_OFFER_SLOT)
             && slot
                 .getItem()
                 .getHoverName()
@@ -387,7 +389,8 @@ public class BazaarOrderActions {
                 .name(Component.literal("Copy Remaining Amount"))
                 .binding(true, () -> this.copyRemaining, enabled -> this.copyRemaining = enabled)
                 .description(ConfigUi.createDescription(
-                    "Copy the unfilled amount when cancelling a buy order, ready to paste into the next order."))
+                    "Copy the unfilled amount when cancelling a buy order or sell offer, "
+                        + "ready to paste into the next order."))
                 .controller(ConfigUi::createBooleanController);
         }
 
@@ -412,7 +415,7 @@ public class BazaarOrderActions {
                 .name(Component.literal("Enable Cancelled Order Actions"))
                 .binding(true, () -> this.enabled, enabled -> this.enabled = enabled)
                 .description(ConfigUi.createDescription(
-                    "Enable shortcuts for cancelled buy orders."))
+                    "Enable shortcuts for cancelled buy orders and sell offers."))
                 .controller(ConfigUi::createBooleanController);
         }
 
