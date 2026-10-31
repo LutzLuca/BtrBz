@@ -87,6 +87,7 @@ class OrderInfoParserTest {
 
         Assertions.assertTrue(result.isSuccess());
         Assertions.assertEquals(expected, result.get());
+        Assertions.assertEquals(expected.unclaimed() > 0, result.get().hasUnclaimed());
     }
 
     private static Stream<Arguments> orderLore() {
@@ -117,13 +118,28 @@ class OrderInfoParserTest {
                 List.of("Offer amount: 1x", "Filled: 1/1 100%!", "Price per unit: 0.3 coins"), 12,
                 new OrderInfo.FilledOrderInfo(
                     "Bane of Arthropods VI", OrderType.Sell, 1, 0.3, 1, 0, 12)),
-            Arguments.of("complete compact fill keeps exact order volume",
+            Arguments.of("compact claims preserve exact full order volume",
                 "BUY Flawed Topaz Gemstone",
-                List.of("Worth 21.3M coins", "Order amount: 51,200x",
-                    "Filled: 51.2k/51.2k 100%!", "Price per unit: 415.9 coins"),
+                List.of("Worth 29.8M coins", "Order amount: 71,680x",
+                    "Filled: 71.7k/71.7k 100%!", "Price per unit: 415.9 coins",
+                    "You have 71.7k items to claim!"),
                 6,
                 new OrderInfo.FilledOrderInfo(
-                    "Flawed Topaz Gemstone", OrderType.Buy, 51_200, 415.9, 51_200, 0, 6)),
+                    "Flawed Topaz Gemstone", OrderType.Buy, 71_680, 415.9, 71_680, 71_700L, 6)),
+            Arguments.of("compact million coin claims",
+                "SELL Summoning Eye",
+                List.of("Offer amount: 1x", "Filled: 1/1 100%!",
+                    "Price per unit: 1,200,000 coins", "You have 1.2M coins to claim!"),
+                7,
+                new OrderInfo.FilledOrderInfo(
+                    "Summoning Eye", OrderType.Sell, 1, 1_200_000.0, 1, 1_200_000L, 7)),
+            Arguments.of("compact billion coin claims exceed the integer range",
+                "SELL Summoning Eye",
+                List.of("Offer amount: 2,500x", "Filled: 2.5k/2.5k 100%!",
+                    "Price per unit: 1,300,000 coins", "You have 3.1B coins to claim!"),
+                8,
+                new OrderInfo.FilledOrderInfo(
+                    "Summoning Eye", OrderType.Sell, 2_500, 1_300_000.0, 2_500, 3_100_000_000L, 8)),
             Arguments.of("unclaimed items with distracting lore",
                 "BUY Heat Core",
                 List.of("Worth 10,400,000 coins", "Order amount: 8x", "Some unrelated line",
@@ -178,12 +194,12 @@ class OrderInfoParserTest {
     void estimatesFilledAmountFromPercentageWhenTheNumeratorIsCompact() {
         var result = OrderInfoParser.parseOrderInfo("BUY Enchanted Iron",
             List.of("Worth 96,000,000 coins", "Order amount: 51,200x", "Filled: 3.1k/51.2k (6.1%)",
-                "Price per unit: 1,875 coins"),
+                "Price per unit: 1,875 coins", "You have 3.1k items to claim!"),
             1);
 
         Assertions.assertTrue(result.isSuccess());
         Assertions.assertEquals(new OrderInfo.UnfilledOrderInfo(
-            "Enchanted Iron", OrderType.Buy, 51_200, 1_875.0, 3_123, 0, 1), result.get());
+            "Enchanted Iron", OrderType.Buy, 51_200, 1_875.0, 3_123, 3_100L, 1), result.get());
     }
 
     @ParameterizedTest(name = "{0}")

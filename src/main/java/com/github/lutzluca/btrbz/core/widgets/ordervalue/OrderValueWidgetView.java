@@ -28,7 +28,7 @@ final class OrderValueWidgetView implements WidgetView<OrderValueWidgetData.Snap
     private final ValueLine sellClaimable = new ValueLine("Sell Offers (Claimable)", UiColor.Sell);
     private final ValueLine sellPending = new ValueLine("Sell Offers (Pending)", UiColor.Sell);
 
-    private final ValueLine total = new ValueLine("Total Worth", UiColor.TextSecondary);
+    private final ValueLine total = new ValueLine("Estimated Worth", UiColor.TextSecondary);
 
     OrderValueWidgetView() {
         this.root.allowOverflow(true);

@@ -85,6 +85,30 @@ public final class Utils {
         });
     }
 
+    /**
+     * Parses a US number with an optional k, M or B suffix into a long. Compact inputs may already
+     * be rounded. Any fractional part after expansion is truncated toward zero, losing precision.
+     * Values outside the long range are rejected.
+     */
+    public static Try<Long> parseCompactNumber(String text) {
+        return Try.of(() -> {
+            var token = text.trim();
+            if (token.isEmpty()) {
+                throw new IllegalArgumentException("Invalid compact number: " + text);
+            }
+
+            int exponent = switch (token.charAt(token.length() - 1)) {
+                case 'k' -> 3;
+                case 'M' -> 6;
+                case 'B' -> 9;
+                default -> 0;
+            };
+            var number = exponent == 0 ? token : token.substring(0, token.length() - 1);
+            var value = parseUsFormattedNumber(number).get();
+            return value.movePointRight(exponent).setScale(0, RoundingMode.DOWN).longValueExact();
+        });
+    }
+
     public static <T> List<T> removeIfAndReturn(Collection<T> coll, Predicate<? super T> pred) {
         List<T> removed = new ArrayList<>();
         var it = coll.iterator();

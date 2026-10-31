@@ -274,7 +274,7 @@ public final class OrderInfoParser {
             Integer volume = null;
             Double filledPercentage = null;
             Integer exactFilledAmount = null;
-            int unclaimed = 0;
+            long unclaimed = 0;
             boolean expired = false;
 
             for (String rawLine : lore) {
@@ -343,13 +343,11 @@ public final class OrderInfoParser {
                             .intValue();
                     }
                 } else if (line.startsWith("You have")) {
-                    var trimmed = line.replaceFirst("You have", "").trim();
+                    var trimmed = line.substring("You have".length()).trim();
                     var spaceIdx = trimmed.indexOf(' ');
-                    unclaimed = Utils
-                        .parseUsFormattedNumber(trimmed.substring(0, spaceIdx).trim())
-                        .getOrElseThrow(() -> new IllegalArgumentException(
-                            "Failed to parse unclaimed amount"))
-                        .intValue();
+                    unclaimed = Utils.parseCompactNumber(trimmed.substring(0, spaceIdx))
+                        .getOrElseThrow(
+                            error -> new IllegalArgumentException("Failed to parse unclaimed amount", error));
                 }
             }
 
@@ -518,6 +516,6 @@ public final class OrderInfoParser {
     private record ParsedVolume(int volume, String productName) {}
 
     private record OrderDetails(
-        double pricePerUnit, int volume, int filledAmount, int unclaimed, boolean filled, boolean expired
+        double pricePerUnit, int volume, int filledAmount, long unclaimed, boolean filled, boolean expired
     ) {}
 }
