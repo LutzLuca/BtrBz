@@ -59,12 +59,17 @@ final class ProductInfoContextResolver {
                 return this.resolveComposter(item);
             }
             // NOTE: Consider container name validation once all essence shop entry titles have been verified.
-            var essenceType = ProductInfoMatching.essenceShopType(stack.getHoverName().getString());
+            var essenceMenu = title.equals("Your Essence");
+            var essenceType = essenceMenu
+                ? ProductInfoMatching.essenceType(stack.getHoverName().getString())
+                : ProductInfoMatching.essenceShopType(stack.getHoverName().getString());
             if (essenceType.isPresent()) {
                 var type = essenceType.get();
+                var count = essenceMenu
+                    ? ProductInfoContextParser.ownedEssence(item.lore(), type)
+                    : ProductInfoContextParser.essenceBalance(item.lore(), type);
                 return new ResolvedProduct(this.resolveEssence(type),
-                    new ProductInfoQuantity(ProductInfoQuantity.Source.ESSENCE_BALANCE,
-                        ProductInfoContextParser.essenceBalance(item.lore(), type)));
+                    new ProductInfoQuantity(ProductInfoQuantity.Source.ESSENCE_BALANCE, count));
             }
             if (ProductInfoMatching.isSackStack(stack)) {
                 return this.resolveSack(item);

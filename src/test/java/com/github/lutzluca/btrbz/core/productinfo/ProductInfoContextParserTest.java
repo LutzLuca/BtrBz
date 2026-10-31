@@ -107,6 +107,35 @@ class ProductInfoContextParserTest {
     }
 
     @Test
+    void readsExactBalancesFromYourEssenceIncludingWrappedLore() {
+        var examples = List.of(
+            new OwnedEssenceCase("§aFossil Essence", List.of("§7You currently own §a0 §dFossil Essence.", "",
+                "§7§oThe oldest essence of all."), OptionalInt.of(0)),
+            new OwnedEssenceCase("Wither Essence", List.of("You currently own 1 Wither Essence."),
+                OptionalInt.of(1)),
+            new OwnedEssenceCase("§aWither Essence", List.of("§7You currently own §a1,671 §dWither", "§dEssence.",
+                "", "§7§oWhy are we still here? Just to", "§7§osuffer..."), OptionalInt.of(1_671)),
+            new OwnedEssenceCase("§aUndead Essence", List.of("§7You currently own §a103,294 §dUndead", "§dEssence.",
+                "", "§7§oIs this thing rotten? And the smell,", "§7§oyikes..."), OptionalInt.of(103_294)),
+            new OwnedEssenceCase("Undead Essence", List.of("You currently own 1,234,567 Undead", "Essence."),
+                OptionalInt.of(1_234_567)),
+            new OwnedEssenceCase("Wither Essence", List.of("You currently own 1,671 Undead Essence."),
+                OptionalInt.empty()),
+            new OwnedEssenceCase("Undead Essence", List.of("You currently own ??? Undead Essence."),
+                OptionalInt.empty()),
+            new OwnedEssenceCase("Undead Essence", List.of("The balance is unavailable."), OptionalInt.empty()));
+
+        for (var example : examples) {
+            var type = ProductInfoMatching.essenceType(example.name()).orElseThrow();
+            var lore = example.lore().stream().<Component>map(Component::literal).toList();
+            Assertions.assertEquals(example.expected(), ProductInfoContextParser.ownedEssence(lore, type),
+                example.lore().toString());
+        }
+        Assertions.assertTrue(ProductInfoMatching.essenceType("Go Back").isEmpty());
+        Assertions.assertTrue(ProductInfoMatching.essenceType("Undead Essence Shop").isEmpty());
+    }
+
+    @Test
     void readsOnlyTheCurrentShopsEssencePaymentAfterTheCostHeading() {
         var examples = List.of(
             new EssenceCostCase("Wither Essence Shop", List.of("Increases Intelligence by 2.", "", "§7Cost",
@@ -159,6 +188,8 @@ class ProductInfoContextParserTest {
     private record SackCase(String description, List<String> lore, OptionalInt expected) {}
 
     private record EssenceBalanceCase(String name, String balance, OptionalInt expected) {}
+
+    private record OwnedEssenceCase(String name, List<String> lore, OptionalInt expected) {}
 
     private record EssenceCostCase(String title, List<String> lore, OptionalInt expected) {}
 }
