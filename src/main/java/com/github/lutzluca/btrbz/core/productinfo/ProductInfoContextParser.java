@@ -2,9 +2,11 @@ package com.github.lutzluca.btrbz.core.productinfo;
 
 import com.github.lutzluca.btrbz.utils.Utils;
 import io.vavr.control.Try;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.stream.Collectors;
 import net.minecraft.network.chat.Component;
 
 final class ProductInfoContextParser {
@@ -86,6 +88,20 @@ final class ProductInfoContextParser {
         return loreValue(lore, "Your " + type + " Essence:")
             .map(ProductInfoContextParser::parseQuantity)
             .orElseGet(OptionalInt::empty);
+    }
+
+    static OptionalInt ownedEssence(List<Component> lore, String type) {
+        var text = Utils.cleanDisplayName(lore.stream().map(Component::getString).collect(Collectors.joining(" ")));
+        var prefix = "You currently own ";
+        var end = text.indexOf(" " + type + " Essence.", prefix.length());
+        if (!text.startsWith(prefix) || end < 0) {
+            return OptionalInt.empty();
+        }
+        return Utils.parseUsFormattedNumber(text.substring(prefix.length(), end))
+            .map(BigDecimal::intValueExact)
+            .filter(count -> count >= 0)
+            .map(OptionalInt::of)
+            .getOrElse(OptionalInt.empty());
     }
 
     static OptionalInt essenceCost(List<Component> lore, String type) {

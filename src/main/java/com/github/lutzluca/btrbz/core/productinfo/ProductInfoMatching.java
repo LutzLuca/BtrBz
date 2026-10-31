@@ -61,6 +61,13 @@ final class ProductInfoMatching {
             ? Optional.of(name.substring(0, name.length() - suffix.length())) : Optional.empty();
     }
 
+    static Optional<String> essenceType(String displayedName) {
+        var name = Utils.cleanDisplayName(displayedName);
+        var suffix = " Essence";
+        return name.endsWith(suffix)
+            ? Optional.of(name.substring(0, name.length() - suffix.length())) : Optional.empty();
+    }
+
     static boolean allowsMenuProductResolution(List<Component> lore, @Nullable BazaarMenuType menuType) {
         var productEntry = false;
         for (var line : lore) {
