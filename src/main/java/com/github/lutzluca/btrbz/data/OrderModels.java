@@ -27,7 +27,6 @@ public final class OrderModels {
         }
     }
 
-    // Note: `unclaimed` when type == OrderType.Buy in items; when type == OrderType.Sell in coins
     public sealed interface OrderInfo permits OrderInfo.UnfilledOrderInfo,
         OrderInfo.FilledOrderInfo, OrderInfo.ExpiredOrderInfo {
 
@@ -49,7 +48,12 @@ public final class OrderModels {
 
         int filledAmountSnapshot();
 
-        int unclaimed();
+        /** Claimable buy items or sell coins, estimated when the lore uses a compact amount. */
+        long unclaimed();
+
+        default boolean hasUnclaimed() {
+            return this.unclaimed() > 0;
+        }
 
         OrderInfo withProduct(ProductIdentity product);
 
@@ -60,7 +64,7 @@ public final class OrderModels {
             int volume,
             double pricePerUnit,
             int filledAmountSnapshot,
-            int unclaimed,
+            long unclaimed,
             int slotIdx
         ) implements OrderInfo {
 
@@ -70,7 +74,7 @@ public final class OrderModels {
                 int volume,
                 double pricePerUnit,
                 int filledAmountSnapshot,
-                int unclaimed,
+                long unclaimed,
                 int slotIdx
             ) {
                 this(
@@ -104,7 +108,7 @@ public final class OrderModels {
             int volume,
             double pricePerUnit,
             int filledAmountSnapshot,
-            int unclaimed,
+            long unclaimed,
             int slotIdx
         ) implements OrderInfo {
 
@@ -114,7 +118,7 @@ public final class OrderModels {
                 int volume,
                 double pricePerUnit,
                 int filledAmountSnapshot,
-                int unclaimed,
+                long unclaimed,
                 int slotIdx
             ) {
                 this(
@@ -148,7 +152,7 @@ public final class OrderModels {
             int volume,
             double pricePerUnit,
             int filledAmountSnapshot,
-            int unclaimed,
+            long unclaimed,
             int slotIdx
         ) implements OrderInfo {
 
@@ -158,7 +162,7 @@ public final class OrderModels {
                 int volume,
                 double pricePerUnit,
                 int filledAmountSnapshot,
-                int unclaimed,
+                long unclaimed,
                 int slotIdx
             ) {
                 this(ProductIdentity.fromName(productName), productName, type, volume,

@@ -29,7 +29,8 @@ public final class OrderValueWidgetDefinition {
         return WidgetDefinition.<OrderValueWidgetData.Snapshot, OrderValueWidgetConfig, Void>builder(ID, "Order Value")
             .description("Estimates coins locked in active buy orders, unclaimed items and proceeds, "
                 + "and potential proceeds from active sell offers. Item values use the order's displayed unit price; "
-                + "sell proceeds use the displayed claimable coins. Expired remainders and already claimed fills "
+                + "sell proceeds use the displayed claimable coins. Compact claim amounts are approximate. "
+                + "Expired remainders and already claimed fills "
                 + "are excluded, while unclaimed fills of expired orders still contribute.")
             .config(config)
             .supports(OrderValueWidgetDefinition::supportsSession)

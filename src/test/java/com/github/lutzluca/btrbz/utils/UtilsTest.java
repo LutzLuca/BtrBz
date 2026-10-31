@@ -92,6 +92,21 @@ class UtilsTest {
         Assertions.assertEquals(expected, parsed.get().doubleValue(), 0.000001d);
     }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "1.2345k | 1234",
+        "-1,234.9 | -1234"
+    })
+    void truncatesCompactNumberFractionsTowardZero(String input, long expected) {
+        Assertions.assertEquals(expected, Utils.parseCompactNumber(input).get());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "12Q", "9,223,372,036,854,775,808"})
+    void rejectsInvalidOrOverflowingCompactNumbers(String input) {
+        Assertions.assertTrue(Utils.parseCompactNumber(input).isFailure());
+    }
+
     @Test
     void retainsDecimalPrecisionForExactPriceMatching() {
         Assertions.assertEquals(new BigDecimal("9007199254740992.1"),

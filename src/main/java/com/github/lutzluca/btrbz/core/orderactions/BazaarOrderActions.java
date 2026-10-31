@@ -198,7 +198,7 @@ public class BazaarOrderActions {
             return;
         }
 
-        if (info.unclaimed() != 0) {
+        if (info.hasUnclaimed()) {
             log.warn("Order has unclaimed items, resetting state");
             this.activeBuyOrderContext = null;
             this.remainingOrderAmount = null;
