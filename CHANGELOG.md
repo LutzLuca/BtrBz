@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.15.1-alpha] - 2026-10-31
+
+### Added
+
+- Added exact balance tooltips to the Your Essence menu
+
+### Changed
+
+- Renamed Order Value's Total Worth to Estimated Worth and clarified that compact claim amounts are approximate
+
+### Fixed
+
+- Fixed compact claim amounts preventing large Bazaar orders from appearing in tracking, highlighting, market-total tooltips, and Flip Helper
+- Fixed Copy Remaining Amount not working when cancelling sell offers
+- Fixed Bazaar product groups showing price tooltips and product lookup shortcuts
+- Fixed Bazaar features pausing on the sell-offer quantity screen
+- Fixed tracked orders keeping stale statuses when their market data disappears
+- Fixed clipboard quantity presets accepting fractional or overflowing amounts
+- Fixed text formatting resets inheriting formatting from earlier text
+
+### Internal
+
+- Release builds now validate tags and packaged version metadata before publishing, and include the full mod version in their metadata
+- Pinned the Java compiler and bytecode target to Java 25
+
 ## [0.15.0-alpha] - 2026-10-21
 
 ### Breaking
